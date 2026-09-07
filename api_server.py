@@ -29,10 +29,20 @@ from google.genai import types
 
 app = FastAPI(title="Nexus Agent API Gateway", version="1.0.0")
 
-# CORS: izinkan semua origin (sementara untuk dev)
+# CORS: izinkan frontend publik Cloudflare Pages + local dev.
+# Nota: allow_credentials=True no se puede combinar con origin "*".
+allowed = [
+    "https://proyek-agent.pages.dev",
+    "http://localhost:3000",
+    "http://localhost:3001",
+]
+env_origin = os.getenv("CORS_ORIGIN", "").strip()
+if env_origin:
+    allowed.append(env_origin)
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=allowed,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -232,4 +242,18 @@ def messages(session_id: str, email: str):
 # ---------------------------------------------------------------------------
 @app.get("/health")
 def health():
-    return {"status": "ok"}
+    return {
+        "status": "ok",
+        "persistence": db.persistence_info(),
+    }
+
+
+# ---------------------------------------------------------------------------
+# ENTRYPOINT directo (dev local): uvicorn api_server:app --reload o python api_server.py
+# ---------------------------------------------------------------------------
+if __name__ == "__main__":
+    import uvicorn
+
+    port = int(os.getenv("PORT", "8000"))
+    host = os.getenv("HOST", "0.0.0.0")
+    uvicorn.run("api_server:app", host=host, port=port, reload=os.getenv("RELOAD") == "1")

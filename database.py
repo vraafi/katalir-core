@@ -24,6 +24,11 @@ SUPABASE_KEY = (os.getenv("SUPABASE_KEY") or "").strip()
 _client = None
 _configured = None
 
+# Cuando True, los fallos de escritura NO caen silenciosamente a RAM:
+# si SUPABASE_URL está configurado pero un INSERT/UPDATE falla, se propaga error.
+# Esto garantiza datos permanentes en Postgres (sin "data amnesia").
+PERSIST_REQUIRED = os.getenv("PERSIST_REQUIRED", "1").strip().lower() in ("1", "true", "yes")
+
 # Fallback lokal bila Supabase belum dikonfigurasi / gagal
 _LUSER = {}
 _LSESS = {}
@@ -155,6 +160,7 @@ def get_messages(email, session_id):
 
 
 def add_message(email, session_id, role, content):
+    # Si Supabase está configurado, SIEMPRE escribir a Postgres (persistencia permanente).
     if is_configured():
         try:
             _get_client().table("chat_messages").insert(
@@ -162,6 +168,8 @@ def add_message(email, session_id, role, content):
             return
         except Exception:
             _configured = False
+            if PERSIST_REQUIRED:
+                raise  # fallo de escritura = error real (no "data amnesia" silencioso)
     key = (email, session_id)
     _LMSG.setdefault(key, []).append({"role": role, "content": content, "created_at": _now()})
 # ---- USER INTEGRATIONS (Bring Your Own Key) ----
@@ -233,3 +241,14 @@ def delete_integration(email, provider_name):
         except Exception:
             _configured = False
     _LINT.pop((email, provider_name), None)
+
+
+def persistence_info():
+    """Estado persistensi para health-check / logs.
+
+    Returns:
+        dict con status (persisted | degraded) y backend (supabase | memory).
+    """
+    if is_configured():
+        return {"status": "persisted", "backend": "supabase", "url": SUPABASE_URL}
+    return {"status": "degraded", "backend": "memory", "url": None}
