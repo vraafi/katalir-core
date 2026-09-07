@@ -1,0 +1,29 @@
+# ============================================================
+# Dependency untuk Frontend Streamlit + Backend AI Agent Otonom
+# NOTE: Sesuaikan list ini dengan import nyata pada auth_gateway.py,
+#       tool_schemas.py, dan agent_engine.py Anda sebelum build image.
+# ============================================================
+
+# Frontend framework
+streamlit==1.41.1
+
+# Klien API Google Gemini (google-genai = SDK resmi terbaru)
+google-genai==1.6.0
+httpx==0.28.1
+
+# Models & validasi
+pydantic==2.10.4
+
+# BaaS - Supabase (Auth + Postgres DB untuk akun/langganan/chat)
+supabase==2.15.0
+
+# E2E Browser Testing (Playwright via Pytest)
+pytest-playwright==0.5.2
+pytest==8.3.3
+
+# Util global
+python-dotenv==1.0.1
+
+# API Gateway - FastAPI + Uvicorn (pemisah Frontend/Backend utk Cloudflare)
+fastapi==0.115.6
+uvicorn[standard]==0.34.0

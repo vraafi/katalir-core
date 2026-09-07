@@ -1,0 +1,39 @@
+# ===== SECRETS — JANGAN pernah di-push ke git =====
+.env
+.env.*
+!.env.example
+*.secret
+client_secret_*.json
+credentials.json
+token.json
+
+# ===== Python =====
+__pycache__/
+*.py[cod]
+*.pyc
+.pytest_cache/
+.venv/
+venv/
+
+# ===== Node / Next.js =====
+node_modules/
+.next/
+out/
+*.tsbuildinfo
+
+# ===== Cloudflare / Wrangler =====
+.wrangler/
+*.log
+wrangler.toml
+
+# ===== OS / editor =====
+.DS_Store
+thumbs.db
+*.swp
+.idea/
+.vscode/
+
+# ===== Data / runtime =====
+data/
+*.db
+_log.txt

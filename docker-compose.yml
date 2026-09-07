@@ -1,0 +1,63 @@
+# ============================================================
+#  TAHAP 1 - docker-compose.yml
+#  2 Services: backend-agent (Python) + open-connector (GHCR)
+#  Spesifikasi:
+#    - backend-agent : aplikasi Python, port 8000
+#    - open-connector: image resmi @ GHCR, port 3000
+#    - Secret diambil otomatis dari file .env (folder yang sama)
+# ============================================================
+services:
+
+  # ----------------------------------------------------------
+  # Service 1: Backend Agent (Python)
+  # ----------------------------------------------------------
+  backend-agent:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: backend-agent
+    restart: unless-stopped
+    ports:
+      - "8000:8000"                     # host:container
+    env_file:
+      - .env                            # injak semua variabel dari .env (GEMINI dsb.)
+    environment:
+      # Variabel tambahan / override yang tidak ada di .env
+      OPEN_CONNECTOR_URL: http://open-connector:3000   # akses internal antar container
+      GEMINI_API_KEY: ${GEMINI_KEY_1:-}                # fallback ke salah satu Gemini key
+    volumes:
+      - ./data:/app/data                # persistensi state runtime
+    depends_on:
+      - open-connector                  # pastikan connector up sebelum backend
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health', timeout=3)"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
+
+  # ----------------------------------------------------------
+  # Service 2: OpenConnector (auth gateway 1000+ SaaS)
+  #  Image resmi: ghcr.io/oomol-lab/open-connector:latest
+  #  API runtime berjalan di port 3000
+  # ----------------------------------------------------------
+  open-connector:
+    image: ghcr.io/oomol-lab/open-connector:latest
+    container_name: open-connector
+    restart: unless-stopped
+    ports:
+      - "3000:3000"                     # host:container (API runtime)
+    volumes:
+      - connector-data:/app/data        # persistensi data OAuth/connector
+    environment:
+      OOMOL_CONNECT_DATA_DIR: /app/data
+      OOMOL_CONNECT_ORIGIN: ${OOMOL_CONNECT_ORIGIN:-http://localhost:3000}
+      # Token opsional; aman jika dikosongkan saat setup awal
+      OOMOL_CONNECT_ADMIN_TOKEN: ${OOMOL_CONNECT_ADMIN_TOKEN:-}
+      OOMOL_CONNECT_RUNTIME_TOKEN: ${OOMOL_CONNECT_RUNTIME_TOKEN:-}
+      OOMOL_CONNECT_DATABASE_URL: ${OOMOL_CONNECT_DATABASE_URL:-}
+      OOMOL_CONNECT_ENCRYPTION_KEY: ${OOMOL_CONNECT_ENCRYPTION_KEY:-}
+
+# Named volume untuk data connector (persist di luar container)
+volumes:
+  connector-data:

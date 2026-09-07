@@ -1,0 +1,12 @@
+# Hindari menyertakan file/folder yang tidak perlu ke image Docker
+.git
+.gitignore
+*.md
+data/
+__pycache__/
+*.pyc
+venv/
+.venv/
+.env
+.deploy*
+*.log

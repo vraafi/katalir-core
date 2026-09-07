@@ -1,0 +1,235 @@
+# database.py - BaaS Supabase (SaaS 2026). 3 tabel: users, chat_sessions, chat_messages.
+# SKEMA SQL (Supabase SQL Editor):
+#   users(id uuid pk, email text unique, name text, tier text default 'free',
+#         usage_count int default 0, created_at timestamptz default now());
+#   chat_sessions(id uuid pk, user_id uuid ref users(id) on delete cascade,
+#                 title text default 'Chat Baru', created_at timestamptz default now());
+#   chat_messages(id uuid pk, session_id uuid ref chat_sessions(id) on delete cascade,
+#                 role text, content text, created_at timestamptz default now());
+#   user_integrations(id uuid pk, user_email text not null, provider_name text not null,
+#                     api_token text not null, created_at timestamptz default now(),
+#                     updated_at timestamptz default now(),
+#                     unique(user_email, provider_name));
+
+import os
+from datetime import datetime
+
+from dotenv import load_dotenv
+
+load_dotenv()
+
+SUPABASE_URL = (os.getenv("SUPABASE_URL") or "").strip().rstrip("/")
+SUPABASE_KEY = (os.getenv("SUPABASE_KEY") or "").strip()
+
+_client = None
+_configured = None
+
+# Fallback lokal bila Supabase belum dikonfigurasi / gagal
+_LUSER = {}
+_LSESS = {}
+_LMSG = {}
+_LINT = {}      # (email, provider) -> {"api_token":..., "updated_at":...}
+_SEQ = [0]
+
+
+def is_configured():
+    global _configured
+    if _configured is not None:
+        return _configured
+    if not (SUPABASE_URL and SUPABASE_KEY):
+        _configured = False
+        return False
+    try:
+        _get_client()
+        _configured = True
+    except Exception:
+        _configured = False
+    return _configured
+
+
+def _get_client():
+    global _client
+    if _client is None:
+        from supabase import create_client
+        _client = create_client(SUPABASE_URL, SUPABASE_KEY)
+    return _client
+
+
+def _now():
+    return datetime.now().astimezone().isoformat()
+
+
+# ---- USERS ----
+def get_or_create_user(email, name=""):
+    if is_configured():
+        try:
+            c = _get_client()
+            res = c.table("users").select("*").eq("email", email).execute()
+            if res.data:
+                return res.data[0]
+            ins = c.table("users").insert({"email": email, "name": name,
+                                           "tier": "free", "usage_count": 0}).execute()
+            return (ins.data or [{}])[0]
+        except Exception:
+            _configured = False
+    return _local_user(email, name)
+
+
+def update_tier(email, tier):
+    if is_configured():
+        try:
+            _get_client().table("users").update({"tier": tier}).eq("email", email).execute()
+            return
+        except Exception:
+            pass
+    if email in _LUSER:
+        _LUSER[email]["tier"] = tier
+
+
+def _local_user(email, name=""):
+    if email not in _LUSER:
+        _LUSER[email] = {"email": email, "name": name or email,
+                         "tier": "free", "usage_count": 0, "created_at": _now()}
+    return dict(_LUSER[email])
+
+
+# ---- CHAT SESSIONS ----
+def list_sessions(email):
+    if is_configured():
+        try:
+            c = _get_client()
+            user = get_or_create_user(email)
+            res = (c.table("chat_sessions").select("id,title,created_at")
+                    .eq("user_id", user.get("id"))
+                    .order("created_at", desc=True).execute())
+            return res.data
+        except Exception:
+            _configured = False
+    return _LSESS.get(email, [])
+
+
+def create_session(email, title="Chat Baru"):
+    if is_configured():
+        try:
+            c = _get_client()
+            user = get_or_create_user(email)
+            res = c.table("chat_sessions").insert(
+                {"user_id": user.get("id"), "title": title}).execute()
+            return (res.data or [{}])[0]
+        except Exception:
+            _configured = False
+    _SEQ[0] += 1
+    sid = "local_" + str(_SEQ[0])
+    session = {"id": sid, "title": title, "user_email": email, "created_at": _now()}
+    _LSESS.setdefault(email, []).insert(0, session)
+    return session
+
+
+def rename_session(email, session_id, title):
+    """Update judul sesi (dipakai saat prompt pertama mengubah nama chat)."""
+    if is_configured():
+        try:
+            c = _get_client()
+            c.table("chat_sessions").update({"title": title}).eq("id", session_id).execute()
+            return
+        except Exception:
+            _configured = False
+    for s in _LSESS.get(email, []):
+        if s["id"] == session_id:
+            s["title"] = title
+            return
+
+
+# ---- CHAT MESSAGES ----
+def get_messages(email, session_id):
+    if is_configured():
+        try:
+            c = _get_client()
+            res = (c.table("chat_messages").select("*")
+                    .eq("session_id", session_id)
+                    .order("created_at", desc=False).execute())
+            return res.data
+        except Exception:
+            _configured = False
+    return list(_LMSG.get((email, session_id), []))
+
+
+def add_message(email, session_id, role, content):
+    if is_configured():
+        try:
+            _get_client().table("chat_messages").insert(
+                {"session_id": session_id, "role": role, "content": content}).execute()
+            return
+        except Exception:
+            _configured = False
+    key = (email, session_id)
+    _LMSG.setdefault(key, []).append({"role": role, "content": content, "created_at": _now()})
+# ---- USER INTEGRATIONS (Bring Your Own Key) ----
+def save_integration(email, provider_name, api_token):
+    """Simpan / perbarui API token untuk provider user (BYOK)."""
+    if is_configured():
+        try:
+            c = _get_client()
+            # Upsert: update bila ada, insert bila belum.
+            existing = (c.table("user_integrations")
+                        .select("id").eq("user_email", email)
+                        .eq("provider_name", provider_name).execute())
+            if existing.data:
+                c.table("user_integrations").update({"api_token": api_token}).eq(
+                    "id", existing.data[0]["id"]).execute()
+            else:
+                c.table("user_integrations").insert(
+                    {"user_email": email, "provider_name": provider_name,
+                     "api_token": api_token}).execute()
+            return True
+        except Exception:
+            _configured = False
+    _LINT[(email, provider_name)] = {"api_token": api_token, "updated_at": _now()}
+    return True
+
+
+def get_integration(email, provider_name):
+    """Ambil API token milik user untuk provider tertentu."""
+    if is_configured():
+        try:
+            c = _get_client()
+            res = (c.table("user_integrations")
+                   .select("*").eq("user_email", email)
+                   .eq("provider_name", provider_name).execute())
+            if res.data:
+                return res.data[0]
+            return None
+        except Exception:
+            _configured = False
+    rec = _LINT.get((email, provider_name))
+    return dict(rec) if rec else None
+
+
+def list_integrations(email):
+    """Daftar semua provider yang sudah di-save user."""
+    if is_configured():
+        try:
+            c = _get_client()
+            res = (c.table("user_integrations")
+                   .select("provider_name,updated_at,api_token")
+                   .eq("user_email", email).execute())
+            return res.data
+        except Exception:
+            _configured = False
+    return [
+        {"provider_name": p, **data}
+        for (em, p), data in _LINT.items() if em == email
+    ]
+
+
+def delete_integration(email, provider_name):
+    """Hapus token provider milik user."""
+    if is_configured():
+        try:
+            c = _get_client()
+            c.table("user_integrations").delete().eq("user_email", email).eq(
+                "provider_name", provider_name).execute()
+            return
+        except Exception:
+            _configured = False
+    _LINT.pop((email, provider_name), None)
