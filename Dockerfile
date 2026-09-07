@@ -1,38 +1,31 @@
 # ============================================================
-#  TAHAP 1 - Dockerfile untuk Backend Python (AI Agent Otonom)
-#  Base image: Python 3.11 slim (ringan & aman untuk VPS)
+#  Dockerfile - Backend API (uvicorn) para deploy Docker (VPS/Cloud)
+#  Railway usa Nixpacks (railway.json) por defecto; este Dockerfile
+#  está disponible para plataformas Docker-first.
 # ============================================================
-FROM python:3.11-slim
+FROM python:3.12-slim
 
-# Hindari cache bytecode & buffer output (log langsung muncul di docker logs)
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
     PIP_NO_CACHE_DIR=1 \
     PIP_DISABLE_PIP_VERSION_CHECK=1
 
-# Working directory di dalam container
 WORKDIR /app
 
-# -- Tahap install dependency sistem yang dibutuhkan modul Python --
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    git \
-    curl \
+# Dependencias del sistema (mínimas)
+RUN apt-get update && apt-get install -y --no-install-recommends git curl \
     && rm -rf /var/lib/apt/lists/*
 
-# Salin requirements dan install library Python terlebih dahulu
-# (dipisah agar cache layer BuildKit efisien saat requirements berubah)
+# Requirements primero (cache eficiente en builds)
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Salin seluruh kode backend
-COPY . .
-
-# Pastikan direktori data tersedia untuk state runtime
+# Código backend
+COPY api_server.py database.py tools.py agent_engine.py tool_schemas.py auth_gateway.py ./
 RUN mkdir -p /app/data
 
-# Port yang diekspos (harus sama dengan mapping port di docker-compose.yml)
+# Puerto dinámico: plataformas inyectan $PORT.
 EXPOSE 8000
 
-# Entrypoint: jalankan Streamlit UI (app_frontend.py)
-# --server.address=0.0.0.0 => bisa diakses dari luar container
-CMD ["streamlit", "run", "app_frontend.py", "--server.port=8000", "--server.address=0.0.0.0", "--server.headless=true"]
+# Entrypoint: backend API FastAPI (uvicorn), port dinámico $PORT (default 8000).
+CMD ["sh", "-c", "uvicorn api_server:app --host 0.0.0.0 --port ${PORT:-8000}"]
