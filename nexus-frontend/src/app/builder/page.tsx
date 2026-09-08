@@ -84,7 +84,12 @@ function PaletteNode(props: { id: string; data: FlowNodeData; selected?: boolean
 
       <div className="flex items-center gap-2 border-b border-gray-700 px-3 py-2">
         {kind !== "trigger" && (
-          <Handle type="target" position={Position.Left} className="w-4 h-4" />
+          <Handle
+            type="target"
+            position={Position.Left}
+            className={"w-6 h-6 border-4 border-gray-800 rounded-full cursor-pointer transition-transform hover:scale-150 -left-3 " +
+              (kind === "agent" ? "bg-green-500 hover:bg-green-400" : "bg-amber-500 hover:bg-amber-400")}
+          />
         )}
         <span
           className="flex h-6 w-6 items-center justify-center rounded-md"
@@ -94,7 +99,12 @@ function PaletteNode(props: { id: string; data: FlowNodeData; selected?: boolean
         </span>
         <span className="flex-1 font-semibold text-gray-100">{data?.label || meta.label}</span>
         <span className="rounded-md bg-gray-900 px-1.5 text-[10px] text-zinc-400">{meta.desc}</span>
-        <Handle type="source" position={Position.Right} className="w-4 h-4" />
+        <Handle
+          type="source"
+          position={Position.Right}
+          className={"w-6 h-6 border-4 border-gray-800 rounded-full cursor-pointer transition-transform hover:scale-150 -right-3 " +
+            (kind === "trigger" ? "bg-blue-500 hover:bg-blue-400" : kind === "agent" ? "bg-green-500 hover:bg-green-400" : "bg-amber-500 hover:bg-amber-400")}
+        />
       </div>
 
       <div className="space-y-2 px-3 py-2">
