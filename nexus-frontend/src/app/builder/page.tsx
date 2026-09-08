@@ -87,7 +87,7 @@ function PaletteNode(props: { id: string; data: FlowNodeData; selected?: boolean
           <Handle
             type="target"
             position={Position.Left}
-            className={"w-6 h-6 border-4 border-gray-800 rounded-full cursor-pointer transition-transform hover:scale-150 -left-3 " +
+            className={"w-3 h-10 -left-1.5 rounded-md border-2 border-gray-900 cursor-crosshair transition-colors " +
               (kind === "agent" ? "bg-green-500 hover:bg-green-400" : "bg-amber-500 hover:bg-amber-400")}
           />
         )}
@@ -102,7 +102,7 @@ function PaletteNode(props: { id: string; data: FlowNodeData; selected?: boolean
         <Handle
           type="source"
           position={Position.Right}
-          className={"w-6 h-6 border-4 border-gray-800 rounded-full cursor-pointer transition-transform hover:scale-150 -right-3 " +
+          className={"w-3 h-10 -right-1.5 rounded-md border-2 border-gray-900 cursor-crosshair transition-colors " +
             (kind === "trigger" ? "bg-blue-500 hover:bg-blue-400" : kind === "agent" ? "bg-green-500 hover:bg-green-400" : "bg-amber-500 hover:bg-amber-400")}
         />
       </div>
