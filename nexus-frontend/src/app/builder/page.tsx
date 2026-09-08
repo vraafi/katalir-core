@@ -30,30 +30,35 @@ const META = {
 } as const;
 
 type Kind = keyof typeof META;
+type FlowNodeData = {
+  kind: Kind;
+  label?: string;
+  config?: Record<string, string>;
+};
 type FlowNode = {
   id: string;
   type?: string;
   position: { x: number; y: number };
-  data: { kind: Kind; label?: string };
+  data: FlowNodeData;
 };
 
 // =========================================================================
-// NODO CUSTOM
+// NODO CUSTOM — interactivo (input/textarea/select con sin uwguan nodrag)
 // =========================================================================
-function PaletteNode({ data }: { data: { kind: Kind; label?: string } }) {
+function PaletteNode({ id, data }: { id: string; data: FlowNodeData }) {
+  const { updateNodeData } = useReactFlow<FlowNode>();
   const kind = data?.kind ?? "agent";
   const meta = META[kind];
   const Icon = meta.Icon;
+  const cfg = data?.config ?? {};
+
+  function setCfg(key: string, value: string) {
+    updateNodeData(id, { ...data, config: { ...cfg, [key]: value } });
+  }
+
   return (
     <div
-      style={{
-        background: "#18181b",
-        border: `1px solid ${meta.color}`,
-        borderRadius: 14,
-        padding: "10px 14px",
-        minWidth: "230px",
-      }}
-      className="rounded-lg"
+      className="w-64 rounded-lg border border-gray-600 bg-gray-800 p-4 text-[13px] text-gray-200"
     >
       <div className="flex items-center gap-2">
         <span
@@ -62,15 +67,61 @@ function PaletteNode({ data }: { data: { kind: Kind; label?: string } }) {
         >
           <Icon size={13} />
         </span>
-        <span className="text-[13px] font-semibold text-gray-200" style={{ whiteSpace: "nowrap" }}>
-          {data?.label || meta.label}
-        </span>
-        <span className="flex-1" />
+        <span className="flex-1 font-semibold text-gray-200">{data?.label || meta.label}</span>
         <Handle type="source" position={Position.Right} />
       </div>
-      <div className="text-[11px] text-zinc-500" style={{ lineHeight: 1.3 }}>
-        {meta.desc}
-      </div>
+      <div className="text-[11px] text-zinc-500" style={{ lineHeight: 1.3 }}>{meta.desc}</div>
+
+      {kind === "trigger" && (
+        <label className="mt-2 block">
+          <span className="text-[11px] text-zinc-400">Event Name</span>
+          <input
+            className="nodrag mt-1 w-full rounded border border-gray-600 bg-gray-900 px-2 py-1 text-[12px] text-gray-100 outline-none"
+            placeholder="Misal: Saat email masuk"
+            value={cfg.event ?? ""}
+            onChange={(e) => setCfg("event", e.target.value)}
+          />
+        </label>
+      )}
+
+      {kind === "agent" && (
+        <label className="mt-2 block">
+          <span className="text-[11px] text-zinc-400">System Prompt</span>
+          <textarea
+            className="nodrag mt-1 h-16 w-full resize-y rounded border border-gray-600 bg-gray-900 px-2 py-1 text-[12px] text-gray-100 outline-none"
+            placeholder="Instruksi agent..."
+            value={cfg.prompt ?? ""}
+            onChange={(e) => setCfg("prompt", e.target.value)}
+          />
+        </label>
+      )}
+
+      {kind === "mcp" && (
+        <div className="mt-2 space-y-1">
+          <label className="block">
+            <span className="text-[11px] text-zinc-400">Nama Tool</span>
+            <select
+              className="nodrag mt-1 w-full rounded border border-gray-600 bg-gray-900 px-2 py-1 text-[12px] text-gray-100 outline-none"
+              value={cfg.tool ?? ""}
+              onChange={(e) => setCfg("tool", e.target.value)}
+            >
+              <option value="">-- Elige tool --</option>
+              <option value="web_search">Web Search</option>
+              <option value="read_database">Read Database</option>
+              <option value="http_request">HTTP Request</option>
+            </select>
+          </label>
+          <label className="block">
+            <span className="text-[11px] text-zinc-400">Parameter</span>
+            <input
+              className="nodrag mt-1 w-full rounded border border-gray-600 bg-gray-900 px-2 py-1 text-[12px] text-gray-100 outline-none"
+              placeholder="json parameter..."
+              value={cfg.param ?? ""}
+              onChange={(e) => setCfg("param", e.target.value)}
+            />
+          </label>
+        </div>
+      )}
     </div>
   );
 }
