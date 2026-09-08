@@ -83,6 +83,9 @@ function PaletteNode(props: { id: string; data: FlowNodeData; selected?: boolean
       </NodeToolbar>
 
       <div className="flex items-center gap-2 border-b border-gray-700 px-3 py-2">
+        {kind !== "trigger" && (
+          <Handle type="target" position={Position.Left} className="w-4 h-4" />
+        )}
         <span
           className="flex h-6 w-6 items-center justify-center rounded-md"
           style={{ background: meta.color, color: "#fff", flexShrink: 0 }}
@@ -91,7 +94,7 @@ function PaletteNode(props: { id: string; data: FlowNodeData; selected?: boolean
         </span>
         <span className="flex-1 font-semibold text-gray-100">{data?.label || meta.label}</span>
         <span className="rounded-md bg-gray-900 px-1.5 text-[10px] text-zinc-400">{meta.desc}</span>
-        <Handle type="source" position={Position.Right} />
+        <Handle type="source" position={Position.Right} className="w-4 h-4" />
       </div>
 
       <div className="space-y-2 px-3 py-2">
