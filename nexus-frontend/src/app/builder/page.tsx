@@ -10,14 +10,18 @@ import {
   Panel,
   Position,
   ReactFlow,
+  ReactFlowProvider,
   addEdge,
   useEdgesState,
   useNodesState,
+  useReactFlow,
 } from "@xyflow/react";
 import { Zap, Bot, Wrench, Save, Trash2, Plus } from "lucide-react";
 
+const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+
 // =========================================================================
-// METADATA NODOS
+// METADATA NODOS (Trigger / Agent / MCP Tool)
 // =========================================================================
 const META = {
   trigger: { label: "Trigger", color: "#6C63FF", Icon: Zap, desc: "Titik inisyalisasi alur" },
@@ -26,26 +30,36 @@ const META = {
 } as const;
 
 type Kind = keyof typeof META;
-type FlowNodeData = { kind: Kind; label?: string };
-// Tipo de nodo compatible con la constraint `Node` de xyflow
 type FlowNode = {
   id: string;
   type?: string;
   position: { x: number; y: number };
-  data: { kind: Kind; label?: string }; // obligatorio (Record dexyflow)
+  data: { kind: Kind; label?: string };
 };
 
 // =========================================================================
-// NODO CUSTOM via BaseNode + Handle
+// NODO CUSTOM
 // =========================================================================
-function Palette({ data }: { data?: FlowNodeData }) {
+function PaletteNode({ data }: { data: { kind: Kind; label?: string } }) {
   const kind = data?.kind ?? "agent";
   const meta = META[kind];
   const Icon = meta.Icon;
   return (
-    <div style={{ background: "#18181b", border: `1px solid ${meta.color}`, borderRadius: 14, padding: "10px 14px", minWidth: "230px" }} className="rounded-lg">
+    <div
+      style={{
+        background: "#18181b",
+        border: `1px solid ${meta.color}`,
+        borderRadius: 14,
+        padding: "10px 14px",
+        minWidth: "230px",
+      }}
+      className="rounded-lg"
+    >
       <div className="flex items-center gap-2">
-        <span className="flex h-6 w-6 items-center justify-center rounded-md" style={{ background: meta.color, color: "#fff", flexShrink: 0 }}>
+        <span
+          className="flex h-6 w-6 items-center justify-center rounded-md"
+          style={{ background: meta.color, color: "#fff", flexShrink: 0 }}
+        >
           <Icon size={13} />
         </span>
         <span className="text-[13px] font-semibold text-gray-200" style={{ whiteSpace: "nowrap" }}>
@@ -54,45 +68,28 @@ function Palette({ data }: { data?: FlowNodeData }) {
         <span className="flex-1" />
         <Handle type="source" position={Position.Right} />
       </div>
-      <div className="text-[11px] text-zinc-500" style={{ lineHeight: 1.3 }}>{meta.desc}</div>
+      <div className="text-[11px] text-zinc-500" style={{ lineHeight: 1.3 }}>
+        {meta.desc}
+      </div>
     </div>
   );
 }
 
-const NODE_TYPES = { trigger: Palette, agent: Palette, mcp: Palette };
-
+const NODE_TYPES = { trigger: PaletteNode, agent: PaletteNode, mcp: PaletteNode };
 // =========================================================================
-// PAGINA BUILDER
+// BUILDER (dentro de ReactFlowProvider por useReactFlow)
 // =========================================================================
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
-
-export default function Builder() {
+function BuilderInner() {
   const [nodes, setNodes, onNodesChange] = useNodesState<FlowNode>([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState<Edge>([]);
+  const { screenToFlowPosition } = useReactFlow<FlowNode>();
   const seq = useRef(100);
   const [savedId, setId] = useState<string | null>(null);
   const [saveState, setSaveState] = useState<"idle" | "saving" | "ok" | "err">("idle");
 
-  function addFromMenu(kind: Kind) {
-    const id = `${kind}-${seq.current++}`;
-    const meta = META[kind];
-    setNodes([
-      ...nodes,
-      {
-        id,
-        type: kind,
-        position: { x: 60 + Math.random() * 120, y: 60 + Math.random() * 220 },
-        data: { kind, label: meta.label },
-      },
-    ]);
-  }
-
+  // --- Drag & Drop HTML5 (handlers inline -> tipo inferido por React) ---
   function onConnect(connection: { source: string; target: string }) {
-    const edge: Edge = {
-      id: "e_" + seq.current++,
-      source: connection.source,
-      target: connection.target,
-    };
+    const edge: Edge = { id: "e_" + seq.current++, source: connection.source, target: connection.target };
     setEdges(addEdge(edge, edges));
   }
 
@@ -102,11 +99,10 @@ export default function Builder() {
   }
 
   async function save() {
-    const flow_data = { nodes, edges };
     const payload = {
       name: "Draft Workflow",
       description: "Workflow creato in Builder",
-      flow_data,
+      flow_data: { nodes, edges },
     };
     setSaveState("saving");
     try {
@@ -132,28 +128,44 @@ export default function Builder() {
 
   return (
     <div className="flex h-screen bg-zinc-950 text-gray-100">
-      {/* Sidebar palette */}
-      <aside className="flex w-60 flex-col gap-4 border-r border-zinc-800 bg-zinc-900 p-4">
+      {/* Sidebar (Palette) — DRAGGABLE SOURCE */}
+      <aside className="flex w-64 flex-col gap-4 border-r border-gray-700 bg-gray-900 p-4">
         <div className="text-[11px] font-bold uppercase tracking-wide text-zinc-400">Node Palette</div>
+        <p className="text-[11px] leading-snug text-zinc-500">Drag a node onto the canvas, or click to place it.</p>
         {Object.keys(META).map((k) => {
           const kind: Kind = k as Kind;
           const meta = META[kind];
           const Icon = meta.Icon;
           return (
-            <button
+            <div
               key={kind}
-              onClick={() => addFromMenu(kind)}
-              className="flex w-full items-center gap-3 rounded-xl border border-zinc-700 bg-zinc-800 px-3 py-3 text-left transition hover:bg-zinc-700"
+              draggable
+              onDragStart={(e) => {
+                e.dataTransfer?.setData("application/reactflow", kind);
+                if (e.dataTransfer) e.dataTransfer.effectAllowed = "move";
+              }}
+              onClick={() =>
+                setNodes([
+                  ...nodes,
+                  {
+                    id: `${kind}-${seq.current++}`,
+                    type: kind,
+                    position: { x: 80 + Math.random() * 120, y: 80 + Math.random() * 200 },
+                    data: { kind, label: meta.label },
+                  },
+                ])
+              }
+              className="flex w-full cursor-grab items-center gap-3 rounded-xl border border-gray-700 bg-gray-800 px-3 py-3 text-left transition hover:border-indigo-500/60 hover:bg-gray-700"
             >
               <span className="flex h-8 w-8 items-center justify-center rounded-lg" style={{ background: meta.color, color: "#fff" }}>
                 <Icon size={15} />
               </span>
               <span className="flex-1 text-left">
                 <span className="block text-sm font-semibold text-gray-100">{meta.label}</span>
-                <span className="block text-[11px] text-zinc-500">Click to addo</span>
+                <span className="block text-[11px] text-zinc-500">Drag to canvas</span>
               </span>
               <Plus size={14} className="text-zinc-500" />
-            </button>
+            </div>
           );
         })}
         <button
@@ -163,39 +175,63 @@ export default function Builder() {
           <Trash2 size={14} /> Cavira alur
         </button>
       </aside>
-
-      {/* Canvas */}
-      <ReactFlow
-        nodes={nodes}
-        edges={edges}
-        nodeTypes={NODE_TYPES}
-        onNodesChange={onNodesChange}
-        onEdgesChange={onEdgesChange}
-        onConnect={onConnect}
-        className="flex-1"
-        colorMode="dark"
+{/* Canvas — DROP ZONE */}
+      <div
+        className="flex-1 overflow-hidden"
+        onDragOver={(e) => {
+          e.preventDefault();
+          if (e.dataTransfer) e.dataTransfer.dropEffect = "move";
+        }}
+        onDrop={(e) => {
+          e.preventDefault();
+          const kind = e.dataTransfer?.getData("application/reactflow") as Kind;
+          if (!kind || !META[kind]) return;
+          const nodeEl = e.target as HTMLElement;
+          const rect = nodeEl.getBoundingClientRect();
+          const position = screenToFlowPosition({ x: e.clientX - rect.left, y: e.clientY - rect.top });
+          setNodes([...nodes, { id: `${kind}-${seq.current++}`, type: kind, position, data: { kind, label: META[kind].label } }]);
+        }}
       >
-        <Panel position="top-right">
-          <div className="flex flex-col items-end gap-1">
-            {saveState === "ok" && (
-              <span className="rounded-md border border-green-500/40 bg-green-500/10 px-2 py-0.5 text-[11px] text-green-300">
-                Data disimpan ✓
-              </span>
-            )}
-            {saveState === "err" && (
-              <span className="rounded-md border border-red-500/40 bg-red-500/10 px-2 py-0.5 text-[11px] text-red-300">
-                Gagal menyimpan ✕
-              </span>
-            )}
-            <button
-              onClick={save}
-              className="flex items-center gap-2 rounded-md bg-blue-600 px-4 py-2 text-sm font-semibold text-white shadow-lg hover:bg-blue-700"
-            >
-              <Save size={15} /> {saveState === "saving" ? "Simpan..." : "Simpan Alur"}
-            </button>
-          </div>
-        </Panel>
-      </ReactFlow>
+        <ReactFlow<FlowNode>
+          nodes={nodes}
+          edges={edges}
+          nodeTypes={NODE_TYPES}
+          onNodesChange={onNodesChange}
+          onEdgesChange={onEdgesChange}
+          onConnect={onConnect}
+          colorMode="dark"
+          className="h-full"
+        >
+          <Panel position="top-right">
+            <div className="flex flex-col items-end gap-1">
+              {saveState === "ok" && (
+                <span className="rounded-md border border-green-500/40 bg-green-500/10 px-2 py-0.5 text-[11px] text-green-300">
+                  Data disimpan ✓
+                </span>
+              )}
+              {saveState === "err" && (
+                <span className="rounded-md border border-red-500/40 bg-red-500/10 px-2 py-0.5 text-[11px] text-red-300">
+                  Gagal menyimpan ✕
+                </span>
+              )}
+              <button
+                onClick={save}
+                className="flex items-center gap-2 rounded-md bg-blue-600 px-4 py-2 text-sm font-semibold text-white shadow-lg hover:bg-blue-700"
+              >
+                <Save size={15} /> {saveState === "saving" ? "Simpan..." : "Simpan Alur"}
+              </button>
+            </div>
+          </Panel>
+        </ReactFlow>
+      </div>
     </div>
+  );
+}
+
+export default function Builder() {
+  return (
+    <ReactFlowProvider>
+      <BuilderInner />
+    </ReactFlowProvider>
   );
 }
