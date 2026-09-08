@@ -72,7 +72,11 @@ def _agentic_run_direct(prompt: str, email: str) -> str:
 
     Apabila alat butuh kredensial, melempar CredentialMissingError (dibiarkan
     menyebar ke caller / endpoint untuk diubah jadi respons needs_credential).
+    Errores del modelo (503/quota) se reintentan con backoff; si persisten,
+    lanza HTTPException(503) con mensaje claro.
     """
+    import time as _time
+
     api_key = (
         os.getenv("GOOGLE_API_KEY")
         or os.getenv("GEMINI_API_KEY")
@@ -98,7 +102,23 @@ def _agentic_run_direct(prompt: str, email: str) -> str:
     )
     chat = client.chats.create(model=model_id, config=config)
 
-    response = chat.send_message(prompt)
+    def _send_guarded(chat, msg):
+        """Enviar con reintentos contra errores transitorios del modelo (500/503)."""
+        last_status = None
+        for attempt in range(4):
+            try:
+                return chat.send_message(msg)
+            except Exception as exc:  # noqa: BLE001
+                msg_str = str(exc)
+                transient = ("503" in msg_str or "UNAVAILABLE" in msg_str
+                             or "Internal error" in msg_str)
+                if not transient:
+                    raise
+                last_status = "503"
+                _time.sleep(1.5 * (attempt + 1))
+        raise HTTPException(503, "Modelo temporariamente no disponible. Intente otra vez.")
+
+    response = _send_guarded(chat, prompt)
     max_retries = 3
     retry = 0
 
@@ -113,11 +133,12 @@ def _agentic_run_direct(prompt: str, email: str) -> str:
             # CredentialMissingError dibiarkan menyebar -> endpoint menangkapnya.
             tool_result = tools.execute_tool(name, args, email)
 
-            response = chat.send_message(
+            response = _send_guarded(
+                chat,
                 types.Part.from_function_response(
                     name=name,
                     response={"status": "success", "result": tool_result},
-                )
+                ),
             )
 
     return response.text.strip() if response.text else "Tugas selesai dieksekusi."
