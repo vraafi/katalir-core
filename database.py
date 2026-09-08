@@ -29,6 +29,11 @@ _configured = None
 # Esto garantiza datos permanentes en Postgres (sin "data amnesia").
 PERSIST_REQUIRED = os.getenv("PERSIST_REQUIRED", "1").strip().lower() in ("1", "true", "yes")
 
+# Service_role key: bypasa RLS (necesaria para INSERT/UPDATE con anon restringida).
+# Si existe SUPABASE_SERVICE_KEY (recomendado), se usa para escrituras.
+# De lo contrario, degrada a SUPABASE_KEY (anon; puede fallar si RLS bloquea writes).
+SUPABASE_SERVICE_KEY = (os.getenv("SUPABASE_SERVICE_KEY") or "").strip()
+
 # Fallback lokal bila Supabase belum dikonfigurasi / gagal
 _LUSER = {}
 _LSESS = {}
@@ -60,6 +65,20 @@ def _get_client():
     return _client
 
 
+_write_client = None
+
+
+def _get_write_client():
+    """Client para ESCRITURAS: usa SUPABASE_SERVICE_KEY (bypasa RLS) si disponible,
+    de lo contrario degrada al client anon principal."""
+    global _write_client
+    key = SUPABASE_SERVICE_KEY or SUPABASE_KEY
+    if _write_client is None:
+        from supabase import create_client
+        _write_client = create_client(SUPABASE_URL, key)
+    return _write_client
+
+
 def _now():
     return datetime.now().astimezone().isoformat()
 
@@ -68,22 +87,33 @@ def _now():
 def get_or_create_user(email, name=""):
     if is_configured():
         try:
-            c = _get_client()
+            # Usa client de escritura si disponible (service_role bypasa RLS),
+            # para poder insertar Y re-leer la fila con su id uuid real.
+            c = _get_write_client()
             res = c.table("users").select("*").eq("email", email).execute()
             if res.data:
                 return res.data[0]
-            ins = c.table("users").insert({"email": email, "name": name,
-                                           "tier": "free", "usage_count": 0}).execute()
-            return (ins.data or [{}])[0]
+            # No existe -> INSERT (service_role bypasa RLS)
+            c.table("users").upsert(
+                {"email": email, "name": name, "tier": "free", "usage_count": 0}
+            ).execute()
+            # Re-SELECT para obtener la fila con id uuid generado por DB
+            res = c.table("users").select("*").eq("email", email).execute()
+            if res.data:
+                return res.data[0]
+            if PERSIST_REQUIRED:
+                raise RuntimeError(f"User {email} tidak bisa dipersist (select vacio)")
         except Exception:
             _configured = False
+            if PERSIST_REQUIRED:
+                raise
     return _local_user(email, name)
 
 
 def update_tier(email, tier):
     if is_configured():
         try:
-            _get_client().table("users").update({"tier": tier}).eq("email", email).execute()
+            _get_write_client().table("users").update({"tier": tier}).eq("email", email).execute()
             return
         except Exception:
             pass
@@ -102,7 +132,7 @@ def _local_user(email, name=""):
 def list_sessions(email):
     if is_configured():
         try:
-            c = _get_client()
+            c = _get_write_client()
             user = get_or_create_user(email)
             res = (c.table("chat_sessions").select("id,title,created_at")
                     .eq("user_id", user.get("id"))
@@ -116,13 +146,19 @@ def list_sessions(email):
 def create_session(email, title="Chat Baru"):
     if is_configured():
         try:
-            c = _get_client()
+            wc = _get_write_client()
             user = get_or_create_user(email)
-            res = c.table("chat_sessions").insert(
+            res = wc.table("chat_sessions").insert(
                 {"user_id": user.get("id"), "title": title}).execute()
-            return (res.data or [{}])[0]
+            created = (res.data or [{}])[0]
+            if created.get("id"):
+                return created
+            if PERSIST_REQUIRED:
+                raise RuntimeError("Session tidak bisa dipersist (sin id)")
         except Exception:
             _configured = False
+            if PERSIST_REQUIRED:
+                raise
     _SEQ[0] += 1
     sid = "local_" + str(_SEQ[0])
     session = {"id": sid, "title": title, "user_email": email, "created_at": _now()}
@@ -149,7 +185,7 @@ def rename_session(email, session_id, title):
 def get_messages(email, session_id):
     if is_configured():
         try:
-            c = _get_client()
+            c = _get_write_client()
             res = (c.table("chat_messages").select("*")
                     .eq("session_id", session_id)
                     .order("created_at", desc=False).execute())
@@ -163,7 +199,7 @@ def add_message(email, session_id, role, content):
     # Si Supabase está configurado, SIEMPRE escribir a Postgres (persistencia permanente).
     if is_configured():
         try:
-            _get_client().table("chat_messages").insert(
+            _get_write_client().table("chat_messages").insert(
                 {"session_id": session_id, "role": role, "content": content}).execute()
             return
         except Exception:
