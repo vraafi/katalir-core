@@ -87,8 +87,9 @@ function PaletteNode(props: { id: string; data: FlowNodeData; selected?: boolean
           <Handle
             type="target"
             position={Position.Left}
-            className={"w-3 h-10 -left-1.5 rounded-md border-2 border-gray-900 cursor-crosshair transition-colors " +
+            className={"!w-3 !h-10 !-left-1.5 !rounded-md !border-2 !border-gray-900 cursor-crosshair transition-colors " +
               (kind === "agent" ? "bg-green-500 hover:bg-green-400" : "bg-amber-500 hover:bg-amber-400")}
+            style={{ width: "12px", height: "40px", borderRadius: "6px" }}
           />
         )}
         <span
@@ -102,8 +103,9 @@ function PaletteNode(props: { id: string; data: FlowNodeData; selected?: boolean
         <Handle
           type="source"
           position={Position.Right}
-          className={"w-3 h-10 -right-1.5 rounded-md border-2 border-gray-900 cursor-crosshair transition-colors " +
+          className={"!w-3 !h-10 !-right-1.5 !rounded-md !border-2 !border-gray-900 cursor-crosshair transition-colors " +
             (kind === "trigger" ? "bg-blue-500 hover:bg-blue-400" : kind === "agent" ? "bg-green-500 hover:bg-green-400" : "bg-amber-500 hover:bg-amber-400")}
+          style={{ width: "12px", height: "40px", borderRadius: "6px" }}
         />
       </div>
 
