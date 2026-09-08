@@ -315,3 +315,78 @@ def list_workflows():
         .execute()
     )
     return res.data or []
+# ---------------------------------------------------------------------------
+# EXECUTION LOGS (Execution Engine)
+# Tabla (Supabase SQL Editor):
+#   executions(id uuid pk, workflow_id uuid, status text default 'pending',
+#              created_at timestamptz default now());
+#   execution_logs(id uuid pk, execution_id uuid ref executions(id) on delete cascade,
+#                  node_id text, step_kind text, status text, payload jsonb,
+#                  created_at timestamptz default now());
+# ---------------------------------------------------------------------------
+_L_EXEC = {}  # execution_id -> {"workflow_id", "status", "created_at"}
+_L_EXLOG = {}  # execution_id -> [ {node_id, step_kind, status, payload, ts} ]
+
+
+def create_execution(execution_id: str, workflow_id: str, flow_data: dict):
+    """Crea un registro de ejecucion (status pending)."""
+    if is_configured():
+        try:
+            _get_write_client().table("executions").insert(
+                {"id": execution_id, "workflow_id": workflow_id, "status": "pending"}
+            ).execute()
+            return
+        except Exception:
+            _configured = False
+            if PERSIST_REQUIRED:
+                pass  # no bloquear ejecucion por falta de log (best-effort)
+    _L_EXEC[execution_id] = {"workflow_id": workflow_id, "status": "pending", "created_at": _now()}
+
+
+def append_execution_log(execution_id: str, node_id: str, step_kind: str, status: str, payload: dict):
+    """Persiste un paso de ejecucion en execution_logs."""
+    if is_configured():
+        try:
+            _get_write_client().table("execution_logs").insert(
+                {
+                    "execution_id": execution_id,
+                    "node_id": node_id,
+                    "step_kind": step_kind,
+                    "status": status,
+                    "payload": payload or {},
+                }
+            ).execute()
+            return
+        except Exception:
+            _configured = False
+    _L_EXLOG.setdefault(execution_id, []).append(
+        {"node_id": node_id, "step_kind": step_kind, "status": status, "payload": payload or {}, "ts": _now()}
+    )
+
+
+def update_execution_status(execution_id: str, status: str):
+    """Actualiza el estado final de una ejecucion."""
+    if is_configured():
+        try:
+            _get_write_client().table("executions").update({"status": status}).eq(
+                "id", execution_id).execute()
+            return
+        except Exception:
+            _configured = False
+    if execution_id in _L_EXEC:
+        _L_EXEC[execution_id]["status"] = status
+
+
+def get_execution(execution_id: str):
+    """Obtiene el estado y logs de una ejecucion."""
+    if is_configured():
+        try:
+            c = _get_write_client()
+            ex = c.table("executions").select("*").eq("id", execution_id).execute()
+            logs = (c.table("execution_logs").select("*")
+                    .eq("execution_id", execution_id)
+                    .order("created_at", desc=False).execute())
+            return {"execution": (ex.data or [None])[0], "logs": logs.data or []}
+        except Exception:
+            _configured = False
+    return {"execution": _L_EXEC.get(execution_id), "logs": _L_EXLOG.get(execution_id, [])}

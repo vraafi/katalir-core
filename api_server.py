@@ -23,6 +23,7 @@ load_dotenv()
 
 import database as db
 import tools
+import execution_engine as engine
 from tools import CredentialMissingError
 from google import genai
 from google.genai import types
@@ -68,6 +69,11 @@ class WorkflowCreateRequest(BaseModel):
     name: str = "Draft Workflow"
     description: str = ""
     flow_data: dict = {}
+
+
+class ExecuteRequest(BaseModel):
+    # Body opcional; si va vacio, se usa el flow_data guardado del workflow.
+    flow_data: dict | None = None
 
 
 # ---------------------------------------------------------------------------
@@ -257,6 +263,36 @@ def get_workflows():
     except Exception as exc:  # noqa: BLE001
         raise HTTPException(500, f"Gagal memuat workflows: {exc}")
     return {"status": "success", "workflows": rows}
+
+
+# ---------------------------------------------------------------------------
+# ENDPOINTS: POST /workflows/{id}/execute + GET /executions/{id}
+#   Execution Engine — instan, non-blocking, devuelve {execution_id, status: pending}
+# ---------------------------------------------------------------------------
+@app.post("/workflows/{workflow_id}/execute", status_code=202)
+async def execute_workflow(workflow_id: str, req: ExecuteRequest = None):  # type: ignore[assignment]
+    """Inicia la ejecucion de un workflow en background (status pending)."""
+    flow_data = req.flow_data if (req and req.flow_data) else None
+    if not flow_data:
+        found = next((w for w in (db.list_workflows() or []) if w.get("id") == workflow_id), None)
+        if not found:
+            raise HTTPException(404, f"Workflow {workflow_id} tidak ditemukan.")
+        flow_data = found.get("flow_data") or {}
+    try:
+        execution_id = engine.launch_execution(workflow_id, flow_data)
+    except Exception as exc:  # noqa: BLE001
+        raise HTTPException(500, f"Gagal melanjar ejekution: {exc}")
+    return {"execution_id": execution_id, "workflow_id": workflow_id, "status": "pending"}
+
+
+@app.get("/executions/{execution_id}")
+def get_execution(execution_id: str):
+    """Devuelve estado y logs de una ejecucion."""
+    try:
+        data = db.get_execution(execution_id)
+    except Exception as exc:  # noqa: BLE001
+        raise HTTPException(500, f"Gagal memuat ejekution: {exc}")
+    return {"status": "success", **data}
 
 
 # ---------------------------------------------------------------------------
