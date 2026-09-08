@@ -21,7 +21,7 @@ import {
   useNodesState,
   useReactFlow,
 } from "@xyflow/react";
-import { Zap, Bot, Wrench, Save, Trash2, Plus } from "lucide-react";
+import { Zap, Bot, Wrench, Save, Trash2, Plus, Play, X } from "lucide-react";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
@@ -48,21 +48,17 @@ type FlowNode = {
 };
 
 // =========================================================================
-// NODO CUSTOM — interactivo (input/textarea/select con sin uwguan nodrag)
+// NODO CUSTOM — compacto estilo n8n (sin inputs dentro; config en sidebar)
+// Hanya Ikon + Nama + Connector Tabs (Handle)
 // =========================================================================
 function PaletteNode(props: { id: string; data: FlowNodeData; selected?: boolean }) {
-  const { updateNodeData, deleteElements } = useReactFlow<FlowNode>();
+  const { deleteElements } = useReactFlow<FlowNode>();
   const id = props.id;
   const data = props.data;
   const selected = !!props.selected;
   const kind = data?.kind ?? "agent";
   const meta = META[kind];
   const Icon = meta.Icon;
-  const cfg = data?.config ?? {};
-
-  function setCfg(key: string, value: string) {
-    updateNodeData(id, { ...data, config: { ...cfg, [key]: value } });
-  }
 
   function removeNode() {
     deleteElements({ nodes: [{ id }] });
@@ -70,7 +66,7 @@ function PaletteNode(props: { id: string; data: FlowNodeData; selected?: boolean
 
   return (
     <div
-      className={"w-64 rounded-xl border bg-gray-800 text-[13px] text-gray-200" +
+      className={"w-56 rounded-xl border bg-gray-800 text-[13px] text-gray-200 " +
         (selected ? " border-indigo-500 ring-2 ring-indigo-400/60 shadow-xl" : " border-gray-700 shadow-lg")}
     >
       <NodeToolbar>
@@ -82,7 +78,7 @@ function PaletteNode(props: { id: string; data: FlowNodeData; selected?: boolean
         </button>
       </NodeToolbar>
 
-      <div className="flex items-center gap-2 border-b border-gray-700 px-3 py-2">
+      <div className="flex h-12 items-center gap-2.5 px-3">
         {kind !== "trigger" && (
           <Handle
             type="target"
@@ -93,13 +89,15 @@ function PaletteNode(props: { id: string; data: FlowNodeData; selected?: boolean
           />
         )}
         <span
-          className="flex h-6 w-6 items-center justify-center rounded-md"
+          className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg"
           style={{ background: meta.color, color: "#fff", flexShrink: 0 }}
         >
-          <Icon size={13} />
+          <Icon size={15} />
         </span>
-        <span className="flex-1 font-semibold text-gray-100">{data?.label || meta.label}</span>
-        <span className="rounded-md bg-gray-900 px-1.5 text-[10px] text-zinc-400">{meta.desc}</span>
+        <span className="min-w-0 flex-1">
+          <span className="block truncate font-semibold text-gray-100">{data?.label || meta.label}</span>
+          <span className="block truncate text-[10px] text-zinc-500">{meta.desc}</span>
+        </span>
         <Handle
           type="source"
           position={Position.Right}
@@ -108,59 +106,98 @@ function PaletteNode(props: { id: string; data: FlowNodeData; selected?: boolean
           style={{ width: "12px", height: "40px", borderRadius: "6px" }}
         />
       </div>
+    </div>
+  );
+}
 
-      <div className="space-y-2 px-3 py-2">
-        {kind === "trigger" && (
-          <label className="block">
-            <span className="text-[11px] text-zinc-400">Event Name</span>
-            <input
-              className="nodrag mt-1 w-full rounded border border-gray-600 bg-gray-900 px-2 py-1 text-[12px] text-gray-100 outline-none"
-              placeholder="Misal: Saat email masuk"
-              value={cfg.event ?? ""}
-              onChange={(e) => setCfg("event", e.target.value)}
-            />
-          </label>
-        )}
+// =========================================================================
+// CONFIG PANEL (n8n Sidebar) — edicion por tipo de nodo mediante updateNodeData
+// =========================================================================
+function ConfigPanel({
+  node,
+  setNodeCfg,
+}: {
+  node: FlowNode;
+  setNodeCfg: (key: string, value: string) => void;
+}) {
+  const data = node.data;
+  const kind = data?.kind ?? "agent";
+  const meta = META[kind];
+  const Icon = meta.Icon;
+  const cfg = data?.config ?? {};
 
-        {kind === "agent" && (
-          <label className="block">
-            <span className="text-[11px] text-zinc-400">System Prompt</span>
-            <textarea
-              className="nodrag mt-1 h-16 w-full resize-y rounded border border-gray-600 bg-gray-900 px-2 py-1 text-[12px] text-gray-100 outline-none"
-              placeholder="Instruksi agent..."
-              value={cfg.prompt ?? ""}
-              onChange={(e) => setCfg("prompt", e.target.value)}
-            />
-          </label>
-        )}
+  const fieldCls =
+    "nodrag mt-1 w-full rounded-md border border-gray-600 bg-gray-800 px-2.5 py-1.5 text-[13px] text-gray-100 outline-none focus:border-indigo-400 nodrag";
 
-        {kind === "mcp" && (
-          <div className="space-y-1">
-            <label className="block">
-              <span className="text-[11px] text-zinc-400">Nama Tool</span>
-              <select
-                className="nodrag mt-1 w-full rounded border border-gray-600 bg-gray-900 px-2 py-1 text-[12px] text-gray-100 outline-none"
-                value={cfg.tool ?? ""}
-                onChange={(e) => setCfg("tool", e.target.value)}
-              >
-                <option value="">-- Elige tool --</option>
-                <option value="web_search">Web Search</option>
-                <option value="read_database">Read Database</option>
-                <option value="http_request">HTTP Request</option>
-              </select>
-            </label>
-            <label className="block">
-              <span className="text-[11px] text-zinc-400">Parameter</span>
-              <input
-                className="nodrag mt-1 w-full rounded border border-gray-600 bg-gray-900 px-2 py-1 text-[12px] text-gray-100 outline-none"
-                placeholder="json parameter..."
-                value={cfg.param ?? ""}
-                onChange={(e) => setCfg("param", e.target.value)}
-              />
-            </label>
-          </div>
-        )}
+  return (
+    <div className="flex flex-col gap-4">
+      <div className="flex items-center gap-2">
+        <span
+          className="flex h-8 w-8 items-center justify-center rounded-lg"
+          style={{ background: meta.color, color: "#fff" }}
+        >
+          <Icon size={16} />
+        </span>
+        <div>
+          <div className="text-sm font-semibold text-gray-100">{data?.label || meta.label}</div>
+          <div className="text-[10px] uppercase tracking-wide text-zinc-500">{kind}</div>
+        </div>
       </div>
+
+      {kind === "trigger" && (
+        <label className="block">
+          <span className="text-[11px] text-zinc-400">Event Name</span>
+          <input
+            className={fieldCls}
+            placeholder="Misal: Saat email masuk"
+            value={cfg.event ?? ""}
+            onChange={(e) => setNodeCfg("event", e.target.value)}
+          />
+          <span className="mt-1 block text-[10px] text-zinc-500">
+            Titik yang memicu alur ini, misal event dari email atau manual.
+          </span>
+        </label>
+      )}
+
+      {kind === "agent" && (
+        <label className="block">
+          <span className="text-[11px] text-zinc-400">System Prompt</span>
+          <textarea
+            className={fieldCls + " h-28 resize-y"}
+            placeholder="Instruksi agent (system prompt)..."
+            value={cfg.prompt ?? ""}
+            onChange={(e) => setNodeCfg("prompt", e.target.value)}
+          />
+        </label>
+      )}
+
+      {kind === "mcp" && (
+        <div className="flex flex-col gap-3">
+          <label className="block">
+            <span className="text-[11px] text-zinc-400">Nama Tool (MCP)</span>
+            <select
+              className={fieldCls}
+              value={cfg.tool ?? ""}
+              onChange={(e) => setNodeCfg("tool", e.target.value)}
+            >
+              <option value="">-- Pilih tool --</option>
+              <option value="web_search">Web Search</option>
+              <option value="read_database">Read Database</option>
+              <option value="http_request">HTTP Request</option>
+              <option value="send_whatsapp">Send WhatsApp</option>
+            </select>
+          </label>
+          <label className="block">
+            <span className="text-[11px] text-zinc-400">Parameter</span>
+            <input
+              className={fieldCls}
+              placeholder="JSON parameter / query..."
+              value={cfg.param ?? ""}
+              onChange={(e) => setNodeCfg("param", e.target.value)}
+            />
+          </label>
+        </div>
+      )}
     </div>
   );
 }
@@ -176,6 +213,13 @@ function BuilderInner() {
   const seq = useRef(100);
   const [savedId, setId] = useState<string | null>(null);
   const [saveState, setSaveState] = useState<"idle" | "saving" | "ok" | "err">("idle");
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [runState, setRunState] = useState<"idle" | "running" | "ok" | "err">("idle");
+  const { updateNodeData } = useReactFlow<FlowNode>();
+
+  function handleNodeClick(_: any, node: FlowNode) {
+    setSelectedId(node.id);
+  }
 
   // --- Cargar workflow mas reciente al montar (persistencia full) ---
   useEffect(() => {
@@ -248,6 +292,73 @@ function BuilderInner() {
       setSaveState("err");
       alert("Gagal menyimpan alur: " + e);
     }
+  }
+
+  async function run() {
+    // Guarda primero (si hay cambios) para obtener workflow_id
+    setRunState("running");
+    try {
+      const payload = {
+        name: "Draft Workflow",
+        description: "Workflow creato in Builder",
+        flow_data: { nodes, edges },
+      };
+      let workflowId = savedId;
+      if (workflowId) {
+        // Re-guardar para sincronizar cambios en Supabase y obtener id actual
+        const res = await fetch(`${API_URL}/workflows`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        });
+        if (res.status === 201) {
+          const data = await res.json();
+          workflowId = data.workflow?.id ?? workflowId;
+          setId(workflowId);
+        }
+      } else {
+        const res = await fetch(`${API_URL}/workflows`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        });
+        if (res.status === 201) {
+          const data = await res.json();
+          workflowId = data.workflow?.id;
+          setId(workflowId);
+        } else {
+          throw new Error("Gagal menyimpan workflow (HTTP " + res.status + ")");
+        }
+      }
+      if (!workflowId) throw new Error("workflow_id kosong setelah save.");
+      // Eksekusi backend (non-blocking, status pending)
+      const execRes = await fetch(`${API_URL}/workflows/${workflowId}/execute`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({}),
+      });
+      if (execRes.status === 202) {
+        const exec = await execRes.json();
+        setRunState("ok");
+        alert("Eksekusi dimulai! Task ID: " + (exec.execution_id ?? "?") + " (status: " + (exec.status ?? "pending") + ")");
+      } else {
+        setRunState("err");
+        alert("Gagal mengeksekusi alur (HTTP " + execRes.status + ").");
+      }
+    } catch (e) {
+      setRunState("err");
+      alert("Gagal mengeksekusi alur: " + e);
+    }
+  }
+
+  // --- Node seleccionado para la sidebar de configuracion ---
+  const selectedNode = nodes.find((n) => n.id === selectedId) ?? null;
+  function setNodeCfg(key: string, value: string) {
+    if (!selectedNode) return;
+    updateNodeData(selectedNode.id, {
+      ...selectedNode.data,
+      config: { ...(selectedNode.data.config ?? {}), [key]: value },
+    });
   }
 
   return (
@@ -323,6 +434,7 @@ function BuilderInner() {
           onNodesChange={onNodesChange}
           onEdgesChange={onEdgesChange}
           onConnect={onConnect}
+          onNodeClick={handleNodeClick}
           colorMode="dark"
           className="h-full"
         >
@@ -351,10 +463,54 @@ function BuilderInner() {
               >
                 <Save size={15} /> {saveState === "saving" ? "Simpan..." : "Simpan Alur"}
               </button>
+              <button
+                onClick={run}
+                className="flex items-center gap-2 rounded-md bg-green-600 px-4 py-2 text-sm font-semibold text-white shadow-lg hover:bg-green-700"
+              >
+                <Play size={15} /> {runState === "running" ? "Menjalankan..." : "Jalankan Alur"}
+              </button>
+              {runState === "ok" && (
+                <span className="rounded-md border border-green-500/40 bg-green-500/10 px-2 py-0.5 text-[11px] text-green-300">
+                  Eksekusi dimulai ✓
+                </span>
+              )}
+              {runState === "err" && (
+                <span className="rounded-md border border-red-500/40 bg-red-500/10 px-2 py-0.5 text-[11px] text-red-300">
+                  Gagal mengeksekusi ✕
+                </span>
+              )}
             </div>
           </Panel>
         </ReactFlow>
       </div>
+      {/* Sidebar Configuración (n8n) â€” OPEN cuando un nodo es seleccionado */}
+      <aside className="flex w-80 flex-col gap-4 overflow-y-auto border-l border-gray-700 bg-gray-900 p-4">
+        {selectedNode ? (
+          <>
+            <div className="flex items-center justify-between">
+              <div className="text-[11px] font-bold uppercase tracking-wide text-zinc-400">
+                Konfigurasi Node
+              </div>
+              <button
+                onClick={() => setSelectedId(null)}
+                className="flex h-7 w-7 items-center justify-center rounded-md text-zinc-400 hover:bg-gray-800 hover:text-gray-100"
+              >
+                <X size={15} />
+              </button>
+            </div>
+            <ConfigPanel node={selectedNode} setNodeCfg={setNodeCfg} />
+          </>
+        ) : (
+          <div className="flex h-full flex-col items-center justify-center gap-2 text-center">
+            <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-gray-800 text-zinc-500">
+              <Zap size={18} />
+            </span>
+            <p className="max-w-[180px] text-[12px] leading-snug text-zinc-500">
+              Klik sebuah node untuk membuka panel konfigurasinya di sini.
+            </p>
+          </div>
+        )}
+      </aside>
     </div>
   );
 }
