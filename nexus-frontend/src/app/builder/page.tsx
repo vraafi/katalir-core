@@ -7,6 +7,7 @@ import { useRef, useState } from "react";
 import {
   Edge,
   Handle,
+  Panel,
   Position,
   ReactFlow,
   addEdge,
@@ -173,27 +174,28 @@ export default function Builder() {
         onConnect={onConnect}
         className="flex-1"
         colorMode="dark"
-      />
-
-      {/* Top action */}
-      <div className="absolute right-4 top-4 z-10 flex flex-col items-end gap-1">
-        {saveState === "ok" && (
-          <span className="rounded-md border border-green-500/40 bg-green-500/10 px-2 py-0.5 text-[11px] text-green-300">
-            Data disimpan ✓
-          </span>
-        )}
-        {saveState === "err" && (
-          <span className="rounded-md border border-red-500/40 bg-red-500/10 px-2 py-0.5 text-[11px] text-red-300">
-            Gagal menyimpan ✕
-          </span>
-        )}
-        <button
-          onClick={save}
-          className="flex items-center gap-2 rounded-lg bg-brand px-4 py-2 text-sm font-semibold text-white hover:bg-brand-dark"
-        >
-          <Save size={15} /> {saveState === "saving" ? "Simpan..." : "Simpan Alur"}
-        </button>
-      </div>
+      >
+        <Panel position="top-right">
+          <div className="flex flex-col items-end gap-1">
+            {saveState === "ok" && (
+              <span className="rounded-md border border-green-500/40 bg-green-500/10 px-2 py-0.5 text-[11px] text-green-300">
+                Data disimpan ✓
+              </span>
+            )}
+            {saveState === "err" && (
+              <span className="rounded-md border border-red-500/40 bg-red-500/10 px-2 py-0.5 text-[11px] text-red-300">
+                Gagal menyimpan ✕
+              </span>
+            )}
+            <button
+              onClick={save}
+              className="flex items-center gap-2 rounded-md bg-blue-600 px-4 py-2 text-sm font-semibold text-white shadow-lg hover:bg-blue-700"
+            >
+              <Save size={15} /> {saveState === "saving" ? "Simpan..." : "Simpan Alur"}
+            </button>
+          </div>
+        </Panel>
+      </ReactFlow>
     </div>
   );
 }
