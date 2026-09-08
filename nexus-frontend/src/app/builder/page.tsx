@@ -11,6 +11,11 @@ import {
   Position,
   ReactFlow,
   ReactFlowProvider,
+  Background,
+  BackgroundVariant,
+  Controls,
+  MiniMap,
+  NodeToolbar,
   addEdge,
   useEdgesState,
   useNodesState,
@@ -45,8 +50,11 @@ type FlowNode = {
 // =========================================================================
 // NODO CUSTOM — interactivo (input/textarea/select con sin uwguan nodrag)
 // =========================================================================
-function PaletteNode({ id, data }: { id: string; data: FlowNodeData }) {
-  const { updateNodeData } = useReactFlow<FlowNode>();
+function PaletteNode(props: { id: string; data: FlowNodeData; selected?: boolean }) {
+  const { updateNodeData, deleteElements } = useReactFlow<FlowNode>();
+  const id = props.id;
+  const data = props.data;
+  const selected = !!props.selected;
   const kind = data?.kind ?? "agent";
   const meta = META[kind];
   const Icon = meta.Icon;
@@ -56,72 +64,88 @@ function PaletteNode({ id, data }: { id: string; data: FlowNodeData }) {
     updateNodeData(id, { ...data, config: { ...cfg, [key]: value } });
   }
 
+  function removeNode() {
+    deleteElements({ nodes: [{ id }] });
+  }
+
   return (
     <div
-      className="w-64 rounded-lg border border-gray-600 bg-gray-800 p-4 text-[13px] text-gray-200"
+      className={"w-64 rounded-xl border bg-gray-800 text-[13px] text-gray-200" +
+        (selected ? " border-indigo-500 ring-2 ring-indigo-400/60 shadow-xl" : " border-gray-700 shadow-lg")}
     >
-      <div className="flex items-center gap-2">
+      <NodeToolbar>
+        <button
+          onClick={removeNode}
+          className="flex h-7 w-7 items-center justify-center rounded-md border border-red-900/60 bg-red-900/20 text-red-300 hover:bg-red-900/40"
+        >
+          <Trash2 size={14} />
+        </button>
+      </NodeToolbar>
+
+      <div className="flex items-center gap-2 border-b border-gray-700 px-3 py-2">
         <span
           className="flex h-6 w-6 items-center justify-center rounded-md"
           style={{ background: meta.color, color: "#fff", flexShrink: 0 }}
         >
           <Icon size={13} />
         </span>
-        <span className="flex-1 font-semibold text-gray-200">{data?.label || meta.label}</span>
+        <span className="flex-1 font-semibold text-gray-100">{data?.label || meta.label}</span>
+        <span className="rounded-md bg-gray-900 px-1.5 text-[10px] text-zinc-400">{meta.desc}</span>
         <Handle type="source" position={Position.Right} />
       </div>
-      <div className="text-[11px] text-zinc-500" style={{ lineHeight: 1.3 }}>{meta.desc}</div>
 
-      {kind === "trigger" && (
-        <label className="mt-2 block">
-          <span className="text-[11px] text-zinc-400">Event Name</span>
-          <input
-            className="nodrag mt-1 w-full rounded border border-gray-600 bg-gray-900 px-2 py-1 text-[12px] text-gray-100 outline-none"
-            placeholder="Misal: Saat email masuk"
-            value={cfg.event ?? ""}
-            onChange={(e) => setCfg("event", e.target.value)}
-          />
-        </label>
-      )}
-
-      {kind === "agent" && (
-        <label className="mt-2 block">
-          <span className="text-[11px] text-zinc-400">System Prompt</span>
-          <textarea
-            className="nodrag mt-1 h-16 w-full resize-y rounded border border-gray-600 bg-gray-900 px-2 py-1 text-[12px] text-gray-100 outline-none"
-            placeholder="Instruksi agent..."
-            value={cfg.prompt ?? ""}
-            onChange={(e) => setCfg("prompt", e.target.value)}
-          />
-        </label>
-      )}
-
-      {kind === "mcp" && (
-        <div className="mt-2 space-y-1">
+      <div className="space-y-2 px-3 py-2">
+        {kind === "trigger" && (
           <label className="block">
-            <span className="text-[11px] text-zinc-400">Nama Tool</span>
-            <select
-              className="nodrag mt-1 w-full rounded border border-gray-600 bg-gray-900 px-2 py-1 text-[12px] text-gray-100 outline-none"
-              value={cfg.tool ?? ""}
-              onChange={(e) => setCfg("tool", e.target.value)}
-            >
-              <option value="">-- Elige tool --</option>
-              <option value="web_search">Web Search</option>
-              <option value="read_database">Read Database</option>
-              <option value="http_request">HTTP Request</option>
-            </select>
-          </label>
-          <label className="block">
-            <span className="text-[11px] text-zinc-400">Parameter</span>
+            <span className="text-[11px] text-zinc-400">Event Name</span>
             <input
               className="nodrag mt-1 w-full rounded border border-gray-600 bg-gray-900 px-2 py-1 text-[12px] text-gray-100 outline-none"
-              placeholder="json parameter..."
-              value={cfg.param ?? ""}
-              onChange={(e) => setCfg("param", e.target.value)}
+              placeholder="Misal: Saat email masuk"
+              value={cfg.event ?? ""}
+              onChange={(e) => setCfg("event", e.target.value)}
             />
           </label>
-        </div>
-      )}
+        )}
+
+        {kind === "agent" && (
+          <label className="block">
+            <span className="text-[11px] text-zinc-400">System Prompt</span>
+            <textarea
+              className="nodrag mt-1 h-16 w-full resize-y rounded border border-gray-600 bg-gray-900 px-2 py-1 text-[12px] text-gray-100 outline-none"
+              placeholder="Instruksi agent..."
+              value={cfg.prompt ?? ""}
+              onChange={(e) => setCfg("prompt", e.target.value)}
+            />
+          </label>
+        )}
+
+        {kind === "mcp" && (
+          <div className="space-y-1">
+            <label className="block">
+              <span className="text-[11px] text-zinc-400">Nama Tool</span>
+              <select
+                className="nodrag mt-1 w-full rounded border border-gray-600 bg-gray-900 px-2 py-1 text-[12px] text-gray-100 outline-none"
+                value={cfg.tool ?? ""}
+                onChange={(e) => setCfg("tool", e.target.value)}
+              >
+                <option value="">-- Elige tool --</option>
+                <option value="web_search">Web Search</option>
+                <option value="read_database">Read Database</option>
+                <option value="http_request">HTTP Request</option>
+              </select>
+            </label>
+            <label className="block">
+              <span className="text-[11px] text-zinc-400">Parameter</span>
+              <input
+                className="nodrag mt-1 w-full rounded border border-gray-600 bg-gray-900 px-2 py-1 text-[12px] text-gray-100 outline-none"
+                placeholder="json parameter..."
+                value={cfg.param ?? ""}
+                onChange={(e) => setCfg("param", e.target.value)}
+              />
+            </label>
+          </div>
+        )}
+      </div>
     </div>
   );
 }
@@ -140,7 +164,13 @@ function BuilderInner() {
 
   // --- Drag & Drop HTML5 (handlers inline -> tipo inferido por React) ---
   function onConnect(connection: { source: string; target: string }) {
-    const edge: Edge = { id: "e_" + seq.current++, source: connection.source, target: connection.target };
+    const edge: Edge = {
+      id: "e_" + seq.current++,
+      source: connection.source,
+      target: connection.target,
+      animated: true,
+      style: { stroke: "#6C63FF", strokeWidth: 2 },
+    };
     setEdges(addEdge(edge, edges));
   }
 
@@ -253,6 +283,13 @@ function BuilderInner() {
           colorMode="dark"
           className="h-full"
         >
+          <Background variant={BackgroundVariant.Dots} gap={12} size={1} />
+          <Controls position="bottom-left" />
+          <MiniMap
+            nodeColor="#2d3748"
+            maskColor="rgba(0,0,0,0.8)"
+            position="bottom-right"
+          />
           <Panel position="top-right">
             <div className="flex flex-col items-end gap-1">
               {saveState === "ok" && (
