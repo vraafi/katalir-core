@@ -64,6 +64,12 @@ class IntegrationRequest(BaseModel):
     token: str
 
 
+class WorkflowCreateRequest(BaseModel):
+    name: str = "Draft Workflow"
+    description: str = ""
+    flow_data: dict = {}
+
+
 # ---------------------------------------------------------------------------
 # AGENTIC LOOP (setara _agentic_run, bebas dari Streamlit)
 # ---------------------------------------------------------------------------
@@ -226,6 +232,31 @@ def save_integration(req: IntegrationRequest):
     if not ok:
         raise HTTPException(500, "Gagal menyimpan kredensial.")
     return {"status": "success", "provider": req.provider}
+
+
+# ---------------------------------------------------------------------------
+# ENDPOINT: POST /workflows  (simpan Visual AI Workflow JSON)
+# ---------------------------------------------------------------------------
+@app.post("/workflows", status_code=201)
+def create_workflow(req: WorkflowCreateRequest):
+    """Simpan un workflow de nodos/edges (JSONB a tabla workflows)."""
+    try:
+        row = db.create_workflow(req.name, req.description, req.flow_data)
+    except Exception as exc:  # noqa: BLE001
+        raise HTTPException(500, f"Gagal menyimpan workflow: {exc}")
+    return {"status": "success", "workflow": row}
+
+
+# ---------------------------------------------------------------------------
+# ENDPOINT: GET /workflows  (listar workflows)
+# ---------------------------------------------------------------------------
+@app.get("/workflows")
+def get_workflows():
+    try:
+        rows = db.list_workflows()
+    except Exception as exc:  # noqa: BLE001
+        raise HTTPException(500, f"Gagal memuat workflows: {exc}")
+    return {"status": "success", "workflows": rows}
 
 
 # ---------------------------------------------------------------------------

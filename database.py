@@ -288,3 +288,30 @@ def persistence_info():
     if is_configured():
         return {"status": "persisted", "backend": "supabase", "url": SUPABASE_URL}
     return {"status": "degraded", "backend": "memory", "url": None}
+
+
+# ---- WORKFLOWS (Visual AI Agent Workflow Builder) ----
+def create_workflow(name: str, description: str, flow_data: dict):
+    """Simpan workflow (nodes & edges como JSONB) a la tabla workflows."""
+    if not is_configured():
+        raise RuntimeError("Supabase belum dikonfigurasi — tidak dapat persist workflow.")
+    c = _get_write_client()
+    res = c.table("workflows").insert(
+        {"name": name, "description": description, "flow_data": flow_data}
+    ).execute()
+    rows = res.data or []
+    return rows[0] if rows else {}
+
+
+def list_workflows():
+    """Listar todos los workflows (creados_at desc)."""
+    if not is_configured():
+        return []
+    c = _get_write_client()
+    res = (
+        c.table("workflows")
+        .select("id,name,description,flow_data,created_at")
+        .order("created_at", desc=True)
+        .execute()
+    )
+    return res.data or []

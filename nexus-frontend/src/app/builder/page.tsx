@@ -63,10 +63,14 @@ const NODE_TYPES = { trigger: Palette, agent: Palette, mcp: Palette };
 // =========================================================================
 // PAGINA BUILDER
 // =========================================================================
+const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+
 export default function Builder() {
   const [nodes, setNodes, onNodesChange] = useNodesState<FlowNode>([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState<Edge>([]);
   const seq = useRef(100);
+  const [savedId, setId] = useState<string | null>(null);
+  const [saveState, setSaveState] = useState<"idle" | "saving" | "ok" | "err">("idle");
 
   function addFromMenu(kind: Kind) {
     const id = `${kind}-${seq.current++}`;
@@ -96,14 +100,33 @@ export default function Builder() {
     setEdges([]);
   }
 
-  function save() {
-    const flow = {
-      version: "1.0",
-      saved_at: new Date().toISOString(),
-      work: { nodes, edges },
+  async function save() {
+    const flow_data = { nodes, edges };
+    const payload = {
+      name: "Draft Workflow",
+      description: "Workflow creato in Builder",
+      flow_data,
     };
-    console.log("FLOW_JSON:", JSON.stringify(flow, null, 2));
-    alert("Alur disimpan! JSON sent to console (dev).");
+    setSaveState("saving");
+    try {
+      const res = await fetch(`${API_URL}/workflows`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      if (res.status === 201) {
+        const data = await res.json();
+        setId(data.workflow?.id);
+        setSaveState("ok");
+        alert("Alur disimpan! ID: " + (data.workflow?.id ?? "?"));
+      } else {
+        setSaveState("err");
+        alert("Gagal menyimpan alur (HTTP " + res.status + ").");
+      }
+    } catch (e) {
+      setSaveState("err");
+      alert("Gagal menyimpan alur: " + e);
+    }
   }
 
   return (
@@ -153,12 +176,22 @@ export default function Builder() {
       />
 
       {/* Top action */}
-      <div className="absolute right-4 top-4 z-10">
+      <div className="absolute right-4 top-4 z-10 flex flex-col items-end gap-1">
+        {saveState === "ok" && (
+          <span className="rounded-md border border-green-500/40 bg-green-500/10 px-2 py-0.5 text-[11px] text-green-300">
+            Data disimpan ✓
+          </span>
+        )}
+        {saveState === "err" && (
+          <span className="rounded-md border border-red-500/40 bg-red-500/10 px-2 py-0.5 text-[11px] text-red-300">
+            Gagal menyimpan ✕
+          </span>
+        )}
         <button
           onClick={save}
           className="flex items-center gap-2 rounded-lg bg-brand px-4 py-2 text-sm font-semibold text-white hover:bg-brand-dark"
         >
-          <Save size={15} /> Simpan Alur
+          <Save size={15} /> {saveState === "saving" ? "Simpan..." : "Simpan Alur"}
         </button>
       </div>
     </div>
