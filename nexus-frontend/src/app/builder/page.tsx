@@ -3,7 +3,7 @@
 import "@xyflow/react/dist/base.css";
 import "@xyflow/react/dist/style.css";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   Edge,
   Handle,
@@ -174,6 +174,34 @@ function BuilderInner() {
   const seq = useRef(100);
   const [savedId, setId] = useState<string | null>(null);
   const [saveState, setSaveState] = useState<"idle" | "saving" | "ok" | "err">("idle");
+
+  // --- Cargar workflow mas reciente al montar (persistencia full) ---
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch(`${API_URL}/workflows`);
+        if (!res.ok) return;
+        const data = await res.json();
+        const list: any[] = data?.workflows ?? [];
+        if (cancelled || list.length === 0) return;
+        // array ya ordenado desc por created_at -> primero = mas reciente
+        const latest = list[0];
+        const flow = latest?.flow_data ?? {};
+        if (Array.isArray(flow.nodes) && flow.nodes.length > 0) {
+          setNodes(flow.nodes);
+          setEdges(Array.isArray(flow.edges) ? flow.edges : []);
+          console.log("Alur kerja terakhir berhasil dimuat:", flow.nodes.length, "node(s)");
+        }
+      } catch (err) {
+        // kanvas tetap kosong, tanpa crash
+        console.log("Gagal memuat workflow (kanvas kosong).", err);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   // --- Drag & Drop HTML5 (handlers inline -> tipo inferido por React) ---
   function onConnect(connection: { source: string; target: string }) {
