@@ -1,6 +1,7 @@
 "use client";
 
-import { Plus, Bot, LogIn, LogOut, MessageSquare } from "lucide-react";
+import { Plus, Bot, LogIn, LogOut, MessageSquare, Workflow } from "lucide-react";
+import Link from "next/link";
 import { useAuth } from "@/context/auth";
 
 interface SessionItem {
@@ -79,6 +80,12 @@ export default function Shell({
           </div>
 
           <div className="flex items-center gap-3">
+            <Link
+              href="/builder"
+              className="flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-sm font-medium text-gray-700 transition hover:bg-gray-50"
+            >
+              <Workflow size={14} /> Builder
+            </Link>
             {email && (
               <span className="max-w-[180px] truncate text-sm text-gray-600">
                 {email}
