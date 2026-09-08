@@ -81,6 +81,12 @@ export default function Shell({
 
           <div className="flex items-center gap-3">
             <Link
+              href="/"
+              className="flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-sm font-medium text-gray-700 transition hover:bg-gray-50"
+            >
+              <MessageSquare size={14} /> Chat
+            </Link>
+            <Link
               href="/builder"
               className="flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-sm font-medium text-gray-700 transition hover:bg-gray-50"
             >
