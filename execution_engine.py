@@ -206,15 +206,29 @@ class StatefulOrchestrator:
         return {"type": "trigger.fire", "event": event, "message": f"Trigger disparado: {event}"}
 
     async def _exec_agent(self, node: FlowNode, inp: dict) -> dict:
+        # Reasoning Agent nyata (LangChain Core) - baca System Prompt + input Trigger.
+        from agent_reasoner import run_agent as reason
+
         cfg = node.data.config or {}
         prompt = cfg.get("system_prompt") or node.data.label or "instruccion por defecto"
-        # Log: recibe input del predecesor y pasa instruccion al MCP.
+        res = await reason(prompt, dict(inp))
+        status = res.get("status", "success")
+        if status == "success":
+            return {
+                "type": "agent.think",
+                "received_from": inp.get("_from", "trigger"),
+                "instruction": res.get("reply", ""),
+                "message": f"Agent menerima input dari '{inp.get('_from', 'trigger')}' "
+                           f"dan berpikir via {res.get('model', 'llm')}.",
+            }
+        # Sin LLM key / error: no crashea - catat jelas di execution_logs.
         return {
             "type": "agent.think",
             "received_from": inp.get("_from", "trigger"),
             "instruction": prompt,
-            "message": f"Agent recibio input del nodo '{inp.get('_from', 'trigger')}' "
-                       f"y enVIA instruccion: {prompt[:60]}",
+            "message": f"[Agent {status}] {res.get('error', 'tanpa LLM key')}",
+            "agent_status": status,
+            "agent_error": res.get("error"),
         }
 
     async def _exec_mcp(self, node: FlowNode, inp: dict) -> dict:
