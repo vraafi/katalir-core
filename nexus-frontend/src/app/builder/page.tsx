@@ -22,9 +22,15 @@ import {
   useReactFlow,
 } from "@xyflow/react";
 import { Zap, Bot, Wrench, Save, Trash2, Plus, Play, X, Copy, Check } from "lucide-react";
-import { lazy, Suspense } from "react";
+import dynamic from "next/dynamic";
 
-const ExpressionEditor = lazy(() => import("@/components/ExpressionEditor"));
+const ExpressionEditor = dynamic(
+  () => import("@/components/ExpressionEditor"),
+  {
+    ssr: false,
+    loading: () => <p className="mt-1 text-xs text-gray-500">Memuat editor...</p>,
+  }
+);
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
@@ -212,16 +218,14 @@ function ConfigPanel({
       {kind === "agent" && (
         <label className="block">
           <span className="text-[11px] text-zinc-400">System Prompt</span>
-          <Suspense fallback={<div className="mt-1 rounded-md border border-gray-600 bg-gray-800 p-2 text-[12px] text-zinc-500">Memuat editor...</div>}>
-            <div className="mt-1">
-              <ExpressionEditor
-                value={cfg.prompt ?? ""}
-                placeholder="Instruksi agent (system prompt)... ketik {{ untuk variabel"
-                minHeight="112px"
-                onChange={(v) => setNodeCfg("prompt", v)}
-              />
-            </div>
-          </Suspense>
+          <div className="mt-1">
+            <ExpressionEditor
+              value={cfg.prompt ?? ""}
+              placeholder="Instruksi agent (system prompt)... ketik {{ untuk variabel"
+              minHeight="112px"
+              onChange={(v) => setNodeCfg("prompt", v)}
+            />
+          </div>
         </label>
       )}
 
@@ -241,16 +245,14 @@ function ConfigPanel({
           </label>
           <label className="block">
             <span className="text-[11px] text-zinc-400">Parameter</span>
-            <Suspense fallback={<div className="mt-1 rounded-md border border-gray-600 bg-gray-800 p-2 text-[12px] text-zinc-500">Memuat editor...</div>}>
-              <div className="mt-1">
-                <ExpressionEditor
-                  value={cfg.param ?? ""}
-                  placeholder="Query / JSON parameter... ketik {{ untuk variabel"
-                  minHeight="80px"
-                  onChange={(v) => setNodeCfg("param", v)}
-                />
-              </div>
-            </Suspense>
+            <div className="mt-1">
+              <ExpressionEditor
+                value={cfg.param ?? ""}
+                placeholder="Query / JSON parameter... ketik {{ untuk variabel"
+                minHeight="80px"
+                onChange={(v) => setNodeCfg("param", v)}
+              />
+            </div>
           </label>
         </div>
       )}

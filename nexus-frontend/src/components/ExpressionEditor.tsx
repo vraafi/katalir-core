@@ -8,6 +8,12 @@
 import CodeMirror from "@uiw/react-codemirror";
 import { autocompletion, CompletionContext } from "@codemirror/autocomplete";
 
+// Z-index tinggi agar dropdown autocomplete tidak tertutup Sidebar React Flow.
+const AUTOCOMPLETE_HIGH_Z = {
+  "& .cm-tooltip-autocomplete": { zIndex: "9999 !important" },
+  "& .cm-tooltip": { zIndex: "9999 !important" },
+} as const;
+
 const SUGGESTIONS = [
   { label: "trigger.body", detail: "Payload body webhook" },
   { label: "trigger.headers", detail: "Headers webhook" },
@@ -38,6 +44,7 @@ export default function ExpressionEditor(props: {
   const { value, placeholder, onChange, minHeight } = props;
   return (
     <div className="nodrag overflow-hidden rounded-md border border-gray-600 bg-gray-900 font-mono text-[12px]">
+      <style>{`.nodrag .cm-tooltip-autocomplete, .nodrag .cm-tooltip { z-index: 9999 !important; }`}</style>
       <CodeMirror
         value={value ?? ""}
         placeholder={placeholder ?? "Ketik... (gunakan {{ untuk variabel)"}
