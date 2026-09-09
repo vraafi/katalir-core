@@ -21,7 +21,7 @@ import {
   useNodesState,
   useReactFlow,
 } from "@xyflow/react";
-import { Zap, Bot, Wrench, Save, Trash2, Plus, Play, X } from "lucide-react";
+import { Zap, Bot, Wrench, Save, Trash2, Plus, Play, X, Copy, Check } from "lucide-react";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
@@ -116,15 +116,37 @@ function PaletteNode(props: { id: string; data: FlowNodeData; selected?: boolean
 function ConfigPanel({
   node,
   setNodeCfg,
+  apiUrl,
+  workflowId,
 }: {
   node: FlowNode;
   setNodeCfg: (key: string, value: string) => void;
+  apiUrl: string;
+  workflowId: string | null;
 }) {
   const data = node.data;
   const kind = data?.kind ?? "agent";
   const meta = META[kind];
   const Icon = meta.Icon;
   const cfg = data?.config ?? {};
+  const [copied, setCopied] = useState(false);
+
+  async function copyWebhook() {
+    if (!workflowId) return;
+    const url = `${apiUrl}/webhook/${workflowId}`;
+    try {
+      await navigator.clipboard.writeText(url);
+    } catch {
+      const ta = document.createElement("textarea");
+      ta.value = url;
+      document.body.appendChild(ta);
+      ta.select();
+      document.execCommand("copy");
+      document.body.removeChild(ta);
+    }
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  }
 
   const fieldCls =
     "nodrag mt-1 w-full rounded-md border border-gray-600 bg-gray-800 px-2.5 py-1.5 text-[13px] text-gray-100 outline-none focus:border-indigo-400 nodrag";
@@ -145,6 +167,7 @@ function ConfigPanel({
       </div>
 
       {kind === "trigger" && (
+        <>
         <label className="block">
           <span className="text-[11px] text-zinc-400">Event Name</span>
           <input
@@ -157,6 +180,30 @@ function ConfigPanel({
             Titik yang memicu alur ini, misal event dari email atau manual.
           </span>
         </label>
+        <div className="rounded-xl border border-gray-700 bg-gray-800/60 p-3">
+          <div className="mb-2 text-[11px] font-bold uppercase tracking-wide text-zinc-400">
+            Webhook URL
+          </div>
+          {workflowId ? (
+            <>
+              <code className="block break-all rounded bg-black/50 p-2 font-mono text-[11px] leading-relaxed text-green-400">
+                {`${apiUrl}/webhook/${workflowId}`}
+              </code>
+              <button
+                onClick={() => { void copyWebhook(); }}
+                className="mt-2 flex w-full items-center justify-center gap-2 rounded-md border border-gray-600 bg-gray-800 px-3 py-1.5 text-[12px] font-semibold text-gray-100 hover:bg-gray-700"
+              >
+                {copied ? <Check size={14} /> : <Copy size={14} />}
+                {copied ? "Tersalin ✓" : "Salin URL"}
+              </button>
+            </>
+          ) : (
+            <div className="rounded-md border border-yellow-500/50 bg-yellow-500/10 p-2 text-[11px] leading-snug text-yellow-200">
+              ⚠️ Klik &apos;Simpan Alur&apos; terlebih dahulu di menu atas untuk men-generate URL Webhook Anda.
+            </div>
+          )}
+        </div>
+        </>
       )}
 
       {kind === "agent" && (
@@ -548,7 +595,7 @@ function BuilderInner() {
                 <X size={15} />
               </button>
             </div>
-            <ConfigPanel node={selectedNode} setNodeCfg={setNodeCfg} />
+            <ConfigPanel node={selectedNode} setNodeCfg={setNodeCfg} apiUrl={API_URL} workflowId={savedId} />
           </>
         ) : (
           <div className="flex h-full flex-col items-center justify-center gap-2 text-center">
