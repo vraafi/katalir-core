@@ -10,6 +10,7 @@ streamlit==1.41.1
 # Klien API Google Gemini (google-genai = SDK resmi terbaru)
 google-genai==1.6.0
 httpx==0.28.1
+ddgs==9.0.1
 
 # Models & validasi
 pydantic==2.10.4

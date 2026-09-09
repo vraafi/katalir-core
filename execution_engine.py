@@ -93,31 +93,115 @@ class MCPTool:
         return await self._fn(params)
 
 
-class MockMCPClient:
-    """Cliente MCP mock para primera iteracion (sin claves API reales).
+class NativeMCPClient:
+    """Klien MCP NATIVE (2026) - eksekusi nyata di internet, bukan simulasi.
 
-    Expone la misma interfaz que un MCPClient real (connect/list_tools/call_tool)
-    para que el Registry solo dependa del protocolo MCP, no de if/else.
+    Mengekspos interface protokol yang sama (connect/list_tools/call_tool).
+    Tools:
+      - web_search    : DDGS().text() -> 3 hasil teratas nyata.
+      - http_request  : httpx.AsyncClient() -> GET/POST nyata.
+      - read_database : placeholder jelas (butuh kredensial DB user).
+      - send_whatsapp : placeholder jelas (butuh token WhatsApp user).
+    Semua kegagalan dicatat sebagai payload error (pipeline tidak crash).
     """
 
-    _TOOLS: dict[str, dict] = {
-        "web_search": {"name": "web_search", "message": "Mock: busqueda web ejecutada"},
-        "read_database": {"name": "read_database", "message": "Mock: lectura de base de datos ejecutada"},
-        "http_request": {"name": "http_request", "message": "Mock: peticion HTTP enviada"},
-        "send_whatsapp": {"name": "send_whatsapp", "message": "Mock: mensaje WhatsApp enviado"},
+    _META: dict[str, str] = {
+        "web_search": "Pencarian web nyata via DuckDuckGo",
+        "http_request": "HTTP GET/POST nyata via httpx",
+        "read_database": "Baca database user (butuh kredensial integrasi)",
+        "send_whatsapp": "Kirim WhatsApp (butuh token integrasi)",
     }
 
     async def connect(self) -> None:
-        await asyncio.sleep(0)  # handshake simulado (non-blocking)
+        await asyncio.sleep(0)  # handshake non-blocking (tanpa koneksi tetap)
 
     async def list_tools(self) -> list[dict]:
-        return [{"name": v["name"], "description": v["message"]} for v in self._TOOLS.values()]
+        return [{"name": n, "description": d} for n, d in self._META.items()]
+
+    async def _web_search(self, query: str, max_results: int = 3) -> dict:
+        try:
+            from ddgs import DDGS
+        except Exception as exc:  # noqa: BLE001
+            return {"status": "error", "tool": "web_search",
+                    "error": f"ddgs belum terinstal: {exc}"}
+        try:
+            def _run() -> list[dict]:
+                out: list[dict] = []
+                for r in DDGS().text(str(query), max_results=max_results):
+                    out.append({
+                        "title": r.get("title", ""),
+                        "href": r.get("href", ""),
+                        "body": (r.get("body", "") or "")[:400],
+                    })
+                return out
+            results = await asyncio.to_thread(_run)
+            return {"status": "success", "tool": "web_search",
+                    "query": str(query), "count": len(results),
+                    "results": results}
+        except Exception as exc:  # noqa: BLE001
+            return {"status": "error", "tool": "web_search",
+                    "query": str(query),
+                    "error": f"[{type(exc).__name__}] {exc}"}
+
+    async def _http_request(self, url: str, method: str = "GET",
+                            body: Any = None, timeout: float = 20.0) -> dict:
+        try:
+            import httpx
+        except Exception as exc:  # noqa: BLE001
+            return {"status": "error", "tool": "http_request",
+                    "error": f"httpx belum terinstal: {exc}"}
+        method = (method or "GET").upper()
+        try:
+            async with httpx.AsyncClient(timeout=timeout,
+                                         follow_redirects=True) as client:
+                if method == "POST":
+                    resp = await client.post(url, json=body)
+                elif method == "PUT":
+                    resp = await client.put(url, json=body)
+                elif method == "DELETE":
+                    resp = await client.delete(url)
+                else:
+                    resp = await client.get(url)
+            text = resp.text or ""
+            return {"status": "success" if resp.status_code < 400 else "error",
+                    "tool": "http_request", "url": url, "method": method,
+                    "http_status": resp.status_code,
+                    "content_type": resp.headers.get("content-type", ""),
+                    "body": text[:4000]}
+        except Exception as exc:  # noqa: BLE001
+            return {"status": "error", "tool": "http_request", "url": url,
+                    "method": method,
+                    "error": f"[{type(exc).__name__}] {exc}"}
 
     async def call_tool(self, name: str, arguments: dict) -> dict:
-        desc = self._TOOLS.get(name)
-        if not desc:
-            raise KeyError(f"MCP tool '{name}' tidak terdaftar")
-        return {"status": "success", "tool": name, "message": desc["message"], "input": arguments}
+        args = arguments or {}
+        if name == "web_search":
+            q = args.get("query") or args.get("q") or args.get("text") or ""
+            if not q:
+                return {"status": "error", "tool": name,
+                        "error": "query pencarian kosong"}
+            n = args.get("max_results", 3)
+            try:
+                n = max(1, min(10, int(n)))
+            except Exception:  # noqa: BLE001
+                n = 3
+            return await self._web_search(str(q), n)
+        if name == "http_request":
+            url = args.get("url") or args.get("href") or ""
+            if not url:
+                return {"status": "error", "tool": name,
+                        "error": "url target kosong"}
+            return await self._http_request(
+                str(url), str(args.get("method", "GET")),
+                args.get("body"),
+                float(args.get("timeout", 20.0) or 20.0))
+        if name in ("read_database", "send_whatsapp"):
+            need = "database" if name == "read_database" else "whatsapp"
+            return {"status": "error", "tool": name,
+                    "needs_credential": need,
+                    "error": f"Tool '{name}' membutuhkan kredensial "
+                             f"integrasi '{need}' (simpan via /integrations)."}
+        raise KeyError(f"MCP tool '{name}' tidak terdaftar")
 
 
 class MCPRegistry:
@@ -132,15 +216,15 @@ class MCPRegistry:
 
     @staticmethod
     def _build_client():
-        # En esta primera iteracion se usa el Mock (sin claves reales).
-        # Para usar el SDK 'mcp' estandar, definir MCP_SDK=1 (requiere conexion real).
+        # Native executor nyata (2026). Fallback ke SDK hanya jika dipaksa
+        # eksplisit via MCP_SDK=1 dan modul tersedia.
         if os.getenv("MCP_SDK", "").strip() == "1":
             try:
                 import mcp  # noqa: F401
                 return _SdkMCPClient()
             except Exception:
-                return MockMCPClient()
-        return MockMCPClient()
+                return NativeMCPClient()
+        return NativeMCPClient()
 
     async def connect(self) -> None:
         await self._client.connect()
@@ -232,10 +316,27 @@ class StatefulOrchestrator:
         }
 
     async def _exec_mcp(self, node: FlowNode, inp: dict) -> dict:
+        # Baca instruksi/tool_call dari output Agent sebelumnya (Agent -> MCP).
         cfg = node.data.config or {}
-        tool = cfg.get("tool_name") or "web_search"
-        param = cfg.get("tool_param") or inp.get("instruction") or ""
-        result = await self.registry.invoke(tool, {"query": param})
+        tool = cfg.get("tool_name") or inp.get("tool") or inp.get("tool_name") or "web_search"
+        param = (
+            cfg.get("tool_param")
+            or inp.get("instruction")
+            or inp.get("reply")
+            or inp.get("query")
+            or ""
+        )
+        try:
+            if tool == "web_search":
+                result = await self.registry.invoke(tool, {"query": str(param), "max_results": 3})
+            elif tool == "http_request":
+                result = await self.registry.invoke(
+                    tool, {"url": str(param), "method": str(cfg.get("method", "GET"))})
+            else:
+                result = await self.registry.invoke(tool, {"query": str(param)})
+        except Exception as exc:  # noqa: BLE001 - target mati tidak boleh crash pipeline
+            result = {"status": "error", "tool": tool,
+                      "error": f"[{type(exc).__name__}] {exc}"}
         return {"type": "mcp.call", "tool": tool, "result": result}
 
     EXECUTORS: dict[NodeKind, Callable[[Any, FlowNode, dict], Awaitable[dict]]] = {
