@@ -306,8 +306,29 @@ class StatefulOrchestrator:
 
         cfg = node.data.config or {}
         prompt = cfg.get("system_prompt") or node.data.label or "instruccion por defecto"
+        # --- Gembok saldo: cek SEBELUM eksekusi AI ---
+        import database as db
+        owner = getattr(self, "owner_email", None) or cfg.get("owner_email") or ""
+        try:
+            bal = db.get_balance(owner) if owner else None
+        except Exception:
+            bal = None
+        if owner and bal is not None and bal <= 0:
+            return {
+                "type": "agent.think",
+                "received_from": inp.get("_from", "trigger"),
+                "instruction": prompt,
+                "message": "[Agent blocked] Saldo habis. Topup via Dodo Payments.",
+                "agent_status": "blocked_no_balance",
+            }
         res = await reason(prompt, dict(inp))
         status = res.get("status", "success")
+        # --- Potong saldo SETELAH eksekusi sukses ---
+        if status == "success" and owner:
+            try:
+                db.deduct_balance(owner, float(res.get("cost_usd", 0) or 0))
+            except Exception:
+                pass
         if status == "success":
             return {
                 "type": "agent.think",
@@ -315,6 +336,8 @@ class StatefulOrchestrator:
                 "instruction": res.get("reply", ""),
                 "message": f"Agent menerima input dari '{inp.get('_from', 'trigger')}' "
                            f"dan berpikir via {res.get('model', 'llm')}.",
+                "usage": res.get("usage", {}),
+                "cost_usd": res.get("cost_usd", 0.0),
             }
         # Sin LLM key / error: no crashea - catat jelas di execution_logs.
         return {

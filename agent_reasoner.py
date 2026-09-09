@@ -201,6 +201,14 @@ async def run_agent(system_prompt: str, user_input: dict[str, Any]) -> dict:
             reply = getattr(resp, "content", str(resp))
             if not reply:
                 reply = "[Agent tanpa respons tekstual]"
+            # --- Usage + biaya (LiteLLM) ---
+            usage = getattr(resp, "usage_metadata", None) or {}
+            try:
+                prompt_t = usage.get("input_tokens", 0) if isinstance(usage, dict) else getattr(usage, "input_tokens", 0)
+                compl_t = usage.get("output_tokens", 0) if isinstance(usage, dict) else getattr(usage, "output_tokens", 0)
+            except Exception:
+                prompt_t, compl_t = 0, 0
+            cost_usd = estimate_cost(model_name, prompt_t, compl_t)
             return {
                 "status": "success",
                 "reply": str(reply),
@@ -208,6 +216,9 @@ async def run_agent(system_prompt: str, user_input: dict[str, Any]) -> dict:
                                 "provider": prov},
                 "model": model_name,
                 "provider": prov,
+                "usage": {"prompt_tokens": int(prompt_t or 0),
+                          "completion_tokens": int(compl_t or 0)},
+                "cost_usd": float(cost_usd or 0.0),
             }
         except Exception as exc:  # noqa: BLE001
             last_err = exc
@@ -226,3 +237,12 @@ def agent_ready() -> bool:
     """True jika ada kunci AI apa pun (untuk UI/logs)."""
     prov, _ = detect_provider()
     return bool(prov)
+
+
+# --- Biaya (LiteLLM) ---
+def estimate_cost(model, prompt_t, compl_t):
+ try:
+  from litellm import completion_cost
+  return float(completion_cost(completion_response={'usage':{'prompt_tokens':int(prompt_t or 0),'completion_tokens':int(compl_t or 0)}}, model=model))
+ except Exception:
+  return 0.0

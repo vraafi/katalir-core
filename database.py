@@ -390,3 +390,36 @@ def get_execution(execution_id: str):
         except Exception:
             _configured = False
     return {"execution": _L_EXEC.get(execution_id), "logs": _L_EXLOG.get(execution_id, [])}
+
+
+_LBAL={}
+
+def get_balance(email):
+ try:
+  if is_configured():
+   r=_get_client().table('user_balances').select('balance').eq('email',email).limit(1).execute()
+   d=getattr(r,'data',None) or []
+   return float(d[0].get('balance',0) or 0) if d else 0.0
+ except Exception:
+  pass
+ return float(_LBAL.get(email,0.0))
+
+def topup_balance(email,amt):
+ try:
+  if is_configured():
+   cur=get_balance(email)
+   c=_get_write_client()
+   ex=c.table('user_balances').select('email').eq('email',email).limit(1).execute()
+   dd=getattr(ex,'data',None) or []
+   nb=cur+float(amt)
+   (c.table('user_balances').update({'balance':nb}).eq('email',email).execute() if dd else c.table('user_balances').insert({'email':email,'balance':nb}).execute())
+   return nb
+ except Exception:
+  pass
+ _LBAL[email]=float(_LBAL.get(email,0.0))+float(amt)
+ return _LBAL[email]
+
+def deduct_balance(email,amt):
+ b=get_balance(email)
+ if b < float(amt): return None
+ return topup_balance(email,-float(amt))

@@ -407,6 +407,34 @@ def messages(session_id: str, email: str):
 
 
 # ---------------------------------------------------------------------------
+# ENDPOINT 5: POST /api/payments/dodo-webhook  (Dodo Payments -> topup saldo)
+# ---------------------------------------------------------------------------
+class DodoWebhookPayload(BaseModel):
+    email: Optional[str] = None
+    customer_email: Optional[str] = None
+    amount: Optional[float] = 0
+    credits: Optional[float] = 0
+    event: Optional[str] = "payment.succeeded"
+    payment_id: Optional[str] = None
+
+
+@app.post("/api/payments/dodo-webhook")
+def dodo_webhook(payload: DodoWebhookPayload):
+    email = payload.email or payload.customer_email
+    if not email:
+        raise HTTPException(422, "email wajib diisi.")
+    topup = payload.credits or payload.amount or 0
+    if topup <= 0:
+        raise HTTPException(422, "nominal topup harus > 0.")
+    try:
+        db.topup_balance(email, float(topup))
+        return {"status": "success", "email": email, "credited": float(topup),
+                "payment_id": payload.payment_id, "event": payload.event}
+    except Exception as exc:  # noqa: BLE001
+        raise HTTPException(500, f"Gagal memproses webhook: {exc}")
+
+
+# ---------------------------------------------------------------------------
 # HEALTH CHECK (opsional, berguna utk deployment Cloudflare)
 # ---------------------------------------------------------------------------
 @app.get("/health")
