@@ -1,15 +1,14 @@
 # agent_reasoner.py - Reasoning Agent (Enterprise September 2026)
 # =============================================================================
-# Eksekutor para node AGENT del Execution Engine, construido sobre un agent
-# framework moderno (LangChain Core) en lugar de raw SDK chat completions.
+# Eksekutor untuk node AGENT, dibangun di atas framework agentic modern
+# (LangChain Core + integrasi Google Generative AI) — BUKAN raw SDK.
 #
-# Caracteristicas:
-#   1. Tool Calling NATIVO via LangChain `bind_tools` (MCP readiness).
-#   2. Sistema multi-proveedor: lee OPENAI_API_KEY o ANTHROPIC_API_KEY.
-#   3. State/Memory implicito via session de mensajes (system + user + tool).
-#   4. No crashea si no hay API key -> devuelve {status, error} claro.
-#   5. El resultado "pemikiran" (teks) se expone como output_data para
-#      persistir en execution_logs.
+# Fitur:
+#   1. Tool Calling NATIVE via `bind_tools` (MCP readiness).
+#   2. Multi-nama env Google: GOOGLE_API_KEY / GEMINI_API_KEY / GEMINI_KEY_1.
+#   3. Model default `gemma-4-31b-it`, fallback otomatis `gemini-2.5-flash`.
+#   4. Tidak crash tanpa key -> return {status, error} yang jelas.
+#   5. Output "pemikiran" tersimpan ke execution_logs via output_data.
 # =============================================================================
 
 import os
@@ -21,19 +20,19 @@ load_dotenv()
 
 from langchain_core.tools import tool
 
+
 # ---------------------------------------------------------------------------
-# MCP Readiness - schema de los tools que el LLM podra llamar en el futuro
+# MCP Readiness - schema tool yang akan dikenali LLM (placeholder)
 # ---------------------------------------------------------------------------
 @tool
 def mcp_tool_probe(tool_name: str, arguments: str) -> str:
-    """Alta pooled prototipo para invocar una herramienta MCP de forma agnostica.
+    """Prototipe pemanggilan tool MCP secara agnostik.
 
-    En el futuro esta llamada se resuelve via el MCPRegistry del execution_engine.
     Args:
-        tool_name: nombre del tool MCP (web_search, read_database, ...).
-        arguments: string JSON con los parametros de la herramienta.
+        tool_name: nama tool MCP (web_search, read_database, ...).
+        arguments: string JSON berisi parameter tool.
     Returns:
-        Resultado simulado de la herramienta.
+        Hasil simulasi tool.
     """
     return f"[MCP::probe] tool={tool_name} args={arguments}"
 
@@ -41,99 +40,101 @@ def mcp_tool_probe(tool_name: str, arguments: str) -> str:
 TOOLS = [mcp_tool_probe]
 
 
-# ---------------------------------------------------------------------------
-# Factory de modelo multi-proveedor
-# ---------------------------------------------------------------------------
-def build_model():
-    """Construye un chat model LangChain segun las claves disponibles.
+def google_api_key() -> str | None:
+    """Baca kunci Google AI Studio dari berbagai nama env (.env otonom)."""
+    return (
+        os.getenv("GOOGLE_API_KEY")
+        or os.getenv("GEMINI_API_KEY")
+        or os.getenv("GEMINI_KEY_1")
+    )
 
-    Returns:
-        langchain BaseChatModel con tools bindings, o None si no hay clave.
-    """
-    openai_key = os.getenv("OPENAI_API_KEY") or os.getenv("OPENAI_KEY")
-    anthropic_key = os.getenv("ANTHROPIC_API_KEY") or os.getenv("ANTHROPIC_KEY")
 
-    if openai_key:
-        from langchain_openai import ChatOpenAI
-
-        return ChatOpenAI(
-            model=os.getenv("OPENAI_MODEL", "gpt-4o-mini"),
-            api_key=openai_key,
-            temperature=float(os.getenv("AGENT_TEMPERATURE", "0.4")),
-        )
-    if anthropic_key:
-        from langchain_anthropic import ChatAnthropic
-
-        return ChatAnthropic(
-            model=os.getenv("ANTHROPIC_MODEL", "claude-3-5-sonnet-20241022"),
-            api_key=anthropic_key,
-            temperature=float(os.getenv("AGENT_TEMPERATURE", "0.4")),
-        )
-    return None
+DEFAULT_MODEL = os.getenv("GOOGLE_MODEL", "gemma-4-31b-it")
+FALLBACK_MODEL = os.getenv("GOOGLE_FALLBACK_MODEL", "gemini-2.5-flash")
 
 
 # ---------------------------------------------------------------------------
-# Run Agent - orquesta un "pensamiento" con contexto + tool-ready
+# Factory model Google (LangChain)
+# ---------------------------------------------------------------------------
+def build_model(model_name: str | None = None):
+    """Bangun ChatGoogleGenerativeAI dengan tools binding, atau None tanpa key."""
+    api_key = google_api_key()
+    if not api_key:
+        return None
+    from langchain_google_genai import ChatGoogleGenerativeAI
+
+    return ChatGoogleGenerativeAI(
+        model=model_name or DEFAULT_MODEL,
+        google_api_key=api_key,
+        temperature=float(os.getenv("AGENT_TEMPERATURE", "0.4")),
+    )
+
+
+# ---------------------------------------------------------------------------
+# Run Agent - reasoning dengan konteks + tool-ready
 # ---------------------------------------------------------------------------
 async def run_agent(system_prompt: str, user_input: dict[str, Any]) -> dict:
-    """Ejecuta el Reasoning Agent con contexto.
+    """Jalankan Reasoning Agent (Google) dengan konteks workflow.
 
     Args:
-        system_prompt: instrucciones del node (System Prompt).
-        user_input: data de context recibida del Trigger/nodo anterior.
+        system_prompt: instruksi dari config node (System Prompt).
+        user_input: data konteks dari Trigger/node sebelumnya.
 
     Returns:
-        dict:
-            - on success: {status, reply, output_data, model}
-            - on missing key: {status: "skipped", error: "..."}
-            - on error:      {status: "error", error: "..."}
+        dict success {status, reply, output_data, model} atau
+        {status: skipped/error, error: ...} yang jelas.
     """
-    model = build_model()
-    if model is None:
+    if not google_api_key():
         return {
             "status": "skipped",
             "error": (
-                "No se detecto OPENAI_API_KEY ni ANTHROPIC_API_KEY. "
-                "Agrega una clave en Railway env para activar el Reasoning Agent."
+                "GOOGLE_API_KEY tidak ditemukan. "
+                "Tambahkan GOOGLE_API_KEY (atau GEMINI_API_KEY/GEMINI_KEY_1) "
+                "ke .env / Railway env untuk mengaktifkan Reasoning Agent."
             ),
         }
 
-    # Tool calling nativo (MCP readiness) - modelo con bind_tools
-    try:
-        model_with_tools = model.bind_tools(TOOLS)
-    except Exception as exc:  # noqa: BLE001
-        model_with_tools = model
-        print(f"[agent_reasoner] tool binding skip: {exc}")
-
-    user_context = user_input.get("context") or user_input or {}
+    user_context = (
+        user_input.get("context")
+        if isinstance(user_input, dict)
+        else user_input
+    ) or user_input or {}
     user_msg = (
         "Contexto del workflow (recibido del nodo previo):\n"
         f"{user_context}\n\n"
-        "Si tu tarea requiere una herramienta externa, indica su nombre y parametros."
+        "Jika tugas membutuhkan tool eksternal, sebutkan nama dan parameternya."
     )
-
     messages = [
         {"role": "system", "content": system_prompt},
         {"role": "user", "content": user_msg},
     ]
 
-    try:
-        resp = await model_with_tools.ainvoke(messages)
-        reply = getattr(resp, "content", str(resp))
-        if not reply:
-            reply = "[Agent sin respuesta textual]"
-        model_name = getattr(getattr(model_with_tools, "model_name", None), "value", None) or "llm"
-        return {
-            "status": "success",
-            "reply": str(reply),
-            "output_data": {"reply": str(reply), "model": model_name},
-            "model": model_name,
-        }
-    except Exception as exc:  # noqa: BLE001
-        return {"status": "error", "error": f"[{type(exc).__name__}] {exc}"}
+    last_err: Exception | None = None
+    for model_name in (DEFAULT_MODEL, FALLBACK_MODEL):
+        try:
+            model = build_model(model_name)
+            try:
+                model_with_tools = model.bind_tools(TOOLS)
+            except Exception as exc:  # noqa: BLE001
+                model_with_tools = model
+                print(f"[agent_reasoner] tool binding skip: {exc}")
+            resp = await model_with_tools.ainvoke(messages)
+            reply = getattr(resp, "content", str(resp))
+            if not reply:
+                reply = "[Agent tanpa respons tekstual]"
+            return {
+                "status": "success",
+                "reply": str(reply),
+                "output_data": {"reply": str(reply), "model": model_name},
+                "model": model_name,
+            }
+        except Exception as exc:  # noqa: BLE001
+            last_err = exc
+            print(f"[agent_reasoner] model {model_name} gagal: {exc}")
+            continue
+    return {"status": "error", "error": f"[{type(last_err).__name__}] {last_err}"}
 
 
 def agent_ready() -> bool:
-    """True si hay una clave de LLM configurada (para UI/logs)."""
-    return bool(os.getenv("OPENAI_API_KEY") or os.getenv("OPENAI_KEY")
-                or os.getenv("ANTHROPIC_API_KEY") or os.getenv("ANTHROPIC_KEY"))
+    """True jika kunci Google tersedia (untuk UI/logs)."""
+    return bool(google_api_key())

@@ -24,10 +24,9 @@ pytest==8.3.3
 # Util global
 python-dotenv==1.0.1
 
-# Agentic framework modern (LangChain Core + provider integrations)
+# Agentic framework modern (LangChain Core + Google Generative AI)
 langchain-core==0.3.34
-langchain-openai==0.2.14
-langchain-anthropic==0.3.3
+langchain-google-genai==2.1.2
 
 # API Gateway - FastAPI + Uvicorn (pemisah Frontend/Backend utk Cloudflare)
 fastapi==0.115.6

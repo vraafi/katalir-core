@@ -215,6 +215,54 @@ function BuilderInner() {
   const [saveState, setSaveState] = useState<"idle" | "saving" | "ok" | "err">("idle");
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [runState, setRunState] = useState<"idle" | "running" | "ok" | "err">("idle");
+  const [execId, setExecId] = useState<string | null>(null);
+  const [execLogs, setExecLogs] = useState<any[]>([]);
+  const [execStatus, setExecStatus] = useState<string | null>(null);
+  const [termOpen, setTermOpen] = useState(false);
+  const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  function renderPayload(p: any): string {
+    if (p == null) return "";
+    if (typeof p === "string") return p;
+    try {
+      const r = p.reply ?? p.instruction ?? p.result ?? p.message ?? p;
+      return typeof r === "string" ? r : JSON.stringify(p).slice(0, 400);
+    } catch {
+      return String(p).slice(0, 400);
+    }
+  }
+
+  async function pollExec(id: string) {
+    try {
+      const r = await fetch(`${API_URL}/executions/${id}`);
+      if (!r.ok) return;
+      const d = await r.json();
+      const execution = d?.execution ?? d;
+      const st = execution?.status ?? d?.status ?? null;
+      if (st) setExecStatus(st);
+      const logs = d?.logs ?? execution?.logs ?? [];
+      if (Array.isArray(logs) && logs.length > 0) setExecLogs(logs);
+      if (st === "completed" || st === "failed" || st === "error") {
+        if (pollRef.current) { clearInterval(pollRef.current); pollRef.current = null; }
+        setExecLogs((prev) => [...prev, { step_kind: "system", status: st === "completed" ? "ok" : "error", payload: { message: `Eksekusi selesai: ${st}` } }]);
+      }
+    } catch {
+      /* coba lagi pada interval berikutnya */
+    }
+  }
+
+  function openTerminal(id: string) {
+    setExecId(id);
+    setExecLogs([]);
+    setExecStatus("pending");
+    setTermOpen(true);
+    setExecLogs([{ step_kind: "system", status: "ok", payload: { message: `Memonitor execution_id: ${id}` } }]);
+    if (pollRef.current) clearInterval(pollRef.current);
+    pollRef.current = setInterval(() => { void pollExec(id); }, 2000);
+    void pollExec(id);
+  }
+
+  useEffect(() => () => { if (pollRef.current) clearInterval(pollRef.current); }, []);
   const { updateNodeData } = useReactFlow<FlowNode>();
 
   function handleNodeClick(_: any, node: FlowNode) {
@@ -340,7 +388,9 @@ function BuilderInner() {
       if (execRes.status === 202) {
         const exec = await execRes.json();
         setRunState("ok");
-        alert("Eksekusi dimulai! Task ID: " + (exec.execution_id ?? "?") + " (status: " + (exec.status ?? "pending") + ")");
+        const eid = exec.execution_id ?? exec?.data?.execution_id ?? null;
+        if (eid) openTerminal(String(eid));
+        alert("Eksekusi dimulai! Task ID: " + (eid ?? "?") + " (status: " + (exec.status ?? "pending") + ")");
       } else {
         setRunState("err");
         alert("Gagal mengeksekusi alur (HTTP " + execRes.status + ").");
@@ -511,6 +561,31 @@ function BuilderInner() {
           </div>
         )}
       </aside>
+      {termOpen && (
+        <div className="fixed inset-x-0 bottom-0 z-50 border-t border-gray-700 bg-[#1E1E1E] font-mono">
+          <div className="flex items-center justify-between border-b border-gray-800 px-4 py-2">
+            <span className="text-[12px] font-bold tracking-wide text-green-400">Execution Console {execStatus ? `— ${execStatus}` : ""}</span>
+            <button
+              onClick={() => { if (pollRef.current) { clearInterval(pollRef.current); pollRef.current = null; } setTermOpen(false); }}
+              className="rounded-md px-2 py-1 text-[12px] text-gray-300 hover:bg-gray-700"
+            >
+              Close ✕
+            </button>
+          </div>
+          <div className="max-h-64 space-y-0.5 overflow-y-auto p-4 text-[12px] leading-relaxed text-gray-200">
+            {execLogs.length === 0 && <div className="text-gray-500">$ menunggu logs...</div>}
+            {execLogs.map((l, i) => (
+              <div key={i} className="whitespace-pre-wrap">
+                <span className="text-gray-500">[{i + 1}]</span>{" "}
+                <span className="text-cyan-300">{l?.step_kind ?? "step"}</span>{" "}
+                <span className="text-gray-400">{l?.node_id ?? ""}</span>{" "}
+                <span className={String(l?.status) === "error" ? "text-red-400" : "text-green-300"}>{String(l?.status ?? "")}</span>
+                <span className="text-gray-200"> — {renderPayload(l?.payload)}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
