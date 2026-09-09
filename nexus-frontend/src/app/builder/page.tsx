@@ -22,6 +22,9 @@ import {
   useReactFlow,
 } from "@xyflow/react";
 import { Zap, Bot, Wrench, Save, Trash2, Plus, Play, X, Copy, Check } from "lucide-react";
+import { lazy, Suspense } from "react";
+
+const ExpressionEditor = lazy(() => import("@/components/ExpressionEditor"));
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
@@ -209,12 +212,16 @@ function ConfigPanel({
       {kind === "agent" && (
         <label className="block">
           <span className="text-[11px] text-zinc-400">System Prompt</span>
-          <textarea
-            className={fieldCls + " h-28 resize-y"}
-            placeholder="Instruksi agent (system prompt)..."
-            value={cfg.prompt ?? ""}
-            onChange={(e) => setNodeCfg("prompt", e.target.value)}
-          />
+          <Suspense fallback={<div className="mt-1 rounded-md border border-gray-600 bg-gray-800 p-2 text-[12px] text-zinc-500">Memuat editor...</div>}>
+            <div className="mt-1">
+              <ExpressionEditor
+                value={cfg.prompt ?? ""}
+                placeholder="Instruksi agent (system prompt)... ketik {{ untuk variabel"
+                minHeight="112px"
+                onChange={(v) => setNodeCfg("prompt", v)}
+              />
+            </div>
+          </Suspense>
         </label>
       )}
 
@@ -228,20 +235,22 @@ function ConfigPanel({
               onChange={(e) => setNodeCfg("tool", e.target.value)}
             >
               <option value="">-- Pilih tool --</option>
-              <option value="web_search">Web Search</option>
-              <option value="read_database">Read Database</option>
-              <option value="http_request">HTTP Request</option>
-              <option value="send_whatsapp">Send WhatsApp</option>
+              <option value="web_search">web_search</option>
+              <option value="http_request">http_request</option>
             </select>
           </label>
           <label className="block">
             <span className="text-[11px] text-zinc-400">Parameter</span>
-            <input
-              className={fieldCls}
-              placeholder="JSON parameter / query..."
-              value={cfg.param ?? ""}
-              onChange={(e) => setNodeCfg("param", e.target.value)}
-            />
+            <Suspense fallback={<div className="mt-1 rounded-md border border-gray-600 bg-gray-800 p-2 text-[12px] text-zinc-500">Memuat editor...</div>}>
+              <div className="mt-1">
+                <ExpressionEditor
+                  value={cfg.param ?? ""}
+                  placeholder="Query / JSON parameter... ketik {{ untuk variabel"
+                  minHeight="80px"
+                  onChange={(v) => setNodeCfg("param", v)}
+                />
+              </div>
+            </Suspense>
           </label>
         </div>
       )}
