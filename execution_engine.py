@@ -327,6 +327,12 @@ class StatefulOrchestrator:
         if status == "success" and owner:
             try:
                 db.deduct_balance(owner, float(res.get("cost_usd", 0) or 0))
+                try:
+                    from billing_llm import LEDGER as _LEDGER
+                    _u = res.get('usage', {}) or {}
+                    _LEDGER.record(getattr(self, 'execution_id', '') or '', res.get('model', ''), int(_u.get('prompt_tokens', 0) or 0), int(_u.get('completion_tokens', 0) or 0), float(res.get('cost_usd', 0) or 0))
+                except Exception:
+                    pass
             except Exception:
                 pass
         if status == "success":

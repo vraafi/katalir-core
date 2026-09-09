@@ -150,6 +150,16 @@ def _bind(model):
 # Run Agent - reasoning dengan konteks + tool-ready + gembok bahasa
 # ---------------------------------------------------------------------------
 async def run_agent(system_prompt: str, user_input: dict[str, Any]) -> dict:
+
+    # Graceful fallback (Modal 0): validasi key model premium
+    try:
+        from billing_llm import validate_model_key as _vkey
+        _sel = str(locals().get('model') or globals().get('DEFAULT_MODEL', ''))
+        _g = _vkey(_sel)
+        if not _g['ok']:
+            return {'status': 'error', 'error': _g['error'], 'reply': _g['error'], 'output_data': {}}
+    except Exception:
+        pass
     """Jalankan Reasoning Agent dengan konteks workflow (Universal Router).
 
     Args:
