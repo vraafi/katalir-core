@@ -39,6 +39,7 @@ _LUSER = {}
 _LSESS = {}
 _LMSG = {}
 _LINT = {}      # (email, provider) -> {"api_token":..., "updated_at":...}
+_LVAULT = {}    # email -> {provider: encrypted_key}   (in-memory vault fallback)
 _SEQ = [0]
 
 
@@ -277,6 +278,57 @@ def delete_integration(email, provider_name):
         except Exception:
             _configured = False
     _LINT.pop((email, provider_name), None)
+
+
+# ---- ZERO-KNOWLEDGE VAULT (user_vault) ----
+def vault_save(email: str, provider: str, encrypted_key: str) -> bool:
+    """Upsert ciphertext key tauluun user_vault (PK: email+provider)."""
+    try:
+        if is_configured():
+            c = _get_write_client()
+            ex = c.table("user_vault").select("provider").eq("email", email).eq(
+                "provider", provider).limit(1).execute()
+            if (getattr(ex, "data", None) or []):
+                c.table("user_vault").update({"encrypted_key": encrypted_key}).eq(
+                    "email", email).eq("provider", provider).execute()
+            else:
+                c.table("user_vault").insert({"email": email,
+                                              "provider": provider,
+                                              "encrypted_key": encrypted_key}).execute()
+            return True
+    except Exception:
+        pass
+    # Fallback in-memory (ei persist restartin yli, vain demo).
+    _LVAULT.setdefault(email, {})[provider] = encrypted_key
+    return True
+
+
+def vault_get(email: str, provider: str) -> str:
+    """Palauta encrypted_key (ciphertext) user_vault:lta. '' jos ei löydy."""
+    try:
+        if is_configured():
+            res = _get_write_client().table("user_vault").select("encrypted_key").eq(
+                "email", email).eq("provider", provider).limit(1).execute()
+            d = (getattr(res, "data", None) or [])
+            if d:
+                return str(d[0].get("encrypted_key") or "")
+            return ""
+    except Exception:
+        pass
+    return _LVAULT.get(email, {}).get(provider, "")
+
+
+def vault_list(email: str) -> list[dict]:
+    """Palauta daftar provider jolle säilytetty (ei koskaan plaintext avainta)."""
+    try:
+        if is_configured():
+            res = (_get_write_client().table("user_vault").select("provider")
+                   .eq("email", email).execute())
+            return [{"provider": d.get("provider"), "saved": True}
+                    for d in (getattr(res, "data", None) or [])]
+    except Exception:
+        pass
+    return [{"provider": p, "saved": True} for p in _LVAULT.get(email, {})]
 
 
 def persistence_info():

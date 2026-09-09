@@ -149,7 +149,10 @@ def _bind(model):
 # ---------------------------------------------------------------------------
 # Run Agent - reasoning dengan konteks + tool-ready + gembok bahasa
 # ---------------------------------------------------------------------------
-async def run_agent(system_prompt: str, user_input: dict[str, Any]) -> dict:
+async def run_agent(
+        system_prompt: str, user_input: dict[str, Any],
+        config: dict[str, Any] | None = None) -> dict:
+    """Jalankan Reasoning Agent dengan universal routing + BYOK."""
 
     # Graceful fallback (Modal 0): validasi key model premium
     try:
@@ -197,18 +200,56 @@ async def run_agent(system_prompt: str, user_input: dict[str, Any]) -> dict:
         {"role": "user", "content": user_msg},
     ]
 
-    # Kandidat model: provider terdeteksi dulu, lalu fallback berurutan.
-    candidates: list[tuple[str, str]] = [(provider, _default_model(provider))]
-    for p in ("groq", "nvidia", "github", "google"):
-        if p != provider and os.getenv({
-                "groq": "GROQ_API_KEY", "nvidia": "NVIDIA_API_KEY",
-                "github": "GITHUB_TOKEN", "google": "GOOGLE_API_KEY"}[p]):
-            candidates.append((p, _default_model(p)))
+    # EXTRACT PAYLOAD dari config node (frontend)
+    custom_key = str((config or {}).get("custom_api_key") or "").strip()
+    ai_model = str((config or {}).get("model") or "universal").lower()
+    skip_cost = bool(custom_key)  # BYOK: cost dibayar user, abaikan LiteLLM
+
+    # Routing kandidat selon tier & BYOK
+    candidates: list[tuple[str, str]] = []
+    if custom_key:
+        # 1) BYOK (prioritas utama): abaikan sistem acak, langsung guna kunci user.
+        candidates = [("byok", "custom")]
+    elif ai_model == "deepseek-flash":
+        # 4) PLUS: DeepSeek V4 Flash, key server .env.
+        dkey = os.getenv("DEEPSEEK_API_KEY") or os.getenv("DEEPSEEK_KEY")
+        if not dkey:
+            return {"status": "skipped",
+                    "error": "DEEPSEEK_API_KEY tidak di .env untuk tier PLUS.",
+                    "reply": "DEEPSEEK_API_KEY tidak di .env untuk tier PLUS.",
+                    "output_data": {}}
+        candidates = [("deepseek", os.getenv("DEEPSEEK_MODEL", "deepseek-chat"))]
+    elif ai_model == "universal":
+        # 3) FREE: rute acak (random) dari dira model gratis di .env.
+        candidates = _free_candidates(provider)
+        if not candidates:
+            candidates = [(provider, _default_model(provider))]
+    else:
+        candidates = [(provider, _default_model(provider))]
 
     last_err: Exception | None = None
     for prov, model_name in candidates:
         try:
-            model = build_model(prov, model_name)
+            if prov == "byok":
+                # BYOK: model OpenAI-kompatibel dengan kunci user (tidak ke DB).
+                from langchain_openai import ChatOpenAI
+                model = ChatOpenAI(
+                    model=os.getenv("BYOK_MODEL", "openai/gpt-4o-mini"),
+                    api_key=custom_key,
+                    base_url=os.getenv("BYOK_BASE_URL") or None,
+                    temperature=float(os.getenv("AGENT_TEMPERATURE", "0.4")),
+                )
+            elif prov == "deepseek":
+                from langchain_openai import ChatOpenAI
+                model = ChatOpenAI(
+                    model=model_name,
+                    api_key=os.getenv("DEEPSEEK_API_KEY") or os.getenv("DEEPSEEK_KEY"),
+                    base_url=os.getenv(
+                        "DEEPSEEK_BASE_URL", "https://api.deepseek.com/v1"),
+                    temperature=float(os.getenv("AGENT_TEMPERATURE", "0.4")),
+                )
+            else:
+                model = build_model(prov, model_name)
             if model is None:
                 continue
             resp = await _bind(model).ainvoke(messages)
@@ -238,7 +279,7 @@ async def run_agent(system_prompt: str, user_input: dict[str, Any]) -> dict:
                 compl_t = usage.get("output_tokens", 0) if isinstance(usage, dict) else getattr(usage, "output_tokens", 0)
             except Exception:
                 prompt_t, compl_t = 0, 0
-            cost_usd = estimate_cost(model_name, prompt_t, compl_t)
+            cost_usd = 0.0 if skip_cost else estimate_cost(model_name, prompt_t, compl_t)
             return {
                 "status": "success",
                 "reply": str(reply),
@@ -261,6 +302,30 @@ def _default_model(provider: str) -> str:
     return {"groq": GROQ_MODEL, "nvidia": NVIDIA_MODEL,
             "github": GITHUB_MODEL, "google": GOOGLE_MODEL}.get(
                 provider, GROQ_MODEL)
+
+
+def _free_candidates(primary: str | None) -> list[tuple[str, str]]:
+    """Tier FREE: list model gratis dari .env (random.choice di caller)."""
+    pool: list[tuple[str, str]] = []
+    providers: dict[str, tuple[str, str]] = {
+        "groq": ("GROQ_API_KEY", GROQ_MODEL),
+        "nvidia": ("NVIDIA_API_KEY", NVIDIA_MODEL),
+        "github": ("GITHUB_TOKEN", GITHUB_MODEL),
+        "google": ("GOOGLE_API_KEY", GOOGLE_MODEL),
+    }
+    for p, (env, model) in providers.items():
+        if os.getenv(env):
+            pool.append((p, model))
+    # Garantir primary detektasi jika dahun sisällä.
+    if primary and all(x[0] != primary for x in pool):
+        key = providers.get(primary, (None, None))[0]
+        if key and os.getenv(key):
+            pool.append((primary, _default_model(primary)))
+    if not pool:
+        return []
+    import random
+    picked = random.choice(pool)   # Round-Robin/random FREE rute
+    return [picked]
 
 
 def agent_ready() -> bool:

@@ -259,6 +259,134 @@ def get_registry() -> MCPRegistry:
     if _MCP_REGISTRY is None:
         _MCP_REGISTRY = MCPRegistry()
     return _MCP_REGISTRY
+
+# ---------------------------------------------------------------------------
+# GEMBOK EKSEKUSI & METERED BILLING (BYOK bypass / Free / Plus)
+#   - BYOK (custom_api_key)  -> unmetered, lewat semua Supabase cek.
+#   - universal (FREE)       -> max 10 chati / 22 jam.
+#   - deepseek-flash (PLUS)  -> min balance + max 30 chati / 24 jam.
+#   - Ognia Supabase selalu in try-except (timeout ei saa merusak pipeline).
+# ---------------------------------------------------------------------------
+import time as _time
+
+_FREE_WINDOW_H = 22
+_PLUS_WINDOW_H = 24
+_FREE_LIMIT = 10
+_PLUS_LIMIT = 30
+_PROFIT_MULT = 3.0
+_MIN_PLUS_BALANCE = 0.005
+
+_METER: dict[str, dict] = {}
+
+
+class BillingBlocked(Exception):
+    """Halting execution halted, propagierte zum HTTP mapper (status_code)."""
+    def __init__(self, status_code: int, message: str) -> None:
+        super().__init__(message)
+        self.status_code = status_code
+
+
+def _now_ts() -> float:
+    return _time.time()
+
+
+def _meter_data(email: str) -> dict:
+    m = _METER.get(email)
+    if m is None:
+        m = {"free_count": 0, "plus_count": 0,
+             "last_reset_free": None, "last_reset_plus": None, "credit": None}
+        _METER[email] = m
+    return m
+
+
+def _meter_load(email: str) -> dict:
+    """Baca profil utilisasi dari Supabase (best-effort), fallback lokal."""
+    m = _meter_data(email)
+    try:
+        import database as _db
+        cc = _db._get_client()
+        r = cc.table("user_usage").select("*").eq("email", email).limit(1).execute()
+        d = (getattr(r, "data", None) or [])
+        if d:
+            row = d[0]
+            m["free_count"] = int(row.get("free_chat_count", 0) or 0)
+            m["plus_count"] = int(row.get("plus_chat_count", 0) or 0)
+            m["last_reset_free"] = row.get("last_reset_free")
+            m["last_reset_plus"] = row.get("last_reset_plus")
+            m["credit"] = float(row.get("credit_balance", 0) or 0)
+    except Exception:
+        pass
+    return m
+
+
+def _meter_save(email: str) -> None:
+    """Persist utilisasi ke Supabase (fire-and-forget, try-except)."""
+    m = _METER.get(email)
+    if not m:
+        return
+    try:
+        import database as _db
+        cc = _db._get_write_client()
+        row = {
+            "free_chat_count": int(m.get("free_count", 0)),
+            "plus_chat_count": int(m.get("plus_count", 0)),
+            "last_reset_free": m.get("last_reset_free"),
+            "last_reset_plus": m.get("last_reset_plus"),
+            "credit_balance": float(m.get("credit", 0) or 0),
+        }
+        ex = cc.table("user_usage").select("email").eq("email", email).limit(1).execute()
+        if (getattr(ex, "data", None) or []):
+            cc.table("user_usage").update(row).eq("email", email).execute()
+        else:
+            cc.table("user_usage").insert({"email": email, **row}).execute()
+    except Exception:
+        pass
+
+
+def guard_execution(cfg: dict, owner: str) -> tuple[bool, int | None, str]:
+    """Gate gembok pre-eksekusi. Return (allowed, http_status, error_msg)."""
+    if not owner:
+        return True, None, ""
+    custom = str((cfg or {}).get("custom_api_key") or "").strip()
+    if custom:
+        # 1) BYOK: lewat semua Supabase cek (Unmetered).
+        return True, None, ""
+    import database as _db
+    m = _meter_load(owner)
+    model = str((cfg or {}).get("model") or "universal").lower()
+    now = _now_ts()
+
+    if model == "deepseek-flash":
+        # 3) PLUS
+        lr = m.get("last_reset_plus")
+        if lr is None or (now - float(lr)) > _PLUS_WINDOW_H * 3600:
+            m["plus_count"] = 0
+            m["last_reset_plus"] = now
+        if m["plus_count"] >= _PLUS_LIMIT:
+            return False, 403, ("Batas harian Plus Anda (30 chat) tercapai "
+                                "untuk menjaga stabilitas API.")
+        credit = m.get("credit")
+        if credit is None:
+            try:
+                credit = _db.get_balance(owner)
+            except Exception:
+                credit = None
+        if credit is not None and credit <= _MIN_PLUS_BALANCE:
+            return False, 402, ("Saldo AI tidak mencukupi. Silakan Top-Up "
+                                "via Dodo Payments.")
+        return True, None, ""
+
+    # 2) FREE (universal)
+    lr = m.get("last_reset_free")
+    if lr is None or (now - float(lr)) > _FREE_WINDOW_H * 3600:
+        m["free_count"] = 0
+        m["last_reset_free"] = now
+    if m["free_count"] >= _FREE_LIMIT:
+        return False, 403, ("Batas 10 percakapan gratis Anda telah habis. "
+                            "Silakan kembali dalam 22 jam, gunakan Custom API "
+                            "Key, atau upgrade ke Plus.")
+    return True, None, ""
+
 # ---------------------------------------------------------------------------
 # STATE GRAPH ORCHESTRATOR
 # ---------------------------------------------------------------------------
@@ -306,14 +434,42 @@ class StatefulOrchestrator:
 
         cfg = node.data.config or {}
         prompt = cfg.get("system_prompt") or node.data.label or "instruccion por defecto"
-        # --- Gembok saldo: cek SEBELUM eksekusi AI ---
         import database as db
         owner = getattr(self, "owner_email", None) or cfg.get("owner_email") or ""
+        _custom = str((cfg or {}).get("custom_api_key") or "").strip()
+
+        # --- VAULT RESOLVE: jos config.key tyhjä, hakee user_vault ---
+        #   (Zero-Knowledge: decrypt ul 'vault_security' ja injektoi BYOK:ksi.
+        #    Näin Unmetered-logiikka pätee kun avain tulee vaultista.)
+        if not _custom and owner:
+            try:
+                import vault_security as _vs
+                _provider = (str(cfg.get("provider") or "").strip()
+                             or str(cfg.get("model") or "custom_llm").strip())
+                _ct = db.vault_get(owner, _provider)
+                if _ct:
+                    _resolved = _vs.decrypt_key(_ct)
+                    if _resolved:
+                        cfg = dict(cfg)
+                        cfg["custom_api_key"] = _resolved
+                        cfg["_vault_resolved"] = True
+                        _custom = _resolved
+            except Exception:
+                _custom = str(cfg.get("custom_api_key") or "").strip() or ""
+
+        # --- GEMBOK EKSEKUSI & METERED BILLING (BYOK bypass / Free / Plus) ---
+        _allowed, _code, _msg = guard_execution(cfg, owner)
+        if not _allowed:
+            raise BillingBlocked(_code, _msg)
+
+        # Legacy fallback: blok bila saldo habis (solo gratis/plus tanpa BYOK).
         try:
-            bal = db.get_balance(owner) if owner else None
+            _bal = db.get_balance(owner) if (owner and not _custom) else None
         except Exception:
-            bal = None
-        if owner and bal is not None and bal <= 0:
+            _bal = None
+        if _custom:
+            _bal = None  # BYOK unmetered: passasi saldo check.
+        if owner and _bal is not None and _bal <= 0:
             return {
                 "type": "agent.think",
                 "received_from": inp.get("_from", "trigger"),
@@ -321,20 +477,31 @@ class StatefulOrchestrator:
                 "message": "[Agent blocked] Saldo habis. Topup via Dodo Payments.",
                 "agent_status": "blocked_no_balance",
             }
-        res = await reason(prompt, dict(inp))
+        res = await reason(prompt, dict(inp), config=cfg)
         status = res.get("status", "success")
-        # --- Potong saldo SETELAH eksekusi sukses ---
-        if status == "success" and owner:
+
+        # --- METER POST-EKSEKUSI (increment count / potong saldo*3 / LEDGER) ---
+        if status == "success" and owner and not _custom:
+            _model = str(cfg.get("model") or "universal").lower()
+            _m = _meter_load(owner)
             try:
-                db.deduct_balance(owner, float(res.get("cost_usd", 0) or 0))
-                try:
-                    from billing_llm import LEDGER as _LEDGER
-                    _u = res.get('usage', {}) or {}
-                    _LEDGER.record(getattr(self, 'execution_id', '') or '', res.get('model', ''), int(_u.get('prompt_tokens', 0) or 0), int(_u.get('completion_tokens', 0) or 0), float(res.get('cost_usd', 0) or 0))
-                except Exception:
-                    pass
+                from billing_llm import LEDGER as _LEDGER
+                _u = res.get('usage', {}) or {}
+                _LEDGER.record(getattr(self, 'execution_id', '') or '', res.get('model', ''),
+                               int(_u.get('prompt_tokens', 0) or 0),
+                               int(_u.get('completion_tokens', 0) or 0),
+                               float(res.get('cost_usd', 0) or 0))
             except Exception:
                 pass
+            if _model == "deepseek-flash":
+                try:
+                    db.deduct_balance(owner, float(res.get("cost_usd", 0) or 0) * _PROFIT_MULT)
+                except Exception:
+                    pass
+                _m["plus_count"] = int(_m.get("plus_count", 0)) + 1
+            else:
+                _m["free_count"] = int(_m.get("free_count", 0)) + 1
+            _meter_save(owner)
         if status == "success":
             return {
                 "type": "agent.think",

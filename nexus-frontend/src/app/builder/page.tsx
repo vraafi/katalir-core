@@ -216,6 +216,32 @@ function ConfigPanel({
       )}
 
       {kind === "agent" && (
+        <>
+        <label className="block">
+          <span className="text-[11px] text-zinc-400">Custom API Key (Opsional)</span>
+          <input
+            type="password"
+            className={fieldCls}
+            placeholder="sk-... (sistem acak bila kosong)"
+            value={cfg.custom_api_key ?? ""}
+            onChange={(e) => setNodeCfg("custom_api_key", e.target.value)}
+          />
+          <span className="mt-1 block text-[10px] text-zinc-500">
+            Bila terisi, kunci ini dipaksa untuk semua model (BYOK). Tidak disimpan di database.
+          </span>
+        </label>
+        <label className="block">
+          <span className="text-[11px] text-zinc-400">AI Model (Tier)</span>
+          <select
+            className={fieldCls}
+            value={cfg.model ?? "universal"}
+            onChange={(e) => setNodeCfg("model", e.target.value)}
+          >
+            <option value="universal">🟢 [FREE] Universal AI (Sistem Acak)</option>
+            <option value="deepseek-flash">🔵 [PLUS] DeepSeek V4 Flash</option>
+            <option value="premium" disabled>🔒 [PRO/ULTRA] Model Premium (Disabled - Segera Hadir)</option>
+          </select>
+        </label>
         <label className="block">
           <span className="text-[11px] text-zinc-400">System Prompt</span>
           <div className="mt-1">
@@ -227,6 +253,7 @@ function ConfigPanel({
             />
           </div>
         </label>
+        </>
       )}
 
       {kind === "mcp" && (

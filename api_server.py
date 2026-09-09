@@ -17,6 +17,7 @@ import os
 from fastapi import BackgroundTasks, FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
+from typing import Optional, Any
 
 from dotenv import load_dotenv
 load_dotenv()
@@ -63,6 +64,12 @@ class IntegrationRequest(BaseModel):
     email: str
     provider: str
     token: str
+
+
+class VaultSaveRequest(BaseModel):
+    email: str
+    provider: str
+    api_key: str
 
 
 class WorkflowCreateRequest(BaseModel):
@@ -238,6 +245,33 @@ def save_integration(req: IntegrationRequest):
     if not ok:
         raise HTTPException(500, "Gagal menyimpan kredensial.")
     return {"status": "success", "provider": req.provider}
+
+
+# ---------------------------------------------------------------------------
+# ENDPOINT: POST /api/vault/save   (Brankas: enkripsi + upsert user_vault)
+# ---------------------------------------------------------------------------
+@app.post("/api/vault/save")
+def vault_save_endpoint(req: VaultSaveRequest):
+    """Enkriptoi API key (Fernet) ja simpan user_vault (ei plaintext koskaan)."""
+    if not req.email or not req.provider or not req.api_key:
+        raise HTTPException(422, "email, provider, api_key wajib diisi.")
+    import vault_security as vs
+    cipher = vs.encrypt_key(req.api_key)     # palauta ciphertext str
+    ok = db.vault_save(req.email.strip(), req.provider.strip(), cipher)
+    if not ok:
+        raise HTTPException(500, "Gagal menyimpan vault.")
+    return {"status": "saved", "provider": req.provider, "saved": True}
+
+
+# ---------------------------------------------------------------------------
+# ENDPOINT: GET /api/vault/list   (daftar provider, EI koskaan palauta avainta)
+# ---------------------------------------------------------------------------
+@app.get("/api/vault/list")
+def vault_list_endpoint(email: str):
+    if not email:
+        raise HTTPException(422, "email wajib.")
+    items = db.vault_list(email.strip())
+    return {"status": "success", "items": items}
 
 
 # ---------------------------------------------------------------------------

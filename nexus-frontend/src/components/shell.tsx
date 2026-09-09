@@ -1,8 +1,10 @@
 "use client";
 
-import { Plus, Bot, LogIn, LogOut, MessageSquare, Workflow } from "lucide-react";
+import { Plus, Bot, LogIn, LogOut, MessageSquare, Workflow, KeyRound } from "lucide-react";
 import Link from "next/link";
 import { useAuth } from "@/context/auth";
+import VaultModal from "@/components/VaultModal";
+import { useState } from "react";
 
 interface SessionItem {
   id: string;
@@ -25,6 +27,7 @@ export default function Shell({
   onNewChat,
 }: ShellProps) {
   const { email, loading, signInWithGoogle, signOut } = useAuth();
+  const [vaultOpen, setVaultOpen] = useState(false);
 
   return (
     <div className="flex h-screen overflow-hidden bg-gray-50">
@@ -93,6 +96,14 @@ export default function Shell({
               <Workflow size={14} /> Builder
             </Link>
             {email && (
+              <button
+                onClick={() => setVaultOpen(true)}
+                className="flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-sm font-medium text-gray-700 transition hover:bg-gray-50"
+              >
+                <KeyRound size={14} /> Brankas
+              </button>
+            )}
+            {email && (
               <span className="max-w-[180px] truncate text-sm text-gray-600">
                 {email}
               </span>
@@ -117,6 +128,9 @@ export default function Shell({
           </div>
         </header>
         {children}
+        {email && (
+          <VaultModal open={vaultOpen} email={email} onClose={() => setVaultOpen(false)} />
+        )}
       </div>
     </div>
   );
