@@ -271,9 +271,11 @@ class StatefulOrchestrator:
       (asyncio.gather) - no bloquea el hilo del servidor.
     """
 
-    def __init__(self, graph: FlowGraph, registry: Optional[MCPRegistry] = None):
+    def __init__(self, graph: FlowGraph, registry: Optional[MCPRegistry] = None,
+                 trigger_input: Optional[dict] = None):
         self.graph = graph
         self.registry = registry or get_registry()
+        self.trigger_input = dict(trigger_input or {})
         self.states: dict[str, str] = {n.id: "pending" for n in graph.nodes}
         self.outputs: dict[str, dict] = {}
         self._by_id = {n.id: n for n in graph.nodes}
@@ -286,8 +288,17 @@ class StatefulOrchestrator:
     # --- executor registry (NodeKind -> async fn), sin if/else en el motor ---
     async def _exec_trigger(self, node: FlowNode, inp: dict) -> dict:
         cfg = node.data.config or {}
-        event = cfg.get("event_name") or node.data.label or "manual"
-        return {"type": "trigger.fire", "event": event, "message": f"Trigger disparado: {event}"}
+        event = cfg.get("event_name") or node.data.label or "webhook"
+        payload = dict(self.trigger_input or {})
+        if node.data.kind == NodeKind.TRIGGER and inp:
+            merged = {k: v for k, v in inp.items() if k != "_from"}
+            payload = {**merged, **payload}
+        out = {"type": "trigger.fire", "event": event,
+               "message": f"Trigger disparado: {event}",
+               "webhook_payload": payload}
+        if payload:
+            out["context"] = payload
+        return out
 
     async def _exec_agent(self, node: FlowNode, inp: dict) -> dict:
         # Reasoning Agent nyata (LangChain Core) - baca System Prompt + input Trigger.
@@ -408,7 +419,8 @@ class StatefulOrchestrator:
 # ---------------------------------------------------------------------------
 # API DE ORQUESTACION + PERSISTENCIA (execution_logs)
 # ---------------------------------------------------------------------------
-async def execute_workflow_async(workflow_id: str, flow_data: dict) -> dict:
+async def execute_workflow_async(workflow_id: str, flow_data: dict,
+                                 trigger_input: Optional[dict] = None) -> dict:
     """Ejecuta un workflow e persiste cada paso en execution_logs."""
     graph = FlowGraph(**flow_data)
     execution_id = str(uuid.uuid4())
@@ -417,7 +429,7 @@ async def execute_workflow_async(workflow_id: str, flow_data: dict) -> dict:
     async def _log_step(step: ExecutionStep) -> None:
         db.append_execution_log(execution_id, step.node_id, step.kind.value, step.status, step.output)
 
-    orch = StatefulOrchestrator(graph)
+    orch = StatefulOrchestrator(graph, trigger_input=trigger_input)
     try:
         steps = await orch.run(on_step=_log_step)
         status = "completed"
@@ -443,9 +455,17 @@ async def execute_workflow_async(workflow_id: str, flow_data: dict) -> dict:
 _BG_TASKS: dict[str, asyncio.Task] = {}
 
 
-async def _spawn_execution(workflow_id: str, flow_data: dict, execution_id: str) -> dict:
+async def _spawn_execution(workflow_id: str, flow_data: dict, execution_id: str,
+                           trigger_input: Optional[dict] = None) -> dict:
+    # Catatan: execute_workflow_async membuat execution_id sendiri; di sini
+    # fokus menjalankan DAG agar non-blocking, lalu kembalikan id pemanggil.
     try:
-        return await execute_workflow_async(workflow_id, flow_data)
+        await execute_workflow_async(workflow_id, flow_data, trigger_input)
+        return {
+            "execution_id": execution_id,
+            "workflow_id": workflow_id,
+            "status": "completed",
+        }
     except Exception as exc:  # noqa: BLE001
         return {
             "execution_id": execution_id,
@@ -455,13 +475,16 @@ async def _spawn_execution(workflow_id: str, flow_data: dict, execution_id: str)
         }
 
 
-def launch_execution(workflow_id: str, flow_data: dict) -> str:
+def launch_execution(workflow_id: str, flow_data: dict,
+                     trigger_input: Optional[dict] = None) -> str:
     """Inicia la ejecucion en background y devuelve execution_id al instante.
 
     Non-blocking: retorna inmediatamente con status 'pending'.
+    trigger_input diteruskan ke node Trigger (webhook payload).
     """
     execution_id = str(uuid.uuid4())
     db.create_execution(execution_id, workflow_id, flow_data)
-    task = asyncio.create_task(_spawn_execution(workflow_id, flow_data, execution_id))
+    task = asyncio.create_task(
+        _spawn_execution(workflow_id, flow_data, execution_id, trigger_input))
     _BG_TASKS[execution_id] = task
     return execution_id

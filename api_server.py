@@ -14,7 +14,7 @@
 
 import os
 
-from fastapi import FastAPI, HTTPException
+from fastapi import BackgroundTasks, FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 
@@ -293,6 +293,87 @@ def get_execution(execution_id: str):
     except Exception as exc:  # noqa: BLE001
         raise HTTPException(500, f"Gagal memuat ejekution: {exc}")
     return {"status": "success", **data}
+
+
+# ---------------------------------------------------------------------------
+# REAL WEBHOOK TRIGGER - POST /webhook/{workflow_id}
+#   Otomatisasi dunia nyata: payload JSON bebas dari Telegram/WhatsApp/
+#   sistem eksternal -> input_data node Trigger -> DAG async non-blocking.
+# ---------------------------------------------------------------------------
+async def _run_webhook_dag(workflow_id: str, flow_data: dict,
+                           trigger_input: dict) -> None:
+    """Runner DAG untuk BackgroundTasks (tanpa create_task mentah).
+
+    Menjalankan Trigger -> Agent -> MCP dan mempersist setiap langkah ke
+    execution_logs. Error dicatat ke status eksekusi, bukan crash worker.
+    """
+    import uuid as _uuid
+
+    execution_id = trigger_input.get("_execution_id") or str(_uuid.uuid4())
+    try:
+        await engine.execute_workflow_async(
+            workflow_id, flow_data, trigger_input)
+        db.update_execution_status(str(execution_id), "completed")
+    except Exception as exc:  # noqa: BLE001
+        try:
+            db.update_execution_status(str(execution_id), "error")
+        except Exception:  # noqa: BLE001
+            pass
+        print(f"[webhook] eksekusi {execution_id} gagal: {exc}")
+
+
+# ---------------------------------------------------------------------------
+# REAL WEBHOOK TRIGGER - POST /webhook/{workflow_id} (BackgroundTasks)
+#   Standar industri 2026: tanpa raw asyncio.create_task (rawan dropped
+#   tasks saat worker restart). Tangkap body + headers, injeksi ke Trigger.
+# ---------------------------------------------------------------------------
+@app.post("/webhook/{workflow_id}", status_code=202)
+async def webhook_trigger(workflow_id: str, request: Request,
+                          background: BackgroundTasks) -> dict:
+    """Terima webhook eksternal dan antrekan eksekusi DAG di background.
+
+    Gembok eksekusi: 400 jika workflow tidak punya node Trigger yang valid.
+    Mengembalikan 202 Accepted + execution_id dengan cepat (non-blocking).
+    """
+    try:
+        body = await request.json()
+    except Exception:  # noqa: BLE001 - body kosong/bukan JSON tetap diterima
+        body = {}
+    headers: dict[str, str] = {k.lower(): v for k, v in request.headers.items()}
+    trigger_input: dict = {
+        "headers": headers,
+        "body": body if isinstance(body, dict) else {"value": body},
+    }
+
+    found = next(
+        (w for w in (db.list_workflows() or []) if w.get("id") == workflow_id),
+        None,
+    )
+    if not found:
+        raise HTTPException(404, f"Workflow {workflow_id} tidak ditemukan.")
+    flow_data = found.get("flow_data") or {}
+
+    nodes = flow_data.get("nodes") or []
+    has_trigger = any(
+        ((n.get("data") or {}).get("kind") == "trigger")
+        or (n.get("type") in ("trigger", "triggerNode"))
+        for n in nodes
+    )
+    if not has_trigger:
+        raise HTTPException(
+            400, "Workflow tidak memiliki trigger yang valid.")
+
+    import uuid as _uuid
+    execution_id = str(_uuid.uuid4())
+    trigger_input["_execution_id"] = execution_id
+    try:
+        db.create_execution(execution_id, workflow_id, flow_data)
+    except Exception as exc:  # noqa: BLE001
+        raise HTTPException(500, f"Gagal membuat eksekusi: {exc}")
+    background.add_task(_run_webhook_dag, workflow_id, flow_data,
+                        trigger_input)
+    return {"status": "queued", "execution_id": execution_id,
+            "workflow_id": workflow_id}
 
 
 # ---------------------------------------------------------------------------
