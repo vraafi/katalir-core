@@ -54,10 +54,21 @@ LANGUAGE_LOCK = (
 
 
 # ---------------------------------------------------------------------------
-# Deteksi provider otonom (prioritas: Groq > NVIDIA > GitHub > Google)
+# Provider: ekosistem Google (Google AI Studio) — prioritas utama.
+#   GOOGLE_API_KEY (atau GEMINI_API_KEY / GEMINI_KEY_1) dibaca otonom
+#   dari .env via load_dotenv() di atas.
+#   Model default: gemma-4-31b-it, fallback: gemini-2.5-flash.
+#   Provider lain (Groq/NVIDIA/GitHub) tetap didukung sebagai fallback.
 # ---------------------------------------------------------------------------
 def detect_provider() -> tuple[str | None, str | None]:
-    """Kembalikan (provider_name, api_key) sesuai prioritas .env."""
+    """Kembalikan (provider_name, api_key) — Google diprioritaskan."""
+    ggl = (
+        os.getenv("GOOGLE_API_KEY")
+        or os.getenv("GEMINI_API_KEY")
+        or os.getenv("GEMINI_KEY_1")
+    )
+    if ggl:
+        return "google", ggl
     groq = os.getenv("GROQ_API_KEY")
     if groq:
         return "groq", groq
@@ -67,13 +78,6 @@ def detect_provider() -> tuple[str | None, str | None]:
     gh = os.getenv("GITHUB_TOKEN") or os.getenv("GITHUB_API_KEY")
     if gh:
         return "github", gh
-    ggl = (
-        os.getenv("GOOGLE_API_KEY")
-        or os.getenv("GEMINI_API_KEY")
-        or os.getenv("GEMINI_KEY_1")
-    )
-    if ggl:
-        return "google", ggl
     return None, None
 
 
@@ -198,9 +202,25 @@ async def run_agent(system_prompt: str, user_input: dict[str, Any]) -> dict:
             if model is None:
                 continue
             resp = await _bind(model).ainvoke(messages)
-            reply = getattr(resp, "content", str(resp))
+            raw = getattr(resp, "content", str(resp))
+            # Google/Gemma bisa mengembalikan list blok [{type:thinking},{type:text}]
+            # -> ambil hanya blok teks agar terminal bersih.
+            if isinstance(raw, list):
+                texts = [b.get("text", "") for b in raw
+                         if isinstance(b, dict) and b.get("type") == "text"
+                         and b.get("text")]
+                reply = "\n".join(texts).strip() or "[Agent tanpa respons tekstual]"
+            else:
+                reply = str(raw or "").strip() or "[Agent tanpa respons tekstual]"
             if not reply:
                 reply = "[Agent tanpa respons tekstual]"
+            # Bersihkan sisa blok thinking jika masih lolos (rapikan terminal).
+            if isinstance(reply, str) and "{'type': 'thinking'" in reply:
+                import re as _re
+                m = _re.findall(r"'text':\s*'((?:[^'\\]|\\.)*)'", reply)
+                if m:
+                    reply = "\n".join(s.encode().decode("unicode_escape", "ignore")
+                                      for s in m).strip() or reply
             # --- Usage + biaya (LiteLLM) ---
             usage = getattr(resp, "usage_metadata", None) or {}
             try:
