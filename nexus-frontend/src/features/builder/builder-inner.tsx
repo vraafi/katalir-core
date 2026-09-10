@@ -10,8 +10,10 @@ import { Palette } from "./Palette";
 import { Canvas } from "./Canvas";
 import { ConfigPanel } from "./ConfigPanel";
 import { Terminal } from "./Terminal";
-import { API_URL, useWorkflowsQuery, useSaveWorkflowMutation, applyWorkflowToCanvas } from "./hooks/useWorkflow";
+import { useWorkflowsQuery, useSaveWorkflowMutation, applyWorkflowToCanvas } from "./hooks/useWorkflow";
 import { useExecuteMutation, useExecutionPolling } from "./hooks/useExecution";
+
+const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
 export function BuilderInner() {
   const [nodes, setNodes, onNodesChange] = useNodesState<FlowNode>([]);
@@ -55,8 +57,8 @@ export function BuilderInner() {
     setNodes([...nodes, { id: `${kind}-${seq.current++}`, type: kind, position: { x: 80 + Math.random() * 120, y: 80 + Math.random() * 200 }, data: { kind, label: kind } }]);
   }
 
-  function onDropNode(kind: Kind, localX: number, localY: number) {
-    const position = screenToFlowPosition({ x: localX, y: localY });
+  function onDropNode(kind: Kind, clientX: number, clientY: number) {
+    const position = screenToFlowPosition({ x: clientX, y: clientY });
     setNodes([...nodes, { id: `${kind}-${seq.current++}`, type: kind, position, data: { kind, label: kind } }]);
   }
 
