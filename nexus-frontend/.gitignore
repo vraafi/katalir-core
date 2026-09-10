@@ -9,6 +9,8 @@
 # next.js
 /.next/
 /out/
+# opennext cloudflare worker build artifact
+/.open-next/
 
 # production
 /build
