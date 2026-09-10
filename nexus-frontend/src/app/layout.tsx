@@ -1,5 +1,11 @@
 import type { Metadata } from "next";
+import { Inter, JetBrains_Mono } from "next/font/google";
+import { ThemeProvider } from "next-themes";
+import { Toaster } from "sonner";
 import "./globals.css";
+
+const sans = Inter({ subsets: ["latin"], variable: "--font-sans", display: "swap" });
+const mono = JetBrains_Mono({ subsets: ["latin"], variable: "--font-mono", display: "swap" });
 
 export const metadata: Metadata = {
   title: "Nexus Agent — SaaS AI",
@@ -12,8 +18,16 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="id">
-      <body>{children}</body>
+    <html lang="id" suppressHydrationWarning>
+      <body className={`${sans.variable} ${mono.variable} font-sans bg-bg text-fg antialiased`}>
+        <a href="#main" className="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-[100] focus:rounded-sm focus:bg-surface focus:px-4 focus:py-2 focus:shadow-md">
+          Lompat ke konten
+        </a>
+        <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
+          {children}
+          <Toaster position="top-center" richColors closeButton />
+        </ThemeProvider>
+      </body>
     </html>
   );
 }

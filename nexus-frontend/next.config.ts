@@ -1,9 +1,9 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  // Purely client-side app (backend on FastAPI) => static export for Cloudflare Pages.
-  // `next build` emits a fully static `out/` directory that Wrangler deploys.
-  output: "export",
+  // Opsi B: OpenNext Cloudflare Workers — RSC, Server Actions, streaming aktif.
+  // Deploy via `opennextjs-cloudflare build && opennextjs-cloudflare deploy`.
+  // JANGAN pakai output:export (itu mematikan semua fitur di atas).
 };
 
 export default nextConfig;
