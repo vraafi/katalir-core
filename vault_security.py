@@ -35,7 +35,7 @@ def _load_or_generate() -> bytes:
     print(
         "\n[VAULT] VAULT_SECRET_KEY ei löytynyt .env:stä — generoitiin."
         "\n[VAULT] LISÄÄ TÄMÄ .env:hen (tai Railway env) jotta avaimet pysyvät:"
-        f"\nVAULT_SECRET_KEY={generated.decode('utf-8')}\n",
+        "\n[VAULT] Avaimet simulasi disimpan; JANGAN cetak kunci di console/log server.\n",
         file=sys.stderr,
     )
     return generated if isinstance(generated, bytes) else generated.encode("utf-8")
