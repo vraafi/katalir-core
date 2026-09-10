@@ -23,6 +23,7 @@ import {
 } from "@xyflow/react";
 import { Zap, Bot, Wrench, Save, Trash2, Plus, Play, X, Copy, Check } from "lucide-react";
 import dynamic from "next/dynamic";
+import { Button } from "@/components/ui/button";
 
 const ExpressionEditor = dynamic(
   () => import("@/components/ExpressionEditor"),
@@ -38,9 +39,9 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 // METADATA NODOS (Trigger / Agent / MCP Tool)
 // =========================================================================
 const META = {
-  trigger: { label: "Trigger", color: "#6C63FF", Icon: Zap, desc: "Titik inisyalisasi alur" },
-  agent: { label: "Agent", color: "#16A34A", Icon: Bot, desc: "Proses via Gemini LLM" },
-  mcp: { label: "MCP Tool", color: "#F59E0B", Icon: Wrench, desc: "Aksi eksternal (MCP)" },
+  trigger: { label: "Trigger", color: "rgb(var(--accent))", Icon: Zap, desc: "Titik inisyalisasi alur" },
+  agent: { label: "Agent", color: "rgb(var(--success))", Icon: Bot, desc: "Proses via Gemini LLM" },
+  mcp: { label: "MCP Tool", color: "rgb(var(--warning))", Icon: Wrench, desc: "Aksi eksternal (MCP)" },
 } as const;
 
 type Kind = keyof typeof META;
@@ -99,7 +100,7 @@ function PaletteNode(props: { id: string; data: FlowNodeData; selected?: boolean
         )}
         <span
           className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg"
-          style={{ background: meta.color, color: "#fff", flexShrink: 0 }}
+          style={{ background: meta.color, color: "rgb(var(--accent-fg))", flexShrink: 0 }}
         >
           <Icon size={15} />
         </span>
@@ -165,7 +166,7 @@ function ConfigPanel({
       <div className="flex items-center gap-2">
         <span
           className="flex h-8 w-8 items-center justify-center rounded-lg"
-          style={{ background: meta.color, color: "#fff" }}
+          style={{ background: meta.color, color: "rgb(var(--accent-fg))" }}
         >
           <Icon size={16} />
         </span>
@@ -389,7 +390,7 @@ function BuilderInner() {
       source: connection.source,
       target: connection.target,
       animated: true,
-      style: { stroke: "#6C63FF", strokeWidth: 2 },
+      style: { stroke: "rgb(var(--accent))", strokeWidth: 2 },
     };
     setEdges(addEdge(edge, edges));
   }
@@ -527,7 +528,7 @@ function BuilderInner() {
               }
               className="flex w-full cursor-grab items-center gap-3 rounded-xl border border-gray-700 bg-gray-800 px-3 py-3 text-left transition hover:border-indigo-500/60 hover:bg-gray-700"
             >
-              <span className="flex h-8 w-8 items-center justify-center rounded-lg" style={{ background: meta.color, color: "#fff" }}>
+              <span className="flex h-8 w-8 items-center justify-center rounded-lg" style={{ background: meta.color, color: "rgb(var(--accent-fg))" }}>
                 <Icon size={15} />
               </span>
               <span className="flex-1 text-left">
@@ -576,7 +577,7 @@ function BuilderInner() {
           <Background variant={BackgroundVariant.Dots} gap={12} size={1} />
           <Controls position="bottom-left" />
           <MiniMap
-            nodeColor="#2d3748"
+            nodeColor="rgb(var(--surface-elevated))"
             maskColor="rgba(0,0,0,0.8)"
             position="bottom-right"
           />
@@ -592,18 +593,24 @@ function BuilderInner() {
                   Gagal menyimpan ✕
                 </span>
               )}
-              <button
+              <Button
                 onClick={save}
-                className="flex items-center gap-2 rounded-md bg-blue-600 px-4 py-2 text-sm font-semibold text-white shadow-lg hover:bg-blue-700"
+                className="gap-2 bg-accent text-accent-fg hover:bg-accent-hover"
+                disabled={saveState === "saving"}
+                loading={saveState === "saving"}
               >
-                <Save size={15} /> {saveState === "saving" ? "Simpan..." : "Simpan Alur"}
-              </button>
-              <button
+                {saveState !== "saving" && <Save size={15} strokeWidth={1.75} />}
+                {saveState === "saving" ? "Simpan..." : "Simpan Alur"}
+              </Button>
+              <Button
                 onClick={run}
-                className="flex items-center gap-2 rounded-md bg-green-600 px-4 py-2 text-sm font-semibold text-white shadow-lg hover:bg-green-700"
+                className="gap-2 bg-success text-accent-fg hover:brightness-95"
+                disabled={runState === "running"}
+                loading={runState === "running"}
               >
-                <Play size={15} /> {runState === "running" ? "Menjalankan..." : "Jalankan Alur"}
-              </button>
+                {runState !== "running" && <Play size={15} strokeWidth={1.75} />}
+                {runState === "running" ? "Menjalankan..." : "Jalankan Alur"}
+              </Button>
               {runState === "ok" && (
                 <span className="rounded-md border border-green-500/40 bg-green-500/10 px-2 py-0.5 text-[11px] text-green-300">
                   Eksekusi dimulai ✓
@@ -647,7 +654,7 @@ function BuilderInner() {
         )}
       </aside>
       {termOpen && (
-        <div className="fixed inset-x-0 bottom-0 z-50 border-t border-gray-700 bg-[#1E1E1E] font-mono">
+        <div className="fixed inset-x-0 bottom-0 z-50 border-t border-gray-700 bg-[rgb(var(--bg-subtle))] font-mono">
           <div className="flex items-center justify-between border-b border-gray-800 px-4 py-2">
             <span className="text-[12px] font-bold tracking-wide text-green-400">Execution Console {execStatus ? `— ${execStatus}` : ""}</span>
             <button

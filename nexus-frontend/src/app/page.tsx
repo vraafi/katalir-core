@@ -4,6 +4,8 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { Send, Sparkles, Bot, User, Loader2, KeyRound } from "lucide-react";
 import Shell from "@/components/shell";
 import { AuthProvider, useAuth } from "@/context/auth";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 const SUGGESTIONS = ["Kirim pesan WA", "Rangkum dokumen", "Analisis data"];
@@ -177,21 +179,19 @@ return (
       <div className="flex-1 space-y-4 overflow-y-auto px-5 pb-28 pt-4">
         {!loading && !activeEmail ? (
           <div className="flex h-full flex-col items-center justify-center text-center">
-            <Bot size={48} className="text-gray-300" />
-            <h2 className="mt-4 text-lg font-semibold text-gray-700">
-              Silakan masuk dulu
-            </h2>
-            <p className="mt-1 max-w-sm text-sm text-gray-400">
-              Gunakan tombol &quot;Login dengan Google&quot; di pojok kanan atas
+            <Bot size={48} strokeWidth={1.25} className="text-fg-subtle" />
+            <h2 className="mt-4 text-title3 font-semibold text-fg">Silakan masuk dulu</h2>
+            <p className="mt-1 max-w-sm text-callout text-fg-muted">
+              Gunakan tombol "Login dengan Google" di pojok kanan atas
               untuk memulai percakapan.
             </p>
           </div>
         ) : messages.length === 0 && !loadingMsg ? (
           <div className="flex h-full flex-col items-center justify-center text-center animate-fade-up">
-            <div className="rounded-3xl bg-white/70 p-5 shadow-sm">
-              <Sparkles size={52} className="text-brand drop-shadow-md" />
+            <div className="rounded-sm bg-surface/70 p-5 shadow-sm">
+              <Sparkles size={52} strokeWidth={1.25} className="text-accent drop-shadow-md" />
             </div>
-            <h2 className="mt-5 text-2xl font-bold tracking-tight">
+            <h2 className="mt-5 text-title2 font-bold tracking-tight">
               Halo, ada yang bisa saya bantu hari ini?
             </h2>
             <div className="mt-6 grid w-full max-w-md grid-cols-3 gap-3">
@@ -199,7 +199,7 @@ return (
                 <button
                   key={s}
                   onClick={() => sendPrompt(s)}
-                  className="rounded-xl border border-gray-200 bg-white px-3 py-2.5 text-sm font-medium text-gray-700 shadow-sm transition-all hover:-translate-y-0.5 hover:border-brand/40 hover:text-brand"
+                  className="rounded-sm border border-border bg-surface px-3 py-2.5 text-subhead font-medium text-fg shadow-xs transition-all duration-200 hover:-translate-y-0.5 hover:border-accent/40 hover:text-accent"
                 >
                   {s}
                 </button>
@@ -216,43 +216,43 @@ return (
                 }`}
               >
                 {msg.role !== "user" && (
-                  <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-gray-200">
-                    <Bot size={14} />
+                  <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-bg-subtle">
+                    <Bot size={14} strokeWidth={1.5} className="text-fg-muted" />
                   </div>
                 )}
                 <div
                   className={
                     msg.role === "user"
-                      ? "max-w-[75%] rounded-2xl rounded-br-sm bg-brand px-4 py-2.5 text-sm text-white shadow-sm"
-                      : "max-w-[85%] rounded-2xl rounded-bl-sm bg-white px-4 py-2.5 text-sm text-gray-800 shadow-sm"
+                      ? "max-w-[75%] rounded-sm rounded-br-sm bg-accent px-4 py-2.5 text-subhead text-accent-fg shadow-sm"
+                      : "max-w-[85%] rounded-sm rounded-bl-sm bg-surface px-4 py-2.5 text-subhead text-fg shadow-xs"
                   }
                 >
                   {msg.role === "system" && msg.type === "credential_form" ? (
                     <div className="w-72">
                       <div className="flex items-center gap-2">
-                        <KeyRound size={15} className="text-brand" />
-                        <span className="font-semibold text-gray-800">
-                          Akses dibutuhkan:{" "}
-                          {PROVIDER_LABELS[msg.provider] ?? msg.provider}
+                        <KeyRound size={15} strokeWidth={1.5} className="text-accent" />
+                        <span className="font-semibold text-fg">
+                          Akses dibutuhkan: {PROVIDER_LABELS[msg.provider] ?? msg.provider}
                         </span>
                       </div>
-                      <p className="mt-1.5 text-xs text-gray-500">
+                      <p className="mt-1.5 text-footnote text-fg-muted">
                         Masukkan token provider untuk melanjutkan tugas Anda.
                       </p>
-                      <input
+                      <Input
                         value={credValue}
                         onChange={(e) => setCredValue(e.target.value)}
                         type="password"
                         placeholder="Token / API key..."
-                        className="mt-3 w-full rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm outline-none focus:border-brand"
+                        aria-label="Token / API key"
                       />
-                      <button
+                      <Button
                         disabled={!credValue.trim()}
                         onClick={() => submitCredential(msg.provider, msg.original)}
-                        className="mt-2.5 w-full rounded-lg bg-brand py-2 text-sm font-semibold text-white transition hover:bg-brand-dark disabled:opacity-50"
+                        className="mt-2.5 w-full justify-center"
+                        variant="secondary"
                       >
                         Simpan & Lanjutkan
-                      </button>
+                      </Button>
                     </div>
                   ) : msg.role === "system" ? (
                     msg.original
@@ -261,16 +261,16 @@ return (
                   )}
                 </div>
                 {msg.role === "user" && (
-                  <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-brand">
-                    <User size={14} className="text-white" />
+                  <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-accent">
+                    <User size={14} strokeWidth={1.5} className="text-accent-fg" />
                   </div>
                 )}
               </div>
             ))}
 
             {loadingMsg && (
-              <div className="flex items-center gap-2 text-sm text-gray-400 animate-fade-in">
-                <Loader2 size={16} className="animate-spin" /> Agen sedang berpikir...
+              <div className="flex items-center gap-2 text-subhead text-fg-muted animate-fade-in">
+                <Loader2 size={16} strokeWidth={1.5} className="animate-spin" /> Agen sedang berpikir...
               </div>
             )}
           </>
@@ -285,25 +285,24 @@ return (
               e.preventDefault();
               if (input.trim()) sendPrompt(input.trim());
             }}
-            className="flex items-center gap-2 rounded-2xl border border-gray-200 bg-white/95 p-2 shadow-xl backdrop-blur"
+            className="flex items-center gap-2 rounded-sm border border-border bg-surface/95 p-1.5 shadow-md backdrop-blur"
           >
-            <input
+            <Input
               value={input}
               onChange={(e) => setInput(e.target.value)}
-              placeholder={
-                activeEmail
-                  ? "Ketik pesan ke Nexus Agent..."
-                  : "Login untuk mulai mengobrol"
-              }
-              className="flex-1 bg-transparent px-2 text-sm outline-none"
+              placeholder={activeEmail ? "Ketik pesan ke Nexus Agent..." : "Login untuk mulai mengobrol"}
+              aria-label="Pesan"
+              className="h-9 border-0 shadow-none focus-visible:shadow-none bg-transparent"
             />
-            <button
+            <Button
               type="submit"
+              size="icon"
+              aria-label="Kirim"
               disabled={!input.trim() || loadingMsg}
-              className="flex h-9 w-9 items-center justify-center rounded-xl bg-brand text-white transition hover:bg-brand-dark disabled:opacity-40"
+              className="shrink-0"
             >
-              <Send size={16} />
-            </button>
+              <Send size={16} strokeWidth={1.75} />
+            </Button>
           </form>
         </div>
       </div>
