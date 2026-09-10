@@ -77,12 +77,12 @@ function PaletteNode(props: { id: string; data: FlowNodeData; selected?: boolean
   return (
     <div
       className={"w-56 rounded-xl border bg-gray-800 text-[13px] text-gray-200 " +
-        (selected ? " border-indigo-500 ring-2 ring-indigo-400/60 shadow-xl" : " border-gray-700 shadow-lg")}
+        (selected ? " border-accent ring-2 ring-accent/40 shadow-xl" : " border-gray-700 shadow-lg")}
     >
       <NodeToolbar>
         <button
           onClick={removeNode}
-          className="flex h-7 w-7 items-center justify-center rounded-md border border-red-900/60 bg-red-900/20 text-red-300 hover:bg-red-900/40"
+          className="flex h-7 w-7 items-center justify-center rounded-md border border-danger/60 bg-danger/20 text-danger hover:bg-danger/40"
         >
           <Trash2 size={14} />
         </button>
@@ -94,7 +94,7 @@ function PaletteNode(props: { id: string; data: FlowNodeData; selected?: boolean
             type="target"
             position={Position.Left}
             className={"!w-3 !h-10 !-left-1.5 !rounded-md !border-2 !border-gray-900 cursor-crosshair transition-colors " +
-              (kind === "agent" ? "bg-green-500 hover:bg-green-400" : "bg-amber-500 hover:bg-amber-400")}
+              (kind === "agent" ? "bg-success hover:bg-success" : "bg-warning hover:bg-warning")}
             style={{ width: "12px", height: "40px", borderRadius: "6px" }}
           />
         )}
@@ -112,7 +112,7 @@ function PaletteNode(props: { id: string; data: FlowNodeData; selected?: boolean
           type="source"
           position={Position.Right}
           className={"!w-3 !h-10 !-right-1.5 !rounded-md !border-2 !border-gray-900 cursor-crosshair transition-colors " +
-            (kind === "trigger" ? "bg-blue-500 hover:bg-blue-400" : kind === "agent" ? "bg-green-500 hover:bg-green-400" : "bg-amber-500 hover:bg-amber-400")}
+            (kind === "trigger" ? "bg-accent hover:bg-accent" : kind === "agent" ? "bg-success hover:bg-success" : "bg-warning hover:bg-warning")}
           style={{ width: "12px", height: "40px", borderRadius: "6px" }}
         />
       </div>
@@ -159,7 +159,7 @@ function ConfigPanel({
   }
 
   const fieldCls =
-    "nodrag mt-1 w-full rounded-md border border-gray-600 bg-gray-800 px-2.5 py-1.5 text-[13px] text-gray-100 outline-none focus:border-indigo-400 nodrag";
+    "nodrag mt-1 w-full rounded-md border border-gray-600 bg-gray-800 px-2.5 py-1.5 text-[13px] text-gray-100 outline-none focus:border-accent nodrag";
 
   return (
     <div className="flex flex-col gap-4">
@@ -196,7 +196,7 @@ function ConfigPanel({
           </div>
           {workflowId ? (
             <>
-              <code className="block break-all rounded bg-black/50 p-2 font-mono text-[11px] leading-relaxed text-green-400">
+              <code className="block break-all rounded bg-black/50 p-2 font-mono text-[11px] leading-relaxed text-success">
                 {`${apiUrl}/webhook/${workflowId}`}
               </code>
               <button
@@ -208,7 +208,7 @@ function ConfigPanel({
               </button>
             </>
           ) : (
-            <div className="rounded-md border border-yellow-500/50 bg-yellow-500/10 p-2 text-[11px] leading-snug text-yellow-200">
+            <div className="rounded-md border border-warning/50 bg-warning/10 p-2 text-[11px] leading-snug text-warning">
               ⚠️ Klik &apos;Simpan Alur&apos; terlebih dahulu di menu atas untuk men-generate URL Webhook Anda.
             </div>
           )}
@@ -526,7 +526,7 @@ function BuilderInner() {
                   },
                 ])
               }
-              className="flex w-full cursor-grab items-center gap-3 rounded-xl border border-gray-700 bg-gray-800 px-3 py-3 text-left transition hover:border-indigo-500/60 hover:bg-gray-700"
+              className="flex w-full cursor-grab items-center gap-3 rounded-xl border border-gray-700 bg-gray-800 px-3 py-3 text-left transition hover:border-accent/60 hover:bg-gray-700"
             >
               <span className="flex h-8 w-8 items-center justify-center rounded-lg" style={{ background: meta.color, color: "rgb(var(--accent-fg))" }}>
                 <Icon size={15} />
@@ -541,7 +541,7 @@ function BuilderInner() {
         })}
         <button
           onClick={clearWork}
-          className="flex w-full items-center gap-2 rounded-xl border border-red-900/40 bg-red-900/10 px-3 py-2 text-sm text-red-300 hover:bg-red-900/20"
+          className="flex w-full items-center gap-2 rounded-xl border border-danger/40 bg-danger/10 px-3 py-2 text-sm text-danger hover:bg-red-900/20"
         >
           <Trash2 size={14} /> Cavira alur
         </button>
@@ -584,12 +584,12 @@ function BuilderInner() {
           <Panel position="top-right">
             <div className="flex flex-col items-end gap-1">
               {saveState === "ok" && (
-                <span className="rounded-md border border-green-500/40 bg-green-500/10 px-2 py-0.5 text-[11px] text-green-300">
+                <span className="rounded-md border border-success/40 bg-success/10 px-2 py-0.5 text-[11px] text-success">
                   Data disimpan ✓
                 </span>
               )}
               {saveState === "err" && (
-                <span className="rounded-md border border-red-500/40 bg-red-500/10 px-2 py-0.5 text-[11px] text-red-300">
+                <span className="rounded-md border border-danger/40 bg-danger/10 px-2 py-0.5 text-[11px] text-danger">
                   Gagal menyimpan ✕
                 </span>
               )}
@@ -612,12 +612,12 @@ function BuilderInner() {
                 {runState === "running" ? "Menjalankan..." : "Jalankan Alur"}
               </Button>
               {runState === "ok" && (
-                <span className="rounded-md border border-green-500/40 bg-green-500/10 px-2 py-0.5 text-[11px] text-green-300">
+                <span className="rounded-md border border-success/40 bg-success/10 px-2 py-0.5 text-[11px] text-success">
                   Eksekusi dimulai ✓
                 </span>
               )}
               {runState === "err" && (
-                <span className="rounded-md border border-red-500/40 bg-red-500/10 px-2 py-0.5 text-[11px] text-red-300">
+                <span className="rounded-md border border-danger/40 bg-danger/10 px-2 py-0.5 text-[11px] text-danger">
                   Gagal mengeksekusi ✕
                 </span>
               )}
@@ -656,7 +656,7 @@ function BuilderInner() {
       {termOpen && (
         <div className="fixed inset-x-0 bottom-0 z-50 border-t border-gray-700 bg-[rgb(var(--bg-subtle))] font-mono">
           <div className="flex items-center justify-between border-b border-gray-800 px-4 py-2">
-            <span className="text-[12px] font-bold tracking-wide text-green-400">Execution Console {execStatus ? `— ${execStatus}` : ""}</span>
+            <span className="text-[12px] font-bold tracking-wide text-success">Execution Console {execStatus ? `— ${execStatus}` : ""}</span>
             <button
               onClick={() => { if (pollRef.current) { clearInterval(pollRef.current); pollRef.current = null; } setTermOpen(false); }}
               className="rounded-md px-2 py-1 text-[12px] text-gray-300 hover:bg-gray-700"
@@ -669,9 +669,9 @@ function BuilderInner() {
             {execLogs.map((l, i) => (
               <div key={i} className="whitespace-pre-wrap">
                 <span className="text-gray-500">[{i + 1}]</span>{" "}
-                <span className="text-cyan-300">{l?.step_kind ?? "step"}</span>{" "}
+                <span className="text-accent">{l?.step_kind ?? "step"}</span>{" "}
                 <span className="text-gray-400">{l?.node_id ?? ""}</span>{" "}
-                <span className={String(l?.status) === "error" ? "text-red-400" : "text-green-300"}>{String(l?.status ?? "")}</span>
+                <span className={String(l?.status) === "error" ? "text-danger" : "text-success"}>{String(l?.status ?? "")}</span>
                 <span className="text-gray-200"> — {renderPayload(l?.payload)}</span>
               </div>
             ))}
