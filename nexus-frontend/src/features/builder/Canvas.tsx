@@ -55,6 +55,7 @@ export function Canvas({
         panOnDrag
         panOnScroll
         zoomOnScroll
+        zoomActivationKeyCode="Control"
         className="h-full w-full"
         nodeOrigin={[0.5, 0.5]}
         onDragOver={(e) => {
