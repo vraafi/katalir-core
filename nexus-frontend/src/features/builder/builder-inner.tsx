@@ -1,8 +1,7 @@
 
 import { useRef, useState } from "react";
-import {
-  Edge, addEdge, useEdgesState, useNodesState, useReactFlow,
-} from "@xyflow/react";
+import { useReactFlow } from "@xyflow/react";
+import { useShallow } from "zustand/react/shallow";
 import { X, Zap } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { type FlowNode, type Kind } from "./types";
@@ -10,21 +9,33 @@ import { Palette } from "./Palette";
 import { Canvas } from "./Canvas";
 import { ConfigPanel } from "./ConfigPanel";
 import { Terminal } from "./Terminal";
+import { useCanvasStore } from "./store/canvas-store";
 import { useWorkflowsQuery, useSaveWorkflowMutation, applyWorkflowToCanvas } from "./hooks/useWorkflow";
 import { useExecuteMutation, useExecutionPolling } from "./hooks/useExecution";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
 export function BuilderInner() {
-  const [nodes, setNodes, onNodesChange] = useNodesState<FlowNode>([]);
-  const [edges, setEdges, onEdgesChange] = useEdgesState<Edge>([]);
-  const { screenToFlowPosition } = useReactFlow<FlowNode>();
-  const seq = useRef(100);
+  // --- canvas state via Zustand store (single-source-of-truth) ---
+  const { nodes, edges, onNodesChange, onEdgesChange, onConnect, setNodes, setEdges, addNode } =
+    useCanvasStore(
+      useShallow((s) => ({
+        nodes: s.nodes,
+        edges: s.edges,
+        onNodesChange: s.onNodesChange,
+        onEdgesChange: s.onEdgesChange,
+        onConnect: s.onConnect,
+        setNodes: s.setNodes,
+        setEdges: s.setEdges,
+        addNode: s.addNode,
+      }))
+    );
+
+  const { screenToFlowPosition, updateNodeData } = useReactFlow<FlowNode>();
   const [savedId, setId] = useState<string | null>(null);
   const [saveState, setSaveState] = useState<"idle" | "saving" | "ok" | "err">("idle");
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [runState, setRunState] = useState<"idle" | "running" | "ok" | "err">("idle");
-  const { updateNodeData } = useReactFlow<FlowNode>();
 
   const { data: workflowsData, isSuccess } = useWorkflowsQuery();
   const saveMutation = useSaveWorkflowMutation();
@@ -43,23 +54,9 @@ export function BuilderInner() {
     setSelectedId(node.id);
   }
 
-  function onConnect(connection: { source: string; target: string }) {
-    setEdges(addEdge({
-      id: "e_" + seq.current++,
-      source: connection.source,
-      target: connection.target,
-      animated: true,
-      style: { stroke: "rgb(var(--accent))", strokeWidth: 2 },
-    }, edges));
-  }
-
-  function addNode(kind: Kind) {
-    setNodes([...nodes, { id: `${kind}-${seq.current++}`, type: kind, position: { x: 80 + Math.random() * 120, y: 80 + Math.random() * 200 }, data: { kind, label: kind } }]);
-  }
-
   function onDropNode(kind: Kind, clientX: number, clientY: number) {
     const position = screenToFlowPosition({ x: clientX, y: clientY });
-    setNodes([...nodes, { id: `${kind}-${seq.current++}`, type: kind, position, data: { kind, label: kind } }]);
+    addNode(kind, position);
   }
 
   async function save() {
