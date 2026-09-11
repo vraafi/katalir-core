@@ -6,6 +6,8 @@ import {
   BackgroundVariant,
   Controls,
   MiniMap,
+  PanOnScrollMode,
+  SelectionMode,
   type NodeChange,
   type EdgeChange,
   type NodeMouseHandler,
@@ -52,10 +54,14 @@ export function Canvas({
         onConnect={onConnect}
         onNodeClick={onNodeClick}
         colorMode="dark"
-        panOnDrag
         panOnScroll
-        zoomOnScroll
+        panOnScrollSpeed={0.5}
+        panOnScrollMode={PanOnScrollMode.Free}
+        selectionOnDrag
+        panOnDrag={false}
+        panActivationKeyCode="Space"
         zoomActivationKeyCode="Control"
+        selectionMode={SelectionMode.Partial}
         className="h-full w-full"
         nodeOrigin={[0.5, 0.5]}
         onDragOver={(e) => {
