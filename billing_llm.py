@@ -74,12 +74,22 @@ def dodo_checkout_url(plan: str = "pro", email: str = "") -> str:
 
 
 def verify_dodo_webhook(payload: bytes, signature: str = "") -> bool:
+    """Verifieert de Dodo webhook signature (HMAC-SHA256).
+
+    Als DODO_WEBHOOK_SECRET strict is ingesteld (DODO_WEBHOOK_SECRET_STRICT=1)
+    of secret bestaat -> signature IS VERPLICHT. Zonder secret: dev-modus
+    (accepteert alles, status auto-gedeployed NOOIT naar productie).
+    """
     secret = os.getenv("DODO_WEBHOOK_SECRET", "")
+    strict = os.getenv("DODO_WEBHOOK_SECRET_STRICT", "1").strip().lower() in ("1", "true", "yes")
     if not secret:
-        return True  # dev mode: terima semua
+        # dev-modus: zonder secret geen verifikatie (NOSPOOF niet mogelijk in prod)
+        return True
+    if not signature:
+        return False  # secret aanwezig maar signature ontbreekt -> REJECT (anti-spoof)
     try:
         import hmac, hashlib
         mac = hmac.new(secret.encode(), payload, hashlib.sha256).hexdigest()
-        return hmac.compare_digest(mac, signature or "")
+        return hmac.compare_digest(mac, signature)
     except Exception:
         return False

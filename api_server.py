@@ -481,17 +481,36 @@ class DodoWebhookPayload(BaseModel):
 
 
 @app.post("/api/payments/dodo-webhook")
-def dodo_webhook(payload: DodoWebhookPayload):
-    email = payload.email or payload.customer_email
+async def dodo_webhook(request: Request, x_dodo_signature: str | None = Header(None)):
+    """Dodo Payments webhook -> topup saldo.
+
+    KEAMANAN: verifieert HMAC-SHA256 signature (DODO_WEBHOOK_SECRET) via
+    billing_llm.verify_dodo_webhook. Zonder geldige signature -> 401 (anti-spoof).
+    Zowel raw body (voor HMAC) als JSON-velden (email/customer_email/credits)
+    worden gelezen.
+    """
+    import billing_llm as bl
+    raw = await request.body()
+    # eventuele Dodo signature header (variële namen ondersteund)
+    signature = (x_dodo_signature or "") or request.headers.get("Signature") or \
+        request.headers.get("X-Dodo-Signature") or request.headers.get("Dodo-Signature") or ""
+    if not bl.verify_dodo_webhook(raw, signature):
+        raise HTTPException(401, "Webhook signature invalid (anti-spoof).")
+    try:
+        payload = await request.json()
+    except Exception:  # noqa: BLE001
+        raise HTTPException(400, "Body moet JSON zijn.")
+    email = (payload or {}).get("email") or (payload or {}).get("customer_email")
     if not email:
         raise HTTPException(422, "email wajib diisi.")
-    topup = payload.credits or payload.amount or 0
+    topup = (payload or {}).get("credits") or (payload or {}).get("amount") or 0
     if topup <= 0:
         raise HTTPException(422, "nominal topup harus > 0.")
     try:
         db.topup_balance(email, float(topup))
         return {"status": "success", "email": email, "credited": float(topup),
-                "payment_id": payload.payment_id, "event": payload.event}
+                "payment_id": (payload or {}).get("payment_id"),
+                "event": (payload or {}).get("event", "payment.succeeded")}
     except Exception as exc:  # noqa: BLE001
         raise HTTPException(500, f"Gagal memproses webhook: {exc}")
 
