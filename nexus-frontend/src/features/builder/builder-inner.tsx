@@ -1,5 +1,5 @@
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useReactFlow } from "@xyflow/react";
 import { useShallow } from "zustand/react/shallow";
 import { X, Zap } from "lucide-react";
@@ -42,11 +42,16 @@ export function BuilderInner() {
   const execMutation = useExecuteMutation();
   const exec = useExecutionPolling();
 
-  const loadRef = useRef(false);
-  if (isSuccess && !loadRef.current) {
-    loadRef.current = true;
-    applyWorkflowToCanvas(workflowsData ?? [], setNodes, setEdges);
-  }
+  // Load latest workflow into the store from useEffect (NIET in render phase).
+  // React-error "Cannot update a component while rendering" treedt op wanneer
+  // setNodes/setEdges in de component body worden aangeroepen. useEffect
+  // met specifieke dependency (workflow-id) voorkomt dit.
+  const latestWorkflowId = (workflowsData ? workflowsData[0]?.id : undefined) ?? undefined;
+  useEffect(() => {
+    if (!isSuccess || !Array.isArray(workflowsData) || workflowsData.length === 0) return;
+    applyWorkflowToCanvas(workflowsData, setNodes, setEdges);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isSuccess, latestWorkflowId]);
 
   const selectedNode = nodes.find((n) => n.id === selectedId) ?? null;
 

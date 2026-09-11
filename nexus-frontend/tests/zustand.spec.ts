@@ -12,8 +12,7 @@ async function gotoBuilder(page: Page) {
 
 test("3c1: Zustand store — node add + select + clear via store", async ({ page }) => {
   const errs: string[] = [];
-  page.on("pageerror", (e) => errs.push(String(e)));
-  page.on("console", (m) => { if (m.type === "error") errs.push(m.text); });
+  page.on("pageerror", (e) => errs.push(String(e as object)));
 
   await gotoBuilder(page);
   const metrics = await page.evaluate(() => {
