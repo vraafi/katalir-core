@@ -48,16 +48,24 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
   },
 
   onConnect: (connection) => {
+    // Guard tegen duplicate edge id (bv. wanneer een geladen workflow edges
+    // bevat die overlappen met de doorlopende seq). Zoek een uniek id dat
+    // niet in de huidige edges zit.
+    const existing = get().edges;
+    let id = `e_${get().seq++}`;
+    while (existing.some((e) => e.id === id)) {
+      id = `e_${get().seq++}`;
+    }
     set({
       edges: addEdge(
         {
-          id: `e_${get().seq++}`,
+          id,
           source: connection.source,
           target: connection.target,
           animated: true,
           style: { stroke: "rgb(var(--accent))", strokeWidth: 2 },
         },
-        get().edges
+        existing
       ),
     });
   },

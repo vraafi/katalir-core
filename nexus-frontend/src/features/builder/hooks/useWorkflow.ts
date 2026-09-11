@@ -67,6 +67,14 @@ export function applyWorkflowToCanvas(list: WorkflowListItem[], setNodes: (n: Fl
   const flow = list[0]?.flow_data ?? {};
   if (Array.isArray(flow.nodes) && flow.nodes.length > 0) {
     setNodes(flow.nodes);
-    setEdges(Array.isArray(flow.edges) ? flow.edges : []);
+    const edges = Array.isArray(flow.edges) ? flow.edges : [];
+    // Dedupe edges by id — voorkomt duplicate React keys bij laden.
+    const seen = new Set<string>();
+    const unique = edges.filter((e: any) => {
+      if (!e || seen.has(e.id)) return false;
+      seen.add(e.id);
+      return true;
+    });
+    setEdges(unique);
   }
 }
