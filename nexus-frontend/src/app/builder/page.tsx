@@ -3,6 +3,7 @@
 import "@xyflow/react/dist/base.css";
 import "@xyflow/react/dist/style.css";
 
+import { Suspense } from "react";
 import {
   ReactFlowProvider,
 } from "@xyflow/react";
@@ -13,7 +14,12 @@ export default function Builder() {
   return (
     <QueryProvider>
       <ReactFlowProvider>
-        <BuilderInner />
+        {/* Suspense boundary DI IN de page component — vereist door
+            Next 15 static-export voor useSearchParams (nuqs). Zonder dit
+            faalt prerender met "missing-suspense-with-csr-bailout". */}
+        <Suspense fallback={null}>
+          <BuilderInner />
+        </Suspense>
       </ReactFlowProvider>
     </QueryProvider>
   );

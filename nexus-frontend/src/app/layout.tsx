@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Inter, JetBrains_Mono } from "next/font/google";
 import { ThemeProvider } from "next-themes";
 import { Toaster } from "sonner";
+import { NuqsAdapter } from "nuqs/adapters/next/app";
 import "./globals.css";
 
 const sans = Inter({ subsets: ["latin"], variable: "--font-sans", display: "swap" });
@@ -23,10 +24,12 @@ export default function RootLayout({
         <a href="#main" className="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-[100] focus:rounded-sm focus:bg-surface focus:px-4 focus:py-2 focus:shadow-md">
           Lompat ke konten
         </a>
-        <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
-          {children}
-          <Toaster position="top-center" richColors closeButton />
-        </ThemeProvider>
+        <NuqsAdapter>
+          <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
+            {children}
+            <Toaster position="top-center" richColors closeButton />
+          </ThemeProvider>
+        </NuqsAdapter>
       </body>
     </html>
   );
