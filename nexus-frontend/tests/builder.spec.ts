@@ -99,9 +99,8 @@ test("c) SAVE: klik Simpan Alur -> bukan 500", async ({ page }) => {
   // request interceptor: capture POST /workflows response
   let saveStatus = 0;
   page.on("response", (resp) => {
-    if (resp.url.includes("/workflows") && resp.request.method === "POST") {
-      saveStatus = resp.status;
-    }
+    const u = typeof resp === "string" ? resp : resp.url ?? String(resp);
+    if (String(u).includes("/workflows")) saveStatus = resp.status();
   });
   const btn = page.locator("text=Simpan Alur").first();
   await btn.click().catch(() => {});

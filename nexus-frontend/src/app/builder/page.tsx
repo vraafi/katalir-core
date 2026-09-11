@@ -1,5 +1,8 @@
 "use client";
 
+import "@xyflow/react/dist/base.css";
+import "@xyflow/react/dist/style.css";
+
 import {
   ReactFlowProvider,
 } from "@xyflow/react";

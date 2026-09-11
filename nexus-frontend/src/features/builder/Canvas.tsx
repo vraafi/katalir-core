@@ -56,6 +56,7 @@ export function Canvas({
         panOnScroll
         zoomOnScroll
         className="h-full w-full"
+        nodeOrigin={[0.5, 0.5]}
         onDragOver={(e) => {
           e.preventDefault();
           if (e.dataTransfer) e.dataTransfer.dropEffect = "move";
