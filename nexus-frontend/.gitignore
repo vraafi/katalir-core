@@ -33,4 +33,7 @@ next-env.d.ts
 .env
 .env*.local
 node_modules
-.next
+.next.reference/
+test-results/
+playwright-report/
+.reference/
