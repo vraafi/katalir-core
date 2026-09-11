@@ -1,8 +1,7 @@
 import { useMutation, useQuery } from "@tanstack/react-query";
 import type { Edge } from "@xyflow/react";
+import { apiFetch } from "@/lib/api";
 import { type FlowNode } from "../types";
-
-export const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
 export interface FlowEdge {
   id: string;
@@ -30,7 +29,7 @@ export const workflowKeys = {
 };
 
 async function fetchWorkflows(): Promise<WorkflowListItem[]> {
-  const res = await fetch(`${API_URL}/workflows`);
+  const res = await apiFetch("/workflows");
   if (!res.ok) return [];
   const data = await res.json();
   return (data?.workflows as WorkflowListItem[]) ?? [];
@@ -51,9 +50,8 @@ export function useWorkflowsQuery() {
 export function useSaveWorkflowMutation() {
   return useMutation<{ id: string }, Error, { nodes: FlowNode[]; edges: Edge[] }>({
     mutationFn: async ({ nodes, edges }) => {
-      const res = await fetch(`${API_URL}/workflows`, {
+      const res = await apiFetch("/workflows", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ name: "Draft Workflow", description: "Workflow creato in Builder", flow_data: { nodes, edges } }),
       });
       if (res.status !== 201) throw new Error("HTTP " + res.status);

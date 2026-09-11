@@ -130,27 +130,38 @@ def _local_user(email, name=""):
 
 
 # ---- CHAT SESSIONS ----
-def list_sessions(email):
-    if is_configured():
+def _resolve_user_id(owner):
+    """owner bisa user_id uuid ATAU email. Resolve ke user_id real."""
+    if not owner:
+        return owner
+    owner = str(owner)
+    if "@" in owner:
+        u = get_or_create_user(owner)
+        return u.get("id") if u else None
+    return owner
+
+
+def list_sessions(owner):
+    uid = _resolve_user_id(owner)
+    if is_configured() and uid:
         try:
             c = _get_write_client()
-            user = get_or_create_user(email)
             res = (c.table("chat_sessions").select("id,title,created_at")
-                    .eq("user_id", user.get("id"))
+                    .eq("user_id", uid)
                     .order("created_at", desc=True).execute())
             return res.data
         except Exception:
             _configured = False
-    return _LSESS.get(email, [])
+    return []
 
 
-def create_session(email, title="Chat Baru"):
-    if is_configured():
+def create_session(owner, title="Chat Baru"):
+    uid = _resolve_user_id(owner)
+    if is_configured() and uid:
         try:
             wc = _get_write_client()
-            user = get_or_create_user(email)
             res = wc.table("chat_sessions").insert(
-                {"user_id": user.get("id"), "title": title}).execute()
+                {"user_id": uid, "title": title}).execute()
             created = (res.data or [{}])[0]
             if created.get("id"):
                 return created
@@ -162,38 +173,42 @@ def create_session(email, title="Chat Baru"):
                 raise
     _SEQ[0] += 1
     sid = "local_" + str(_SEQ[0])
-    session = {"id": sid, "title": title, "user_email": email, "created_at": _now()}
-    _LSESS.setdefault(email, []).insert(0, session)
+    session = {"id": sid, "title": title, "user_id": (uid or owner), "created_at": _now()}
     return session
 
 
-def rename_session(email, session_id, title):
+def rename_session(owner, session_id, title):
     """Update judul sesi (dipakai saat prompt pertama mengubah nama chat)."""
-    if is_configured():
+    uid = _resolve_user_id(owner)
+    if is_configured() and uid:
         try:
             c = _get_client()
-            c.table("chat_sessions").update({"title": title}).eq("id", session_id).execute()
+            c.table("chat_sessions").update({"title": title}).eq("id", session_id).eq(
+                "user_id", uid).execute()
             return
         except Exception:
             _configured = False
-    for s in _LSESS.get(email, []):
-        if s["id"] == session_id:
-            s["title"] = title
-            return
+    return
 
 
 # ---- CHAT MESSAGES ----
-def get_messages(email, session_id):
-    if is_configured():
+def get_messages(owner, session_id):
+    uid = _resolve_user_id(owner)
+    if is_configured() and uid:
         try:
             c = _get_write_client()
+            # Verifikasi kepemilikan session BUKAN spoof: session harus milik user.
+            own = (c.table("chat_sessions").select("id")
+                   .eq("id", session_id).eq("user_id", uid).limit(1).execute())
+            if not (own.data or []):
+                return []
             res = (c.table("chat_messages").select("*")
                     .eq("session_id", session_id)
                     .order("created_at", desc=False).execute())
             return res.data
         except Exception:
             _configured = False
-    return list(_LMSG.get((email, session_id), []))
+    return []
 
 
 def add_message(email, session_id, role, content):
@@ -343,30 +358,54 @@ def persistence_info():
 
 
 # ---- WORKFLOWS (Visual AI Agent Workflow Builder) ----
-def create_workflow(name: str, description: str, flow_data: dict):
-    """Simpan workflow (nodes & edges como JSONB) a la tabla workflows."""
+# NOTE keamanan: setiap workflow WAJIB punya user_id (owner). Semua query
+# di-scope dengan user_id supaya service_role/bypass RLS tidak membocorkan
+# data antar-user (defense-in-depth: RLS di DB + filter user di backend).
+def create_workflow(user_id: str, name: str, description: str, flow_data: dict):
+    """Simpan workflow (nodes & edges como JSONB) a la tabla workflows.
+
+    user_id diisi dari JWT (di api_server), BUKAN dari body request.
+    """
     if not is_configured():
         raise RuntimeError("Supabase belum dikonfigurasi — tidak dapat persist workflow.")
     c = _get_write_client()
     res = c.table("workflows").insert(
-        {"name": name, "description": description, "flow_data": flow_data}
+        {"user_id": user_id, "name": name, "description": description, "flow_data": flow_data}
     ).execute()
     rows = res.data or []
     return rows[0] if rows else {}
 
 
-def list_workflows():
-    """Listar todos los workflows (creados_at desc)."""
+def list_workflows(user_id: str):
+    """Listar workflows milik EXPLICIT user (created_at desc).
+
+    Filter user_id = defense-in-depth, walau RLS sudah aktif.
+    """
     if not is_configured():
         return []
     c = _get_write_client()
     res = (
         c.table("workflows")
         .select("id,name,description,flow_data,created_at")
+        .eq("user_id", user_id)
         .order("created_at", desc=True)
         .execute()
     )
     return res.data or []
+
+
+def get_workflow_owner(workflow_id: str) -> str | None:
+    """Return user_id pemilik workflow, atau None bila workflow tak ada."""
+    if not is_configured():
+        return None
+    try:
+        c = _get_write_client()
+        res = (c.table("workflows").select("user_id").eq("id", workflow_id)
+               .limit(1).execute())
+        d = res.data or []
+        return str(d[0].get("user_id")) if d else None
+    except Exception:  # noqa: BLE001
+        return None
 # ---------------------------------------------------------------------------
 # EXECUTION LOGS (Execution Engine)
 # Tabla (Supabase SQL Editor):

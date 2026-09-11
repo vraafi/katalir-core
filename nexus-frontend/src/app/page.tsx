@@ -7,7 +7,7 @@ import { AuthProvider, useAuth } from "@/context/auth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+import { apiFetch } from "@/lib/api";
 const SUGGESTIONS = ["Kirim pesan WA", "Rangkum dokumen", "Analisis data"];
 
 const PROVIDER_LABELS: Record<string, string> = {
@@ -58,7 +58,7 @@ function ChatApp() {
       return;
     }
     try {
-      const res = await fetch(`${API_URL}/sessions?email=${encodeURIComponent(activeEmail)}`);
+      const res = await apiFetch("/sessions");
       const data = await res.json();
       setSessions(data.sessions ?? []);
     } catch {
@@ -79,9 +79,7 @@ function ChatApp() {
     setCurrentSessionId(sessionId);
     if (!activeEmail) return;
     try {
-      const res = await fetch(
-        `${API_URL}/messages/${sessionId}?email=${encodeURIComponent(activeEmail)}`
-      );
+      const res = await apiFetch(`/messages/${sessionId}`);
       const data = await res.json();
       const msgs: Msg[] = (data.messages ?? []).map((m: any) => {
         if (m.role === "user") return { role: "user", content: m.content };
@@ -114,13 +112,11 @@ function ChatApp() {
     try {
       const body: any = {
         prompt: text,
-        email: em,
         session_id: currentSessionId ?? undefined,
       };
       if (withCredential) body.credential = withCredential;
-      const res = await fetch(`${API_URL}/chat`, {
+      const res = await apiFetch("/chat", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
         body: JSON.stringify(body),
       });
       const data = await res.json();
@@ -152,10 +148,9 @@ function ChatApp() {
   async function submitCredential(provider: string, original: string) {
     if (!credValue.trim() || !activeEmail) return;
     try {
-      await fetch(`${API_URL}/integrations`, {
+      await apiFetch("/integrations", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: activeEmail, provider, token: credValue.trim() }),
+        body: JSON.stringify({ provider, token: credValue.trim() }),
       });
       setCredValue("");
       setMessages((m) =>

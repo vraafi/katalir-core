@@ -14,7 +14,7 @@
 
 import os
 
-from fastapi import BackgroundTasks, FastAPI, HTTPException, Request
+from fastapi import BackgroundTasks, FastAPI, Header, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 from typing import Optional, Any
@@ -23,6 +23,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 import database as db
+import security
 import tools
 import execution_engine as engine
 from tools import CredentialMissingError
@@ -182,35 +183,37 @@ def _derive_title(prompt: str, max_len: int = 30, max_words: int = 5) -> str:
 
 
 @app.post("/chat")
-def chat(req: ChatRequest):
+def chat(req: ChatRequest, authorization: str | None = Header(None)):
     """Proses prompt via Agentic Loop + persist pesan ke session.
 
+    KEAMANAN: user dari JWT (Authorization Bearer), BUKAN dari body email.
     Bila credential hilang -> HTTP 200 {status: needs_credential} (bukan 500).
 
     Returns:
         status=success     -> {status, reply, session_id}
         status=needs_credential -> {status, provider, message}
     """
-    if not req.email:
-        raise HTTPException(422, "email wajib diisi.")
+    user = security.get_current_user(authorization)
+    user_email = user["email"]
+    user_id = user["id"]
 
     # Pastikan punya session (buat baru bila belum ada)
     session_id = req.session_id
     if not session_id:
         title = _derive_title(req.prompt)
         try:
-            session_id = db.create_session(req.email, title)["id"]
+            session_id = db.create_session(user_id, title)["id"]
         except Exception as exc:  # noqa: BLE001
             raise HTTPException(500, f"Gagal membuat session: {exc}")
 
     # Simpan prompt user ke riwayat
     try:
-        db.add_message(req.email, session_id, "user", req.prompt)
+        db.add_message(user_email, session_id, "user", req.prompt)
     except Exception as exc:  # noqa: BLE001
         raise HTTPException(500, f"Gagal menyimpan pesan: {exc}")
 
     try:
-        reply = _agentic_run_direct(req.prompt, req.email)
+        reply = _agentic_run_direct(req.prompt, user_email)
     except CredentialMissingError as e:
         # Persist hanya pesan user; UI menampilkan form credential & akan submit ulang.
         return {
@@ -226,7 +229,7 @@ def chat(req: ChatRequest):
 
     # Simpan balasan AI
     try:
-        db.add_message(req.email, session_id, "assistant", reply)
+        db.add_message(user_email, session_id, "assistant", reply)
     except Exception as exc:  # noqa: BLE001
         raise HTTPException(500, f"Gagal menyimpan balasan: {exc}")
 
@@ -237,11 +240,12 @@ def chat(req: ChatRequest):
 # ENDPOINT 2: POST /integrations
 # ---------------------------------------------------------------------------
 @app.post("/integrations")
-def save_integration(req: IntegrationRequest):
+def save_integration(req: IntegrationRequest, authorization: str | None = Header(None)):
     """Simpan token kredensial user (BYOK)."""
     if not req.token or not req.provider:
         raise HTTPException(422, "provider dan token wajib diisi.")
-    ok = db.save_integration(req.email, req.provider, req.token)
+    user = security.get_current_user(authorization)
+    ok = db.save_integration(user["email"], req.provider, req.token)
     if not ok:
         raise HTTPException(500, "Gagal menyimpan kredensial.")
     return {"status": "success", "provider": req.provider}
@@ -249,15 +253,18 @@ def save_integration(req: IntegrationRequest):
 
 # ---------------------------------------------------------------------------
 # ENDPOINT: POST /api/vault/save   (Brankas: enkripsi + upsert user_vault)
+#   KEAMANAN: user TARGET dari JWT (Authorization Bearer), BUKAN dari body.
 # ---------------------------------------------------------------------------
 @app.post("/api/vault/save")
-def vault_save_endpoint(req: VaultSaveRequest):
+def vault_save_endpoint(req: VaultSaveRequest, authorization: str | None = Header(None)):
     """Enkriptoi API key (Fernet) ja simpan user_vault (ei plaintext koskaan)."""
-    if not req.email or not req.provider or not req.api_key:
-        raise HTTPException(422, "email, provider, api_key wajib diisi.")
+    if not req.provider or not req.api_key:
+        raise HTTPException(422, "provider, api_key wajib diisi.")
+    user = security.get_current_user(authorization)
+    email = user["email"]  # dari JWT verified, bukan param/body
     import vault_security as vs
     cipher = vs.encrypt_key(req.api_key)     # palauta ciphertext str
-    ok = db.vault_save(req.email.strip(), req.provider.strip(), cipher)
+    ok = db.vault_save(email, req.provider.strip(), cipher)
     if not ok:
         raise HTTPException(500, "Gagal menyimpan vault.")
     return {"status": "saved", "provider": req.provider, "saved": True}
@@ -265,35 +272,39 @@ def vault_save_endpoint(req: VaultSaveRequest):
 
 # ---------------------------------------------------------------------------
 # ENDPOINT: GET /api/vault/list   (daftar provider, EI koskaan palauta avainta)
+#   KEAMANAN: user dari JWT, query param email TIDAK lebih.
 # ---------------------------------------------------------------------------
 @app.get("/api/vault/list")
-def vault_list_endpoint(email: str):
-    if not email:
-        raise HTTPException(422, "email wajib.")
-    items = db.vault_list(email.strip())
+def vault_list_endpoint(authorization: str | None = Header(None)):
+    user = security.get_current_user(authorization)
+    email = user["email"]
+    items = db.vault_list(email)
     return {"status": "success", "items": items}
 
 
 # ---------------------------------------------------------------------------
 # ENDPOINT: POST /workflows  (simpan Visual AI Workflow JSON)
+#   KEAMANAN: user_id dari JWT (Authorization Bearer), BUKAN dari body.
 # ---------------------------------------------------------------------------
 @app.post("/workflows", status_code=201)
-def create_workflow(req: WorkflowCreateRequest):
+def create_workflow(req: WorkflowCreateRequest, authorization: str | None = Header(None)):
     """Simpan un workflow de nodos/edges (JSONB a tabla workflows)."""
+    user = security.get_current_user(authorization)
     try:
-        row = db.create_workflow(req.name, req.description, req.flow_data)
+        row = db.create_workflow(user["id"], req.name, req.description, req.flow_data)
     except Exception as exc:  # noqa: BLE001
         raise HTTPException(500, f"Gagal menyimpan workflow: {exc}")
     return {"status": "success", "workflow": row}
 
 
 # ---------------------------------------------------------------------------
-# ENDPOINT: GET /workflows  (listar workflows)
+# ENDPOINT: GET /workflows  (listar workflows) — SOLO milik user JWT
 # ---------------------------------------------------------------------------
 @app.get("/workflows")
-def get_workflows():
+def get_workflows(authorization: str | None = Header(None)):
+    user = security.get_current_user(authorization)
     try:
-        rows = db.list_workflows()
+        rows = db.list_workflows(user["id"])
     except Exception as exc:  # noqa: BLE001
         raise HTTPException(500, f"Gagal memuat workflows: {exc}")
     return {"status": "success", "workflows": rows}
@@ -304,11 +315,16 @@ def get_workflows():
 #   Execution Engine — instan, non-blocking, devuelve {execution_id, status: pending}
 # ---------------------------------------------------------------------------
 @app.post("/workflows/{workflow_id}/execute", status_code=202)
-async def execute_workflow(workflow_id: str, req: ExecuteRequest = None):  # type: ignore[assignment]
+async def execute_workflow(workflow_id: str, req: ExecuteRequest = None,
+                           authorization: str | None = Header(None)):  # type: ignore[assignment]
     """Inicia la ejecucion de un workflow en background (status pending)."""
+    user = security.get_current_user(authorization)
+    owner = db.get_workflow_owner(workflow_id)
+    if owner is None or owner != user["id"]:
+        raise HTTPException(404, "Workflow tidak ditemukan.")
     flow_data = req.flow_data if (req and req.flow_data) else None
     if not flow_data:
-        found = next((w for w in (db.list_workflows() or []) if w.get("id") == workflow_id), None)
+        found = next((w for w in (db.list_workflows(user["id"]) or []) if w.get("id") == workflow_id), None)
         if not found:
             raise HTTPException(404, f"Workflow {workflow_id} tidak ditemukan.")
         flow_data = found.get("flow_data") or {}
@@ -320,12 +336,20 @@ async def execute_workflow(workflow_id: str, req: ExecuteRequest = None):  # typ
 
 
 @app.get("/executions/{execution_id}")
-def get_execution(execution_id: str):
+def get_execution(execution_id: str, authorization: str | None = Header(None)):
     """Devuelve estado y logs de una ejecucion."""
+    user = security.get_current_user(authorization)
     try:
         data = db.get_execution(execution_id)
     except Exception as exc:  # noqa: BLE001
         raise HTTPException(500, f"Gagal memuat ejekution: {exc}")
+    # Keamanan: verificar que la ejecucion pertenezca a un workflow del user
+    ex = (data or {}).get("execution") or {}
+    wid = ex.get("workflow_id")
+    if wid:
+        owner = db.get_workflow_owner(str(wid))
+        if owner != user["id"]:
+            raise HTTPException(404, "Ejecucion tidak ditemukan.")
     return {"status": "success", **data}
 
 
@@ -363,12 +387,15 @@ async def _run_webhook_dag(workflow_id: str, flow_data: dict,
 # ---------------------------------------------------------------------------
 @app.post("/webhook/{workflow_id}", status_code=202)
 async def webhook_trigger(workflow_id: str, request: Request,
-                          background: BackgroundTasks) -> dict:
+                          background: BackgroundTasks,
+                          authorization: str | None = Header(None)) -> dict:
     """Terima webhook eksternal dan antrekan eksekusi DAG di background.
 
     Gembok eksekusi: 400 jika workflow tidak punya node Trigger yang valid.
+    Keamanan: ownership workflow via JWT (Authorization Bearer).
     Mengembalikan 202 Accepted + execution_id dengan cepat (non-blocking).
     """
+    user = security.get_current_user(authorization)
     try:
         body = await request.json()
     except Exception:  # noqa: BLE001 - body kosong/bukan JSON tetap diterima
@@ -379,8 +406,11 @@ async def webhook_trigger(workflow_id: str, request: Request,
         "body": body if isinstance(body, dict) else {"value": body},
     }
 
+    owner = db.get_workflow_owner(workflow_id)
+    if owner is None or owner != user["id"]:
+        raise HTTPException(404, "Workflow tidak ditemukan.")
     found = next(
-        (w for w in (db.list_workflows() or []) if w.get("id") == workflow_id),
+        (w for w in (db.list_workflows(user["id"]) or []) if w.get("id") == workflow_id),
         None,
     )
     if not found:
@@ -411,14 +441,13 @@ async def webhook_trigger(workflow_id: str, request: Request,
 
 
 # ---------------------------------------------------------------------------
-# ENDPOINT 3: GET /sessions  (riwayat obrolan milik user)
+# ENDPOINT 3: GET /sessions  (riwayat obrolan milik user JWT)
 # ---------------------------------------------------------------------------
 @app.get("/sessions")
-def sessions(email: str):
-    if not email:
-        raise HTTPException(422, "email wajib diisi.")
+def sessions(authorization: str | None = Header(None)):
+    user = security.get_current_user(authorization)
     try:
-        data = db.list_sessions(email)
+        data = db.list_sessions(user["id"])
         return {"status": "success", "sessions": data}
     except Exception as exc:  # noqa: BLE001
         raise HTTPException(500, f"Gagal memuat session: {exc}")
@@ -428,13 +457,12 @@ def sessions(email: str):
 # ENDPOINT 4: GET /messages/{session_id}  (isi percakapan satu sesi)
 # ---------------------------------------------------------------------------
 @app.get("/messages/{session_id}")
-def messages(session_id: str, email: str):
+def messages(session_id: str, authorization: str | None = Header(None)):
     if not session_id:
         raise HTTPException(422, "session_id wajib diisi.")
-    if not email:
-        raise HTTPException(422, "email wajib diisi.")
+    user = security.get_current_user(authorization)
     try:
-        data = db.get_messages(email, session_id)
+        data = db.get_messages(user["id"], session_id)
         return {"status": "success", "messages": data}
     except Exception as exc:  # noqa: BLE001
         raise HTTPException(500, f"Gagal memuat pesan: {exc}")

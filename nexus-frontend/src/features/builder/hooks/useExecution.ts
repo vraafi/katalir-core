@@ -1,6 +1,6 @@
 import { useMutation } from "@tanstack/react-query";
 import { useEffect, useRef, useState } from "react";
-import { API_URL } from "./useWorkflow";
+import { apiFetch } from "@/lib/api";
 
 export interface ExecutionLog {
   step_kind?: string;
@@ -19,9 +19,8 @@ interface ExecuteResponse {
 export function useExecuteMutation() {
   return useMutation<ExecuteResponse, Error, { workflowId: string }>({
     mutationFn: async ({ workflowId }) => {
-      const res = await fetch(`${API_URL}/workflows/${workflowId}/execute`, {
+      const res = await apiFetch(`/workflows/${workflowId}/execute`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({}),
       });
       if (res.status !== 202) throw new Error("HTTP " + res.status);
@@ -48,7 +47,7 @@ export function useExecutionPolling() {
 
   async function pollOnce(id: string) {
     try {
-      const r = await fetch(`${API_URL}/executions/${id}`);
+      const r = await apiFetch(`/executions/${id}`);
       if (!r.ok) return;
       const d = await r.json();
       const execution = d?.execution ?? d;

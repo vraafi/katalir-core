@@ -6,8 +6,7 @@ import { Sheet } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
-
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+import { apiFetch } from "@/lib/api";
 
 const PROVIDERS = [
   { value: "groq", label: "Groq" },
@@ -29,9 +28,10 @@ export default function VaultModal({ open, email, onClose }: VaultModalProps) {
   const [status, setStatus] = useState<"idle" | "saving" | "ok" | "err">("idle");
   const [saved, setSaved] = useState<{ provider: string; saved: boolean }[]>([]);
 
+  // Identita user dari JWT (Authorization), bukan query param (anti-spoofing).
   async function refresh() {
     try {
-      const r = await fetch(`${API_URL}/api/vault/list?email=${encodeURIComponent(email)}`);
+      const r = await apiFetch("/api/vault/list", { method: "GET" });
       if (r.ok) {
         const d = await r.json();
         setSaved(d.items ?? []);
@@ -45,10 +45,9 @@ export default function VaultModal({ open, email, onClose }: VaultModalProps) {
     if (!key.trim() || !provider) return;
     setStatus("saving");
     try {
-      const r = await fetch(`${API_URL}/api/vault/save`, {
+      const r = await apiFetch("/api/vault/save", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, provider, api_key: key.trim() }),
+        body: JSON.stringify({ provider, api_key: key.trim() }),
       });
       if (r.ok) {
         setStatus("ok");

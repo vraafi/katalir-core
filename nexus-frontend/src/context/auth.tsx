@@ -14,6 +14,7 @@ interface AuthContextValue {
   loading: boolean;
   signInWithGoogle: () => Promise<void>;
   signOut: () => Promise<void>;
+  getToken: () => Promise<string | null>;
 }
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
@@ -59,9 +60,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setEmail(null);
   }
 
+  async function getToken(): Promise<string | null> {
+    try {
+      const { data } = await supabase.auth.getSession();
+      return data.session?.access_token ?? null;
+    } catch {
+      return null;
+    }
+  }
+
   return (
     <AuthContext.Provider
-      value={{ email, loading, signInWithGoogle, signOut }}
+      value={{ email, loading, signInWithGoogle, signOut, getToken }}
     >
       {children}
     </AuthContext.Provider>
