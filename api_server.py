@@ -201,14 +201,22 @@ def chat(req: ChatRequest, authorization: str | None = Header(None)):
         title = _derive_title(req.prompt)
         try:
             session_id = db.create_session(user_id, title)["id"]
+        except HTTPException:
+            raise  # status terpetakan dari database (503 RLS / 409 FK) — jangan dibungkus ulang jadi 500
         except Exception as exc:  # noqa: BLE001
-            raise HTTPException(500, f"Gagal membuat session: {exc}")
+            import traceback
+            traceback.print_exc()  # full stack ke Railway log
+            raise HTTPException(500, f"Gagal membuat session: {type(exc).__name__}: {exc}")
 
     # Simpan prompt user ke riwayat
     try:
         db.add_message(user_email, session_id, "user", req.prompt)
+    except HTTPException:
+        raise
     except Exception as exc:  # noqa: BLE001
-        raise HTTPException(500, f"Gagal menyimpan pesan: {exc}")
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(500, f"Gagal menyimpan pesan: {type(exc).__name__}: {exc}")
 
     try:
         reply = _agentic_run_direct(req.prompt, user_email)
@@ -223,13 +231,19 @@ def chat(req: ChatRequest, authorization: str | None = Header(None)):
     except HTTPException:
         raise
     except Exception as exc:  # noqa: BLE001
-        raise HTTPException(500, f"Terjadi kesalahan internal: {exc}")
+        import traceback
+        traceback.print_exc()  # full stack ke Railway log (Fase 2b)
+        raise HTTPException(500, f"Terjadi kesalahan internal: {type(exc).__name__}: {exc}")
 
     # Simpan balasan AI
     try:
         db.add_message(user_email, session_id, "assistant", reply)
+    except HTTPException:
+        raise
     except Exception as exc:  # noqa: BLE001
-        raise HTTPException(500, f"Gagal menyimpan balasan: {exc}")
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(500, f"Gagal menyimpan balasan: {type(exc).__name__}: {exc}")
 
     return {"status": "success", "reply": reply, "session_id": session_id}
 

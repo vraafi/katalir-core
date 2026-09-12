@@ -70,14 +70,65 @@ _write_client = None
 
 
 def _get_write_client():
-    """Client para ESCRITURAS: usa SUPABASE_SERVICE_KEY (bypasa RLS) si disponible,
-    de lo contrario degrada al client anon principal."""
+    """Client para ESCRITURAS: usa SUPABASE_SERVICE_KEY (bypasa RLS).
+
+    Fase 2a (fail-fast): TIDAK ada lagi degradasi diam-diam ke anon key.
+    Kalau SERVICE_KEY belum di-set -> raise RuntimeError dengan pesan jelas,
+    supaya log Railway langsung menunjukkan root cause (bukan RLS 500 misterius).
+    """
     global _write_client
-    key = SUPABASE_SERVICE_KEY or SUPABASE_KEY
+    key = SUPABASE_SERVICE_KEY
+    if not key:
+        raise RuntimeError(
+            "SUPABASE_SERVICE_KEY belum di-set — operasi tulis akan kena RLS. "
+            "Set variabel ini di Railway Variables (service_role key dari Supabase)."
+        )
     if _write_client is None:
         from supabase import create_client
         _write_client = create_client(SUPABASE_URL, key)
     return _write_client
+
+
+def _map_api_error(exc, context):
+    """Convert postgrest APIError -> HTTPException dengan status yang sesuai.
+
+    Fase 2b: RLS denial -> 503 (backend misconfigured), FK violation -> 409,
+    lainnya -> 503. Selalu print full error ke stdout supaya masuk Railway log.
+    """
+    from fastapi import HTTPException
+    msg = str(exc)
+    code = getattr(exc, "code", "") or ""
+    print(f"[{context}] Supabase APIError code={code} msg={msg[:500]}")
+    low = (msg + " " + str(code)).lower()
+    if "row-level security" in low or "rls" in low.split() or "42501" in low:
+        raise HTTPException(503, f"Backend misconfigured (RLS memblokir {context}).")
+    if "foreign key" in low or "23503" in low:
+        raise HTTPException(409, f"FK constraint gagal saat {context}.")
+    if "duplicate" in low or "unique" in low or "23505" in low:
+        raise HTTPException(409, f"Duplikat saat {context}.")
+    raise HTTPException(503, f"Supabase error saat {context}: {type(exc).__name__}.")
+
+
+def _wrap_write(fn, context):
+    """Bungkus pemanggilan .execute(): APIError -> HTTPException terpetakan,
+    exception lain -> propagate (akan di-log full stack di endpoint)."""
+    try:
+        return fn()
+    except Exception as exc:  # noqa: BLE001
+        # HTTPException yang sudah dipetakan: teruskan apa adanya.
+        from fastapi import HTTPException
+        if isinstance(exc, (HTTPException, RuntimeError)):
+            raise
+        try:
+            from postgrest.exceptions import APIError
+            if isinstance(exc, APIError):
+                _map_api_error(exc, context)
+        except HTTPException:
+            raise
+        except Exception:  # noqa: BLE001
+            pass
+        print(f"[{context}] {type(exc).__name__}: {str(exc)[:500]}")
+        raise
 
 
 def _now():
@@ -91,19 +142,30 @@ def get_or_create_user(email, name=""):
             # Usa client de escritura si disponible (service_role bypasa RLS),
             # para poder insertar Y re-leer la fila con su id uuid real.
             c = _get_write_client()
-            res = c.table("users").select("*").eq("email", email).execute()
+            res = _wrap_write(
+                lambda: c.table("users").select("*").eq("email", email).execute(),
+                "users.select",
+            )
             if res.data:
                 return res.data[0]
             # No existe -> INSERT (service_role bypasa RLS)
-            c.table("users").upsert(
-                {"email": email, "name": name, "tier": "free", "usage_count": 0}
-            ).execute()
+            _wrap_write(
+                lambda: c.table("users").upsert(
+                    {"email": email, "name": name, "tier": "free", "usage_count": 0}
+                ).execute(),
+                "users.upsert",
+            )
             # Re-SELECT para obtener la fila con id uuid generado por DB
-            res = c.table("users").select("*").eq("email", email).execute()
+            res = _wrap_write(
+                lambda: c.table("users").select("*").eq("email", email).execute(),
+                "users.reselect",
+            )
             if res.data:
                 return res.data[0]
             if PERSIST_REQUIRED:
                 raise RuntimeError(f"User {email} tidak bisa dipersist (select vacio)")
+        except (HTTPException, RuntimeError):
+            raise
         except Exception:
             _configured = False
             if PERSIST_REQUIRED:
@@ -160,13 +222,18 @@ def create_session(owner, title="Chat Baru"):
     if is_configured() and uid:
         try:
             wc = _get_write_client()
-            res = wc.table("chat_sessions").insert(
-                {"user_id": uid, "title": title}).execute()
+            res = _wrap_write(
+                lambda: wc.table("chat_sessions").insert(
+                    {"user_id": uid, "title": title}).execute(),
+                "chat_sessions.insert",
+            )
             created = (res.data or [{}])[0]
             if created.get("id"):
                 return created
             if PERSIST_REQUIRED:
                 raise RuntimeError("Session tidak bisa dipersist (sin id)")
+        except (HTTPException, RuntimeError):
+            raise
         except Exception:
             _configured = False
             if PERSIST_REQUIRED:
