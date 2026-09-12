@@ -51,14 +51,41 @@ export function useSessionsQuery(email: string | null) {
   });
 }
 
-/** useQuery messages voor een sessie — staleTime 1 minuut. */
+/** useQuery messages voor een sessie.
+ * FIX Tugas1 (TanStack #10712): staleTime=Infinity + refetchOnWindowFocus=false.
+ * Reply/optimistic ditulis via setQueryData (single source), jadi SEBUAH refetch
+ * (focus/reconnect/stale) yang terdaat-belakangan tidak boleh menimpanya dengan
+ * data server yang belum ter-commit. Hanya fetch pertama per sesi yang berhak
+ * mengisi; sisanya dikontrol onMutate/onSuccess. */
 export function useMessagesQuery(sessionId: string | null) {
   return useQuery({
     queryKey: chatKeys.messages(sessionId ?? ""),
     queryFn: () => fetchMessages(sessionId ?? ""),
     enabled: !!sessionId,
-    staleTime: 60_000,
-    refetchOnWindowFocus: true,
+    staleTime: Infinity,
+    refetchOnWindowFocus: false,
+  });
+}
+
+/** useMutation DELETE /sessions/{id} — hapus riwayat + isinya (cascade). */
+export function useDeleteSessionMutation() {
+  const qc = useQueryClient();
+  return useMutation<void, Error, { sessionId: string; email: string }>({
+    mutationFn: async ({ sessionId }) => {
+      const res = await apiFetch(`/sessions/${encodeURIComponent(sessionId)}`, {
+        method: "DELETE",
+        timeoutMs: 30_000,
+      });
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        throw new Error((body as { detail?: string })?.detail || "Gagal menghapus percakapan.");
+      }
+    },
+    onSuccess: (_d, { sessionId, email }) => {
+      // Buang cache pesan sesi itu + refetch daftar riwayat.
+      qc.removeQueries({ queryKey: chatKeys.messages(sessionId) });
+      if (email) void qc.invalidateQueries({ queryKey: chatKeys.sessions(email) });
+    },
   });
 }
 

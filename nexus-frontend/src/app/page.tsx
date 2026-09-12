@@ -11,7 +11,7 @@ import { Input } from "@/components/ui/input";
 import { QueryProvider } from "@/features/builder/provider";
 import { apiFetch } from "@/lib/api";
 import { FadeIn } from "@/components/motion";
-import { useSessionsQuery, useMessagesQuery, useSendChatMutation } from "@/features/chat/hooks/useChat";
+import { useSessionsQuery, useMessagesQuery, useSendChatMutation, useDeleteSessionMutation } from "@/features/chat/hooks/useChat";
 import type { ChatMessage } from "@/features/chat/hooks/useChat";
 import { useQueryClient } from "@tanstack/react-query";
 import { useQuery } from "@tanstack/react-query";
@@ -76,6 +76,7 @@ function ChatApp() {
     isFetched: messagesFetched,
   } = useMessagesQuery(sessionId);
   const sendMutation = useSendChatMutation();
+  const deleteMutation = useDeleteSessionMutation();
   const qc = useQueryClient();
   const loadingMsg = sendMutation.isPending;
 
@@ -113,12 +114,29 @@ function ChatApp() {
     ? []
     : (qc.getQueryData<ChatMessage[]>(chatKeys.messages("__pending__")) ?? []);
   const overlay: ChatMessage[] = [...pendingCache, ...cached].filter((m) => !!m._localId);
-  const serverConfirmed = new Set(
-    messagesData.map((m) => `${m.role}|${m.content}`)
-  );
-  const unconfirmed = overlay.filter(
-    (m) => m.type === "credential_form" || !serverConfirmed.has(`${m.role}|${m.content}`)
-  );
+  const serverConfirmedCount = new Map<string, number>();
+  for (const m of messagesData) {
+    if (m.role === "user" || m.role === "assistant") {
+      const k = `${m.role}|${m.content}`;
+      serverConfirmedCount.set(k, (serverConfirmedCount.get(k) ?? 0) + 1);
+    }
+  }
+  // FIX Tugas1: dedup BERDASAR HITUNGAN occurrence, bukan Set.
+  // Pakai Set(role|content) -> dua pesan user yang IDENTIK ("halo","halo")
+  // dianggap sudah terkonfirmasi dan yang kedua DIBUANG (pesan hilang).
+  // Dengan counter, tiap optimistic yang tampil di server mengkonsumsi 1
+  // slot; optimistic LEBIH dari jumlah di server tetap dirender (unconfirmed).
+  const unconfirmed = overlay.filter((m) => {
+    if (m.type === "credential_form") return true;
+    if (m.role !== "user" && m.role !== "assistant") return true;
+    const k = `${m.role}|${m.content}`;
+    const n = serverConfirmedCount.get(k) ?? 0;
+    if (n > 0) {
+      serverConfirmedCount.set(k, n - 1);
+      return false; // sudah dikonfirmasi di server → jangan render duplikat
+    }
+    return true; // masih lebih banyak di optimistic → pertahankan
+  });
 
   const messages: Msg[] = [
     ...messagesData
@@ -161,7 +179,7 @@ function ChatApp() {
   useEffect(() => {
     if (!atBottom) return;
     endRef.current?.scrollIntoView({ behavior: "auto", block: "end" });
-  }, [messages, loadingMsg, atBottom]);
+  }, [messages.length, loadingMsg, atBottom]);
 
   // SISA echo-pattern lama DIHAPUS (fix #1 revisi): tidak ada lagi
   // sessionEchoRef / prevSessionIdRef / setLocalMsgs. Overlay hidup di
@@ -219,6 +237,19 @@ function ChatApp() {
     await sendPrompt(errMsg.original);
   }
 
+  /** Tugas3: hapus satu sesi. Bila itu sesi aktif → reset ke chat baru. */
+  async function handleDeleteSession(id: string) {
+    try {
+      await deleteMutation.mutateAsync({ sessionId: id, email: activeEmail ?? "" });
+      if (currentSessionId === id) {
+        qc.setQueryData<ChatMessage[]>(chatKeys.messages("__pending__"), []);
+        void setSessionId(null);
+      }
+    } catch {
+      /* toast/silent — daftar riwayat tetap utuh; user bisa coba lagi. */
+    }
+  }
+
   async function submitCredential(provider: string, original: string) {
     if (!credValue.trim() || !activeEmail) return;
     try {
@@ -248,6 +279,7 @@ return (
       currentSessionId={currentSessionId}
       onSelectSession={openSession}
       onNewChat={newChat}
+      onDeleteSession={handleDeleteSession}
     >
       <div className="flex min-h-0 w-full flex-1 flex-col">
         {/* Chat area — scroll independen (flex-1), input di flow terpisah */}
@@ -288,10 +320,10 @@ return (
             {messages.map((msg) => (
               <motion.div
                 key={msg.key}
-                initial={{ opacity: 0, y: 16 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.5 }}
-                style={{ willChange: "opacity, transform" }}
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ duration: 0.18, ease: "easeOut" }}
+                style={{ willChange: "opacity" }}
                 className={`flex items-end gap-2 ${msg.role === "user" ? "justify-end" : ""}`}
               >
                 {msg.role !== "user" && (
