@@ -8,6 +8,7 @@ import {
   ReactNode,
 } from "react";
 import { supabase } from "@/lib/supabase";
+import { invalidateChatQueries } from "@/lib/query-client";
 
 interface AuthContextValue {
   email: string | null;
@@ -40,9 +41,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       });
 
     // Dengarkan perubahan auth (login/logout dari tab lain / provider flow)
-    const { data: sub } = supabase.auth.onAuthStateChange((_event, session) => {
+    const { data: sub } = supabase.auth.onAuthStateChange((event, session) => {
       setEmail(session?.user?.email ?? null);
       setLoading(false);
+      // Invalideer chat-queries bij auth-wissel zodat sessions/messages
+      // automatisch per user herladen (fix "history hilang" bug).
+      if (event === "SIGNED_IN" || event === "SIGNED_OUT") {
+        void invalidateChatQueries();
+      }
     });
 
     return () => sub.subscription.unsubscribe();

@@ -1,13 +1,16 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { Suspense, useEffect, useRef, useState } from "react";
 import { Send, Sparkles, Bot, User, Loader2, KeyRound } from "lucide-react";
+import { useQueryState, parseAsString } from "nuqs";
 import Shell from "@/components/shell";
 import { AuthProvider, useAuth } from "@/context/auth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-
+import { QueryProvider } from "@/features/builder/provider";
 import { apiFetch } from "@/lib/api";
+import { useSessionsQuery, useMessagesQuery, useSendChatMutation } from "@/features/chat/hooks/useChat";
+
 const SUGGESTIONS = ["Kirim pesan WA", "Rangkum dokumen", "Analisis data"];
 
 const PROVIDER_LABELS: Record<string, string> = {
@@ -34,116 +37,82 @@ interface SessionItem {
 
 function ChatApp() {
   const { email, loading } = useAuth();
-  const [messages, setMessages] = useState<Msg[]>([]);
+  // URL state: ?s=<sessionId> (nuqs, shallow) — source of truth.
+  const [sessionId, setSessionId] = useQueryState(
+    "s",
+    parseAsString.withOptions({ shallow: true, clearOnDefault: true })
+  );
+  const activeEmail = email || null;
   const [input, setInput] = useState("");
   const [loadingMsg, setLoadingMsg] = useState(false);
   const [credValue, setCredValue] = useState("");
-  const [sessions, setSessions] = useState<SessionItem[]>([]);
-  const [currentSessionId, setCurrentSessionId] = useState<string | null>(null);
+  // Overlay: berichten alleen lokaal (o.a. credential_form + user-pijl).
+  const [localMsgs, setLocalMsgs] = useState<Msg[]>([]);
   const endRef = useRef<HTMLDivElement>(null);
 
-  const activeEmail = email || null;
-  // emailRef: selalu memegang email terbaru agar callback tak baca nilai lama (stale)
   const emailRef = useRef(activeEmail);
   useEffect(() => {
     emailRef.current = activeEmail;
   }, [activeEmail]);
 
-  // Muat riwayat session saat email berubah
-  const reloadSessions = useCallback(async () => {
-    if (!activeEmail) {
-      setSessions([]);
-      setCurrentSessionId(null);
-      setMessages([]);
-      return;
-    }
-    try {
-      const res = await apiFetch("/sessions");
-      const data = await res.json();
-      setSessions(data.sessions ?? []);
-    } catch {
-      setSessions([]);
-    }
-  }, [activeEmail]);
+  // Server-state via TanStack Query v5 (staleTime 60s, refetchOnWindowFocus=true).
+  const { data: sessions = [] } = useSessionsQuery(activeEmail);
+  const { data: messagesData = [] } = useMessagesQuery(sessionId);
+  const sendMutation = useSendChatMutation();
 
-  useEffect(() => {
-    reloadSessions();
-  }, [reloadSessions]);
+  // Combineer server-berichten (uit query) + lokale overlay.
+  const messages: Msg[] = [
+    ...messagesData.map((m): Msg =>
+      m.role === "user"
+        ? { role: "user", content: m.content }
+        : { role: "assistant", content: m.content }
+    ),
+    ...localMsgs,
+  ];
 
   useEffect(() => {
     endRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, loadingMsg]);
 
-  // Buka satu sesi dari riwayat: muat pesannya
-  async function openSession(sessionId: string) {
-    setCurrentSessionId(sessionId);
-    if (!activeEmail) return;
-    try {
-      const res = await apiFetch(`/messages/${sessionId}`);
-      const data = await res.json();
-      const msgs: Msg[] = (data.messages ?? []).map((m: any) => {
-        if (m.role === "user") return { role: "user", content: m.content };
-        return { role: "assistant", content: m.content };
-      });
-      setMessages(msgs);
-    } catch {
-      setMessages([]);
-    }
+  // Bij wisselen van sessie: reset lokale overlay.
+  useEffect(() => {
+    setLocalMsgs([]);
+  }, [sessionId]);
+
+  const currentSessionId = sessionId || null;
+
+  function openSession(id: string) {
+    void setSessionId(id);
   }
 
-  // Chat Baru: reset state layar jadi kosong
   function newChat() {
-    setCurrentSessionId(null);
-    setMessages([]);
+    void setSessionId(null);
+    setLocalMsgs([]);
     setInput("");
   }
 
-  // useCallback + baca email via ref agar status login SELALU ter-update (anti stale closure)
-  const sendPrompt = useCallback(
-    async (text: string, withCredential?: string) => {
-      const em = emailRef.current;
-      if (!em) {
-        alert("Silakan login dulu untuk mengirim pesan.");
-        return;
-      }
-      setLoadingMsg(true);
-      setInput("");
-      setMessages((m) => [...m, { role: "user", content: text }]);
+  async function sendPrompt(text: string) {
+    const em = emailRef.current;
+    if (!em) {
+      alert("Silakan login dulu untuk mengirim pesan.");
+      return;
+    }
+    setLoadingMsg(true);
+    setInput("");
+    setLocalMsgs((m) => [...m, { role: "user", content: text }]);
     try {
-      const body: any = {
-        prompt: text,
-        session_id: currentSessionId ?? undefined,
-      };
-      if (withCredential) body.credential = withCredential;
-      const res = await apiFetch("/chat", {
-        method: "POST",
-        body: JSON.stringify(body),
-      });
-      const data = await res.json();
-      if (data.status === "needs_credential") {
-        setMessages((m) => [
-          ...m,
-          { role: "system", type: "credential_form", provider: data.provider, original: text },
-        ]);
-      } else if (data.status === "success") {
-        if (data.session_id && !currentSessionId) setCurrentSessionId(data.session_id);
-        setMessages((m) => [...m, { role: "assistant", content: data.reply }]);
-        // refresh riwayat sidebar agar nama/sesi baru muncul
-        reloadSessions();
-      } else {
-        setMessages((m) => [...m, { role: "assistant", content: "Ada masalah, coba lagi." }]);
-      }
+      const data = await sendMutation.mutateAsync({ prompt: text, sessionId });
+      if (data.session_id && !sessionId) void setSessionId(data.session_id);
+      // Reply komt via query-invalidatie (messagesData refresh).
     } catch {
-      setMessages((m) => [
+      setLocalMsgs((m) => [
         ...m,
         { role: "assistant", content: "Gagal terhubung ke server AI." },
       ]);
     } finally {
-        setLoadingMsg(false);
-      }
-    },
-    [currentSessionId, reloadSessions]
-  );
+      setLoadingMsg(false);
+    }
+  }
 
   async function submitCredential(provider: string, original: string) {
     if (!credValue.trim() || !activeEmail) return;
@@ -153,16 +122,17 @@ function ChatApp() {
         body: JSON.stringify({ provider, token: credValue.trim() }),
       });
       setCredValue("");
-      setMessages((m) =>
+      setLocalMsgs((m) =>
         m.filter(
           (x) => !(x.role === "system" && x.type === "credential_form" && x.provider === provider)
         )
       );
-      await sendPrompt(original, provider);
+      await sendPrompt(original);
     } catch {
       alert("Gagal menyimpan kredensial.");
     }
   }
+
 return (
     <Shell
       sessions={sessions}
@@ -308,7 +278,12 @@ return (
 export default function Home() {
   return (
     <AuthProvider>
-      <ChatApp />
+      <QueryProvider>
+        {/* Suspense DI IN page: vereist door Next 15 static-export voor useSearchParams (nuqs). */}
+        <Suspense fallback={null}>
+          <ChatApp />
+        </Suspense>
+      </QueryProvider>
     </AuthProvider>
   );
 }
