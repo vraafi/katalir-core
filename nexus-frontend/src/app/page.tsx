@@ -1,7 +1,7 @@
 "use client";
 
 import { Suspense, useEffect, useRef, useState } from "react";
-import { Send, Sparkles, Bot, User, Loader2, KeyRound } from "lucide-react";
+import { Send, Sparkles, Bot, User, Loader2, KeyRound, RotateCcw, AlertTriangle } from "lucide-react";
 import { motion } from "motion/react";
 import { useQueryState, parseAsString } from "nuqs";
 import Shell from "@/components/shell";
@@ -34,6 +34,13 @@ type Msg =
       role: "system";
       type: "credential_form";
       provider: string;
+      original: string;
+    }
+  | {
+      key: string;
+      role: "system";
+      type: "error";
+      content: string;
       original: string;
     };
 
@@ -71,6 +78,17 @@ function ChatApp() {
   const sendMutation = useSendChatMutation();
   const qc = useQueryClient();
   const loadingMsg = sendMutation.isPending;
+
+  // Fase 1: bila >5s pending, ubah indikator jadi "Memuat... (server sedang memproses)".
+  const [slowHint, setSlowHint] = useState(false);
+  useEffect(() => {
+    if (!loadingMsg) {
+      setSlowHint(false);
+      return;
+    }
+    const t = setTimeout(() => setSlowHint(true), 5000);
+    return () => clearTimeout(t);
+  }, [loadingMsg]);
 
   // FIX #2a (key stabil — issue #685): pakai backend message.id bila ada.
   // useQuery hanya SUBSCRIBE (tanpa fetch duplikat — queryFn disabled,
@@ -116,6 +134,9 @@ function ChatApp() {
     ...unconfirmed.map((m): Msg | null => {
       if (m.type === "credential_form" && m.provider && m.original !== undefined) {
         return { key: `cred-${m.id ?? m._localId ?? m.provider}`, role: "system", type: "credential_form", provider: m.provider, original: m.original };
+      }
+      if (m.type === "error" && m.original !== undefined) {
+        return { key: `err-${m.id ?? m._localId ?? m.original}`, role: "system", type: "error", content: m.content, original: m.original };
       }
       if (m.role === "user") return { key: `opt-${m._localId ?? m.id ?? m.content}`, role: "user", content: m.content };
       if (m.role === "assistant") return { key: `opt-${m._localId ?? m.id ?? "pending"}`, role: "assistant", content: m.content };
@@ -177,13 +198,25 @@ function ChatApp() {
         void setSessionId(data.session_id);
       }
       // Reply + kartu kredensial datang via cache update (onSuccess) dan
-      // query-invalidatie (messagesData refresh). onError sudah drop
-      // pending (openclaw #49261) — tidak ada ghost message.
+      // query-invalidatie (messagesData refresh).
     } catch {
-      // Pesan error cukup via toast/alert ringan; pending sudah di-drop
-      // oleh onError — JANGAN append ghost ke cache.
-      alert("Gagal terhubung ke server AI.");
+      // Error spesifik sudah dirender sebagai kartu (type=error) oleh onError
+      // bersama tombol retry — TIDAK perlu alert generic di sini.
     }
+  }
+
+  /** Fase 1: tombol "Coba Lagi" pada kartu error. Hapus bubble error + user
+   *  pasangannya dari cache, lalu kirim ulang prompt asli secara fresh. */
+  async function retryMessage(errMsg: { content: string; original: string }) {
+    const key = chatKeys.messages(sessionId ?? "__pending__");
+    qc.setQueryData<ChatMessage[]>(key, (old) =>
+      (old ?? []).filter(
+        (m) =>
+          !(m.type === "error" && m.original === errMsg.original && m.content === errMsg.content) &&
+          !(m.role === "user" && m.content === errMsg.original)
+      )
+    );
+    await sendPrompt(errMsg.original);
   }
 
   async function submitCredential(provider: string, original: string) {
@@ -300,8 +333,22 @@ return (
                         Simpan & Lanjutkan
                       </Button>
                     </div>
-                  ) : msg.role === "system" ? (
-                    msg.original
+                  ) : msg.role === "system" && msg.type === "error" ? (
+                    <div className="w-72">
+                      <div className="flex items-center gap-2 text-red-500">
+                        <AlertTriangle size={15} strokeWidth={1.75} />
+                        <span className="font-semibold text-fg">Gagal mengirim</span>
+                      </div>
+                      <p className="mt-1.5 text-footnote text-fg-muted">{msg.content}</p>
+                      <Button
+                        variant="secondary"
+                        onClick={() => retryMessage({ content: msg.content, original: msg.original })}
+                        className="mt-2.5 w-full justify-center gap-1.5"
+                      >
+                        <RotateCcw size={14} strokeWidth={1.75} />
+                        Coba Lagi
+                      </Button>
+                    </div>
                   ) : (
                     msg.content
                   )}
@@ -315,7 +362,8 @@ return (
             ))}
               {loadingMsg && (
                 <div className="flex items-center gap-2 text-subhead text-fg-muted animate-fade-in">
-                  <Loader2 size={16} strokeWidth={1.5} className="animate-spin" /> Agen sedang berpikir...
+                  <Loader2 size={16} strokeWidth={1.5} className="animate-spin" />
+                  {slowHint ? "Memuat... (server sedang memproses)" : "Agen sedang berpikir..."}
                 </div>
               )}
             </div>

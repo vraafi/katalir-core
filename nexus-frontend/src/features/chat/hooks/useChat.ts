@@ -2,7 +2,7 @@
 // Volgt Makerkit-pattern: staleTime 60s, query keys factory, query
 // functies gescheiden. refetchOnWindowFocus=true (chat moet fresh zijn).
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { apiFetch } from "@/lib/api";
+import { apiFetch, classifyChatError, classifyHttpError, sleep } from "@/lib/api";
 import { chatKeys } from "@/lib/query-keys";
 
 export interface SessionItem {
@@ -18,8 +18,8 @@ export interface ChatMessage {
   created_at?: string;
   /** Tag optimistic lokal (pattern openclaw #14859) — tidak dikirim ke server. */
   _localId?: string;
-  /** Kartu form kredensial kontekstual (system message khusus). */
-  type?: "credential_form";
+  /** Kartu form kredensial / kartu error kontekstual (system message khusus). */
+  type?: "credential_form" | "error";
   provider?: string;
   original?: string;
 }
@@ -85,26 +85,50 @@ export function useSendChatMutation() {
     }
   >({
     mutationFn: async ({ prompt, sessionId }) => {
-      const res = await apiFetch("/chat", {
-        method: "POST",
-        body: JSON.stringify({ prompt, session_id: sessionId ?? undefined }),
-      });
-      const data = await res.json();
-      if (data.status === "needs_credential") {
-        // Kembalikan sebagai hasil terkendali (bukan throw) supaya kartu
-        // form kredensial bisa dirender dari onSuccess via cache update.
-        return {
-          reply: "",
-          session_id: data.session_id,
-          needsCredential: true,
-          provider: data.provider,
-          message: data.message,
-        };
+      // Fase 1 resilience: timeout 90s (di apiFetch) + retry 2x dengan
+      // exponential backoff (2s,5s) UNTUK error transien (503/network/abort).
+      // Retry di-loop di sini (bukan 'retry' TanStack) supaya onMutate cuma
+      // sekali -> optimistic bubble JOHN saat retry, drop cuma di onError final.
+      const body = JSON.stringify({ prompt, session_id: sessionId ?? undefined });
+      const maxAttempts = 3; // 1 + 2 retry
+      const delays = [2000, 5000];
+      for (let attempt = 0; ; attempt++) {
+        let res: Response;
+        try {
+          res = await apiFetch("/chat", { method: "POST", body, timeoutMs: 90_000 });
+        } catch (e) {
+          const { message, retryable } = classifyChatError(e);
+          if (retryable && attempt < maxAttempts - 1) {
+            await sleep(delays[attempt] ?? 2000);
+            continue;
+          }
+          throw new Error(message);
+        }
+        let data: Record<string, unknown> = {};
+        try {
+          data = await res.json();
+        } catch {
+          /* body non-json */
+        }
+        if (data.status === "needs_credential") {
+          return {
+            reply: "",
+            session_id: data.session_id as string | undefined,
+            needsCredential: true,
+            provider: data.provider as string | undefined,
+            message: data.message as string | undefined,
+          };
+        }
+        if (res.ok && data.status === "success") {
+          return { reply: data.reply as string, session_id: data.session_id as string | undefined };
+        }
+        const { message, retryable } = classifyHttpError(res.status);
+        if (retryable && attempt < maxAttempts - 1) {
+          await sleep(delays[attempt] ?? 2000);
+          continue;
+        }
+        throw new Error(message);
       }
-      if (data.status !== "success") {
-        throw new Error(data.reply ?? data.message ?? "Gagal mengirim");
-      }
-      return { reply: data.reply, session_id: data.session_id };
     },
     onMutate: async ({ prompt, sessionId }) => {
       const key = chatKeys.messages(sessionId ?? "__pending__");
@@ -135,15 +159,26 @@ export function useSendChatMutation() {
       };
     },
     onError: (err, _vars, context) => {
-      // openclaw #49261: drop pending optimistic — jangan biarkan ghost message.
-      if (context) {
-        qc.setQueryData<ChatMessage[]>(context.targetKey, (old) =>
-          (old ?? []).filter(
-            (m) => m._localId !== context.optimisticUserId && m._localId !== context.optimisticAsstId
-          )
-        );
-      }
-      void err;
+      // Fase 1: HOLD optimistic — jangan hapus bubble user sampai reply/error
+      // jelas (instruksi user). KITA ganti placeholder assistant "…" dengan
+      // kartu error (role system type error) + tombol retry. Retry di dalam
+      // mutationFn sudah habis sebelum onError ini dipanggil.
+      if (!context) return;
+      const msg = (err as Error)?.message || "Terjadi kesalahan. Coba lagi.";
+      qc.setQueryData<ChatMessage[]>(context.targetKey, (old) =>
+        (old ?? []).map((m) =>
+          m._localId === context.optimisticAsstId
+            ? {
+                id: `local-err-${Date.now()}`,
+                _localId: context.optimisticAsstId,
+                role: "system",
+                type: "error",
+                content: msg,
+                original: context.prompt,
+              }
+            : m
+        )
+      );
     },
     onSuccess: (data, vars, context) => {
       // Sesi baru (session_id dari echo): pindahkan optimistic ke key final,
