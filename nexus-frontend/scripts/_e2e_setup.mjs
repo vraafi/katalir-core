@@ -19,15 +19,19 @@ const ref = URL0.replace("https://", "").replace(".supabase.co", "");
 console.log("REF=" + ref);
 
 const admin = createClient(URL0, SR, { auth: { persistSession: false } });
-const email = `e2e.${Date.now()}@nexus-local.test`;
-const password = "E2e!Xy9#Pass-" + Date.now();
+// Jika E2E_USER_EMAIL/PASSWORD ada di .env, gunakan itu (user test khusus,
+// dibuat ulang jika belum ada). Jika tidak, buat user sementara acak tiap run.
+const E2E_EMAIL = get("E2E_USER_EMAIL");
+const E2E_PASS = get("E2E_USER_PASSWORD");
+const email = E2E_EMAIL || `e2e.${Date.now()}@nexus-local.test`;
+const password = E2E_PASS || ("E2e!Xy9#Pass-" + Date.now());
 
 const { data: created, error: cre } = await admin.auth.admin.createUser({
   email,
   password,
   email_confirm: true,
 });
-if (cre) {
+if (cre && !(cre.message || "").toLowerCase().includes("already")) {
   console.log("CREATE_ERR=" + cre.message);
   process.exit(3);
 }
