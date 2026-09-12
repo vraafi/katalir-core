@@ -191,7 +191,7 @@ function ChatApp() {
     setInput("");
     // Optimistic bubble ditulis oleh onMutate (setQueryData) — TANPA useState.
     try {
-      const data = await sendMutation.mutateAsync({ prompt: text, sessionId });
+      const data = await sendMutation.mutateAsync({ prompt: text, sessionId, email: em });
       if (data.session_id && !sessionId) {
         // Echo sesi baru: optimistic sudah dipindahkan ke key final oleh
         // onSuccess; cukup pindah URL. Overlay TIDAK di-clear di sini.

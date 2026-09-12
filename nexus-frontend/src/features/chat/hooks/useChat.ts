@@ -74,7 +74,7 @@ export function useSendChatMutation() {
   return useMutation<
     { reply: string; session_id?: string; needsCredential?: boolean; provider?: string; message?: string },
     Error & { provider?: string; promptEcho?: string },
-    { prompt: string; sessionId?: string | null },
+    { prompt: string; sessionId?: string | null; email?: string | null },
     {
       optimisticUserId: string;
       optimisticAsstId: string;
@@ -209,11 +209,20 @@ export function useSendChatMutation() {
               : m
           )
         );
+      } else if (context && data.reply) {
+        // FIX Bug2 (TanStack #10712): TULIS reply ke cache via setQueryData,
+        // JANGAN invalidateQueries(messages) -> refetch lama bisa datang
+        // belakangan & overwrite optimistic -> chat 'hilang' (coder #23995).
+        qc.setQueryData<ChatMessage[]>(finalKey, (old) =>
+          (old ?? []).map((m) =>
+            m._localId === context.optimisticAsstId ? { ...m, content: data.reply } : m
+          )
+        );
       }
-      // Invalideer sessions (judul baru) dan messages sesi final.
-      void qc.invalidateQueries({ queryKey: chatKeys.all });
-      if (data.session_id) {
-        void qc.invalidateQueries({ queryKey: chatKeys.messages(data.session_id) });
+      // Hanya invalidate SESSIONS (sidebar munculkan entri/judul baru).
+      // Messages TIDAK di-invalidate (lihat komentar Bug2 di atas).
+      if (vars.email) {
+        void qc.invalidateQueries({ queryKey: chatKeys.sessions(vars.email) });
       }
     },
   });
