@@ -3,6 +3,7 @@ import { motion } from "motion/react";
 import { Copy, Check } from "lucide-react";
 import dynamic from "next/dynamic";
 import { META, type FlowNode } from "./types";
+import { springPanel } from "@/components/motion";
 
 const ExpressionEditor = dynamic(
   () => import("@/components/ExpressionEditor"),
@@ -53,7 +54,7 @@ export function ConfigPanel({
       className="flex flex-col gap-4"
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ type: "spring", stiffness: 400, damping: 30 }}
+      transition={springPanel}
       style={{ willChange: "opacity, transform" }}
     >
       <div className="flex items-center gap-2">

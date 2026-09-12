@@ -2,6 +2,7 @@
 
 import { Suspense, useEffect, useRef, useState } from "react";
 import { Send, Sparkles, Bot, User, Loader2, KeyRound } from "lucide-react";
+import { motion } from "motion/react";
 import { useQueryState, parseAsString } from "nuqs";
 import Shell from "@/components/shell";
 import { AuthProvider, useAuth } from "@/context/auth";
@@ -9,7 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { QueryProvider } from "@/features/builder/provider";
 import { apiFetch } from "@/lib/api";
-import { FadeIn } from "@/components/motion";
+import { FadeIn, springPanel } from "@/components/motion";
 import { useSessionsQuery, useMessagesQuery, useSendChatMutation } from "@/features/chat/hooks/useChat";
 
 const SUGGESTIONS = ["Kirim pesan WA", "Rangkum dokumen", "Analisis data"];
@@ -153,7 +154,7 @@ return (
             </p>
           </FadeIn>
         ) : messages.length === 0 && !loadingMsg ? (
-          <div className="flex h-full flex-col items-center justify-center text-center animate-fade-up">
+          <FadeIn className="flex h-full flex-col items-center justify-center text-center">
             <div className="rounded-sm bg-surface/70 p-5 shadow-sm">
               <Sparkles size={52} strokeWidth={1.25} className="text-accent drop-shadow-md" />
             </div>
@@ -171,15 +172,17 @@ return (
                 </button>
               ))}
             </div>
-          </div>
+          </FadeIn>
         ) : (
           <>
             {messages.map((msg, i) => (
-              <div
+              <motion.div
                 key={i}
-                className={`flex items-end gap-2 animate-fade-up ${
-                  msg.role === "user" ? "justify-end" : ""
-                }`}
+                initial={{ opacity: 0, y: 16 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={springPanel}
+                style={{ willChange: "opacity, transform" }}
+                className={`flex items-end gap-2 ${msg.role === "user" ? "justify-end" : ""}`}
               >
                 {msg.role !== "user" && (
                   <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-bg-subtle">
@@ -231,7 +234,7 @@ return (
                     <User size={14} strokeWidth={1.5} className="text-accent-fg" />
                   </div>
                 )}
-              </div>
+              </motion.div>
             ))}
 
             {loadingMsg && (

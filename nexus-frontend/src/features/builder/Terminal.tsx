@@ -1,3 +1,5 @@
+import { motion, useReducedMotion } from "motion/react";
+
 export function renderPayload(p: any): string {
   if (p == null) return "";
   if (typeof p === "string") return p;
@@ -21,8 +23,15 @@ export function Terminal({
   onClose: () => void;
 }) {
   if (!open) return null;
+  const reduce = useReducedMotion();
   return (
-    <div className="fixed inset-x-0 bottom-0 z-50 border-t border-gray-700 bg-[rgb(var(--bg-subtle))] font-mono">
+    <motion.div
+      className="fixed inset-x-0 bottom-0 z-50 border-t border-gray-700 bg-[rgb(var(--bg-subtle))] font-mono"
+      initial={{ opacity: 0, y: reduce ? 0 : 32 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ type: "spring", stiffness: 300, damping: 25 }}
+      style={{ willChange: "opacity, transform" }}
+    >
       <div className="flex items-center justify-between border-b border-gray-800 px-4 py-2">
         <span className="text-[12px] font-bold tracking-wide text-success">
           Execution Console {status ? `— ${status}` : ""}
@@ -46,6 +55,6 @@ export function Terminal({
           </div>
         ))}
       </div>
-    </div>
+    </motion.div>
   );
 }
