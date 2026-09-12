@@ -15,6 +15,7 @@ import os
 from datetime import datetime
 
 from dotenv import load_dotenv
+from fastapi import HTTPException
 
 load_dotenv()
 
@@ -95,7 +96,6 @@ def _map_api_error(exc, context):
     Fase 2b: RLS denial -> 503 (backend misconfigured), FK violation -> 409,
     lainnya -> 503. Selalu print full error ke stdout supaya masuk Railway log.
     """
-    from fastapi import HTTPException
     msg = str(exc)
     code = getattr(exc, "code", "") or ""
     print(f"[{context}] Supabase APIError code={code} msg={msg[:500]}")
@@ -116,7 +116,6 @@ def _wrap_write(fn, context):
         return fn()
     except Exception as exc:  # noqa: BLE001
         # HTTPException yang sudah dipetakan: teruskan apa adanya.
-        from fastapi import HTTPException
         if isinstance(exc, (HTTPException, RuntimeError)):
             raise
         try:
