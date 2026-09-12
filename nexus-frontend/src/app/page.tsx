@@ -142,39 +142,42 @@ return (
       onSelectSession={openSession}
       onNewChat={newChat}
     >
-      {/* Chat area */}
-      <div className="flex-1 space-y-4 overflow-y-auto px-5 pb-28 pt-4">
-        {!loading && !activeEmail ? (
-          <FadeIn className="flex h-full flex-col items-center justify-center text-center">
-            <Bot size={48} strokeWidth={1.25} className="text-fg-subtle" />
-            <h2 className="mt-4 text-title3 font-semibold text-fg">Silakan masuk dulu</h2>
-            <p className="mt-1 max-w-sm text-callout text-fg-muted">
-              Gunakan tombol "Login dengan Google" di pojok kanan atas
-              untuk memulai percakapan.
-            </p>
-          </FadeIn>
-        ) : messages.length === 0 && !loadingMsg ? (
-          <FadeIn className="flex h-full flex-col items-center justify-center text-center">
-            <div className="rounded-sm bg-surface/70 p-5 shadow-sm">
-              <Sparkles size={52} strokeWidth={1.25} className="text-accent drop-shadow-md" />
-            </div>
-            <h2 className="mt-5 text-title2 font-bold tracking-tight">
-              Halo, ada yang bisa saya bantu hari ini?
-            </h2>
-            <div className="mt-6 grid w-full max-w-md grid-cols-3 gap-3">
-              {SUGGESTIONS.map((s) => (
-                <button
-                  key={s}
-                  onClick={() => sendPrompt(s)}
-                  className="rounded-sm border border-border bg-surface px-3 py-2.5 text-subhead font-medium text-fg shadow-xs transition-all duration-200 hover:-translate-y-0.5 hover:border-accent/40 hover:text-accent"
-                >
-                  {s}
-                </button>
-              ))}
-            </div>
-          </FadeIn>
-        ) : (
+      <div className="flex min-h-0 w-full flex-1 flex-col">
+        {/* Chat area — scroll independen (flex-1), input di flow terpisah */}
+        <div className="min-h-0 w-full flex-1 overflow-y-auto">
+          <div className="mx-auto flex min-h-full w-full max-w-[48rem] flex-col justify-end px-5 pt-4">
+            {!loading && !activeEmail ? (
+              <FadeIn className="m-auto flex w-full flex-col items-center text-center">
+                <Bot size={48} strokeWidth={1.25} className="text-fg-subtle" />
+                <h2 className="mt-4 text-title3 font-semibold text-fg">Silakan masuk dulu</h2>
+                <p className="mt-1 max-w-sm text-callout text-fg-muted">
+                  Gunakan tombol "Login dengan Google" di pojok kanan atas
+                  untuk memulai percakapan.
+                </p>
+              </FadeIn>
+            ) : messages.length === 0 && !loadingMsg ? (
+              <FadeIn className="m-auto flex w-full flex-col items-center text-center">
+                <div className="rounded-sm bg-surface/70 p-5 shadow-sm">
+                  <Sparkles size={52} strokeWidth={1.25} className="text-accent drop-shadow-md" />
+                </div>
+                <h2 className="mt-5 text-title2 font-bold tracking-tight">
+                  Halo, ada yang bisa saya bantu hari ini?
+                </h2>
+                <div className="mt-6 grid w-full max-w-md grid-cols-3 gap-3">
+                  {SUGGESTIONS.map((s) => (
+                    <button
+                      key={s}
+                      onClick={() => sendPrompt(s)}
+                      className="rounded-sm border border-border bg-surface px-3 py-2.5 text-subhead font-medium text-fg shadow-xs transition-all duration-200 hover:-translate-y-0.5 hover:border-accent/40 hover:text-accent"
+                    >
+                      {s}
+                    </button>
+                  ))}
+                </div>
+              </FadeIn>
+            ) : (
           <>
+            <div className="flex flex-col gap-4" data-testid="msg-list">
             {messages.map((msg, i) => (
               <motion.div
                 key={i}
@@ -236,43 +239,45 @@ return (
                 )}
               </motion.div>
             ))}
-
-            {loadingMsg && (
-              <div className="flex items-center gap-2 text-subhead text-fg-muted animate-fade-in">
-                <Loader2 size={16} strokeWidth={1.5} className="animate-spin" /> Agen sedang berpikir...
-              </div>
-            )}
+              {loadingMsg && (
+                <div className="flex items-center gap-2 text-subhead text-fg-muted animate-fade-in">
+                  <Loader2 size={16} strokeWidth={1.5} className="animate-spin" /> Agen sedang berpikir...
+                </div>
+              )}
+            </div>
+            <div ref={endRef} />
           </>
         )}
-        <div ref={endRef} />
-      </div>
-{/* Floating input */}
-      <div className="pointer-events-none fixed bottom-0 left-64 right-0">
-        <div className="pointer-events-auto mx-auto max-w-3xl px-4 pb-5">
-          <form
-            onSubmit={(e) => {
-              e.preventDefault();
-              if (input.trim()) sendPrompt(input.trim());
-            }}
-            className="flex items-center gap-2 rounded-sm border border-border bg-surface/95 p-1.5 shadow-md backdrop-blur"
-          >
-            <Input
-              value={input}
-              onChange={(e) => setInput(e.target.value)}
-              placeholder={activeEmail ? "Ketik pesan ke Nexus Agent..." : "Login untuk mulai mengobrol"}
-              aria-label="Pesan"
-              className="h-9 border-0 shadow-none focus-visible:shadow-none bg-transparent"
-            />
-            <Button
-              type="submit"
-              size="icon"
-              aria-label="Kirim"
-              disabled={!input.trim() || loadingMsg}
-              className="shrink-0"
+          </div>
+        </div>
+        {/* Input bar — flex-none, sticky di bawah, TIDAK ikut scroll */}
+        <div className="flex-none border-t border-border bg-surface/95 px-5 py-3">
+          <div className="mx-auto max-w-[48rem]">
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                if (input.trim()) sendPrompt(input.trim());
+              }}
+              className="flex items-center gap-2 rounded-lg border border-border bg-bg/60 px-3 py-2 shadow-xs focus-within:border-accent/50"
             >
-              <Send size={16} strokeWidth={1.75} />
-            </Button>
-          </form>
+              <Input
+                value={input}
+                onChange={(e) => setInput(e.target.value)}
+                placeholder={activeEmail ? "Ketik pesan ke Nexus Agent..." : "Login untuk mulai mengobrol"}
+                aria-label="Pesan"
+                className="h-9 border-0 shadow-none bg-transparent focus-visible:shadow-none"
+              />
+              <Button
+                type="submit"
+                size="icon"
+                aria-label="Kirim"
+                disabled={!input.trim() || loadingMsg}
+                className="shrink-0"
+              >
+                <Send size={16} strokeWidth={1.75} />
+              </Button>
+            </form>
+          </div>
         </div>
       </div>
     </Shell>
