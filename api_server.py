@@ -490,6 +490,25 @@ def messages(session_id: str, authorization: str | None = Header(None)):
 
 
 # ---------------------------------------------------------------------------
+# ENDPOINT 4b: DELETE /sessions/{session_id}  (hapus riwayat milik user)
+# ---------------------------------------------------------------------------
+@app.delete("/sessions/{session_id}")
+def delete_session(session_id: str, authorization: str | None = Header(None)):
+    if not session_id:
+        raise HTTPException(422, "session_id wajib diisi.")
+    user = security.get_current_user(authorization)
+    try:
+        ok = db.delete_session(user["email"], session_id)
+        if not ok:
+            raise HTTPException(404, "Session tidak ditemukan.")
+        return {"status": "success", "deleted": True}
+    except HTTPException:
+        raise
+    except Exception as exc:  # noqa: BLE001
+        raise HTTPException(500, f"Gagal menghapus session: {exc}")
+
+
+# ---------------------------------------------------------------------------
 # ENDPOINT 5: POST /api/payments/dodo-webhook  (Dodo Payments -> topup saldo)
 # ---------------------------------------------------------------------------
 class DodoWebhookPayload(BaseModel):

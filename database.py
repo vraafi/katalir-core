@@ -305,6 +305,28 @@ def rename_session(owner, session_id, title):
     return
 
 
+# ---- CHAT SESSIONS: DELETE ----
+def delete_session(owner, session_id):
+    """Hapus sesi milik user (chat_messages ikut ter-cascade via FK). Return bool."""
+    if not is_configured() or not session_id:
+        return False
+    try:
+        uid = _resolve_user_id(owner)
+        if not uid:
+            return False
+        wc = _get_write_client()
+        # Verifikasi kepemilikan: sesi harus milik user ini (anti-spoof).
+        own = (wc.table("chat_sessions").select("id")
+               .eq("id", session_id).eq("user_id", uid).limit(1).execute())
+        if not (own.data or []):
+            return False
+        wc.table("chat_sessions").delete().eq("id", session_id).eq("user_id", uid).execute()
+        return True
+    except Exception as exc:
+        print(f"[delete_session] {type(exc).__name__}: {str(exc)[:300]}")
+        return False
+
+
 # ---- CHAT MESSAGES ----
 def get_messages(owner, session_id):
     # FIX Bug1: TIDAK pernah throw -> 500. APIError/None -> return [] (200).
