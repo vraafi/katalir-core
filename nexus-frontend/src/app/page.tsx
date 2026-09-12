@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { QueryProvider } from "@/features/builder/provider";
 import { apiFetch } from "@/lib/api";
+import { FadeIn } from "@/components/motion";
 import { useSessionsQuery, useMessagesQuery, useSendChatMutation } from "@/features/chat/hooks/useChat";
 
 const SUGGESTIONS = ["Kirim pesan WA", "Rangkum dokumen", "Analisis data"];
@@ -143,14 +144,14 @@ return (
       {/* Chat area */}
       <div className="flex-1 space-y-4 overflow-y-auto px-5 pb-28 pt-4">
         {!loading && !activeEmail ? (
-          <div className="flex h-full flex-col items-center justify-center text-center">
+          <FadeIn className="flex h-full flex-col items-center justify-center text-center">
             <Bot size={48} strokeWidth={1.25} className="text-fg-subtle" />
             <h2 className="mt-4 text-title3 font-semibold text-fg">Silakan masuk dulu</h2>
             <p className="mt-1 max-w-sm text-callout text-fg-muted">
               Gunakan tombol "Login dengan Google" di pojok kanan atas
               untuk memulai percakapan.
             </p>
-          </div>
+          </FadeIn>
         ) : messages.length === 0 && !loadingMsg ? (
           <div className="flex h-full flex-col items-center justify-center text-center animate-fade-up">
             <div className="rounded-sm bg-surface/70 p-5 shadow-sm">

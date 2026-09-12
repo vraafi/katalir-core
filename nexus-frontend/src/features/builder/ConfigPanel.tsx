@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { motion } from "motion/react";
 import { Copy, Check } from "lucide-react";
 import dynamic from "next/dynamic";
 import { META, type FlowNode } from "./types";
@@ -47,7 +48,14 @@ export function ConfigPanel({
     "nodrag mt-1 w-full rounded-md border border-gray-600 bg-gray-800 px-2.5 py-1.5 text-[13px] text-gray-100 outline-none focus:border-accent nodrag";
 
   return (
-    <div className="flex flex-col gap-4">
+    <motion.div
+      key={node?.id ?? "config"}
+      className="flex flex-col gap-4"
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ type: "spring", stiffness: 400, damping: 30 }}
+      style={{ willChange: "opacity, transform" }}
+    >
       <div className="flex items-center gap-2">
         <span className="flex h-8 w-8 items-center justify-center rounded-lg" style={{ background: meta.color, color: "rgb(var(--accent-fg))" }}>
           <Icon size={16} strokeWidth={1.75} />
@@ -165,6 +173,6 @@ export function ConfigPanel({
           </label>
         </div>
       )}
-    </div>
+    </motion.div>
   );
 }

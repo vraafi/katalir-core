@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Inter, JetBrains_Mono } from "next/font/google";
 import { ThemeProvider } from "next-themes";
 import { Toaster } from "sonner";
+import { MotionConfig } from "motion/react";
 import { NuqsAdapter } from "nuqs/adapters/next/app";
 import "./globals.css";
 
@@ -25,10 +26,12 @@ export default function RootLayout({
           Lompat ke konten
         </a>
         <NuqsAdapter>
-          <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
-            {children}
-            <Toaster position="top-center" richColors closeButton />
-          </ThemeProvider>
+          <MotionConfig reducedMotion="user">
+            <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
+              {children}
+              <Toaster position="top-center" richColors closeButton />
+            </ThemeProvider>
+          </MotionConfig>
         </NuqsAdapter>
       </body>
     </html>

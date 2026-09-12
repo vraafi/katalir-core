@@ -1,5 +1,6 @@
 import { Plus, Workflow, Zap } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { StaggerList, StaggerItem } from "@/components/motion";
 import { type WorkflowListItem } from "./hooks/useWorkflow";
 
 export function WorkflowSidebar({
@@ -25,22 +26,25 @@ export function WorkflowSidebar({
             Belum ada alur. Klik &quot;+ Alur Baru&quot;.
           </p>
         )}
-        {workflows.map((w) => {
-          const active = activeId === w.id;
-          return (
-            <button
-              key={w.id}
-              onClick={() => onSelect(w.id ?? "")}
-              className={`mb-1 flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-subhead ${
-                active ? "bg-zinc-700 text-zinc-100" : "text-zinc-400 hover:bg-zinc-800 hover:text-zinc-200"
-              }`}
-            >
-              <Workflow size={13} strokeWidth={1.75} className={active ? "text-zinc-200" : "text-zinc-500"} />
-              <span className="truncate flex-1">{w.name || "Draft Workflow"}</span>
-              {active && <Zap size={11} className="text-zinc-300" />}
-            </button>
-          );
-        })}
+        <StaggerList>
+          {workflows.map((w) => {
+            const active = activeId === w.id;
+            return (
+              <StaggerItem key={w.id}>
+                <button
+                  onClick={() => onSelect(w.id ?? "")}
+                  className={`mb-1 flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-subhead ${
+                    active ? "bg-zinc-700 text-zinc-100" : "text-zinc-400 hover:bg-zinc-800 hover:text-zinc-200"
+                  }`}
+                >
+                  <Workflow size={13} strokeWidth={1.75} className={active ? "text-zinc-200" : "text-zinc-500"} />
+                  <span className="truncate flex-1">{w.name || "Draft Workflow"}</span>
+                  {active && <Zap size={11} className="text-zinc-300" />}
+                </button>
+              </StaggerItem>
+            );
+          })}
+        </StaggerList>
       </div>
     </aside>
   );

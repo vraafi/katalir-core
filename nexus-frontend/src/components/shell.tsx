@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useAuth } from "@/context/auth";
 import VaultModal from "@/components/VaultModal";
 import ThemeToggle from "@/components/ThemeToggle";
+import { StaggerList, StaggerItem } from "@/components/motion";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 
@@ -31,16 +32,20 @@ export default function Shell({ children, sessions, currentSessionId, onSelectSe
         <div className="mt-4 flex-1 overflow-y-auto px-2">
           <p className="px-2 pb-2 text-caption font-semibold uppercase tracking-wide text-fg-subtle">Riwayat Chat</p>
           {sessions.length === 0 && <p className="px-2 py-1 text-footnote text-fg-subtle">Belum ada riwayat.</p>}
-          {sessions.map((s) => {
-            const active = s.id === currentSessionId;
-            return (
-              <button key={s.id} onClick={() => onSelectSession(s.id)}
-                className={`mb-1 flex w-full items-center gap-2 rounded-sm px-3 py-2 text-left text-subhead transition ${active ? "bg-surface font-medium text-fg shadow-xs" : "text-fg-muted hover:bg-surface/50 hover:text-fg"}`}>
-                <MessageSquare size={12} strokeWidth={1.75} className={`shrink-0 ${active ? "text-fg-muted" : "text-fg-subtle"}`} />
-                <span className="truncate">{s.title || "Chat"}</span>
-              </button>
-            );
-          })}
+          <StaggerList>
+            {sessions.map((s) => {
+              const active = s.id === currentSessionId;
+              return (
+                <StaggerItem key={s.id}>
+                  <button onClick={() => onSelectSession(s.id)}
+                    className={`mb-1 flex w-full items-center gap-2 rounded-sm px-3 py-2 text-left text-subhead transition ${active ? "bg-surface font-medium text-fg shadow-xs" : "text-fg-muted hover:bg-surface/50 hover:text-fg"}`}>
+                    <MessageSquare size={12} strokeWidth={1.75} className={`shrink-0 ${active ? "text-fg-muted" : "text-fg-subtle"}`} />
+                    <span className="truncate">{s.title || "Chat"}</span>
+                  </button>
+                </StaggerItem>
+              );
+            })}
+          </StaggerList>
         </div>
       </aside>
 
