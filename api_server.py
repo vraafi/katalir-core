@@ -461,7 +461,12 @@ async def webhook_trigger(workflow_id: str, request: Request,
 def sessions(authorization: str | None = Header(None)):
     user = security.get_current_user(authorization)
     try:
-        data = db.list_sessions(user["id"])
+        # FIX regresi: resolve identitas via EMAIL (bukan JWT sub). Alasan:
+        # chat_sessions.user_id diisi public.users.id (kanonis via
+        # get_or_create_user(email)), yang bisa BERBEDA dari auth.users.id
+        # (JWT sub). _resolve_user_id(email) memakai id kanonis yang SAMA
+        # dengan create_session/add_message -> login + insert + lookup converge.
+        data = db.list_sessions(user["email"])
         return {"status": "success", "sessions": data}
     except Exception as exc:  # noqa: BLE001
         raise HTTPException(500, f"Gagal memuat session: {exc}")
@@ -476,7 +481,9 @@ def messages(session_id: str, authorization: str | None = Header(None)):
         raise HTTPException(422, "session_id wajib diisi.")
     user = security.get_current_user(authorization)
     try:
-        data = db.get_messages(user["id"], session_id)
+        # FIX regresi: resolve via EMAIL (liat /sessions) supaya id kanonis
+        # (public.users.id) dipakai, SAMA dengan yang menginsert session.
+        data = db.get_messages(user["email"], session_id)
         return {"status": "success", "messages": data}
     except Exception as exc:  # noqa: BLE001
         raise HTTPException(500, f"Gagal memuat pesan: {exc}")
