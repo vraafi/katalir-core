@@ -135,7 +135,7 @@ def _now():
 
 
 # ---- USERS ----
-def get_or_create_user(email, name=""):
+def get_or_create_user(email, name="", auth_id=None):
     if is_configured():
         try:
             # Usa client de escritura si disponible (service_role bypasa RLS),
@@ -146,12 +146,25 @@ def get_or_create_user(email, name=""):
                 "users.select",
             )
             if res.data:
-                return res.data[0]
-            # No existe -> INSERT (service_role bypasa RLS)
+                row = res.data[0]
+                # Sinkronisasi id: kalau baris users.id != auth.users.id (skema lama
+                # pakai uuid generate sendiri), selaraskan supaya FK chat_sessions
+                # yang diisi auth_id tetap valid.
+                if auth_id and row.get("id") != auth_id:
+                    _wrap_write(
+                        lambda: c.table("users").update({"id": auth_id}).eq("email", email).execute(),
+                        "users.resync_id",
+                    )
+                    row = dict(row)
+                    row["id"] = auth_id
+                return row
+            # No existe -> INSERT dengan id = auth.users.id bila diketahui
+            # (skema FK chat_sessions.user_id -> users.id; auth_id menjamin valid).
+            payload = {"email": email, "name": name, "tier": "free", "usage_count": 0}
+            if auth_id:
+                payload["id"] = auth_id
             _wrap_write(
-                lambda: c.table("users").upsert(
-                    {"email": email, "name": name, "tier": "free", "usage_count": 0}
-                ).execute(),
+                lambda: c.table("users").upsert(payload).execute(),
                 "users.upsert",
             )
             # Re-SELECT para obtener la fila con id uuid generado por DB
@@ -160,7 +173,15 @@ def get_or_create_user(email, name=""):
                 "users.reselect",
             )
             if res.data:
-                return res.data[0]
+                row = res.data[0]
+                if auth_id and row.get("id") != auth_id:
+                    _wrap_write(
+                        lambda: c.table("users").update({"id": auth_id}).eq("email", email).execute(),
+                        "users.resync_id",
+                    )
+                    row = dict(row)
+                    row["id"] = auth_id
+                return row
             if PERSIST_REQUIRED:
                 raise RuntimeError(f"User {email} tidak bisa dipersist (select vacio)")
         except (HTTPException, RuntimeError):
@@ -191,14 +212,25 @@ def _local_user(email, name=""):
 
 
 # ---- CHAT SESSIONS ----
-def _resolve_user_id(owner):
-    """owner bisa user_id uuid ATAU email. Resolve ke user_id real."""
+def _resolve_user_id(owner, auth_id=None):
+    """owner bisa user_id uuid ATAU email. Resolve ke user_id real.
+
+    auth_id = id dari auth.users (JWT sub). Kalau owner berupa email,
+    teruskan auth_id ke get_or_create_user supaya baris public.users
+    selaras dengan auth id (menghindari FK violation di chat_sessions).
+    Kalau owner sudah uuid, prioritaskan auth_id bila ada (identitas JWT
+    adalah sumber kebenaran, bukan uuid basi dari tabel lama).
+    """
     if not owner:
-        return owner
+        return auth_id or owner
     owner = str(owner)
     if "@" in owner:
-        u = get_or_create_user(owner)
-        return u.get("id") if u else None
+        u = get_or_create_user(owner, auth_id=auth_id or None)
+        return (u.get("id") if u else None) or auth_id
+    if auth_id and owner != auth_id:
+        # owner uuid tidak cocok dengan JWT sub -> pakai JWT sub
+        # (mencegah insert chat_sessions dengan user_id yatim -> FK 409).
+        return auth_id
     return owner
 
 
@@ -216,8 +248,26 @@ def list_sessions(owner):
     return []
 
 
-def create_session(owner, title="Chat Baru"):
-    uid = _resolve_user_id(owner)
+def create_session(owner, title="Chat Baru", auth_id=None, email=None):
+    # auth_id = JWT sub (auth.users.id). Endpoint /chat meneruskannya supaya
+    # user_id yang di-insert selalu selaras dengan identitas JWT.
+    # email (opsional): dipakai untuk memastikan baris public.users ADA
+    # sebelum insert chat_sessions (mencegah FK 409 bila user belum punya baris).
+    if email and ("@" in str(email)):
+        try:
+            ensured = get_or_create_user(str(email), auth_id=auth_id or None)
+            if ensured and ensured.get("id"):
+                uid = ensured["id"]
+                if auth_id and uid != auth_id:
+                    uid = auth_id
+            else:
+                uid = _resolve_user_id(owner, auth_id=auth_id) if auth_id else _resolve_user_id(owner)
+        except (HTTPException, RuntimeError):
+            raise
+        except Exception:
+            uid = _resolve_user_id(owner, auth_id=auth_id) if auth_id else _resolve_user_id(owner)
+    else:
+        uid = _resolve_user_id(owner, auth_id=auth_id) if auth_id else _resolve_user_id(owner)
     if is_configured() and uid:
         try:
             wc = _get_write_client()
@@ -277,18 +327,36 @@ def get_messages(owner, session_id):
     return []
 
 
-def add_message(email, session_id, role, content):
+def add_message(owner, session_id, role, content, auth_id=None):
+    # owner bisa email ATAU user_id. Untuk session milik JWT: pastikan uid
+    # selaras dengan auth_id (hindari tulis pesan ke session orang lain / yatim).
     # Si Supabase está configurado, SIEMPRE escribir a Postgres (persistencia permanente).
     if is_configured():
         try:
-            _get_write_client().table("chat_messages").insert(
-                {"session_id": session_id, "role": role, "content": content}).execute()
+            wc = _get_write_client()
+            # Validasi kepemilikan session bila auth_id diketahui: session harus
+            # milik JWT sub (cegah user A menulis ke session user B).
+            if auth_id:
+                own = _wrap_write(
+                    lambda: wc.table("chat_sessions").select("id")
+                    .eq("id", session_id).eq("user_id", auth_id).limit(1).execute(),
+                    "chat_sessions.own_check",
+                )
+                if not (own.data or []):
+                    raise HTTPException(403, "Session bukan milik user.")
+            _wrap_write(
+                lambda: wc.table("chat_messages").insert(
+                    {"session_id": session_id, "role": role, "content": content}).execute(),
+                "chat_messages.insert",
+            )
             return
+        except (HTTPException, RuntimeError):
+            raise
         except Exception:
             _configured = False
             if PERSIST_REQUIRED:
                 raise  # fallo de escritura = error real (no "data amnesia" silencioso)
-    key = (email, session_id)
+    key = (owner, session_id)
     _LMSG.setdefault(key, []).append({"role": role, "content": content, "created_at": _now()})
 # ---- USER INTEGRATIONS (Bring Your Own Key) ----
 def save_integration(email, provider_name, api_token):

@@ -196,11 +196,13 @@ def chat(req: ChatRequest, authorization: str | None = Header(None)):
     user_id = user["id"]
 
     # Pastikan punya session (buat baru bila belum ada)
+    # user_id (JWT sub = auth.users.id) + email diteruskan supaya baris
+    # public.users dipastikan ada dan FK chat_sessions tidak violation.
     session_id = req.session_id
     if not session_id:
         title = _derive_title(req.prompt)
         try:
-            session_id = db.create_session(user_id, title)["id"]
+            session_id = db.create_session(user_id, title, auth_id=user_id, email=user_email)["id"]
         except HTTPException:
             raise  # status terpetakan dari database (503 RLS / 409 FK) — jangan dibungkus ulang jadi 500
         except Exception as exc:  # noqa: BLE001
@@ -208,9 +210,9 @@ def chat(req: ChatRequest, authorization: str | None = Header(None)):
             traceback.print_exc()  # full stack ke Railway log
             raise HTTPException(500, f"Gagal membuat session: {type(exc).__name__}: {exc}")
 
-    # Simpan prompt user ke riwayat
+    # Simpan prompt user ke riwayat (kepemilikan session divalidasi via auth_id)
     try:
-        db.add_message(user_email, session_id, "user", req.prompt)
+        db.add_message(user_email, session_id, "user", req.prompt, auth_id=user_id)
     except HTTPException:
         raise
     except Exception as exc:  # noqa: BLE001
@@ -237,7 +239,7 @@ def chat(req: ChatRequest, authorization: str | None = Header(None)):
 
     # Simpan balasan AI
     try:
-        db.add_message(user_email, session_id, "assistant", reply)
+        db.add_message(user_email, session_id, "assistant", reply, auth_id=user_id)
     except HTTPException:
         raise
     except Exception as exc:  # noqa: BLE001
