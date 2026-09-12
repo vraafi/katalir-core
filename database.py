@@ -31,9 +31,12 @@ _configured = None
 PERSIST_REQUIRED = os.getenv("PERSIST_REQUIRED", "1").strip().lower() in ("1", "true", "yes")
 
 # Service_role key: bypasa RLS (necesaria para INSERT/UPDATE con anon restringida).
-# Si existe SUPABASE_SERVICE_KEY (recomendado), se usa para escrituras.
-# De lo contrario, degrada a SUPABASE_KEY (anon; puede fallar si RLS bloquea writes).
-SUPABASE_SERVICE_KEY = (os.getenv("SUPABASE_SERVICE_KEY") or "").strip()
+# Railway memakai nama SUPABASE_SERVICE_ROLE_KEY, lokal memakai SUPABASE_SERVICE_KEY.
+# Dukung KEDUANYA (alias) supaya tidak 503 misterius hanya karena beda nama env.
+SUPABASE_SERVICE_KEY = (
+    (os.getenv("SUPABASE_SERVICE_KEY") or "").strip()
+    or (os.getenv("SUPABASE_SERVICE_ROLE_KEY") or "").strip()
+)
 
 # Fallback lokal bila Supabase belum dikonfigurasi / gagal
 _LUSER = {}
@@ -94,7 +97,9 @@ def _map_api_error(exc, context):
     """Convert postgrest APIError -> HTTPException dengan status yang sesuai.
 
     Fase 2b: RLS denial -> 503 (backend misconfigured), FK violation -> 409,
-    lainnya -> 503. Selalu print full error ke stdout supaya masuk Railway log.
+    lainnya -> 503. Pesan asli (dipotong 300 char, tanpa secret — hanya pesan
+    PostgREST) ikut di detail supaya root cause TERBACA di respons E2E tanpa
+    perlu buka dashboard Railway.
     """
     msg = str(exc)
     code = getattr(exc, "code", "") or ""
@@ -106,7 +111,8 @@ def _map_api_error(exc, context):
         raise HTTPException(409, f"FK constraint gagal saat {context}.")
     if "duplicate" in low or "unique" in low or "23505" in low:
         raise HTTPException(409, f"Duplikat saat {context}.")
-    raise HTTPException(503, f"Supabase error saat {context}: {type(exc).__name__}.")
+    detail = (msg[:300] or type(exc).__name__).replace("\n", " ")
+    raise HTTPException(503, f"Supabase error saat {context} [{code or '?'}]: {detail}.")
 
 
 def _wrap_write(fn, context):
