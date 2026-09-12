@@ -230,17 +230,22 @@ def _resolve_user_id(owner, auth_id=None):
 
 
 def list_sessions(owner):
-    uid = _resolve_user_id(owner)
-    if is_configured() and uid:
-        try:
-            c = _get_write_client()
-            res = (c.table("chat_sessions").select("id,title,created_at")
-                    .eq("user_id", uid)
-                    .order("created_at", desc=True).execute())
-            return res.data
-        except Exception:
-            _configured = False
-    return []
+    # FIX Bug1 (Issue #29 / PR #28): read path TIDAK pernah throw -> 500.
+    # _resolve_user_id di-move ke DALAM try. APIError/None -> return [] (200).
+    if not is_configured():
+        return []
+    try:
+        uid = _resolve_user_id(owner)
+        if not uid:
+            return []
+        c = _get_write_client()
+        res = (c.table("chat_sessions").select("id,title,created_at")
+               .eq("user_id", uid)
+               .order("created_at", desc=True).execute())
+        return res.data or []
+    except Exception as exc:
+        print(f"[list_sessions] {type(exc).__name__}: {str(exc)[:300]}")
+        return []
 
 
 def create_session(owner, title="Chat Baru", auth_id=None, email=None):
@@ -302,22 +307,26 @@ def rename_session(owner, session_id, title):
 
 # ---- CHAT MESSAGES ----
 def get_messages(owner, session_id):
-    uid = _resolve_user_id(owner)
-    if is_configured() and uid:
-        try:
-            c = _get_write_client()
-            # Verifikasi kepemilikan session BUKAN spoof: session harus milik user.
-            own = (c.table("chat_sessions").select("id")
-                   .eq("id", session_id).eq("user_id", uid).limit(1).execute())
-            if not (own.data or []):
-                return []
-            res = (c.table("chat_messages").select("*")
-                    .eq("session_id", session_id)
-                    .order("created_at", desc=False).execute())
-            return res.data
-        except Exception:
-            _configured = False
-    return []
+    # FIX Bug1: TIDAK pernah throw -> 500. APIError/None -> return [] (200).
+    if not is_configured() or not session_id:
+        return []
+    try:
+        uid = _resolve_user_id(owner)
+        if not uid:
+            return []
+        c = _get_write_client()
+        # Verifikasi kepemilikan session BUKAN spoof: session harus milik user.
+        own = (c.table("chat_sessions").select("id")
+               .eq("id", session_id).eq("user_id", uid).limit(1).execute())
+        if not (own.data or []):
+            return []
+        res = (c.table("chat_messages").select("*")
+               .eq("session_id", session_id)
+               .order("created_at", desc=False).execute())
+        return res.data or []
+    except Exception as exc:
+        print(f"[get_messages] {type(exc).__name__}: {str(exc)[:300]}")
+        return []
 
 
 def add_message(owner, session_id, role, content, auth_id=None):
