@@ -59,6 +59,12 @@ body {
   }
 }
 
+/* Chat scroll: cegah reflow horizontal + jangkar scroll stabil (fix jitter #2b). */
+.chat-scroll {
+  scrollbar-gutter: stable;
+  overflow-anchor: auto;
+}
+
 /* Smooth scrollbar */
 ::-webkit-scrollbar {
   width: 8px;

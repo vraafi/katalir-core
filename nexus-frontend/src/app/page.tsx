@@ -10,7 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { QueryProvider } from "@/features/builder/provider";
 import { apiFetch } from "@/lib/api";
-import { FadeIn, springPanel } from "@/components/motion";
+import { FadeIn } from "@/components/motion";
 import { useSessionsQuery, useMessagesQuery, useSendChatMutation } from "@/features/chat/hooks/useChat";
 
 const SUGGESTIONS = ["Kirim pesan WA", "Rangkum dokumen", "Analisis data"];
@@ -51,6 +51,8 @@ function ChatApp() {
   // Overlay: berichten alleen lokaal (o.a. credential_form + user-pijl).
   const [localMsgs, setLocalMsgs] = useState<Msg[]>([]);
   const endRef = useRef<HTMLDivElement>(null);
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const [atBottom, setAtBottom] = useState(true);
 
   const emailRef = useRef(activeEmail);
   useEffect(() => {
@@ -82,9 +84,24 @@ function ChatApp() {
     ...localMsgs,
   ];
 
+  // Sentinel: hanya auto-scroll saat user sudah di bawah (anti scroll-fighting).
+  // Scroll area diberi ref scrollRef; endRef sebagai sentinel target.
   useEffect(() => {
-    endRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages, loadingMsg]);
+    const el = scrollRef.current;
+    if (!el) return;
+    const onScroll = () => {
+      const dist = el.scrollHeight - el.scrollTop - el.clientHeight;
+      setAtBottom(dist < 100);
+    };
+    el.addEventListener("scroll", onScroll, { passive: true });
+    onScroll();
+    return () => el.removeEventListener("scroll", onScroll);
+  }, []);
+
+  useEffect(() => {
+    if (!atBottom) return;
+    endRef.current?.scrollIntoView({ behavior: "auto", block: "end" });
+  }, [messages, loadingMsg, atBottom]);
 
   // Bij HANDMATIGE sessiewissel: reset lokale overlay. Echo van de eigen send
   // (sessionEchoRef) cleared NIET — overlay blijft tot server-data binnen is.
@@ -179,7 +196,7 @@ return (
     >
       <div className="flex min-h-0 w-full flex-1 flex-col">
         {/* Chat area — scroll independen (flex-1), input di flow terpisah */}
-        <div className="min-h-0 w-full flex-1 overflow-y-auto">
+        <div ref={scrollRef} className="chat-scroll min-h-0 w-full flex-1 overflow-y-auto">
           <div className="mx-auto flex min-h-full w-full max-w-[48rem] flex-col justify-end px-5 pt-4">
             {!loading && !activeEmail ? (
               <FadeIn className="m-auto flex w-full flex-col items-center text-center">
@@ -215,10 +232,10 @@ return (
             <div className="flex flex-col gap-4" data-testid="msg-list">
             {messages.map((msg, i) => (
               <motion.div
-                key={i}
+                key={`${msg.role}-${i}-${(msg.role === "system" ? msg.original : msg.content).length}-${(msg.role === "system" ? msg.original : msg.content).slice(0, 24)}`}
                 initial={{ opacity: 0, y: 16 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={springPanel}
+                transition={{ duration: 0.5 }}
                 style={{ willChange: "opacity, transform" }}
                 className={`flex items-end gap-2 ${msg.role === "user" ? "justify-end" : ""}`}
               >
@@ -281,6 +298,18 @@ return (
               )}
             </div>
             <div ref={endRef} />
+            {!atBottom && messages.length > 0 && (
+              <button
+                type="button"
+                aria-label="Lompat ke bawah"
+                onClick={() =>
+                  endRef.current?.scrollIntoView({ behavior: "auto", block: "end" })
+                }
+                className="sticky bottom-2 mx-auto flex items-center gap-1.5 rounded-full border border-border bg-surface px-3 py-1.5 text-footnote text-fg-muted shadow-sm hover:text-fg"
+              >
+                ↓ Terbaru
+              </button>
+            )}
             {/* Fix #1: skeleton saat refetch sesi baru — nooit meer lege chat. */}
             {messages.length === 0 && sessionId && (messagesFetching || !messagesFetched || loadingMsg) && (
               <div className="flex flex-col gap-2.5" aria-live="polite" aria-busy="true">
