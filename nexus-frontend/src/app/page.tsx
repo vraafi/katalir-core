@@ -59,8 +59,18 @@ function ChatApp() {
 
   // Server-state via TanStack Query v5 (staleTime 60s, refetchOnWindowFocus=true).
   const { data: sessions = [] } = useSessionsQuery(activeEmail);
-  const { data: messagesData = [] } = useMessagesQuery(sessionId);
+  const {
+    data: messagesData = [],
+    isFetching: messagesFetching,
+    isFetched: messagesFetched,
+  } = useMessagesQuery(sessionId);
   const sendMutation = useSendChatMutation();
+
+  // Track manual session switches (sidebar/newChat) vs. auto session_id from send.
+  // Overlay mag ALLEEN gecleard worden bij handmatige wissel — nooit door echo
+  // van de eigen send (fix #1: race condition overlay vs server refetch).
+  const sessionEchoRef = useRef<string | null>(null);
+  const prevSessionIdRef = useRef<string | null>(null);
 
   // Combineer server-berichten (uit query) + lokale overlay.
   const messages: Msg[] = [
@@ -76,18 +86,40 @@ function ChatApp() {
     endRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, loadingMsg]);
 
-  // Bij wisselen van sessie: reset lokale overlay.
+  // Bij HANDMATIGE sessiewissel: reset lokale overlay. Echo van de eigen send
+  // (sessionEchoRef) cleared NIET — overlay blijft tot server-data binnen is.
+  // Dit fixt race condition #1: chat verdween 5-30s tussen optimistic bubble
+  // en server refetch. TanStack v5 heeft geen useOptimistic (React 19 canary
+  // only); dit handmatige echo-pattern is de aanbevolen v5-aanpak.
   useEffect(() => {
+    const prev = prevSessionIdRef.current;
+    prevSessionIdRef.current = sessionId ?? null;
+    if (sessionId !== prev && sessionId === sessionEchoRef.current) return;
     setLocalMsgs([]);
   }, [sessionId]);
+
+  // Zodra server-data voor de ge-echo-de sessie binnen is, is de overlay
+  // gesynchroniseerd — clear idempotent (alleen als er iets te clearen valt).
+  useEffect(() => {
+    if (
+      sessionEchoRef.current &&
+      sessionId === sessionEchoRef.current &&
+      messagesData.length > 0
+    ) {
+      sessionEchoRef.current = null;
+      setLocalMsgs((m) => (m.length ? [] : m));
+    }
+  }, [sessionId, messagesData]);
 
   const currentSessionId = sessionId || null;
 
   function openSession(id: string) {
+    sessionEchoRef.current = null; // handmatige wissel -> overlay mag clearen
     void setSessionId(id);
   }
 
   function newChat() {
+    sessionEchoRef.current = null; // handmatige wissel -> overlay mag clearen
     void setSessionId(null);
     setLocalMsgs([]);
     setInput("");
@@ -104,7 +136,10 @@ function ChatApp() {
     setLocalMsgs((m) => [...m, { role: "user", content: text }]);
     try {
       const data = await sendMutation.mutateAsync({ prompt: text, sessionId });
-      if (data.session_id && !sessionId) void setSessionId(data.session_id);
+      if (data.session_id && !sessionId) {
+        sessionEchoRef.current = data.session_id; // echo: eigen send, niet clearen
+        void setSessionId(data.session_id);
+      }
       // Reply komt via query-invalidatie (messagesData refresh).
     } catch {
       setLocalMsgs((m) => [
@@ -246,6 +281,17 @@ return (
               )}
             </div>
             <div ref={endRef} />
+            {/* Fix #1: skeleton saat refetch sesi baru — nooit meer lege chat. */}
+            {messages.length === 0 && sessionId && (messagesFetching || !messagesFetched || loadingMsg) && (
+              <div className="flex flex-col gap-2.5" aria-live="polite" aria-busy="true">
+                {[0, 1].map((i) => (
+                  <div
+                    key={i}
+                    className="h-10 max-w-[70%] animate-pulse rounded-md bg-bg-subtle"
+                  />
+                ))}
+              </div>
+            )}
           </>
         )}
           </div>
