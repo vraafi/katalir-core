@@ -136,6 +136,15 @@ def _now():
 
 # ---- USERS ----
 def get_or_create_user(email, name="", auth_id=None):
+    """Resolve baris public.users dari email.
+
+    Aturan kanonis (anti-hang): JANGAN PERNAH UPDATE users.id.
+    Mengubah PK yang dirujuk FK chat_sessions dapat mengunci/memacetkan
+    request (gejala: /chat menggantung ~25-30s lalu tanpa respons).
+    Sebagai gantinya, fungsi ini mengembalikan baris apa adanya;
+    pemanggil memakai row["id"] untuk semua FK (lihat create_session).
+    auth_id hanya dipakai saat INSERT baris baru (id = auth.users.id).
+    """
     if is_configured():
         try:
             # Usa client de escritura si disponible (service_role bypasa RLS),
@@ -146,18 +155,7 @@ def get_or_create_user(email, name="", auth_id=None):
                 "users.select",
             )
             if res.data:
-                row = res.data[0]
-                # Sinkronisasi id: kalau baris users.id != auth.users.id (skema lama
-                # pakai uuid generate sendiri), selaraskan supaya FK chat_sessions
-                # yang diisi auth_id tetap valid.
-                if auth_id and row.get("id") != auth_id:
-                    _wrap_write(
-                        lambda: c.table("users").update({"id": auth_id}).eq("email", email).execute(),
-                        "users.resync_id",
-                    )
-                    row = dict(row)
-                    row["id"] = auth_id
-                return row
+                return res.data[0]
             # No existe -> INSERT dengan id = auth.users.id bila diketahui
             # (skema FK chat_sessions.user_id -> users.id; auth_id menjamin valid).
             payload = {"email": email, "name": name, "tier": "free", "usage_count": 0}
@@ -173,15 +171,7 @@ def get_or_create_user(email, name="", auth_id=None):
                 "users.reselect",
             )
             if res.data:
-                row = res.data[0]
-                if auth_id and row.get("id") != auth_id:
-                    _wrap_write(
-                        lambda: c.table("users").update({"id": auth_id}).eq("email", email).execute(),
-                        "users.resync_id",
-                    )
-                    row = dict(row)
-                    row["id"] = auth_id
-                return row
+                return res.data[0]
             if PERSIST_REQUIRED:
                 raise RuntimeError(f"User {email} tidak bisa dipersist (select vacio)")
         except (HTTPException, RuntimeError):
@@ -213,13 +203,12 @@ def _local_user(email, name=""):
 
 # ---- CHAT SESSIONS ----
 def _resolve_user_id(owner, auth_id=None):
-    """owner bisa user_id uuid ATAU email. Resolve ke user_id real.
+    """owner bisa user_id uuid ATAU email. Resolve ke user_id KANONIS.
 
-    auth_id = id dari auth.users (JWT sub). Kalau owner berupa email,
-    teruskan auth_id ke get_or_create_user supaya baris public.users
-    selaras dengan auth id (menghindari FK violation di chat_sessions).
-    Kalau owner sudah uuid, prioritaskan auth_id bila ada (identitas JWT
-    adalah sumber kebenaran, bukan uuid basi dari tabel lama).
+    Aturan anti-FK-409: user_id kanonis = public.users.id yang SUDAH ADA
+    di DB (hasil get_or_create_user), BUKAN auth.users.id (JWT sub) secara
+    membabi-buta. Baris lama (uuid generate sendiri) tetap valid sebagai
+    target FK selama kita memakai id dari baris itu sendiri.
     """
     if not owner:
         return auth_id or owner
@@ -227,10 +216,10 @@ def _resolve_user_id(owner, auth_id=None):
     if "@" in owner:
         u = get_or_create_user(owner, auth_id=auth_id or None)
         return (u.get("id") if u else None) or auth_id
-    if auth_id and owner != auth_id:
-        # owner uuid tidak cocok dengan JWT sub -> pakai JWT sub
-        # (mencegah insert chat_sessions dengan user_id yatim -> FK 409).
-        return auth_id
+    # owner sudah uuid: itu diasumsikan id kanonis dari sesi login lama /
+    # session yang sudah ada. auth_id HANYA dipakai bila owner kosong.
+    # (Jangan timpa uuid owner dengan JWT sub — itu yang menyebabkan FK 409
+    # untuk user lama yang baris users.id-nya berbeda dari auth id.)
     return owner
 
 
@@ -249,17 +238,15 @@ def list_sessions(owner):
 
 
 def create_session(owner, title="Chat Baru", auth_id=None, email=None):
-    # auth_id = JWT sub (auth.users.id). Endpoint /chat meneruskannya supaya
-    # user_id yang di-insert selalu selaras dengan identitas JWT.
-    # email (opsional): dipakai untuk memastikan baris public.users ADA
-    # sebelum insert chat_sessions (mencegah FK 409 bila user belum punya baris).
+    # Aturan kanonis: user_id yang di-insert = public.users.id yang SUDAH
+    # ADA (hasil ensure baris via email). Untuk user lama (uuid generate
+    # sendiri), itu berarti id lama — valid untuk FK. auth_id dipakai hanya
+    # untuk INSERT baris baru (via get_or_create_user), bukan untuk menimpa.
     if email and ("@" in str(email)):
         try:
             ensured = get_or_create_user(str(email), auth_id=auth_id or None)
             if ensured and ensured.get("id"):
                 uid = ensured["id"]
-                if auth_id and uid != auth_id:
-                    uid = auth_id
             else:
                 uid = _resolve_user_id(owner, auth_id=auth_id) if auth_id else _resolve_user_id(owner)
         except (HTTPException, RuntimeError):
@@ -328,18 +315,21 @@ def get_messages(owner, session_id):
 
 
 def add_message(owner, session_id, role, content, auth_id=None):
-    # owner bisa email ATAU user_id. Untuk session milik JWT: pastikan uid
-    # selaras dengan auth_id (hindari tulis pesan ke session orang lain / yatim).
+    # owner bisa email ATAU user_id. Resolve ke id KANONIS (baris users yang
+    # ada) supaya insert chat_messages selalu menunjuk session yang valid.
+    # Kepemilikan dicek terhadap uid kanonis — BUKAN auth_id mentah — supaya
+    # user lama (users.id != JWT sub) tetap bisa menulis ke session miliknya.
     # Si Supabase está configurado, SIEMPRE escribir a Postgres (persistencia permanente).
     if is_configured():
         try:
             wc = _get_write_client()
-            # Validasi kepemilikan session bila auth_id diketahui: session harus
-            # milik JWT sub (cegah user A menulis ke session user B).
-            if auth_id:
+            uid = _resolve_user_id(owner, auth_id=auth_id) if auth_id else _resolve_user_id(owner)
+            # Validasi kepemilikan session terhadap uid kanonis
+            # (cegah user A menulis ke session user B).
+            if uid:
                 own = _wrap_write(
                     lambda: wc.table("chat_sessions").select("id")
-                    .eq("id", session_id).eq("user_id", auth_id).limit(1).execute(),
+                    .eq("id", session_id).eq("user_id", uid).limit(1).execute(),
                     "chat_sessions.own_check",
                 )
                 if not (own.data or []):
