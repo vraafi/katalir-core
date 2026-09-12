@@ -1,9 +1,10 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  // Opsi B: OpenNext Cloudflare Workers — RSC, Server Actions, streaming aktif.
-  // Deploy via `opennextjs-cloudflare build && opennextjs-cloudflare deploy`.
-  // JANGAN pakai output:export (itu mematikan semua fitur di atas).
+  // TEMPORARY (deploy pipeline): static export untuk Cloudflare Pages (out/).
+  // Kembalikan ke mode OpenNext (tanpa output:export) setelah deploy selesai.
+  output: "export",
+  images: { unoptimized: true },
 };
 
 export default nextConfig;

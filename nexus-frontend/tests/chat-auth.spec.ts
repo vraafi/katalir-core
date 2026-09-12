@@ -2,7 +2,7 @@ import { test, expect } from "@playwright/test";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 
-const TARGET = "https://proyek-agent.pages.dev";
+const TARGET = process.env.E2E_TARGET || "https://proyek-agent.pages.dev";
 const REF = "qmukkphwaajzbqjrcvaz";
 const KEY = `sb-${REF}-auth-token`;
 
