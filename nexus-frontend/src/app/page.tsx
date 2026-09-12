@@ -12,6 +12,10 @@ import { QueryProvider } from "@/features/builder/provider";
 import { apiFetch } from "@/lib/api";
 import { FadeIn } from "@/components/motion";
 import { useSessionsQuery, useMessagesQuery, useSendChatMutation } from "@/features/chat/hooks/useChat";
+import type { ChatMessage } from "@/features/chat/hooks/useChat";
+import { useQueryClient } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
+import { chatKeys } from "@/lib/query-keys";
 
 const SUGGESTIONS = ["Kirim pesan WA", "Rangkum dokumen", "Analisis data"];
 
@@ -23,9 +27,10 @@ const PROVIDER_LABELS: Record<string, string> = {
 };
 
 type Msg =
-  | { role: "user"; content: string }
-  | { role: "assistant"; content: string }
+  | { key: string; role: "user"; content: string }
+  | { key: string; role: "assistant"; content: string }
   | {
+      key: string;
       role: "system";
       type: "credential_form";
       provider: string;
@@ -46,10 +51,7 @@ function ChatApp() {
   );
   const activeEmail = email || null;
   const [input, setInput] = useState("");
-  const [loadingMsg, setLoadingMsg] = useState(false);
   const [credValue, setCredValue] = useState("");
-  // Overlay: berichten alleen lokaal (o.a. credential_form + user-pijl).
-  const [localMsgs, setLocalMsgs] = useState<Msg[]>([]);
   const endRef = useRef<HTMLDivElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const [atBottom, setAtBottom] = useState(true);
@@ -67,21 +69,58 @@ function ChatApp() {
     isFetched: messagesFetched,
   } = useMessagesQuery(sessionId);
   const sendMutation = useSendChatMutation();
+  const qc = useQueryClient();
+  const loadingMsg = sendMutation.isPending;
 
-  // Track manual session switches (sidebar/newChat) vs. auto session_id from send.
-  // Overlay mag ALLEEN gecleard worden bij handmatige wissel — nooit door echo
-  // van de eigen send (fix #1: race condition overlay vs server refetch).
-  const sessionEchoRef = useRef<string | null>(null);
-  const prevSessionIdRef = useRef<string | null>(null);
+  // FIX #2a (key stabil — issue #685): pakai backend message.id bila ada.
+  // useQuery hanya SUBSCRIBE (tanpa fetch duplikat — queryFn disabled,
+  // data datang dari useMessagesQuery di atas); ini membuat komponen
+  // re-render saat cache optimistic berubah (setQueryData).
+  const activeKey = chatKeys.messages(sessionId ?? "__pending__");
+  const { data: liveCache = [] } = useQuery<ChatMessage[]>({
+    queryKey: activeKey,
+    queryFn: () => Promise.resolve([] as ChatMessage[]),
+    enabled: false,
+    initialData: [],
+  });
+  void liveCache;
+  // SINGLE SOURCE OF TRUTH (data-machine #210): TIDAK ada useState paralel.
+  // Cache TanStack (optimistic via setQueryData) adalah satu-satunya sumber
+  // overlay; server-data (messagesData) adalah sumber kebenaran pasca-refetch.
+  // Merge (openclaw #14859): server duluan, lalu optimistic yang BELUM
+  // terkonfirmasi (dedup by content) di-append.
+  const cached: ChatMessage[] =
+    qc.getQueryData<ChatMessage[]>(activeKey) ?? liveCache ?? [];
+  const pendingCache: ChatMessage[] = !sessionId
+    ? []
+    : (qc.getQueryData<ChatMessage[]>(chatKeys.messages("__pending__")) ?? []);
+  const overlay: ChatMessage[] = [...pendingCache, ...cached].filter((m) => !!m._localId);
+  const serverConfirmed = new Set(
+    messagesData.map((m) => `${m.role}|${m.content}`)
+  );
+  const unconfirmed = overlay.filter(
+    (m) => m.type === "credential_form" || !serverConfirmed.has(`${m.role}|${m.content}`)
+  );
 
-  // Combineer server-berichten (uit query) + lokale overlay.
   const messages: Msg[] = [
-    ...messagesData.map((m): Msg =>
-      m.role === "user"
-        ? { role: "user", content: m.content }
-        : { role: "assistant", content: m.content }
-    ),
-    ...localMsgs,
+    ...messagesData
+      .filter((m) => m.role === "user" || m.role === "assistant")
+      .map((m, i): Msg =>
+        // FIX #2a: key stabil dari backend id bila ada (issue #685).
+        // content-slice TIDAK dipakai — duplikat konten ("halo","halo")
+        // dulu berbagi prefix key dan memicu remount/jitter.
+        m.role === "user"
+          ? { key: `srv-${m.id ?? `u-${i}`}`, role: "user", content: m.content }
+          : { key: `srv-${m.id ?? `a-${i}`}`, role: "assistant", content: m.content }
+      ),
+    ...unconfirmed.map((m): Msg | null => {
+      if (m.type === "credential_form" && m.provider && m.original !== undefined) {
+        return { key: `cred-${m.id ?? m._localId ?? m.provider}`, role: "system", type: "credential_form", provider: m.provider, original: m.original };
+      }
+      if (m.role === "user") return { key: `opt-${m._localId ?? m.id ?? m.content}`, role: "user", content: m.content };
+      if (m.role === "assistant") return { key: `opt-${m._localId ?? m.id ?? "pending"}`, role: "assistant", content: m.content };
+      return null;
+    }).filter((m): m is Msg => m !== null),
   ];
 
   // Sentinel: hanya auto-scroll saat user sudah di bawah (anti scroll-fighting).
@@ -103,42 +142,22 @@ function ChatApp() {
     endRef.current?.scrollIntoView({ behavior: "auto", block: "end" });
   }, [messages, loadingMsg, atBottom]);
 
-  // Bij HANDMATIGE sessiewissel: reset lokale overlay. Echo van de eigen send
-  // (sessionEchoRef) cleared NIET — overlay blijft tot server-data binnen is.
-  // Dit fixt race condition #1: chat verdween 5-30s tussen optimistic bubble
-  // en server refetch. TanStack v5 heeft geen useOptimistic (React 19 canary
-  // only); dit handmatige echo-pattern is de aanbevolen v5-aanpak.
-  useEffect(() => {
-    const prev = prevSessionIdRef.current;
-    prevSessionIdRef.current = sessionId ?? null;
-    if (sessionId !== prev && sessionId === sessionEchoRef.current) return;
-    setLocalMsgs([]);
-  }, [sessionId]);
-
-  // Zodra server-data voor de ge-echo-de sessie binnen is, is de overlay
-  // gesynchroniseerd — clear idempotent (alleen als er iets te clearen valt).
-  useEffect(() => {
-    if (
-      sessionEchoRef.current &&
-      sessionId === sessionEchoRef.current &&
-      messagesData.length > 0
-    ) {
-      sessionEchoRef.current = null;
-      setLocalMsgs((m) => (m.length ? [] : m));
-    }
-  }, [sessionId, messagesData]);
+  // SISA echo-pattern lama DIHAPUS (fix #1 revisi): tidak ada lagi
+  // sessionEchoRef / prevSessionIdRef / setLocalMsgs. Overlay hidup di
+  // cache TanStack (onMutate) dan TIDAK PERNAH di-clear oleh pergantian
+  // sessionId — refetch server hanya me-merge, bukan overwrite.
 
   const currentSessionId = sessionId || null;
 
   function openSession(id: string) {
-    sessionEchoRef.current = null; // handmatige wissel -> overlay mag clearen
     void setSessionId(id);
   }
 
   function newChat() {
-    sessionEchoRef.current = null; // handmatige wissel -> overlay mag clearen
+    // Ganti sesi: cache optimistic sesi lama dibiarkan (terisolasi per key);
+    // "__pending__" dibersihkan agar chat baru mulai bersih.
+    qc.setQueryData<ChatMessage[]>(chatKeys.messages("__pending__"), []);
     void setSessionId(null);
-    setLocalMsgs([]);
     setInput("");
   }
 
@@ -148,23 +167,22 @@ function ChatApp() {
       alert("Silakan login dulu untuk mengirim pesan.");
       return;
     }
-    setLoadingMsg(true);
     setInput("");
-    setLocalMsgs((m) => [...m, { role: "user", content: text }]);
+    // Optimistic bubble ditulis oleh onMutate (setQueryData) — TANPA useState.
     try {
       const data = await sendMutation.mutateAsync({ prompt: text, sessionId });
       if (data.session_id && !sessionId) {
-        sessionEchoRef.current = data.session_id; // echo: eigen send, niet clearen
+        // Echo sesi baru: optimistic sudah dipindahkan ke key final oleh
+        // onSuccess; cukup pindah URL. Overlay TIDAK di-clear di sini.
         void setSessionId(data.session_id);
       }
-      // Reply komt via query-invalidatie (messagesData refresh).
+      // Reply + kartu kredensial datang via cache update (onSuccess) dan
+      // query-invalidatie (messagesData refresh). onError sudah drop
+      // pending (openclaw #49261) — tidak ada ghost message.
     } catch {
-      setLocalMsgs((m) => [
-        ...m,
-        { role: "assistant", content: "Gagal terhubung ke server AI." },
-      ]);
-    } finally {
-      setLoadingMsg(false);
+      // Pesan error cukup via toast/alert ringan; pending sudah di-drop
+      // oleh onError — JANGAN append ghost ke cache.
+      alert("Gagal terhubung ke server AI.");
     }
   }
 
@@ -176,11 +194,15 @@ function ChatApp() {
         body: JSON.stringify({ provider, token: credValue.trim() }),
       });
       setCredValue("");
-      setLocalMsgs((m) =>
-        m.filter(
-          (x) => !(x.role === "system" && x.type === "credential_form" && x.provider === provider)
-        )
-      );
+      // Hapus kartu form dari cache (bukan dari useState).
+      const keys = [chatKeys.messages(sessionId ?? "__pending__")];
+      for (const k of keys) {
+        qc.setQueryData<ChatMessage[]>(k, (old) =>
+          (old ?? []).filter(
+            (x) => !(x.type === "credential_form" && x.provider === provider)
+          )
+        );
+      }
       await sendPrompt(original);
     } catch {
       alert("Gagal menyimpan kredensial.");
@@ -230,9 +252,9 @@ return (
             ) : (
           <>
             <div className="flex flex-col gap-4" data-testid="msg-list">
-            {messages.map((msg, i) => (
+            {messages.map((msg) => (
               <motion.div
-                key={`${msg.role}-${i}-${(msg.role === "system" ? msg.original : msg.content).length}-${(msg.role === "system" ? msg.original : msg.content).slice(0, 24)}`}
+                key={msg.key}
                 initial={{ opacity: 0, y: 16 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.5 }}
