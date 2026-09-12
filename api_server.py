@@ -3,8 +3,9 @@
 # Jembatan antara UI modern (Next.js nanti) dan mesin Python agent.
 #
 # Endpoint:
-#   POST /chat         -> {prompt, email, session_id?}
-#   POST /integrations -> {email, provider, token}
+#   POST /chat         -> {prompt, session_id?}     (identitas via JWT)
+#   POST /integrations -> {provider, token}        (identitas via JWT)
+#   POST /api/vault/save -> {provider, api_key}    (identitas via JWT)
 #
 # Menangkap CredentialMissingError -> HTTP 200 {status:"needs_credential"}.
 #
@@ -57,18 +58,15 @@ app.add_middleware(
 # ---------------------------------------------------------------------------
 class ChatRequest(BaseModel):
     prompt: str
-    email: str
     session_id: str | None = Field(default=None)
 
 
 class IntegrationRequest(BaseModel):
-    email: str
     provider: str
     token: str
 
 
 class VaultSaveRequest(BaseModel):
-    email: str
     provider: str
     api_key: str
 
