@@ -205,10 +205,15 @@ function ChatApp() {
   // Server-state via TanStack Query v5 (staleTime 60s, refetchOnWindowFocus=true).
   const { data: sessions = [] } = useSessionsQuery(activeEmail);
   const {
-    data: messagesData = [],
+    data: messagesDataRaw = [],
     isFetching: messagesFetching,
     isFetched: messagesFetched,
   } = useMessagesQuery(sessionId);
+  // FIX Chat Baru (force-remount support): saat sessionId null (chat baru),
+  // ABAIKAN data query apa pun (termasuk placeholderData prev dari sesi lama
+  // — TanStack placeholderData: (prev) => prev bisa menahan data sesi lama
+  // 1-2 frame). Chat area harus KOSONG instan.
+  const messagesData = sessionId ? messagesDataRaw : [];
   const sendMutation = useSendChatMutation();
   const deleteMutation = useDeleteSessionMutation();
   const qc = useQueryClient();
@@ -685,7 +690,11 @@ return (
           </div>
         </div>
       )}
-      <div className="flex min-h-0 w-full flex-1 flex-col">
+      {/* FIX Chat Baru (React key remount): chat area keyed by sessionId.
+          Saat pindah sesi, React membuat instance fresh — state turunan
+          (scroll, guard anti-blank) tidak menahan pesan sesi lama.
+          Queue/input/sidebar di luar div ini -> TIDAK ikut remount. */}
+      <div key={sessionId ?? "new"} className="flex min-h-0 w-full flex-1 flex-col">
         {/* Chat area — scroll independen (flex-1), input di flow terpisah */}
         <div ref={scrollRef} className="chat-scroll min-h-0 w-full flex-1 overflow-y-auto">
           <div className="mx-auto flex min-h-full w-full max-w-[48rem] flex-col justify-end px-5 pt-4">

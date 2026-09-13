@@ -97,7 +97,8 @@ export function useMessagesQuery(sessionId: string | null) {
     enabled: !!sessionId, // FIX REGRESI 2026-09-13: guard lama mematikan fetch utk sesi tanpa optimistic -> UI kosong permanen. Perlindungan optimistic ditangani merge server+overlay di page.tsx.
     staleTime: Infinity,
     gcTime: Infinity,
-    placeholderData: (prev) => prev,
+    // TANPA placeholderData: placeholder (prev) => prev menahan data sesi
+    // lama 1-2 frame saat pindah sesi -> Chat Baru tampil chat lama (bug).
     refetchOnWindowFocus: false,
   });
 }
