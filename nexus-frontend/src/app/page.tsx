@@ -388,6 +388,14 @@ function ChatApp() {
     setInput("");
     const controller = new AbortController();
     cancelRef.current = controller;
+    // Idempotensi (openclaw #69266): UUID unik per kiriman logis. Backend memakai
+    // ini untuk TIDAK meng-insert user-message dua kali bila request retry
+    // setelah server-commit (mis. timeout saat respons hilang) — mencegah pesan
+    // user duplikat dalam 1 sesi. Di-kirim via POST /chat body client_request_id.
+    const clientRequestId =
+      (typeof crypto !== "undefined" && "randomUUID" in crypto
+        ? crypto.randomUUID()
+        : `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`);
     // Optimistic bubble ditulis oleh onMutate (setQueryData) — TANPA useState.
     try {
       const data = await sendMutation.mutateAsync({
@@ -395,6 +403,7 @@ function ChatApp() {
         sessionId,
         email: em,
         abortSignal: controller.signal,
+        clientRequestId,
       });
       if (data.session_id && !sessionId) {
         // Echo sesi baru: onSuccess sudah memindahkan optimistic ke messages(sid).

@@ -127,7 +127,7 @@ export function useSendChatMutation() {
   return useMutation<
     { reply: string; session_id?: string; needsCredential?: boolean; provider?: string; message?: string },
     Error & { provider?: string; promptEcho?: string },
-    { prompt: string; sessionId?: string | null; email?: string | null; abortSignal?: AbortSignal },
+    { prompt: string; sessionId?: string | null; email?: string | null; abortSignal?: AbortSignal; clientRequestId?: string },
     {
       optimisticUserId: string;
       optimisticAsstId: string;
@@ -137,13 +137,19 @@ export function useSendChatMutation() {
       prompt: string;
     }
   >({
-    mutationFn: async ({ prompt, sessionId, abortSignal }) => {
+    mutationFn: async ({ prompt, sessionId, abortSignal, clientRequestId }) => {
       // Fase 1 resilience: timeout 90s (di apiFetch) + retry 2x dengan
       // exponential backoff (2s,5s) UNTUK error transien (503/network/abort).
       // Retry di-loop di sini (bukan 'retry' TanStack) supaya onMutate cuma
       // sekali -> optimistic bubble JOHN saat retry, drop cuma di onError final.
       // Cancel (Stop): abortSignal.aborted -> lempar CanceledError, BERHENTI retry.
-      const body = JSON.stringify({ prompt, session_id: sessionId ?? undefined });
+      // client_request_id: UUID per kiriman logis -> backend idempoten, mencegah
+      // pesan user DUPLIKAT kalau request ini retry-setelah-server-commit.
+      const body = JSON.stringify({
+        prompt,
+        session_id: sessionId ?? undefined,
+        client_request_id: clientRequestId ?? undefined,
+      });
       const maxAttempts = 3; // 1 + 2 retry
       const delays = [2000, 5000];
       for (let attempt = 0; ; attempt++) {
