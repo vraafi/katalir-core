@@ -51,7 +51,7 @@ export async function apiFetch(
   path: string,
   init?: RequestInit & { token?: string; timeoutMs?: number }
 ): Promise<Response> {
-  const { token: explicitToken, timeoutMs = FETCH_TIMEOUT_MS, ...rest } = init ?? {};
+  const { token: explicitToken, timeoutMs = FETCH_TIMEOUT_MS, signal: externalSignal, ...rest } = init ?? {};
   let token: string | null | undefined = explicitToken;
   if (!token) {
     try {
@@ -66,11 +66,19 @@ export async function apiFetch(
   if (token) {
     headers.set("Authorization", `Bearer ${token}`);
   }
+  // Dukungan cancel eksternal (Stop button): kombinasi signal caller dengan
+  // timeout internal tanpa menimpa satu sama lain.
   const controller = new AbortController();
+  const onExternalAbort = () => controller.abort();
+  if (externalSignal) {
+    if (externalSignal.aborted) controller.abort();
+    else externalSignal.addEventListener("abort", onExternalAbort, { once: true });
+  }
   const timer = setTimeout(() => controller.abort(), timeoutMs);
   try {
     return await fetch(`${API_URL}${path}`, { ...rest, headers, signal: controller.signal });
   } finally {
     clearTimeout(timer);
+    if (externalSignal) externalSignal.removeEventListener("abort", onExternalAbort);
   }
 }

@@ -5,6 +5,14 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { apiFetch, classifyChatError, classifyHttpError, sleep } from "@/lib/api";
 import { chatKeys } from "@/lib/query-keys";
 
+/** Error khusus untuk pembatalan user (Stop button). onError membedakannya
+ *  agar optimistic DIBUANG (bukan di-hold jadi kartu error). */
+export function canceledError(message = "Dibatalkan"): Error {
+  const e = new Error(message) as Error & { name: string };
+  e.name = "CanceledError";
+  return e;
+}
+
 export interface SessionItem {
   id: string;
   title?: string;
@@ -119,7 +127,7 @@ export function useSendChatMutation() {
   return useMutation<
     { reply: string; session_id?: string; needsCredential?: boolean; provider?: string; message?: string },
     Error & { provider?: string; promptEcho?: string },
-    { prompt: string; sessionId?: string | null; email?: string | null },
+    { prompt: string; sessionId?: string | null; email?: string | null; abortSignal?: AbortSignal },
     {
       optimisticUserId: string;
       optimisticAsstId: string;
@@ -129,19 +137,22 @@ export function useSendChatMutation() {
       prompt: string;
     }
   >({
-    mutationFn: async ({ prompt, sessionId }) => {
+    mutationFn: async ({ prompt, sessionId, abortSignal }) => {
       // Fase 1 resilience: timeout 90s (di apiFetch) + retry 2x dengan
       // exponential backoff (2s,5s) UNTUK error transien (503/network/abort).
       // Retry di-loop di sini (bukan 'retry' TanStack) supaya onMutate cuma
       // sekali -> optimistic bubble JOHN saat retry, drop cuma di onError final.
+      // Cancel (Stop): abortSignal.aborted -> lempar CanceledError, BERHENTI retry.
       const body = JSON.stringify({ prompt, session_id: sessionId ?? undefined });
       const maxAttempts = 3; // 1 + 2 retry
       const delays = [2000, 5000];
       for (let attempt = 0; ; attempt++) {
+        if (abortSignal?.aborted) throw canceledError();
         let res: Response;
         try {
-          res = await apiFetch("/chat", { method: "POST", body, timeoutMs: 90_000 });
+          res = await apiFetch("/chat", { method: "POST", body, timeoutMs: 90_000, signal: abortSignal });
         } catch (e) {
+          if (abortSignal?.aborted) throw canceledError();
           const { message, retryable } = classifyChatError(e);
           if (retryable && attempt < maxAttempts - 1) {
             await sleep(delays[attempt] ?? 2000);
@@ -204,11 +215,23 @@ export function useSendChatMutation() {
       };
     },
     onError: (err, _vars, context) => {
+      if (!context) return;
+      // User klik Stop: buang bubble optimistic user+asst yang sedang diproses
+      // (jangan holt jadi kartu error).
+      if ((err as Error)?.name === "CanceledError") {
+        qc.setQueryData<ChatMessage[]>(context.targetKey, (old) =>
+          (old ?? []).filter(
+            (m) =>
+              m._localId !== context.optimisticUserId &&
+              m._localId !== context.optimisticAsstId
+          )
+        );
+        return;
+      }
       // Fase 1: HOLD optimistic — jangan hapus bubble user sampai reply/error
       // jelas (instruksi user). KITA ganti placeholder assistant "…" dengan
       // kartu error (role system type error) + tombol retry. Retry di dalam
       // mutationFn sudah habis sebelum onError ini dipanggil.
-      if (!context) return;
       const msg = (err as Error)?.message || "Terjadi kesalahan. Coba lagi.";
       qc.setQueryData<ChatMessage[]>(context.targetKey, (old) =>
         (old ?? []).map((m) =>
