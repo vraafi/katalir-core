@@ -351,7 +351,73 @@ def get_messages(owner, session_id):
         return []
 
 
-def add_message(owner, session_id, role, content, auth_id=None):
+def find_user_message_by_request(client_request_id):
+    """Idempotensi (openclaw #69266): sudah ada user-pesan untuk kiriman logis ini?
+    Kembalikan baris pertama (role=user) yg membawa client_request_id tsb, atau None."""
+    if not is_configured() or not client_request_id or not _request_key_enabled():
+        return None
+    try:
+        wc = _get_write_client()
+        res = _wrap_write(
+            lambda: wc.table("chat_messages")
+            .select("id, session_id, role, content")
+            .eq("client_request_id", client_request_id)
+            .eq("role", "user")
+            .limit(1).execute(),
+            "chat_messages.idem_find",
+        )
+        return (res.data or [None])[0]
+    except Exception as exc:
+        print(f"[find_user_message_by_request] {type(exc).__name__}: {str(exc)[:200]}")
+        return None
+
+
+def get_last_assistant_reply(session_id):
+    """Reply assistant terakhir untuk sesi — dipakai saat deteksi kiriman yg sudah
+    diproses, supaya retry mengembalikan reply yg sama (TANPA menjalankan ulang loop)."""
+    if not is_configured() or not session_id:
+        return None
+    try:
+        wc = _get_write_client()
+        res = _wrap_write(
+            lambda: wc.table("chat_messages")
+            .select("content")
+            .eq("session_id", session_id)
+            .eq("role", "assistant")
+            .order("created_at", desc=True).limit(1).execute(),
+            "chat_messages.last_reply",
+        )
+        rows = res.data or []
+        return rows[0]["content"] if rows else None
+    except Exception as exc:
+        print(f"[get_last_assistant_reply] {type(exc).__name__}: {str(exc)[:200]}")
+        return None
+
+
+# Feature-detect kolom client_request_id (migration 2026_dedupe_chat_messages.sql).
+# Bila kolom/index belum ada di DB, idempotensi MENURUN jadi no-op (insert normal)
+# supaya app TETAP berjalan walau migration belum di-apply (deploy tidak 500).
+# Setelah dipastikan kolom ada, isi cache dan aktifkan jalur idempoten.
+_req_key = {"checked": False, "enabled": False}
+
+
+def _request_key_enabled() -> bool:
+    if _req_key["checked"]:
+        return _req_key["enabled"]
+    enabled = False
+    if is_configured():
+        try:
+            c = _get_write_client()
+            c.table("chat_messages").select("client_request_id").limit(0).execute()
+            enabled = True
+        except Exception:
+            enabled = False
+    _req_key["checked"] = True
+    _req_key["enabled"] = enabled
+    return enabled
+
+
+def add_message(owner, session_id, role, content, auth_id=None, client_request_id=None):
     # owner bisa email ATAU user_id. Resolve ke id KANONIS (baris users yang
     # ada) supaya insert chat_messages selalu menunjuk session yang valid.
     # Kepemilikan dicek terhadap uid kanonis — BUKAN auth_id mentah — supaya
@@ -371,20 +437,40 @@ def add_message(owner, session_id, role, content, auth_id=None):
                 )
                 if not (own.data or []):
                     raise HTTPException(403, "Session bukan milik user.")
+            # Idempotensi user-pesan: bila client_request_id sudah tercatat utk
+            # role user, JANGAN insert lagi (retry/double-fire) -> return False.
+            # Hanya aktif bila kolom+index ada (feature-detected) — jika migration
+            # belum di-apply, kolom tidak ada -> skip guard, insert normal (no-op).
+            if client_request_id and role == "user" and _request_key_enabled():
+                existed = _wrap_write(
+                    lambda: wc.table("chat_messages").select("id")
+                    .eq("client_request_id", client_request_id).eq("role", "user")
+                    .limit(1).execute(),
+                    "chat_messages.idem_check",
+                )
+                if existed.data:
+                    return False
+            row = {"session_id": session_id, "role": role, "content": content}
+            if client_request_id and _request_key_enabled():
+                row["client_request_id"] = client_request_id
             _wrap_write(
-                lambda: wc.table("chat_messages").insert(
-                    {"session_id": session_id, "role": role, "content": content}).execute(),
+                lambda: wc.table("chat_messages").insert(row).execute(),
                 "chat_messages.insert",
             )
-            return
-        except (HTTPException, RuntimeError):
-            raise
-        except Exception:
+            return True
+        except HTTPException:
+            raise  # 403 ownership — harus tetap memblokir
+        except Exception as exc:
+            # Unique-violation pada index client_request_id = kiriman sudah tercatat
+            # (race antar-dua request paralel) -> idempoten, jangan gagalkan request.
+            if "unique" in str(exc).lower() or "duplicate" in str(exc).lower():
+                return False
             _configured = False
             if PERSIST_REQUIRED:
                 raise  # fallo de escritura = error real (no "data amnesia" silencioso)
     key = (owner, session_id)
     _LMSG.setdefault(key, []).append({"role": role, "content": content, "created_at": _now()})
+    return True
 # ---- USER INTEGRATIONS (Bring Your Own Key) ----
 def save_integration(email, provider_name, api_token):
     """Simpan / perbarui API token untuk provider user (BYOK)."""

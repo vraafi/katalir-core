@@ -59,6 +59,10 @@ app.add_middleware(
 class ChatRequest(BaseModel):
     prompt: str
     session_id: str | None = Field(default=None)
+    # Idempotensi (openclaw #69266): UUID per kiriman logis dari frontend. Bila
+    # POST /chat tiba 2x untuk pesan yang sama (retry setelah server-commit),
+    # backend mengenali & tidak meng-insert user-message dua kali.
+    client_request_id: str | None = Field(default=None)
 
 
 class IntegrationRequest(BaseModel):
@@ -194,11 +198,28 @@ def chat(req: ChatRequest, authorization: str | None = Header(None)):
     user = security.get_current_user(authorization)
     user_email = user["email"]
     user_id = user["id"]
+    req_id = req.client_request_id
 
-    # Pastikan punya session (buat baru bila belum ada)
-    # user_id (JWT sub = auth.users.id) + email diteruskan supaya baris
-    # public.users dipastikan ada dan FK chat_sessions tidak violation.
-    session_id = req.session_id
+    # Idempotensi (openclaw #69266): kalau kiriman logis ini sudah pernah diproses
+    # (mis. respons hilang saat timeout, lalu frontend retry), JANGAN double-insert.
+    # - Prior + reply sudah ada  -> kembalikan reply tersimpan, tanpa jalankan ulang.
+    # - Prior + reply belum ada   -> lanjutkan sesi tsb & selesaikan reply.
+    prior_session = None
+    if req_id:
+        prior = db.find_user_message_by_request(req_id)
+        if prior and prior.get("session_id"):
+            prev_reply = db.get_last_assistant_reply(prior["session_id"])
+            if prev_reply:
+                return {
+                    "status": "success",
+                    "reply": prev_reply,
+                    "session_id": prior["session_id"],
+                }
+            prior_session = prior["session_id"]
+
+    # Pastikan punya session (buat baru bila belum ada).
+    # prior_session dipakai saat retry-yang-tanpa-session (tak buat sesi baru 2x).
+    session_id = req.session_id or prior_session
     if not session_id:
         title = _derive_title(req.prompt)
         try:
@@ -210,9 +231,11 @@ def chat(req: ChatRequest, authorization: str | None = Header(None)):
             traceback.print_exc()  # full stack ke Railway log
             raise HTTPException(500, f"Gagal membuat session: {type(exc).__name__}: {exc}")
 
-    # Simpan prompt user ke riwayat (kepemilikan session divalidasi via auth_id)
+    # Simpan prompt user ke riwayat (kepemilikan session divalidasi via auth_id).
+    # Idempoten: bila client_request_id sudah tercatat, add_message return False
+    # dan TIDAK meng-insert — mencegah pesan user duplikat dalam 1 sesi.
     try:
-        db.add_message(user_email, session_id, "user", req.prompt, auth_id=user_id)
+        db.add_message(user_email, session_id, "user", req.prompt, auth_id=user_id, client_request_id=req_id)
     except HTTPException:
         raise
     except Exception as exc:  # noqa: BLE001
@@ -239,7 +262,7 @@ def chat(req: ChatRequest, authorization: str | None = Header(None)):
 
     # Simpan balasan AI
     try:
-        db.add_message(user_email, session_id, "assistant", reply, auth_id=user_id)
+        db.add_message(user_email, session_id, "assistant", reply, auth_id=user_id, client_request_id=req_id)
     except HTTPException:
         raise
     except Exception as exc:  # noqa: BLE001
