@@ -59,4 +59,25 @@ writeFileSync(
   JSON.stringify(sess, null, 0)
 );
 console.log("SESSION_SAVED access_token_len=" + s.access_token.length);
+// storageState resmi Playwright (origins localStorage sb-<ref>-auth-token)
+// agar konteks test langsung login tanpa OAuth (jikig-ai/soleur pattern).
+const storageState = {
+  cookies: [],
+  origins: [
+    {
+      origin: "http://localhost:3000",
+      localStorage: [
+        {
+          name: `sb-${ref}-auth-token`,
+          value: JSON.stringify(sess),
+        },
+      ],
+    },
+  ],
+};
+writeFileSync(
+  new URL("../_e2e_storage.json", import.meta.url),
+  JSON.stringify(storageState, null, 0)
+);
+console.log("STORAGE_SAVED sb-" + ref + "-auth-token");
 console.log("DONE " + email + " " + password);

@@ -1,7 +1,7 @@
 "use client";
 
 import { Suspense, useCallback, useEffect, useRef, useState } from "react";
-import { Send, Sparkles, Bot, User, KeyRound, RotateCcw, AlertTriangle } from "lucide-react";
+import { Send, Square, Sparkles, Bot, User, KeyRound, RotateCcw, AlertTriangle, Pencil, X } from "lucide-react";
 import { motion } from "motion/react";
 import { useQueryState, parseAsString } from "nuqs";
 import Shell from "@/components/shell";
@@ -59,6 +59,17 @@ type Msg =
       original: string;
     };
 
+/** Pesan yang menunggu diproses saat AI sedang sibuk (queue FIFO). */
+interface QueuedMsg {
+  id: string;
+  text: string;
+}
+
+/** id unik lokal untuk item antrean. */
+function qid(): string {
+  return Math.random().toString(36).slice(2, 9) + Date.now().toString(36);
+}
+
 interface SessionItem {
   id: string;
   title?: string;
@@ -74,6 +85,18 @@ function ChatApp() {
   const activeEmail = email || null;
   const [input, setInput] = useState("");
   const [credValue, setCredValue] = useState("");
+  // Antrean pesan (Fix 3, gptme #1254): array, bukan single object.
+  const [messageQueue, setMessageQueue] = useState<QueuedMsg[]>([]);
+  // Edit pesan di antrean (Fix 4) + konfirmasi Chat Baru saat AI aktif (Fix 6).
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editText, setEditText] = useState("");
+  const [confirmNewChat, setConfirmNewChat] = useState(false);
+  // Cancel (Stop): pada permintaan /chat yang sedang berjalan.
+  const cancelRef = useRef<AbortController | null>(null);
+  // Flag sinkron "ada mutasi berjalan": isPending (React state) update async,
+  // sehingga 3 submit dalam 1 tick bisa lolos semua -> 3 mutateAsync paralel
+  // yang menabrak pasangan optimistic user+asst. busyRef menutup celah ini.
+  const busyRef = useRef(false);
   const endRef = useRef<HTMLDivElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const [atBottom, setAtBottom] = useState(true);
@@ -271,23 +294,76 @@ function ChatApp() {
   }
 
   function newChat() {
-    // Ganti sesi: cache optimistic sesi lama dibiarkan (terisolasi per key);
-    // "__pending__" dibersihkan agar chat baru mulai bersih.
+    setMessageQueue([]);
+    setEditingId(null);
+    setConfirmNewChat(false);
     qc.setQueryData<ChatMessage[]>(chatKeys.messages("__pending__"), []);
     void setSessionId(null);
     setInput("");
   }
 
+  // Fix 6: Chat Baru saat AI bekerja -> konfirmasi; default pindah langsung.
+  function handleNewChat() {
+    if (loadingMsg || messageQueue.length > 0) {
+      setConfirmNewChat(true);
+      return;
+    }
+    newChat();
+  }
+
+  // Fix 2 Stop morph (openhuman #4103): AI generating + composer kosong
+  // -> tombol Stop; sekali user mengetik, kembali jadi Send agar follow-up
+  // bisa diantre. cancelRef = penanda ada request berjalan milik sesi ini.
+  const showStop = loadingMsg && cancelRef.current !== null && !input.trim();
+
+  // Fix 3 FIFO: saat tidak ada mutasi in-flight & ada antrean -> kirim berikutnya.
+  // Guard `busyRef.current` (sinkron): loadingMsg (state) + sendMutation.isPending
+  // bisa basi dalam 1 tick; tanpa ini, 3 submit cepat -> 3 mutateAsync paralel
+  // yang triple-append pasangan optimistic ke key yang sama (Fix A/B race).
+  useEffect(() => {
+    if (sendMutation.isPending || busyRef.current || messageQueue.length === 0) return;
+    const next = messageQueue[0];
+    setMessageQueue((prev) => prev.slice(1));
+    void sendPrompt(next.text);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [loadingMsg, messageQueue, sendMutation.isPending]);
+
+  // Fix 2 Stop: batalkan permintaan /chat berjalan + kosongkan sisa antrean.
+  function onStop() {
+    cancelRef.current?.abort();
+    cancelRef.current = null;
+    busyRef.current = false;
+    setMessageQueue([]);
+    setEditingId(null);
+  }
+
   async function sendPrompt(text: string) {
+    // Fix 1/3: bila AI sedang sibuk, jangan blokir — antre, bukan lock UI.
+    // busyRef sinkron menutup race window 1-tick (3 submit cepat sekaligus):
+    // yang pertama jalan, sisanya masuk antrean FIFO — TIDAK pernah 2
+    // mutateAsync paralel ke key yang sama.
+    if (busyRef.current || loadingMsg || sendMutation.isPending) {
+      setMessageQueue((prev) => [...prev, { id: qid(), text }]);
+      setInput("");
+      return;
+    }
+    busyRef.current = true;
     const em = emailRef.current;
     if (!em) {
       alert("Silakan login dulu untuk mengirim pesan.");
       return;
     }
     setInput("");
+    const controller = new AbortController();
+    cancelRef.current = controller;
     // Optimistic bubble ditulis oleh onMutate (setQueryData) — TANPA useState.
     try {
-      const data = await sendMutation.mutateAsync({ prompt: text, sessionId, email: em });
+      const data = await sendMutation.mutateAsync({
+        prompt: text,
+        sessionId,
+        email: em,
+        abortSignal: controller.signal,
+      });
       if (data.session_id && !sessionId) {
         // Echo sesi baru: onSuccess sudah memindahkan optimistic ke messages(sid).
         // JANGAN reset "__pending__" di sini — setSessionId (nuqs) async, reset
@@ -301,6 +377,9 @@ function ChatApp() {
     } catch {
       // Error spesifik sudah dirender sebagai kartu (type=error) oleh onError
       // bersama tombol retry — TIDAK perlu alert generic di sini.
+    } finally {
+      if (cancelRef.current === controller) cancelRef.current = null;
+      busyRef.current = false;
     }
   }
 
@@ -359,9 +438,45 @@ return (
       sessions={sessions}
       currentSessionId={currentSessionId}
       onSelectSession={openSession}
-      onNewChat={newChat}
+      onNewChat={handleNewChat}
       onDeleteSession={handleDeleteSession}
     >
+      {/* Fix 6: Chat Baru saat AI bekerja -> dialog konfirmasi agar reply tetap
+          diproses di sesi lama; user bisa memilih pindah atau bertahan. */}
+      {confirmNewChat && (
+        <div
+          role="alertdialog"
+          aria-modal="true"
+          aria-label="Konfirmasi chat baru"
+          data-testid="newchat-confirm"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
+          onClick={() => setConfirmNewChat(false)}
+        >
+          <div
+            className="w-full max-w-sm rounded-md border border-border bg-surface p-5 shadow-md"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <p className="text-subhead font-semibold text-fg">AI sedang bekerja di chat ini.</p>
+            <p className="mt-1.5 text-footnote text-fg-muted">
+              Yakin pindah ke chat baru? Reply tetap diproses dan muncul di riwayat.
+              {messageQueue.length > 0 ? ` (${messageQueue.length} pesan antrean ikut dibatalkan)` : ""}
+            </p>
+            <div className="mt-4 flex justify-end gap-2">
+              <Button variant="secondary" onClick={() => setConfirmNewChat(false)}>
+                Tetap di sini
+              </Button>
+              <Button
+                onClick={() => {
+                  onStop();
+                  newChat();
+                }}
+              >
+                Pindah
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
       <div className="flex min-h-0 w-full flex-1 flex-col">
         {/* Chat area — scroll independen (flex-1), input di flow terpisah */}
         <div ref={scrollRef} className="chat-scroll min-h-0 w-full flex-1 overflow-y-auto">
@@ -398,6 +513,87 @@ return (
             ) : (
           <>
             <div className="flex flex-col gap-4 contain-layout" aria-live="polite" data-testid="msg-list">
+            {/* Fix 5 visual antrean (opencode #15587): bubble queued = opacity
+                rendah + label "Queued" + aksi edit inline/hapus. */}
+            {messageQueue.map((q) => (
+              <div key={q.id} className="flex items-end justify-end gap-2" data-testid="queued-msg">
+                <div className="max-w-[75%] rounded-sm rounded-br-sm bg-accent px-4 py-2.5 text-subhead text-accent-fg shadow-sm opacity-60">
+                  {editingId === q.id ? (
+                    <span className="flex items-center gap-1.5">
+                      <input
+                        value={editText}
+                        onChange={(e) => setEditText(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter") {
+                            e.preventDefault();
+                            const t = editText.trim();
+                            if (t) setMessageQueue((prev) => prev.map((m) => (m.id === q.id ? { ...m, text: t } : m)));
+                            setEditingId(null);
+                          } else if (e.key === "Escape") {
+                            setEditingId(null);
+                          }
+                        }}
+                        aria-label="Ubah teks antrean"
+                        autoFocus
+                        className="h-7 w-40 rounded-sm bg-bg/70 px-2 text-subhead text-accent-fg outline-none"
+                      />
+                      <button
+                        type="button"
+                        aria-label="Simpan edit antrean"
+                        onClick={() => {
+                          const t = editText.trim();
+                          if (t) setMessageQueue((prev) => prev.map((m) => (m.id === q.id ? { ...m, text: t } : m)));
+                          setEditingId(null);
+                        }}
+                        className="rounded-sm px-1.5 py-1 text-footnote font-medium underline underline-offset-2"
+                      >
+                        Simpan
+                      </button>
+                      <button
+                        type="button"
+                        aria-label="Batal edit antrean"
+                        onClick={() => setEditingId(null)}
+                        className="rounded-sm p-1"
+                      >
+                        <X size={13} strokeWidth={2} />
+                      </button>
+                    </span>
+                  ) : (
+                    <span className="flex items-center gap-2">
+                      <span>{q.text}</span>
+                      <span className="rounded-full border border-current/30 px-1.5 py-px text-[10px] font-medium uppercase tracking-wide opacity-80">
+                        Queued
+                      </span>
+                      <button
+                        type="button"
+                        aria-label="Edit antrean"
+                        onClick={() => {
+                          setEditingId(q.id);
+                          setEditText(q.text);
+                        }}
+                        className="rounded-sm p-1 opacity-80 hover:opacity-100"
+                      >
+                        <Pencil size={13} strokeWidth={1.75} />
+                      </button>
+                      <button
+                        type="button"
+                        aria-label="Hapus antrean"
+                        onClick={() => {
+                          if (editingId === q.id) setEditingId(null);
+                          setMessageQueue((prev) => prev.filter((m) => m.id !== q.id));
+                        }}
+                        className="rounded-sm p-1 opacity-80 hover:opacity-100"
+                      >
+                        <X size={13} strokeWidth={2} />
+                      </button>
+                    </span>
+                  )}
+                </div>
+                <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-accent opacity-60">
+                  <User size={14} strokeWidth={1.5} className="text-accent-fg" />
+                </div>
+              </div>
+            ))}
             {messages.map((msg) => (
               <motion.div
                 key={msg.key}
@@ -537,18 +733,25 @@ return (
               <Input
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Escape" && showStop) {
+                    e.preventDefault();
+                    onStop();
+                  }
+                }}
                 placeholder={activeEmail ? "Ketik pesan ke Nexus Agent..." : "Login untuk mulai mengobrol"}
                 aria-label="Pesan"
                 className="h-9 border-0 shadow-none bg-transparent focus-visible:shadow-none"
               />
               <Button
-                type="submit"
+                type={showStop ? "button" : "submit"}
                 size="icon"
-                aria-label="Kirim"
-                disabled={!input.trim() || loadingMsg}
+                aria-label={showStop ? "Stop" : "Kirim"}
+                onClick={showStop ? onStop : undefined}
+                disabled={showStop ? false : !input.trim()}
                 className="shrink-0"
               >
-                <Send size={16} strokeWidth={1.75} />
+                {showStop ? <Square size={16} strokeWidth={1.75} /> : <Send size={16} strokeWidth={1.75} />}
               </Button>
             </form>
           </div>
