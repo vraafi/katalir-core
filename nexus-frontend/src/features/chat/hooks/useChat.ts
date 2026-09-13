@@ -136,7 +136,7 @@ export function useSendChatMutation() {
   return useMutation<
     { reply: string; session_id?: string; needsCredential?: boolean; provider?: string; message?: string; meta?: { model?: string; latency_ms?: number; prompt_tokens?: number; completion_tokens?: number; total_tokens?: number; fallback?: boolean } },
     Error & { provider?: string; promptEcho?: string },
-    { prompt: string; sessionId?: string | null; email?: string | null; abortSignal?: AbortSignal; clientRequestId?: string },
+    { prompt: string; sessionId?: string | null; email?: string | null; abortSignal?: AbortSignal; clientRequestId?: string; model?: string },
     {
       optimisticUserId: string;
       optimisticAsstId: string;
@@ -146,7 +146,7 @@ export function useSendChatMutation() {
       prompt: string;
     }
   >({
-    mutationFn: async ({ prompt, sessionId, abortSignal, clientRequestId }) => {
+    mutationFn: async ({ prompt, sessionId, abortSignal, clientRequestId, model }) => {
       // Fase 1 resilience: timeout 90s (di apiFetch) + retry 2x dengan
       // exponential backoff (2s,5s) UNTUK error transien (503/network/abort).
       // Retry di-loop di sini (bukan 'retry' TanStack) supaya onMutate cuma
@@ -158,6 +158,7 @@ export function useSendChatMutation() {
         prompt,
         session_id: sessionId ?? undefined,
         client_request_id: clientRequestId ?? undefined,
+        model: model ?? undefined, // Vercel AI SDK 5 body:{model} — dikirim apa adanya, difallback di backend.
       });
       const maxAttempts = 3; // 1 + 2 retry
       const delays = [2000, 5000];

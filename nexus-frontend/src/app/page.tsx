@@ -15,6 +15,8 @@ import { useSessionsQuery, useMessagesQuery, useSendChatMutation, useDeleteSessi
 import type { ChatMessage } from "@/features/chat/hooks/useChat";
 import { useQueryClient } from "@tanstack/react-query";
 import { chatKeys } from "@/lib/query-keys";
+import { ModelSelector } from "@/components/ModelSelector";
+import { CHAT_MODELS, DEFAULT_MODEL_ID } from "@/lib/models";
 
 const SUGGESTIONS = ["Kirim pesan WA", "Rangkum dokumen", "Analisis data"];
 
@@ -117,6 +119,24 @@ function ChatApp() {
   const activeEmail = email || null;
   const [input, setInput] = useState("");
   const [credValue, setCredValue] = useState("");
+  // Model selector (Tugas 2): persist localStorage, default DEFAULT_MODEL_ID.
+  // Disabled saat streaming (loadingMsg). Tier-gate: 'free' → model plus locked.
+  // TODO(tier): ambil tier user dari backend (/me) bila tersedia; saat ini free.
+  const [selectedModel, setSelectedModel] = useState<string>(() => {
+    try {
+      if (typeof window === "undefined") return DEFAULT_MODEL_ID;
+      return window.localStorage.getItem("nexus.model.v1") ?? DEFAULT_MODEL_ID;
+    } catch {
+      return DEFAULT_MODEL_ID;
+    }
+  });
+  useEffect(() => {
+    try {
+      if (typeof window !== "undefined") window.localStorage.setItem("nexus.model.v1", selectedModel);
+    } catch {
+      /* storage diblokir — pilihan tetap jalan in-memory */
+    }
+  }, [selectedModel]);
   // Antrean pesan di atas composer (Opsi A — openclaw #104445, Geta.Team
   // v2.0.20, gini-agent ADR): bukan konten chat primer, tapi slim status
   // area; compact + collapsible + persist localStorage + animasi opacity.
@@ -436,6 +456,7 @@ function ChatApp() {
         email: em,
         abortSignal: controller.signal,
         clientRequestId,
+        model: selectedModel,
       });
       if (data.session_id && !sessionId) {
         // Echo sesi baru: onSuccess sudah memindahkan optimistic ke messages(sid).
@@ -884,6 +905,14 @@ return (
               }}
               className="flex items-center gap-2 rounded-xl border border-border/60 bg-surface/90 px-3 py-2 shadow-sm backdrop-blur transition-shadow duration-200 hover:shadow-md focus-within:border-accent/50"
             >
+              {/* Model selector pill di kiri input (mastra #12407, clankie #49). */}
+              <ModelSelector
+                models={CHAT_MODELS}
+                value={selectedModel}
+                onChange={setSelectedModel}
+                disabled={loadingMsg}
+                userTier="free"
+              />
               <Input
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
