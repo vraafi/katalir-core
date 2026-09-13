@@ -7,6 +7,12 @@ client_secret_*.json
 credentials.json
 token.json
 
+# ===== E2E test artifacts (berisi token sesi — JANGAN push) =====
+nexus-frontend/_e2e_session.json
+nexus-frontend/_e2e_storage.json
+nexus-frontend/test-results/
+nexus-frontend/playwright-report/
+
 # ===== Python =====
 __pycache__/
 *.py[cod]
