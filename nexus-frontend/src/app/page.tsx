@@ -14,7 +14,6 @@ import { FadeIn } from "@/components/motion";
 import { useSessionsQuery, useMessagesQuery, useSendChatMutation, useDeleteSessionMutation } from "@/features/chat/hooks/useChat";
 import type { ChatMessage } from "@/features/chat/hooks/useChat";
 import { useQueryClient } from "@tanstack/react-query";
-import { useQuery } from "@tanstack/react-query";
 import { chatKeys } from "@/lib/query-keys";
 
 const SUGGESTIONS = ["Kirim pesan WA", "Rangkum dokumen", "Analisis data"];
@@ -186,13 +185,11 @@ function ChatApp() {
   // data datang dari useMessagesQuery di atas); ini membuat komponen
   // re-render saat cache optimistic berubah (setQueryData).
   const activeKey = chatKeys.messages(sessionId ?? "__pending__");
-  const { data: liveCache = [] } = useQuery<ChatMessage[]>({
-    queryKey: activeKey,
-    queryFn: () => Promise.resolve([] as ChatMessage[]),
-    enabled: false,
-    initialData: [],
-  });
-  void liveCache;
+  // FIX POLA ?s= (TanStack #11106): subscribe-query lama (enabled:false +
+  // initialData:[]) menimpa cache messages(sid) dgn [] via initialData +
+  // mount-ganda observer lama -> stale observer. HAPUS observer ganda;
+  // re-render dipicu oleh useMessagesQuery di atas + setQueryData.
+  const liveCache: ChatMessage[] = [];
   // SINGLE SOURCE OF TRUTH (data-machine #210): TIDAK ada useState paralel.
   // Cache TanStack (optimistic via setQueryData) adalah satu-satunya sumber
   // overlay; server-data (messagesData) adalah sumber kebenaran pasca-refetch.
