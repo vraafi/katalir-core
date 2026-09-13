@@ -115,6 +115,17 @@ function ChatApp() {
     };
   }, [loadingMsg]);
 
+// Setelah sesi benar-benar aktif (sessionId ter-set pasca-echo), bersihkan
+  // sisa optimistic di "__pending__" (anti stray saat pindah ke sesi lain).
+  // Tidak ber-race dengan setSessionId (nuqs async) karena hanya jalan setalah
+  // sessionId commit.
+  const prevPendingSid = useRef<string | null>(null);
+  useEffect(() => {
+    if (sessionId && prevPendingSid.current !== sessionId) {
+      qc.setQueryData<ChatMessage[]>(chatKeys.messages("__pending__"), []);
+    }
+    prevPendingSid.current = sessionId;
+  }, [sessionId, qc]);
   // FIX #2a (key stabil — issue #685): pakai backend message.id bila ada.
   // useQuery hanya SUBSCRIBE (tanpa fetch duplikat — queryFn disabled,
   // data datang dari useMessagesQuery di atas); ini membuat komponen
@@ -137,7 +148,18 @@ function ChatApp() {
   const pendingCache: ChatMessage[] = !sessionId
     ? []
     : (qc.getQueryData<ChatMessage[]>(chatKeys.messages("__pending__")) ?? []);
-  const overlay: ChatMessage[] = [...pendingCache, ...cached].filter((m) => !!m._localId);
+  const overlay: ChatMessage[] = (() => {
+    // Hanya optimistic (punya _localId); dedup per _localId ACROSS pendingCache
+    // dan cached => saat frame switch (sessionId baru), optimistic yang sudah
+    // disalin ke messages(sid) tetapi masih ada di "__pending__" TIDAK ganda.
+    const seen = new Set<string>();
+    return [...pendingCache, ...cached].filter((m) => {
+      if (!m._localId) return false;
+      if (seen.has(m._localId)) return false;
+      seen.add(m._localId);
+      return true;
+    });
+  })();
   const serverConfirmedCount = new Map<string, number>();
   for (const m of messagesData) {
     if (m.role === "user" || m.role === "assistant") {
@@ -162,7 +184,7 @@ function ChatApp() {
     return true; // masih lebih banyak di optimistic → pertahankan
   });
 
-  const messages: Msg[] = [
+  const messagesRaw: Msg[] = [
     ...messagesData
       .filter((m) => m.role === "user" || m.role === "assistant")
       .map((m, i): Msg =>
@@ -185,6 +207,17 @@ function ChatApp() {
       return null;
     }).filter((m): m is Msg => m !== null),
   ];
+// Guard anti-blank-flash (lapisan render): tahan konten non-kosong terakhir
+  // selama sesi aktif bila data sempat kosong 1-2 frame (efek placeholderData).
+  // Saat newChat (sessionId null) guard nonaktif -> empty-state normal.
+  const lastNonEmpty: { current: Msg[] } = useRef<Msg[]>([]);
+  const messages: Msg[] =
+    messagesRaw.length > 0
+      ? messagesRaw
+      : sessionId && lastNonEmpty.current.length > 0
+        ? lastNonEmpty.current
+        : messagesRaw;
+  if (messagesRaw.length > 0) lastNonEmpty.current = messagesRaw;
 
   // Sentinel: hanya auto-scroll saat user sudah di bawah (anti scroll-fighting).
   // Scroll area diberi ref scrollRef; endRef sebagai sentinel target.
@@ -256,8 +289,11 @@ function ChatApp() {
     try {
       const data = await sendMutation.mutateAsync({ prompt: text, sessionId, email: em });
       if (data.session_id && !sessionId) {
-        // Echo sesi baru: optimistic sudah dipindahkan ke key final oleh
-        // onSuccess; cukup pindah URL. Overlay TIDAK di-clear di sini.
+        // Echo sesi baru: onSuccess sudah memindahkan optimistic ke messages(sid).
+        // JANGAN reset "__pending__" di sini — setSessionId (nuqs) async, reset
+        // sinkron bisa commit lebih dulu => activeKey("__pending__") kosong =>
+        // blank 1-2 frame. "__pending__" dibersihkan oleh effect[sessionId] &
+        // newChat; overlay men-dedup agar tidak duplikat saat frame switch.
         void setSessionId(data.session_id);
       }
       // Reply + kartu kredensial datang via cache update (onSuccess) dan

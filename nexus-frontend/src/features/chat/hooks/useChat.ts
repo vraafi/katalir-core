@@ -66,10 +66,18 @@ export function useSessionsQuery(email: string | null) {
  * selama aplikasi hidup. placeholderData=(prev)=>prev menahan data terakhir
  * saat query sempat tanpa data (guard H4) → tidak pernah blank flash. */
 export function useMessagesQuery(sessionId: string | null) {
+  // FIX B (intermittent blank): kalau cache messages(sessionId) SUDAH berisi
+  // optimistic (punya _localId — hasil echo send-pesan), JANGAN auto-fetch.
+  // Fetch pertama yang menyusul bisa mengembalikan server yang masih lag
+  // (kosong) dan MENIMPA optimistic+reply yang barusan ditulis via setQueryData
+  // => chat 'hilang lalu muncul'. Optimistic+reply adalah sumbernya; Genuine
+  // sidebar-open (cache tanpa _localId) tetap fetch server normal.
+  const qc = useQueryClient();
+  const hasLocal = !!sessionId && (qc.getQueryData<ChatMessage[]>(chatKeys.messages(sessionId)) ?? []).some((m) => !!m._localId);
   return useQuery({
     queryKey: chatKeys.messages(sessionId ?? ""),
     queryFn: () => fetchMessages(sessionId ?? ""),
-    enabled: !!sessionId,
+    enabled: !!sessionId && !hasLocal,
     staleTime: Infinity,
     gcTime: Infinity,
     placeholderData: (prev) => prev,
@@ -218,8 +226,12 @@ export function useSendChatMutation() {
       );
     },
     onSuccess: (data, vars, context) => {
-      // Sesi baru (session_id dari echo): pindahkan optimistic ke key final,
-      // lalu invalidasi agar server-data sinkron (dedup by content di page).
+      // Sesi baru (session_id dari echo): pindahkan optimistic ke key final.
+      // FIX A: JANGAN reset targetKey ("__pending__") di sini/sendPrompt — 
+      // setSessionId (nuqs) async; reset sinkron bisa commit lebih dulu =>
+      // activeKey("__pending__") kosong => blank 1-2 frame. "__pending__"
+      // dikosongkan oleh effect[sessionId] (setelah commit) dan newChat;
+      // overlay men-dedup per _localId agar tidak duplikat saat frame switch.
       const finalKey = chatKeys.messages(data.session_id ?? vars.sessionId ?? "__pending__");
       if (context && (finalKey.join("/") !== context.targetKey.join("/"))) {
         const moving = (qc.getQueryData<ChatMessage[]>(context.targetKey) ?? []).filter(
@@ -228,7 +240,8 @@ export function useSendChatMutation() {
         if (moving.length) {
           qc.setQueryData<ChatMessage[]>(finalKey, (old) => [...(old ?? []), ...moving]);
         }
-        qc.setQueryData<ChatMessage[]>(context.targetKey, context.previous ?? []);
+        // CATATAN: sengaja TIDAK reset context.targetKey ("__pending__") di sini —
+        // lihat FIX A di atas; "__pending__" dikosongkan oleh effect[sessionId].
       }
       if (data.needsCredential && context) {
         // Ganti placeholder assistant dengan kartu form kredensial.
