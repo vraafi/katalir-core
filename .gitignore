@@ -43,3 +43,15 @@ thumbs.db
 data/
 *.db
 _log.txt
+
+# ===== Probe / temp scripts (berisi kredensial — JANGAN push) =====
+_*.py
+_out*.txt
+_gw.env
+_gw_master.txt
+_vps_*.py
+_rail*.py
+_mut*.py
+_verify*.py
+_depcheck*.py
+vps_ssh_test.py
