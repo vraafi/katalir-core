@@ -23,11 +23,16 @@ test.describe("UX queue burst", () => {
     await input.fill("burst C");
     await input.press("Enter");
     await page.waitForTimeout(1500);
+    // Queue default collapsed: baca label + preview dulu (Geta.Team pattern).
+    await expect(page.getByTestId("queue-area")).toContainText("Antrean (2)", { timeout: 5000 });
+    await expect(page.getByTestId("queue-preview")).toContainText("burst B", { timeout: 5000 });
+    // Expand lalu cek isi queued + urutan FIFO.
+    await page.getByTestId("queue-toggle").click();
+    const nQueued = await page.getByTestId("queued-msg").count();
     const body = (await page.textContent("body")) ?? "";
     const countA = (body.match(/burst A/g) || []).length;
     const countB = (body.match(/burst B/g) || []).length;
     const countC = (body.match(/burst C/g) || []).length;
-    const nQueued = await page.getByTestId("queued-msg").count();
     console.log(`BURST A=${countA} B=${countB} C=${countC} QUEUED_SLOTS=${nQueued}`);
     // Semua 3 teks harus tampil tepat 1x (1 in-flight + 2 queued), tidak ada yang hilang/duplikat.
     expect(countA).toBe(1);

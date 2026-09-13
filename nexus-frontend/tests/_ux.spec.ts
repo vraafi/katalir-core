@@ -30,9 +30,13 @@ test.describe("UX message queue + stop", () => {
     await expect(stopBtn).toBeVisible({ timeout: 15000 });
 
     // Ketik follow-up -> tombol balik jadi Send, kirim -> masuk antrean (Fix 2+3)
+    // Queue area di atas composer, default collapsed (Geta.Team): expand dulu.
     await input.fill("ux probe dua");
     await expect(page.getByRole("button", { name: "Kirim", exact: true })).toBeVisible({ timeout: 5000 });
     await page.getByLabel("Pesan").press("Enter");
+    await expect(page.getByTestId("queue-area")).toContainText("Antrean (1)", { timeout: 5000 });
+    await expect(page.getByTestId("queue-preview")).toContainText("ux probe dua", { timeout: 5000 });
+    await page.getByTestId("queue-toggle").click();
     const queued = page.getByTestId("queued-msg");
     await expect(queued.first()).toContainText("ux probe dua", { timeout: 5000 });
     await expect(queued.first()).toContainText("Queued", { timeout: 5000 });

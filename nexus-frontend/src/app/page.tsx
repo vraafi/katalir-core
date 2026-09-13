@@ -1,7 +1,7 @@
 "use client";
 
 import { Suspense, useCallback, useEffect, useRef, useState } from "react";
-import { Send, Square, Sparkles, Bot, User, KeyRound, RotateCcw, AlertTriangle, Pencil, X } from "lucide-react";
+import { Send, Square, Sparkles, Bot, User, KeyRound, RotateCcw, AlertTriangle, Pencil, X, Clock, ChevronDown, ChevronRight } from "lucide-react";
 import { motion } from "motion/react";
 import { useQueryState, parseAsString } from "nuqs";
 import Shell from "@/components/shell";
@@ -85,8 +85,21 @@ function ChatApp() {
   const activeEmail = email || null;
   const [input, setInput] = useState("");
   const [credValue, setCredValue] = useState("");
-  // Antrean pesan (Fix 3, gptme #1254): array, bukan single object.
-  const [messageQueue, setMessageQueue] = useState<QueuedMsg[]>([]);
+  // Antrean pesan di atas composer (Opsi A — openclaw #104445, Geta.Team
+  // v2.0.20, gini-agent ADR): bukan konten chat primer, tapi slim status
+  // area; compact + collapsible + persist localStorage + animasi opacity.
+  const [messageQueue, setMessageQueue] = useState<QueuedMsg[]>(() => {
+    try {
+      if (typeof window === "undefined") return [];
+      const raw = window.localStorage.getItem("nexus.queue.v1");
+      if (!raw) return [];
+      const arr = JSON.parse(raw) as QueuedMsg[];
+      return Array.isArray(arr) ? arr.filter((m) => m && typeof m.text === "string") : [];
+    } catch {
+      return [];
+    }
+  });
+  const [queueExpanded, setQueueExpanded] = useState(false);
   // Edit pesan di antrean (Fix 4) + konfirmasi Chat Baru saat AI aktif (Fix 6).
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editText, setEditText] = useState("");
@@ -105,6 +118,25 @@ function ChatApp() {
   useEffect(() => {
     emailRef.current = activeEmail;
   }, [activeEmail]);
+
+  // Persist antrean (gini-agent ADR, fallback localStorage): refresh page
+  // -> queue tetap ada. Tulis debounced-natural via effect per perubahan.
+  useEffect(() => {
+    try {
+      if (typeof window === "undefined") return;
+      window.localStorage.setItem("nexus.queue.v1", JSON.stringify(messageQueue));
+    } catch {
+      /* storage penuh/diblokir — queue tetap jalan in-memory */
+    }
+  }, [messageQueue]);
+
+  // Default collapsed (Geta.Team v2.0.20): tiap ada item baru, kembali
+  // collapsed agar area tetap slim; user klik untuk expand.
+  const prevQueueLen = useRef(messageQueue.length);
+  useEffect(() => {
+    if (messageQueue.length > prevQueueLen.current) setQueueExpanded(false);
+    prevQueueLen.current = messageQueue.length;
+  }, [messageQueue.length]);
 
   // Server-state via TanStack Query v5 (staleTime 60s, refetchOnWindowFocus=true).
   const { data: sessions = [] } = useSessionsQuery(activeEmail);
@@ -513,87 +545,6 @@ return (
             ) : (
           <>
             <div className="flex flex-col gap-4 contain-layout" aria-live="polite" data-testid="msg-list">
-            {/* Fix 5 visual antrean (opencode #15587): bubble queued = opacity
-                rendah + label "Queued" + aksi edit inline/hapus. */}
-            {messageQueue.map((q) => (
-              <div key={q.id} className="flex items-end justify-end gap-2" data-testid="queued-msg">
-                <div className="max-w-[75%] rounded-sm rounded-br-sm bg-accent px-4 py-2.5 text-subhead text-accent-fg shadow-sm opacity-60">
-                  {editingId === q.id ? (
-                    <span className="flex items-center gap-1.5">
-                      <input
-                        value={editText}
-                        onChange={(e) => setEditText(e.target.value)}
-                        onKeyDown={(e) => {
-                          if (e.key === "Enter") {
-                            e.preventDefault();
-                            const t = editText.trim();
-                            if (t) setMessageQueue((prev) => prev.map((m) => (m.id === q.id ? { ...m, text: t } : m)));
-                            setEditingId(null);
-                          } else if (e.key === "Escape") {
-                            setEditingId(null);
-                          }
-                        }}
-                        aria-label="Ubah teks antrean"
-                        autoFocus
-                        className="h-7 w-40 rounded-sm bg-bg/70 px-2 text-subhead text-accent-fg outline-none"
-                      />
-                      <button
-                        type="button"
-                        aria-label="Simpan edit antrean"
-                        onClick={() => {
-                          const t = editText.trim();
-                          if (t) setMessageQueue((prev) => prev.map((m) => (m.id === q.id ? { ...m, text: t } : m)));
-                          setEditingId(null);
-                        }}
-                        className="rounded-sm px-1.5 py-1 text-footnote font-medium underline underline-offset-2"
-                      >
-                        Simpan
-                      </button>
-                      <button
-                        type="button"
-                        aria-label="Batal edit antrean"
-                        onClick={() => setEditingId(null)}
-                        className="rounded-sm p-1"
-                      >
-                        <X size={13} strokeWidth={2} />
-                      </button>
-                    </span>
-                  ) : (
-                    <span className="flex items-center gap-2">
-                      <span>{q.text}</span>
-                      <span className="rounded-full border border-current/30 px-1.5 py-px text-[10px] font-medium uppercase tracking-wide opacity-80">
-                        Queued
-                      </span>
-                      <button
-                        type="button"
-                        aria-label="Edit antrean"
-                        onClick={() => {
-                          setEditingId(q.id);
-                          setEditText(q.text);
-                        }}
-                        className="rounded-sm p-1 opacity-80 hover:opacity-100"
-                      >
-                        <Pencil size={13} strokeWidth={1.75} />
-                      </button>
-                      <button
-                        type="button"
-                        aria-label="Hapus antrean"
-                        onClick={() => {
-                          if (editingId === q.id) setEditingId(null);
-                          setMessageQueue((prev) => prev.filter((m) => m.id !== q.id));
-                        }}
-                        className="rounded-sm p-1 opacity-80 hover:opacity-100"
-                      >
-                        <X size={13} strokeWidth={2} />
-                      </button>
-                    </span>
-                  )}
-                </div>
-                <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-accent opacity-60">
-                  <User size={14} strokeWidth={1.5} className="text-accent-fg" />
-                </div>
-              </div>
-            ))}
             {messages.map((msg) => (
               <motion.div
                 key={msg.key}
@@ -720,6 +671,132 @@ return (
         )}
           </div>
         </div>
+        {/* QUEUE-AREA-START — DI ATAS composer, slim status line (Opsi A,
+            openclaw #104445): composer-width, compact, collapsible (Geta.Team),
+            transisi opacity-only. */}
+        {messageQueue.length > 0 && (
+          <div className="flex-none border-t border-border/40 px-5 py-2" data-testid="queue-area">
+            <div className="mx-auto max-w-[48rem]">
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setQueueExpanded((v) => !v)}
+                  aria-expanded={queueExpanded}
+                  aria-label={queueExpanded ? "Tutup antrean" : "Buka antrean"}
+                  data-testid="queue-toggle"
+                  className="flex items-center gap-1.5 text-footnote text-fg-muted transition-opacity hover:text-fg"
+                >
+                  <Clock size={12} strokeWidth={1.75} />
+                  <span>Antrean ({messageQueue.length})</span>
+                  {queueExpanded ? <ChevronDown size={12} /> : <ChevronRight size={12} />}
+                </button>
+                {!queueExpanded && messageQueue[0] && (
+                  <p className="truncate text-footnote text-fg-subtle" data-testid="queue-preview">
+                    {messageQueue[0].text.slice(0, 60)}
+                    {messageQueue[0].text.length > 60 ? "…" : ""}
+                  </p>
+                )}
+                {messageQueue.length > 3 && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setEditingId(null);
+                      setMessageQueue([]);
+                    }}
+                    aria-label="Hapus semua antrean"
+                    className="ml-auto text-footnote text-fg-muted underline underline-offset-2 transition-opacity hover:text-fg"
+                  >
+                    Clear all
+                  </button>
+                )}
+              </div>
+              <div id="queue-rows-anchor" />
+              {queueExpanded && (
+                <div className="mt-1.5 flex flex-col gap-1.5 animate-fade-in">
+                  {messageQueue.map((q) => (
+                    <div
+                      key={q.id}
+                      data-testid="queued-msg"
+                      className="flex items-center gap-2 rounded-sm border border-border/60 bg-bg/60 px-2.5 py-1.5 text-footnote opacity-80"
+                    >
+                      <Clock size={12} strokeWidth={1.75} className="shrink-0 text-fg-muted" />
+                      {editingId === q.id ? (
+                        <span className="flex min-w-0 flex-1 items-center gap-1.5">
+                          <input
+                            value={editText}
+                            onChange={(e) => setEditText(e.target.value)}
+                            onKeyDown={(e) => {
+                              if (e.key === "Enter") {
+                                e.preventDefault();
+                                const t = editText.trim();
+                                if (t) setMessageQueue((prev) => prev.map((m) => (m.id === q.id ? { ...m, text: t } : m)));
+                                setEditingId(null);
+                              } else if (e.key === "Escape") {
+                                setEditingId(null);
+                              }
+                            }}
+                            aria-label="Ubah teks antrean"
+                            autoFocus
+                            className="h-7 min-w-0 flex-1 rounded-sm bg-bg px-2 text-footnote text-fg outline-none"
+                          />
+                          <button
+                            type="button"
+                            aria-label="Simpan edit antrean"
+                            onClick={() => {
+                              const t = editText.trim();
+                              if (t) setMessageQueue((prev) => prev.map((m) => (m.id === q.id ? { ...m, text: t } : m)));
+                              setEditingId(null);
+                            }}
+                            className="shrink-0 rounded-sm px-1.5 py-1 text-footnote font-medium underline underline-offset-2"
+                          >
+                            Simpan
+                          </button>
+                          <button
+                            type="button"
+                            aria-label="Batal edit antrean"
+                            onClick={() => setEditingId(null)}
+                            className="shrink-0 rounded-sm p-1 opacity-80 hover:opacity-100"
+                          >
+                            <X size={13} strokeWidth={2} />
+                          </button>
+                        </span>
+                      ) : (
+                        <>
+                          <span className="min-w-0 flex-1 truncate text-fg">{q.text}</span>
+                          <span className="shrink-0 rounded-full border border-current/30 px-1.5 py-px text-[10px] font-medium uppercase tracking-wide text-fg-muted">
+                            Queued
+                          </span>
+                          <button
+                            type="button"
+                            aria-label="Edit antrean"
+                            onClick={() => {
+                              setEditingId(q.id);
+                              setEditText(q.text);
+                            }}
+                            className="shrink-0 rounded-sm p-1 opacity-80 hover:opacity-100"
+                          >
+                            <Pencil size={13} strokeWidth={1.75} />
+                          </button>
+                          <button
+                            type="button"
+                            aria-label="Hapus antrean"
+                            onClick={() => {
+                              if (editingId === q.id) setEditingId(null);
+                              setMessageQueue((prev) => prev.filter((m) => m.id !== q.id));
+                            }}
+                            className="shrink-0 rounded-sm p-1 opacity-80 hover:opacity-100"
+                          >
+                            <X size={13} strokeWidth={2} />
+                          </button>
+                        </>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        )}
         {/* Input bar — flex-none, sticky di bawah, TIDAK ikut scroll */}
         <div className="flex-none border-t border-border bg-surface/95 px-5 py-3">
           <div className="mx-auto max-w-[48rem]">
