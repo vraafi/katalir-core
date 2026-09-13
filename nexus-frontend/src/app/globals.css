@@ -76,3 +76,37 @@ body {
 ::-webkit-scrollbar-thumb:hover {
   background: rgb(var(--fg-subtle));
 }
+
+/* Typing indicator (CallSphere 200ms rule) — 3 bouncing dots.
+   Hanya pakai transform + opacity (GPU compositing), TIDAK width/height
+   (hindari layout thrash). prefers-reduced-motion di-nonaktifkan secara
+   global di blok @media atas (animation-duration 0.01ms). */
+.typing-dot {
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  margin-right: 3px;
+  border-radius: 9999px;
+  background: currentColor;
+  animation: typing-bounce 1.4s ease-in-out infinite;
+  will-change: transform, opacity;
+}
+.typing-dot:nth-child(2) {
+  animation-delay: 0.2s;
+}
+.typing-dot:nth-child(3) {
+  animation-delay: 0.4s;
+  margin-right: 0;
+}
+@keyframes typing-bounce {
+  0%,
+  60%,
+  100% {
+    transform: translateY(0);
+    opacity: 0.4;
+  }
+  30% {
+    transform: translateY(-4px);
+    opacity: 1;
+  }
+}
