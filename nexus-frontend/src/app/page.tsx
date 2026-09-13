@@ -11,7 +11,7 @@ import { Input } from "@/components/ui/input";
 import { QueryProvider } from "@/features/builder/provider";
 import { apiFetch } from "@/lib/api";
 import { FadeIn } from "@/components/motion";
-import { useSessionsQuery, useMessagesQuery, useSendChatMutation, useDeleteSessionMutation } from "@/features/chat/hooks/useChat";
+import { useSessionsQuery, useMessagesQuery, useSendChatMutation, useDeleteSessionMutation, useModelsQuery, type ChatModelItem } from "@/features/chat/hooks/useChat";
 import type { ChatMessage } from "@/features/chat/hooks/useChat";
 import { useQueryClient } from "@tanstack/react-query";
 import { chatKeys } from "@/lib/query-keys";
@@ -119,9 +119,22 @@ function ChatApp() {
   const activeEmail = email || null;
   const [input, setInput] = useState("");
   const [credValue, setCredValue] = useState("");
-  // Model selector (Tugas 2): persist localStorage, default DEFAULT_MODEL_ID.
-  // Disabled saat streaming (loadingMsg). Tier-gate: 'free' → model plus locked.
-  // TODO(tier): ambil tier user dari backend (/me) bila tersedia; saat ini free.
+  // Model selector (Tugas 2): daftar dari GET /models (locked per tier server)
+  // + fallback ke registry lokal CHAT_MODELS bila backend belum update.
+  // Persist localStorage 'nexus.model.v1'. Disabled saat streaming.
+  const { data: modelsData } = useModelsQuery(!!activeEmail);
+  const serverModels: ChatModelItem[] | null =
+    modelsData && modelsData.models.length > 0 ? modelsData.models : null;
+  // Map ke tipe registry lokal agar ModelSelector tetap konsisten.
+  const modelList = (serverModels ?? CHAT_MODELS.map((m) => ({ ...m, locked: false }))).map((m) => ({
+    id: m.id,
+    name: m.name,
+    provider: m.provider,
+    tier: (m.tier === "plus" ? "plus" : "free") as "free" | "plus",
+    hint: m.hint,
+  }));
+  const serverTier = (modelsData?.tier ?? "free").toLowerCase();
+  const userTier: "free" | "plus" = serverTier === "plus" || serverTier === "pro" || serverTier === "ultra" ? "plus" : "free";
   const [selectedModel, setSelectedModel] = useState<string>(() => {
     try {
       if (typeof window === "undefined") return DEFAULT_MODEL_ID;
@@ -907,11 +920,11 @@ return (
             >
               {/* Model selector pill di kiri input (mastra #12407, clankie #49). */}
               <ModelSelector
-                models={CHAT_MODELS}
+                models={modelList}
                 value={selectedModel}
                 onChange={setSelectedModel}
                 disabled={loadingMsg}
-                userTier="free"
+                userTier={userTier}
               />
               <Input
                 value={input}

@@ -102,6 +102,51 @@ export function useMessagesQuery(sessionId: string | null) {
   });
 }
 
+export interface ChatModelItem {
+  id: string;
+  name: string;
+  provider: string;
+  tier: "free" | "plus";
+  locked: boolean;
+  hint?: string;
+}
+
+/** useQuery GET /me — profil {email, tier} untuk tier-gate ModelSelector. */
+export function useMeQuery(enabled: boolean) {
+  return useQuery({
+    queryKey: ["me"],
+    queryFn: async (): Promise<{ email: string; tier: string }> => {
+      const res = await apiFetch("/me");
+      if (!res.ok) return { email: "", tier: "free" };
+      const data = await res.json();
+      return { email: data?.email ?? "", tier: String(data?.tier ?? "free").toLowerCase() };
+    },
+    enabled,
+    staleTime: 300_000,
+    refetchOnWindowFocus: false,
+  });
+}
+
+/** useQuery GET /models — daftar model + flag locked per tier user. */
+export function useModelsQuery(enabled: boolean) {
+  return useQuery({
+    queryKey: ["models"],
+    queryFn: async (): Promise<{ tier: string; def: string; models: ChatModelItem[] }> => {
+      const res = await apiFetch("/models");
+      if (!res.ok) return { tier: "free", def: "", models: [] };
+      const data = await res.json();
+      return {
+        tier: String(data?.tier ?? "free").toLowerCase(),
+        def: String(data?.default ?? ""),
+        models: (data?.models as ChatModelItem[]) ?? [],
+      };
+    },
+    enabled,
+    staleTime: 300_000,
+    refetchOnWindowFocus: false,
+  });
+}
+
 /** useMutation DELETE /sessions/{id} — hapus riwayat + isinya (cascade). */
 export function useDeleteSessionMutation() {
   const qc = useQueryClient();

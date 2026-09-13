@@ -15,6 +15,46 @@
 
 import os
 
+# ---------------------------------------------------------------------------
+# MODEL REGISTRY (Tugas 2 / hermes-agent #5880): tier-gate per model.
+# Mirror frontend nexus-frontend/src/lib/models.ts. 'free' = semua user,
+# 'plus' = hanya user tier plus/pro. Tier user dari public.users.tier.
+# ---------------------------------------------------------------------------
+# Daftar model free yang memang diizinkan dipilih (hanya ini yang di-serve
+# oleh Gemini/Google keys). Model plus di-reject bila tier user = free.
+FREE_CHAT_MODELS = frozenset({
+    "gemma-4-31b-it",
+    "gemini-2.5-flash",
+    "gemma-4-9b-it",
+})
+PLUS_CHAT_MODELS = frozenset({
+    "gemini-1.5-pro",
+})
+ALLOWED_CHAT_MODELS = FREE_CHAT_MODELS | PLUS_CHAT_MODELS
+PLUS_TIERS = frozenset({"plus", "pro", "ultra"})
+
+
+def _resolve_model(requested: str | None, user_tier: str) -> tuple[str, bool]:
+    """Validasi model pilihan user + tier-gate.
+
+    Returns:
+        (model_id, tier_fallback): tier_fallback=True bila model plus
+        diminta user free -> jatuh ke default server (bukan 403, agar UX
+        composer tidak putus; badge fallback/transparansi di meta).
+    """
+    default_id = os.getenv("AGENT_MODEL", "gemma-4-31b-it")
+    tier = (user_tier or "free").strip().lower()
+    if not requested:
+        return default_id, False
+    req = requested.strip()
+    if req in FREE_CHAT_MODELS:
+        return req, False
+    if req in PLUS_CHAT_MODELS:
+        if tier in PLUS_TIERS:
+            return req, False
+        return default_id, True  # free user minta plus -> fallback default
+    return default_id, False  # unknown id -> abaikan, pakai default
+
 from fastapi import BackgroundTasks, FastAPI, Header, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
@@ -63,6 +103,9 @@ class ChatRequest(BaseModel):
     # POST /chat tiba 2x untuk pesan yang sama (retry setelah server-commit),
     # backend mengenali & tidak meng-insert user-message dua kali.
     client_request_id: str | None = Field(default=None)
+    # Model yang dipilih user dari composer (ModelSelector). Bila None, pakai
+    # AGENT_MODEL (default server). Hanya model yang ada di ALLOWED_MODELS.
+    model: str | None = Field(default=None)
 
 
 class IntegrationRequest(BaseModel):
@@ -89,7 +132,7 @@ class ExecuteRequest(BaseModel):
 # ---------------------------------------------------------------------------
 # AGENTIC LOOP (setara _agentic_run, bebas dari Streamlit)
 # ---------------------------------------------------------------------------
-def _agentic_run_direct(prompt: str, email: str) -> dict:
+def _agentic_run_direct(prompt: str, email: str, model: str | None = None, user_tier: str = "free") -> dict:
     """Jalankan Gemini dengan tool calling; eksekusi alat; loop.
 
     Apabila alat butuh kredensial, melempar CredentialMissingError (dibiarkan
@@ -111,8 +154,8 @@ def _agentic_run_direct(prompt: str, email: str) -> dict:
     if not api_key:
         raise HTTPException(500, "API key tidak ditemukan.")
 
-    model_id = os.getenv("AGENT_MODEL", "gemma-4-31b-it")
-    fallback_used = False
+    model_id, tier_fallback = _resolve_model(model, user_tier)
+    fallback_used = bool(tier_fallback)
 
     SYSTEM = (
         "Anda adalah Nexus Autonomous Agent. Rencanakan & lakukan tindakan dengan "
@@ -236,6 +279,14 @@ def chat(req: ChatRequest, authorization: str | None = Header(None)):
     user_email = user["email"]
     user_id = user["id"]
     req_id = req.client_request_id
+    # Tier user untuk tier-gate model (hermes-agent #5880): free -> model plus
+    # di-fallback ke default (bukan 403). Resolve via get_or_create_user
+    # (row users dibuat bila belum ada — sama seperti session flow).
+    try:
+        _u = db.get_or_create_user(user_email, "", auth_id=user_id)
+        user_tier = str((_u or {}).get("tier", "free") or "free")
+    except Exception:
+        user_tier = "free"
 
     # Idempotensi (openclaw #69266): kalau kiriman logis ini sudah pernah diproses
     # (mis. respons hilang saat timeout, lalu frontend retry), JANGAN double-insert.
@@ -281,7 +332,7 @@ def chat(req: ChatRequest, authorization: str | None = Header(None)):
         raise HTTPException(500, f"Gagal menyimpan pesan: {type(exc).__name__}: {exc}")
 
     try:
-        _run = _agentic_run_direct(req.prompt, user_email)
+        _run = _agentic_run_direct(req.prompt, user_email, model=req.model, user_tier=user_tier)
         reply = _run["reply"]
         meta = _run.get("meta") or {}
     except CredentialMissingError as e:
@@ -310,6 +361,47 @@ def chat(req: ChatRequest, authorization: str | None = Header(None)):
         raise HTTPException(500, f"Gagal menyimpan balasan: {type(exc).__name__}: {exc}")
 
     return {"status": "success", "reply": reply, "session_id": session_id, "meta": meta}
+
+
+# ---------------------------------------------------------------------------
+# ENDPOINT: GET /me  (profil user: email + tier) — untuk tier-gate ModelSelector.
+# ---------------------------------------------------------------------------
+@app.get("/me")
+def me(authorization: str | None = Header(None)):
+    """Kembalikan {email, tier} user JWT (tier dari public.users, default free)."""
+    user = security.get_current_user(authorization)
+    try:
+        _u = db.get_or_create_user(user["email"], "", auth_id=user["id"])
+        tier = str((_u or {}).get("tier", "free") or "free").strip().lower()
+    except Exception:
+        tier = "free"
+    return {"status": "success", "email": user["email"], "tier": tier}
+
+
+# ---------------------------------------------------------------------------
+# ENDPOINT 1b: GET /models  (daftar model + flag locked per tier user)
+# ---------------------------------------------------------------------------
+@app.get("/models")
+def list_models(authorization: str | None = Header(None)):
+    """Daftar model chat dengan flag `locked` sesuai tier user (hermes #5880).
+
+    locked=False -> bisa dipilih. locked=True -> tampil redup + Upgrade link.
+    """
+    user = security.get_current_user(authorization)
+    try:
+        _u = db.get_or_create_user(user["email"], "", auth_id=user["id"])
+        tier = str((_u or {}).get("tier", "free") or "free").strip().lower()
+    except Exception:
+        tier = "free"
+    is_plus = tier in PLUS_TIERS
+    default_id = os.getenv("AGENT_MODEL", "gemma-4-31b-it")
+    items = [
+        {"id": "gemma-4-31b-it", "name": "Gemma 4 31B", "provider": "Google (Gemini)", "tier": "free", "locked": False},
+        {"id": "gemini-2.5-flash", "name": "Gemini 2.5 Flash", "provider": "Google (Gemini)", "tier": "free", "locked": False, "hint": "Cepat, hemat token"},
+        {"id": "gemma-4-9b-it", "name": "Gemma 4 9B", "provider": "Google (Gemini)", "tier": "free", "locked": False, "hint": "Ringan & hemat"},
+        {"id": "gemini-1.5-pro", "name": "Gemini Advanced", "provider": "Google (Gemini)", "tier": "plus", "locked": not is_plus},
+    ]
+    return {"status": "success", "tier": tier, "default": default_id, "models": items}
 
 
 # ---------------------------------------------------------------------------
