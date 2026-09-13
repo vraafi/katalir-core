@@ -65,6 +65,19 @@ body {
   overflow-anchor: auto;
 }
 
+/* Virtualization lite (llama.cpp #26083, OpenHands #12707):
+   Session besar (400+ pesan) memblokir main-thread karena semua bubble di-render
+   sekaligus (400+ DOM + layout calc). content-visibility:auto membuat browser
+   SKIP rendering/layout/paint utk pesan yang offscreen -> rendering cost bound
+   ke viewport saja. contain-intrinsic-size:auto 78px = estimate tinggi rata row
+   supaya layout tetap reserve ruang (scroll metrik utuh) walau row offscreen.
+   Poderado browsers (zonder content-visibility) ignore + render semua (sama
+   sebagai belam) -> graceful, tidak break. */
+[data-testid="msg-list"] > * {
+  content-visibility: auto;
+  contain-intrinsic-size: auto 78px;
+}
+
 /* Smooth scrollbar */
 ::-webkit-scrollbar {
   width: 8px;

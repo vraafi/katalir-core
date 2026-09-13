@@ -1,0 +1,26 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><title>CV bench</title>
+<style>
+  body{margin:0}
+  [data-testid="msg-list"]> * { content-visibility: auto; contain-intrinsic-size: auto 40px; }
+</style></head>
+<body>
+<div id="list" data-testid="msg-list"></div><div id="plain"></div>
+<script>
+function build(target, n){
+  const list=document.getElementById(target); list.innerHTML='';
+  const t0=performance.now();
+  const frag=document.createDocumentFragment();
+  for(let i=0;i<n;i++){ const d=document.createElement('div');
+    d.style.height='40px'; d.textContent='msg '+i; frag.appendChild(d); }
+  list.appendChild(frag);
+  const tBuild=performance.now()-t0;
+  const t1=performance.now(); void list.scrollHeight; const tLayout=performance.now()-t1;
+  return {tBuild:Math.round(tBuild), tLayout:Math.round(tLayout)};
+}
+window.__run=(n)=>{
+  const withCV=build('list', n);
+  const without=build('plain', n);
+  return {withCV: withCV, withoutCV: without};
+};
+</script></body></html>
