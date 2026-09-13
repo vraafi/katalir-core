@@ -266,6 +266,8 @@ function ChatApp() {
   // selama sesi aktif bila data sempat kosong 1-2 frame (efek placeholderData).
   // Saat newChat (sessionId null) guard nonaktif -> empty-state normal.
   const lastNonEmpty: { current: Msg[] } = useRef<Msg[]>([]);
+  const lastNonEmptySid = useRef<string|null>(null);
+  if (lastNonEmptySid.current !== (sessionId ?? null)) { lastNonEmptySid.current = sessionId ?? null; lastNonEmpty.current = []; } // FIX REGRESI: guard anti-blank direset per sesi agar tidak menahan pesan sesi lama
   const messages: Msg[] =
     messagesRaw.length > 0
       ? messagesRaw

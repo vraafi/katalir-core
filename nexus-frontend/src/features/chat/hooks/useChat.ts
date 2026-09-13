@@ -85,7 +85,7 @@ export function useMessagesQuery(sessionId: string | null) {
   return useQuery({
     queryKey: chatKeys.messages(sessionId ?? ""),
     queryFn: () => fetchMessages(sessionId ?? ""),
-    enabled: !!sessionId && !hasLocal,
+    enabled: !!sessionId, // FIX REGRESI 2026-09-13: guard lama mematikan fetch utk sesi tanpa optimistic -> UI kosong permanen. Perlindungan optimistic ditangani merge server+overlay di page.tsx.
     staleTime: Infinity,
     gcTime: Infinity,
     placeholderData: (prev) => prev,
