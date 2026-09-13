@@ -474,6 +474,90 @@ function ChatApp() {
     }
   }
 
+  // ---- Perf (H1: freeze klik riwayat besar) — jangan mount ribuan motion.div ----
+  // Tiap row TIDAK perlu animasi + akan dikomposit (willChange:opacity). Animasi
+  // Framer hanya di "ekor" pesan (selalu terlihat/baru). Row lama = plain <div>
+  // (tanpa motion, tanpa willChange) → tidak bikin ratusan compositing layer +
+  // animasi serentak yang memblokir main-thread (dev.to main-thread blocking;
+  // openclaw #104445). ANIM_TAIL = jumlah row TERAKHIR yang diberi animasi.
+  const ANIM_TAIL = 8;
+  // renderMsg: isi bubble (avatar + konten) — dipakai baik row-animasi maupun
+  // row-statis, supaya konten & key IDENTIK; tidak ada regresi render.
+  function renderMsg(msg: Msg) {
+    return (
+      <>
+        {msg.role !== "user" && (
+          <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-bg-subtle">
+            <Bot size={14} strokeWidth={1.5} className="text-fg-muted" />
+          </div>
+        )}
+        <div
+          className={
+            msg.role === "user"
+              ? "max-w-[75%] rounded-sm rounded-br-sm bg-accent px-4 py-2.5 text-subhead text-accent-fg shadow-sm"
+              : "max-w-[85%] rounded-sm rounded-bl-sm bg-surface px-4 py-2.5 text-subhead text-fg shadow-xs"
+          }
+        >
+          {msg.role === "system" && msg.type === "credential_form" ? (
+            <div className="w-72">
+              <div className="flex items-center gap-2">
+                <KeyRound size={15} strokeWidth={1.5} className="text-accent" />
+                <span className="font-semibold text-fg">
+                  Akses dibutuhkan: {PROVIDER_LABELS[msg.provider] ?? msg.provider}
+                </span>
+              </div>
+              <p className="mt-1.5 text-footnote text-fg-muted">
+                Masukkan token provider untuk melanjutkan tugas Anda.
+              </p>
+              <Input
+                value={credValue}
+                onChange={(e) => setCredValue(e.target.value)}
+                type="password"
+                placeholder="Token / API key..."
+                aria-label="Token / API key"
+              />
+              <Button
+                disabled={!credValue.trim()}
+                onClick={() => submitCredential(msg.provider, msg.original)}
+                className="mt-2.5 w-full justify-center"
+                variant="secondary"
+              >
+                Simpan & Lanjutkan
+              </Button>
+            </div>
+          ) : msg.role === "system" && msg.type === "error" ? (
+            <div className="w-72">
+              <div className="flex items-center gap-2 text-red-500">
+                <AlertTriangle size={15} strokeWidth={1.75} />
+                <span className="font-semibold text-fg">Gagal mengirim</span>
+              </div>
+              <p className="mt-1.5 text-footnote text-fg-muted">{msg.content}</p>
+              <Button
+                variant="secondary"
+                onClick={() => retryMessage({ content: msg.content, original: msg.original })}
+                className="mt-2.5 w-full justify-center gap-1.5"
+              >
+                <RotateCcw size={14} strokeWidth={1.75} />
+                Coba Lagi
+              </Button>
+            </div>
+          ) : msg.role === "assistant" && msg.content === "…" ? (
+            <span className="inline-flex py-0.5" aria-hidden="true">
+              <TypingDots ariaHidden />
+            </span>
+          ) : (
+            msg.content
+          )}
+        </div>
+        {msg.role === "user" && (
+          <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-accent">
+            <User size={14} strokeWidth={1.5} className="text-accent-fg" />
+          </div>
+        )}
+      </>
+    );
+  }
+
 return (
     <Shell
       sessions={sessions}
@@ -554,85 +638,32 @@ return (
             ) : (
           <>
             <div className="flex flex-col gap-4 contain-layout" aria-live="polite" data-testid="msg-list">
-            {messages.map((msg) => (
-              <motion.div
-                key={msg.key}
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ duration: 0.18, ease: "easeOut" }}
-                style={{ willChange: "opacity" }}
-                className={`flex items-end gap-2 ${msg.role === "user" ? "justify-end" : ""}`}
-              >
-                {msg.role !== "user" && (
-                  <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-bg-subtle">
-                    <Bot size={14} strokeWidth={1.5} className="text-fg-muted" />
+            {messages.map((msg, i) => {
+              // Perf (H1): animasi Framer + willChange hanya di ANIM_TAIL row
+              // terakhir. Row lama = plain <div> (tanpa motion layer/animation)
+              // supaya membuka riwayat besar tidak memblokir main-thread.
+              const animate = i + ANIM_TAIL >= messages.length;
+              const rowCls = `flex items-end gap-2 ${msg.role === "user" ? "justify-end" : ""}`;
+              if (!animate) {
+                return (
+                  <div key={msg.key} className={rowCls}>
+                    {renderMsg(msg)}
                   </div>
-                )}
-                <div
-                  className={
-                    msg.role === "user"
-                      ? "max-w-[75%] rounded-sm rounded-br-sm bg-accent px-4 py-2.5 text-subhead text-accent-fg shadow-sm"
-                      : "max-w-[85%] rounded-sm rounded-bl-sm bg-surface px-4 py-2.5 text-subhead text-fg shadow-xs"
-                  }
+                );
+              }
+              return (
+                <motion.div
+                  key={msg.key}
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ duration: 0.18, ease: "easeOut" }}
+                  style={{ willChange: "opacity" }}
+                  className={rowCls}
                 >
-                  {msg.role === "system" && msg.type === "credential_form" ? (
-                    <div className="w-72">
-                      <div className="flex items-center gap-2">
-                        <KeyRound size={15} strokeWidth={1.5} className="text-accent" />
-                        <span className="font-semibold text-fg">
-                          Akses dibutuhkan: {PROVIDER_LABELS[msg.provider] ?? msg.provider}
-                        </span>
-                      </div>
-                      <p className="mt-1.5 text-footnote text-fg-muted">
-                        Masukkan token provider untuk melanjutkan tugas Anda.
-                      </p>
-                      <Input
-                        value={credValue}
-                        onChange={(e) => setCredValue(e.target.value)}
-                        type="password"
-                        placeholder="Token / API key..."
-                        aria-label="Token / API key"
-                      />
-                      <Button
-                        disabled={!credValue.trim()}
-                        onClick={() => submitCredential(msg.provider, msg.original)}
-                        className="mt-2.5 w-full justify-center"
-                        variant="secondary"
-                      >
-                        Simpan & Lanjutkan
-                      </Button>
-                    </div>
-                  ) : msg.role === "system" && msg.type === "error" ? (
-                    <div className="w-72">
-                      <div className="flex items-center gap-2 text-red-500">
-                        <AlertTriangle size={15} strokeWidth={1.75} />
-                        <span className="font-semibold text-fg">Gagal mengirim</span>
-                      </div>
-                      <p className="mt-1.5 text-footnote text-fg-muted">{msg.content}</p>
-                      <Button
-                        variant="secondary"
-                        onClick={() => retryMessage({ content: msg.content, original: msg.original })}
-                        className="mt-2.5 w-full justify-center gap-1.5"
-                      >
-                        <RotateCcw size={14} strokeWidth={1.75} />
-                        Coba Lagi
-                      </Button>
-                    </div>
-                  ) : msg.role === "assistant" && msg.content === "…" ? (
-                    <span className="inline-flex py-0.5" aria-hidden="true">
-                      <TypingDots ariaHidden />
-                    </span>
-                  ) : (
-                    msg.content
-                  )}
-                </div>
-                {msg.role === "user" && (
-                  <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-accent">
-                    <User size={14} strokeWidth={1.5} className="text-accent-fg" />
-                  </div>
-                )}
-              </motion.div>
-            ))}
+                  {renderMsg(msg)}
+                </motion.div>
+              );
+            })}
               {loadingMsg && (
                 <div
                   role="status"
