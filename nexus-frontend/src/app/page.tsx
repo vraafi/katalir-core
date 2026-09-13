@@ -40,9 +40,42 @@ function TypingDots({ ariaHidden }: { ariaHidden?: boolean }) {
   );
 }
 
+/** Format token count ala DevoxxGenie #1127: 10502 -> "10.5K", 1500000 -> "1.5M". */
+function fmtToken(n: number | undefined | null): string {
+  const v = Number(n ?? 0);
+  if (v >= 1_000_000) return `${(v / 1_000_000).toFixed(1)}M`;
+  if (v >= 1_000) return `${(v / 1_000).toFixed(1)}K`;
+  return String(Math.round(v || 0));
+}
+
+/** Baris metadata model di bubble AI (transparansi model/token/latensi). */
+function MetaRow({ meta }: { meta: NonNullable<ChatMessage["meta"]> }) {
+  const model = meta.model || "model";
+  const secs =
+    typeof meta.latency_ms === "number" ? (meta.latency_ms / 1000).toFixed(1) : null;
+  const hasUsage = meta.total_tokens != null;
+  const parts = [model];
+  if (secs) parts.push(`${secs}s`);
+  if (hasUsage) {
+    const inT = fmtToken(meta.prompt_tokens);
+    const outT = fmtToken(meta.completion_tokens);
+    parts.push(`${inT}→${outT} tok`);
+  }
+  return (
+    <span className="mt-1.5 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[11px] leading-none text-fg-subtle">
+      <span className="font-mono tracking-tight">{parts.join(" · ")}</span>
+      {meta.fallback && (
+        <span className="rounded-full border border-warning/30 bg-warning/10 px-1.5 py-0.5 font-medium text-warning">
+          fallback
+        </span>
+      )}
+    </span>
+  );
+}
+
 type Msg =
   | { key: string; role: "user"; content: string }
-  | { key: string; role: "assistant"; content: string }
+  | { key: string; role: "assistant"; content: string; meta?: ChatMessage["meta"] }
   | {
       key: string;
       role: "system";
@@ -245,7 +278,7 @@ function ChatApp() {
         // dulu berbagi prefix key dan memicu remount/jitter.
         m.role === "user"
           ? { key: `srv-${m.id ?? `u-${i}`}`, role: "user", content: m.content }
-          : { key: `srv-${m.id ?? `a-${i}`}`, role: "assistant", content: m.content }
+          : { key: `srv-${m.id ?? `a-${i}`}`, role: "assistant", content: m.content, meta: m.meta }
       ),
     ...unconfirmed.map((m): Msg | null => {
       if (m.type === "credential_form" && m.provider && m.original !== undefined) {
@@ -255,7 +288,7 @@ function ChatApp() {
         return { key: `err-${m.id ?? m._localId ?? m.original}`, role: "system", type: "error", content: m.content, original: m.original };
       }
       if (m.role === "user") return { key: `opt-${m._localId ?? m.id ?? m.content}`, role: "user", content: m.content };
-      if (m.role === "assistant") return { key: `opt-${m._localId ?? m.id ?? "pending"}`, role: "assistant", content: m.content };
+      if (m.role === "assistant") return { key: `opt-${m._localId ?? m.id ?? "pending"}`, role: "assistant", content: m.content, meta: m.meta };
       return null;
     }).filter((m): m is Msg => m !== null),
   ];
@@ -545,7 +578,12 @@ function ChatApp() {
               <TypingDots ariaHidden />
             </span>
           ) : (
-            msg.content
+            <>
+              <div className="whitespace-pre-wrap break-words">{msg.content}</div>
+              {msg.role === "assistant" && msg.meta && (
+                <MetaRow meta={msg.meta} />
+              )}
+            </>
           )}
         </div>
         {msg.role === "user" && (

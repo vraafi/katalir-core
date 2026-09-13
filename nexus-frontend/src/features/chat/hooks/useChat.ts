@@ -30,6 +30,15 @@ export interface ChatMessage {
   type?: "credential_form" | "error";
   provider?: string;
   original?: string;
+  /** Metadata model (transparansi): model, latency, tokens, fallback. */
+  meta?: {
+    model?: string;
+    latency_ms?: number;
+    prompt_tokens?: number;
+    completion_tokens?: number;
+    total_tokens?: number;
+    fallback?: boolean;
+  };
 }
 
 async function fetchSessions(email: string): Promise<SessionItem[]> {
@@ -125,7 +134,7 @@ export function useDeleteSessionMutation() {
 export function useSendChatMutation() {
   const qc = useQueryClient();
   return useMutation<
-    { reply: string; session_id?: string; needsCredential?: boolean; provider?: string; message?: string },
+    { reply: string; session_id?: string; needsCredential?: boolean; provider?: string; message?: string; meta?: { model?: string; latency_ms?: number; prompt_tokens?: number; completion_tokens?: number; total_tokens?: number; fallback?: boolean } },
     Error & { provider?: string; promptEcho?: string },
     { prompt: string; sessionId?: string | null; email?: string | null; abortSignal?: AbortSignal; clientRequestId?: string },
     {
@@ -182,7 +191,7 @@ export function useSendChatMutation() {
           };
         }
         if (res.ok && data.status === "success") {
-          return { reply: data.reply as string, session_id: data.session_id as string | undefined };
+          return { reply: data.reply as string, session_id: data.session_id as string | undefined, meta: data.meta as { model?: string; latency_ms?: number; prompt_tokens?: number; completion_tokens?: number; total_tokens?: number; fallback?: boolean } | undefined };
         }
         const { message, retryable } = classifyHttpError(res.status);
         if (retryable && attempt < maxAttempts - 1) {
@@ -294,7 +303,9 @@ export function useSendChatMutation() {
         // belakangan & overwrite optimistic -> chat 'hilang' (coder #23995).
         qc.setQueryData<ChatMessage[]>(finalKey, (old) =>
           (old ?? []).map((m) =>
-            m._localId === context.optimisticAsstId ? { ...m, content: data.reply } : m
+            m._localId === context.optimisticAsstId
+              ? { ...m, content: data.reply, meta: data.meta }
+              : m
           )
         );
       }

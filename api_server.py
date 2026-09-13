@@ -89,13 +89,17 @@ class ExecuteRequest(BaseModel):
 # ---------------------------------------------------------------------------
 # AGENTIC LOOP (setara _agentic_run, bebas dari Streamlit)
 # ---------------------------------------------------------------------------
-def _agentic_run_direct(prompt: str, email: str) -> str:
+def _agentic_run_direct(prompt: str, email: str) -> dict:
     """Jalankan Gemini dengan tool calling; eksekusi alat; loop.
 
     Apabila alat butuh kredensial, melempar CredentialMissingError (dibiarkan
     menyebar ke caller / endpoint untuk diubah jadi respons needs_credential).
     Errores del modelo (503/quota) se reintentan con backoff; si persisten,
     lanza HTTPException(503) con mensaje claro.
+
+    Returns:
+        dict {reply, meta} dengan meta = {model, latency_ms,
+        prompt_tokens, completion_tokens, total_tokens, fallback}.
     """
     import time as _time
 
@@ -108,6 +112,7 @@ def _agentic_run_direct(prompt: str, email: str) -> str:
         raise HTTPException(500, "API key tidak ditemukan.")
 
     model_id = os.getenv("AGENT_MODEL", "gemma-4-31b-it")
+    fallback_used = False
 
     SYSTEM = (
         "Anda adalah Nexus Autonomous Agent. Rencanakan & lakukan tindakan dengan "
@@ -124,22 +129,37 @@ def _agentic_run_direct(prompt: str, email: str) -> str:
     )
     chat = client.chats.create(model=model_id, config=config)
 
-    def _send_guarded(chat, msg):
+    fallback_model = os.getenv("AGENT_FALLBACK_MODEL", "gemini-2.5-flash")
+
+    def _send_guarded(chat_obj, msg):
         """Enviar con reintentos contra errores transitorios del modelo (500/503)."""
-        last_status = None
+        nonlocal model_id, fallback_used, chat
         for attempt in range(4):
             try:
-                return chat.send_message(msg)
+                return chat_obj.send_message(msg)
             except Exception as exc:  # noqa: BLE001
                 msg_str = str(exc)
                 transient = ("503" in msg_str or "UNAVAILABLE" in msg_str
-                             or "Internal error" in msg_str)
+                             or "Internal error" in msg_str
+                             or "overloaded" in msg_str.lower()
+                             or "quota" in msg_str.lower())
                 if not transient:
                     raise
-                last_status = "503"
+                # Fallback 1x ke model ringan bila model utama overload/quota.
+                if not fallback_used and fallback_model and fallback_model != model_id:
+                    try:
+                        chat2 = client.chats.create(model=fallback_model, config=config)
+                        out = chat2.send_message(msg)
+                        fallback_used = True
+                        model_id = fallback_model
+                        chat = chat2
+                        return out
+                    except Exception:
+                        pass
                 _time.sleep(1.5 * (attempt + 1))
-        raise HTTPException(503, "Modelo temporariamente no disponible. Intente otra vez.")
+        raise HTTPException(503, "Model sedang sibuk (quota/overload). Coba lagi dalam 1 menit.")
 
+    _t0 = _time.time()
     response = _send_guarded(chat, prompt)
     max_retries = 3
     retry = 0
@@ -163,7 +183,24 @@ def _agentic_run_direct(prompt: str, email: str) -> str:
                 ),
             )
 
-    return response.text.strip() if response.text else "Tugas selesai dieksekusi."
+    reply = response.text.strip() if response.text else "Tugas selesai dieksekusi."
+    latency_ms = int((_time.time() - _t0) * 1000)
+    usage = getattr(response, "usage_metadata", None)
+    try:
+        pt = usage.prompt_token_count if usage is not None else 0
+        ct = usage.candidates_token_count if usage is not None else 0
+        tt = usage.total_token_count if usage is not None else 0
+    except Exception:
+        pt, ct, tt = 0, 0, 0
+    meta = {
+        "model": model_id,
+        "latency_ms": latency_ms,
+        "prompt_tokens": int(pt or 0),
+        "completion_tokens": int(ct or 0),
+        "total_tokens": int(tt or 0),
+        "fallback": bool(fallback_used),
+    }
+    return {"reply": reply, "meta": meta}
 
 
 # ---------------------------------------------------------------------------
@@ -244,7 +281,9 @@ def chat(req: ChatRequest, authorization: str | None = Header(None)):
         raise HTTPException(500, f"Gagal menyimpan pesan: {type(exc).__name__}: {exc}")
 
     try:
-        reply = _agentic_run_direct(req.prompt, user_email)
+        _run = _agentic_run_direct(req.prompt, user_email)
+        reply = _run["reply"]
+        meta = _run.get("meta") or {}
     except CredentialMissingError as e:
         # Persist hanya pesan user; UI menampilkan form credential & akan submit ulang.
         return {
@@ -270,7 +309,7 @@ def chat(req: ChatRequest, authorization: str | None = Header(None)):
         traceback.print_exc()
         raise HTTPException(500, f"Gagal menyimpan balasan: {type(exc).__name__}: {exc}")
 
-    return {"status": "success", "reply": reply, "session_id": session_id}
+    return {"status": "success", "reply": reply, "session_id": session_id, "meta": meta}
 
 
 # ---------------------------------------------------------------------------
