@@ -16,35 +16,6 @@
 import os
 import time
 
-# ---------------------------------------------------------------------------
-# MODEL SELECTION: discovery dinamis via model_discovery (runtime query,
-# bukan hardcode — Google ubah/tambah/hapus model tiap kuartal).
-# 'plus' = kebijakan bisnis (hermes #5880), tetap eksplisit per model.
-PLUS_CHAT_MODELS = md.PLUS_CHAT_MODELS
-PLUS_TIERS = frozenset({"plus", "pro", "ultra"})
-
-
-def _resolve_model(requested: str | None, user_tier: str) -> tuple[str, bool]:
-    """Validasi model + tier-gate terhadap hasil discovery (cache 1 jam).
-
-    Returns:
-        (model_id, tier_fallback): fallback=True bila model plus diminta
-        user free, atau id tak ada di daftar discovery -> default server.
-    """
-    default_id = os.getenv("AGENT_MODEL", "gemma-4-31b-it")
-    tier = (user_tier or "free").strip().lower()
-    if not requested:
-        return default_id, False
-    req = requested.strip()
-    available = {m["id"] for m in md.get_available_models()}
-    if req not in available:
-        return default_id, False  # unknown/stale id -> default
-    if req in PLUS_CHAT_MODELS:
-        if tier in PLUS_TIERS:
-            return req, False
-        return default_id, True  # free minta plus -> fallback default
-    return req, False
-
 from fastapi import BackgroundTasks, FastAPI, Header, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
@@ -82,6 +53,36 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+
+# MODEL SELECTION: discovery dinamis via model_discovery (runtime query,
+# bukan hardcode — Google ubah/tambah/hapus model tiap kuartal).
+# 'plus' = kebijakan bisnis (hermes #5880), tetap eksplisit per model.
+# Didefinisikan SETELAH import md (NameError `md` = crash 502 saat startup).
+PLUS_CHAT_MODELS = md.PLUS_CHAT_MODELS
+PLUS_TIERS = frozenset({"plus", "pro", "ultra"})
+
+
+def _resolve_model(requested: str | None, user_tier: str) -> tuple[str, bool]:
+    """Validasi model + tier-gate terhadap hasil discovery (cache 1 jam).
+
+    Returns:
+        (model_id, tier_fallback): fallback=True bila model plus diminta
+        user free, atau id tak ada di daftar discovery -> default server.
+    """
+    default_id = os.getenv("AGENT_MODEL", "gemma-4-31b-it")
+    tier = (user_tier or "free").strip().lower()
+    if not requested:
+        return default_id, False
+    req = requested.strip()
+    available = {m["id"] for m in md.get_available_models()}
+    if req not in available:
+        return default_id, False  # unknown/stale id -> default
+    if req in PLUS_CHAT_MODELS:
+        if tier in PLUS_TIERS:
+            return req, False
+        return default_id, True  # free minta plus -> fallback default
+    return req, False
 
 
 # ---------------------------------------------------------------------------
