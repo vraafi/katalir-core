@@ -14,46 +14,36 @@
 # =====================================================================
 
 import os
+import time
 
 # ---------------------------------------------------------------------------
-# MODEL REGISTRY (Tugas 2 / hermes-agent #5880): tier-gate per model.
-# Mirror frontend nexus-frontend/src/lib/models.ts. 'free' = semua user,
-# 'plus' = hanya user tier plus/pro. Tier user dari public.users.tier.
-# ---------------------------------------------------------------------------
-# Daftar model free yang memang diizinkan dipilih (hanya ini yang di-serve
-# oleh Gemini/Google keys). Model plus di-reject bila tier user = free.
-FREE_CHAT_MODELS = frozenset({
-    "gemma-4-31b-it",
-    "gemini-2.5-flash",
-    "gemma-4-9b-it",
-})
-PLUS_CHAT_MODELS = frozenset({
-    "gemini-1.5-pro",
-})
-ALLOWED_CHAT_MODELS = FREE_CHAT_MODELS | PLUS_CHAT_MODELS
+# MODEL SELECTION: discovery dinamis via model_discovery (runtime query,
+# bukan hardcode — Google ubah/tambah/hapus model tiap kuartal).
+# 'plus' = kebijakan bisnis (hermes #5880), tetap eksplisit per model.
+PLUS_CHAT_MODELS = md.PLUS_CHAT_MODELS
 PLUS_TIERS = frozenset({"plus", "pro", "ultra"})
 
 
 def _resolve_model(requested: str | None, user_tier: str) -> tuple[str, bool]:
-    """Validasi model pilihan user + tier-gate.
+    """Validasi model + tier-gate terhadap hasil discovery (cache 1 jam).
 
     Returns:
-        (model_id, tier_fallback): tier_fallback=True bila model plus
-        diminta user free -> jatuh ke default server (bukan 403, agar UX
-        composer tidak putus; badge fallback/transparansi di meta).
+        (model_id, tier_fallback): fallback=True bila model plus diminta
+        user free, atau id tak ada di daftar discovery -> default server.
     """
     default_id = os.getenv("AGENT_MODEL", "gemma-4-31b-it")
     tier = (user_tier or "free").strip().lower()
     if not requested:
         return default_id, False
     req = requested.strip()
-    if req in FREE_CHAT_MODELS:
-        return req, False
+    available = {m["id"] for m in md.get_available_models()}
+    if req not in available:
+        return default_id, False  # unknown/stale id -> default
     if req in PLUS_CHAT_MODELS:
         if tier in PLUS_TIERS:
             return req, False
-        return default_id, True  # free user minta plus -> fallback default
-    return default_id, False  # unknown id -> abaikan, pakai default
+        return default_id, True  # free minta plus -> fallback default
+    return req, False
 
 from fastapi import BackgroundTasks, FastAPI, Header, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
@@ -64,6 +54,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 import database as db
+import model_discovery as md
 import security
 import tools
 import execution_engine as engine
@@ -383,9 +374,10 @@ def me(authorization: str | None = Header(None)):
 # ---------------------------------------------------------------------------
 @app.get("/models")
 def list_models(authorization: str | None = Header(None)):
-    """Daftar model chat dengan flag `locked` sesuai tier user (hermes #5880).
+    """Daftar model dari DISCOVERY live (bukan hardcode) + flag locked.
 
-    locked=False -> bisa dipilih. locked=True -> tampil redup + Upgrade link.
+    locked=False -> bisa dipilih. locked=True -> redup + Upgrade link.
+    `refreshed_at` menandai umur cache discovery (TTL 1 jam).
     """
     user = security.get_current_user(authorization)
     try:
@@ -395,13 +387,14 @@ def list_models(authorization: str | None = Header(None)):
         tier = "free"
     is_plus = tier in PLUS_TIERS
     default_id = os.getenv("AGENT_MODEL", "gemma-4-31b-it")
+    discovered = md.get_available_models()
     items = [
-        {"id": "gemma-4-31b-it", "name": "Gemma 4 31B", "provider": "Google (Gemini)", "tier": "free", "locked": False},
-        {"id": "gemini-2.5-flash", "name": "Gemini 2.5 Flash", "provider": "Google (Gemini)", "tier": "free", "locked": False, "hint": "Cepat, hemat token"},
-        {"id": "gemma-4-9b-it", "name": "Gemma 4 9B", "provider": "Google (Gemini)", "tier": "free", "locked": False, "hint": "Ringan & hemat"},
-        {"id": "gemini-1.5-pro", "name": "Gemini Advanced", "provider": "Google (Gemini)", "tier": "plus", "locked": not is_plus},
+        {**m, "locked": bool(m.get("tier") == "plus" and not is_plus)}
+        for m in discovered
     ]
-    return {"status": "success", "tier": tier, "default": default_id, "models": items}
+    return {"status": "success", "tier": tier, "default": default_id,
+            "models": items,
+            "refreshed_at": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime(md._cache["ts"]))}
 
 
 # ---------------------------------------------------------------------------

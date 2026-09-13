@@ -119,8 +119,7 @@ function ChatApp() {
   const activeEmail = email || null;
   const [input, setInput] = useState("");
   const [credValue, setCredValue] = useState("");
-  // Model selector (Tugas 2): daftar dari GET /models (locked per tier server)
-  // + fallback ke registry lokal CHAT_MODELS bila backend belum update.
+  // Model selector: daftar DINAMIS dari GET /models (discovery live server).
   // Persist localStorage 'nexus.model.v1'. Disabled saat streaming.
   const { data: modelsData } = useModelsQuery(!!activeEmail);
   const serverModels: ChatModelItem[] | null =
@@ -391,10 +390,23 @@ function ChatApp() {
   }
 
   function newChat() {
+    // FIX Chat Baru (deer-flow #3508 + TanStack #9597): cegah state-leak thread lama.
+    // 1. Cancel query messages sesi lama (revert optimistic in-flight).
+    // 2. Bersihkan overlay optimistic (__pending__).
+    // 3. Hapus param URL ?s (nuqs, clearOnDefault) + reset guard anti-blank.
+    const oldSid = sessionId;
+    if (oldSid) {
+      void qc.cancelQueries(
+        { queryKey: chatKeys.messages(oldSid) },
+        { revert: true },
+      );
+    }
+    qc.setQueryData<ChatMessage[]>(chatKeys.messages("__pending__"), []);
     setMessageQueue([]);
     setEditingId(null);
     setConfirmNewChat(false);
-    qc.setQueryData<ChatMessage[]>(chatKeys.messages("__pending__"), []);
+    lastNonEmpty.current = [];
+    lastNonEmptySid.current = null;
     void setSessionId(null);
     setInput("");
   }
