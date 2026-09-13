@@ -47,7 +47,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // Invalideer chat-queries bij auth-wissel zodat sessions/messages
       // automatisch per user herladen (fix "history hilang" bug).
       if (event === "SIGNED_IN" || event === "SIGNED_OUT") {
-        void invalidateChatQueries();
+        // Supabase Auth deadlock (DEV Community, 8/2026): JANGAN jalar async
+        // auth-API (invalidateChatQueries -> refetch -> getSession) SINKRON di
+        // dalam callback onAuthStateChange — bisa menghang query Supabase lain
+        // (symptoom: /sessions lambat + timeout, tanpa error). Defer ke macrotask
+        // setelah auth lock released hijsen (pattern setTimeout(fn, 0)).
+        setTimeout(() => {
+          void invalidateChatQueries();
+        }, 0);
       }
     });
 
