@@ -6,7 +6,7 @@ import { useAuth } from "@/context/auth";
 import VaultModal from "@/components/VaultModal";
 import ThemeToggle from "@/components/ThemeToggle";
 import { StaggerList, StaggerItem } from "@/components/motion";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import * as DropdownMenu from "@radix-ui/react-dropdown-menu";
 import * as Dialog from "@radix-ui/react-dialog";
@@ -26,6 +26,16 @@ export default function Shell({ children, sessions, currentSessionId, onSelectSe
   const { email, loading, signInWithGoogle, signOut } = useAuth();
   const [vaultOpen, setVaultOpen] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<string | null>(null);
+
+  // Safety net (Radix #3141 / shadcn #7575): bila dialog modal sempat
+  // meninggalkan body.pointerEvents="none" (stuck — seluruh halaman tak bisa
+  // diklik, termasuk tombol Chat Baru), bersihkan pada unmount. Dialog sudah
+  // dipaksa modal={false} (root cause dihilangkan); ini hanya jaring pengaman.
+  useEffect(() => {
+    return () => {
+      document.body.style.pointerEvents = "";
+    };
+  }, []);
 
   return (
     <div className="flex h-screen overflow-hidden bg-bg">
@@ -121,7 +131,7 @@ export default function Shell({ children, sessions, currentSessionId, onSelectSe
         {email && <VaultModal open={vaultOpen} email={email} onClose={() => setVaultOpen(false)} />}
         {/* Confirm delete — sibling Dialog (bukan child DropdownMenu) agar tidak
             kena bug "page stuck setelah dialog dari menu" (@btcv/auth-provider). */}
-        <Dialog.Root open={deleteTarget !== null} onOpenChange={(o) => { if (!o) setDeleteTarget(null); }}>
+        <Dialog.Root open={deleteTarget !== null} onOpenChange={(o) => { if (!o) setDeleteTarget(null); }} modal={false}>
           <Dialog.Portal>
             <Dialog.Overlay className="fixed inset-0 z-50 bg-black/40" />
             <Dialog.Content className="fixed left-1/2 top-1/2 z-50 w-[92vw] max-w-md -translate-x-1/2 -translate-y-1/2 rounded-md border border-border bg-surface p-5 shadow-xl">
