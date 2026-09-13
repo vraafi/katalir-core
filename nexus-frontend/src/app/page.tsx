@@ -1,7 +1,7 @@
 "use client";
 
-import { Suspense, useEffect, useRef, useState } from "react";
-import { Send, Sparkles, Bot, User, Loader2, KeyRound, RotateCcw, AlertTriangle } from "lucide-react";
+import { Suspense, useCallback, useEffect, useRef, useState } from "react";
+import { Send, Sparkles, Bot, User, KeyRound, RotateCcw, AlertTriangle } from "lucide-react";
 import { motion } from "motion/react";
 import { useQueryState, parseAsString } from "nuqs";
 import Shell from "@/components/shell";
@@ -25,6 +25,21 @@ const PROVIDER_LABELS: Record<string, string> = {
   gmail: "Gmail",
   google_calendar: "Google Calendar",
 };
+
+/** Indikator mengetik: 3 dot animasi (transform+opacity only, CSS .typing-dot).
+ * CallSphere 200ms rule — bukan spinner statis. Reduced-motion di-global CSS. */
+function TypingDots({ ariaHidden }: { ariaHidden?: boolean }) {
+  return (
+    <span
+      aria-hidden={ariaHidden}
+      className="inline-flex items-center text-current"
+    >
+      <span className="typing-dot" />
+      <span className="typing-dot" />
+      <span className="typing-dot" />
+    </span>
+  );
+}
 
 type Msg =
   | { key: string; role: "user"; content: string }
@@ -80,15 +95,24 @@ function ChatApp() {
   const qc = useQueryClient();
   const loadingMsg = sendMutation.isPending;
 
-  // Fase 1: bila >5s pending, ubah indikator jadi "Memuat... (server sedang memproses)".
+  // Fase 1 / CallSphere 200ms rule: indikator berstage.
+  //   <5s  -> dot + "Agen sedang berpikir..."
+  //   >=5s -> dot + "Sedang memproses..."
+  //   >=10s-> dot + fallback "Server sibuk, coba lagi sebentar."
   const [slowHint, setSlowHint] = useState(false);
+  const [longHint, setLongHint] = useState(false);
   useEffect(() => {
     if (!loadingMsg) {
       setSlowHint(false);
+      setLongHint(false);
       return;
     }
-    const t = setTimeout(() => setSlowHint(true), 5000);
-    return () => clearTimeout(t);
+    const t1 = setTimeout(() => setSlowHint(true), 5000);
+    const t2 = setTimeout(() => setLongHint(true), 10000);
+    return () => {
+      clearTimeout(t1);
+      clearTimeout(t2);
+    };
   }, [loadingMsg]);
 
   // FIX #2a (key stabil — issue #685): pakai backend message.id bila ada.
@@ -164,21 +188,42 @@ function ChatApp() {
 
   // Sentinel: hanya auto-scroll saat user sudah di bawah (anti scroll-fighting).
   // Scroll area diberi ref scrollRef; endRef sebagai sentinel target.
-  useEffect(() => {
+  const programmaticRef = useRef(false);
+
+  const onScroll = useCallback(() => {
     const el = scrollRef.current;
     if (!el) return;
-    const onScroll = () => {
-      const dist = el.scrollHeight - el.scrollTop - el.clientHeight;
-      setAtBottom(dist < 100);
-    };
-    el.addEventListener("scroll", onScroll, { passive: true });
-    onScroll();
-    return () => el.removeEventListener("scroll", onScroll);
+    if (programmaticRef.current) {
+      setAtBottom(true);
+      return;
+    }
+    const dist = el.scrollHeight - el.scrollTop - el.clientHeight;
+    // Hysteresis: masuk-bawah <100px, keluar-(scroll atas) >150px (anti flicker tombol).
+    setAtBottom((prev) => (prev ? dist < 150 : dist < 100));
   }, []);
 
   useEffect(() => {
+    const el = scrollRef.current;
+    if (!el) return;
+    el.addEventListener("scroll", onScroll, { passive: true });
+    onScroll();
+    return () => el.removeEventListener("scroll", onScroll);
+  }, [onScroll]);
+
+  // Auto-scroll via requestAnimationFrame (chroxy #2636): hindari race antara
+  // React commit & browser paint; guard programmaticRef mencegah onScroll
+  // salah deteksi "user scroll naik" saat auto-scroll berlangsung.
+  useEffect(() => {
     if (!atBottom) return;
-    endRef.current?.scrollIntoView({ behavior: "auto", block: "end" });
+    programmaticRef.current = true;
+    const raf = requestAnimationFrame(() => {
+      endRef.current?.scrollIntoView({ behavior: "auto", block: "end" });
+      programmaticRef.current = false;
+    });
+    return () => {
+      cancelAnimationFrame(raf);
+      programmaticRef.current = false;
+    };
   }, [messages.length, loadingMsg, atBottom]);
 
   // SISA echo-pattern lama DIHAPUS (fix #1 revisi): tidak ada lagi
@@ -316,7 +361,7 @@ return (
               </FadeIn>
             ) : (
           <>
-            <div className="flex flex-col gap-4" data-testid="msg-list">
+            <div className="flex flex-col gap-4 contain-layout" aria-live="polite" data-testid="msg-list">
             {messages.map((msg) => (
               <motion.div
                 key={msg.key}
@@ -381,6 +426,10 @@ return (
                         Coba Lagi
                       </Button>
                     </div>
+                  ) : msg.role === "assistant" && msg.content === "…" ? (
+                    <span className="inline-flex py-0.5" aria-hidden="true">
+                      <TypingDots ariaHidden />
+                    </span>
                   ) : (
                     msg.content
                   )}
@@ -393,21 +442,33 @@ return (
               </motion.div>
             ))}
               {loadingMsg && (
-                <div className="flex items-center gap-2 text-subhead text-fg-muted animate-fade-in">
-                  <Loader2 size={16} strokeWidth={1.5} className="animate-spin" />
-                  {slowHint ? "Memuat... (server sedang memproses)" : "Agen sedang berpikir..."}
+                <div
+                  role="status"
+                  aria-live="polite"
+                  className="flex min-h-[20px] items-center gap-2 text-subhead text-fg-muted animate-fade-in"
+                >
+                  <TypingDots />
+                  <span>
+                    {longHint
+                      ? "Server sibuk, coba lagi sebentar."
+                      : slowHint
+                        ? "Sedang memproses..."
+                        : "Agen sedang berpikir..."}
+                  </span>
                 </div>
               )}
             </div>
             <div ref={endRef} />
-            {!atBottom && messages.length > 0 && (
+            {messages.length > 0 && (
               <button
                 type="button"
                 aria-label="Lompat ke bawah"
+                aria-hidden={atBottom}
+                tabIndex={atBottom ? -1 : 0}
                 onClick={() =>
                   endRef.current?.scrollIntoView({ behavior: "auto", block: "end" })
                 }
-                className="sticky bottom-2 mx-auto flex items-center gap-1.5 rounded-full border border-border bg-surface px-3 py-1.5 text-footnote text-fg-muted shadow-sm hover:text-fg"
+                className={`sticky bottom-2 mx-auto flex items-center gap-1.5 rounded-full border border-border bg-surface px-3 py-1.5 text-footnote text-fg-muted shadow-sm transition-opacity duration-200 hover:text-fg ${atBottom ? "pointer-events-none opacity-0" : "opacity-100"}`}
               >
                 ↓ Terbaru
               </button>
