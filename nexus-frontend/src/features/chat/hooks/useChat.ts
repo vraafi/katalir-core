@@ -54,15 +54,25 @@ export function useSessionsQuery(email: string | null) {
 /** useQuery messages voor een sessie.
  * FIX Tugas1 (TanStack #10712): staleTime=Infinity + refetchOnWindowFocus=false.
  * Reply/optimistic ditulis via setQueryData (single source), jadi SEBUAH refetch
- * (focus/reconnect/stale) yang terdaat-belakangan tidak boleh menimpanya dengan
+ * (focus/reconnect/stale) die terdaat-belakangan tidak boleh menimpanya dengan
  * data server yang belum ter-commit. Hanya fetch pertama per sesi yang berhak
- * mengisi; sisanya dikontrol onMutate/onSuccess. */
+ * mengisi; sisanya dikontrol onMutate/onSuccess.
+ *
+ * FIX Baru (chat-aktif blank): staleTime=Infinity WAJIB dipasangkan gcTime=Infinity
+ * (TanStack caching guide). Default global gcTime=60s → entri cache bisa di-GC
+ * saat idle/background/remount di browser nyata; karena refocus sudah false,
+ * tidak ada refetch yang akan memulihkan → chat 'kosong' permanen (area utama
+ * blanks walau sidebar & DB masih utuh). gcTime=Infinity mempertahankan entri
+ * selama aplikasi hidup. placeholderData=(prev)=>prev menahan data terakhir
+ * saat query sempat tanpa data (guard H4) → tidak pernah blank flash. */
 export function useMessagesQuery(sessionId: string | null) {
   return useQuery({
     queryKey: chatKeys.messages(sessionId ?? ""),
     queryFn: () => fetchMessages(sessionId ?? ""),
     enabled: !!sessionId,
     staleTime: Infinity,
+    gcTime: Infinity,
+    placeholderData: (prev) => prev,
     refetchOnWindowFocus: false,
   });
 }
