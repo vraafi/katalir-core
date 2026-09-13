@@ -43,8 +43,10 @@ export default function Shell({ children, sessions, currentSessionId, onSelectSe
                 <StaggerItem key={s.id}>
                   <div className="group relative mb-1 flex items-center">
                     <button onClick={() => onSelectSession(s.id)}
-                      className={`flex min-w-0 flex-1 items-center gap-2 rounded-lg px-3 py-2 text-left text-[13px] leading-[18px] transition-colors duration-150 ${active ? "bg-surface font-medium text-fg shadow-xs" : "text-fg-muted hover:bg-surface/50 hover:text-fg"}`}>
-                      <MessageSquare size={12} strokeWidth={1.75} className={`shrink-0 ${active ? "text-fg-muted" : "text-fg-subtle"}`} />
+                      className={`flex min-w-0 flex-1 items-center gap-2 rounded-lg border px-3 py-2 text-left text-[13px] leading-[18px] transition-colors duration-150 ${active
+                        ? "border-accent/20 bg-accent/10 font-medium text-fg shadow-xs dark:border-accent/25 dark:bg-accent/15"
+                        : "border-transparent font-normal text-fg-muted hover:bg-bg-subtle/70 hover:text-fg"}`}>
+                      <MessageSquare size={12} strokeWidth={1.75} className={`shrink-0 ${active ? "text-accent" : "text-fg-subtle"}`} />
                       <span className="truncate">{s.title || "Chat"}</span>
                     </button>
                     <DropdownMenu.Root>
