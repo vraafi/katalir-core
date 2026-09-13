@@ -239,9 +239,12 @@ def list_sessions(owner):
         if not uid:
             return []
         c = _get_write_client()
+        # LIMIT defensif (depth cap): sidebar riwayat cuma perlu daftar terbaru.
+        # PostgREST + index user_id membuat besar daftar tetap cepat (lihat
+        # migration 2026_backend_indexes.sql), tapi robust walau user 1000+ reset.
         res = (c.table("chat_sessions").select("id,title,created_at")
-               .eq("user_id", uid)
-               .order("created_at", desc=True).execute())
+              .eq("user_id", uid)
+              .order("created_at", desc=True).limit(100).execute())
         return res.data or []
     except Exception as exc:
         print(f"[list_sessions] {type(exc).__name__}: {str(exc)[:300]}")
