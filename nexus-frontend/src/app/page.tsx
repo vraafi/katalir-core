@@ -493,8 +493,8 @@ function ChatApp() {
         <div
           className={
             msg.role === "user"
-              ? "max-w-[75%] rounded-sm rounded-br-sm bg-accent px-4 py-2.5 text-subhead text-accent-fg shadow-sm"
-              : "max-w-[85%] rounded-sm rounded-bl-sm bg-surface px-4 py-2.5 text-subhead text-fg shadow-xs"
+              ? "max-w-[75%] rounded-2xl rounded-br-lg bg-accent px-4 py-2.5 text-[14px] leading-[1.55] text-accent-fg shadow-sm tracking-[-0.006em]"
+              : "max-w-[85%] rounded-2xl rounded-bl-lg bg-surface px-4 py-2.5 text-[15px] leading-[1.68] text-fg shadow-xs tracking-[-0.006em]"
           }
         >
           {msg.role === "system" && msg.type === "credential_form" ? (
@@ -627,7 +627,7 @@ return (
                     <button
                       key={s}
                       onClick={() => sendPrompt(s)}
-                      className="rounded-sm border border-border bg-surface px-3 py-2.5 text-subhead font-medium text-fg shadow-xs transition-all duration-200 hover:-translate-y-0.5 hover:border-accent/40 hover:text-accent"
+                      className="rounded-xl border border-border bg-surface px-3 py-2.5 text-[13px] font-medium text-fg shadow-xs transition-all duration-200 hover:-translate-y-0.5 hover:border-accent/40 hover:text-accent"
                     >
                       {s}
                     </button>
@@ -714,7 +714,7 @@ return (
             openclaw #104445): composer-width, compact, collapsible (Geta.Team),
             transisi opacity-only. */}
         {messageQueue.length > 0 && (
-          <div className="flex-none border-t border-border/40 px-5 py-2" data-testid="queue-area">
+          <div className="flex-none px-5 py-2" data-testid="queue-area">
             <div className="mx-auto max-w-[48rem]">
               <div className="flex items-center gap-2">
                 <button
@@ -837,14 +837,14 @@ return (
           </div>
         )}
         {/* Input bar — flex-none, sticky di bawah, TIDAK ikut scroll */}
-        <div className="flex-none border-t border-border bg-surface/95 px-5 py-3">
+        <div className="flex-none bg-transparent px-5 pb-4 pt-2">
           <div className="mx-auto max-w-[48rem]">
             <form
               onSubmit={(e) => {
                 e.preventDefault();
                 if (input.trim()) sendPrompt(input.trim());
               }}
-              className="flex items-center gap-2 rounded-lg border border-border bg-bg/60 px-3 py-2 shadow-xs focus-within:border-accent/50"
+              className="flex items-center gap-2 rounded-xl border border-border/60 bg-surface/90 px-3 py-2 shadow-sm backdrop-blur transition-shadow duration-200 hover:shadow-md focus-within:border-accent/50"
             >
               <Input
                 value={input}

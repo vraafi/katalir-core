@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { Plus, Bot, LogIn, LogOut, MessageSquare, Workflow, KeyRound, MoreHorizontal, Trash2 } from "lucide-react";
 import Link from "next/link";
@@ -43,7 +43,7 @@ export default function Shell({ children, sessions, currentSessionId, onSelectSe
                 <StaggerItem key={s.id}>
                   <div className="group relative mb-1 flex items-center">
                     <button onClick={() => onSelectSession(s.id)}
-                      className={`flex min-w-0 flex-1 items-center gap-2 rounded-l-sm px-3 py-2 text-left text-subhead transition ${active ? "bg-surface font-medium text-fg shadow-xs" : "text-fg-muted hover:bg-surface/50 hover:text-fg"}`}>
+                      className={`flex min-w-0 flex-1 items-center gap-2 rounded-lg px-3 py-2 text-left text-[13px] leading-[18px] transition-colors duration-150 ${active ? "bg-surface font-medium text-fg shadow-xs" : "text-fg-muted hover:bg-surface/50 hover:text-fg"}`}>
                       <MessageSquare size={12} strokeWidth={1.75} className={`shrink-0 ${active ? "text-fg-muted" : "text-fg-subtle"}`} />
                       <span className="truncate">{s.title || "Chat"}</span>
                     </button>
@@ -81,7 +81,7 @@ export default function Shell({ children, sessions, currentSessionId, onSelectSe
       </aside>
 
       <div className="flex min-w-0 flex-1 flex-col">
-        <header className="flex items-center justify-between border-b border-border bg-surface/80 px-5 py-3 backdrop-blur">
+        <header className="sticky top-0 z-10 flex items-center justify-between bg-bg/70 px-5 py-3 backdrop-blur-xl">
           <div className="flex items-center gap-2">
             <div className="flex h-8 w-8 items-center justify-center rounded-sm bg-gradient-to-br from-accent to-brand text-accent-fg">
               <Bot className="h-4 w-4" strokeWidth={1.75} />
