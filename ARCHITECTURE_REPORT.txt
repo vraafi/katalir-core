@@ -244,4 +244,121 @@ BATAS DUMP: file mentah penuh tidak ditempel (melebihi 15.000 token); ringkasan 
 8. Realtime: tetap polling 2 detik atau migrasi Supabase Realtime/SSE + streaming token?
 9. Mobile: apakah builder harus usable di tablet/phone (bottom-sheet) atau desktop-only?
 10. Hosting final: Railway + Cloudflare Pages tetap, atau konsolidasi ke VPS RackNerd?
+=== 16. 2026-09-16 — SPRINT UPDATE (gateway VPS, model selector, transparansi) ===
+---
+Rentang commit sprint ini: c503aea (2026-09-15 20:38 +0700) .. 4abfeda (2026-09-16 00:59 +0700).
+Semua butir di bawah DIVERIFIKASI langsung dari repo, hasil unit test, dan hasil E2E —
+bukan dari catatan perencanaan. Butir yang tak dapat diverifikasi ditandai TODO: verifikasi.
+
+16.1 FITUR BARU: GATEWAY VPS / FREE-LLM-GATEWAY
+- Backend kini dapat memakai gateway multi-provider di samping jalur langsung Gemini.
+- Sumber konfigurasi TUNGGAL: gateway_config() di gateway_roster.py (dulu tersebar ->
+  pernah membuat satu jalur memakai URL basi).
+- Alias env yang DIDUKUNG (GATEWAY_URL_ENVS): LLM_GATEWAY_URL, FREELM_GATEWAY_URL,
+  GATEWAY_URL. Alias salah-eja "FREELM_GATEWAY_URL" sengaja dipertahankan demi
+  kompatibilitas; jangan dihapus tanpa migrasi nilai di .env.
+- Endpoint gateway yang dipakai: GET /v1/models (roster) dan GET /api/rate-tracking (kuota).
+- TERVERIFIKASI empiris: GET /v1/models -> HTTP 200, 259 model / 25 provider
+  (angka ini bergerak; jangan di-hardcode).
+- CATATAN ARSITEKTUR PENTING: LLM_GATEWAY_URL di .env menunjuk ke Cloudflare QUICK TUNNEL
+  (*.trycloudflare.com). Sifatnya SEMENTARA: URL berubah setiap restart -> gateway mati
+  secara senyap di produksi bila tunnel di-restart. Rekomendasi: Tailscale Funnel,
+  Cloudflare Named Tunnel (domain tetap), atau reverse proxy di VPS.
+  TODO: verifikasi apakah target akhirnya VPS RackNerd dengan domain sendiri.
+
+16.2 FITUR BARU: MODEL SELECTOR + FILTER PAID-ONLY (3-GERBANG)
+- File baru: gateway_roster.py (roster berbasis PROBE + filter + cache) dan
+  model_discovery.py (discovery model Gemini dari API).
+- Filter memakai 3 gerbang berlapis (pola dari OmniRoute #6495):
+  (a) pola nama (pro/nano-banana/lyria/robotics/transcribe...), (b) allowlist keluarga
+  gratis yang diketahui hidup, (c) flag pricing dari gateway.
+  Satu gerbang saja TERBUKTI PERNAH meloloskan model Pro ke selector produksi.
+- is_paid_only() diuji empiris: menolak Pro/Gemini (True) dan menerima Flash (False).
+- Roster cache: .gw_roster_cache.json (frontend). Berisi entri dengan kunci berbeda
+  dari field id -> saat memeriksa cache, baca bentuknya dulu (jangan asumsikan key = id).
+- UI: src/components/ModelSelector.tsx menampilkan dropdown model + badge locked.
+  TERVERIFIKASI: 0 model Pro muncul di daftar hidup.
+
+16.3 FITUR BARU: TRANSPARANSI MODEL (BADGE FALLBACK)
+- Kontrak backend diperluas: meta = {model, requested_model, latency_ms, prompt_tokens,
+  completion_tokens, total_tokens, fallback, fallback_reason}.
+  fallback=true HANYA bila model yang dipakai != model yang diminta.
+- Alasan hadirnya: "fallback senyap = masalah kepercayaan" (pola hermes #60046). Tanpa
+  meta, user mengira memakai model pilihannya padahal gateway sudah mensubstitusi.
+  Perilaku lama (fallback=False saat model disubstitusi) DIANGGAP BUG dan sudah diperbaiki
+  (komentar eksplisit di api_server.py).
+- UI: badge "Model yang Anda pilih tidak tersedia" + alasan + "diminta: <model>".
+  INVARIANT yang diuji E2E: badge HANYA tampil bila backend melaporkan fallback, dan
+  WAJIB tampil bila backend melaporkannya (badge dapat dipercaya, bukan hiasan).
+- Bukti E2E: evidence/fallback-badge-prod.png, evidence/valid-model-no-badge.png.
+
+16.4 BUG DIPERBAIKI (1): HYDRATION MISMATCH (static export + React 19)
+- Gejala: error hydration di browser pada build produksi statis.
+- Akar masalah: Radix Slot + useId menghasilkan id berbeda server vs client
+  (ADR 0016) -> React 19 + output:"export" sangat rentan.
+- Perbaikan: gate mounted (render pertama deterministik) di ModelSelector.tsx +
+  initializer deterministik di page.tsx.
+- Bukti E2E: HYDRATION_HITS=0, PAGEERRORS=[], spec tests/hydration.spec.ts LULUS.
+
+16.5 BUG DIPERBAIKI (2): AUTENTIKASI BUTUH JARINGAN -> SEMUA ENDPOINT 401
+- Gejala yang DILIHAT USER: "Ada masalah, coba lagi." (pesan generik UI) padahal
+  backend sehat dan token Supabase masih hidup. Gejala ini MENYESATKAN; jangan
+  dikejar sebagai bug frontend tanpa bukti jaringan.
+- Akar masalah (dua lapis, keduanya nyata):
+  (a) security.py memverifikasi token dengan MEMANGGIL Supabase
+      (client.auth.get_user()) pada setiap request. Bila DNS/host Supabase tidak
+      dapat dijangkau (kasus nyata: koneksi lokal terblokir), panggilan itu
+      ConnectTimeout -> endpoint membalas 401 {"detail":"Token invalid: ConnectTimeout"}
+      walau token SAH. httpcore memakai connect timeout untuk resolusi DNS
+      sehingga "DNS hang" tampak sebagai "token invalid".
+  (b) Setelah migrasi ke verifikasi lokal, ditemukan bug kedua: payload token
+      Supabase selalu membawa aud="authenticated", sedangkan decode lama dipanggil
+      tanpa expected audience -> InvalidAudienceError pada jalur HS256. Jadi jalur
+      LOKAL pun menolak SEMUA token riil. Diperbaiki agar penanganan aud SERAGAM
+      di kedua algoritma (ES256/HS256).
+- Perbaikan: verifikasi JWT LOKAL memakai PyJWT + JWKS yang di-cache:
+  sumber kunci = env SUPABASE_JWKS -> file .jwks_cache.json -> unduh sekali bila
+  kosong. Hasil akhir: endpoint ber-JWT TIDAK lagi butuh jaringan untuk verifikasi.
+- Bukti: 21 test deterministik tanpa jaringan di test_security_jwt.py LULUS
+  (termasuk ES256 maupun HS256 dengan aud). Kunci publik ditanam via
+  _seed_jwks.py (public key bersifat publik; aman disimpan).
+- CATATAN OPERASIONAL: bila project Supabase memutar kunci (key rotation),
+  .jwks_cache.json harus disegarkan, jika tidak token baru akan ditolak.
+
+16.6 BUG DIPERBAIKI (3): MULTI-TURN KEHILANGAN KONTEKS
+- Gejala: pesan ke-2 dalam sesi yang sama dijawab seolah tidak ada percakapan
+  sebelumnya ("Anda belum meminta saya mengingat apa pun") walau riwayat TERSIMPAN
+  benar di Supabase. Persistensi tampak sehat, jadi bug ini mudah salah didiagnosis
+  sebagai masalah database.
+- Akar masalah: riwayat dibaca/ditulis ke database dengan benar, TETAPI tidak
+  pernah DIKIRIM KEMBALI ke model saat menyusun prompt. Bukti kuantitatif:
+  prompt_tokens turn-1 -> turn-2 hanya naik +1 (hampir tidak ada konteks).
+- Perbaikan: /chat memuat riwayat sesi lalu menyertakannya sebagai contents;
+  jalur fallback (retry) juga membawa riwayat agar konteks tidak hilang saat
+  model disubstitusi. Logika diuji tanpa jaringan di test_multiturn_history.py.
+- Bukti A/B di backend lokal (produksi-identik), sesi yang sama:
+  - Turn-2 melanjutkan konteks: "Kode proyek yang Anda berikan adalah ZULFIKAR-99."
+  - Kontrol (sesi BARU, prompt sama): "tidak memiliki konteks percakapan sebelumnya"
+  - Delta prompt_tokens: +60 (riwayat benar-benar dihitung model)
+  - Jumlah pesan tersimpan: 4
+  Uji kontrol ini penting: tanpa kontrol, "jawaban benar" bisa saja kebetulan.
+
+16.7 FILTER ROSTER & ALIAS ENV (STATUS: SELESAI, KOREKSI KLAIM LAMA)
+- KOREKSI: dugaan "model Pro masih muncul di selector" TIDAK TERBUKTI pada kode
+  saat ini. Hasil probe hidup: 13 model lolos, 0 model Pro.
+  is_paid_only() terbukti menolak Pro/Gemini dan menerima Flash.
+- KOREKSI: dugaan "alias env LLM_GATEWAY_URL vs FREELM_GATEWAY_URL belum beres"
+  juga tidak akurat. gateway_config() sudah membaca TIGA alias sekaligus
+  (GATEWAY_URL_ENVS). Alias salah-eja dipertahankan sengaja demi kompatibilitas.
+- PELAJARAN: klaim "belum selesai" dari catatan lama WAJIB diverifikasi ulang;
+  dua dari sekian butir template handoff ternyata sudah beres.
+
+16.8 BASELINE VERIFIKASI SPRINT INI (dapat diulang)
+- Unit test backend (tanpa jaringan): 27 test lulus
+  python -m pytest test_security_jwt.py test_multiturn_history.py test_idempotent_add_message.py -q
+- E2E frontend produksi (build produksi, bukan dev): 16 passed / 1 skipped
+  cd nexus-frontend && npm run e2e:prod
+- Gateway: GET /v1/models -> 200, 259 model / 25 provider (angka bergerak).
+- Sisa pekerjaan & larangan: lihat HANDOFF.md (dokumen pendamping laporan ini).
+
 === END OF REPORT ===
