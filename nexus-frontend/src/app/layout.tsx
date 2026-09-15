@@ -4,6 +4,7 @@ import { ThemeProvider } from "next-themes";
 import { Toaster } from "sonner";
 import { MotionConfig } from "motion/react";
 import { NuqsAdapter } from "nuqs/adapters/next/app";
+import { HydrationMonitor } from "@/components/HydrationMonitor";
 import "./globals.css";
 
 const sans = Inter({ subsets: ["latin"], variable: "--font-sans", display: "swap" });
@@ -28,6 +29,7 @@ export default function RootLayout({
         <NuqsAdapter>
           <MotionConfig reducedMotion="user">
             <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
+              <HydrationMonitor />
               {children}
               <Toaster position="top-center" richColors closeButton />
             </ThemeProvider>

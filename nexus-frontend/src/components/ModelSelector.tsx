@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Check, ChevronDown, Lock } from "lucide-react";
 import * as DropdownMenu from "@radix-ui/react-dropdown-menu";
 import { providerGroups, type ChatModel } from "@/lib/models";
@@ -25,7 +25,22 @@ export function ModelSelector({
   userTier = "free",
 }: ModelSelectorProps) {
   const [open, setOpen] = useState(false);
+  // HYDRATION (Lapis A): render pertama — HTML server dan render hydration
+  // client — WAJIB identik. Nilai `value`/`models` baru final SETELAH mount
+  // (restore localStorage di parent + daftar dari GET /models), dan update
+  // parent yang mendarat sebelum React selesai men-hydrate subtree composer
+  // membuat label di sini beda dari HTML server:
+  //   server "Gemma 4 31B"  vs  client "Pilih model"
+  // -> "Hydration failed because the server rendered text didn't match the
+  //    client" (tereproduksi, lihat tests/hydration.spec.ts).
+  // Gate `mounted` (pola sama seperti ThemeToggle) membuat render pertama
+  // selalu netral, sehingga divaisi hanya terjadi sebagai update setelah
+  // hydration — bukan bagian dari hydration.
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
+
   const active = models.find((m) => m.id === value);
+  const label = mounted ? (active?.name ?? "Pilih model") : "Memuat…";
   const plusDisabled = userTier !== "plus";
   const groups = providerGroups(models);
 
@@ -41,7 +56,7 @@ export function ModelSelector({
             "hover:bg-bg-subtle hover:text-fg focus-visible:shadow-focus disabled:opacity-40 disabled:pointer-events-none"
           )}
         >
-          <span className="truncate max-w-[120px]">{active?.name ?? "Pilih model"}</span>
+          <span className="truncate max-w-[120px]">{label}</span>
           <ChevronDown size={13} strokeWidth={2} className="shrink-0 text-fg-subtle" />
         </button>
       </DropdownMenu.Trigger>

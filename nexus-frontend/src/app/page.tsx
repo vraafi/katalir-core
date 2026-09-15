@@ -134,35 +134,55 @@ function ChatApp() {
   }));
   const serverTier = (modelsData?.tier ?? "free").toLowerCase();
   const userTier: "free" | "plus" = serverTier === "plus" || serverTier === "pro" || serverTier === "ultra" ? "plus" : "free";
-  const [selectedModel, setSelectedModel] = useState<string>(() => {
-    try {
-      if (typeof window === "undefined") return DEFAULT_MODEL_ID;
-      return window.localStorage.getItem("nexus.model.v1") ?? DEFAULT_MODEL_ID;
-    } catch {
-      return DEFAULT_MODEL_ID;
-    }
-  });
+  // HYDRATION: initializer TIDAK boleh membaca localStorage. Static export
+  // (`output: 'export'`) merender halaman tanpa `window` -> server memakai
+  // DEFAULT_MODEL_ID; initializer yang membaca storage membuat render pertama
+  // client berbeda dari HTML server (React 19: "Hydration failed because the
+  // server rendered text didn't match the client"). Nilai tersimpan dibaca
+  // SETELAH mount (effect) sebagai update biasa, bukan bagian dari hydration.
+  const [selectedModel, setSelectedModel] = useState<string>(DEFAULT_MODEL_ID);
+  const [modelReady, setModelReady] = useState(false);
   useEffect(() => {
     try {
-      if (typeof window !== "undefined") window.localStorage.setItem("nexus.model.v1", selectedModel);
+      const stored = window.localStorage.getItem("nexus.model.v1");
+      if (stored) setSelectedModel(stored);
     } catch {
       /* storage diblokir — pilihan tetap jalan in-memory */
     }
-  }, [selectedModel]);
+    setModelReady(true); // gate: baru boleh menulis setelah restore selesai
+  }, []);
+  useEffect(() => {
+    // Tanpa gate ini, effect persist menulis DEFAULT ke storage pada commit
+    // pertama (sebelum state hasil restore commit) -> nilai user tertimpa.
+    if (!modelReady) return;
+    try {
+      window.localStorage.setItem("nexus.model.v1", selectedModel);
+    } catch {
+      /* storage diblokir — pilihan tetap jalan in-memory */
+    }
+  }, [selectedModel, modelReady]);
   // Antrean pesan di atas composer (Opsi A — openclaw #104445, Geta.Team
   // v2.0.20, gini-agent ADR): bukan konten chat primer, tapi slim status
   // area; compact + collapsible + persist localStorage + animasi opacity.
-  const [messageQueue, setMessageQueue] = useState<QueuedMsg[]>(() => {
+  // HYDRATION: pola sama seperti selectedModel — initializer HARUS deterministik
+  // ([]) agar HTML server (static export, tanpa window) sama dengan render
+  // pertama client. Antrean tersimpan dibaca SETELAH mount.
+  const [messageQueue, setMessageQueue] = useState<QueuedMsg[]>([]);
+  const [queueReady, setQueueReady] = useState(false);
+  useEffect(() => {
     try {
-      if (typeof window === "undefined") return [];
       const raw = window.localStorage.getItem("nexus.queue.v1");
-      if (!raw) return [];
-      const arr = JSON.parse(raw) as QueuedMsg[];
-      return Array.isArray(arr) ? arr.filter((m) => m && typeof m.text === "string") : [];
+      if (raw) {
+        const arr = JSON.parse(raw) as QueuedMsg[];
+        if (Array.isArray(arr)) {
+          setMessageQueue(arr.filter((m) => m && typeof m.text === "string"));
+        }
+      }
     } catch {
-      return [];
+      /* storage rusak/diblokir — mulai dengan antrean kosong */
     }
-  });
+    setQueueReady(true); // gate: cegah [] menimpa antrean tersimpan
+  }, []);
   const [queueExpanded, setQueueExpanded] = useState(false);
   // Edit pesan di antrean (Fix 4) + konfirmasi Chat Baru saat AI aktif (Fix 6).
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -186,13 +206,14 @@ function ChatApp() {
   // Persist antrean (gini-agent ADR, fallback localStorage): refresh page
   // -> queue tetap ada. Tulis debounced-natural via effect per perubahan.
   useEffect(() => {
+    // Tanpa gate: commit pertama menulis [] sebelum antrean restored commit.
+    if (!queueReady) return;
     try {
-      if (typeof window === "undefined") return;
       window.localStorage.setItem("nexus.queue.v1", JSON.stringify(messageQueue));
     } catch {
       /* storage penuh/diblokir — queue tetap jalan in-memory */
     }
-  }, [messageQueue]);
+  }, [messageQueue, queueReady]);
 
   // Default collapsed (Geta.Team v2.0.20): tiap ada item baru, kembali
   // collapsed agar area tetap slim; user klik untuk expand.
