@@ -58,19 +58,58 @@ def fetch_gemini_models() -> list[dict]:
             "provider": "Google (Gemini)",
             "tier": "free",
         })
+    # Gerbang paid-only: discovery mentah memuat 41 model termasuk yang RPD 0
+    # (semua *-pro*, image/tts/lyria/robotics). Tanpa filter ini user bisa
+    # memilih `gemini-3.1-pro-preview`, lalu request-nya dialihkan gateway ke
+    # model lain -> jawaban datang dari model yang bukan pilihannya.
+    # Non-chat/media dibuang oleh `_NON_CHAT`; paid-only oleh allowlist.
+    from gateway_roster import filter_free_models
+
+    out = filter_free_models(out)
     default_id = os.getenv("AGENT_MODEL", "gemma-4-31b-it")
     out.sort(key=lambda d: (d["id"] != default_id, d["id"]))
     return out
 
 
+def _gateway_roster(force: bool = False) -> list[dict]:
+    """Roster dari free-llm-gateway (probe empiris) bila gateway terkonfigurasi.
+
+    Mengembalikan [] bila gateway belum di-set / roster kosong, sehingga
+    pemanggil bisa jatuh ke discovery Gemini langsung. Penyegaran roster
+    berjalan di latar belakang (non-blocking) supaya request tidak menggantung.
+    """
+    try:
+        from gateway_roster import gateway_config, roster_catalog
+
+        if not gateway_config()[0]:
+            return []
+        gw = roster_catalog(force=force)
+        if gw:
+            log.info("Roster gateway: %d model live diserve.", len(gw))
+        return gw
+    except Exception as exc:  # noqa: BLE001 - gateway opsional
+        log.warning("Roster gateway gagal (%s).", exc)
+        return []
+
+
 def get_available_models(force_refresh: bool = False) -> list[dict]:
-    """Discovery + cache 1 jam. Groq/NVIDIA di-probe (log) tapi belum
-    di-serve: backend /chat hanya route via genai.Client, jadi menyajikan
-    model yang tak bisa di-serve = UX rusak. Ikut ter-serve otomatis saat
-    multi-provider router mendarat."""
+    """Discovery + cache 1 jam.
+
+    Prioritas 1: roster gateway — model diverifikasi EMPIRIS lewat probe
+    (hanya yang terbukti menjawab yang di-serve), karena katalog gateway masih
+    memuat alias mati (has_key:true tapi upstream 410/404/500).
+    Prioritas 2 (fallback): discovery Gemini langsung via genai.Client.
+    """
     now = time.time()
     if not force_refresh and _cache["models"] and (now - _cache["ts"]) < CACHE_TTL_S:
         return _cache["models"]
+
+    gw = _gateway_roster(force_refresh)
+    if gw:
+        _cache["ts"] = now
+        _cache["models"] = gw
+        return gw
+
     models: list[dict] = []
     try:
         models.extend(fetch_gemini_models())

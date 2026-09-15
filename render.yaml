@@ -16,3 +16,10 @@ services:
         sync: false
       - key: PERSIST_REQUIRED
         value: "1"
+      # Free-llm-gateway self-hosted (satu pintu trafik LLM, model diverifikasi
+      # probe empiris). Dikelola dari dashboard Render; biarkan kosong = fitur
+      # gateway mati dan discovery jatuh ke Gemini langsung.
+      - key: LLM_GATEWAY_URL
+        sync: false
+      - key: LLM_GATEWAY_KEY
+        sync: false

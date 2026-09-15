@@ -103,6 +103,42 @@ GITHUB_BASE_URL = os.getenv(
 
 
 # ---------------------------------------------------------------------------
+# FREE-LLM-GATEWAY (self-hosted di VPS) — SATU PINTU untuk semua trafik LLM.
+#   LLM_GATEWAY_URL    : base URL gateway TANPA /v1 (mis. tunnel cloudflare)
+#   LLM_GATEWAY_KEY    : MASTER_KEY gateway (dipakai sebagai Bearer token)
+#   LLM_GATEWAY_MODELS : roster id model yang lolos probe (dipisah koma).
+#                        Bila kosong -> pakai GW_FALLBACK_MODELS.
+# Bila dua variabel pertama terisi, seluruh pemanggilan LLM lewat gateway;
+# fallback antar provider (google/nvidia/groq) ditangani gateway, bukan di sini.
+# ---------------------------------------------------------------------------
+GW_FALLBACK_MODELS = [
+    "gemini-2.5-flash",
+    "gemini-2.5-flash-lite",
+    "gemini-3-flash-preview",
+    "openai/gpt-oss-20b",
+]
+
+
+def gateway_config() -> tuple[str | None, str | None]:
+    """(base_url, master_key) gateway; (None, None) bila belum dikonfigurasi."""
+    url = (os.getenv("LLM_GATEWAY_URL") or "").strip().rstrip("/")
+    key = (os.getenv("LLM_GATEWAY_KEY") or "").strip()
+    if url and key:
+        return url, key
+    return None, None
+
+
+def gateway_models() -> list[str]:
+    """Roster model yang benar-benar diserve gateway (hasil probe empiris)."""
+    raw = (os.getenv("LLM_GATEWAY_MODELS") or "").strip()
+    if raw:
+        picked = [m.strip() for m in raw.split(",") if m.strip()]
+        if picked:
+            return picked
+    return list(GW_FALLBACK_MODELS)
+
+
+# ---------------------------------------------------------------------------
 # Factory model Universal (prioritas otonom .env)
 # ---------------------------------------------------------------------------
 def build_model(provider: str | None = None, model_name: str | None = None):
@@ -207,6 +243,8 @@ async def run_agent(
 
     # Routing kandidat selon tier & BYOK
     candidates: list[tuple[str, str]] = []
+    gw_url, gw_key = gateway_config()          # self-hosted free-llm-gateway
+    gateway_ready = bool(gw_url and gw_key)
     if custom_key:
         # 1) BYOK (prioritas utama): abaikan sistem acak, langsung guna kunci user.
         candidates = [("byok", "custom")]
@@ -219,6 +257,13 @@ async def run_agent(
                     "reply": "DEEPSEEK_API_KEY tidak di .env untuk tier PLUS.",
                     "output_data": {}}
         candidates = [("deepseek", os.getenv("DEEPSEEK_MODEL", "deepseek-chat"))]
+    elif gateway_ready:
+        # 0) GATEWAY self-hosted (VPS free-llm-gateway) — jalur utama.
+        #    Roster = model yang lolos probe empiris (LLM_GATEWAY_MODELS).
+        #    Bila user memilih model spesifik yang ada di roster, pakai itu.
+        roster = gateway_models()
+        picked = [ai_model] if ai_model in roster else roster
+        candidates = [("gateway", m) for m in picked]
     elif ai_model == "universal":
         # 3) FREE: rute acak (random) dari dira model gratis di .env.
         candidates = _free_candidates(provider)
@@ -238,6 +283,20 @@ async def run_agent(
                     api_key=custom_key,
                     base_url=os.getenv("BYOK_BASE_URL") or None,
                     temperature=float(os.getenv("AGENT_TEMPERATURE", "0.4")),
+                )
+            elif prov == "gateway":
+                # Self-hosted gateway: OpenAI-compatible (/v1), Bearer MASTER_KEY.
+                # `timeout` wajib: tunnel cloudflared yang menggantung tidak
+                # pernah memutus koneksi, jadi tanpa batas ini kandidat gateway
+                # memblokir seluruh loop dan kandidat provider lain tak dicoba.
+                from langchain_openai import ChatOpenAI
+                model = ChatOpenAI(
+                    model=model_name,
+                    api_key=gw_key,
+                    base_url=f"{gw_url}/v1",
+                    temperature=float(os.getenv("AGENT_TEMPERATURE", "0.4")),
+                    timeout=float(os.getenv("LLM_GATEWAY_TIMEOUT", "45")),
+                    max_retries=0,
                 )
             elif prov == "deepseek":
                 from langchain_openai import ChatOpenAI

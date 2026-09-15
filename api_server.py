@@ -14,7 +14,9 @@
 # =====================================================================
 
 import os
+import threading
 import time
+from contextlib import asynccontextmanager
 
 from fastapi import BackgroundTasks, FastAPI, Header, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
@@ -33,7 +35,22 @@ from tools import CredentialMissingError
 from google import genai
 from google.genai import types
 
-app = FastAPI(title="Nexus Agent API Gateway", version="1.0.0")
+@asynccontextmanager
+async def _lifespan(_app: "FastAPI"):
+    """Hook startup/shutdown (pengganti @app.on_event yang sudah deprecated).
+
+    Warm-up roster gateway dijalankan di sini supaya deploy BARU (tanpa
+    `.gw_roster_cache.json` seed) tidak menunggu probe sinkron di request
+    /chat pertama. `_warm_gateway_roster` didefinisikan di bawah (name lookup
+    terjadi saat runtime, bukan saat import) dan langsung return — probe
+    sesungguhnya berjalan di thread daemon.
+    """
+    _warm_gateway_roster()
+    yield
+
+
+app = FastAPI(title="Nexus Agent API Gateway", version="1.0.0",
+              lifespan=_lifespan)
 
 # CORS: izinkan frontend publik Cloudflare Pages + local dev.
 # Nota: allow_credentials=True no se puede combinar con origin "*".
@@ -63,26 +80,132 @@ PLUS_CHAT_MODELS = md.PLUS_CHAT_MODELS
 PLUS_TIERS = frozenset({"plus", "pro", "ultra"})
 
 
-def _resolve_model(requested: str | None, user_tier: str) -> tuple[str, bool]:
+# ---------------------------------------------------------------------------
+# FREE-LLM-GATEWAY (self-hosted di VPS) — SATU PINTU trafik LLM
+# ---------------------------------------------------------------------------
+def _gateway_target() -> tuple[str, str, list[str]] | None:
+    """(base_url, master_key, roster) bila gateway aktif; None bila tidak.
+
+    Roster berasal dari probe EMPIRIS (gateway_roster) dan disajikan dari cache
+    sehingga helper ini tidak menahan request /chat (probe hanya di latar).
+    """
+    try:
+        import gateway_roster as gr
+
+        url, key = gr.gateway_config()
+        if not url or not key:
+            return None
+        return url, key, gr.gw_models()
+    except Exception as exc:  # noqa: BLE001 - gateway opsional
+        print(f"[api_server] roster gateway dilewati: {exc}")
+        return None
+
+
+def _warm_gateway_roster() -> None:
+    """Isi cache roster saat startup TANPA menahan startup (thread daemon).
+
+    Deploy baru tidak punya `.gw_roster_cache.json`: tanpa warm-up, request
+    /chat pertama jatuh ke probe sinkron `probe_roster()` (satu request HTTP
+    per kandidat, timeout `LLM_GATEWAY_PROBE_TIMEOUT`) sehingga balasan
+    pertama frontend menggantung. Di sini probe dijalankan di latar, jadi
+    startup tetap instan dan request pertama menyusul setelah probe selesai.
+    """
+    try:
+        import gateway_roster as gr
+
+        if not gr.gateway_config()[0]:
+            return  # gateway belum dikonfigurasi -> tidak ada yang dihangatkan
+        # HANYA lihat cache: `probe_roster()` TANPA cache melakukan probe
+        # sinkron (puluhan detik) sehingga justru menahan startup. Cache segar
+        # -> tidak ada kerja; cache kosong/kedaluwarsa -> probe di latar.
+        if gr.cached_roster(gr.CACHE_TTL_S):
+            return
+        threading.Thread(
+            target=gr.probe_roster,
+            kwargs={"force": True, "blocking": True},
+            name="gw-roster-warmup",
+            daemon=True,
+        ).start()
+        print("[api_server] warm-up roster gateway di latar belakang.")
+    except Exception as exc:  # noqa: BLE001 - gateway opsional
+        print(f"[api_server] warm-up roster dilewati: {exc}")
+
+
+def _default_model_id() -> str:
+    """Default server: model roster gateway bila gateway aktif.
+
+    Tanpa ini default legacy `gemma-4-31b-it` (id Gemini-only, tak ada di
+    roster) diarahkan ke gateway -> 404; sebaliknya id gateway
+    (`qwen/qwen3.8-27b`) tidak dikenal genai.Client.
+    """
+    gw = _gateway_target()
+    if gw and gw[2]:
+        env_default = (os.getenv("AGENT_MODEL") or "").strip()
+        if env_default and env_default in gw[2]:
+            return env_default
+        return gw[2][0]
+    return os.getenv("AGENT_MODEL", "gemma-4-31b-it")
+
+
+def _fallback_reason(err: object) -> str:
+    """Klasifikasi alasan fallback -> kode yang dipetakan frontend ke bahasa user.
+
+    Kode: `quota_exhausted` | `rate_limit` | `overloaded` | `model_unavailable`;
+    `gateway_down` dipakai pemanggil (bukan fungsi ini) saat gateway gagal total.
+    Sengaja teks-based (bukan type-based) karena error datang dari tiga lapis
+    berbeda: SDK genai, LangChain/OpenAI client, dan HTTPException gateway.
+
+    CATATAN: `quota` dicek SEBELUM `rate_limit` — pesan 429 Gemini sering
+    memuat keduanya ("quota exceeded ... rate limit"), dan penyebab yang
+    berguna bagi user adalah kuota harian habis, bukan rate sesaat.
+    """
+    text = str(getattr(err, "detail", "") or err or "").lower()
+    if not text:
+        return "model_unavailable"
+    if ("quota" in text or "resource_exhausted" in text
+            or "insufficient_quota" in text or "rpd" in text or "402" in text):
+        return "quota_exhausted"
+    if "429" in text or ("rate" in text and "limit" in text) or "too many" in text:
+        return "rate_limit"
+    if ("503" in text or "unavailable" in text or "overload" in text
+            or "sibuk" in text or "internal error" in text or "500" in text):
+        return "overloaded"
+    if ("404" in text or "410" in text or "not found" in text or "gone" in text
+            or "tidak dikenal" in text):
+        return "model_unavailable"
+    # Sisa: gateway tak terhubung / id tak tersaji (mis. model paid-only yang
+    # baru difilter) -> dari sudut pandang user, model yang diminta tak tersedia.
+    return "model_unavailable"
+
+
+def _resolve_model(requested: str | None, user_tier: str) -> tuple[str, bool, str | None]:
     """Validasi model + tier-gate terhadap hasil discovery (cache 1 jam).
 
     Returns:
-        (model_id, tier_fallback): fallback=True bila model plus diminta
-        user free, atau id tak ada di daftar discovery -> default server.
+        (model_id, fallback, reason). `fallback=True` bila model yang dipakai
+        BEDA dari yang diminta user, dengan `reason` kode alasan (lihat
+        `_fallback_reason`). Tiga penyebab fallback di sini:
+          - model plus diminta user free      -> `model_unavailable` (tier);
+          - id tak ada di daftar discovery    -> `model_unavailable`
+            (termasuk id paid-only yang baru difilter TUGAS 1, dan pilihan
+            lama di localStorage yang sudah tidak disajikan lagi).
     """
-    default_id = os.getenv("AGENT_MODEL", "gemma-4-31b-it")
+    default_id = _default_model_id()
     tier = (user_tier or "free").strip().lower()
     if not requested:
-        return default_id, False
+        return default_id, False, None
     req = requested.strip()
     available = {m["id"] for m in md.get_available_models()}
     if req not in available:
-        return default_id, False  # unknown/stale id -> default
+        # Sebelumnya ini mengembalikan fallback=False -> user diam-diam
+        # mendapat model lain TANPA badge. Itu persis keluhan "reply dari
+        # gemini-2.5-flash" saat memilih Pro. Sekarang ditandai jujur.
+        return default_id, True, "model_unavailable"
     if req in PLUS_CHAT_MODELS:
         if tier in PLUS_TIERS:
-            return req, False
-        return default_id, True  # free minta plus -> fallback default
-    return req, False
+            return req, False, None
+        return default_id, True, "model_unavailable"  # free minta plus
+    return req, False, None
 
 
 # ---------------------------------------------------------------------------
@@ -122,6 +245,134 @@ class ExecuteRequest(BaseModel):
 
 
 # ---------------------------------------------------------------------------
+# AGENTIC LOOP VIA GATEWAY (OpenAI-compatible /v1)
+# ---------------------------------------------------------------------------
+_AGENT_SYSTEM = (
+    "Anda adalah Nexus Autonomous Agent. Rencanakan & lakukan tindakan dengan "
+    "alat yang tersedia. Setelah eksekusi alat, rangkum hasil untuk pengguna "
+    "secara ringkas dalam Bahasa Indonesia."
+)
+
+
+def _content_text(resp: Any) -> str:
+    """Teks balasan dari respons LangChain (str, atau list blok thinking/text)."""
+    raw = getattr(resp, "content", resp)
+    if isinstance(raw, list):
+        parts: list[str] = []
+        for block in raw:
+            if isinstance(block, dict) and block.get("text"):
+                parts.append(str(block["text"]))
+            elif isinstance(block, str):
+                parts.append(block)
+        raw = "\n".join(parts)
+    text = str(raw or "").strip()
+    return text or "Tugas selesai dieksekusi."
+
+
+def _agentic_run_gateway(prompt: str, email: str, model_id: str,
+                         gw_url: str, gw_key: str,
+                         roster: list[str] | None = None) -> dict:
+    """Agentic loop via free-llm-gateway (self-hosted, OpenAI-compatible).
+
+    Kontrak sama dengan `_agentic_run_direct` -> {reply, meta}, sehingga
+    endpoint /chat tidak perlu tahu jalur mana yang dipakai. Tool calling
+    memakai skema JSON `tools.TOOL_SCHEMAS_OPENAI` (turunan TOOL_DECLARATIONS
+    Gemini) dan dieksekusi `tools.execute_tool`; CredentialMissingError
+    dibiarkan menyebar agar endpoint mengubahnya jadi needs_credential.
+
+    Kegagalan transport/kuota gateway -> coba model roster berikutnya
+    (fallback antar-provider tetap ditangani gateway itu sendiri).
+    """
+    from langchain_core.messages import HumanMessage, SystemMessage, ToolMessage
+    from langchain_openai import ChatOpenAI
+
+    def _bound(model_name: str):
+        llm = ChatOpenAI(
+            model=model_name,
+            api_key=gw_key,
+            base_url=f"{gw_url}/v1",
+            temperature=float(os.getenv("AGENT_TEMPERATURE", "0.1")),
+            # Tunnel cloudflared bisa "menggantung" (koneksi terbuka, tak ada
+            # balasan). Tanpa timeout eksplisit LangChain menunggu tanpa henti
+            # sehingga fallback Gemini di `_agentic_run_direct` tak pernah
+            # tercapai. max_retries=0: failover antar-model ditangani loop ini.
+            timeout=float(os.getenv("LLM_GATEWAY_TIMEOUT", "45")),
+            max_retries=0,
+        )
+        try:
+            return llm.bind_tools(tools.TOOL_SCHEMAS_OPENAI)
+        except Exception as exc:  # noqa: BLE001 - model tanpa tool calling
+            print(f"[api_server] bind_tools dilewati ({model_name}): {exc}")
+            return llm
+
+    order = [model_id] + [m for m in (roster or []) if m != model_id][:2]
+    # Anggaran waktu total: 3 kandidat x timeout bisa melewati timeout frontend.
+    budget = float(os.getenv("LLM_GATEWAY_BUDGET", "90"))
+    deadline = time.time() + budget
+    last_err: Exception | None = None
+    for cand in order:
+        if last_err is not None and time.time() > deadline:
+            print("[api_server] anggaran waktu gateway habis -> fallback Gemini")
+            break
+        chat_model = _bound(cand)
+        messages: list[Any] = [
+            SystemMessage(content=_AGENT_SYSTEM),
+            HumanMessage(content=prompt),
+        ]
+        _t0 = time.time()
+        try:
+            resp = chat_model.invoke(messages)
+            for _ in range(3):  # maksimal 3 ronde tool calling
+                calls = getattr(resp, "tool_calls", None) or []
+                if not calls:
+                    break
+                messages.append(resp)
+                for call in calls:
+                    name = str((call or {}).get("name") or "")
+                    args = dict((call or {}).get("args") or {})
+                    try:
+                        result = tools.execute_tool(name, args, email)
+                    except CredentialMissingError:
+                        raise  # -> endpoint ubah jadi needs_credential
+                    except Exception as exc:  # noqa: BLE001 - alat gagal
+                        result = f"Gagal menjalankan {name}: {exc}"
+                    messages.append(ToolMessage(
+                        content=str(result),
+                        tool_call_id=str((call or {}).get("id") or name),
+                    ))
+                resp = chat_model.invoke(messages)
+            usage = getattr(resp, "usage_metadata", None) or {}
+            return {
+                "reply": _content_text(resp),
+                "meta": {
+                    "model": cand,
+                    "requested_model": model_id,
+                    "latency_ms": int((time.time() - _t0) * 1000),
+                    "prompt_tokens": int(usage.get("input_tokens") or 0),
+                    "completion_tokens": int(usage.get("output_tokens") or 0),
+                    "total_tokens": int(usage.get("total_tokens") or 0),
+                    "fallback": bool(cand != model_id),
+                    # Alasan HANYA diisi saat benar-benar fallback: tanpa itu,
+                    # frontend akan menampilkan badge pada request normal.
+                    "fallback_reason": (_fallback_reason(last_err)
+                                        if cand != model_id and last_err is not None
+                                        else None),
+                    "gateway": True,
+                },
+            }
+        except CredentialMissingError:
+            raise
+        except Exception as exc:  # noqa: BLE001 - coba model roster berikutnya
+            last_err = exc
+            print(f"[api_server] gateway {cand} gagal: {type(exc).__name__}: {exc}")
+    raise HTTPException(
+        503,
+        f"Gateway belum bisa melayani permintaan ({type(last_err).__name__}). "
+        "Coba lagi dalam 1 menit.",
+    )
+
+
+# ---------------------------------------------------------------------------
 # AGENTIC LOOP (setara _agentic_run, bebas dari Streamlit)
 # ---------------------------------------------------------------------------
 def _agentic_run_direct(prompt: str, email: str, model: str | None = None, user_tier: str = "free") -> dict:
@@ -133,10 +384,32 @@ def _agentic_run_direct(prompt: str, email: str, model: str | None = None, user_
     lanza HTTPException(503) con mensaje claro.
 
     Returns:
-        dict {reply, meta} dengan meta = {model, latency_ms,
-        prompt_tokens, completion_tokens, total_tokens, fallback}.
+        dict {reply, meta} dengan meta = {model, requested_model, latency_ms,
+        prompt_tokens, completion_tokens, total_tokens, fallback, fallback_reason}.
+        `requested_model` = model yang DIMINTA user (None bila user tidak
+        memilih); `model` = model yang benar-benar menjawab. Keduanya dikirim
+        agar UI bisa menampilkan "diminta vs dipakai" (claude-jacked 0.89.0).
     """
     import time as _time
+
+    # Disimpan SEBELUM `model` ditimpa oleh fallback gateway di bawah, supaya
+    # meta tetap melaporkan apa yang sebenarnya diminta user.
+    requested_model = (model or "").strip() or None
+
+    # Jalur utama: free-llm-gateway (self-hosted) bila model ada di roster.
+    gw = _gateway_target()
+    gw_err: HTTPException | None = None
+    if gw and model and model in gw[2]:
+        try:
+            return _agentic_run_gateway(prompt, email, model, gw[0], gw[1], gw[2])
+        except HTTPException as exc:
+            if exc.status_code != 503:
+                raise
+            # Tunnel/gateway sedang turun (URL cloudflared quick-tunnel berganti
+            # tiap restart): jangan sampai Nexus ikut mati -> teruskan ke jalur
+            # Gemini langsung (kunci server) dengan model cadangan.
+            gw_err = exc
+            print(f"[api_server] gateway 503 -> fallback Gemini: {exc.detail}")
 
     api_key = (
         os.getenv("GOOGLE_API_KEY")
@@ -144,21 +417,36 @@ def _agentic_run_direct(prompt: str, email: str, model: str | None = None, user_
         or os.getenv("GEMINI_KEY_1")
     )
     if not api_key:
+        if gw_err is not None:
+            raise gw_err  # tanpa kunci Gemini, laporkan kegagalan gateway apa adanya
         raise HTTPException(500, "API key tidak ditemukan.")
 
-    model_id, tier_fallback = _resolve_model(model, user_tier)
-    fallback_used = bool(tier_fallback)
-
-    SYSTEM = (
-        "Anda adalah Nexus Autonomous Agent. Rencanakan & lakukan tindakan dengan "
-        "alat yang tersedia. Setelah eksekusi alat, rangkum hasil untuk pengguna "
-        "secara ringkas dalam Bahasa Indonesia."
-    )
+    if gw_err is not None:
+        model = os.getenv("AGENT_FALLBACK_MODEL", "gemini-2.5-flash")
+    model_id, tier_fallback, resolve_reason = _resolve_model(model, user_tier)
+    fallback_used = bool(tier_fallback) or gw_err is not None
+    # Alasan fallback, berurut prioritas:
+    #   1. penolakan tier/id tak tersedia (resolve) — paling informatif;
+    #   2. kegagalan gateway (kuota/overload/tunnel turun) — klasifikasi teks;
+    #   3. tanpa tanda apa pun -> None (request normal, badge TIDAK muncul).
+    if resolve_reason:
+        fallback_reason: str | None = resolve_reason
+    elif gw_err is not None:
+        # `_agentic_run_gateway` melempar 503 hanya setelah SEMUA kandidat
+        # gagal. Bila pesannya memuat sinyal spesifik (kuota/rate/overload)
+        # pakai itu — lebih informatif; selain itu penyebab sebenarnya adalah
+        # gateway tak bisa dihubungi (tunnel turun), bukan model yang hilang.
+        # Tanpa pemetaan ini user melihat "Model tidak tersedia untuk tier
+        # Anda" padahal masalahnya di sisi gateway.
+        _gw_reason = _fallback_reason(gw_err)
+        fallback_reason = _gw_reason if _gw_reason != "model_unavailable" else "gateway_down"
+    else:
+        fallback_reason = None
 
     client = genai.Client(api_key=api_key)
     config = types.GenerateContentConfig(
         temperature=0.1,
-        system_instruction=SYSTEM,
+        system_instruction=_AGENT_SYSTEM,
         tools=tools.TOOL_DECLARATIONS,
         automatic_function_calling=types.AutomaticFunctionCallingConfig(disable=True),
     )
@@ -229,11 +517,15 @@ def _agentic_run_direct(prompt: str, email: str, model: str | None = None, user_
         pt, ct, tt = 0, 0, 0
     meta = {
         "model": model_id,
+        "requested_model": requested_model,
         "latency_ms": latency_ms,
         "prompt_tokens": int(pt or 0),
         "completion_tokens": int(ct or 0),
         "total_tokens": int(tt or 0),
         "fallback": bool(fallback_used),
+        # `fallback_reason` hanya terisi saat fallback — UI memakainya sebagai
+        # teks penyebab di badge, bukan sekadar penanda "terjadi fallback".
+        "fallback_reason": fallback_reason if fallback_used else None,
     }
     return {"reply": reply, "meta": meta}
 
@@ -387,7 +679,7 @@ def list_models(authorization: str | None = Header(None)):
     except Exception:
         tier = "free"
     is_plus = tier in PLUS_TIERS
-    default_id = os.getenv("AGENT_MODEL", "gemma-4-31b-it")
+    default_id = _default_model_id()
     discovered = md.get_available_models()
     items = [
         {**m, "locked": bool(m.get("tier") == "plus" and not is_plus)}

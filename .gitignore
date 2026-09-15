@@ -8,8 +8,11 @@ credentials.json
 token.json
 
 # ===== E2E test artifacts (berisi token sesi — JANGAN push) =====
-nexus-frontend/_e2e_session.json
-nexus-frontend/_e2e_storage.json
+# Globs, bukan nama pasti: `_e2e_session.extended.json` (varian dengan `exp`
+# diperpanjang) sebelumnya LOLOS dari pola nama-pasti dan berisi access_token +
+# refresh_token nyata — hampir ikut ter-commit.
+nexus-frontend/_e2e_session*.json
+nexus-frontend/_e2e_storage*.json
 nexus-frontend/test-results/
 nexus-frontend/playwright-report/
 
@@ -49,9 +52,20 @@ _*.py
 _out*.txt
 _gw.env
 _gw_master.txt
+
+# ===== Gateway artifacts (BISA BERISI KUNCI ASLI — JANGAN push) =====
+_gw_add.env
+_gw*.txt
+_gw*.json
+_gwfiles/
+_gwlayout.txt
+_probe*.json
 _vps_*.py
 _rail*.py
 _mut*.py
 _verify*.py
 _depcheck*.py
 vps_ssh_test.py
+
+# Cache roster hasil probe gateway (runtime, bukan artefak)
+.gw_roster_cache.json

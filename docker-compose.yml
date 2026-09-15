@@ -25,6 +25,19 @@ services:
       # Variabel tambahan / override yang tidak ada di .env
       OPEN_CONNECTOR_URL: http://open-connector:3000   # akses internal antar container
       GEMINI_API_KEY: ${GEMINI_KEY_1:-}                # fallback ke salah satu Gemini key
+      # Free-llm-gateway self-hosted (tunnel Cloudflare di VPS lain).
+      # Kosong = fitur gateway mati: api_server jatuh ke discovery Gemini
+      # langsung (model_discovery) tanpa error. Isi via shell/env host:
+      #   $env:LLM_GATEWAY_URL=...; docker compose up -d
+      LLM_GATEWAY_URL: ${LLM_GATEWAY_URL:-}
+      LLM_GATEWAY_KEY: ${LLM_GATEWAY_KEY:-}
+      LLM_GATEWAY_ROSTER_TTL: ${LLM_GATEWAY_ROSTER_TTL:-21600}
+      LLM_GATEWAY_PROBE_TIMEOUT: ${LLM_GATEWAY_PROBE_TIMEOUT:-90}
+      # Batas waktu per request & anggaran total jalur gateway. Tunnel
+      # cloudflared yang menggantung bisa menahan /chat tanpa henti; setelah
+      # batas ini backend jatuh ke Gemini langsung.
+      LLM_GATEWAY_TIMEOUT: ${LLM_GATEWAY_TIMEOUT:-45}
+      LLM_GATEWAY_BUDGET: ${LLM_GATEWAY_BUDGET:-90}
     volumes:
       - ./data:/app/data                # persistensi state runtime
     depends_on:

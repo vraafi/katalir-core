@@ -36,5 +36,8 @@ node_modules
 .next.reference/
 test-results/
 playwright-report/
+# Bukti uji (screenshot selector/locked) — artefak lokal, sama seperti test-results
+evidence/
 .reference/
-_e2e_session.json
+_e2e_session*.json
+_e2e_storage*.json

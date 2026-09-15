@@ -168,6 +168,69 @@ TOOL_DECLARATIONS = [
 
 
 # ---------------------------------------------------------------------------
+# SKEMA JSON UNTUK PROVIDER OPENAI-COMPATIBLE (gateway / BYOK / OpenAI)
+# Turunan dari TOOL_DECLARATIONS di atas supaya dua format tidak drift:
+# provider OpenAI-compatible (free-llm-gateway, BYOK) tidak paham types.Tool
+# Gemini dan butuh JSON Schema ({type: function, function: {name, parameters}}).
+# ---------------------------------------------------------------------------
+_TYPE_MAP = {
+    "STRING": "string",
+    "NUMBER": "number",
+    "INTEGER": "integer",
+    "BOOLEAN": "boolean",
+    "ARRAY": "array",
+    "OBJECT": "object",
+}
+
+
+def _json_schema(schema) -> dict:
+    """Konversi types.Schema (Gemini) -> JSON Schema (OpenAI)."""
+    if schema is None:
+        return {}
+    raw_type = getattr(schema, "type", None)
+    type_name = getattr(raw_type, "name", None) or str(raw_type or "")
+    out: dict = {}
+    mapped = _TYPE_MAP.get(str(type_name).upper())
+    if mapped:
+        out["type"] = mapped
+    desc = getattr(schema, "description", None)
+    if desc:
+        out["description"] = desc
+    props = getattr(schema, "properties", None) or {}
+    if props:
+        out["properties"] = {k: _json_schema(v) for k, v in props.items()}
+    required = getattr(schema, "required", None)
+    if required:
+        out["required"] = list(required)
+    items = getattr(schema, "items", None)
+    if items is not None:
+        out["items"] = _json_schema(items)
+    enum = getattr(schema, "enum", None)
+    if enum:
+        out["enum"] = list(enum)
+    return out
+
+
+def openai_tool_schemas() -> list[dict]:
+    """Skema tools format OpenAI untuk `bind_tools` (gateway/BYOK)."""
+    out: list[dict] = []
+    for tool in TOOL_DECLARATIONS:
+        for decl in (getattr(tool, "function_declarations", None) or []):
+            out.append({
+                "type": "function",
+                "function": {
+                    "name": decl.name,
+                    "description": decl.description or "",
+                    "parameters": _json_schema(decl.parameters),
+                },
+            })
+    return out
+
+
+TOOL_SCHEMAS_OPENAI = openai_tool_schemas()
+
+
+# ---------------------------------------------------------------------------
 # DISPATCHER EKSEKUSI ALAT
 # ---------------------------------------------------------------------------
 def execute_tool(name: str, args: dict, email: str) -> str:
