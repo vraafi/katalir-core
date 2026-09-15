@@ -75,6 +75,8 @@ vps_ssh_test.py
 # _trace_evidence.txt) sebelumnya LOLOS dan mengotori `git status`.
 _*.txt
 _*.json
+# Harness runner lokal (mis. _run_pw.ps1) — scratch, bukan artefak repo.
+_*.ps1
 # Cache JWKS publik: runtime cache yang menyegarkan diri (TTL 6 jam).
 # Ditanam lewat env SUPABASE_JWKS utk produksi, jadi tidak perlu di-commit.
 .jwks_cache.json
