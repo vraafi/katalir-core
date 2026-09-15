@@ -96,6 +96,12 @@ FREE_TIER_MODEL_IDS = frozenset({
     "gemini-3.5-flash", "gemini-3-flash-preview",
     # Gemini Flash-Lite (500 RPD) — recommended
     "gemini-3.5-flash-lite", "gemini-3.1-flash-lite",
+    # Varian PREVIEW dari Flash-Lite juga free tier (pola sama dengan
+    # `gemini-3-flash-preview` yang sudah diizinkan di atas). Sempat terbuang
+    # oleh gerbang allowlist ini sampai ditemukan di audit before/after
+    # (41 -> 13 model): keluarga flash-lite TIDAK boleh hilang — lihat
+    # constraint tugas "jangan hapus model valid (flash, flash-lite, gemma)".
+    "gemini-3.1-flash-lite-preview",
     # Gemma
     "gemma-4-31b-it", "gemma-4-26b-a4b-it", "gemma-3-27b-it",
     # Terbukti hidup via probe roster kita (jangan dihapus — lihat catatan).
