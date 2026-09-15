@@ -29,10 +29,19 @@ test.describe("UX queue burst", () => {
     // Expand lalu cek isi queued + urutan FIFO.
     await page.getByTestId("queue-toggle").click();
     const nQueued = await page.getByTestId("queued-msg").count();
-    const body = (await page.textContent("body")) ?? "";
-    const countA = (body.match(/burst A/g) || []).length;
-    const countB = (body.match(/burst B/g) || []).length;
-    const countC = (body.match(/burst C/g) || []).length;
+    // Hitung HANYA di area obrolan (bubble msg-list) + daftar antrean.
+    // Sebelumnya tes membaca `document.body`, sehingga judul sesi di sidebar
+    // ikut terhitung: fitur auto-titling menamai sesi dari prompt pertama,
+    // jadi judul sidebar = teks prompt -> "burst A" muncul 2x (bubble + sidebar)
+    // dan assertion gagal padahal tidak ada duplikasi pesan di area obrolan.
+    // `queue-preview` sengaja TIDAK diikutkan: preview memang mengulang teks
+    // item pertama antrean, sehingga bukan duplikasi pesan.
+    const chatText = (await page.getByTestId("msg-list").innerText()) || "";
+    const queuedText = (await page.getByTestId("queued-msg").allInnerTexts()).join("\n");
+    const scoped = `${chatText}\n${queuedText}`;
+    const countA = (scoped.match(/burst A/g) || []).length;
+    const countB = (scoped.match(/burst B/g) || []).length;
+    const countC = (scoped.match(/burst C/g) || []).length;
     console.log(`BURST A=${countA} B=${countB} C=${countC} QUEUED_SLOTS=${nQueued}`);
     // Semua 3 teks harus tampil tepat 1x (1 in-flight + 2 queued), tidak ada yang hilang/duplikat.
     expect(countA).toBe(1);

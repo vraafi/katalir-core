@@ -7,10 +7,30 @@ const REF = "qmukkphwaajzbqjrcvaz";
 const KEY = `sb-${REF}-auth-token`;
 
 let session: any;
-try {
-  session = JSON.parse(readFileSync(join(process.cwd(), "_e2e_session.json"), "utf-8"));
-} catch {
-  console.log("NO_SESSION_FILE — jalankan _e2e_setup.mjs dulu");
+// PENTING: dahulukan `_e2e_session.refreshed.json` (ditulis globalSetup
+// `scripts/e2e-auth-setup.mjs`). Sebelumnya spec ini hanya membaca
+// `_e2e_session.json` yang bisa tertinggal berhari-hari (pernah exp -194087s),
+// sehingga injeksi token mati -> aplikasi tidak menampilkan email -> gagal
+// dengan pesan menyesatkan "injeksi session gagal" padahal injeksinya benar.
+{
+  const candidates = [
+    "_e2e_session.refreshed.json",
+    "_e2e_session.extended.json",
+    "_e2e_session.json",
+  ];
+  for (const f of candidates) {
+    try {
+      const s = JSON.parse(readFileSync(join(process.cwd(), f), "utf-8"));
+      if (s?.access_token) {
+        session = s;
+        console.log(`SESSION_FILE=${f}`);
+        break;
+      }
+    } catch {
+      /* lanjut ke kandidat berikutnya */
+    }
+  }
+  if (!session) console.log("NO_SESSION_FILE — jalankan node scripts/e2e-auth-setup.mjs dulu");
 }
 
 test("E2E supabase asli: login ter-inject + kirim pesan TIDAK 401", async ({ page }) => {

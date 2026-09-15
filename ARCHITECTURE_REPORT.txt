@@ -1,0 +1,247 @@
+NEXUS AGENT CORE - ARCHITECTURE REPORT
+Bahasa Indonesia. Plain text ASCII, tanpa markdown table.
+===============================================================================
+=== 1. PROJECT OVERVIEW ===
+---
+1.1 Nama: Nexus Agent Core (brand UI: Nexus Agent SaaS AI). Handoff ke AI reviewer (Claude) utk review, UX overhaul Apple-like minimalist, modernisasi 2026.
+1.2 Tujuan: Visual AI Agent builder ala n8n/Flowise: chat + canvas workflow (Trigger->Agent->MCP), eksekusi async DAG, webhook, vault BYOK, metered billing Dodo+LiteLLM.
+1.3 Target user: B2B SMB Indonesia + developer. Tier: Free/Plus/Pro/Ultra Pro Max (rencana).
+1.4 Stack FE: Next.js 15.1.3 + React 19.0.0 + TS strict + Tailwind 3.4.17, npm, Node v24.16.0.
+1.5 Stack BE: FastAPI 0.115.6 + Uvicorn + LangChain-core/groq/openai/google-genai + LiteLLM 1.65.1 + Supabase-py + Fernet + ddgs + httpx. Legacy: Streamlit 1.41.1 (mati).
+1.6 Deploy: FE static export -> Cloudflare Pages (proyek-agent.pages.dev). BE -> Railway (Procfile/railway.json) + render.yaml + docker-compose (backend:8000 + open-connector:3000).
+1.7 Repo: https://github.com/vraafi/nexus-agent-core.git, branch main, HEAD d1bfae6.
+=== 2. FULL FILE TREE ===
+---
+--- root Proyek_AI (exclude node_modules/.next/out/.git/__pycache__) ---
+Proyek_AI/
+  ARCHITECTURE_REPORT.txt [laporan ini]
+  agent_engine.py [206 LOC - legacy engine lama]
+  agent_reasoner.py [343 LOC - Universal AI Router groq/nvidia/github/google/deepseek/BYOK + bind_tools]
+  api_server.py [490 LOC - FastAPI gateway 13 route + CORS + vault/dodo endpoints]
+  app_frontend.py [777 LOC - Streamlit legacy, tidak dipakai prod]
+  auth_gateway.py [129 LOC - OpenConnector gateway 1000+ SaaS]
+  billing_llm.py [85 LOC - LiteLLM validate+ledger+dodo verify]
+  database.py [477 LOC - Supabase DAO sessions/messages/workflows/executions/vault/balance]
+  docker-compose.yml [backend-agent:8000 + open-connector ghcr:3000]
+  Dockerfile, .dockerignore, Procfile, railway.json, render.yaml, deploy_vps.sh
+  execution_engine.py [686 LOC - orchestrator DAG async + gembok BYOK/free/plus + vault injection]
+  llm_router.py [119 LOC - router tambahan]
+  requirements.txt [37 baris - pin versi baik]
+  tool_schemas.py [93 LOC - validasi payload], tools.py [208 LOC - registry + CredentialMissing]
+  vault_security.py [76 LOC - Fernet encrypt/decrypt VAULT_SECRET_KEY]
+  vault_security pakai cryptography.fernet, baca VAULT_SECRET_KEY dari .env
+  migrations/ [SQL create workflows + user_balances + user_usage]
+  tests/ [test_e2e.py dihapus setelah run; tersisa test_*.py live/massal/integration]
+  test_browser_e2e.py [76], test_e2e_live.py [86], test_massal.py [132], vps_ssh_test.py [12]
+  _p1.py, _v1.py, _gen1.py [helper sementara lokal, hapus sebelum handoff]
+  .env [gitignored, 59 keys], client_secret_*.json [gitignored], _log.txt
+--- nexus-frontend/ ---
+nexus-frontend/
+  package.json [Next 15.1.3, React 19, xyflow 12.11.6, codemirror, supabase-js, lucide]
+  tsconfig.json [strict true, path @/*, ES2017], next.config.ts [output:export statis]
+  tailwind.config.ts [brand #6C63FF/#4F46E5 + fade-up/fade-in], postcss.config.mjs
+  .env.local [NEXT_PUBLIC_SUPABASE_URL/ANON_KEY/API_URL], .gitignore, next-env.d.ts
+  src/
+    app/layout.tsx [19 LOC - RootLayout html lang=id]
+    app/globals.css [31 LOC - tailwind + font system + scrollbar]
+    app/page.tsx [320 LOC - Home>AuthProvider>ChatApp chat + sessions + vault form]
+    app/builder/page.tsx [684 LOC TERBESAR - Builder>ReactFlowProvider>BuilderInner]
+    components/shell.tsx [137 LOC - layout sidebar+header Chat/Builder/Brankas/Login]
+    components/VaultModal.tsx [145 LOC - brankas save/list]
+    components/ExpressionEditor.tsx [59 LOC - CodeMirror dark + braceCompleter {{}}]
+    context/auth.tsx [75 LOC - AuthContext email/loading/google OAuth]
+=== 3. DEPENDENCY INVENTORY ===
+---
+--- frontend dependencies (package.json) ---
+  - next 15.1.3 | routing/render | App Router static export Cloudflare | OK modern
+  - react 19.0.0 + react-dom | UI | hooks/context/canvas | OK, cek kompat xyflow/codemirror
+  - @xyflow/react 12.11.6 | UI/canvas | ReactFlow/Background/Controls/MiniMap/NodeToolbar/Handle | standar industri
+  - @uiw/react-codemirror 4.25.11 | UI/editor | ExpressionEditor dark monospace | wajib dynamic ssr:false (sudah)
+  - @codemirror/autocomplete 6.20.3 | UI/editor | braceCompleter {{}} trigger.body/headers agent.output/reply
+  - @supabase/supabase-js 2.115.0 | db/auth | OAuth + vault list via REST | OK
+  - lucide-react 0.454.0 | UI/icon | Send/Sparkles/Bot/User/Loader2/KeyRound/Plus/dll | OK
+--- frontend devDependencies ---
+  - typescript 5 + @types/node/react/react-dom | dev | strict true | OK
+  - tailwindcss 3.4.17 + postcss 8.4.49 + autoprefixer 10.4.20 | styling | utility-first | OK
+--- backend requirements.txt ---
+  - streamlit==1.41.1 LEGACY (app_frontend mati di prod, kandidat hapus)
+  - google-genai==1.6.0 + langchain-google-genai==2.1.2 OVERLAP (dua SDK Google, rapikan)
+  - httpx==0.28.1 | dipakai http_request real | OK
+  - ddgs==9.0.1 | web_search real tanpa key | OK
+  - pydantic==2.10.4, supabase==2.15.0, python-dotenv==1.0.1 | OK
+  - langchain-core==0.3.34 + langchain-groq/openai | agentic ringan | OK
+  - fastapi==0.115.6 + uvicorn | gateway | OK
+  - litellm==1.65.1 | router/cost ledger | OK
+  - cryptography (Fernet vault) + paramiko (SSH) | implisit, tambah eksplisit ke requirements
+--- duplikat ---
+  - 2 frontend: Next.js aktif vs Streamlit mati. 2 gateway: open-connector Node vs FastAPI langsung.
+
+    lib/supabase.ts [6 LOC - createClient anon]
+
+=== 4. ENTRY POINTS & ROUTING ===
+---
+4.1 FE entry: nexus-frontend/src/app/layout.tsx RootLayout(html lang=id, metadata Nexus Agent) -> app/page.tsx Home(AuthProvider>ChatApp); app/builder/page.tsx Builder(ReactFlowProvider>BuilderInner). next.config output=export (full statis, tanpa server runtime, deploy out/ via wrangler).
+4.2 Route FE (file-based, 2 saja):
+  (1) / = Home/Chat. Component ChatApp dalam Shell (sidebar riwayat + header + hero/saran + messages + credential_form + floating input). Protected SEMU: hanya alert login client-side, bukan route guard. Tanpa login tetap lihat hero.
+  (2) /builder = Builder canvas (palette kiri + ReactFlow + ConfigPanel kanan + Terminal bawah). Publik penuh, tanpa gate/auth.
+4.3 Middleware: TIDAK ADA (tanpa auth/i18n/rate-limit). Layout: RootLayout global + Shell hanya di / (builder pakai layout sendiri tanpa Shell).
+4.4 BE entry: api_server.py FastAPI app + CORSMiddleware allow_origins=* + uvicorn HOST/PORT/RELOAD dari env. 13 route:
+  POST /chat (body email,session_id?,message,credential_provider?,credential_value?) -> assistant/system credential_form
+  POST /integrations (save token provider)
+  POST /api/vault/save {email,provider,api_key} -> enkripsi Fernet upsert user_vault
+  GET /api/vault/list?email= -> [{provider,saved:true}] TANPA kunci asli
+  POST /workflows 201 {name,description,flow_data{nodes,edges}}
+  GET /workflows -> [{id,name,flow_data,created_at}] desc
+  POST /workflows/{id}/execute 202 BackgroundTasks -> {execution_id,status:pending/queued}
+  GET /executions/{id} -> {status,logs:[{node_id,type,status,output}]}
+  POST /webhook/{id} 202 {status:queued,execution_id} (body+headers disuntik ke trigger)
+  GET /sessions?email= ; GET /messages/{sid}?email= ; POST /api/payments/dodo-webhook ; GET /health
+
+
+=== 5. COMPONENT ARCHITECTURE ===
+---
+5.1 Inventaris (path | nama | props | klasifikasi | LOC):
+  - src/app/layout.tsx | RootLayout | {children: ReactNode} | layout | 19
+  - src/app/page.tsx | Home + ChatApp | {} (inner Msg union, SessionItem {id,title,created_at}) | page+feature | 320
+  - src/app/builder/page.tsx | Builder, BuilderInner, PaletteNode, ConfigPanel | PaletteNode {id, data:{kind,label,desc?,config?}, selected?}; ConfigPanel {node,onChange,onClose,apiUrl,workflowId} | page+feature | 684 TERBESAR
+  - src/components/shell.tsx | Shell | {children, sessions, currentSessionId, onSelectSession, onNewChat} | layout | 137
+  - src/components/VaultModal.tsx | VaultModal | {open, email, onClose} | feature | 145
+  - src/components/ExpressionEditor.tsx | ExpressionEditor | {value, placeholder?, onChange, minHeight?} | ui-primitive | 59
+  - src/context/auth.tsx | AuthProvider + useAuth | {children} | hook-wrapper | 75
+  - src/lib/supabase.ts | supabase singleton | - | utils | 6
+5.2 Klasifikasi: layout=RootLayout,Shell; page=Home,Builder; ui-primitive=ExpressionEditor; feature=VaultModal,ConfigPanel,PaletteNode,ChatApp; hook-wrapper=AuthProvider.
+5.3 Kandidat refactor (>200 baris): Chat 320 baris, Builder 684 baris (pecah ConfigPanel/Terminal/Toolbar ke file sendiri).
+5.4 Duplikat: PROVIDER_LABELS (Chat) vs PROVIDERS (Vault) overlap; pola toast duplikat di builder. Tanpa duplikat komponen penuh.
+5.5 Component tree 3 page utama:
+  (a) / : Home > AuthProvider > ChatApp > Shell > [aside riwayat + header(Chat/Builder/Brankas/Login) + hero|messages|credential_form + floating input]; VaultModal kondisional.
+  (b) /builder : Builder > ReactFlowProvider > BuilderInner > [Palette | ReactFlow(PaletteNode,Background,Controls,MiniMap,Panel Simpan+Jalankan) | ConfigPanel(+ExpressionEditor+WebhookCard) | Terminal].
+  (c) RootLayout: html > body > {children}. Catatan: AuthProvider per-page, bukan di layout, sehingga sesi tidak shared antar route.
+---
+=== 6. STATE MANAGEMENT MAP ===
+---
+6.1 Library: HANYA React Context (AuthContext) + useState/useRef/useCallback/useEffect + xyflow useNodesState/useEdgesState. Tanpa Redux/Zustand/Jotai/SWR/RQ.
+6.2 Store: AuthContext {email,loading,signInWithGoogle,signOut}; Builder {nodes,edges,selectedId,savedId,toast,runState,terminal,node.data.config}; Chat {messages,input,loadingMsg,credValue,sessions,currentSessionId}.
+6.3 Server-state (sessions/messages/workflows/executions/vault) di-fetch manual tanpa cache/dedup/invalidasi. Client-state di useState. Tanpa pemisahan formal.
+6.4 Prop drilling wajar (1 level). Seharusnya di URL: currentSessionId/selectedNodeId/workflowId (?session=&?workflow=) agar shareable; kini memory-only (canvas reload dari GET /workflows[0] saat refresh).
+================================================================================
+=== 7. STYLING & DESIGN SYSTEM ===
+---
+7.1 Metode: Tailwind v3 utility-first + <style> inline kecil (z-index cm-tooltip) + scrollbar di globals.css. Tanpa CSS Modules/styled-components.
+7.2 Config: tailwind.config.ts content=src/**; brand #6C63FF/#4F46E5; animasi fade-up/fade-in. postcss: tailwindcss+autoprefixer.
+7.3 Palet aktual: brand #6C63FF; gray Tailwind; aksen blue-500/green-500/amber-500 (handle), indigo (vault), green-400 (terminal), red-400 (error), kuning (warning). BG: #f9f9fa body, white header, gray-50/100 sidebar, gray-800/900 node/vault, #1E1E1E terminal.
+7.4 Font: system stack (-apple-system,SF Pro Text,Inter,Segoe UI,Roboto); monospace utk CodeMirror/terminal. Tanpa next/font.
+7.5 Spacing/breakpoint: skala Tailwind default; breakpoint sm/md/lg HAMPIR TAK DIPAKAI (fixed w-64, max-w-3xl, w-80, w-440px).
+7.6 Dark mode: TIDAK ADA (dark: variant nol; hanya komponen gelap parsial di atas app terang).
+7.7 Inconsistency: hex hardcoded (#6C63FF edge, #1E1E1E terminal, #2d3748 minimap) vs token; magic numbers (w-3 h-10 handle, gap12, z-[80], left-64 input).
+7.8 KRITIS - titik flat: (1) shadow minim (card chat flat border-only); (2) micro-interaction hanya hover-bg + fade/spin; (3) spacing campur tanpa 8px grid; input fixed left-64 rapuh; (4) hierarchy datar (16 vs 14px); (5) tanpa blur layering/gradient mesh/focus-ring; (6) durasi tunggal 0.3s tanpa spring/stagger; (7) empty state teks abu polos.
+================================================================================
+  src/components/shell.tsx | Shell | {children,sessions,currentSessionId,onSelectSession,onNewChat} | layout | 137
+  src/components/VaultModal.tsx | VaultModal | {open,email,onClose} | feature | 145
+  src/components/ExpressionEditor.tsx | ExpressionEditor | {value,placeholder,onChange,minHeight} | ui-primitive | 59
+  src/context/auth.tsx | AuthProvider+useAuth | {children} | hook-wrapper | 75
+  src/lib/supabase.ts | supabase singleton | - | utils | 6
+5.2 >200 baris: Chat 320 + Builder 684 = kandidat refactor (pecah ConfigPanel/Terminal/Toolbar ke file sendiri).
+5.3 Duplikat: PROVIDER_LABELS(Chat) vs PROVIDERS(Vault) overlap; pola toast duplikat di builder. Tanpa duplikat komponen penuh.
+5.4 Component tree: (a) / : Home>AuthProvider>ChatApp>Shell>[aside+header+hero|messages|credential_form+floating input]; VaultModal kondisional. (b) /builder: Builder>ReactFlowProvider>BuilderInner>[Palette|ReactFlow(PaletteNode,Background,Controls,MiniMap,Panel Simpan+Jalankan)|ConfigPanel(+ExpressionEditor+WebhookCard)|Terminal]. (c) RootLayout html>body>{children} (AuthProvider per-page, sesi tidak shared antar route).
+=== 8. UI/UX AUDIT (FOKUS UTAMA - Apple-like minimalist) ===
+---
+8a. TIPOGRAFI: family=system stack (cocok dgn SF Pro tapi tanpa next/font, tanpa optical sizing). Weight: kebanyakan font-medium/semibold judul + regular body; tanpa light/bold ekstrem. line-height: leading-snug/relaxed (chat), leading default (builder); letter-spacing: default (tanpa tracking-tight judul). VS Apple: Apple pakai SF Pro Display/Text + tracking -0.02em judul besar + skala 11/13/17/22/28/34; proyek ini datar (16 vs 14 vs 12), tanpa skala display. Rekomendasi: tetapkan type-scale (12/13/15/17/22/28) + tracking-tight judul + font-semibold konsisten.
+8b. SPACING: skala Tailwind (p-2/p-4/gap-4) tapi TANPA 4/8px grid discipline (campur p-2..p-6, m campur); input chat fixed left-64 (rapuh, pecah <1024px); sidebar w-64 + panel w-80 oke tapi tanpa rhythm vertikal konsisten. Rekomendasi: tetapkan spacing token (4/8/16/24/32) + container max-w + grid 12 kolom.
+8c. WARNA: hex terkumpul: brand #6C63FF, #4F46E5, #1E1E1E, #2d3748, #f9f9fa + Tailwind gray/blue/green/amber/indigo/red/yellow. Terlalu banyak aksen (ungu+biru+hijau+amber+merah+kuning). Kontras: teks green-400 di #1E1E1E lulus; gray-500 di gray-50 borderline utk teks kecil. VS Apple: netral dominan (putih/abu/hitam) + 1 aksen (biru). Rekomendasi: 1 aksen primer + netral (zinc) + semantik (success/danger) saja.
+8d. DEPTH: shadow hanya shadow-xl saat node selected + shadow terminal; card chat/flat (border saja, tanpa shadow-soft). Border: gray-200/600/700/900 campur. Blur: backdrop-blur hanya di toast; tanpa frosted header. Gradient: NOL. VS Apple: layered blur + shadow-soft + hairline border. Rekomendasi: shadow-sm/md konsisten + rounded-2xl + hairline border + header frosted.
+8e. MOTION: fade-up (hero) + fade-in (toast) 0.3s + animate-spin (loading) + transition-colors/transform handle. Tanpa spring/stagger/shared-element; durasi tunggal. Rekomendasi: spring 200-300ms + stagger list + skeleton loading + View Transitions utk route.
+8f. INTERAKTIF: button punya hover (bg) tapi FOCUS RING minim (focus:outline-none di input), ACTIVE jarang, DISABLED hanya di opsi premium (tanpa gaya disabled konsisten), LOADING hanya spinner teks. Input punya border tapi tanpa focus-ring biru + tanpa error state merah + tanpa helper text konsisten. Rekomendasi: definisikan state lengkap (default/hover/focus/active/disabled/loading/error) utk Button/Input/Select.
+8g. RESPONSIVITAS: breakpoint sm/md/lg HAMPIR NOL; layout desktop-first fixed (sidebar 256px + panel 320px + input left-64). Mobile (<768px): sidebar menumpuk/menyempit, terminal full-width menutup canvas, modal w-[440px] overflow. BUKAN mobile-first. Rekomendasi: collapsible palette/config (drawer), terminal resizable, modal max-w-[calc(100vw-2rem)].
+8h. A11Y: aria-label HANYA di tombol hapus node (Trash2); input/textarea/select/modal TANPA label terasosiasi; keyboard nav ReactFlow parsial (CodeMirror trap fokus); modal TANPA focus-trap/Escape aria-modal; semantic HTML lemah (div soup, tanpa main/nav/section). Rekomendasi: label htmlFor, role=dialog aria-modal, Escape close, focus-trap, skip-link.
+8i. 10 REKOMENDASI APPLE-LIKE: (1) type-scale + tracking-tight; (2) 1 aksen + netral zinc; (3) shadow-soft + rounded-2xl + hairline; (4) header frosted backdrop-blur; (5) spring motion + skeleton; (6) state lengkap button/input; (7) spacing 8px grid + container; (8) mobile drawer + terminal resizable; (9) a11y label/focus-trap; (10) empty-state ilustratif + ikonografi konsisten (lucide, 1 gaya, 2 ukuran saja).
+================================================================================
+6.2 Store: AuthContext {email,loading,signInWithGoogle,signOut}; Builder {nodes,edges,selectedId,savedId,toast,runState,terminal,node.data.config}; Chat {messages,input,loadingMsg,credValue,sessions,currentSessionId}.
+6.3 Server-state (sessions/messages/workflows/executions/vault) di-fetch manual tanpa cache/dedup/invalidasi. Client-state di useState. Tanpa pemisahan formal.
+6.4 Seharusnya di URL: currentSessionId/selectedNodeId/workflowId agar shareable; kini memory-only (canvas reload dari GET /workflows[0] saat refresh).
+=== 9. DATA LAYER ===
+---
+9.1 Pola API: fetch() native + JSON manual, tanpa axios/tRPC/react-query.
+9.2 Route backend (13):
+  - POST /chat
+  - POST /integrations
+  - POST /api/vault/save
+  - GET /api/vault/list
+  - POST /workflows
+  - GET /workflows
+  - POST /workflows/{workflow_id}/execute
+  - GET /executions/{execution_id}
+  - POST /webhook/{workflow_id}
+  - GET /sessions
+  - GET /messages/{session_id}
+  - POST /api/payments/dodo-webhook
+  - GET /health
+9.3 Fetch frontend:
+  - src\app\page.tsx -> ${API_URL}/sessions?email=${encodeURIComponent(activeEmail)}
+  - src\app\page.tsx -> ${API_URL}/messages/${sessionId}?email=${encodeURIComponent(activeEmail)}
+  - src\app\page.tsx -> ${API_URL}/chat
+  - src\app\page.tsx -> ${API_URL}/integrations
+  - src\app\builder\page.tsx -> ${API_URL}/executions/${id}
+  - src\app\builder\page.tsx -> ${API_URL}/workflows
+  - src\app\builder\page.tsx -> ${API_URL}/workflows/${workflowId}/execute
+  - src\components\VaultModal.tsx -> ${API_URL}/api/vault/list?email=${encodeURIComponent(email)}
+  - src\components\VaultModal.tsx -> ${API_URL}/api/vault/save
+9.4 Database: SUPABASE supabase-py create_client(URL, anon + service_role write). Tabel: workflows(id UUID,name,description,flow_data JSONB,created_at), executions, execution_logs, user_balances(user_id UUID PK,credit_balance FLOAT,tier), user_usage(user_id PK,free_chat_count,last_reset_free,plus_chat_count,last_reset_plus), user_vault(email,provider,encrypted_key PK composite), sessions/messages chat history. Lihat database.py 477 baris utk skema penuh.
+9.5 Auth: Supabase Auth OAuth Google (signInWithOAuth) + auth_gateway.py JWT + sessions manual. Bukan NextAuth/Clerk.
+9.6 Env vars: didaftar di section 1.5 report ini (NAMA SAJA, tanpa value).
+9.7 Caching: TIDAK ADA (tanpa RQ/SWR/Redis; in-memory _METER/_LBAL/LEDGER hanya fallback).
+---
+=== 10. BUSINESS LOGIC / FITUR ===
+---
+10.1 Fitur terimplementasi: (1) Chat AI multi-provider (Groq prioritas, Nvidia NIM, GitHub Models, Google Gemma/Gemini) + BYOK per-pesan + vault credential + riwayat sessions. (2) Visual Builder ReactFlow (drag-drop Trigger/Agent/MCP, connect animated, save/load Supabase, onNodeClick ConfigPanel, ExpressionEditor {{var}}, webhook URL card + copy, Jalankan Alur + terminal polling 2 detik). (3) Execution engine async DAG Trigger->Agent->MCP + NativeMCP (DDGS web_search 3 hasil + httpx http_request) + webhook BackgroundTasks POST /webhook/{id}. (4) Metered billing (FREE 10 per 22 jam, PLUS 30 per 24 jam + saldo Dodo block 402 + cost x3 multiplier + LEDGER litellm.completion_cost). (5) Vault Fernet (save/list, decrypt-inject unmetered). (6) Dodo webhook top-up.
+10.2 User journey: Landing > Continue with Google (OAuth) > Chat (pilih provider, BYOK opsional, kirim prompt, riwayat tersimpan) > /builder (drag node, klik node, isi config ExpressionEditor, pilih AI Model tier, Simpan Alur, Jalankan Alur, terminal polling, lihat reply Gemma/MCP) > Trigger config (salin webhook URL) > Top-up Dodo saat saldo habis > Vault simpan kunci permanen.
+10.3 Setengah jadi: validasi tier user (asumsi semua lolos); Redis Semantic Cache (placeholder); Google OAuth Sheets (rute dasar); model PRO/ULTRA (disabled); validasi signature Dodo (dev-bypass bila secret kosong); kolom email user_usage (ALTER manual).
+10.4 TODO/FIXME/HACK: grep di *.py NIHIL (nol). console.log frontend: NIHIL (toast state + alert). print() backend ~40 calls (agent_engine 12 status, agent_reasoner 2 fail-log, api_server webhook error 1, test files, vault_security secret-print SUDAH DIHAPUS). Semua print bebas secret (AMAN).
+---
+=== 11. KONFIGURASI & TOOLING ===
+---
+11.1 tsconfig: strict TRUE, target ES2017, jsx preserve, alias @/*, skipLibCheck true, noEmit, incremental, plugin next.
+11.2 ESLint/Prettier: .eslintrc TIDAK ADA (next lint default); prettier TIDAK ADA. Rekomendasi 2026: Biome.
+11.3 Build: Next 15.1.3 static export (output export, TBC dari next.config) + Cloudflare Pages (wrangler pages deploy out); backend uvicorn/FastAPI di Railway + VPS RackNerd Node gateway pm2 (saas-central-gateway). CodeMirror via next/dynamic ssr:false.
+11.4 Testing: unittest tests/test_e2e.py 7 passed (dihapus); test_browser_e2e/test_integration/test_massal manual; tanpa vitest/jest/playwright; coverage 0.
+11.5 CI/CD: .github/workflows TIDAK ADA. Deploy manual: git push (Railway auto-redeploy) + wrangler pages deploy. Rekomendasi: tambah ci.yml (lint+typecheck+build).
+---
+=== 12. TECHNICAL DEBT & RED FLAGS ===
+---
+CRITICAL: (1) VAULT_SECRET_KEY wajib di Railway env (hilang = vault lama tak ter-dekripsi; fallback in-memory sementara). (2) .env 59 keys ignored git (aman) tapi tanpa .env.example lengkap. (3) Builder 684 baris single-file (regresi handle 30fe0cb terbukti). (4) RLS Supabase tak terdokumentasi di repo (andalkan service_role server; pastikan anon tak bisa tulis).
+HIGH: (5) Type any di TS (grep ulang sblm review; strict true tapi any lolos). (6) Polling terminal ada cleanup OK; fetch on-mount pakai cancelled flag OK. (7) Kontrak Fase builder (/api/models/verify, /api/auth/google/*) direncanakan tapi belum ada di backend. (8) Dodo signature dev-bypass (terima semua bila secret kosong) - strict-kan di produksi.
+MEDIUM: (9) File >500 baris: execution_engine.py 686, app_frontend.py 777, builder 684. (10) Fallback in-memory meter/balance bisa divergen. (11) alert() blocking + toast (ganti toast non-blocking). (12) AuthProvider per-page bukan di layout. (13) Magic numbers + hex hardcoded.
+LOW: (14) File sekali pakai (_v*, _gen*, _p1, _g2*) di root - hapus sblm handoff. (15) Komentar campur ID/EN/ES. (16) Tanpa aria/focus-trap/Escape modal. File tak terbaca: NIHIL.
+---
+=== 13. GAP ANALYSIS vs 2026 STANDARDS ===
+---
+Framework: Next 15 App Router dipakai TAPI semua page use client (tanpa RSC/streaming); tanpa PPR/ISR/Edge (static export). Rekomendasi: RSC landing + PPR builder shell + Turbopack dev.
+Rendering/data: tanpa Server Actions/ISR; polling 2 detik manual (ganti Supabase Realtime/SSE).
+AI-ready: SUDAH (multi-provider + bind_tools + MCP + {{var}}) TAPI tanpa structured output Zod penuh, tanpa eval harness, tanpa streaming token.
+Design: tanpa View Transitions API, Container Queries, next/font, CSS vars token.
+Perf: tanpa next/Image (SCAN: nol <Image>), tanpa LCP/INP/CLS instrumentasi, tanpa bundle analyzer; CodeMirror lazy sudah benar.
+DX: npm (bukan pnpm/bun); tanpa Turbopack/Biome/vitest/storybook/Lefthook. Rekomendasi: pnpm + Turbopack + Biome + vitest.
+---
+=== 14. RAW FILE DUMP (dibatasi) ===
+---
+14.1 package.json (nexus-frontend 0.1.0, private): scripts dev/build/start/lint; deps next 15.1.3 + react/react-dom 19 + typescript 5 + tailwindcss 3.4.17 + @xyflow/react 12.11.6 + @uiw/react-codemirror 4.25.11 + @codemirror/autocomplete 6.20.3 + lucide-react 0.454.0 + @supabase/supabase-js 2.115.0; devDeps @types/* + autoprefixer + postcss + eslint 8 (TANPA eslint-config-next, TANPA @supabase/ssr).
+14.2 tailwind.config.ts: content ./src/**/*.{js,ts,jsx,tsx,mdx}; theme.extend colors brand #6C63FF/#4F46E5, keyframes fade-up/fade-in + animation; plugins [].
+14.3 src/app/layout.tsx (19 baris): RootLayout, html lang en, body font system stack + bg #f9f9fa, {children}. Tanpa AuthProvider di layout.
+14.4 src/app/globals.css: tailwind directives + body margin 0 bg #f9f9fa color #111 + keyframes fadeUp/fadeIn + scrollbar 10px gray.
+14.5 Komponen ui-primitive ExpressionEditor (59 baris): CodeMirror dark, braceCompleter {{ trigger.body/trigger.headers/agent.output/agent.reply, div.nodrag, z-index 9999 override.
+14.6 Layout Shell (137 baris): header white border-b, nav Chat/Builder, Brankas button (KeyRound, bila email), Login/Logout; aside sessions w-64; main children.
+14.7 Page utama /builder (684 baris): rangkuman - ReactFlowProvider>BuilderInner, nodes/edges state, palette draggable, screenToFlowPosition drop, Handles n8n pill !w-3 !h-10 + style 12x40, Background dots/Controls/MiniMap, Panel Simpan+Jalankan, onNodeClick ConfigPanel (custom_api_key password, AI Model select universal/deepseek-flash/premium-disabled, ExpressionEditor prompt/param, Webhook URL Card clipboard+fallback), Terminal #1E1E1E polling 2 detik, load-on-mount GET workflows[0], guards 22/24 jam + 10/30 + saldo Dodo via backend.
+BATAS DUMP: file mentah penuh tidak ditempel (melebihi 15.000 token); ringkasan di atas + path rujukan.
+---
+=== 15. HANDOFF CHECKLIST untuk AI Reviewer ===
+---
+1. Target user B2B atau B2C (mempengaruhi pricing page + onboarding copy)?
+2. Perlu multi-bahasa (ID/EN) atau Indonesia saja (gembok bahasa sudah ID)?
+3. Model AI default saat user baru tanpa BYOK/vault (universal acak vs Gemma tetap)?
+4. Skema harga final: FREE 10/22 jam + PLUS 30/24 jam + Dodo top-up tetap, atau berubah?
+5. Auth: tetap Supabase Google OAuth saja atau tambah email/password + OTP WA?
+6. Branding: pertahankan ungu #6C63FF atau ganti ke Apple blue #0071e3 monokrom?
+7. Dark mode penuh atau light-only ala Apple (dengan dark terminal saja)?
+8. Realtime: tetap polling 2 detik atau migrasi Supabase Realtime/SSE + streaming token?
+9. Mobile: apakah builder harus usable di tablet/phone (bottom-sheet) atau desktop-only?
+10. Hosting final: Railway + Cloudflare Pages tetap, atau konsolidasi ke VPS RackNerd?
+=== END OF REPORT ===

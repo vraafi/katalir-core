@@ -69,3 +69,12 @@ vps_ssh_test.py
 
 # Cache roster hasil probe gateway (runtime, bukan artefak)
 .gw_roster_cache.json
+
+# ===== Probe / audit scratch output (JANGAN push) =====
+# Pola `_*.py` di atas hanya menutup skrip; outputnya (mis. _diag_token.txt,
+# _trace_evidence.txt) sebelumnya LOLOS dan mengotori `git status`.
+_*.txt
+_*.json
+# Cache JWKS publik: runtime cache yang menyegarkan diri (TTL 6 jam).
+# Ditanam lewat env SUPABASE_JWKS utk produksi, jadi tidak perlu di-commit.
+.jwks_cache.json

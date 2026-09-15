@@ -41,3 +41,7 @@ evidence/
 .reference/
 _e2e_session*.json
 _e2e_storage*.json
+# Token E2E (BEARER HIDUP — jangan pernah masuk repo)
+_e2e_token*.tmp
+_e2e_token*.json
+_e2e_session.refreshed.json

@@ -6,6 +6,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
+    "serve:static": "node scripts/serve-out.mjs",
+    "e2e:prod": "playwright test",
     "lint": "next lint"
   },
   "dependencies": {

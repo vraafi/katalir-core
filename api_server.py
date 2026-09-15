@@ -44,7 +44,13 @@ async def _lifespan(_app: "FastAPI"):
     /chat pertama. `_warm_gateway_roster` didefinisikan di bawah (name lookup
     terjadi saat runtime, bukan saat import) dan langsung return — probe
     sesungguhnya berjalan di thread daemon.
+
+    Warm-up JWKS juga dijalankan di sini (alasan yang sama, dan lebih kritis):
+    verifikasi token bergantung pada public key. Kalau unduhan JWKS terjadi
+    lazily di request pertama lalu timeout, SELURUH endpoint ber-JWT menjawab
+    401 `Token invalid: ConnectTimeout` — walau token browser sah.
     """
+    security.warm_jwks()
     _warm_gateway_roster()
     yield
 
@@ -269,9 +275,120 @@ def _content_text(resp: Any) -> str:
     return text or "Tugas selesai dieksekusi."
 
 
+# ---------------------------------------------------------------------------
+# KONTEKS MULTI-TURN: riwayat percakapan dari DB -> pesan untuk model
+# ---------------------------------------------------------------------------
+# MASALAH YANG DIPERBAIKI: prompt_tokens turn-1 vs turn-2 hanya naik +1
+# (547 -> 548) dan model menjawab "Anda belum meminta saya mengingat apa pun"
+# padahal riwayatnya TERSIMPAN rapi di Supabase. Penyebabnya bukan database,
+# melainkan `/chat` memanggil `_agentic_run_direct(req.prompt, ...)` sehingga
+# daftar pesan ke model HANYA [system, prompt-terakhir] — riwayat tidak pernah
+# dikirim sebagai konteks. Akibatnya agen amnesia di setiap turn lanjutan.
+def _history_limit() -> int:
+    """Banyaknya pesan riwayat yang dikirim sebagai konteks (default 20).
+
+    Dibatasi agar prompt tidak membengkak (biaya + latensi) pada percakapan
+    panjang. 0 = matikan konteks (berguna untuk membandingkan perilaku).
+    """
+    try:
+        return max(0, int(os.getenv("AGENT_HISTORY_MESSAGES", "20")))
+    except (TypeError, ValueError):
+        return 20
+
+
+def _history_char_cap() -> int:
+    """Batas karakter per pesan riwayat (default 4000).
+
+    Balasan agen bisa sangat panjang; memotongnya mencegah satu pesan lama
+    menghabiskan jendela konteks. Dipotong dari depan-potongan teks tetap
+    menyimpan bagian pembuka yang biasanya memuat inti jawaban.
+    """
+    try:
+        return max(200, int(os.getenv("AGENT_HISTORY_CHARS", "4000")))
+    except (TypeError, ValueError):
+        return 4000
+
+
+def load_history(user_email: str, session_id: str | None,
+                 current_prompt: str | None = None) -> list[dict]:
+    """Riwayat percakapan sesi (urut lama -> baru) untuk konteks LLM.
+
+    Args:
+        user_email: pemilik sesi (kepemilikan divalidasi di `db.get_messages`).
+        session_id: sesi yang sedang berjalan; None/"" -> riwayat kosong.
+        current_prompt: prompt yang SEDANG dikirim. Bila pesan terakhir di DB
+            sama dengan ini, pesan itu dibuang agar prompt tidak terkirim dua
+            kali (jalur retry/idempoten: pesan user sudah ter-insert sebelum
+            request ulang masuk).
+
+    Returns:
+        [{"role": "user"|"assistant", "content": str}, ...]
+
+    Tidak pernah melempar: kegagalan DB -> [] (percakapan tetap jalan, hanya
+    tanpa konteks) supaya gangguan riwayat tidak mematikan fitur chat.
+    """
+    limit = _history_limit()
+    if not session_id or limit <= 0:
+        return []
+    try:
+        rows = db.get_messages(user_email, session_id) or []
+    except Exception as exc:  # noqa: BLE001 - riwayat opsional, jangan 500
+        print(f"[load_history] {type(exc).__name__}: {str(exc)[:200]}")
+        return []
+
+    cap = _history_char_cap()
+    out: list[dict] = []
+    for row in rows:
+        role = str((row or {}).get("role") or "").strip().lower()
+        if role not in ("user", "assistant"):
+            continue  # 'system'/'tool' tidak dikirim sebagai konteks obrolan
+        text = str((row or {}).get("content") or "").strip()
+        if not text:
+            continue
+        if len(text) > cap:
+            text = text[:cap] + "…"
+        out.append({"role": role, "content": text})
+
+    # Buang pesan user terakhir bila identik dengan prompt yang sedang dikirim
+    # (jalur retry: pesan sudah tersimpan sebelum agen dijalankan).
+    if (current_prompt and out and out[-1]["role"] == "user"
+            and out[-1]["content"].strip() == current_prompt.strip()):
+        out.pop()
+
+    return out[-limit:] if limit else []
+
+
+def _to_genai_history(history: list[dict] | None) -> list[Any]:
+    """Riwayat -> format `types.Content` untuk `client.chats.create(history=...)`.
+
+    Gemini memakai peran "user" dan "model" (bukan "assistant").
+    """
+    from google.genai import types as _types
+
+    contents: list[Any] = []
+    for h in history or []:
+        role = "user" if h.get("role") == "user" else "model"
+        contents.append(_types.Content(role=role, parts=[_types.Part(text=str(h.get("content") or ""))]))
+    return contents
+
+
+def _to_lc_history(history: list[dict] | None) -> list[Any]:
+    """Riwayat -> HumanMessage/AIMessage untuk jalur free-llm-gateway."""
+    from langchain_core.messages import AIMessage, HumanMessage
+
+    msgs: list[Any] = []
+    for h in history or []:
+        if h.get("role") == "user":
+            msgs.append(HumanMessage(content=str(h.get("content") or "")))
+        else:
+            msgs.append(AIMessage(content=str(h.get("content") or "")))
+    return msgs
+
+
 def _agentic_run_gateway(prompt: str, email: str, model_id: str,
                          gw_url: str, gw_key: str,
-                         roster: list[str] | None = None) -> dict:
+                         roster: list[str] | None = None,
+                         history: list[dict] | None = None) -> dict:
     """Agentic loop via free-llm-gateway (self-hosted, OpenAI-compatible).
 
     Kontrak sama dengan `_agentic_run_direct` -> {reply, meta}, sehingga
@@ -279,6 +396,10 @@ def _agentic_run_gateway(prompt: str, email: str, model_id: str,
     memakai skema JSON `tools.TOOL_SCHEMAS_OPENAI` (turunan TOOL_DECLARATIONS
     Gemini) dan dieksekusi `tools.execute_tool`; CredentialMissingError
     dibiarkan menyebar agar endpoint mengubahnya jadi needs_credential.
+
+    Args:
+        history: riwayat percakapan (lama->baru) sebagai konteks multi-turn.
+            None/[] -> hanya prompt terbaru yang dikirim (perilaku lama).
 
     Kegagalan transport/kuota gateway -> coba model roster berikutnya
     (fallback antar-provider tetap ditangani gateway itu sendiri).
@@ -315,10 +436,11 @@ def _agentic_run_gateway(prompt: str, email: str, model_id: str,
             print("[api_server] anggaran waktu gateway habis -> fallback Gemini")
             break
         chat_model = _bound(cand)
-        messages: list[Any] = [
-            SystemMessage(content=_AGENT_SYSTEM),
-            HumanMessage(content=prompt),
-        ]
+        # KONTEKS MULTI-TURN: system -> riwayat sesi -> prompt terbaru. Tanpa
+        # riwayat, model "amnesia" dan mengabaikan hal yang sudah dibahas user.
+        messages: list[Any] = [SystemMessage(content=_AGENT_SYSTEM)]
+        messages.extend(_to_lc_history(history))
+        messages.append(HumanMessage(content=prompt))
         _t0 = time.time()
         try:
             resp = chat_model.invoke(messages)
@@ -375,13 +497,21 @@ def _agentic_run_gateway(prompt: str, email: str, model_id: str,
 # ---------------------------------------------------------------------------
 # AGENTIC LOOP (setara _agentic_run, bebas dari Streamlit)
 # ---------------------------------------------------------------------------
-def _agentic_run_direct(prompt: str, email: str, model: str | None = None, user_tier: str = "free") -> dict:
+def _agentic_run_direct(prompt: str, email: str, model: str | None = None,
+                        user_tier: str = "free",
+                        history: list[dict] | None = None) -> dict:
     """Jalankan Gemini dengan tool calling; eksekusi alat; loop.
 
     Apabila alat butuh kredensial, melempar CredentialMissingError (dibiarkan
     menyebar ke caller / endpoint untuk diubah jadi respons needs_credential).
     Errores del modelo (503/quota) se reintentan con backoff; si persisten,
     lanza HTTPException(503) con mensaje claro.
+
+    Args:
+        history: riwayat percakapan (lama->baru) untuk konteks multi-turn.
+            Dikirim sebagai `history` pada `client.chats.create` (Gemini) dan
+            sebagai HumanMessage/AIMessage (jalur gateway), sehingga agen ingat
+            apa yang sudah dibahas di sesi yang sama.
 
     Returns:
         dict {reply, meta} dengan meta = {model, requested_model, latency_ms,
@@ -401,7 +531,8 @@ def _agentic_run_direct(prompt: str, email: str, model: str | None = None, user_
     gw_err: HTTPException | None = None
     if gw and model and model in gw[2]:
         try:
-            return _agentic_run_gateway(prompt, email, model, gw[0], gw[1], gw[2])
+            return _agentic_run_gateway(prompt, email, model, gw[0], gw[1], gw[2],
+                                        history=history)
         except HTTPException as exc:
             if exc.status_code != 503:
                 raise
@@ -450,7 +581,8 @@ def _agentic_run_direct(prompt: str, email: str, model: str | None = None, user_
         tools=tools.TOOL_DECLARATIONS,
         automatic_function_calling=types.AutomaticFunctionCallingConfig(disable=True),
     )
-    chat = client.chats.create(model=model_id, config=config)
+    chat = client.chats.create(model=model_id, config=config,
+                               history=_to_genai_history(history))
 
     fallback_model = os.getenv("AGENT_FALLBACK_MODEL", "gemini-2.5-flash")
 
@@ -471,7 +603,10 @@ def _agentic_run_direct(prompt: str, email: str, model: str | None = None, user_
                 # Fallback 1x ke model ringan bila model utama overload/quota.
                 if not fallback_used and fallback_model and fallback_model != model_id:
                     try:
-                        chat2 = client.chats.create(model=fallback_model, config=config)
+                        chat2 = client.chats.create(
+                            model=fallback_model, config=config,
+                            history=_to_genai_history(history),
+                        )
                         out = chat2.send_message(msg)
                         fallback_used = True
                         model_id = fallback_model
@@ -603,6 +738,11 @@ def chat(req: ChatRequest, authorization: str | None = Header(None)):
             traceback.print_exc()  # full stack ke Railway log
             raise HTTPException(500, f"Gagal membuat session: {type(exc).__name__}: {exc}")
 
+    # KONTEKS MULTI-TURN: muat riwayat sesi SEBELUM pesan baru disimpan, supaya
+    # prompt yang sedang dikirim tidak ikut terkirim dua kali (sebagai riwayat
+    # DAN sebagai prompt). Tanpa ini agen lupa isi percakapan turn sebelumnya.
+    history = load_history(user_email, session_id, current_prompt=req.prompt)
+
     # Simpan prompt user ke riwayat (kepemilikan session divalidasi via auth_id).
     # Idempoten: bila client_request_id sudah tercatat, add_message return False
     # dan TIDAK meng-insert — mencegah pesan user duplikat dalam 1 sesi.
@@ -616,7 +756,8 @@ def chat(req: ChatRequest, authorization: str | None = Header(None)):
         raise HTTPException(500, f"Gagal menyimpan pesan: {type(exc).__name__}: {exc}")
 
     try:
-        _run = _agentic_run_direct(req.prompt, user_email, model=req.model, user_tier=user_tier)
+        _run = _agentic_run_direct(req.prompt, user_email, model=req.model,
+                                   user_tier=user_tier, history=history)
         reply = _run["reply"]
         meta = _run.get("meta") or {}
     except CredentialMissingError as e:
