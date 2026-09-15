@@ -9,6 +9,9 @@ export interface ChatModel {
   provider: string;
   tier: "free" | "plus";
   hint?: string;
+  /** Dikunci server: model plus untuk user non-plus (GET /models). Model
+   *  paid-only TIDAK lagi sampai ke sini — difilter di backend TUGAS 1. */
+  locked?: boolean;
 }
 
 export const CHAT_MODELS_FALLBACK: ChatModel[] = [

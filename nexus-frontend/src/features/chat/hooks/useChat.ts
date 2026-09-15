@@ -19,6 +19,27 @@ export interface SessionItem {
   created_at?: string;
 }
 
+/** Metadata model (transparansi). Satu definisi untuk semua jalur —
+ *  sebelumnya bentuk ini diduplikasi inline 3x sehingga field baru
+ *  (requested_model/fallback_reason) mudah lolos dari salah satu jalur. */
+export interface ChatMeta {
+  /** Model yang BENAR-BENAR menjawab. */
+  model?: string;
+  /** Model yang DIMINTA user — untuk "diminta vs dipakai" (claude-jacked). */
+  requested_model?: string;
+  latency_ms?: number;
+  prompt_tokens?: number;
+  completion_tokens?: number;
+  total_tokens?: number;
+  fallback?: boolean;
+  /** Kode penyebab fallback: quota_exhausted | rate_limit | overloaded |
+   *  model_unavailable | gateway_down. Kosong saat request normal. */
+  fallback_reason?: string | null;
+  /** True bila dijawab lewat free-llm-gateway (self-hosted). */
+  gateway?: boolean;
+  provider?: string;
+}
+
 export interface ChatMessage {
   id?: string;
   role: "user" | "assistant" | "system";
@@ -31,14 +52,7 @@ export interface ChatMessage {
   provider?: string;
   original?: string;
   /** Metadata model (transparansi): model, latency, tokens, fallback. */
-  meta?: {
-    model?: string;
-    latency_ms?: number;
-    prompt_tokens?: number;
-    completion_tokens?: number;
-    total_tokens?: number;
-    fallback?: boolean;
-  };
+  meta?: ChatMeta;
 }
 
 async function fetchSessions(email: string): Promise<SessionItem[]> {
@@ -180,7 +194,7 @@ export function useDeleteSessionMutation() {
 export function useSendChatMutation() {
   const qc = useQueryClient();
   return useMutation<
-    { reply: string; session_id?: string; needsCredential?: boolean; provider?: string; message?: string; meta?: { model?: string; latency_ms?: number; prompt_tokens?: number; completion_tokens?: number; total_tokens?: number; fallback?: boolean } },
+    { reply: string; session_id?: string; needsCredential?: boolean; provider?: string; message?: string; meta?: ChatMeta },
     Error & { provider?: string; promptEcho?: string },
     { prompt: string; sessionId?: string | null; email?: string | null; abortSignal?: AbortSignal; clientRequestId?: string; model?: string },
     {
@@ -238,7 +252,7 @@ export function useSendChatMutation() {
           };
         }
         if (res.ok && data.status === "success") {
-          return { reply: data.reply as string, session_id: data.session_id as string | undefined, meta: data.meta as { model?: string; latency_ms?: number; prompt_tokens?: number; completion_tokens?: number; total_tokens?: number; fallback?: boolean } | undefined };
+          return { reply: data.reply as string, session_id: data.session_id as string | undefined, meta: data.meta as ChatMeta | undefined };
         }
         const { message, retryable } = classifyHttpError(res.status);
         if (retryable && attempt < maxAttempts - 1) {

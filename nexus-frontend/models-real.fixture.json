@@ -1,0 +1,103 @@
+{
+ "status": "success",
+ "tier": "free",
+ "default": "gemini-2.5-flash",
+ "models": [
+  {
+   "id": "gemini-2.5-flash",
+   "name": "Gemini 2.5 Flash",
+   "provider": "Gateway · google_gemini",
+   "tier": "free",
+   "hint": "1128ms",
+   "locked": false
+  },
+  {
+   "id": "gemini-2.5-flash-lite",
+   "name": "Gemini 2.5 Flash Lite",
+   "provider": "Gateway · google_gemini",
+   "tier": "free",
+   "hint": "602ms",
+   "locked": false
+  },
+  {
+   "id": "gemini-3-flash-preview",
+   "name": "Gemini 3 Flash Preview",
+   "provider": "Gateway · google_gemini",
+   "tier": "free",
+   "hint": "927ms",
+   "locked": false
+  },
+  {
+   "id": "allam-2-7b",
+   "name": "Allam 2 7B",
+   "provider": "Gateway · groq",
+   "tier": "free",
+   "hint": "1068ms",
+   "locked": false
+  },
+  {
+   "id": "groq/compound",
+   "name": "Compound",
+   "provider": "Gateway · groq",
+   "tier": "free",
+   "hint": "504ms",
+   "locked": false
+  },
+  {
+   "id": "groq/compound-mini",
+   "name": "Compound Mini",
+   "provider": "Gateway · groq",
+   "tier": "free",
+   "hint": "513ms",
+   "locked": false
+  },
+  {
+   "id": "openai/gpt-oss-20b",
+   "name": "Gpt Oss 20B",
+   "provider": "Gateway · groq",
+   "tier": "free",
+   "hint": "432ms",
+   "locked": false
+  },
+  {
+   "id": "qwen/qwen3.6-27b",
+   "name": "Qwen3.6 27B",
+   "provider": "Gateway · groq",
+   "tier": "free",
+   "hint": "255ms",
+   "locked": false
+  },
+  {
+   "id": "qwen/qwen3.8-27b",
+   "name": "Qwen3.8 27B",
+   "provider": "Gateway · groq",
+   "tier": "free",
+   "hint": "240ms",
+   "locked": false
+  },
+  {
+   "id": "moonshotai/kimi-k3",
+   "name": "Kimi K3",
+   "provider": "Gateway · nvidia",
+   "tier": "free",
+   "hint": "69087ms",
+   "locked": false
+  },
+  {
+   "id": "nvidia/nemotron-3-nano-omni-30b-a3b-reasoning",
+   "name": "Nemotron 3 Nano Omni 30B A3B Reasoning",
+   "provider": "Gateway · nvidia",
+   "tier": "free",
+   "hint": "24077ms",
+   "locked": false
+  },
+  {
+   "id": "nvidia/nemotron-3-ultra-550b-a55b",
+   "name": "Nemotron 3 Ultra 550B A55B",
+   "provider": "Gateway · nvidia",
+   "tier": "free",
+   "hint": "22362ms",
+   "locked": false
+  }
+ ]
+}

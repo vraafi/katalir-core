@@ -1,7 +1,7 @@
 "use client";
 
 import { Suspense, useCallback, useEffect, useRef, useState } from "react";
-import { Send, Square, Sparkles, Bot, User, KeyRound, RotateCcw, AlertTriangle, Pencil, X, Clock, ChevronDown, ChevronRight } from "lucide-react";
+import { Send, Square, Sparkles, Bot, User, KeyRound, RotateCcw, AlertTriangle, AlertCircle, Pencil, X, Clock, ChevronDown, ChevronRight } from "lucide-react";
 import { motion } from "motion/react";
 import { useQueryState, parseAsString } from "nuqs";
 import Shell from "@/components/shell";
@@ -50,6 +50,53 @@ function fmtToken(n: number | undefined | null): string {
   return String(Math.round(v || 0));
 }
 
+/** Terjemahan kode `fallback_reason` backend -> bahasa manusia (Openclaw
+ *  #92672: user harus tahu KENAPA, bukan cuma "terjadi fallback").
+ *  Kode yang tidak dikenal tetap tampil sebagai kalimat netral, bukan kosong. */
+function formatFallbackReason(reason: string | null | undefined): string {
+  switch (reason) {
+    case "quota_exhausted":
+      return "Kuota harian model ini habis";
+    case "rate_limit":
+      return "Terlalu banyak permintaan ke model ini";
+    case "overloaded":
+      return "Server model ini sedang sibuk";
+    case "model_unavailable":
+      return "Model tidak tersedia untuk tier Anda";
+    case "gateway_down":
+      return "Layanan gateway sedang tidak tersedia";
+    default:
+      return "Model yang dipilih tidak tersedia";
+  }
+}
+
+/** Keterangan fallback: model DIMINTA vs DIPAKAI + alasan (claude-jacked
+ *  0.89.0: "(FALLBACK, not X)" — di sini versi eksplisitnya).
+ *  Hanya render saat fallback + nama model berbeda, supaya request normal
+ *  benar-benar bersih tanpa badge. */
+function FallbackNotice({ meta }: { meta: NonNullable<ChatMessage["meta"]> }) {
+  const used = meta.model;
+  const wanted = meta.requested_model;
+  // Abaikan bila user tidak memilih model (backend mengirim null) atau bila
+  // nama yang diminta == yang dipakai (bukan substitusi nyata).
+  if (!used || !wanted || wanted === used) return null;
+  return (
+    <span className="mt-2 flex items-start gap-2 rounded-md border border-warning/30 bg-warning/10 px-2.5 py-1.5 text-[11px] leading-snug text-warning">
+      <AlertCircle size={12} strokeWidth={2} className="mt-0.5 shrink-0" aria-hidden />
+      <span className="flex-1">
+        <span className="block font-medium">Model yang Anda pilih tidak tersedia</span>
+        <span className="block text-warning/90">
+          {formatFallbackReason(meta.fallback_reason)} · Beralih ke{" "}
+          <strong className="font-mono font-medium">{used}</strong>
+        </span>
+        <span className="mt-0.5 block font-mono text-[10px] text-warning/70">
+          diminta: {wanted}
+        </span>
+      </span>
+    </span>
+  );
+}
+
 /** Baris metadata model di bubble AI (transparansi model/token/latensi). */
 function MetaRow({ meta }: { meta: NonNullable<ChatMessage["meta"]> }) {
   const model = meta.model || "model";
@@ -64,13 +111,11 @@ function MetaRow({ meta }: { meta: NonNullable<ChatMessage["meta"]> }) {
     parts.push(`${inT}→${outT} tok`);
   }
   return (
-    <span className="mt-1.5 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[11px] leading-none text-fg-subtle">
-      <span className="font-mono tracking-tight">{parts.join(" · ")}</span>
-      {meta.fallback && (
-        <span className="rounded-full border border-warning/30 bg-warning/10 px-1.5 py-0.5 font-medium text-warning">
-          fallback
-        </span>
-      )}
+    <span className="mt-1.5 flex flex-col">
+      <span className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[11px] leading-none text-fg-subtle">
+        <span className="font-mono tracking-tight">{parts.join(" · ")}</span>
+      </span>
+      {meta.fallback && <FallbackNotice meta={meta} />}
     </span>
   );
 }
@@ -131,6 +176,10 @@ function ChatApp() {
     provider: m.provider,
     tier: (m.tier === "plus" ? "plus" : "free") as "free" | "plus",
     hint: m.hint,
+    // `locked` dari server HARUS diteruskan: sebelumnya field ini dibuang di
+    // sini sehingga ModelSelector hanya bisa menebak dari tier+userTier, dan
+    // model yang dikunci server tetap terlihat bisa diklik.
+    locked: Boolean(m.locked),
   }));
   const serverTier = (modelsData?.tier ?? "free").toLowerCase();
   const userTier: "free" | "plus" = serverTier === "plus" || serverTier === "pro" || serverTier === "ultra" ? "plus" : "free";

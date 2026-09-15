@@ -73,7 +73,10 @@ export function ModelSelector({
                 {g.provider}
               </p>
               {g.models.map((m) => {
-                const locked = m.tier === "plus" && plusDisabled;
+                // `locked` dari server (plus untuk user non-plus) ATAU tebakan
+                // lokal dari tier. Keduanya dipertahankan: server bisa
+                // mengunci model yang tier-nya bukan "plus" (mis. kuota habis).
+                const locked = Boolean(m.locked) || (m.tier === "plus" && plusDisabled);
                 const isActive = m.id === value;
                 return (
                   <DropdownMenu.Item
@@ -95,7 +98,12 @@ export function ModelSelector({
                   >
                     <span className="flex-1">
                       <span className="block">{m.name}</span>
-                      {m.hint && (
+                      {locked && (
+                        <span className="block text-[11px] font-normal text-fg-subtle">
+                          Tidak tersedia di tier Anda
+                        </span>
+                      )}
+                      {!locked && m.hint && (
                         <span className="block text-[11px] font-normal text-fg-subtle">{m.hint}</span>
                       )}
                     </span>
