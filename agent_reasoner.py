@@ -120,12 +120,24 @@ GW_FALLBACK_MODELS = [
 
 
 def gateway_config() -> tuple[str | None, str | None]:
-    """(base_url, master_key) gateway; (None, None) bila belum dikonfigurasi."""
-    url = (os.getenv("LLM_GATEWAY_URL") or "").strip().rstrip("/")
-    key = (os.getenv("LLM_GATEWAY_KEY") or "").strip()
-    if url and key:
-        return url, key
-    return None, None
+    """(base_url, master_key) gateway; (None, None) bila belum dikonfigurasi.
+
+    Delegasi ke `gateway_roster.gateway_config()` agar alias env
+    (`LLM_GATEWAY_URL` / `FREELM_GATEWAY_URL` / `GATEWAY_URL`) hanya punya SATU
+    implementasi — dua salinan pernah membuat roster dan pemanggil chat membaca
+    env yang berbeda.
+    """
+    try:
+        import gateway_roster as gr
+
+        return gr.gateway_config()
+    except Exception as exc:  # noqa: BLE001 - gateway opsional
+        print(f"[agent_reasoner] gateway_config fallback: {exc}")
+        url = (os.getenv("LLM_GATEWAY_URL") or "").strip().rstrip("/")
+        key = (os.getenv("LLM_GATEWAY_KEY") or "").strip()
+        if url and key:
+            return url, key
+        return None, None
 
 
 def gateway_models() -> list[str]:

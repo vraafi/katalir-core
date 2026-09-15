@@ -168,13 +168,43 @@ def filter_free_models(models: list[dict]) -> list[dict]:
     return out
 
 
+# Alias nama env gateway.
+#
+# Kode ini menetapkan `LLM_GATEWAY_URL`/`LLM_GATEWAY_KEY`, tetapi dokumentasi
+# deploy (brief/Tailscale) memakai `FREELM_GATEWAY_URL`. Tanpa alias, salah
+# tulis nama = gateway TIDAK terpakai sama sekali dan trafik diam-diam jatuh
+# ke Gemini direct — kegagalan senyap yang sulit dilacak.
+#
+# Nama polos (`GATEWAY_URL`/`GATEWAY_KEY`) ada di prioritas TERAKHIR karena
+# berisiko bentrok dengan layanan lain (mis. open-connector di agent_engine.py
+# punya gateway sendiri). Urutan prioritas dipakai hanya bila yang lebih
+# spesifik kosong.
+GATEWAY_URL_ENVS = ("LLM_GATEWAY_URL", "FREELM_GATEWAY_URL", "GATEWAY_URL")
+GATEWAY_KEY_ENVS = ("LLM_GATEWAY_KEY", "FREELM_GATEWAY_KEY", "GATEWAY_KEY")
+
+
+def _env_first(names: tuple[str, ...]) -> tuple[str, str] | None:
+    """(nilai, nama_env) pertama yang terisi dari `names`; None bila kosong."""
+    for name in names:
+        val = (os.getenv(name) or "").strip()
+        if val:
+            return val, name
+    return None
+
+
 def gateway_config() -> tuple[str | None, str | None]:
     """(base_url, master_key) gateway; (None, None) bila belum dikonfigurasi."""
-    url = (os.getenv("LLM_GATEWAY_URL") or "").strip().rstrip("/")
-    key = (os.getenv("LLM_GATEWAY_KEY") or "").strip()
-    if url and key:
-        return url, key
-    return None, None
+    url_hit = _env_first(GATEWAY_URL_ENVS)
+    key_hit = _env_first(GATEWAY_KEY_ENVS)
+    if not url_hit or not key_hit:
+        return None, None
+    url = url_hit[0].rstrip("/")
+    key = key_hit[0]
+    # Jejak sekali agar alias yang terpakai terlihat di log deploy (membantu
+    # melacak env mana yang benar-benar terbaca).
+    if url_hit[1] != GATEWAY_URL_ENVS[0] or key_hit[1] != GATEWAY_KEY_ENVS[0]:
+        log.info("Gateway env alias dipakai: %s + %s", url_hit[1], key_hit[1])
+    return url, key
 
 
 def _headers(key: str) -> dict:
