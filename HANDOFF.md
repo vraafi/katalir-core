@@ -1,11 +1,16 @@
 # NEXUS — HANDOFF CONTEXT
 
 Generated: 2026-09-16 01:46 (+07:00)
-Commit kode terakhir: `93d6c2e` (`93d6c2e35585e53d577692e1a0637f83b8d4988e`) — anggaran waktu TOTAL
-`/chat` + tes invarian timer lintas-lapisan (§0.1 temuan F). Di atasnya, `6b6fe07` memperbaiki
-kontrak 401 vs 503, sesi E2E terverifikasi, dan memindahkan cakupan filter ke unit test.
-Dokumentasi (HANDOFF.md + ARCHITECTURE_REPORT.txt) diperbarui di commit **terpisah setelahnya**
-yang **hanya** menyentuh dokumen — lihat `git log --oneline -1` untuk commit teratas.
+Commit kode terakhir: `e221ad1` — **pool kunci tahan SDK lama**: menghapus `500 HttpRetryOptions`
+di produksi (§0.1 temuan K). Riwayat kode di bawahnya (terbaru → lama): `df5c71a` (guard CLI
+harness E2E; **pesan commitnya terpotong** — ada fragmen "…- ode scripts/e2e-auth-setup.mjs…"
+akibat salah ketik saat menulis pesan, ISINYA benar; jangan "diperbaiki" dengan rebase karena
+sudah ter-push — `488b411` menulis ulang pesan yang sama dengan rapi), `9d737f2` + `36bddab`
+(batas waktu per panggilan + matikan retry internal SDK — commit **inilah** yang memunculkan
+temuan K), `d8b7c95` + `f315e26` + `6bc0c8d` (pool rotasi kunci + integrasi + tes), `93d6c2e`
+(anggaran waktu TOTAL `/chat`, §0.1 temuan F), `6b6fe07` (kontrak 401 vs 503 + sesi E2E
+terverifikasi). Dokumentasi (HANDOFF.md + ARCHITECTURE_REPORT.txt) diperbarui di commit
+**terpisah** yang **hanya** menyentuh dokumen — lihat `git log --oneline -1` untuk commit teratas.
 Branch: `main` — **sinkron dengan `origin/main` (0 ahead / 0 behind)** setelah push.
 
 > Dokumen ini ditulis agar pekerjaan bisa dilanjutkan di chat/sesi baru **tanpa akses
@@ -23,7 +28,7 @@ Branch: `main` — **sinkron dengan `origin/main` (0 ahead / 0 behind)** setelah
 | # | Klaim lama | Fakta terverifikasi | Bukti (perintah/keluaran nyata) |
 |---|---|---|---|
 | 1 | Uji produksi = `npm run build && npm run start` | `next start` **DITOLAK** oleh konfigurasi `output: "export"` | `[Error: "next start" does not work with "output: export" configuration. Use "npx serve@latest out" instead.]` → jalur sah: `npm run build` + **`npm run serve:static`** |
-| 2 | Unit test backend: **27 lulus** | **26 lulus** untuk 3 file (jwt 14 + multiturn 9 + idempotent 3) — naik jadi **56 lulus** setelah `test_model_filter.py` ditambahkan, **61 lulus** setelah `test_chat_budget_invariant.py`, dan **80 lulus** setelah `test_gemini_key_pool.py` ditambahkan (lihat §0.1) | `python -m pytest test_security_jwt.py test_multiturn_history.py test_idempotent_add_message.py -q` → `26 passed`; dengan `test_model_filter.py` → `56 passed`; dengan `test_chat_budget_invariant.py` → `61 passed`; suite lengkap (2 file legacy dikecualikan) → **`80 passed`** |
+| 2 | Unit test backend: **27 lulus** | **26 lulus** untuk 3 file (jwt 14 + multiturn 9 + idempotent 3) — naik jadi **56 lulus** setelah `test_model_filter.py` ditambahkan, **61 lulus** setelah `test_chat_budget_invariant.py`, **80 lulus** setelah `test_gemini_key_pool.py` ditambahkan, dan **84 lulus** setelah 3 tes regresi ditambahkan (temuan K & L — lihat §0.1) | `python -m pytest test_security_jwt.py test_multiturn_history.py test_idempotent_add_message.py -q` → `26 passed`; dengan `test_model_filter.py` → `56 passed`; dengan `test_chat_budget_invariant.py` → `61 passed`; suite lengkap saat ini (2 file legacy dikecualikan) → **`84 passed`** (pool kunci = **20** tes; angka antar-tahap 56/61/81 adalah riwayat) |
 | 3 | E2E: **9 spec sehat + 3 probe** | **10 spec sehat + 3 probe** (`fix4a.spec.ts` tidak terhitung) | `npx playwright test --list` → `Total: 14 tests in 10 files` |
 | 4 | `scripts/e2e-prod-server.mjs` = npm script `serve:static` | `serve:static` = `scripts/serve-out.mjs`; `e2e-prod-server.mjs` adalah **pembungkus** (build → import `serve-out.mjs`) | `package.json` scripts |
 | 5 | Migrasi OpenNext tidak disebut sama sekali | OpenNext/Workers **sudah disiapkan** (commit `780fe13`) tapi **belum deployable** (KV namespace masih placeholder) | `open-next.config.ts`, `wrangler.jsonc`, `next.config.ts` komentar "TEMPORARY" |
@@ -48,16 +53,22 @@ Branch: `main` — **sinkron dengan `origin/main` (0 ahead / 0 behind)** setelah
 | F | **Tiga timer yang saling bertabrakan** (ditemukan dari 2 E2E `/chat` timeout 60s): anggaran backend `LLM_GATEWAY_BUDGET` = **90s** SAMA PERSIS dengan abort klien `FETCH_TIMEOUT_MS` = **90s**, dan fase Gemini cadangan **tidak dibatasi sama sekali** (4 percobaan tanpa timeout + `sleep`). Akibatnya backend masih bekerja saat klien sudah membatalkan → user melihat "Server lambat, coba lagi" padahal jawabannya hampir siap, pekerjaan terbuang, dan E2E merah palsu (`status=-1, time=-1` di trace Playwright) | Trace `.network`: `POST /chat => status=-1, time=-1` (browser menunggu selamanya); reproduksi bersih: `gemini-3-flash-preview` via `_agentic_run_direct` = **49,6s** lalu fallback (`reason=model_unavailable`) walau gateway langsung menjawab **200 dalam 2,2s**; log backend `OpenAIAPIError: Internal Server Error` + `OpenAITimeoutError` (45s) | Budget jadi **TOTAL** (gateway + cadangan): default 45s dengan `_FALLBACK_RESERVE_SEC=15s` disisihkan untuk jalur Gemini, timeout per percobaan 45s→**20s**, deadline diperiksa **setiap** iterasi kandidat dan dipangkas ke sisa anggaran, fase Gemini dibatasi deadline yang dihitung dari **awal request**. Dikunci `test_chat_budget_invariant.py` (5 test, memparsing `FETCH_TIMEOUT_MS` dari sumber TS) |
 | G | **Jalur cadangan Gemini = single point of failure** (bukan bug kode, tapi kelalaian konfigurasi): `api_server.py` memilih kunci via `or` (satu kunci saja) dan membuat `genai.Client` **sekali di luar** loop retry → `429` di-retry **4× dengan kunci + model yang SAMA** (tidak mungkin pulih dalam 15s) lalu berakhir `503 "Model sedang sibuk"`. `.env` saat itu hanya punya **1 kunci unik** (tiga nama alias, satu secret) | `quotaId=...PerMinutePerProjectPerModel-FreeTier`, `quotaValue=5`, `retryDelay=5s` di payload 429 asli (`_e_429_payload.json`); idle 62s → request berikutnya **OK 1.56s** → **RPM**, bukan RPD harian | Modul baru `gemini_key_pool.py` (13 kunci, round-robin, cooldown per kunci, blokir **(kunci × model)**, client di-cache per kunci — terukur `genai.Client()` = 0,86s) + integrasi rotasi di `_agentic_run_direct` dengan riwayat dipertahankan (`chat.get_history()`) + label kunci aman di `meta` |
 | H | **Klaim "RPD harian habis" di dokumen ini SALAH.** Payload resmi Google menyebut kuota **per menit per project per model**, dan kunci pulih ≤62s | `quotaId: GenerateRequestsPerMinutePerProjectPerModel-FreeTier`, `quotaDimensions.model: gemini-2.5-flash`, `quotaValue: 5`, `retryDelay: 5s`; konfirmasi idle 62s → `OK 1.56s` | TTL cooldown dihitung dari payload (`retryDelay` / `quotaId`), bukan ditebak dari label "harian" |
-| J | **Perintah CLI harness E2E adalah NO-OP SENYAP** — `node scripts/e2e-auth-setup.mjs` (didokumentasikan §9.2) tidak melakukan apa pun: modul hanya `export default globalSetup` **tanpa invokasi top-level**, jadi exit 0 + output **0 byte** + fixture tidak ditulis. Gejalanya menyesatkan: sesi E2E tetap kedaluwarsa padahal "perintah mint tampak berhasil" | Sebelum: `node scripts/e2e-auth-setup.mjs` → output **0 byte**. Sesudah: **1216 byte** + `verifikasi akhir OK: ES256 cocok` + `ttl=3601s`. Tidak dobel-jalan saat di-`import` (jalur `globalSetup` Playwright): `import()` → 60 byte, **tanpa** baris `[e2e-auth]` | Guard CLI di `scripts/e2e-auth-setup.mjs` (`pathToFileURL(process.argv[1]).href === import.meta.url`) — berjalan hanya saat dieksekusi langsung | (entitlement per-project), sehingga pool tidak boleh memblokir per-kunci saja | Probe per-kunci × per-model: `gemini-2.5-flash-lite` → **200 di 8 kunci, 404 "no longer available to new users" di 5 kunci**; `gemini-3-flash-preview` & `gemini-3.5-flash-lite` → 200 di **13/13**. `models.list()` **tidak decisive** (mengembalikan 41 model termasuk model yang 404 saat `generate_content`) | Blokir disimpan sebagai pasangan `(kunci, model)` di `_blocked`, bukan per-kunci |
+| I | **Blokir per-kunci untuk SEMUA model itu terlalu luas** — entitlement Google tidak seragam untuk tiap pasangan: "…(entitlement per-project), sehingga pool tidak boleh memblokir per-kunci saja" *(kepala kalimat baris ini hilang di draf commit `488b411` — barisnya tergabung ke baris J; sisa yang selamat dipakai apa adanya, jangan dianggap kutipan lengkap)* | Probe per-kunci × per-model: `gemini-2.5-flash-lite` → **200 di 8 kunci, 404 "no longer available to new users" di 5 kunci**; `gemini-3-flash-preview` & `gemini-3.5-flash-lite` → 200 di **13/13**. `models.list()` **tidak decisive** (mengembalikan 41 model termasuk model yang 404 saat `generate_content`) | Blokir disimpan sebagai pasangan `(kunci, model)` di `_blocked`, bukan per-kunci |
+| J | **Perintah CLI harness E2E adalah NO-OP SENYAP** — `node scripts/e2e-auth-setup.mjs` (didokumentasikan §9.2) tidak melakukan apa pun: modul hanya `export default globalSetup` **tanpa invokasi top-level**, jadi exit 0 + output **0 byte** + fixture tidak ditulis. Gejalanya menyesatkan: sesi E2E tetap kedaluwarsa padahal "perintah mint tampak berhasil" | Sebelum: `node scripts/e2e-auth-setup.mjs` → output **0 byte**. Sesudah: **1216 byte** + `verifikasi akhir OK: ES256 cocok` + `ttl=3601s`. Tidak dobel-jalan saat di-`import` (jalur `globalSetup` Playwright): `import()` → 60 byte, **tanpa** baris `[e2e-auth]` | Guard CLI di `scripts/e2e-auth-setup.mjs` (`pathToFileURL(process.argv[1]).href === import.meta.url`) — berjalan hanya saat dieksekusi langsung |
+| K | **500 PRODUKSI sebab SDK Gemini lama** — `pool.client()` memanggil `types.HttpRetryOptions(attempts=1)`, kelas yang **TIDAK ADA** di `google-genai==1.6.0` (pin `requirements.txt`, yaitu yang benar-benar dipasang Railway). Mesin dev memakai 1.65.0 → bug ini **nol kali** muncul lokal, dan E2E ikut hijau karena `chat-auth.spec.ts` hanya memeriksa "email tampil" (judulnya "TIDAK 401", sehingga 500 lolos hijau) | E2E `chat-auth` → Railway: `POST /chat` = **500** `{"detail":"Terjadi kesalahan internal: AttributeError: module 'google.genai.types' has no attribute 'HttpRetryOptions'"}`. Wheel resmi 1.6.0 diperiksa langsung: `has HttpRetryOptions: False` (tapi `class HttpOptions` ADA); direproduksi dengan `pip install --target` 1.6.0 → ekspresi lama melempar, sedangkan `http_options()` baru menghasilkan `timeout=20000` dan client tetap terbentuk | `gemini_key_pool.http_options()`: `timeout` SELALU dipasang, `attempts=1` hanya bila SDK mendukung — kalau tidak, **peringatan sekali** lewat log (jangan senyap); pin `google-genai` 1.6.0 → **1.65.0**; **+2 unit test** (SDK lama: client tetap terbentuk, peringatan sekali) → pool **19**; `chat-auth.spec.ts` kini **assert `/chat` TIDAK 5xx** (503 tetap diizinkan). SISA: **redeploy Railway** agar 1.65.0 terpasang (lihat §7 butir 7) |
+| L | **Transien upstream dilaporkan sebagai 500** — `classify_error()` hanya mengenal 429/404/503, sehingga `504 DEADLINE_EXCEEDED` / `ServerError` → `("unknown", 0.0)` → pool **tidak merotasi kunci** dan error lolos ke handler generik → `POST /chat` menjawab **500** `"Terjadi kesalahan internal"`. Klien menerima sinyal "bug server" untuk kondisi yang seharusnya cukup "coba lagi" | E2E `npm run e2e:prod` setelah spec `chat-auth` diberi assert TIDAK 5xx: `CHAT_STATUS=500 body={"detail":"Terjadi kesalahan internal: ServerError: 504 DEADLINE_EXCEEDED. {'error': {'code': 504, 'message': 'Deadline expired before operation could complete.', 'status': 'DEADLINE_EXCEEDED'}}"}` — inilah satu-satunya spec yang MERAH (`13 passed / 1 failed`). **Assert baru itu bekerja: ia menangkap bug nyata, bukan flaky** | `classify_error()`: pola `504` / `deadline` / `timeout` / `timed out` / `servererror` → `overloaded` (`_OVERLOAD_S = 20s`), jadi pool menandai kunci itu **sementara** lalu mencoba kunci/model lain; bila semuanya habis → **503** "Model sedang sibuk" (kontrak lama yang sudah ada, dan 503 tetap diizinkan spec). Dikunci `test_504_deadline_exceeded_ditandai_overload_bukan_unknown` |
 
 
-**Hasil akhir sesi:** pytest **80 lulus** (jwt 14 + filter 30 + multiturn 9 + idempotent 3 +
-budget 5 + **pool kunci 16** + `test_integration.py` 3) — lihat §9.2 untuk perintahnya;
+**Hasil akhir sesi:** pytest **84 lulus** (jwt 14 + filter 30 + multiturn 9 + idempotent 3 +
+budget 5 + **pool kunci 20** + `test_integration.py` 3) — lihat §9.2 untuk perintahnya;
 2 file legacy Streamlit (`test_browser_e2e.py`, `test_e2e_live.py`) dikecualikan karena
 menargetkan UI lama di port 8501 yang tidak lagi dijalankan (lihat §9.4).
 E2E produksi terakhir: **14 passed / 0 skipped / 0 failed** — bukti payload:
-`MODELS_COUNT=12`, `FORBIDDEN_HITS=[]`, dan **kedua test `/chat` kini `CHAT_STATUS=200` =
-`VALID_STATUS=200`** (sebelumnya `503` → skip). Rotasi kunci terbukti bekerja di log server:
+`MODELS_COUNT=12`, `FORBIDDEN_HITS=[]`. **Jangan samakan dua test `/chat`** — target-nya beda:
+(a) `model-filter.spec.ts` (backend **LOKAL** 8123) → `CHAT_STATUS=200` = `VALID_STATUS=200`;
+(b) `chat-auth.spec.ts` (**Railway PRODUKSI**, lewat `E2E_TARGET`) → dulu `CHAT_STATUS=500`
+`AttributeError: ... HttpRetryOptions` (temuan K) **dan spec lama tetap hijau** karena hanya
+memeriksa "email tampil". Rotasi kunci terbukti bekerja di log server:
 
 ```
 Gemini GEMINI_KEY_1#e733b96d model=gemini-2.5-flash (pool=13 kunci)
@@ -168,30 +179,29 @@ Total **259 model / 25 provider** (hasil `GET /v1/models`, HTTP 200).
 
 ## 4. COMMIT LOG (13 terakhir)
 
-Diambil langsung dari `git log --oneline`. Daftar di bawah sampai commit **kode**
-`93d6c2e`. Baris ini sengaja TIDAK mengklaim "commit terakhir", karena hash
-berubah setiap dokumen diperbarui — pakai `git log --oneline -3` untuk commit
-teratas saat ini.
+Diambil langsung dari `git log --oneline` (13 teratas, saat dokumen ini ditulis).
+Baris ini sengaja TIDAK mengklaim "commit terakhir", karena hash berubah setiap
+dokumen diperbarui — pakai `git log --oneline -3` untuk commit teratas saat ini.
 
 ```
+e221ad1  fix(gemini): pool kunci tahan SDK lama - hilangkan 500 prod HttpRetryOptions
+488b411  fix(e2e): guard CLI e2e-auth-setup.mjs - mint sesi saat dipanggil langsung (sebelumnya no-op senyap)
+df5c71a  fix(e2e): guard CLI e2e-auth-setup.mjs - ode scripts/e2e-auth-setup.mjs kini benar-benar mint sesi (sebelumnya no-op senyap)
+9d737f2  docs(gemini): koreksi docstring mark() - kuota 429 per (project,model) dari payload asli, bukan per project
+36bddab  fix(gemini): batas waktu per panggilan + matikan retry internal SDK di client pool
+d8b7c95  test(gemini): kontrak pool kunci - rotasi, cooldown per kunci, blokir kunci x model, keamanan
+f315e26  feat(chat): rotasi kunci Gemini di jalur cadangan + label kunci di meta
+6bc0c8d  feat(gemini): pool kunci rotasi (round-robin, cooldown per kunci, blokir kunci x model)
+075c141  docs(handoff): ganti klaim hash bergerak dengan perintah verifikasi stabil (HEAD == origin/main)
+8e9e869  docs: sinkronkan HANDOFF + ARCHITECTURE_REPORT ke baseline 61 unit/12 E2E, temuan sesi (fixture palsu, kontrak 401 vs 503, timer lintas-lapisan), kuota Gemini single-key
 93d6c2e  fix(chat): anggaran waktu TOTAL + tes invarian timer lintas-lapisan
 b456f13  docs(handoff): sinkronkan commit log + status remote ke 6b6fe07
 6b6fe07  fix(auth)+test(e2e): kontrak 401 vs 503 konklusif, sesi E2E terverifikasi, cakupan filter ke unit test
-4abfeda  chore(git): ignore harness runner lokal _*.ps1
-5c28054  test(e2e): 503 upstream transien -> SKIP eksplisit (bukan merah palsu) + ignore _*.ps1
-4401e7e  fix(agent): konteks multi-turn ke LLM + verifikasi JWT lokal (JWKS)
-c503aea  fix(gateway): satu sumber gateway_config + alias env FREELM_GATEWAY_URL/GATEWAY_URL
-f50aa5a  fix(gateway): kembalikan gemini-3.1-flash-lite-preview ke allowlist free-tier
-e3016af  feat(frontend): badge fallback transparan (TUGAS 2) + locked state selector (TUGAS 3)
-bc08c0e  feat(gateway+models): roster probe empiris, filter paid-only 3-gate (TUGAS 1), meta fallback (TUGAS 2 backend)
-04d8ad5  fix(hydration): render pertama deterministik — gate mounted ModelSelector + initializer page.tsx (static export, React 19)
-fb5321a  chore(gitignore): ignore probe/temp scripts + secret artifacts (_vps,_rail,_gw)
-2f0db27  fix(backend): NameError md crash 502 — pindah block MODEL SELECTION ke bawah import md
 ```
 
-**Status remote:** commit **kode** teratas tetap `93d6c2e`; di atasnya ada commit
-**dokumentasi** (mis. `8e9e869` = HANDOFF + ARCHITECTURE_REPORT). Yang stabil dan
-tidak perlu diperbarui setiap kali dokumen disunting: `HEAD` == `origin/main`,
+**Status remote:** `HEAD` == `origin/main` (**0 ahead / 0 behind**), commit **kode** terbaru =
+`3f85c61`; di atasnya commit **dokumentasi** (hanya menyentuh dokumen). Yang stabil dan tidak
+perlu diperbarui setiap kali dokumen disunting: `HEAD` == `origin/main`,
 **0 ahead / 0 behind** — verifikasi ulang dengan:
 `git rev-parse HEAD; git rev-parse origin/main; git status -sb`.
 
@@ -210,13 +220,25 @@ tidak perlu diperbarui setiap kali dokumen disunting: `HEAD` == `origin/main`,
 - [x] **Enhancement besar (sesi ini):** konteks **multi-turn** kini dikirim ke LLM (sebelumnya riwayat tersimpan tapi tidak dibaca model).
 - [x] **Enhancement besar (sesi ini):** verifikasi JWT Supabase dipindah ke **lokal (JWKS)** — memperbaiki 401 massal akibat `ConnectTimeout` ke `{SUPABASE_URL}/auth/v1/user`.
 - [x] **Alias env gateway** — sudah diperbaiki (`gateway_config()` memakai satu sumber, menerima `LLM_GATEWAY_URL` / `FREELM_GATEWAY_URL` / `GATEWAY_URL`).
-- [x] **Test hygiene** — **80** unit test pytest hijau (angka "27"/"24" di versi lama dokumen ini
+- [x] **Test hygiene** — **84** unit test pytest hijau (angka "27"/"24" di versi lama dokumen ini
       SALAH; diukur ulang 2026-09-16: jwt 14 + filter 30 + multiturn 9 + idempotent 3 + budget 5
-      + **pool kunci 16** + integration 3; 2 file legacy Streamlit dikecualikan).
+      + **pool kunci 20** + integration 3; 2 file legacy Streamlit dikecualikan).
       E2E produksi terakhir: **14 passed / 0 skipped / 0 failed** (10 spec sehat / 14 test,
-      probe dikarantina) — kedua test `/chat` kini `CHAT_STATUS=200`/`VALID_STATUS=200`.
-      Perintah + angka baseline ada di §9.2 — jangan pakai angka warisan 16/1, 29, "61",
+      probe dikarantina). Perhatikan DUA target berbeda: `model-filter.spec.ts` (backend lokal)
+      → `CHAT_STATUS=200`/`VALID_STATUS=200`; `chat-auth.spec.ts` (Railway produksi) → dulu
+      **500** (temuan K) dan kini assert TIDAK 5xx.
+      Perintah + angka baseline ada di §9.2 — jangan pakai angka warisan 16/1, 29, "61", "80",
       atau "12 passed / 2 skipped" tanpa menjalankan ulang.
+- [x] **Rotasi kunci Gemini jalur cadangan** — 13 kunci, cooldown per kunci dari payload 429
+      asli, blokir per `(kunci, model)`, label aman (`GEMINI_KEY_1#e733b96d`). Terbukti di log
+      produksi & memulihkan `/chat` (lihat §0.1 temuan G/I/K/L).
+- [x] **500 produksi `HttpRetryOptions` DIHAPUS dan diverifikasi di produksi** (temuan K) —
+      `npx playwright test tests/chat-auth.spec.ts` menembak Railway: `1 passed`,
+      `RESPONSES=[{railway/sessions 200},{railway/chat 200}]`, balasan nyata dari
+      `gemini-2.5-flash`. Pin `google-genai` = **1.65.0** + `http_options()` tahan SDK lama.
+- [x] **Transien upstream tidak lagi dijawab 500** (temuan L) — `classify_error()` memetakan
+      `504/deadline/timeout/ServerError` → `overloaded`, sehingga pool merotasi kunci/model dan
+      kegagalan terminal berakhir **503** "Model sedang sibuk" (bukan 500 "kesalahan internal").
 
 ---
 
@@ -268,6 +290,8 @@ tidak perlu diperbarui setiap kali dokumen disunting: `HEAD` == `origin/main`,
       (project, model). Pool saat ini membekukan SELURUH model pada satu
       kunci ketika `rate_limited` (konservatif, sesuai spec "cooldown per
       key"). Pembekuan per-pasangan akan menghemat kapasitas model lain.
+      Catatan: blokir `entitlement` **sudah** per-pasangan `(kunci, model)` di
+      `_blocked` (§0.1 temuan I) — butir ini **hanya** soal cooldown 429.
 
 ## 7. TASK BERIKUTNYA (prioritas)
 
@@ -277,15 +301,25 @@ tidak perlu diperbarui setiap kali dokumen disunting: `HEAD` == `origin/main`,
    apakah perlu rotate `GROQ_API_KEY`.
 3. ~~**Rotasi kunci Gemini jalur cadangan**~~ → **SELESAI 2026-09-16**: `gemini_key_pool.py`
    (13 kunci unik di `GEMINI_KEY_1..13`, round-robin, cooldown per kunci, blokir kunci×model)
-   + integrasi di `_agentic_run_direct` + 16 unit test (`test_gemini_key_pool.py`).
-   Terbukti memulihkan 2 test E2E `/chat` (`CHAT_STATUS=200`), E2E jadi `14 passed / 0 skipped`.
+   + integrasi di `_agentic_run_direct` + **20** unit test (`test_gemini_key_pool.py`).
+   Terbukti memulihkan test E2E `/chat` di backend **LOKAL** (`model-filter.spec.ts` →
+   `CHAT_STATUS=200`), sehingga E2E jadi `14 passed / 0 skipped`. **Koreksi:** klaim lama
+   "kedua test `/chat` kini 200" **salah** untuk `chat-auth.spec.ts` yang membidik Railway —
+   di sana `/chat` justru **500** (temuan K); angka 200 hanya berlaku untuk backend lokal.
 4. **Uji billing Dodo end-to-end** (checkout → webhook → `users.tier` berubah) — lihat
    `billing_llm.py`, `dodo_verify.py`, tabel `users`.
 5. ~~**Rapikan test probe** `tests/_*.spec.ts`~~ → **SELESAI 2026-09-16**: dikarantina ke
    `tests/_probes/` + `testIgnore` (dijalankan hanya dengan `E2E_PROBES=1`).
 6. **Commit + push** setiap perubahan; lalu verifikasi produksi (Cloudflare Pages + Railway).
-   Status 2026-09-16: perubahan sudah ter-push (`git status -sb` → **0 ahead / 0 behind**);
-   commit kode teratas `93d6c2e`, di atasnya commit dokumentasi (`8e9e869`).
+   Status 2026-09-16 (akhir sesi): ter-push, `git status -sb` → **0 ahead / 0 behind**,
+   `HEAD` == `origin/main` (`0 ahead / 0 behind`); commit kode terbaru `3f85c61`
+   (lihat header dokumen).
+7. **Redeploy Railway → verifikasi `/chat` produksi TIDAK 5xx.** Pin `google-genai` dinaikkan
+   1.6.0 → **1.65.0** dan kode pool dibuat tahan SDK lama (temuan K), tapi Railway hanya
+   memasang ulang saat **build baru** (push commit / redeploy manual di dashboard).
+   Verifikasi: `npm run e2e:prod` → `chat-auth.spec.ts` kini **GAGAL** bila `/chat` masih 5xx
+   (sengaja — dulu spec-nya hijau palsu). Cek murah: `curl -s -o /dev/null -w "%{http_code}"`
+   ke `https://web-production-dc90b.up.railway.app/health` → `200` (sudah diverifikasi).
 
 > Catatan: klaim template *"Push 5 commit ahead origin"* **salah** — sudah 0 ahead/0 behind.
 > Jangan ulangi pekerjaan itu.
@@ -364,7 +398,7 @@ Jangan pula menambah nama keempat tanpa alasan.
 ### 9.2 Perintah uji
 
 ```bash
-# Unit test backend (tanpa jaringan) — 80 test
+# Unit test backend (tanpa jaringan) — 84 test
 #   2 file legacy Streamlit (test_browser_e2e.py, test_e2e_live.py) dikecualikan:
 #   keduanya menargetkan UI lama di port 8501 yang tidak lagi dijalankan (§9.4).
 cd c:/Users/user/Proyek_AI
@@ -372,6 +406,9 @@ python -m pytest test_security_jwt.py test_model_filter.py test_multiturn_histor
 #   (atau: python -m pytest -q --ignore=test_browser_e2e.py --ignore=test_e2e_live.py)
 
 # E2E produksi (build + serve out/ + backend lokal) — 14 passed / 0 skipped / 0 failed
+#   PENTING: `chat-auth.spec.ts` TIDAK memakai backend lokal. Ia membidik `E2E_TARGET`
+#   (default https://proyek-agent.pages.dev) + Railway sebagai API produksi. Sejak
+#   temuan K spec itu GAGAL bila produksi menjawab 5xx (sebelumnya hijau palsu).
 cd c:/Users/user/Proyek_AI/nexus-frontend
 npm run e2e:prod
 
@@ -416,6 +453,7 @@ Catatan GoTrue: `hashed_token` berada di **top-level** respons `generate_link`
 | 8 | **JANGAN** memakai port 3001 untuk FE | CORS backend mengizinkan `:3000` (dan origin Cloudflare); `:3001` diblokir browser. |
 | 9 | **JANGAN** mematikan verifikasi JWT demi "biar jalan" | Verifikasi lokal (JWKS) **bukan** pengganti keamanan: signature tetap diverifikasi, hanya jalur jaringan yang dihilangkan. |
 | 10 | **JANGAN** menganggap `pytest-playwright` sebagai E2E aktif | E2E aktif sekarang = **Playwright TS** di `nexus-frontend/tests`. `pytest-playwright` hanya warisan E2E Python lama. |
+| 11 | **JANGAN** menganggap versi paket di mesin dev = versi di produksi | Temuan K: lokal `google-genai` **1.65.0**, `requirements.txt` (yang benar-benar dipasang Railway) **1.6.0**. Kode yang memakai API SDK baru **hijau lokal tapi 500 di produksi**. Setiap perubahan yang menyentuh API pihak ketiga wajib dicek terhadap versi **pin** di `requirements.txt` — atau pin-nya dinaikkan sekalian. |
 
 ---
 
@@ -452,10 +490,12 @@ Catatan GoTrue: `hashed_token` berada di **top-level** respons `generate_link`
 | `test_security_jwt.py` | 14 test JWT offline (HS256/ES256, JWKS seed, kontrak 401 vs 503, path invalid). |
 | `test_multiturn_history.py` | Membuktikan riwayat dikirim ulang ke LLM. |
 | `test_idempotent_add_message.py` | Anti-duplikasi pesan. |
-| `nexus-frontend/tests/*.spec.ts` | Suite E2E produksi: **10 spec sehat** (14 test) — `npm run e2e:prod` → **14 passed / 0 skipped / 0 failed**. Sebelum rotasi kunci Gemini, kedua test `/chat` SKIP saat upstream 503; sekarang `CHAT_STATUS=200`. |
+| `nexus-frontend/tests/*.spec.ts` | Suite E2E produksi: **10 spec sehat** (14 test) — `npm run e2e:prod` → **14 passed / 0 skipped / 0 failed**. `model-filter.spec.ts` menembak backend **lokal** (`CHAT_STATUS=200`); `chat-auth.spec.ts` menembak **Railway produksi** dan sejak temuan K **assert `/chat` TIDAK 5xx** (dulu hijau palsu karena hanya memeriksa "email tampil"). |
 | `nexus-frontend/tests/_probes/_*.spec.ts` | 3 probe diagnostik, **dikarantina** (`E2E_PROBES=1`). |
 | `test_model_filter.py` | **30** test deterministik filter paid-only + input kotor (tanpa jaringan/JWKS). Pengganti cakupan "tidak over-delete" yang dulu digantungkan pada roster live yang flaky. |
 | `test_chat_budget_invariant.py` | **5** test anggaran waktu `/chat` ↔ kesabaran klien. **Membaca `FETCH_TIMEOUT_MS` langsung dari `src/lib/api.ts`**, jadi drift antara konstanta backend (Python) dan frontend (TS) GAGAL di sini — bukan diam-diam di produksi. |
+| `test_gemini_key_pool.py` | **20** test pool kunci: rotasi round-robin, cooldown per kunci dari payload 429 asli (RPM vs RPD), blokir kunci×model, keamanan label/fingerprint, plus **3 tes regresi produksi** (2 tes SDK lama tanpa `HttpRetryOptions` — temuan K; 1 tes `504 DEADLINE_EXCEEDED` → `overloaded` — temuan L). |
+| `test_integration.py` | **3** test integrasi lintas-modul. |
 
 ---
 
@@ -562,8 +602,10 @@ Urutan yang disarankan, jangan dilompati:
    ```bash
    python -m pytest test_security_jwt.py test_multiturn_history.py test_idempotent_add_message.py -q
    ```
-   Baseline terakhir (diukur 2026-09-16): **80 test lulus** — jwt 14 + filter 30
-   + multiturn 9 + idempotent 3 + budget 5 + **pool kunci 16** + integration 3.
+   Baseline terakhir (diukur 2026-09-16, akhir sesi): **84 test lulus** — jwt 14 + filter 30
+   + multiturn 9 + idempotent 3 + budget 5 + **pool kunci 20** + integration 3.
+   (Angka **80 / pool 16** di versi dokumen ini yang lebih lama adalah **basi**: pool naik ke
+   20 karena 3 tes regresi produksi ditambahkan — §0.1 temuan K & L.)
    Jalankan perintah LENGKAP di §9.2 (jangan menghilangkan `test_model_filter.py`
    maupun `test_gemini_key_pool.py`, akibatnya hitungan jadi 26/61 dan cakupan
    filter/rotasi hilang). Angka warisan "27"/"24"/"25+4 diagnostik"/"61" SALAH.
