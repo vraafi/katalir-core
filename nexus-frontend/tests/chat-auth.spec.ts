@@ -135,16 +135,18 @@ test("E2E supabase asli: login ter-inject + kirim pesan TIDAK 401 & TIDAK 5xx", 
   // Assert: email user tampil = login sukses (injeksi berhasil)
   if (!emailShown) throw new Error("email test-user tidak tampil → injeksi session gagal");
 
-  // Assert: `/chat` prod TIDAK boleh 5xx.
+  // Assert: `/chat` prod TIDAK boleh 5xx — KECUALI 503.
   // Sebelumnya spec ini HANYA memeriksa "email tampil" (dan dulu "bukan 401"),
   // sehingga **500 nyata lolos hijau**: Railway menjawab
   //   {"detail":"Terjadi kesalahan internal: AttributeError: module
   //    'google.genai.types' has no attribute 'HttpRetryOptions'"}
-  // karena requirements.txt memasang google-genai 1.6.0. 503 (kuota/overload
-  // upstream) tetap DIIZINKAN — itu kondisi wajar produksi, bukan bug server.
-  if (chatStatus >= 500) {
+  // karena requirements.txt memasang google-genai 1.6.0.
+  // 503 (`Model sedang sibuk (quota/overload)`) adalah kondisi upstream yang
+  // WAJAR dan justru kontrak yang benar untuk kuota habis / upstream transien —
+  // jadi yang DILARANG adalah 500/501/502/504/dst, bukan 503.
+  if (chatStatus >= 500 && chatStatus !== 503) {
     throw new Error(
-      `POST /chat -> HTTP ${chatStatus} (5xx = bug server, bukan kuota). body=${chatBody}`
+      `POST /chat -> HTTP ${chatStatus} (5xx selain 503 = bug server, bukan kuota). body=${chatBody}`
     );
   }
 
