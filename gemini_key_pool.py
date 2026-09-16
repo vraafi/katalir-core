@@ -214,11 +214,20 @@ class KeyPool:
     # -- penandaan hasil --------------------------------------------------
     def mark(self, fp: str, model: str, exc=None, kind: str | None = None,
              ttl: float | None = None) -> str:
-        """Tandai kunci/pasangan setelah kegagalan. Mengembalikan jenisnya.
-
-        `rate_limited` -> cooldown KUNCI (semua modelnya ikut), karena kuota
-        429 bersifat per project. `entitlement`/`overloaded` -> blokir PASANGAN
-        (kunci, model) saja, supaya model lain dari kunci yang sama tetap hidup.
+        """Tandai hasil percobaan `key` pada SATU model.
+        
+        KONTRAK (dibuktikan dari payload 429 asli, bukan asumsi):
+          - `rate_limited`: payload berbunyi
+            `GenerateRequestsPerDayPerProjectPerModel-FreeTier` /
+            `...PerMinutePerProjectPerModel-FreeTier` -> kuota Google bercakupan
+            PER (PROJECT, MODEL). Model lain pada kunci yang sama sebenarnya masih
+            bisa melayani, tetapi pembekuan di sini SENGAJA konservatif dan berlaku
+            untuk seluruh model kunci itu, sesuai spec task "cooldown per key,
+            bukan per akun". Pembekuan per (key, model) yang lebih hemat kapasitas
+            dicatat sebagai pending refinement di HANDOFF.
+          - `entitlement` (404 "no longer available to new users"): kunci SAH, hanya
+            model itu yang tidak tersedia untuk project-nya -> blokir HANYA pasangan
+            (key, model).
         """
         if exc is not None and kind is None:
             kind, auto_ttl = classify_error(exc)
