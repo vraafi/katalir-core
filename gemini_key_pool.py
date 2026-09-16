@@ -104,7 +104,8 @@ def classify_error(exc) -> tuple[str, float]:
     jenis:
       * `rate_limited` — kuota habis (429/RESOURCE_EXHAUSTED).
       * `entitlement`  — model tidak tersedia untuk project kunci ini (404).
-      * `overloaded`   — gangguan sementara upstream (503/UNAVAILABLE/overload).
+      * `overloaded`   — gangguan sementara upstream (503/504/UNAVAILABLE/overload,
+                         termasuk `DEADLINE_EXCEEDED` dan `ServerError`).
       * `unknown`      — bukan kelas di atas; pool tidak menandai apa pun.
 
     TTL diambil dari payload (bukan angka karangan): `PerDay` -> tunggu reset,
@@ -122,8 +123,16 @@ def classify_error(exc) -> tuple[str, float]:
         return "rate_limited", max(retry, _RPM_FLOOR_S)
     if "404" in text or "not_found" in low or "no longer available" in low:
         return "entitlement", _ENTITLEMENT_S
-    if ("503" in text or "unavailable" in low or "overloaded" in low
-            or "internal error" in low):
+    # Gangguan sementara upstream. `504 DEADLINE_EXCEEDED` / `ServerError` masuk
+    # ke sini setelah E2E produksi (2026-09-16) menangkap `POST /chat` menjawab
+    # **500** `"Terjadi kesalahan internal: ServerError: 504 DEADLINE_EXCEEDED"`:
+    # pola itu dulu "tak dikenal", jadi pool TIDAK merotasi kunci dan error lolos
+    # ke handler 500 — padahal ini transien (klien cukup diminta coba lagi, dan
+    # kunci/model lain sangat mungkin belum kena).
+    if ("503" in text or "504" in text or "unavailable" in low
+            or "overloaded" in low or "internal error" in low
+            or "deadline" in low or "timeout" in low or "timed out" in low
+            or "servererror" in low or "server error" in low):
         return "overloaded", _OVERLOAD_S
     return "unknown", 0.0
 

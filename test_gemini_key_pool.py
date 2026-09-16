@@ -174,6 +174,22 @@ def test_503_overload_ditandai_sementara():
     assert 0 < ttl <= 60
 
 
+def test_504_deadline_exceeded_ditandai_overload_bukan_unknown():
+    """REGRESI PRODUKSI (E2E `chat-auth`, 2026-09-16): `504 DEADLINE_EXCEEDED` dulu
+    diklasifikasi `unknown`, sehingga pool tidak merotasi kunci dan `/chat` menjawab
+    **500** `"Terjadi kesalahan internal: ServerError: 504 DEADLINE_EXCEEDED"`.
+    Payload di bawah adalah yang tertangkap apa adanya dari produksi.
+    """
+    exc = RuntimeError(
+        "ServerError: 504 DEADLINE_EXCEEDED. {'error': {'code': 504, 'message': "
+        "'Deadline expired before operation could complete.', 'status': "
+        "'DEADLINE_EXCEEDED'}}"
+    )
+    kind, ttl = gkp.classify_error(exc)
+    assert kind == "overloaded", "transien upstream wajib memicu rotasi kunci"
+    assert 0 < ttl <= 60
+
+
 def test_error_tak_dikenal_tidak_menandai_apa_pun():
     """Jangan menelan bug nyata sebagai 'cooldown' (menyembunyikan sebab)."""
     kind, ttl = gkp.classify_error(RuntimeError("ValueError: payload rusak"))
