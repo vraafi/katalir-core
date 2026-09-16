@@ -1,8 +1,10 @@
 # NEXUS — HANDOFF CONTEXT
 
-Generated: 2026-09-16 01:46 (+07:00)
-Commit kode terakhir: `e221ad1` — **pool kunci tahan SDK lama**: menghapus `500 HttpRetryOptions`
-di produksi (§0.1 temuan K). Riwayat kode di bawahnya (terbaru → lama): `df5c71a` (guard CLI
+Generated: 2026-09-16 01:46 (+07:00) · Dikoreksi terakhir: 2026-09-16 (sesi lanjutan — temuan K & L, angka 84 / pool 20)
+Commit kode terakhir: `3f85c61` — **transien upstream tidak lagi dijawab 500** (§0.1 temuan L:
+`504 DEADLINE_EXCEEDED` → `overloaded` → rotasi kunci → 503). Di bawahnya `e221ad1` — pool kunci
+**tahan SDK lama** (menghapus `500 HttpRetryOptions` di produksi, §0.1 temuan K — sudah
+diverifikasi live di Railway). Riwayat kode lebih lama (terbaru → lama): `df5c71a` (guard CLI
 harness E2E; **pesan commitnya terpotong** — ada fragmen "…- ode scripts/e2e-auth-setup.mjs…"
 akibat salah ketik saat menulis pesan, ISINYA benar; jangan "diperbaiki" dengan rebase karena
 sudah ter-push — `488b411` menulis ulang pesan yang sama dengan rapi), `9d737f2` + `36bddab`
@@ -63,8 +65,14 @@ Branch: `main` — **sinkron dengan `origin/main` (0 ahead / 0 behind)** setelah
 budget 5 + **pool kunci 20** + `test_integration.py` 3) — lihat §9.2 untuk perintahnya;
 2 file legacy Streamlit (`test_browser_e2e.py`, `test_e2e_live.py`) dikecualikan karena
 menargetkan UI lama di port 8501 yang tidak lagi dijalankan (lihat §9.4).
-E2E produksi terakhir: **14 passed / 0 skipped / 0 failed** — bukti payload:
-`MODELS_COUNT=12`, `FORBIDDEN_HITS=[]`. **Jangan samakan dua test `/chat`** — target-nya beda:
+E2E produksi terakhir (**assert TIDAK 5xx aktif + perbaikan temuan L sudah live**): **14 passed /
+0 skipped / 0 failed** — bukti payload: `MODELS_COUNT=12`, `FORBIDDEN_HITS=[]`. Catatan jujur
+soal `/chat` produksi: dua bentuk **503** yang benar-benar terlihat (keduanya kontrak yang wajar
+saat kuota free-tier habis, bukan bug): `"Model sedang sibuk (quota/overload). Coba lagi dalam
+1 menit."` dan `"Semua kunci model ini sedang cooldown (kuota). Coba lagi."`. Itulah sebab assert
+TIDAK 5xx **mengizinkan 503 tapi melarang 500/504** — sebelum assert ada, jawaban **500** tetap
+HIJAU (temuan K & L).
+**Jangan samakan dua test `/chat`** — target-nya beda:
 (a) `model-filter.spec.ts` (backend **LOKAL** 8123) → `CHAT_STATUS=200` = `VALID_STATUS=200`;
 (b) `chat-auth.spec.ts` (**Railway PRODUKSI**, lewat `E2E_TARGET`) → dulu `CHAT_STATUS=500`
 `AttributeError: ... HttpRetryOptions` (temuan K) **dan spec lama tetap hijau** karena hanya
@@ -177,13 +185,14 @@ Total **259 model / 25 provider** (hasil `GET /v1/models`, HTTP 200).
 | `.reference/` | Kode referensi pihak ketiga (`xyflow`, `react-flow-example-apps`) — **gitignored**, bukan bagian build |
 ---
 
-## 4. COMMIT LOG (13 terakhir)
+## 4. COMMIT LOG (14 terakhir)
 
-Diambil langsung dari `git log --oneline` (13 teratas, saat dokumen ini ditulis).
+Diambil langsung dari `git log --oneline` (14 teratas, saat dokumen ini ditulis).
 Baris ini sengaja TIDAK mengklaim "commit terakhir", karena hash berubah setiap
 dokumen diperbarui — pakai `git log --oneline -3` untuk commit teratas saat ini.
 
 ```
+3f85c61  fix(gemini): transien upstream (504 DEADLINE_EXCEEDED) tidak lagi dijawab 500
 e221ad1  fix(gemini): pool kunci tahan SDK lama - hilangkan 500 prod HttpRetryOptions
 488b411  fix(e2e): guard CLI e2e-auth-setup.mjs - mint sesi saat dipanggil langsung (sebelumnya no-op senyap)
 df5c71a  fix(e2e): guard CLI e2e-auth-setup.mjs - ode scripts/e2e-auth-setup.mjs kini benar-benar mint sesi (sebelumnya no-op senyap)
@@ -314,12 +323,17 @@ perlu diperbarui setiap kali dokumen disunting: `HEAD` == `origin/main`,
    Status 2026-09-16 (akhir sesi): ter-push, `git status -sb` → **0 ahead / 0 behind**,
    `HEAD` == `origin/main` (`0 ahead / 0 behind`); commit kode terbaru `3f85c61`
    (lihat header dokumen).
-7. **Redeploy Railway → verifikasi `/chat` produksi TIDAK 5xx.** Pin `google-genai` dinaikkan
-   1.6.0 → **1.65.0** dan kode pool dibuat tahan SDK lama (temuan K), tapi Railway hanya
-   memasang ulang saat **build baru** (push commit / redeploy manual di dashboard).
-   Verifikasi: `npm run e2e:prod` → `chat-auth.spec.ts` kini **GAGAL** bila `/chat` masih 5xx
-   (sengaja — dulu spec-nya hijau palsu). Cek murah: `curl -s -o /dev/null -w "%{http_code}"`
-   ke `https://web-production-dc90b.up.railway.app/health` → `200` (sudah diverifikasi).
+7. ~~**Redeploy Railway lalu verifikasi `/chat` produksi + ulangi E2E sampai HIJAU**~~ →
+   **SELESAI 2026-09-16**. Bukti: (a) temuan K live di produksi —
+   `npx playwright test tests/chat-auth.spec.ts` → **1 passed**, `CHAT_STATUS=200`, balasan nyata
+   `{"status":"success","reply":"Halo! Ada yang bisa saya bantu?","meta":{"model":"gemini-2.5-flash"}}`,
+   `RESPONSES=[sessions 200, chat 200]`; (b) temuan L live — `POST /chat` yang tadinya
+   `500 "ServerError: 504 DEADLINE_EXCEEDED"` kini menjawab `503 "Model sedang sibuk
+   (quota/overload)..."`; (c) suite penuh `npm run e2e:prod` → **14 passed / 0 skipped / 0 failed**
+   dengan assert TIDAK 5xx (503 dikecualikan). Cek murah:
+   `curl -s -o /dev/null -w "%{http_code}"` ke `.../health` → `200`.
+   Sisa (bukan blocker): bila kuota free-tier habis, user tetap menerima 503 "Coba lagi" —
+   pantau `/api/rate-tracking` dan pertimbangkan tambahan kunci/kuota.
 
 > Catatan: klaim template *"Push 5 commit ahead origin"* **salah** — sudah 0 ahead/0 behind.
 > Jangan ulangi pekerjaan itu.
@@ -408,7 +422,8 @@ python -m pytest test_security_jwt.py test_model_filter.py test_multiturn_histor
 # E2E produksi (build + serve out/ + backend lokal) — 14 passed / 0 skipped / 0 failed
 #   PENTING: `chat-auth.spec.ts` TIDAK memakai backend lokal. Ia membidik `E2E_TARGET`
 #   (default https://proyek-agent.pages.dev) + Railway sebagai API produksi. Sejak
-#   temuan K spec itu GAGAL bila produksi menjawab 5xx (sebelumnya hijau palsu).
+#   temuan K & L spec itu GAGAL bila produksi menjawab 5xx SELAIN 503 (sebelumnya
+#   jawaban 500 nyata lolos hijau karena spec hanya memeriksa "email tampil").
 cd c:/Users/user/Proyek_AI/nexus-frontend
 npm run e2e:prod
 
@@ -490,7 +505,7 @@ Catatan GoTrue: `hashed_token` berada di **top-level** respons `generate_link`
 | `test_security_jwt.py` | 14 test JWT offline (HS256/ES256, JWKS seed, kontrak 401 vs 503, path invalid). |
 | `test_multiturn_history.py` | Membuktikan riwayat dikirim ulang ke LLM. |
 | `test_idempotent_add_message.py` | Anti-duplikasi pesan. |
-| `nexus-frontend/tests/*.spec.ts` | Suite E2E produksi: **10 spec sehat** (14 test) — `npm run e2e:prod` → **14 passed / 0 skipped / 0 failed**. `model-filter.spec.ts` menembak backend **lokal** (`CHAT_STATUS=200`); `chat-auth.spec.ts` menembak **Railway produksi** dan sejak temuan K **assert `/chat` TIDAK 5xx** (dulu hijau palsu karena hanya memeriksa "email tampil"). |
+| `nexus-frontend/tests/*.spec.ts` | Suite E2E produksi: **10 spec sehat** (14 test) — `npm run e2e:prod` → **14 passed / 0 skipped / 0 failed**. `model-filter.spec.ts` menembak backend **lokal** (`CHAT_STATUS=200`); `chat-auth.spec.ts` menembak **Railway produksi** dan sejak temuan K & L **assert `/chat` TIDAK 5xx SELAIN 503** (dulu 500 nyata lolos hijau karena hanya memeriksa "email tampil"). |
 | `nexus-frontend/tests/_probes/_*.spec.ts` | 3 probe diagnostik, **dikarantina** (`E2E_PROBES=1`). |
 | `test_model_filter.py` | **30** test deterministik filter paid-only + input kotor (tanpa jaringan/JWKS). Pengganti cakupan "tidak over-delete" yang dulu digantungkan pada roster live yang flaky. |
 | `test_chat_budget_invariant.py` | **5** test anggaran waktu `/chat` ↔ kesabaran klien. **Membaca `FETCH_TIMEOUT_MS` langsung dari `src/lib/api.ts`**, jadi drift antara konstanta backend (Python) dan frontend (TS) GAGAL di sini — bukan diam-diam di produksi. |
