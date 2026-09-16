@@ -64,19 +64,39 @@ const FORBIDDEN_RE = /-pro|pro-latest|advanced|transcribe|lyria|nano-banana|robo
 /**
  * Model free-tier yang WAJIB tetap tersedia setelah filter.
  *
- * SENGAJA hanya id yang STABIL secara empiris — dibuktikan pada 3 pengamatan
- * independen: cache roster A (12 model), cache roster B (13 model), dan run
- * E2E produksi (13 model). Kedua id di bawah hadir di KETIGA pengamatan.
+ * SENGAJA hanya id yang STABIL secara empiris — hadir di KETIGA pengamatan
+ * independen: cache roster A (13 entri), cache roster B (12 entri), dan run E2E
+ * produksi. Hanya `gemini-3-flash-preview` yang lolos uji itu.
  *
- * `gemini-2.5-flash` TIDAK dipin meski gratis & valid: ia LOLOS filter
- * (is_paid_only=False) dan LOLOS probe langsung (HTTP 200, X-Routed-Via
- * `google_gemini/gemini-2.5-flash`), tetapi HILANG dari cache roster hasil
- * probe paralel. Itu flakiness liveness upstream (model gratis dirotasi
- * provider), bukan regresi filter. Mem-pin id flaky -> tes gagal-acak dan
- * justru MENYAMARKAN bug filter yang sebenarnya (persis gejala "agent test
- * pass tapi user lihat bug" yang sedang diperbaiki).
+ * KOREKSI (2026-09-16) — `gemini-2.5-flash-lite` DULU dipin di sini dan itu
+ * salah. Sesi ini membuktikan rotasi liveness terjadi DUA ARAH pada cache roster
+ * yang ditulis beberapa jam berbeda:
+ *     masuk : `mistralai/mistral-nemotron`, `poolside/laguna-xs-2.1`
+ *     keluar: `gemini-2.5-flash-lite`, `moonshotai/kimi-k3`
+ * Sementara katalog gateway (259 model) TETAP memuat `gemini-2.5-flash-lite`.
+ * Jadi id itu hilang karena provider mencabutnya saat probe paralel berjalan —
+ * bukan karena filter menghapusnya. Mem-pin id bergantung-liveness -> tes
+ * gagal-acak dan MENUDUH filter ("model valid hilang") padahal gateway yang
+ * tidak menyajikannya; akibatnya bug filter yang sungguhan justru tersamarkan.
+ *
+ * Konsekuensinya cakupan "filter tidak over-delete" DIPINDAH (bukan dihapus) ke
+ * unit test deterministik `test_model_filter.py::test_filter_tidak_over_delete_model_valid`,
+ * yang menguji `filter_free_models()` langsung dengan input terkendali — lebih
+ * ketat, tanpa jaringan, dan tidak bisa gagal karena nasib provider.
+ * Di sini yang diuji adalah sifat yang memang stabil pada roster LIVE.
  */
-const REQUIRED_IDS = ["gemini-2.5-flash-lite", "gemini-3-flash-preview"];
+const REQUIRED_IDS = ["gemini-3-flash-preview"];
+
+/**
+ * Keluarga model WAJIB yang harus tetap terwakili (bukan id spesifik).
+ *
+ * Ini pengganti non-flaky untuk pin per-id: gateway selalu menyajikan beberapa
+ * model Flash free-tier, tetapi id mananya yang hidup bisa berganti. Yang tidak
+ * boleh terjadi adalah keluarga Flash hilang SAMA SEKALI dari selector — itu
+ * tanda filter over-delete atau roster kerdil.
+ */
+const REQUIRED_FAMILY_RE = /^gemini-.*flash/i;
+const MIN_FAMILY_MATCHES = 1;
 
 /** Lantai kewajaran: roster teramati 12-13 model; daftar kosong/kerdil berarti
  *  gateway tak terjangkau (bukan filter) dan tes tak boleh lulus diam-diam. */
@@ -108,8 +128,19 @@ function loadSession(): Session | null {
 /** exp (detik) dari JWT; token yang kedaluwarsa ditolak backend -> 401. */
 function expiresInSec(token: string): number {
   try {
+    // base64url, BUKAN "base64": payload JWT memakai alfabet `-`/`_` yang
+    // diabaikan diam-diam oleh decoder base64 biasa -> JSON.parse gagal ->
+    // ttl terbaca -1 dan tes gagal dengan pesan "kedaluwarsa" yang MENYESATKAN
+    // (token sebenarnya sehat). Padding ditambahkan agar aman di Node lama.
+    const seg = token.split(".")[1] ?? "";
+    const b64 = seg.replace(/-/g, "+").replace(/_/g, "/");
+    // Panjang padding yang benar: `(4 - len % 4) % 4`. MENULIS `-len % 4` adalah
+    // jebakan: hasilnya NEGATIF untuk sebagian panjang, dan `"=".repeat(-2)`
+    // melempar RangeError -> ttl jadi -1 untuk token yang sehat (regresi ini
+    // benar-benar terjadi dan membuat 3 tes gagal dengan pesan menyesatkan).
+    const pad = (4 - (b64.length % 4)) % 4;
     const payload = JSON.parse(
-      Buffer.from(token.split(".")[1] ?? "", "base64").toString("utf-8")
+      Buffer.from(b64 + "=".repeat(pad), "base64").toString("utf-8")
     ) as { exp?: number };
     return typeof payload.exp === "number" ? payload.exp - Math.floor(Date.now() / 1000) : -1;
   } catch {
@@ -161,7 +192,8 @@ test.describe("PRODUKSI: filter model paid-only + badge fallback (tanpa mock)", 
     console.log(`TOKEN_TTL_S=${ttl}`);
     expect(
       ttl,
-      "token E2E kedaluwarsa/kosong -> jalankan `python _e2e_refresh.py` lalu ulangi"
+      "sesi E2E kedaluwarsa/kosong -> mint sesi sah lewat scripts/e2e-auth-setup.mjs " +
+        "(otomatis sebagai Playwright globalSetup); pastikan SUPABASE_URL + anon key di .env valid"
     ).toBeGreaterThan(30);
 
     await seedSession(page, session!);
@@ -221,6 +253,15 @@ test.describe("PRODUKSI: filter model paid-only + badge fallback (tanpa mock)", 
     for (const need of REQUIRED_IDS) {
       expect(ids.includes(need), `model valid hilang: ${need}`).toBe(true);
     }
+    // Keluarga Flash harus tetap terwakili walau id spesifiknya berganti
+    // (liveness upstream flaky). Hilang total = filter over-delete / roster
+    // kerdil. Cakupan per-id yang presisi dipegang `test_model_filter.py`.
+    const family = ids.filter((id) => REQUIRED_FAMILY_RE.test(id));
+    console.log(`FAMILY_FLASH_IDS=${JSON.stringify(family)}`);
+    expect(
+      family.length,
+      `keluarga Flash hilang dari roster: ${JSON.stringify(ids)}`
+    ).toBeGreaterThanOrEqual(MIN_FAMILY_MATCHES);
 
     // 3) Regresi pola "omni": model hidup tidak boleh ikut terhapus.
     const omni = ids.filter((id) => REGRESSION_IDS.some((r) => id.includes(r)));
@@ -241,7 +282,7 @@ test.describe("PRODUKSI: filter model paid-only + badge fallback (tanpa mock)", 
   test("BUG 2 — badge fallback render dengan model diminta vs dipakai", async ({ page }) => {
     const session = loadSession();
     const ttl = session?.access_token ? expiresInSec(session.access_token) : -1;
-    expect(ttl, "token E2E kedaluwarsa -> `python _e2e_refresh.py`").toBeGreaterThan(30);
+    expect(ttl, "sesi E2E kedaluwarsa -> mint ulang via scripts/e2e-auth-setup.mjs").toBeGreaterThan(30);
 
     await seedSession(page, session!);
     // Reproduksi skenario user: pilihan model "Pro" tersimpan di localStorage
@@ -314,7 +355,7 @@ test.describe("PRODUKSI: filter model paid-only + badge fallback (tanpa mock)", 
   test("VALID — model gratis hidup tidak memicu badge fallback", async ({ page }) => {
     const session = loadSession();
     const ttl = session?.access_token ? expiresInSec(session.access_token) : -1;
-    expect(ttl, "token E2E kedaluwarsa -> `python _e2e_refresh.py`").toBeGreaterThan(30);
+    expect(ttl, "sesi E2E kedaluwarsa -> mint ulang via scripts/e2e-auth-setup.mjs").toBeGreaterThan(30);
 
     await seedSession(page, session!);
     // Model free-tier yang terbukti STABIL (lihat REQUIRED_IDS) -> tidak

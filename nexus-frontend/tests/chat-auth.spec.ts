@@ -15,7 +15,12 @@ let session: any;
 {
   const candidates = [
     "_e2e_session.refreshed.json",
-    "_e2e_session.extended.json",
+    // `_e2e_session.extended.json` DIHAPUS dari kandidat (2026-09-16): file itu
+    // berisi token dengan `exp` hasil suntingan lokal tanpa tanda tangan baru
+    // (dibuat `_e2e_extend.py`), sehingga signature-nya TIDAK sah. Dulu spec ini
+    // menerimanya -> 401 dari backend lokal dengan pesan menyesatkan, dan
+    // `globalSetup` ikut menyebarkannya ke `_e2e_storage.json`. Kini `globalSetup`
+    // memverifikasi signature terhadap JWKS dan menyingkirkannya otomatis.
     "_e2e_session.json",
   ];
   for (const f of candidates) {

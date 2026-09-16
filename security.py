@@ -277,6 +277,27 @@ def _key_for(header):
     return None
 
 
+class _KeyUnavailableError(Exception):
+    """Kunci verifikasi TIDAK BISA dipegang -> hasil verifikasi DISKONKLUSIF.
+
+    Dibedakan dari `jwt.InvalidKeyError` biasa supaya `get_current_user` dapat
+    memisahkan dua hal yang sebelumnya tercampur dan menghasilkan pesan
+    menyesatkan:
+
+      - kunci tidak bisa dipegang (JWKS belum ter-cache & unduhan gagal, atau
+        `SUPABASE_JWT_SECRET` belum dikonfigurasi) -> kita TIDAK TAHU tokennya
+        sah atau tidak -> laporkan infra (503 "coba lagi").
+      - kunci ADA dan signature/klaim dinilai lalu GAGAL -> token memang tidak
+        sah -> 401.
+
+    Bukti nyata (2026-09-16): token E2E yang `exp`-nya disunting tanpa tanda
+    tangan baru (`_e2e_extend.py`) ditolak `InvalidSignatureError` secara lokal
+    - keputusan yang final - tetapi responsnya 503 berpesan "Token TIDAK dinilai
+    tidak sah". Pesan itu menyembunyikan sebab sebenarnya dan membuat
+    investigasi mengarah ke jaringan.
+    """
+
+
 def _decode_local(token):
     """Verifikasi signature + expiry secara LOKAL. Raise jwt.* bila gagal.
 
@@ -292,9 +313,27 @@ def _decode_local(token):
     """
     header = jwt.get_unverified_header(token)
     alg = header.get("alg") or ""
-    key = _key_for(header)
-    if key is None:
-        raise jwt.InvalidKeyError("public key tidak tersedia")
+    if alg == "HS256":
+        # Proyek Supabase lama: signature memakai shared secret. Secret yang
+        # belum dikonfigurasi = kunci TIDAK BISA dipegang (DISKONKLUSIF), bukan
+        # bukti token palsu -> lihat `_KeyUnavailableError`.
+        if not SUPABASE_JWT_SECRET:
+            raise _KeyUnavailableError("SUPABASE_JWT_SECRET belum dikonfigurasi")
+        key = SUPABASE_JWT_SECRET
+    else:
+        # PENTING: pisahkan "JWKS tidak bisa dipegang" dari "kid tidak dipercaya".
+        #   - JWKS absen    -> DISKONKLUSIF: kita belum pernah melihat kuncinya,
+        #     jadi tidak berhak mengklaim token tidak sah (masalah infra -> 503).
+        #   - kid tak ada / pilihan ambigu -> KONKLUSIF: token menyebut kunci
+        #     yang tidak kita percayai, jadi penolakan adalah keputusan final
+        #     (401, lihat kebijakan `kid` di `_key_for`).
+        if not _get_jwks():
+            raise _KeyUnavailableError(
+                "JWKS tidak tersedia (belum ter-cache dan unduhan gagal)"
+            )
+        key = _key_for(header)
+        if key is None:
+            raise jwt.InvalidKeyError("public key tidak tersedia untuk kid pada token")
     algs = [alg] if alg else ["ES256", "RS256"]
     claims = jwt.decode(token, options={"verify_signature": False}) or {}
     # `aud` ADA -> wajib cocok `authenticated`; `aud` ABSEN -> dilewati (signature
@@ -328,6 +367,10 @@ def get_current_user(authorization: str | None = None):
         raise HTTPException(401, "Token kosong.")
 
     # --- Jalur 1: verifikasi lokal (tanpa jaringan) ------------------------
+    # `local_verdict` memisahkan hasil lokal yang DISKONKLUSIF (kunci tidak bisa
+    # dipegang -> jangan mengklaim token tidak sah) dari yang KONKLUSIF (kunci
+    # ada, signature/klaim dinilai, lalu gagal -> token memang tidak sah).
+    local_verdict = None
     try:
         claims = _decode_local(token)
         sub = str(claims.get("sub") or "")
@@ -335,10 +378,15 @@ def get_current_user(authorization: str | None = None):
         if sub:
             return {"id": sub, "email": email}
         local_err = "klaim sub kosong"
+        local_verdict = "invalid"   # kunci sah, klaim sub tidak ada -> final
+    except _KeyUnavailableError as exc:
+        local_err = f"{exc.__class__.__name__}: {exc}"
+        local_verdict = "key_unavailable"
     except jwt.ExpiredSignatureError:
         raise HTTPException(401, "Token kedaluwarsa. Silakan login ulang.")
-    except Exception as exc:  # noqa: BLE001 - signature/format/key invalid
+    except Exception as exc:  # noqa: BLE001 - signature/klaim/kid invalid
         local_err = exc.__class__.__name__
+        local_verdict = "invalid"
 
     # --- Jalur 2: cadangan jaringan ----------------------------------------
     try:
@@ -366,8 +414,22 @@ def get_current_user(authorization: str | None = None):
         # "Token invalid" -> user melihat "Ada masalah, coba lagi." dan
         # mengira sesinya mati, padahal ini murni gangguan jaringan.
         #
-        # Kontrak baru: 503 = tidak bisa memverifikasi SEKARANG (infra);
-        # 401 = token MEMANG tidak sah. Pesan tidak lagi menuduh token user.
+        # Kontrak: 503 = tidak bisa memverifikasi SEKARANG (infra);
+        # 401 = token MEMANG tidak sah.
+        #
+        # BUG YANG DIPERBAIKI (2026-09-16, dibuktikan `_e_bug503_probe.py`):
+        # syarat `or _jwks_last_error` membuat flag LENGKET dari kegagalan
+        # unduhan masa lalu membajak kasus yang sudah KONKLUSIF. Token dengan
+        # signature palsu (kid cocok, kunci berbeda) ditolak `InvalidSignatureError`
+        # secara lokal — keputusan final — tetapi dilaporkan 503 berpesan
+        # "Token TIDAK dinilai tidak sah". Pesan itu menyembunyikan sebab nyata
+        # dan mengarahkan investigasi ke jaringan. Sekarang verifikasi lokal
+        # yang KONKLUSIF menang.
+        if local_verdict == "invalid":
+            raise HTTPException(
+                401,
+                f"Token invalid: {detail}; verifikasi lokal: {local_err}.",
+            )
         _INFRA_ERRORS = (
             "ConnectError", "ConnectTimeout", "ReadTimeout", "WriteTimeout",
             "ReadError", "WriteError", "PoolTimeout", "TransportError",

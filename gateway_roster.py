@@ -159,6 +159,12 @@ def filter_free_models(models: list[dict]) -> list[dict]:
     """
     out: list[dict] = []
     for m in models or []:
+        # Entri non-dict (mis. `null` di dalam array JSON dari upstream) harus
+        # dilewati, BUKAN membuat seluruh endpoint /models 500. Data ini datang
+        # dari jaringan (`/v1/models`, discovery Gemini) sehingga bentuknya di
+        # luar kendali kita — dibuktikan `test_filter_tahan_input_kotor`.
+        if not isinstance(m, dict):
+            continue
         mid = str(m.get("id") or "")
         if not mid or not chat_capable(mid):
             continue

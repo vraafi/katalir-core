@@ -13,6 +13,45 @@ Branch: `main` — **sinkron dengan `origin/main` (0 ahead / 0 behind)** setelah
 
 ---
 
+## 0. KOREKSI DOKUMEN — 2026-09-16 (verifikasi ulang oleh agen sesi baru)
+
+> Sembilan klaim di versi dokumen sebelumnya terbukti **salah atau basi**. Badan
+> dokumen sudah dikoreksi; daftar ini disimpan supaya tidak diulang.
+
+| # | Klaim lama | Fakta terverifikasi | Bukti (perintah/keluaran nyata) |
+|---|---|---|---|
+| 1 | Uji produksi = `npm run build && npm run start` | `next start` **DITOLAK** oleh konfigurasi `output: "export"` | `[Error: "next start" does not work with "output: export" configuration. Use "npx serve@latest out" instead.]` → jalur sah: `npm run build` + **`npm run serve:static`** |
+| 2 | Unit test backend: **27 lulus** | **26 lulus** untuk 3 file (jwt 14 + multiturn 9 + idempotent 3) — naik jadi **56 lulus** setelah `test_model_filter.py` ditambahkan (lihat §0.1) | `python -m pytest test_security_jwt.py test_multiturn_history.py test_idempotent_add_message.py -q` → `26 passed`; dengan `test_model_filter.py` → `56 passed in 4.53s` |
+| 3 | E2E: **9 spec sehat + 3 probe** | **10 spec sehat + 3 probe** (`fix4a.spec.ts` tidak terhitung) | `npx playwright test --list` → `Total: 14 tests in 10 files` |
+| 4 | `scripts/e2e-prod-server.mjs` = npm script `serve:static` | `serve:static` = `scripts/serve-out.mjs`; `e2e-prod-server.mjs` adalah **pembungkus** (build → import `serve-out.mjs`) | `package.json` scripts |
+| 5 | Migrasi OpenNext tidak disebut sama sekali | OpenNext/Workers **sudah disiapkan** (commit `780fe13`) tapi **belum deployable** (KV namespace masih placeholder) | `open-next.config.ts`, `wrangler.jsonc`, `next.config.ts` komentar "TEMPORARY" |
+| 6 | Spec probe `tests/_*.spec.ts` di root `tests/` | Sudah **dikarantina** ke `tests/_probes/` + `testIgnore` | `playwright.config.ts` (`E2E_PROBES=1` untuk menjalankan) |
+| 7 | `ARCHITECTURE_REPORT.txt` menggambarkan state terkini | Report **basi sebagian** (HEAD `d1bfae6`, deps Next 15.1.3, "tanpa playwright", `lang=en`) | lihat §17 report |
+| 8 | Groq perlu rotate karena 403 | Belum terbukti; kuota Groq justru **terbaca aktif** | `GET /api/rate-tracking` → 200, `groq rpm 0/30, rpd 0/14400` (tetap `TODO: verifikasi` via chat nyata) |
+| 9 | Gateway URL "sudah jalan" | Benar **saat diperiksa**, tapi tetap quick tunnel rapuh | `GET /v1/models` → 200, **259 model / 25 provider** |
+
+### 0.1 TEMUAN & PERBAIKAN — 2026-09-16 (sesi lanjutan: E2E merah → hijau)
+
+> Sesi ini dimulai dari "3 E2E gagal 401/503" dan berakhir **semua hijau**. Akar
+> masalahnya BUKAN produk, melainkan harness. Tiap butir di bawah punya bukti
+> yang bisa dijalankan ulang.
+
+| # | Temuan | Bukti | Perbaikan |
+|---|--------|-------|-----------|
+| A | **Fixture E2E palsu** — `_e2e_extend.py` menyunting klaim `exp` **tanpa menandatangani ulang**, jadi signature-nya tidak sah. `kid` sengaja disamarkan sama dengan kid asli dan TTL-nya panjang (604800s), sehingga lolos semua guard berbasis TTL | `VERIFY[disk/fresh] = InvalidSignatureError` (PyJWT vs JWKS live; disk == fresh, kid cocok) | `scripts/e2e-auth-setup.mjs` kini **memverifikasi signature tiap kandidat** thd JWKS: yang palsu disingkirkan ke `_e2e_session*.FORGED.json`, yang sah dipakai, jika tidak ada → **mint sesi sah** (`signInWithPassword`); `_e2e_session.extended.json` dibuang dari kandidat `chat-auth.spec.ts` |
+| B | **Kontrak 401 vs 503 bocor** — `or _jwks_last_error` (flag **lengket** dari kegagalan unduhan masa lalu) membajak kasus konklusif: token bertanda tangan palsu dilaporkan **503** berpesan "Token TIDAK dinilai tidak sah" | `_e_bug503_probe.py`: kasus-1 (signature palsu, kid cocok) → dulu 503, kini **401** `verifikasi lokal: InvalidSignatureError`; kasus-3 (JWKS & jaringan memang tak tersedia) → tetap **503** | `security.py`: `_KeyUnavailableError` memisahkan "kunci TIDAK BISA dipegang" (DISKONKLUSIF → 503) dari "kunci ada, penilaian gagal" (KONKLUSIF → 401); `get_current_user` memakai `local_verdict` |
+| C | **Filter model hanya diuji lewat roster live** → tes gagal-acak dan **menuduh filter** ("model valid hilang") padahal gateway yang tidak menyajikan. Rotasi liveness terbukti **dua arah** dalam satu sesi: masuk `mistralai/mistral-nemotron` + `poolside/laguna-xs-2.1`, keluar `gemini-2.5-flash-lite` + `moonshotai/kimi-k3` (katalog gateway 259 model TETAP memuat flash-lite) | 2 cache roster (12 vs 13 entri) + `MODELS_IDS` run E2E | Cakupan **"tidak over-delete" dipindah ke unit test deterministik** `test_model_filter.py` (30 test, input terkendali, tanpa jaringan); E2E hanya menguji sifat STABIL pada roster live (tidak ada model paid-only lolos, roster tidak kerdil, keluarga Flash terwakili) |
+| D | Guard `exp` di spec E2E **tidak andal**: decoder memakai `Buffer.from(seg, "base64")` (bukan base64url) sehingga token sehat bisa terbaca `ttl=-1` → gagal dengan pesan "kedaluwarsa" yang menyesatkan. Saat diperbaiki, muncul jebakan padding `"=".repeat(-len % 4)` → `RangeError` (regresi nyata: **3 tes gagal**) | `TOKEN_TTL_S=-1` pada run pertama; `TTL_S=1601` setelah fix | `expiresInSec()` memakai base64url + `pad = (4 - len % 4) % 4` |
+| E | Entri **non-dict** dari upstream (`null` di dalam array JSON) bisa menjatuhkan seluruh `/models` | `test_filter_tahan_input_kotor` | `gateway_roster.filter_free_models()` melewati entri non-dict |
+
+**Hasil akhir sesi:** pytest **56 lulus** (jwt 14 + filter 30 + multiturn 9 + idempotent 3);
+E2E produksi **14 passed / 0 failed** — bukti payload: `MODELS_COUNT=12`,
+`FORBIDDEN_HITS=[]`, `CHAT_STATUS=200`, `VALID_META` lengkap (`fallback:false`),
+sesi **terverifikasi ES256** (`ttl=1561s`).
+
+
+---
+
 ## 1. STATUS PROYEK
 
 - **Overall progress: ~85%** (MVP SaaS jalan; hardening & billing yang tersisa).
@@ -95,10 +134,14 @@ Total **259 model / 25 provider** (hasil `GET /v1/models`, HTTP 200).
 | `src/lib/supabase.ts` | Klien Supabase browser |
 | `src/lib/models.ts` | Konstanta/allowlist model + fallback `CHAT_MODELS` |
 | `src/context/auth.tsx` | `AuthProvider` (`email`, `loading`, `signInWithGoogle`, `signOut`, `getToken`) |
-| `tests/*.spec.ts` | Playwright E2E (9 spec "sehat" + 3 spec probe `_*` — lihat §9) |
-| `scripts/e2e-prod-server.mjs` | Build + serve `out/` sebagai produksi (pengganti `next start`) |
-| `scripts/e2e-auth-setup.mjs` | Mint sesi Supabase untuk E2E → `_e2e_storage.json` |
-| `playwright.config.ts` | `webServer` ganda: backend lokal (port 8000) + FE produksi (port 3000) |
+| `tests/*.spec.ts` | Playwright E2E — **10 spec "sehat"** (total 14 test) |
+| `tests/_probes/_*.spec.ts` | 3 spec probe diagnostik **dikarantina**: dikecualikan `testIgnore`; jalankan sengaja dengan `E2E_PROBES=1` |
+| `scripts/serve-out.mjs` | Server statis `out/` = **bentuk produksi app ini** (`npm run serve:static`, port 3000) |
+| `scripts/e2e-prod-server.mjs` | Pembungkus E2E: `next build` (env `E2E_API_URL`) lalu import `serve-out.mjs` |
+| `scripts/e2e-auth-setup.mjs` | `globalSetup` Playwright: segarkan/mint sesi Supabase → `_e2e_storage.json` |
+| `playwright.config.ts` | `webServer` ganda: backend lokal (**port 8123**) + FE produksi (port 3000); `testIgnore` probe |
+| `evidence/` | Bukti uji (screenshot prod + JSON) — **gitignored**, artefak lokal |
+| `.reference/` | Kode referensi pihak ketiga (`xyflow`, `react-flow-example-apps`) — **gitignored**, bukan bagian build |
 ---
 
 ## 4. COMMIT LOG (10 terakhir)
@@ -138,7 +181,11 @@ fb5321a  chore(gitignore): ignore probe/temp scripts + secret artifacts (_vps,_r
 - [x] **Enhancement besar (sesi ini):** konteks **multi-turn** kini dikirim ke LLM (sebelumnya riwayat tersimpan tapi tidak dibaca model).
 - [x] **Enhancement besar (sesi ini):** verifikasi JWT Supabase dipindah ke **lokal (JWKS)** — memperbaiki 401 massal akibat `ConnectTimeout` ke `{SUPABASE_URL}/auth/v1/user`.
 - [x] **Alias env gateway** — sudah diperbaiki (`gateway_config()` memakai satu sumber, menerima `LLM_GATEWAY_URL` / `FREELM_GATEWAY_URL` / `GATEWAY_URL`).
-- [x] **Test hygiene** — 27 unit test pytest hijau; E2E produksi **16 passed / 1 skipped** (skip = 503 upstream transien, bukan regresi).
+- [x] **Test hygiene** — **56** unit test pytest hijau (angka "27"/"24" di versi lama dokumen ini
+      SALAH; diukur ulang 2026-09-16: jwt 14 + filter 30 + multiturn 9 + idempotent 3).
+      E2E produksi **14 passed / 0 failed** (10 spec sehat / 14 test, probe dikarantina);
+      perintah + angka baseline ada di §9.2 — jangan pakai angka warisan 16/1 atau 29
+      tanpa menjalankan ulang.
 
 ---
 
@@ -157,8 +204,15 @@ fb5321a  chore(gitignore): ignore probe/temp scripts + secret artifacts (_vps,_r
       ada di `.env`, tapi alur checkout→webhook→update tier belum diuji di produksi. `TODO: verifikasi`.
 - [ ] **Kuota Gemini free-tier** — `gemini-3.1-pro-preview` RPD 0 → substitusi + badge (sudah
       benar perilakunya). Dampak: 1 test E2E di-skip eksplisit saat 503 transien.
-- [ ] **Spec probe `tests/_*.spec.ts`** (3 file: `_cvbench`, `_ux`, `_uxburst`) — harness
-      diagnostik lokal, **tidak boleh dijadikan bukti hijau** produksi; kandidat dihapus/di-ignore.
+- [x] **Spec probe dikarantina (2026-09-16)** — `tests/_*.spec.ts` → `tests/_probes/`,
+      dikecualikan `testIgnore` di `playwright.config.ts`; jalankan sengaja dengan
+      `E2E_PROBES=1`. Hasil run normal tetap **bukan** cakupan probe, dan probe tetap
+      **tidak boleh** dipakai sebagai bukti hijau produksi.
+- [ ] **Migrasi OpenNext / Cloudflare Workers — PENDING (tidak blocking sales)** — kerangka
+      sudah ada (`open-next.config.ts`, `wrangler.jsonc`) dan `next.config.ts` masih
+      `output: "export"` dengan komentar "TEMPORARY (deploy pipeline)". Belum bisa deploy:
+      `wrangler.jsonc` masih memakai placeholder `REPLACE_WITH_YOUR_KV_NAMESPACE_ID`.
+      Detail + konsekuensinya: §16.
 
 ---
 
@@ -170,7 +224,8 @@ fb5321a  chore(gitignore): ignore probe/temp scripts + secret artifacts (_vps,_r
    apakah perlu rotate `GROQ_API_KEY`.
 3. **Uji billing Dodo end-to-end** (checkout → webhook → `users.tier` berubah) — lihat
    `billing_llm.py`, `dodo_verify.py`, tabel `users`.
-4. **Rapikan test probe** `tests/_*.spec.ts` (hapus atau beri penanda non-CI).
+4. ~~**Rapikan test probe** `tests/_*.spec.ts`~~ → **SELESAI 2026-09-16**: dikarantina ke
+   `tests/_probes/` + `testIgnore` (dijalankan hanya dengan `E2E_PROBES=1`).
 5. **Commit + push** setiap perubahan; lalu verifikasi produksi (Cloudflare Pages + Railway).
 
 > Catatan: klaim template *"Push 5 commit ahead origin"* **salah** — sudah 0 ahead/0 behind.
@@ -227,12 +282,18 @@ Jangan pula menambah nama keempat tanpa alasan.
     kode terminifikasi, dan hydration berjalan beda. Bug (mis. hydration mismatch,
     bundle membidik origin salah) **hanya muncul di produksi**.
   - Karena app ini `output: "export"` (static export untuk Cloudflare Pages), `next start`
-    **tidak berlaku**; bentuk produksi setara = "build lalu serve `out/`" lewat
-    `scripts/e2e-prod-server.mjs` (= npm script `serve:static`).
-- **Port: 3000 (FE) dan 8000 (BE).** Jangan pakai 3001 — CORS backend menolaknya.
+    **DITOLAK** oleh Next.js (terbukti empiris: `[Error: "next start" does not work with
+    "output: export" configuration. Use "npx serve@latest out" instead.]`). Bentuk produksi
+    setara = "build lalu serve `out/` statis": `npm run build` + **`npm run serve:static`**
+    (= `scripts/serve-out.mjs`, port 3000).
+  - `scripts/e2e-prod-server.mjs` adalah **pembungkus** untuk E2E: menjalankan `next build`
+    dengan `NEXT_PUBLIC_API_URL` ditimpa ke backend lokal, lalu import `serve-out.mjs`.
+- **Port: 3000 (FE) dan 8123 (BE — DEDIKAT E2E).** Port 8000 hanya untuk backend dev/manual.
+  Jangan pakai 3001 — CORS backend menolaknya.
 - **Playwright = sumber kebenaran E2E.** `playwright.config.ts` menyalakan **dua** `webServer`:
-  backend lokal (`python -m uvicorn api_server:app --app-dir .. --host 127.0.0.1 --port 8000`)
-  dan FE produksi (`node scripts/e2e-prod-server.mjs`, env `E2E_API_URL=http://127.0.0.1:8000`).
+  backend lokal (`python -m uvicorn api_server:app --app-dir .. --host 127.0.0.1 --port 8123`)
+  dan FE produksi (`node scripts/e2e-prod-server.mjs`). Probe dikecualikan lewat
+  `testIgnore: ["**/_probes/**"]`, sehingga run normal = 10 spec sehat / 14 test.
   Keduanya `reuseExistingServer: false` **secara sengaja**: server lama yang masih hidup pernah
   membuat hasil tes menyesatkan (lulus dari kode basi).
 - **Selalu tangkap response body sebelum memperbaiki apa pun.** Trace Playwright
@@ -244,15 +305,15 @@ Jangan pula menambah nama keempat tanpa alasan.
 ### 9.2 Perintah uji
 
 ```bash
-# Unit test backend (tanpa jaringan) — 27 test
+# Unit test backend (tanpa jaringan) — 56 test
 cd c:/Users/user/Proyek_AI
-python -m pytest test_security_jwt.py test_multiturn_history.py test_idempotent_add_message.py -v
+python -m pytest test_security_jwt.py test_model_filter.py test_multiturn_history.py test_idempotent_add_message.py -q
 
-# E2E produksi (build + serve out/ + backend lokal) — 16 passed / 1 skipped
+# E2E produksi (build + serve out/ + backend lokal) — 14 passed / 0 failed
 cd c:/Users/user/Proyek_AI/nexus-frontend
 npm run e2e:prod
 
-# Sesi Supabase untuk E2E (harness)
+# Sesi Supabase untuk E2E (harness; mint sesi SAH, menyingkirkan fixture palsu)
 node scripts/e2e-auth-setup.mjs
 ```
 
@@ -261,14 +322,19 @@ node scripts/e2e-auth-setup.mjs
 Playwright menyuntik `localStorage` key `sb-<ref>-auth-token` = **JSON session Supabase**
 (bukan base64) lewat `page.addInitScript` di `tests/model-filter.spec.ts::seedSession()`.
 Harness mint sesi memakai `e2e-auth-setup.mjs` → `_e2e_storage.json`.
+Harness ini **memverifikasi signature tiap kandidat** terhadap JWKS sebelum dipakai:
+fixture yang `exp`-nya disunting tanpa tanda tangan baru (mis. buatan `_e2e_extend.py`)
+dipindahkan ke `_e2e_session*.FORGED.json` dan TIDAK dipakai. Bila tidak ada kandidat
+yang sah, sesi di-mint baru secara sah (`admin.createUser` + `signInWithPassword`).
 Catatan GoTrue: `hashed_token` berada di **top-level** respons `generate_link`
 (bukan di dalam `properties`) di versi ini.
 
 ### 9.4 Peringatan instrumen
 
 - `AppTest` Streamlit sudah **tidak relevan** (UI legacy `app_frontend.py`).
-- Spec `tests/_*.spec.ts` adalah probe diagnostik **lokal**; jangan dipakai sebagai bukti
-  produksi hijau.
+- Spec probe sekarang berada di `tests/_probes/_*.spec.ts` dan **dikecualikan** dari run
+  normal (`testIgnore`); jalankan sengaja dengan `E2E_PROBES=1`. Isinya tetap probe
+  diagnostik **lokal** — jangan dipakai sebagai bukti produksi hijau.
 - `pytest-playwright` ada di `requirements.txt` untuk E2E Python lama; E2E aktif sekarang
   memakai **Playwright TS** di `nexus-frontend/tests`.
 
@@ -315,16 +381,18 @@ Catatan GoTrue: `hashed_token` berada di **top-level** respons `generate_link`
 | `src/lib/models.ts` | Metadata model + fallback lokal `CHAT_MODELS`. | Model baru, label/badge. |
 | `src/features/builder/` | Kanvas React Flow (node Trigger/Agent/MCP Tool) + simpan alur JSON. | Fitur Builder. |
 | `src/context/auth.tsx` | AuthContext Supabase (`email`, `loading`, `getToken`, sign-in/out). | Alur login/logout. |
-| `playwright.config.ts` | Dua `webServer` (BE 8000 + FE produksi) — sumber kebenaran E2E. | Cara menjalankan tes. |
+| `playwright.config.ts` | Dua `webServer` (BE **8123** — port DEDIKAT E2E; FE produksi via `e2e-prod-server.mjs`) — sumber kebenaran E2E. Port 8000 hanya untuk BE dev/manual. | Cara menjalankan tes. |
 
 ### Test (jangan dihapus)
 
 | File | Isi |
 |------|-----|
-| `test_security_jwt.py` | 21 test JWT offline (HS256/ES256, JWKS seed, path invalid). |
+| `test_security_jwt.py` | 14 test JWT offline (HS256/ES256, JWKS seed, kontrak 401 vs 503, path invalid). |
 | `test_multiturn_history.py` | Membuktikan riwayat dikirim ulang ke LLM. |
 | `test_idempotent_add_message.py` | Anti-duplikasi pesan. |
-| `nexus-frontend/tests/*.spec.ts` | Suite E2E produksi (13 spec; `_*.spec.ts` = probe lokal). |
+| `nexus-frontend/tests/*.spec.ts` | Suite E2E produksi: **10 spec sehat** (14 test) — `npm run e2e:prod` → 14 passed / 0 failed. |
+| `nexus-frontend/tests/_probes/_*.spec.ts` | 3 probe diagnostik, **dikarantina** (`E2E_PROBES=1`). |
+| `test_model_filter.py` | **30** test deterministik filter paid-only + input kotor (tanpa jaringan/JWKS). Pengganti cakupan "tidak over-delete" yang dulu digantungkan pada roster live yang flaky. |
 
 ---
 
@@ -371,8 +439,11 @@ sebelum dijadikan dasar keputusan besar.
    **259 model / 25 provider**.
 
 7. **Playwright untuk app `output: "export"`** — `next build && next start` **tidak berlaku**
-   (Next menolak `next start` tanpa server render). Bentuk produksi setara: `next build`
-   lalu serve `out/` statis (`scripts/e2e-prod-server.mjs`). Ini yang dipakai `npm run e2e:prod`.
+   (Next menolak `next start` tanpa server render; pesan errornya literal:
+   `"next start" does not work with "output: export" configuration`). Bentuk produksi setara:
+   `next build` lalu serve `out/` statis. Untuk E2E dipakai pembungkus
+   `scripts/e2e-prod-server.mjs` (build + serve); untuk uji manual: `npm run build` +
+   `npm run serve:static`.
 
 8. **Tunnel `trycloudflare` bersifat sementara** — URL berganti setiap restart dan tidak
    cocok untuk produksi. Pilihan permanen: Tailscale Funnel, Cloudflare Named Tunnel,
@@ -428,12 +499,16 @@ Urutan yang disarankan, jangan dilompati:
    ```bash
    python -m pytest test_security_jwt.py test_multiturn_history.py test_idempotent_add_message.py -q
    ```
-   Baseline terakhir: **27 test lulus**.
+   Baseline terakhir (diukur 2026-09-16): **56 test lulus** — jwt 14 + filter 30
+   + multiturn 9 + idempotent 3. Jalankan perintah LENGKAP di atas (jangan
+   menghilangkan `test_model_filter.py`, akibatnya hitungan jadi 26 dan
+   cakupan filter hilang). Angka warisan "27"/"24"/"25+4 diagnostik" SALAH.
 6. **Jalankan E2E produksi** hanya bila mengubah frontend/endpoint:
    ```bash
    cd nexus-frontend && npm run e2e:prod
    ```
-   Baseline terakhir: **16 passed / 1 skipped**. Ingat: E2E butuh sesi Supabase segar
+   Baseline terakhir: **14 passed / 0 failed** (10 spec sehat; 3 spec probe
+   dikecualikan). Ingat: E2E butuh sesi Supabase segar
    (lihat section 9.3) dan `webServer` akan membangun ulang aplikasi.
 7. **Tanya user: task mana yang mau dilanjutkan** (rujuk section 7) — jangan mengarang
    prioritas sendiri karena ada dependency antar-butir (mis. perbaikan filter menyentuh

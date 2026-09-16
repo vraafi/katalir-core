@@ -131,6 +131,52 @@ def test_signature_palsu_ditolak(seeded):
     assert e.value.status_code == 401
 
 
+def test_verifikasi_lokal_konklusif_menang_atas_flag_jwks_basi(seeded, monkeypatch):
+    """REGRESI (bug nyata, 2026-09-16): signature PALSU tidak boleh dilaporkan 503.
+
+    Bukti asal bug (probe `_e_bug503_probe.py`, dan token fixture E2E yang
+    `exp`-nya disunting `_e2e_extend.py`): `kid` COCOK dan kuncinya ADA, jadi
+    verifikasi lokal sudah KONKLUSIF menolak signature. Tetapi syarat
+    `or _jwks_last_error` pada klasifikasi 401/503 membuat flag LENGKET dari
+    kegagalan unduhan masa lalu membajak kasus ini: responsnya menjadi 503
+    berpesan "Token TIDAK dinilai tidak sah". Pesan itu menyembunyikan sebab
+    sebenarnya (token memang palsu) dan mengarahkan investigasi ke jaringan —
+    persis jebakan yang membuat 3 tes E2E terlihat seperti gangguan infra.
+    """
+    other, _ = _key_pair()  # kunci berbeda, kid sama -> signature palsu
+    monkeypatch.setattr(sec, "_jwks_last_error", "ConnectTimeout", raising=False)
+    with pytest.raises(HTTPException) as e:
+        sec.get_current_user(f"Bearer {_token(other)}")
+    assert e.value.status_code == 401, (
+        "verifikasi lokal yang konklusif harus menang atas flag JWKS basi"
+    )
+    assert "verifikasi lokal" in str(e.value.detail)
+
+
+def test_kunci_tak_tersedia_503_bukan_401(offline, monkeypatch, tmp_path):
+    """Sisi lain kontrak: kunci TIDAK BISA dipegang -> 503 (infra), bukan 401.
+
+    Bila JWKS belum pernah ter-cache dan unduhan gagal, kita TIDAK TAHU tokennya
+    sah atau tidak — menuduhnya tidak sah (401) akan mengeluarkan user dari sesi
+    yang sebenarnya sehat. Kasus inilah yang memang pantas 503 "coba lagi";
+    membedakannya dari signature palsu adalah inti perbaikan.
+    """
+    monkeypatch.setattr(sec, "_JWKS_PATH", str(tmp_path / "tidak-ada.json"))
+    monkeypatch.setattr(sec, "_jwks_cache", None, raising=False)
+    monkeypatch.setattr(sec, "_jwks_fetched_at", 0.0, raising=False)
+    monkeypatch.setattr(sec, "_jwks_last_error", "", raising=False)
+    monkeypatch.setattr(sec, "_jwks_last_fail_at", 0.0, raising=False)
+    monkeypatch.delenv("SUPABASE_JWKS", raising=False)
+    assert sec._seed_jwks() is None, "tidak boleh ada kunci yang bisa dipegang"
+    priv, _ = _key_pair()
+    with pytest.raises(HTTPException) as e:
+        sec.get_current_user(f"Bearer {_token(priv)}")
+    assert e.value.status_code == 503, (
+        "kunci tak tersedia = hasil diskonklusif, jangan mengklaim token tidak sah"
+    )
+    assert "TIDAK dinilai tidak sah" in str(e.value.detail)
+
+
 def test_kid_tidak_dikenal_ditolak(seeded):
     """`kid` tak ada di JWKS -> tidak boleh "menebak" kunci yang benar."""
     with pytest.raises(HTTPException) as e:

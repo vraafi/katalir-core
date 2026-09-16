@@ -45,6 +45,14 @@ process.env.E2E_BACKEND_URL = BACKEND_URL;
 
 export default defineConfig({
   testDir: "./tests",
+  // KARANTINA PROBE DIAGNOSTIK (2026-09-16): spec `tests/_probes/_*.spec.ts`
+  // (dulu `tests/_*.spec.ts`) adalah harness diagnostik LOKAL — pernah dipakai
+  // sebagai "bukti hijau" padahal bukan keluaran produksi (lihat HANDOFF §9.4).
+  // Sekarang dipisah ke subfolder `_probes/` dan DIKECUALIKAN dari run normal
+  // supaya `npm run e2e:prod` hanya menghitung spec sehat (10 file). Hasil run
+  // normal karena itu tidak boleh ditafsirkan sebagai cakupan probe.
+  // Jalankan probe secara sengaja (hanya saat diagnosis): E2E_PROBES=1 npx playwright test
+  testIgnore: process.env.E2E_PROBES === "1" ? [] : ["**/_probes/**"],
   timeout: 60000,
   retries: 0,
   workers: 1,
