@@ -184,25 +184,72 @@ def test_error_tak_dikenal_tidak_menandai_apa_pun():
 # Klien & keamanan
 # --------------------------------------------------------------------------
 
+def fake_genai_modules(monkeypatch) -> list[dict]:
+    """Stub `google` + `google.genai` sebagai PAKET dengan submodul nyata.
+
+    Modul pool mengimpor `from google.genai import types`; menstub `google`
+    dengan objek biasa membuat Python gagal "'google' is not a package"
+    (regresi nyata yang tertangkap tes ini). Mengembalikan daftar kwargs yang
+    diterima `Client(...)` supaya tes bisa memeriksa opsi HTTP-nya.
+    """
+    import sys
+    from types import ModuleType
+
+    calls: list[dict] = []
+
+    class _Opts:
+        def __init__(self, **kw):
+            self.__dict__.update(kw)
+
+    mod_google = ModuleType("google")
+    mod_genai = ModuleType("google.genai")
+    mod_types = ModuleType("google.genai.types")
+    mod_types.HttpOptions = _Opts
+    mod_types.HttpRetryOptions = _Opts
+
+    def _client(**kw):
+        calls.append(kw)
+        return {"kw": kw}
+
+    mod_genai.Client = _client
+    mod_genai.types = mod_types
+    mod_google.genai = mod_genai
+    monkeypatch.setitem(sys.modules, "google", mod_google)
+    monkeypatch.setitem(sys.modules, "google.genai", mod_genai)
+    monkeypatch.setitem(sys.modules, "google.genai.types", mod_types)
+    return calls
+
+
 def test_client_di_cache_per_kunci(monkeypatch):
     """Pembuatan client terukur ~0,86s -> wajib terjadi sekali per kunci."""
-    import sys
-
-    created: list[str] = []
-
-    class FakeGenai:
-        @staticmethod
-        def Client(api_key: str):
-            created.append(api_key)
-            return {"key": api_key}
-
-    fake_google = type("M", (), {"genai": FakeGenai})
-    monkeypatch.setitem(sys.modules, "google", fake_google)
-
+    calls = fake_genai_modules(monkeypatch)
     pool, _ = make_pool(2)
     fp, key = pool.acquire("m")
     assert pool.client(fp) is pool.client(fp)
-    assert created == [key]
+    assert [c["api_key"] for c in calls] == [key]
+
+
+def test_client_dibatasi_waktu_dan_tanpa_retry_internal(monkeypatch):
+    """Satu panggilan Gemini WAJIB punya batas waktu + tanpa retry SDK.
+
+    Gejala nyata yang memicu perbaikan ini: E2E mencatat `POST /chat
+    status=-1, time=-1` (klien tidak pernah menerima respons dalam 60s).
+    Sebabnya ada di SDK terpasang (v1.65.0): `HttpOptions.timeout` kosong ->
+    httpx dipanggil TANPA timeout; dan `_RETRY_ATTEMPTS` default 5 dengan
+    backoff sampai 60s. Karena pool yang merotasi kunci/model, percobaan ulang
+    internal SDK justru menghabiskan anggaran `/chat`.
+    """
+    calls = fake_genai_modules(monkeypatch)
+    pool, _ = make_pool(1)
+    fp, _ = pool.acquire("m")
+    pool.client(fp)
+
+    opts = calls[0]["http_options"]
+    # HttpOptions.timeout satuannya MILIDETIK (SDK membagi /1000 ke httpx).
+    assert opts.timeout == int(gkp.CALL_TIMEOUT_S * 1000)
+    assert opts.retry_options.attempts == 1, "SDK tidak boleh mengulang sendiri"
+    # Harus muat dalam anggaran `/chat` (45s) supaya rotasi masih punya ruang.
+    assert 0 < gkp.CALL_TIMEOUT_S <= 25, f"timeout {gkp.CALL_TIMEOUT_S}s terlalu besar"
 
 
 def test_label_dan_stats_tidak_membocorkan_kunci():

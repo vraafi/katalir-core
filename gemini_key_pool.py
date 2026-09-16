@@ -37,6 +37,17 @@ _ENTITLEMENT_S = 6 * 3600.0
 _OVERLOAD_S = 20.0
 _MAX_KEY_SLOTS = 20
 
+# Batas waktu SATU panggilan Gemini (detik). Ini bukan hiasan: terbukti di SDK
+# terpasang (`google/genai/_api_client.py`, v1.65.0) bahwa
+#   * `_RETRY_ATTEMPTS` default = 5 (termasuk panggilan awal) dengan backoff
+#     sampai 60s, dan retry pada 408/429/5xx;
+#   * bila `HttpOptions.timeout` tidak diisi, httpx dipanggil TANPA timeout.
+# Akibatnya satu `send_message` yang menggantung bisa melewati anggaran `/chat`
+# (45s) DAN timeout juru uji E2E (60s) -> gejala nyata "POST /chat
+# status=-1, time=-1" (klien tidak pernah menerima respons). Rotasi kunci
+# ditangani pool, jadi percobaan internal SDK dimatikan (`attempts=1`).
+CALL_TIMEOUT_S = float(os.getenv("GEMINI_CALL_TIMEOUT_S", "20"))
+
 _RETRY_RE = re.compile(r"retryDelay['\"]?\s*:\s*['\"]?(\d+(?:\.\d+)?)s")
 _QUOTA_ID_RE = re.compile(r"['\"]quotaId['\"]\s*:\s*['\"]([^'\"]+)")
 
@@ -235,10 +246,22 @@ class KeyPool:
         if not key:
             raise KeyError(f"fingerprint {fp} tidak ada di pool")
         from google import genai  # impor lokal: pool tetap ringan tanpa gemini
+        from google.genai import types
 
         with self._lock:
             if fp not in self._clients:
-                self._clients[fp] = genai.Client(api_key=key)
+                self._clients[fp] = genai.Client(
+                    api_key=key,
+                    http_options=types.HttpOptions(
+                        # HttpOptions.timeout satuannya MILIDETIK (SDK membagi
+                        # /1000 sebelum menyerahkan ke httpx per request).
+                        timeout=int(CALL_TIMEOUT_S * 1000),
+                        # attempts=1 = tanpa percobaan ulang internal; pool yang
+                        # merotasi kunci/model, sehingga batas waktu satu request
+                        # `/chat` tetap terjaga.
+                        retry_options=types.HttpRetryOptions(attempts=1),
+                    ),
+                )
             return self._clients[fp]
 
 
