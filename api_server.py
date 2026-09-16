@@ -27,6 +27,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 import database as db
+import gemini_key_pool
 import model_discovery as md
 import security
 import tools
@@ -593,12 +594,16 @@ def _agentic_run_direct(prompt: str, email: str, model: str | None = None,
             gw_err = exc
             print(f"[api_server] gateway 503 -> fallback Gemini: {exc.detail}")
 
-    api_key = (
-        os.getenv("GOOGLE_API_KEY")
-        or os.getenv("GEMINI_API_KEY")
-        or os.getenv("GEMINI_KEY_1")
-    )
-    if not api_key:
+    # ---- Pool kunci Gemini: rotasi + cooldown PER KUNCI --------------------
+    # Sebelumnya hanya SATU kunci yang dipakai (`GOOGLE_API_KEY or GEMINI_API_KEY
+    # or GEMINI_KEY_1`), sehingga satu respons 429 mematikan seluruh jalur
+    # cadangan (single point of failure yang membuat 2 tes E2E `/chat` skip).
+    # Bukti 2026-09-16: `.env` memuat `GEMINI_KEY_1..13` (13 kunci UNIK —
+    # fingerprint SHA-256 berbeda) dan kuota 429 bersifat per PROJECT
+    # (`quotaId=GenerateRequestsPerMinutePerProjectPerModel-FreeTier`), jadi
+    # rotasi kunci benar-benar memulihkan, bukan sekadar mengganti nama slot.
+    _pool = gemini_key_pool.pool()
+    if not _pool.size:
         if gw_err is not None:
             raise gw_err  # tanpa kunci Gemini, laporkan kegagalan gateway apa adanya
         raise HTTPException(500, "API key tidak ditemukan.")
@@ -606,6 +611,17 @@ def _agentic_run_direct(prompt: str, email: str, model: str | None = None,
     if gw_err is not None:
         model = os.getenv("AGENT_FALLBACK_MODEL", "gemini-2.5-flash")
     model_id, tier_fallback, resolve_reason = _resolve_model(model, user_tier)
+    # Kunci pertama untuk model ini. `acquire` menghormati cooldown per kunci DAN
+    # blokir per (kunci, model), jadi kunci yang baru kena 429/404 tidak dipakai.
+    # `None` = semua kunci sedang dihukum -> kegagalan SEMENTARA (503), bukan 401/
+    # 500: menebak kunci yang sedang cooldown hanya memperpanjang hukuman.
+    _acquired = _pool.acquire(model_id)
+    if _acquired is None:
+        raise HTTPException(
+            503, "Semua kunci model ini sedang cooldown (kuota). Coba lagi.")
+    cur_fp, _ = _acquired
+    print(f"[api_server] Gemini {_pool.label(cur_fp)} model={model_id} "
+          f"(pool={_pool.size} kunci)")
     fallback_used = bool(tier_fallback) or gw_err is not None
     # Alasan fallback, berurut prioritas:
     #   1. penolakan tier/id tak tersedia (resolve) — paling informatif;
@@ -628,7 +644,8 @@ def _agentic_run_direct(prompt: str, email: str, model: str | None = None,
     # Batas TOTAL jalur Gemini. Bila gateway gagal cepat, jatah ini tetap utuh
     # karena dihitung dari AWAL request, bukan dari akhir fase gateway.
     deadline = _t_req + max(5.0, _llm_budget_sec())
-    client = genai.Client(api_key=api_key)
+    # Klien ter-cache per kunci (pembuatan baru terukur ~0,86s -> mahal di loop).
+    client = _pool.client(cur_fp)
     config = types.GenerateContentConfig(
         temperature=0.1,
         system_instruction=_AGENT_SYSTEM,
@@ -640,41 +657,78 @@ def _agentic_run_direct(prompt: str, email: str, model: str | None = None,
 
     fallback_model = os.getenv("AGENT_FALLBACK_MODEL", "gemini-2.5-flash")
 
+    def _chat_with(fp: str, mid: str):
+        """Chat baru untuk (kunci, model) — riwayat percakapan tetap dibawa.
+
+        Dipakai saat rotasi kunci/model: `Chat` terikat pada satu klien, jadi
+        berganti kunci berarti membuat objek chat baru. `history` DB (bukan
+        `get_history()`) sengaja dipakai supaya konteks deterministik dan
+        percobaan yang gagal di tengah tidak ikut terduplikasi.
+        """
+        return _pool.client(fp).chats.create(
+            model=mid, config=config, history=_to_genai_history(history))
+
     def _send_guarded(chat_obj, msg):
-        """Enviar con reintentos contra errores transitorios del modelo (500/503)."""
-        nonlocal model_id, fallback_used, chat
-        for attempt in range(4):
+        """Kirim pesan; saat kuota/overload -> ROTASI KUNCI, lalu pindah model 1x.
+
+        Perubahan 2026-09-16 (memulihkan 2 tes E2E `/chat` yang selalu skip):
+        dulu 429/503 di-retry 4x pada KUNCI dan MODEL yang SAMA dengan sleep
+        1,5/3/4,5/6s. Padahal kuota bersifat per PROJECT (`quotaId=...PerMinute
+        PerProjectPerModel`, limit 5) dan per MODEL, jadi retry seperti itu tidak
+        mungkin pulih sebelum anggaran habis -> selalu berakhir `503 "Model
+        sedang sibuk"`. Sekarang kunci yang gagal DIHUKUM sesuai payload
+        (`gemini_key_pool.classify_error`) lalu rotasi ke kunci berikutnya; bila
+        semua kunci habis untuk model ini barulah pindah model — model lain
+        memakai ember kuota berbeda, jadi ini benar-benar menambah peluang sukses
+        (bukan sekadar mengganti nama).
+        """
+        nonlocal model_id, fallback_used, chat, cur_fp, fallback_reason
+        ctx = chat_obj
+        model_switches = 0
+        while True:
             # Batas TOTAL request: percobaan Gemini juga tidak boleh melewati
             # anggaran. Tanpa guard ini klien sudah abort saat jawaban datang
             # (bug "Server lambat, coba lagi" pada backend yang sebenarnya sehat).
             if time.time() > deadline - 1.0:
                 raise HTTPException(503, "Batas waktu agen tercapai. Coba lagi.")
             try:
-                return chat_obj.send_message(msg)
+                return ctx.send_message(msg)
             except Exception as exc:  # noqa: BLE001
-                msg_str = str(exc)
-                transient = ("503" in msg_str or "UNAVAILABLE" in msg_str
-                             or "Internal error" in msg_str
-                             or "overloaded" in msg_str.lower()
-                             or "quota" in msg_str.lower())
-                if not transient:
+                # Klasifikasi berbasis payload, bukan tebakan: `unknown` berarti
+                # bukan urusan kuota/overload -> jangan dibajak oleh pool.
+                kind, ttl = gemini_key_pool.classify_error(exc)
+                if kind == "unknown":
                     raise
-                # Fallback 1x ke model ringan bila model utama overload/quota.
-                if not fallback_used and fallback_model and fallback_model != model_id:
-                    try:
-                        chat2 = client.chats.create(
-                            model=fallback_model, config=config,
-                            history=_to_genai_history(history),
-                        )
-                        out = chat2.send_message(msg)
-                        fallback_used = True
-                        model_id = fallback_model
-                        chat = chat2
-                        return out
-                    except Exception:
-                        pass
-                _time.sleep(1.5 * (attempt + 1))
-        raise HTTPException(503, "Model sedang sibuk (quota/overload). Coba lagi dalam 1 menit.")
+                _pool.mark(cur_fp, model_id, kind=kind, ttl=ttl)
+                print(f"[api_server] Gemini {_pool.label(cur_fp)} model={model_id} "
+                      f"gagal ({kind}) -> rotasi kunci; cooldown={ttl:.0f}s "
+                      f"stats={_pool.stats()}")
+                nxt = _pool.acquire(model_id)
+                if nxt is not None:
+                    cur_fp, _ = nxt
+                    ctx = chat = _chat_with(cur_fp, model_id)
+                    continue
+                # Semua kunci habis untuk model ini -> pindah model (1x saja).
+                # Model cadangan default (`gemini-2.5-flash`) justru model yang
+                # ikut kehabisan; karena kuota per-model, cadangan tetap masuk
+                # akal, tetapi hanya sebagai percobaan terakhir.
+                model_switches += 1
+                if (model_switches > 1 or fallback_used or not fallback_model
+                        or fallback_model == model_id):
+                    raise HTTPException(
+                        503, "Model sedang sibuk (quota/overload). Coba lagi dalam 1 menit.")
+                fallback_used = True
+                # `fallback_reason` yang sudah terisi (gateway/tier) tetap
+                # dipertahankan: penyebab pertama lebih informatif bagi user.
+                if fallback_reason is None:
+                    fallback_reason = _fallback_reason(exc)
+                model_id = fallback_model
+                nxt = _pool.acquire(model_id)
+                if nxt is None:
+                    raise HTTPException(
+                        503, "Model sedang sibuk (quota/overload). Coba lagi dalam 1 menit.")
+                cur_fp, _ = nxt
+                ctx = chat = _chat_with(cur_fp, model_id)
 
     _t0 = _time.time()
     response = _send_guarded(chat, prompt)
