@@ -1,0 +1,264 @@
+"""gemini_key_pool.py - Rotasi kunci Gemini (Opsi A diperluas) + cooldown per kunci.
+
+Bukti empiris (2026-09-16) yang menentukan desain modul ini:
+  * `.env` memuat `GEMINI_KEY_1..13`, tetapi kode lama hanya membaca SATU kunci
+    (`GOOGLE_API_KEY or GEMINI_API_KEY or GEMINI_KEY_1`). Satu respons 429
+    karena itu mematikan SELURUH jalur cadangan Gemini (single point of failure).
+  * 13 kunci terbukti UNIK (fingerprint SHA-256 berbeda) -> rotasi benar-benar
+    menggilir, bukan no-op alias seperti temuan awal (saat itu hanya 1 kunci unik).
+  * Payload 429 asli (`_e_429_payload.json`):
+        quotaId    = GenerateRequestsPerMinutePerProjectPerModel-FreeTier
+        quotaValue = 5
+        retryDelay = 5s
+    -> ini kuota **RPM per-model**, BUKAN "RPD harian habis" seperti yang
+    tertulis di HANDOFF sebelumnya. TTL cooldown harus mengikuti payload ini.
+  * 404 "This model ... is no longer available to new users" untuk
+    `gemini-2.5-flash-lite` pada 5 kunci, sementara 8 kunci lain 200
+    -> entitlement berbeda per (kunci, model), jadi blokir harus PER PASANGAN.
+
+KEAMANAN: nilai kunci tidak pernah dicetak/dikembalikan di log. Label yang
+dipakai adalah `NAMA#<fingerprint8>` sehingga nol karakter rahasia bocor.
+"""
+
+from __future__ import annotations
+
+import hashlib
+import os
+import re
+import threading
+import time
+
+# Google menghitung kuota "PerMinute" atas jendela menit yang berjalan, dan
+# `retryDelay` hanyalah estimasi (limit 5/menit -> menunggu 5s sering masih
+# 429). Lantai ini membuat cooldown benar-benar melewati jendela kuota.
+_RPM_FLOOR_S = 60.0
+_RPD_FALLBACK_S = 24 * 3600.0
+_ENTITLEMENT_S = 6 * 3600.0
+_OVERLOAD_S = 20.0
+_MAX_KEY_SLOTS = 20
+
+_RETRY_RE = re.compile(r"retryDelay['\"]?\s*:\s*['\"]?(\d+(?:\.\d+)?)s")
+_QUOTA_ID_RE = re.compile(r"['\"]quotaId['\"]\s*:\s*['\"]([^'\"]+)")
+
+
+def fingerprint(key: str) -> str:
+    """8 hex pertama SHA-256 kunci. Identitas aman untuk log & dedup."""
+    return hashlib.sha256((key or "").encode("utf-8")).hexdigest()[:8]
+
+
+def mask_key(key: str) -> str:
+    """Mask untuk pesan yang benar-benar butuh bentuk kunci (`AIza****b96d`)."""
+    k = key or ""
+    if len(k) <= 8:
+        return "****"
+    return f"{k[:4]}****{k[-4:]}"
+
+
+def discover_keys(env=None) -> list[tuple[str, str, str]]:
+    """Kumpulkan `(nama, kunci, fingerprint)` dari env, tanpa duplikat.
+
+    Slot `GEMINI_KEY_1..N` dipindai berurutan; `GOOGLE_API_KEY` /
+    `GEMINI_API_KEY` tetap didukung sebagai kompatibilitas ke belakang.
+    Alias yang menunjuk kunci yang sama dibuang lewat fingerprint, sehingga
+    satu kunci tidak pernah "berpura-pura" menjadi dua entri rotasi.
+    """
+    env = os.environ if env is None else env
+    raw: list[tuple[str, str]] = []
+    for i in range(1, _MAX_KEY_SLOTS + 1):
+        val = (env.get(f"GEMINI_KEY_{i}") or "").strip()
+        if val:
+            raw.append((f"GEMINI_KEY_{i}", val))
+    for name in ("GOOGLE_API_KEY", "GEMINI_API_KEY", "GEMINI_KEY"):
+        val = (env.get(name) or "").strip()
+        if val:
+            raw.append((name, val))
+
+    seen: set[str] = set()
+    out: list[tuple[str, str, str]] = []
+    for name, val in raw:
+        fp = fingerprint(val)
+        if fp in seen:
+            continue
+        seen.add(fp)
+        out.append((name, val, fp))
+    return out
+
+
+def classify_error(exc) -> tuple[str, float]:
+    """Petakan error Gemini -> `(jenis, cooldown_detik)`.
+
+    jenis:
+      * `rate_limited` — kuota habis (429/RESOURCE_EXHAUSTED).
+      * `entitlement`  — model tidak tersedia untuk project kunci ini (404).
+      * `overloaded`   — gangguan sementara upstream (503/UNAVAILABLE/overload).
+      * `unknown`      — bukan kelas di atas; pool tidak menandai apa pun.
+
+    TTL diambil dari payload (bukan angka karangan): `PerDay` -> tunggu reset,
+    `PerMinute` -> lantai 60s karena jendela kuota adalah satu menit.
+    """
+    text = str(exc)
+    low = text.lower()
+    if "429" in text or "resource_exhausted" in low or "quota" in low:
+        m = _RETRY_RE.search(text)
+        retry = float(m.group(1)) if m else 5.0
+        qid_m = _QUOTA_ID_RE.search(text)
+        qid = qid_m.group(1) if qid_m else ""
+        if qid and "perday" in qid.lower():
+            return "rate_limited", _RPD_FALLBACK_S
+        return "rate_limited", max(retry, _RPM_FLOOR_S)
+    if "404" in text or "not_found" in low or "no longer available" in low:
+        return "entitlement", _ENTITLEMENT_S
+    if ("503" in text or "unavailable" in low or "overloaded" in low
+            or "internal error" in low):
+        return "overloaded", _OVERLOAD_S
+    return "unknown", 0.0
+
+
+class KeyPool:
+    """Round-robin kunci dengan cooldown PER KUNCI dan blokir PER (KUNCI, MODEL).
+
+    `entries` boleh diberikan langsung (dipakai tes) atau `None` untuk memindai
+    env. `now_fn` dapat diganti agar tes cooldown deterministik.
+    """
+
+    def __init__(self, entries=None, now_fn=time.time):
+        if entries is None:
+            entries = discover_keys()
+        self._now = now_fn
+        self._lock = threading.Lock()
+        self._entries: list[tuple[str, str, str]] = [
+            (str(n), str(k), str(fp)) for (n, k, fp) in entries
+        ]
+        self._idx = 0
+        self._cool: dict[str, float] = {}
+        self._blocked: dict[tuple[str, str], float] = {}
+        self._clients: dict[str, object] = {}
+        self._hits: dict[str, int] = {fp: 0 for (_, _, fp) in self._entries}
+
+    # -- introspeksi ------------------------------------------------------
+    @property
+    def size(self) -> int:
+        return len(self._entries)
+
+    def label(self, fp: str) -> str:
+        """Label aman untuk log: `GEMINI_KEY_3#e733b96d` (tanpa nilai kunci)."""
+        for name, _, f in self._entries:
+            if f == fp:
+                return f"{name}#{fp}"
+        return fp
+
+    def key_for(self, fp: str) -> str | None:
+        for _, key, f in self._entries:
+            if f == fp:
+                return key
+        return None
+
+    def stats(self) -> dict:
+        """Ringkasan untuk log: jumlah kunci, kena cooldown, pasangan diblokir."""
+        now = self._now()
+        return {
+            "keys": len(self._entries),
+            "cooling": sum(1 for fp, t in self._cool.items() if t > now),
+            "blocked_pairs": sum(1 for t in self._blocked.values() if t > now),
+            "used": {self.label(fp): c for fp, c in self._hits.items() if c},
+        }
+
+    # -- pemilihan kunci --------------------------------------------------
+    def available(self, model: str = "") -> list[str]:
+        """Fingerprint kunci yang siap dipakai untuk `model` saat ini."""
+        now = self._now()
+        out: list[str] = []
+        for _, _, fp in self._entries:
+            if self._cool.get(fp, 0.0) > now:
+                continue
+            if model and self._blocked.get((fp, model), 0.0) > now:
+                continue
+            out.append(fp)
+        return out
+
+    def acquire(self, model: str = "") -> tuple[str, str] | None:
+        """Ambil `(fingerprint, kunci)` berikutnya yang siap.
+
+        `None` berarti SEMUA kunci sedang kena cooldown/blokir. Pemanggil harus
+        memperlakukannya sebagai kegagalan sementara (503 "coba lagi") dan tidak
+        menebak-nebak kunci yang sedang dihukum.
+        """
+        with self._lock:
+            total = len(self._entries)
+            if not total:
+                return None
+            now = self._now()
+            for step in range(total):
+                i = (self._idx + step) % total
+                _, key, fp = self._entries[i]
+                if self._cool.get(fp, 0.0) > now:
+                    continue
+                if model and self._blocked.get((fp, model), 0.0) > now:
+                    continue
+                self._idx = (i + 1) % total
+                self._hits[fp] = self._hits.get(fp, 0) + 1
+                return fp, key
+            return None
+
+    # -- penandaan hasil --------------------------------------------------
+    def mark(self, fp: str, model: str, exc=None, kind: str | None = None,
+             ttl: float | None = None) -> str:
+        """Tandai kunci/pasangan setelah kegagalan. Mengembalikan jenisnya.
+
+        `rate_limited` -> cooldown KUNCI (semua modelnya ikut), karena kuota
+        429 bersifat per project. `entitlement`/`overloaded` -> blokir PASANGAN
+        (kunci, model) saja, supaya model lain dari kunci yang sama tetap hidup.
+        """
+        if exc is not None and kind is None:
+            kind, auto_ttl = classify_error(exc)
+            ttl = auto_ttl if ttl is None else ttl
+        kind = kind or "unknown"
+        ttl = 0.0 if ttl is None else float(ttl)
+        if ttl <= 0:
+            return kind
+        with self._lock:
+            until = self._now() + ttl
+            pair = (fp, model)
+            if kind == "rate_limited":
+                self._cool[fp] = max(self._cool.get(fp, 0.0), until)
+            else:
+                self._blocked[pair] = max(self._blocked.get(pair, 0.0), until)
+        return kind
+
+    # -- klien ------------------------------------------------------------
+    def client(self, fp: str):
+        """`genai.Client` ter-cache per kunci (pembuatan baru terukur ~0,86s)."""
+        cached = self._clients.get(fp)
+        if cached is not None:
+            return cached
+        key = self.key_for(fp)
+        if not key:
+            raise KeyError(f"fingerprint {fp} tidak ada di pool")
+        from google import genai  # impor lokal: pool tetap ringan tanpa gemini
+
+        with self._lock:
+            if fp not in self._clients:
+                self._clients[fp] = genai.Client(api_key=key)
+            return self._clients[fp]
+
+
+_pool: KeyPool | None = None
+_pool_lock = threading.Lock()
+
+
+def pool() -> KeyPool:
+    """Pool global (dibangun sekali, aman dari banyak thread)."""
+    global _pool
+    if _pool is None:
+        with _pool_lock:
+            if _pool is None:
+                _pool = KeyPool()
+    return _pool
+
+
+def reset(entries=None) -> KeyPool:
+    """Bangun ulang pool global (dipakai tes, atau bila `.env` berubah saat runtime)."""
+    global _pool
+    with _pool_lock:
+        _pool = KeyPool(entries=entries)
+    return _pool
