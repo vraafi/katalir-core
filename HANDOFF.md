@@ -175,8 +175,11 @@ fb5321a  chore(gitignore): ignore probe/temp scripts + secret artifacts (_vps,_r
 2f0db27  fix(backend): NameError md crash 502 — pindah block MODEL SELECTION ke bawah import md
 ```
 
-**Status remote (terverifikasi `git rev-parse HEAD` == `git rev-parse origin/main`):** `HEAD -> main`, `origin/main` = `93d6c2e`
-→ **0 ahead / 0 behind**.
+**Status remote:** commit **kode** teratas tetap `93d6c2e`; di atasnya ada commit
+**dokumentasi** (mis. `8e9e869` = HANDOFF + ARCHITECTURE_REPORT). Yang stabil dan
+tidak perlu diperbarui setiap kali dokumen disunting: `HEAD` == `origin/main`,
+**0 ahead / 0 behind** — verifikasi ulang dengan:
+`git rev-parse HEAD; git rev-parse origin/main; git status -sb`.
 
 ---
 
@@ -252,7 +255,8 @@ fb5321a  chore(gitignore): ignore probe/temp scripts + secret artifacts (_vps,_r
 5. ~~**Rapikan test probe** `tests/_*.spec.ts`~~ → **SELESAI 2026-09-16**: dikarantina ke
    `tests/_probes/` + `testIgnore` (dijalankan hanya dengan `E2E_PROBES=1`).
 6. **Commit + push** setiap perubahan; lalu verifikasi produksi (Cloudflare Pages + Railway).
-   Status 2026-09-16: `93d6c2e` sudah ter-push, **0 ahead / 0 behind**.
+   Status 2026-09-16: perubahan sudah ter-push (`git status -sb` → **0 ahead / 0 behind**);
+   commit kode teratas `93d6c2e`, di atasnya commit dokumentasi (`8e9e869`).
 
 > Catatan: klaim template *"Push 5 commit ahead origin"* **salah** — sudah 0 ahead/0 behind.
 > Jangan ulangi pekerjaan itu.
