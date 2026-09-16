@@ -1,9 +1,9 @@
 # NEXUS — HANDOFF CONTEXT
 
 Generated: 2026-09-16 01:46 (+07:00)
-Commit kode terakhir: `4abfeda` (`4abfeda4a74df27851e3b654bb765bfbbf4bf1b5`)
-Commit dokumentasi (HANDOFF.md + ARCHITECTURE_REPORT.txt): commit teratas di
-`git log --oneline -1` — commit ini **hanya menambah dokumen**, tidak mengubah kode.
+Commit kode terakhir: `6b6fe07` (`6b6fe07bfc1fae9d1919c45cdb85a4f69660d1a6`) — perbaikan kontrak 401 vs 503, sesi E2E terverifikasi, cakupan filter pindah ke unit test.
+Dokumentasi (HANDOFF.md + ARCHITECTURE_REPORT.txt) ikut di commit yang SAMA —
+`git log --oneline -1` — jadi commit ini memuat kode **dan** dokumen, bukan dokumen saja.
 Branch: `main` — **sinkron dengan `origin/main` (0 ahead / 0 behind)** setelah push.
 
 > Dokumen ini ditulis agar pekerjaan bisa dilanjutkan di chat/sesi baru **tanpa akses
@@ -146,11 +146,12 @@ Total **259 model / 25 provider** (hasil `GET /v1/models`, HTTP 200).
 
 ## 4. COMMIT LOG (10 terakhir)
 
-Diambil langsung dari `git log --oneline -10` (**sampai commit `4abfeda`**; semuanya
-sudah ter-push). Setelah dokumen ini di-commit, akan ada satu commit dokumentasi
-di atas `4abfeda`.
+Diambil langsung dari `git log --oneline -10` (**sampai commit `6b6fe07`**; semuanya
+sudah ter-push). Tidak ada commit dokumentasi terpisah — dokumen ini ikut di `6b6fe07`.
+`4abfeda` tetap tercatat di bawah sebagai riwayat.
 
 ```
+6b6fe07  fix(auth)+test(e2e): kontrak 401 vs 503 konklusif, sesi E2E terverifikasi, cakupan filter ke unit test
 4abfeda  chore(git): ignore harness runner lokal _*.ps1
 5c28054  test(e2e): 503 upstream transien -> SKIP eksplisit (bukan merah palsu) + ignore _*.ps1
 4401e7e  fix(agent): konteks multi-turn ke LLM + verifikasi JWT lokal (JWKS)
@@ -163,8 +164,8 @@ fb5321a  chore(gitignore): ignore probe/temp scripts + secret artifacts (_vps,_r
 2f0db27  fix(backend): NameError md crash 502 — pindah block MODEL SELECTION ke bawah import md
 ```
 
-**Status remote (saat dokumen ini ditulis):** `HEAD -> main`, `origin/main` = `4abfeda`
-→ **0 ahead / 0 behind**. Commit dokumentasi ini ditambahkan tepat setelahnya.
+**Status remote (terverifikasi `git rev-parse HEAD` == `git rev-parse origin/main`):** `HEAD -> main`, `origin/main` = `6b6fe07`
+→ **0 ahead / 0 behind**.
 
 ---
 
