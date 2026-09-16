@@ -2,7 +2,9 @@
 
 Generated: 2026-09-16 01:46 (+07:00) · Dikoreksi terakhir: 2026-09-16 (sesi lanjutan — temuan K & L, angka 84 / pool 20)
 Commit kode terakhir: `3f85c61` — **transien upstream tidak lagi dijawab 500** (§0.1 temuan L:
-`504 DEADLINE_EXCEEDED` → `overloaded` → rotasi kunci → 503). Di bawahnya `e221ad1` — pool kunci
+`504 DEADLINE_EXCEEDED` → `overloaded` → rotasi kunci → 503). Setelahnya ada
+`c4719d4` (spec E2E `chat-auth`: **503 diizinkan, 500/504 dilarang**) lalu commit dokumentasi ini.
+Di bawah `3f85c61` ada `e221ad1` — pool kunci
 **tahan SDK lama** (menghapus `500 HttpRetryOptions` di produksi, §0.1 temuan K — sudah
 diverifikasi live di Railway). Riwayat kode lebih lama (terbaru → lama): `df5c71a` (guard CLI
 harness E2E; **pesan commitnya terpotong** — ada fragmen "…- ode scripts/e2e-auth-setup.mjs…"
