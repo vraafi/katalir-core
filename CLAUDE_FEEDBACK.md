@@ -122,6 +122,7 @@ Format: **[bagian/aturan prompt]** → karena **[alasan]** → aku harus **[aksi
 10. **[Kewajiban menjaga tabel markdown rapi di dokumen 58 KB]**
     Satu baris rusak (I tergabung ke J di commit `488b411`) membuat seluruh tabel invalid,
     dan **deteksinya butuh skrip khusus** (bukan mata) → **harga: §1 "6 siklus untuk 1 baris"**.
+
 ---
 
 ## 3. APA YANG AMBIGU
@@ -167,6 +168,7 @@ melainkan **state lingkungan** — versi paket, angka tes, jangkauan URL, format
 dan "kondisi produksi". Prompt selalu mengasumsikan lingkungan **homogen dan statis**.
 Lingkungan ini **heterogen dan bergerak** (dev ≠ prod, gateway quick tunnel, roster model
 berubah harian, kunci pulih tiap menit).
+
 ---
 
 ## 5. YANG MENURUTMU HARUS DIHAPUS
@@ -240,6 +242,7 @@ Prioritas dari yang paling menghabiskan waktu.
    memverifikasi semuanya (mahal).
 10. **Batas anggaran eksplisit**: "maksimal 2 run E2E per task". Tanpa batas, aku
     mengulang capture demi kelengkapan bukti.
+
 ---
 
 ## 7. FORMAT IDEAL
@@ -297,6 +300,7 @@ IZIN  : commit ya, push ya (push = redeploy Railway), tunggu /health 200
 ```
 Itu ~10 baris, dan aku tidak perlu bertanya apa pun. Bandingkan dengan instruksi bergaya
 narasi + tabel + "sertakan bukti" tanpa resep capture: hasilnya 2 jam (§1).
+
 ---
 
 ## 8. TOOLS YANG KAMU BUTUH (agar tidak "buta")
@@ -342,6 +346,7 @@ Diurutkan dari **paling impactful** berdasarkan rasa frustrasi nyata di sesi ini
 **Yang menurutku TIDAK perlu ditambah:** browser MCP untuk sekadar "lihat halaman" —
 Playwright yang ada sudah menutup itu, dan menambah satu lagi hanya menambah
 permukaan yang harus kupercaya.
+
 ---
 
 ## 9. FEEDBACK UNTUK CLAUDE
@@ -399,6 +404,7 @@ permukaan yang harus kupercaya.
 6. **Satu lingkungan per prompt**: sebut target **lokal (8123)** atau **produksi
    (Railway)** — dua spec `/chat` di repo ini menembak target berbeda, dan itu pernah
    menyembunyikan 500 selama satu sesi penuh.
+
 ---
 
 ## 10. FEEDBACK UNTUK USER
