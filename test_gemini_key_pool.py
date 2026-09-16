@@ -1,0 +1,235 @@
+"""test_gemini_key_pool.py - Kontrak pool kunci Gemini (tanpa jaringan).
+
+Fokus: membuktikan sifat yang MEMULIHKAN jalur cadangan, bukan sekadar
+"rotasi jalan":
+  * cooldown PER KUNCI (kunci lain tidak ikut mati) - inti perbaikan SPOF;
+  * blokir PER (KUNCI, MODEL) untuk entitlement 404;
+  * TTL diambil dari payload 429 asli (RPM vs RPD), bukan angka tebakan;
+  * nilai kunci tidak pernah bocor ke label/log.
+"""
+
+import json
+
+import pytest
+
+import gemini_key_pool as gkp
+
+# Salinan payload 429 ASLI yang tertangkap dari Gemini (`_e_429_payload.json`).
+# Dipakai apa adanya supaya tes bergantung pada bentuk nyata, bukan regex ideal.
+PAYLOAD_429_RPM = (
+    "429 RESOURCE_EXHAUSTED. {'error': {'code': 429, 'message': 'You exceeded your "
+    "current quota [...] limit: 5, model: gemini-2.5-flash\\nPlease retry in "
+    "5.162460926s.', 'status': 'RESOURCE_EXHAUSTED', 'details': [{'@type': "
+    "'type.googleapis.com/google.rpc.QuotaFailure', 'violations': [{'quotaMetric': "
+    "'generativelanguage.googleapis.com/generate_content_free_tier_requests', "
+    "'quotaId': 'GenerateRequestsPerMinutePerProjectPerModel-FreeTier', "
+    "'quotaDimensions': {'model': 'gemini-2.5-flash', 'location': 'global'}, "
+    "'quotaValue': '5'}]}, {'@type': 'type.googleapis.com/google.rpc.RetryInfo', "
+    "'retryDelay': '5s'}]}}"
+)
+PAYLOAD_429_RPD = PAYLOAD_429_RPM.replace(
+    "GenerateRequestsPerMinutePerProjectPerModel-FreeTier",
+    "GenerateRequestsPerDayPerProjectPerModel-FreeTier",
+)
+PAYLOAD_404_ENTITLEMENT = (
+    "404 NOT_FOUND. {'error': {'code': 404, 'message': 'This model "
+    "models/gemini-2.5-flash-lite is no longer available to new users.', "
+    "'status': 'NOT_FOUND'}}"
+)
+
+
+class Clock:
+    """Jam palsu supaya tes cooldown tidak perlu tidur sungguhan."""
+
+    def __init__(self, start: float = 10_000.0):
+        self.t = start
+
+    def __call__(self) -> float:
+        return self.t
+
+    def advance(self, sec: float) -> None:
+        self.t += sec
+
+
+def make_pool(n: int = 3, clock: "Clock | None" = None) -> tuple[gkp.KeyPool, Clock]:
+    clock = clock or Clock()
+    entries = [
+        (f"GEMINI_KEY_{i}", f"fake-key-{i}-{'x' * (10 + i)}", gkp.fingerprint(f"fake-key-{i}"))
+        for i in range(1, n + 1)
+    ]
+    return gkp.KeyPool(entries=entries, now_fn=clock), clock
+
+
+# --------------------------------------------------------------------------
+# Discovery
+# --------------------------------------------------------------------------
+
+def test_discover_membaca_slot_dan_mendaur_ulang_alias():
+    """Alias yang menunjuk kunci sama harus jadi SATU entri (anti no-op rotasi)."""
+    env = {
+        "GEMINI_KEY_1": "same-secret",
+        "GEMINI_KEY_2": "other-secret",
+        "GEMINI_KEY_3": "",               # kosong -> diabaikan
+        "GOOGLE_API_KEY": "same-secret",  # alias KEY_1
+        "GEMINI_API_KEY": "",
+    }
+    found = gkp.discover_keys(env)
+    assert [f[0] for f in found] == ["GEMINI_KEY_1", "GEMINI_KEY_2"]
+    assert len({f[2] for f in found}) == 2
+
+
+def test_discover_kompatibel_dengan_env_lama():
+    """Tanpa `GEMINI_KEY_*`, kunci legacy tetap terbaca (backward compat)."""
+    assert gkp.discover_keys({"GOOGLE_API_KEY": "legacy-secret"})[0][0] == "GOOGLE_API_KEY"
+
+
+# --------------------------------------------------------------------------
+# Rotasi
+# --------------------------------------------------------------------------
+
+def test_rotasi_round_robin_memakai_semua_kunci():
+    pool, _ = make_pool(3)
+    fps = [pool.acquire("m")[0] for _ in range(3)]
+    assert len(set(fps)) == 3, "rotasi harus menggilir SEMUA kunci, bukan satu"
+    assert pool.acquire("m")[0] == fps[0], "setelah putaran penuh kembali ke awal"
+
+
+def test_acquire_mencatat_hit_per_kunci():
+    """Bukti terukur untuk klaim '>=2 kunci dipakai' (bukan klaim kosong)."""
+    pool, _ = make_pool(3)
+    for _ in range(2):
+        pool.acquire("m")
+    used = pool.stats()["used"]
+    assert len(used) == 2, f"harus ada 2 kunci tercatat terpakai, dapat {used}"
+
+
+# --------------------------------------------------------------------------
+# Cooldown (inti perbaikan SPOF)
+# --------------------------------------------------------------------------
+
+def test_cooldown_hanya_untuk_kunci_yang_kena():
+    """Kunci kena 429 -> hanya kunci ITU yang di-skip; kunci lain tetap siap."""
+    pool, _ = make_pool(3)
+    fp, _key = pool.acquire("m")
+    kind = pool.mark(fp, "m", exc=RuntimeError(PAYLOAD_429_RPM))
+    assert kind == "rate_limited"
+    assert fp not in pool.available("m")
+    assert len(pool.available("m")) == 2, "cooldown TIDAK boleh global"
+
+
+def test_cooldown_pulih_setelah_ttl():
+    """RPM: cooldown harus lewat, bukan permanen (inilah 'recovery otomatis')."""
+    pool, clock = make_pool(2)
+    fp, _ = pool.acquire("m")
+    pool.mark(fp, "m", exc=RuntimeError(PAYLOAD_429_RPM))
+    assert fp not in pool.available("m")
+    clock.advance(gkp._RPM_FLOOR_S + 1)
+    assert fp in pool.available("m")
+
+
+def test_semua_kunci_kena_cooldown_mengembalikan_none():
+    """Kondisi 'semua habis' harus terdeteksi, bukan mengembalikan kunci basi."""
+    pool, _ = make_pool(2)
+    for _ in range(2):
+        fp, _k = pool.acquire("m")
+        pool.mark(fp, "m", exc=RuntimeError(PAYLOAD_429_RPM))
+    assert pool.acquire("m") is None
+    assert pool.available("m") == []
+
+
+def test_ttl_rpd_lebih_lama_dari_rpm():
+    """`PerDay` harus menahan jauh lebih lama daripada `PerMinute`."""
+    rpm = gkp.classify_error(RuntimeError(PAYLOAD_429_RPM))[1]
+    rpd = gkp.classify_error(RuntimeError(PAYLOAD_429_RPD))[1]
+    assert rpm >= gkp._RPM_FLOOR_S
+    assert rpd > rpm
+
+
+def test_retry_delay_dari_payload_dipakai():
+    """Payload tanpa `quotaId` -> angka `retryDelay` dihormati (bukan 5s karangan)."""
+    kind, ttl = gkp.classify_error(RuntimeError("429 retryDelay: '42s'"))
+    assert kind == "rate_limited"
+    assert ttl >= 42.0
+
+
+# --------------------------------------------------------------------------
+# Entitlement (kunci x model)
+# --------------------------------------------------------------------------
+
+def test_404_memblokir_pasangan_kunci_model_saja():
+    """404 model hanya menutup (kunci, model) itu; model lain tetap bisa."""
+    pool, _ = make_pool(2)
+    fp, _ = pool.acquire("gemini-2.5-flash-lite")
+    kind = pool.mark(fp, "gemini-2.5-flash-lite", exc=RuntimeError(PAYLOAD_404_ENTITLEMENT))
+    assert kind == "entitlement"
+    assert fp not in pool.available("gemini-2.5-flash-lite")
+    assert fp in pool.available("gemini-3-flash-preview"), (
+        "entitlement berlaku per (kunci, model) - kunci itu masih sah untuk model lain"
+    )
+
+
+def test_503_overload_ditandai_sementara():
+    kind, ttl = gkp.classify_error(RuntimeError("503 UNAVAILABLE: model overloaded"))
+    assert kind == "overloaded"
+    assert 0 < ttl <= 60
+
+
+def test_error_tak_dikenal_tidak_menandai_apa_pun():
+    """Jangan menelan bug nyata sebagai 'cooldown' (menyembunyikan sebab)."""
+    kind, ttl = gkp.classify_error(RuntimeError("ValueError: payload rusak"))
+    assert (kind, ttl) == ("unknown", 0.0)
+
+
+# --------------------------------------------------------------------------
+# Klien & keamanan
+# --------------------------------------------------------------------------
+
+def test_client_di_cache_per_kunci(monkeypatch):
+    """Pembuatan client terukur ~0,86s -> wajib terjadi sekali per kunci."""
+    import sys
+
+    created: list[str] = []
+
+    class FakeGenai:
+        @staticmethod
+        def Client(api_key: str):
+            created.append(api_key)
+            return {"key": api_key}
+
+    fake_google = type("M", (), {"genai": FakeGenai})
+    monkeypatch.setitem(sys.modules, "google", fake_google)
+
+    pool, _ = make_pool(2)
+    fp, key = pool.acquire("m")
+    assert pool.client(fp) is pool.client(fp)
+    assert created == [key]
+
+
+def test_label_dan_stats_tidak_membocorkan_kunci():
+    """SECURITY: label hanya NAMA#fp8; tidak ada potongan nilai kunci di stats."""
+    pool, _ = make_pool(3)
+    fp, key = pool.acquire("m")
+    blob = json.dumps(pool.stats()["used"])
+    assert key not in blob
+    assert key[:8] not in blob, "potongan kunci pun tidak boleh muncul"
+    assert any(fp in lbl for lbl in pool.stats()["used"])
+
+
+def test_mask_key_menyembunyikan_bagian_tengah():
+    masked = gkp.mask_key("AIzaSyABCDEFGHIJKL1234")
+    assert masked.startswith("AIza") and masked.endswith("1234")
+    assert "ABCDEFGHIJKL" not in masked
+
+
+def test_pool_asli_membaca_banyak_kunci_dari_env():
+    """Regresi langsung: pool produksi harus melihat >1 kunci, bukan 1.
+
+    Inilah bug yang diperbaiki tugas ini - kode lama membaca SATU kunci
+    (`GOOGLE_API_KEY or GEMINI_API_KEY or GEMINI_KEY_1`) sehingga satu 429
+    mematikan seluruh jalur cadangan.
+    """
+    p = gkp.pool()
+    assert p.size == len({e[2] for e in p._entries}), "tidak boleh ada fingerprint ganda"
+    assert p.size >= 2, (
+        f"pool hanya melihat {p.size} kunci unik - env harus memuat GEMINI_KEY_1..N"
+    )
