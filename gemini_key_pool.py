@@ -23,10 +23,13 @@ dipakai adalah `NAMA#<fingerprint8>` sehingga nol karakter rahasia bocor.
 from __future__ import annotations
 
 import hashlib
+import logging
 import os
 import re
 import threading
 import time
+
+log = logging.getLogger("gemini_key_pool")
 
 # Google menghitung kuota "PerMinute" atas jendela menit yang berjalan, dan
 # `retryDelay` hanyalah estimasi (limit 5/menit -> menunggu 5s sering masih
@@ -123,6 +126,51 @@ def classify_error(exc) -> tuple[str, float]:
             or "internal error" in low):
         return "overloaded", _OVERLOAD_S
     return "unknown", 0.0
+
+
+_warned_no_retry = False
+
+
+def _warn_retry_unsupported() -> None:
+    """Lapor SEKALI bahwa SDK lama tidak mendukung `HttpRetryOptions`."""
+    global _warned_no_retry
+    if _warned_no_retry:
+        return
+    _warned_no_retry = True
+    log.warning(
+        "google-genai terpasang tanpa `HttpRetryOptions` (versi lama): retry "
+        "internal SDK TIDAK bisa dimatikan, jadi satu panggilan bisa mengulang "
+        "sendiri dan menembus anggaran /chat. Naikkan pin `google-genai` di "
+        "requirements.txt (diverifikasi pada 1.65.0)."
+    )
+
+
+def http_options(types_mod):
+    """`HttpOptions` yang aman untuk SDK Gemini lama MAUPUN baru.
+
+    REGRESI PRODUKSI 2026-09-16 (nyata, tertangkap dari E2E `chat-auth`):
+    Railway memasang `requirements.txt` (`google-genai==1.6.0`) yang **tidak
+    punya** `types.HttpRetryOptions` (dibuktikan dari wheel 1.6.0) sehingga
+    `pool.client()` melempar `AttributeError` dan `POST /chat` menjawab **500**
+    `"Terjadi kesalahan internal: AttributeError: module 'google.genai.types'
+    has no attribute 'HttpRetryOptions'"`. Mesin dev memakai 1.65.0, jadi bug
+    ini NOL kali muncul lokal — persis kelas bug "hijau di dev, merah di prod".
+
+    `HttpOptions.timeout` sudah ada sejak SDK lama, jadi batas waktu SELALU
+    dipasang; `attempts=1` hanya bila SDK mendukung, dan ketiadaannya tidak
+    senyap (lihat `_warn_retry_unsupported`).
+
+    Catatan satuan: `HttpOptions.timeout` satuannya MILIDETIK (SDK membagi
+    /1000 sebelum menyerahkan ke httpx per request) — salah satuan di sini
+    berarti salah batas waktu di produksi.
+    """
+    kwargs = {"timeout": int(CALL_TIMEOUT_S * 1000)}
+    retry_cls = getattr(types_mod, "HttpRetryOptions", None)
+    if retry_cls is None:
+        _warn_retry_unsupported()
+    else:
+        kwargs["retry_options"] = retry_cls(attempts=1)
+    return types_mod.HttpOptions(**kwargs)
 
 
 class KeyPool:
@@ -261,15 +309,10 @@ class KeyPool:
             if fp not in self._clients:
                 self._clients[fp] = genai.Client(
                     api_key=key,
-                    http_options=types.HttpOptions(
-                        # HttpOptions.timeout satuannya MILIDETIK (SDK membagi
-                        # /1000 sebelum menyerahkan ke httpx per request).
-                        timeout=int(CALL_TIMEOUT_S * 1000),
-                        # attempts=1 = tanpa percobaan ulang internal; pool yang
-                        # merotasi kunci/model, sehingga batas waktu satu request
-                        # `/chat` tetap terjaga.
-                        retry_options=types.HttpRetryOptions(attempts=1),
-                    ),
+                    # `http_options()` (bukan `types.HttpRetryOptions` langsung):
+                    # SDK lama (prod = `google-genai` 1.6.0 dari requirements.txt)
+                    # tidak punya kelas itu -> dulu AttributeError -> /chat 500.
+                    http_options=http_options(types),
                 )
             return self._clients[fp]
 

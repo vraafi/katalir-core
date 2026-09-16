@@ -8,7 +8,13 @@
 streamlit==1.41.1
 
 # Klien API Google Gemini (google-genai = SDK resmi terbaru)
-google-genai==1.6.0
+# WAJIB >= versi yang punya `types.HttpRetryOptions` (attempts=1 mematikan retry
+# internal SDK; pool yang merotasi kunci). Pin lama `1.6.0` TIDAK punya kelas itu
+# -> `pool.client()` melempar AttributeError dan `POST /chat` menjawab 500 di
+# Railway (regresi produksi 2026-09-16). Versi 1.65.0 = versi yang diverifikasi
+# lokal & E2E; `langchain-google-genai` (2.1.2) dan `litellm` (1.65.1) TIDAK
+# membatasi paket ini, jadi pin ini tidak menimbulkan konflik resolusi.
+google-genai==1.65.0
 httpx==0.28.1
 ddgs==9.0.1
 

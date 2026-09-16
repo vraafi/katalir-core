@@ -38,7 +38,7 @@ let session: any;
   if (!session) console.log("NO_SESSION_FILE — jalankan node scripts/e2e-auth-setup.mjs dulu");
 }
 
-test("E2E supabase asli: login ter-inject + kirim pesan TIDAK 401", async ({ page }) => {
+test("E2E supabase asli: login ter-inject + kirim pesan TIDAK 401 & TIDAK 5xx", async ({ page }) => {
   test.skip(!session, "session file tidak ada");
 
   // Inject session SEBELUM app script jalan (di page yang sama yang akan di-goto)
@@ -107,6 +107,9 @@ test("E2E supabase asli: login ter-inject + kirim pesan TIDAK 401", async ({ pag
   const input = page.locator('[aria-label="Pesan"]');
   const hasInput = await input.count();
   console.log("HAS_INPUT=" + hasInput);
+  // Status /chat disimpan di luar blok supaya bisa di-ASSERT (bukan hanya di-log).
+  let chatStatus = -1;
+  let chatBody = "";
   if (hasInput) {
     await input.fill("halo");
     await page.locator('button[type="submit"]').click();
@@ -116,11 +119,11 @@ test("E2E supabase asli: login ter-inject + kirim pesan TIDAK 401", async ({ pag
       })
       .catch((e) => null);
     if (chatResp) {
-      let body = "";
+      chatStatus = chatResp.status();
       try {
-        body = (await chatResp.text()).slice(0, 200);
+        chatBody = (await chatResp.text()).slice(0, 200);
       } catch {}
-      console.log("CHAT_STATUS=" + chatResp.status() + " body=" + body);
+      console.log("CHAT_STATUS=" + chatStatus + " body=" + chatBody);
     } else {
       console.log("CHAT_RESP_NONE");
     }
@@ -131,5 +134,19 @@ test("E2E supabase asli: login ter-inject + kirim pesan TIDAK 401", async ({ pag
 
   // Assert: email user tampil = login sukses (injeksi berhasil)
   if (!emailShown) throw new Error("email test-user tidak tampil → injeksi session gagal");
+
+  // Assert: `/chat` prod TIDAK boleh 5xx.
+  // Sebelumnya spec ini HANYA memeriksa "email tampil" (dan dulu "bukan 401"),
+  // sehingga **500 nyata lolos hijau**: Railway menjawab
+  //   {"detail":"Terjadi kesalahan internal: AttributeError: module
+  //    'google.genai.types' has no attribute 'HttpRetryOptions'"}
+  // karena requirements.txt memasang google-genai 1.6.0. 503 (kuota/overload
+  // upstream) tetap DIIZINKAN — itu kondisi wajar produksi, bukan bug server.
+  if (chatStatus >= 500) {
+    throw new Error(
+      `POST /chat -> HTTP ${chatStatus} (5xx = bug server, bukan kuota). body=${chatBody}`
+    );
+  }
+
   await page.screenshot({ path: "test-results/e2e-auth.png" });
 });

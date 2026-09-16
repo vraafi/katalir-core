@@ -184,13 +184,17 @@ def test_error_tak_dikenal_tidak_menandai_apa_pun():
 # Klien & keamanan
 # --------------------------------------------------------------------------
 
-def fake_genai_modules(monkeypatch) -> list[dict]:
+def fake_genai_modules(monkeypatch, with_retry_options: bool = True) -> list[dict]:
     """Stub `google` + `google.genai` sebagai PAKET dengan submodul nyata.
 
     Modul pool mengimpor `from google.genai import types`; menstub `google`
     dengan objek biasa membuat Python gagal "'google' is not a package"
     (regresi nyata yang tertangkap tes ini). Mengembalikan daftar kwargs yang
     diterima `Client(...)` supaya tes bisa memeriksa opsi HTTP-nya.
+
+    `with_retry_options=False` meniru SDK LAMA (`google-genai==1.6.0`, versi yang
+    dulu dipasang Railway dari requirements.txt) yang **tidak punya**
+    `types.HttpRetryOptions`.
     """
     import sys
     from types import ModuleType
@@ -205,7 +209,8 @@ def fake_genai_modules(monkeypatch) -> list[dict]:
     mod_genai = ModuleType("google.genai")
     mod_types = ModuleType("google.genai.types")
     mod_types.HttpOptions = _Opts
-    mod_types.HttpRetryOptions = _Opts
+    if with_retry_options:
+        mod_types.HttpRetryOptions = _Opts
 
     def _client(**kw):
         calls.append(kw)
@@ -250,6 +255,53 @@ def test_client_dibatasi_waktu_dan_tanpa_retry_internal(monkeypatch):
     assert opts.retry_options.attempts == 1, "SDK tidak boleh mengulang sendiri"
     # Harus muat dalam anggaran `/chat` (45s) supaya rotasi masih punya ruang.
     assert 0 < gkp.CALL_TIMEOUT_S <= 25, f"timeout {gkp.CALL_TIMEOUT_S}s terlalu besar"
+
+
+def test_client_tetap_aman_pada_sdk_lama_tanpa_HttpRetryOptions(monkeypatch):
+    """REGRESI PRODUKSI: SDK tanpa `HttpRetryOptions` TIDAK boleh menjatuhkan `/chat`.
+
+    Bukti nyata (E2E `chat-auth` yang membidik Railway, 2026-09-16):
+    `POST /chat` -> **500** `AttributeError: module 'google.genai.types' has no
+    attribute 'HttpRetryOptions'`. Sebabnya `requirements.txt` memasang
+    `google-genai==1.6.0` (dikonfirmasi dari wheel-nya: kelas itu memang tidak
+    ada), sementara mesin dev memakai 1.65.0 -> bug ini NOL kali terlihat lokal.
+
+    Kontrak yang dikunci di sini: pool tetap membangun client dan batas waktu
+    tetap terpasang. Yang hilang hanya `attempts=1` (dan itu dilaporkan lewat
+    log oleh tes berikutnya, bukan dibiarkan senyap).
+    """
+    calls = fake_genai_modules(monkeypatch, with_retry_options=False)
+    pool, _ = make_pool(1)
+    fp, _ = pool.acquire("m")
+    pool.client(fp)  # sebelum perbaikan: AttributeError -> HTTP 500
+
+    assert len(calls) == 1, "client tetap harus dibangun (bukan gagal senyap)"
+    opts = calls[0]["http_options"]
+    assert opts.timeout == int(gkp.CALL_TIMEOUT_S * 1000), "batas waktu wajib tetap ada"
+    assert not hasattr(opts, "retry_options"), "SDK lama: tidak boleh dipaksa"
+
+
+def test_sdk_lama_melaporkan_bahwa_retry_belum_dimatikan(monkeypatch, caplog):
+    """Ketiadaan `HttpRetryOptions` harus TERLAPOR, bukan hilang tanpa jejak.
+
+    Tanpa peringatan ini, satu-satunya cara mengetahui prod memakai SDK lama adalah
+    dengan menabrak 500 lagi.
+    """
+    import logging
+
+    calls = fake_genai_modules(monkeypatch, with_retry_options=False)
+    monkeypatch.setattr(gkp, "_warned_no_retry", False, raising=False)
+    pool, _ = make_pool(1)
+    fp, _ = pool.acquire("m")
+
+    with caplog.at_level(logging.WARNING, logger="gemini_key_pool"):
+        pool.client(fp)
+        pool.client(fp)  # kedua kali: tidak boleh spam log
+
+    pesan = [r.getMessage() for r in caplog.records if r.levelno == logging.WARNING]
+    assert len(pesan) == 1, f"peringatan harus sekali, dapat {len(pesan)}"
+    assert "HttpRetryOptions" in pesan[0]
+    assert len(calls) == 1
 
 
 def test_label_dan_stats_tidak_membocorkan_kunci():
