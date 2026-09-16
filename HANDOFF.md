@@ -2,8 +2,8 @@
 
 Generated: 2026-09-16 01:46 (+07:00)
 Commit kode terakhir: `6b6fe07` (`6b6fe07bfc1fae9d1919c45cdb85a4f69660d1a6`) — perbaikan kontrak 401 vs 503, sesi E2E terverifikasi, cakupan filter pindah ke unit test.
-Dokumentasi (HANDOFF.md + ARCHITECTURE_REPORT.txt) ikut di commit yang SAMA —
-`git log --oneline -1` — jadi commit ini memuat kode **dan** dokumen, bukan dokumen saja.
+Dokumentasi (HANDOFF.md + ARCHITECTURE_REPORT.txt) diperbarui di commit **terpisah setelahnya**
+yang **hanya** menyentuh dokumen — lihat `git log --oneline -1` untuk commit teratas.
 Branch: `main` — **sinkron dengan `origin/main` (0 ahead / 0 behind)** setelah push.
 
 > Dokumen ini ditulis agar pekerjaan bisa dilanjutkan di chat/sesi baru **tanpa akses
@@ -21,7 +21,7 @@ Branch: `main` — **sinkron dengan `origin/main` (0 ahead / 0 behind)** setelah
 | # | Klaim lama | Fakta terverifikasi | Bukti (perintah/keluaran nyata) |
 |---|---|---|---|
 | 1 | Uji produksi = `npm run build && npm run start` | `next start` **DITOLAK** oleh konfigurasi `output: "export"` | `[Error: "next start" does not work with "output: export" configuration. Use "npx serve@latest out" instead.]` → jalur sah: `npm run build` + **`npm run serve:static`** |
-| 2 | Unit test backend: **27 lulus** | **26 lulus** untuk 3 file (jwt 14 + multiturn 9 + idempotent 3) — naik jadi **56 lulus** setelah `test_model_filter.py` ditambahkan (lihat §0.1) | `python -m pytest test_security_jwt.py test_multiturn_history.py test_idempotent_add_message.py -q` → `26 passed`; dengan `test_model_filter.py` → `56 passed in 4.53s` |
+| 2 | Unit test backend: **27 lulus** | **26 lulus** untuk 3 file (jwt 14 + multiturn 9 + idempotent 3) — naik jadi **56 lulus** setelah `test_model_filter.py` ditambahkan, dan **61 lulus** setelah `test_chat_budget_invariant.py` (lihat §0.1) | `python -m pytest test_security_jwt.py test_multiturn_history.py test_idempotent_add_message.py -q` → `26 passed`; dengan `test_model_filter.py` → `56 passed`; dengan `test_chat_budget_invariant.py` → `61 passed in 4.62s` |
 | 3 | E2E: **9 spec sehat + 3 probe** | **10 spec sehat + 3 probe** (`fix4a.spec.ts` tidak terhitung) | `npx playwright test --list` → `Total: 14 tests in 10 files` |
 | 4 | `scripts/e2e-prod-server.mjs` = npm script `serve:static` | `serve:static` = `scripts/serve-out.mjs`; `e2e-prod-server.mjs` adalah **pembungkus** (build → import `serve-out.mjs`) | `package.json` scripts |
 | 5 | Migrasi OpenNext tidak disebut sama sekali | OpenNext/Workers **sudah disiapkan** (commit `780fe13`) tapi **belum deployable** (KV namespace masih placeholder) | `open-next.config.ts`, `wrangler.jsonc`, `next.config.ts` komentar "TEMPORARY" |
@@ -38,16 +38,22 @@ Branch: `main` — **sinkron dengan `origin/main` (0 ahead / 0 behind)** setelah
 
 | # | Temuan | Bukti | Perbaikan |
 |---|--------|-------|-----------|
-| A | **Fixture E2E palsu** — `_e2e_extend.py` menyunting klaim `exp` **tanpa menandatangani ulang**, jadi signature-nya tidak sah. `kid` sengaja disamarkan sama dengan kid asli dan TTL-nya panjang (604800s), sehingga lolos semua guard berbasis TTL | `VERIFY[disk/fresh] = InvalidSignatureError` (PyJWT vs JWKS live; disk == fresh, kid cocok) | `scripts/e2e-auth-setup.mjs` kini **memverifikasi signature tiap kandidat** thd JWKS: yang palsu disingkirkan ke `_e2e_session*.FORGED.json`, yang sah dipakai, jika tidak ada → **mint sesi sah** (`signInWithPassword`); `_e2e_session.extended.json` dibuang dari kandidat `chat-auth.spec.ts` |
-| B | **Kontrak 401 vs 503 bocor** — `or _jwks_last_error` (flag **lengket** dari kegagalan unduhan masa lalu) membajak kasus konklusif: token bertanda tangan palsu dilaporkan **503** berpesan "Token TIDAK dinilai tidak sah" | `_e_bug503_probe.py`: kasus-1 (signature palsu, kid cocok) → dulu 503, kini **401** `verifikasi lokal: InvalidSignatureError`; kasus-3 (JWKS & jaringan memang tak tersedia) → tetap **503** | `security.py`: `_KeyUnavailableError` memisahkan "kunci TIDAK BISA dipegang" (DISKONKLUSIF → 503) dari "kunci ada, penilaian gagal" (KONKLUSIF → 401); `get_current_user` memakai `local_verdict` |
+| A | **Fixture E2E palsu** — `_e2e_extend.py` menyunting klaim `exp` **tanpa menandatangani ulang**, jadi signature-nya tidak sah. `kid` sengaja disamarkan sama dengan kid asli dan TTL-nya panjang (604800s), sehingga lolos semua guard berbasis TTL | `VERIFY[disk/fresh] = InvalidSignatureError` (PyJWT vs JWKS live; disk == fresh, kid cocok) + dikunci sebagai unit test `test_signature_palsu_ditolak` | `scripts/e2e-auth-setup.mjs` kini **memverifikasi signature tiap kandidat** thd JWKS: yang palsu disingkirkan ke `_e2e_session*.FORGED.json`, yang sah dipakai, jika tidak ada → **mint sesi sah** (`signInWithPassword`); `_e2e_session.extended.json` dibuang dari kandidat `chat-auth.spec.ts` |
+| B | **Kontrak 401 vs 503 bocor** — `or _jwks_last_error` (flag **lengket** dari kegagalan unduhan masa lalu) membajak kasus konklusif: token bertanda tangan palsu dilaporkan **503** berpesan "Token TIDAK dinilai tidak sah" | Dikunci sebagai unit test (bukti yang bisa dijalankan ulang — probe scratch TIDAK diandalkan karena ter-`gitignore`): `test_verifikasi_lokal_konklusif_menang_atas_flag_jwks_basi` (→ 401) dan `test_kunci_tak_tersedia_503_bukan_401` (→ 503) di `test_security_jwt.py` | `security.py`: `_KeyUnavailableError` memisahkan "kunci TIDAK BISA dipegang" (DISKONKLUSIF → 503) dari "kunci ada, penilaian gagal" (KONKLUSIF → 401); `get_current_user` memakai `local_verdict` |
 | C | **Filter model hanya diuji lewat roster live** → tes gagal-acak dan **menuduh filter** ("model valid hilang") padahal gateway yang tidak menyajikan. Rotasi liveness terbukti **dua arah** dalam satu sesi: masuk `mistralai/mistral-nemotron` + `poolside/laguna-xs-2.1`, keluar `gemini-2.5-flash-lite` + `moonshotai/kimi-k3` (katalog gateway 259 model TETAP memuat flash-lite) | 2 cache roster (12 vs 13 entri) + `MODELS_IDS` run E2E | Cakupan **"tidak over-delete" dipindah ke unit test deterministik** `test_model_filter.py` (30 test, input terkendali, tanpa jaringan); E2E hanya menguji sifat STABIL pada roster live (tidak ada model paid-only lolos, roster tidak kerdil, keluarga Flash terwakili) |
 | D | Guard `exp` di spec E2E **tidak andal**: decoder memakai `Buffer.from(seg, "base64")` (bukan base64url) sehingga token sehat bisa terbaca `ttl=-1` → gagal dengan pesan "kedaluwarsa" yang menyesatkan. Saat diperbaiki, muncul jebakan padding `"=".repeat(-len % 4)` → `RangeError` (regresi nyata: **3 tes gagal**) | `TOKEN_TTL_S=-1` pada run pertama; `TTL_S=1601` setelah fix | `expiresInSec()` memakai base64url + `pad = (4 - len % 4) % 4` |
 | E | Entri **non-dict** dari upstream (`null` di dalam array JSON) bisa menjatuhkan seluruh `/models` | `test_filter_tahan_input_kotor` | `gateway_roster.filter_free_models()` melewati entri non-dict |
+| F | **Tiga timer yang saling bertabrakan** (ditemukan dari 2 E2E `/chat` timeout 60s): anggaran backend `LLM_GATEWAY_BUDGET` = **90s** SAMA PERSIS dengan abort klien `FETCH_TIMEOUT_MS` = **90s**, dan fase Gemini cadangan **tidak dibatasi sama sekali** (4 percobaan tanpa timeout + `sleep`). Akibatnya backend masih bekerja saat klien sudah membatalkan → user melihat "Server lambat, coba lagi" padahal jawabannya hampir siap, pekerjaan terbuang, dan E2E merah palsu (`status=-1, time=-1` di trace Playwright) | Trace `.network`: `POST /chat => status=-1, time=-1` (browser menunggu selamanya); reproduksi bersih: `gemini-3-flash-preview` via `_agentic_run_direct` = **49,6s** lalu fallback (`reason=model_unavailable`) walau gateway langsung menjawab **200 dalam 2,2s**; log backend `OpenAIAPIError: Internal Server Error` + `OpenAITimeoutError` (45s) | Budget jadi **TOTAL** (gateway + cadangan): default 45s dengan `_FALLBACK_RESERVE_SEC=15s` disisihkan untuk jalur Gemini, timeout per percobaan 45s→**20s**, deadline diperiksa **setiap** iterasi kandidat dan dipangkas ke sisa anggaran, fase Gemini dibatasi deadline yang dihitung dari **awal request**. Dikunci `test_chat_budget_invariant.py` (5 test, memparsing `FETCH_TIMEOUT_MS` dari sumber TS) |
 
-**Hasil akhir sesi:** pytest **56 lulus** (jwt 14 + filter 30 + multiturn 9 + idempotent 3);
-E2E produksi **14 passed / 0 failed** — bukti payload: `MODELS_COUNT=12`,
-`FORBIDDEN_HITS=[]`, `CHAT_STATUS=200`, `VALID_META` lengkap (`fallback:false`),
-sesi **terverifikasi ES256** (`ttl=1561s`).
+**Hasil akhir sesi:** pytest **61 lulus** (jwt 14 + filter 30 + multiturn 9 + idempotent 3 + budget 5);
+E2E produksi terakhir: **12 passed / 2 skipped / 0 failed** — bukti payload:
+`MODELS_COUNT=12`, `FORBIDDEN_HITS=[]`. Dua test `/chat` **SKIP eksplisit**, bukan merah:
+upstream Gemini jalur cadangan **RPD habis** saat run (`CHAT_STATUS=503`,
+`VALID_STATUS=503`, `VALID_META={}` — kosong karena body 503 tidak membawa `meta`).
+Pada run sehat di sesi sebelumnya, jalur yang sama terukur `CHAT_STATUS=200` dan
+`VALID_META` lengkap (`fallback:false`). Jadi angka "14 passed" yang pernah ditulis
+di sini **bukan** hasil akhir — jangan pakai sebagai baseline tanpa menjalankan ulang.
+Sesi juga **terverifikasi ES256** (`ttl=1561s`) sehingga 503 itu bukan masalah auth.
 
 
 ---
@@ -147,10 +153,14 @@ Total **259 model / 25 provider** (hasil `GET /v1/models`, HTTP 200).
 ## 4. COMMIT LOG (10 terakhir)
 
 Diambil langsung dari `git log --oneline -10` (**sampai commit `6b6fe07`**; semuanya
-sudah ter-push). Tidak ada commit dokumentasi terpisah — dokumen ini ikut di `6b6fe07`.
+sudah ter-push). Daftar ini sampai commit **kode** `6b6fe07`; commit di atasnya hanya
+dokumentasi (mis. `b456f13` = HANDOFF.md). Baris ini sengaja TIDAK mengklaim
+"commit terakhir", karena hash berubah setiap dokumen diperbarui — pakai
+`git log --oneline -3` untuk commit teratas saat ini.
 `4abfeda` tetap tercatat di bawah sebagai riwayat.
 
 ```
+b456f13  docs(handoff): sinkronkan commit log + status remote ke 6b6fe07
 6b6fe07  fix(auth)+test(e2e): kontrak 401 vs 503 konklusif, sesi E2E terverifikasi, cakupan filter ke unit test
 4abfeda  chore(git): ignore harness runner lokal _*.ps1
 5c28054  test(e2e): 503 upstream transien -> SKIP eksplisit (bukan merah palsu) + ignore _*.ps1
@@ -182,11 +192,12 @@ fb5321a  chore(gitignore): ignore probe/temp scripts + secret artifacts (_vps,_r
 - [x] **Enhancement besar (sesi ini):** konteks **multi-turn** kini dikirim ke LLM (sebelumnya riwayat tersimpan tapi tidak dibaca model).
 - [x] **Enhancement besar (sesi ini):** verifikasi JWT Supabase dipindah ke **lokal (JWKS)** — memperbaiki 401 massal akibat `ConnectTimeout` ke `{SUPABASE_URL}/auth/v1/user`.
 - [x] **Alias env gateway** — sudah diperbaiki (`gateway_config()` memakai satu sumber, menerima `LLM_GATEWAY_URL` / `FREELM_GATEWAY_URL` / `GATEWAY_URL`).
-- [x] **Test hygiene** — **56** unit test pytest hijau (angka "27"/"24" di versi lama dokumen ini
-      SALAH; diukur ulang 2026-09-16: jwt 14 + filter 30 + multiturn 9 + idempotent 3).
-      E2E produksi **14 passed / 0 failed** (10 spec sehat / 14 test, probe dikarantina);
-      perintah + angka baseline ada di §9.2 — jangan pakai angka warisan 16/1 atau 29
-      tanpa menjalankan ulang.
+- [x] **Test hygiene** — **61** unit test pytest hijau (angka "27"/"24" di versi lama dokumen ini
+      SALAH; diukur ulang 2026-09-16: jwt 14 + filter 30 + multiturn 9 + idempotent 3 + budget 5).
+      E2E produksi terakhir: **12 passed / 2 skipped / 0 failed** (10 spec sehat / 14 test,
+      probe dikarantina) — 2 skip itu jalur `/chat` saat upstream Gemini RPD habis;
+      perintah + angka baseline ada di §9.2 — jangan pakai angka warisan 16/1, 29,
+      atau "14 passed" tanpa menjalankan ulang.
 
 ---
 
@@ -306,11 +317,11 @@ Jangan pula menambah nama keempat tanpa alasan.
 ### 9.2 Perintah uji
 
 ```bash
-# Unit test backend (tanpa jaringan) — 56 test
+# Unit test backend (tanpa jaringan) — 61 test
 cd c:/Users/user/Proyek_AI
-python -m pytest test_security_jwt.py test_model_filter.py test_multiturn_history.py test_idempotent_add_message.py -q
+python -m pytest test_security_jwt.py test_model_filter.py test_multiturn_history.py test_idempotent_add_message.py test_chat_budget_invariant.py -q
 
-# E2E produksi (build + serve out/ + backend lokal) — 14 passed / 0 failed
+# E2E produksi (build + serve out/ + backend lokal) — 12 passed / 2 skipped / 0 failed
 cd c:/Users/user/Proyek_AI/nexus-frontend
 npm run e2e:prod
 
@@ -391,9 +402,10 @@ Catatan GoTrue: `hashed_token` berada di **top-level** respons `generate_link`
 | `test_security_jwt.py` | 14 test JWT offline (HS256/ES256, JWKS seed, kontrak 401 vs 503, path invalid). |
 | `test_multiturn_history.py` | Membuktikan riwayat dikirim ulang ke LLM. |
 | `test_idempotent_add_message.py` | Anti-duplikasi pesan. |
-| `nexus-frontend/tests/*.spec.ts` | Suite E2E produksi: **10 spec sehat** (14 test) — `npm run e2e:prod` → 14 passed / 0 failed. |
+| `nexus-frontend/tests/*.spec.ts` | Suite E2E produksi: **10 spec sehat** (14 test) — `npm run e2e:prod` → **12 passed / 2 skipped / 0 failed** (2 skip = `/chat` saat upstream 503). |
 | `nexus-frontend/tests/_probes/_*.spec.ts` | 3 probe diagnostik, **dikarantina** (`E2E_PROBES=1`). |
 | `test_model_filter.py` | **30** test deterministik filter paid-only + input kotor (tanpa jaringan/JWKS). Pengganti cakupan "tidak over-delete" yang dulu digantungkan pada roster live yang flaky. |
+| `test_chat_budget_invariant.py` | **5** test anggaran waktu `/chat` ↔ kesabaran klien. **Membaca `FETCH_TIMEOUT_MS` langsung dari `src/lib/api.ts`**, jadi drift antara konstanta backend (Python) dan frontend (TS) GAGAL di sini — bukan diam-diam di produksi. |
 
 ---
 
@@ -500,16 +512,19 @@ Urutan yang disarankan, jangan dilompati:
    ```bash
    python -m pytest test_security_jwt.py test_multiturn_history.py test_idempotent_add_message.py -q
    ```
-   Baseline terakhir (diukur 2026-09-16): **56 test lulus** — jwt 14 + filter 30
-   + multiturn 9 + idempotent 3. Jalankan perintah LENGKAP di atas (jangan
+   Baseline terakhir (diukur 2026-09-16): **61 test lulus** — jwt 14 + filter 30
+   + multiturn 9 + idempotent 3 + budget 5. Jalankan perintah LENGKAP di atas (jangan
    menghilangkan `test_model_filter.py`, akibatnya hitungan jadi 26 dan
    cakupan filter hilang). Angka warisan "27"/"24"/"25+4 diagnostik" SALAH.
 6. **Jalankan E2E produksi** hanya bila mengubah frontend/endpoint:
    ```bash
    cd nexus-frontend && npm run e2e:prod
    ```
-   Baseline terakhir: **14 passed / 0 failed** (10 spec sehat; 3 spec probe
-   dikecualikan). Ingat: E2E butuh sesi Supabase segar
+   Baseline terakhir: **12 passed / 2 skipped / 0 failed** (10 spec sehat; 3 spec probe
+   dikecualikan). **Baca arti skip-nya**: kedua test `/chat` memanggil model roster dan
+   akan SKIP bila upstream menjawab 503 (`CHAT_STATUS=503`), karena RPD Gemini jalur
+   cadangan habis — itu perilaku yang DISENGAJA (bukti payload tercetak di log), bukan
+   lulus. Run sehat pernah tercatat `CHAT_STATUS=200`. Ingat: E2E butuh sesi Supabase segar
    (lihat section 9.3) dan `webServer` akan membangun ulang aplikasi.
 7. **Tanya user: task mana yang mau dilanjutkan** (rujuk section 7) — jangan mengarang
    prioritas sendiri karena ada dependency antar-butir (mis. perbaikan filter menyentuh

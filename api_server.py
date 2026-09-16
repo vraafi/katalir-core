@@ -407,7 +407,7 @@ def _agentic_run_gateway(prompt: str, email: str, model_id: str,
     from langchain_core.messages import HumanMessage, SystemMessage, ToolMessage
     from langchain_openai import ChatOpenAI
 
-    def _bound(model_name: str):
+    def _bound(model_name: str, timeout: float | None = None):
         llm = ChatOpenAI(
             model=model_name,
             api_key=gw_key,
@@ -417,7 +417,7 @@ def _agentic_run_gateway(prompt: str, email: str, model_id: str,
             # balasan). Tanpa timeout eksplisit LangChain menunggu tanpa henti
             # sehingga fallback Gemini di `_agentic_run_direct` tak pernah
             # tercapai. max_retries=0: failover antar-model ditangani loop ini.
-            timeout=float(os.getenv("LLM_GATEWAY_TIMEOUT", "45")),
+            timeout=timeout or _gateway_attempt_timeout_sec(),
             max_retries=0,
         )
         try:
@@ -427,15 +427,21 @@ def _agentic_run_gateway(prompt: str, email: str, model_id: str,
             return llm
 
     order = [model_id] + [m for m in (roster or []) if m != model_id][:2]
-    # Anggaran waktu total: 3 kandidat x timeout bisa melewati timeout frontend.
-    budget = float(os.getenv("LLM_GATEWAY_BUDGET", "90"))
-    deadline = time.time() + budget
+    # ANGGARAN TOTAL, bukan per model (lihat INVARIANT di blok "ANGGARAN WAKTU
+    # LLM PER REQUEST"). Deadline fase gateway ini sudah MENGURANGI jatah yang
+    # direservasi untuk Gemini cadangan, sehingga habisnya anggaran gateway
+    # tidak langsung berarti user menerima error.
+    deadline = time.time() + max(5.0, _llm_budget_sec() - _FALLBACK_RESERVE_SEC)
     last_err: Exception | None = None
     for cand in order:
-        if last_err is not None and time.time() > deadline:
+        # Deadline diperiksa SETIAP iterasi (dulu hanya bila sudah ada error)
+        # dan timeout percobaan dipangkas ke sisa anggaran: satu model yang
+        # menggantung tidak boleh menelan seluruh anggaran.
+        remaining = deadline - time.time()
+        if remaining <= 1.0:
             print("[api_server] anggaran waktu gateway habis -> fallback Gemini")
             break
-        chat_model = _bound(cand)
+        chat_model = _bound(cand, min(remaining, _gateway_attempt_timeout_sec()))
         # KONTEKS MULTI-TURN: system -> riwayat sesi -> prompt terbaru. Tanpa
         # riwayat, model "amnesia" dan mengabaikan hal yang sudah dibahas user.
         messages: list[Any] = [SystemMessage(content=_AGENT_SYSTEM)]
@@ -495,6 +501,47 @@ def _agentic_run_gateway(prompt: str, email: str, model_id: str,
 
 
 # ---------------------------------------------------------------------------
+# ANGGARAN WAKTU LLM PER REQUEST (satu sumber kebenaran)
+# ---------------------------------------------------------------------------
+# INVARIANT (dibuktikan empiris 2026-09-16): seluruh kerja LLM satu request
+# `/chat` HARUS selesai JAUH SEBELUM klien membatalkan request.
+#   - frontend: `FETCH_TIMEOUT_MS` = 90s (`AbortController` di lib/api.ts)
+#   - E2E: `page.waitForResponse(...)` + `timeout` per-test di playwright.config
+# Bug nyata yang diperbaiki: `LLM_GATEWAY_BUDGET` dulu 90s — SAMA PERSIS dengan
+# abort klien — dan fase Gemini cadangan tidak dibatasi sama sekali (4 percobaan
+# tanpa timeout + sleep 9s). Akibatnya backend masih bekerja saat klien sudah
+# menyerah: user melihat "Server lambat, coba lagi" padahal jawabannya hampir
+# siap, dan pekerjaan itu terbuang. E2E ikut merah palsu.
+# Sekarang: budget = TOTAL (gateway + cadangan), dan `_FALLBACK_RESERVE_SEC`
+# disisihkan untuk jalur Gemini supaya outage gateway TIDAK otomatis menjadi
+# error ke user.
+_LLM_BUDGET_DEFAULT_SEC = 45.0
+_FALLBACK_RESERVE_SEC = 15.0
+
+
+def _llm_budget_sec() -> float:
+    """Anggaran TOTAL kerja LLM satu request (gateway + Gemini cadangan)."""
+    try:
+        return max(5.0, float(os.getenv("LLM_GATEWAY_BUDGET",
+                                        str(_LLM_BUDGET_DEFAULT_SEC))))
+    except ValueError:
+        return _LLM_BUDGET_DEFAULT_SEC
+
+
+def _gateway_attempt_timeout_sec() -> float:
+    """Timeout SATU percobaan model lewat gateway (default 20s).
+
+    Dulu 45s. Terlalu panjang relatif terhadap anggaran TOTAL: dua model yang
+    menggantung sudah menelan seluruh anggaran sebelum fallback Gemini sempat
+    berjalan.
+    """
+    try:
+        return max(5.0, float(os.getenv("LLM_GATEWAY_TIMEOUT", "20")))
+    except ValueError:
+        return 20.0
+
+
+# ---------------------------------------------------------------------------
 # AGENTIC LOOP (setara _agentic_run, bebas dari Streamlit)
 # ---------------------------------------------------------------------------
 def _agentic_run_direct(prompt: str, email: str, model: str | None = None,
@@ -525,6 +572,10 @@ def _agentic_run_direct(prompt: str, email: str, model: str | None = None,
     # Disimpan SEBELUM `model` ditimpa oleh fallback gateway di bawah, supaya
     # meta tetap melaporkan apa yang sebenarnya diminta user.
     requested_model = (model or "").strip() or None
+    # Awal hitungan anggaran request ini. Dipakai jalur Gemini di bawah supaya
+    # batas waktunya TIDAK bergantung pada berapa lama fase gateway berjalan
+    # (lihat INVARIANT di blok "ANGGARAN WAKTU LLM PER REQUEST").
+    _t_req = time.time()
 
     # Jalur utama: free-llm-gateway (self-hosted) bila model ada di roster.
     gw = _gateway_target()
@@ -574,6 +625,9 @@ def _agentic_run_direct(prompt: str, email: str, model: str | None = None,
     else:
         fallback_reason = None
 
+    # Batas TOTAL jalur Gemini. Bila gateway gagal cepat, jatah ini tetap utuh
+    # karena dihitung dari AWAL request, bukan dari akhir fase gateway.
+    deadline = _t_req + max(5.0, _llm_budget_sec())
     client = genai.Client(api_key=api_key)
     config = types.GenerateContentConfig(
         temperature=0.1,
@@ -590,6 +644,11 @@ def _agentic_run_direct(prompt: str, email: str, model: str | None = None,
         """Enviar con reintentos contra errores transitorios del modelo (500/503)."""
         nonlocal model_id, fallback_used, chat
         for attempt in range(4):
+            # Batas TOTAL request: percobaan Gemini juga tidak boleh melewati
+            # anggaran. Tanpa guard ini klien sudah abort saat jawaban datang
+            # (bug "Server lambat, coba lagi" pada backend yang sebenarnya sehat).
+            if time.time() > deadline - 1.0:
+                raise HTTPException(503, "Batas waktu agen tercapai. Coba lagi.")
             try:
                 return chat_obj.send_message(msg)
             except Exception as exc:  # noqa: BLE001
