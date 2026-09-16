@@ -202,7 +202,8 @@ nexus-frontend/
 11.1 tsconfig: strict TRUE, target ES2017, jsx preserve, alias @/*, skipLibCheck true, noEmit, incremental, plugin next.
 11.2 ESLint/Prettier: .eslintrc TIDAK ADA (next lint default); prettier TIDAK ADA. Rekomendasi 2026: Biome.
 11.3 Build: Next 15.1.3 static export (output export, TBC dari next.config) + Cloudflare Pages (wrangler pages deploy out); backend uvicorn/FastAPI di Railway + VPS RackNerd Node gateway pm2 (saas-central-gateway). CodeMirror via next/dynamic ssr:false.
-11.4 Testing: unittest tests/test_e2e.py 7 passed (dihapus); test_browser_e2e/test_integration/test_massal manual; tanpa vitest/jest/playwright; coverage 0.
+11.4 Testing: baseline sahih = 61 unit test pytest (jwt 14 + filter 30 + multiturn 9 + idempotent 3 + budget 5) + E2E Playwright TS di nexus-frontend/tests (10 spec sehat / 14 test -> 12 passed / 2 skipped / 0 failed). CATATAN: butir ini dulu menulis "tanpa vitest/jest/playwright" — itu SUDAH TIDAK BENAR sejak E2E pindah ke Playwright TS. Suite warisan yang merah: test_browser_e2e.py (browser + situs live), test_e2e_live.py (Streamlit AppTest, UI legacy), test_massal.py/test_integration manual. Coverage 0.
+  CATATAN PRODUKSI: E2E WAJIB di build produksi. App ini `output: "export"` sehingga `next start` DITOLAK Next.js; bentuk setara = `npm run build` + `npm run serve:static` (atau pembungkus `scripts/e2e-prod-server.mjs` untuk E2E).
 11.5 CI/CD: .github/workflows TIDAK ADA. Deploy manual: git push (Railway auto-redeploy) + wrangler pages deploy. Rekomendasi: tambah ci.yml (lint+typecheck+build).
 ---
 === 12. TECHNICAL DEBT & RED FLAGS ===
@@ -354,9 +355,15 @@ bukan dari catatan perencanaan. Butir yang tak dapat diverifikasi ditandai TODO:
   dua dari sekian butir template handoff ternyata sudah beres.
 
 16.8 BASELINE VERIFIKASI SPRINT INI (dapat diulang)
-- Unit test backend (tanpa jaringan): 27 test lulus
-  python -m pytest test_security_jwt.py test_multiturn_history.py test_idempotent_add_message.py -q
-- E2E frontend produksi (build produksi, bukan dev): 16 passed / 1 skipped
+- Unit test backend (tanpa jaringan): 61 test lulus
+  python -m pytest test_security_jwt.py test_model_filter.py test_multiturn_history.py test_idempotent_add_message.py test_chat_budget_invariant.py -q
+  (rincian: jwt 14 + filter 30 + multiturn 9 + idempotent 3 + budget 5)
+  CATATAN: `pytest -q` TANPA daftar file juga memungut suite WARISAN yang merah —
+  `test_browser_e2e.py` (butuh browser + situs live) dan `test_e2e_live.py`
+  (Streamlit `AppTest`, sudah tidak relevan sejak UI legacy ditinggalkan). Itu
+  bukan regresi backend; baseline sahih adalah daftar 5 file di atas.
+- E2E frontend produksi (build produksi, bukan dev): 12 passed / 2 skipped / 0 failed
+  (10 spec sehat / 14 test; 2 skip = jalur `/chat` saat upstream Gemini 503)
   cd nexus-frontend && npm run e2e:prod
 - Gateway: GET /v1/models -> 200, 259 model / 25 provider (angka bergerak).
 - Sisa pekerjaan & larangan: lihat HANDOFF.md (dokumen pendamping laporan ini).

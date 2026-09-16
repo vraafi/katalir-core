@@ -1,7 +1,9 @@
 # NEXUS — HANDOFF CONTEXT
 
 Generated: 2026-09-16 01:46 (+07:00)
-Commit kode terakhir: `6b6fe07` (`6b6fe07bfc1fae9d1919c45cdb85a4f69660d1a6`) — perbaikan kontrak 401 vs 503, sesi E2E terverifikasi, cakupan filter pindah ke unit test.
+Commit kode terakhir: `93d6c2e` (`93d6c2e35585e53d577692e1a0637f83b8d4988e`) — anggaran waktu TOTAL
+`/chat` + tes invarian timer lintas-lapisan (§0.1 temuan F). Di atasnya, `6b6fe07` memperbaiki
+kontrak 401 vs 503, sesi E2E terverifikasi, dan memindahkan cakupan filter ke unit test.
 Dokumentasi (HANDOFF.md + ARCHITECTURE_REPORT.txt) diperbarui di commit **terpisah setelahnya**
 yang **hanya** menyentuh dokumen — lihat `git log --oneline -1` untuk commit teratas.
 Branch: `main` — **sinkron dengan `origin/main` (0 ahead / 0 behind)** setelah push.
@@ -150,16 +152,15 @@ Total **259 model / 25 provider** (hasil `GET /v1/models`, HTTP 200).
 | `.reference/` | Kode referensi pihak ketiga (`xyflow`, `react-flow-example-apps`) — **gitignored**, bukan bagian build |
 ---
 
-## 4. COMMIT LOG (10 terakhir)
+## 4. COMMIT LOG (13 terakhir)
 
-Diambil langsung dari `git log --oneline -10` (**sampai commit `6b6fe07`**; semuanya
-sudah ter-push). Daftar ini sampai commit **kode** `6b6fe07`; commit di atasnya hanya
-dokumentasi (mis. `b456f13` = HANDOFF.md). Baris ini sengaja TIDAK mengklaim
-"commit terakhir", karena hash berubah setiap dokumen diperbarui — pakai
-`git log --oneline -3` untuk commit teratas saat ini.
-`4abfeda` tetap tercatat di bawah sebagai riwayat.
+Diambil langsung dari `git log --oneline`. Daftar di bawah sampai commit **kode**
+`93d6c2e`. Baris ini sengaja TIDAK mengklaim "commit terakhir", karena hash
+berubah setiap dokumen diperbarui — pakai `git log --oneline -3` untuk commit
+teratas saat ini.
 
 ```
+93d6c2e  fix(chat): anggaran waktu TOTAL + tes invarian timer lintas-lapisan
 b456f13  docs(handoff): sinkronkan commit log + status remote ke 6b6fe07
 6b6fe07  fix(auth)+test(e2e): kontrak 401 vs 503 konklusif, sesi E2E terverifikasi, cakupan filter ke unit test
 4abfeda  chore(git): ignore harness runner lokal _*.ps1
@@ -174,7 +175,7 @@ fb5321a  chore(gitignore): ignore probe/temp scripts + secret artifacts (_vps,_r
 2f0db27  fix(backend): NameError md crash 502 — pindah block MODEL SELECTION ke bawah import md
 ```
 
-**Status remote (terverifikasi `git rev-parse HEAD` == `git rev-parse origin/main`):** `HEAD -> main`, `origin/main` = `6b6fe07`
+**Status remote (terverifikasi `git rev-parse HEAD` == `git rev-parse origin/main`):** `HEAD -> main`, `origin/main` = `93d6c2e`
 → **0 ahead / 0 behind**.
 
 ---
@@ -214,6 +215,15 @@ fb5321a  chore(gitignore): ignore probe/temp scripts + secret artifacts (_vps,_r
       dan `rate-tracking` 200. `TODO: verifikasi` status kuota/403 sebenarnya sebelum rotate.
 - [ ] **Billing Dodo end-to-end** — `DODO_API_KEY` / `DODO_CHECKOUT_URL` / `DODO_WEBHOOK_SECRET`
       ada di `.env`, tapi alur checkout→webhook→update tier belum diuji di produksi. `TODO: verifikasi`.
+- [ ] **❗ Kuota Gemini jalur cadangan = SINGLE POINT OF FAILURE (ditemukan 2026-09-16)**
+      — `.env` mendeklarasikan **`GEMINI_KEY_1`..`GEMINI_KEY_10`**, tetapi `_agentic_run_direct`
+      hanya memakai **satu** kunci (`GOOGLE_API_KEY`). Saat kunci itu kena **RPD harian**
+      (bukan RPM — dibuktikan: `429` **tetap muncul setelah jeda 65s**), jalur cadangan
+      **mati total** untuk sisa hari itu: setiap request dengan model yang tidak ada di
+      roster gateway berakhir **503 "Model sedang sibuk"** (4 percobaan habis) walau
+      10 kunci lain tersedia. Dampak nyata: 2 test E2E `/chat` jadi `CHAT_STATUS=503`
+      sepanjang run. Perbaikan yang disarankan: rotasi kunci cadangan (pakai
+      `GEMINI_KEY_1..N` saat `429`), seperti pola multi-key yang sudah ada untuk Gemini.
 - [ ] **Kuota Gemini free-tier** — `gemini-3.1-pro-preview` RPD 0 → substitusi + badge (sudah
       benar perilakunya). Dampak: 1 test E2E di-skip eksplisit saat 503 transien.
 - [x] **Spec probe dikarantina (2026-09-16)** — `tests/_*.spec.ts` → `tests/_probes/`,
@@ -234,11 +244,15 @@ fb5321a  chore(gitignore): ignore probe/temp scripts + secret artifacts (_vps,_r
    `LLM_GATEWAY_URL` tidak lagi bergantung pada quick tunnel. **Ini pembuka semua task lain.**
 2. **Verifikasi kuota provider** (`groq`, `nvidia`) via `/api/rate-tracking` dan putuskan
    apakah perlu rotate `GROQ_API_KEY`.
-3. **Uji billing Dodo end-to-end** (checkout → webhook → `users.tier` berubah) — lihat
+3. **Rotasi kunci Gemini jalur cadangan** — pakai `GEMINI_KEY_1..10` (sudah ada di `.env`,
+   belum terpakai) saat `GOOGLE_API_KEY` kena `429`, supaya jalur cadangan tidak mati
+   sehari penuh (§6 butir "SINGLE POINT OF FAILURE").
+4. **Uji billing Dodo end-to-end** (checkout → webhook → `users.tier` berubah) — lihat
    `billing_llm.py`, `dodo_verify.py`, tabel `users`.
-4. ~~**Rapikan test probe** `tests/_*.spec.ts`~~ → **SELESAI 2026-09-16**: dikarantina ke
+5. ~~**Rapikan test probe** `tests/_*.spec.ts`~~ → **SELESAI 2026-09-16**: dikarantina ke
    `tests/_probes/` + `testIgnore` (dijalankan hanya dengan `E2E_PROBES=1`).
-5. **Commit + push** setiap perubahan; lalu verifikasi produksi (Cloudflare Pages + Railway).
+6. **Commit + push** setiap perubahan; lalu verifikasi produksi (Cloudflare Pages + Railway).
+   Status 2026-09-16: `93d6c2e` sudah ter-push, **0 ahead / 0 behind**.
 
 > Catatan: klaim template *"Push 5 commit ahead origin"* **salah** — sudah 0 ahead/0 behind.
 > Jangan ulangi pekerjaan itu.
