@@ -42,6 +42,7 @@
 import { createPublicKey, verify as verifyRaw } from "node:crypto";
 import { existsSync, readFileSync, renameSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
+import { pathToFileURL } from "node:url";
 
 const ROOT = process.cwd();
 const FRONTEND_PORT = Number(process.env.E2E_PORT || 3000);
@@ -422,3 +423,21 @@ export default async function globalSetup() {
     `[e2e-auth] email=${chosen.user?.email ?? "?"} -> _e2e_session.refreshed.json + _e2e_storage.json`
   );
 }
+
+// ---------------------------------------------------------------------------
+// Guard CLI: `node scripts/e2e-auth-setup.mjs`
+//
+// CACAT INSTRUMEN YANG DIPERBAIKI (2026-09-16): sebelumnya modul ini hanya
+// `export default globalSetup` TANPA invokasi top-level, sehingga perintah CLI
+// yang didokumentasikan di HANDOFF §9.2 adalah NO-OP SENYAP — exit 0, nol
+// output, dan fixture tidak ditulis. Gejalanya menyesatkan: sesi E2E tetap
+// kedaluwarsa padahal "perintah mint" tampak berhasil.
+//
+// Hanya berjalan saat file ini DIEKSEKUSI LANGSUNG. Saat di-`import` oleh
+// `playwright.config.ts` sebagai `globalSetup`, Playwright sendiri yang
+// memanggilnya — jangan sampai dijalankan dua kali per run E2E.
+// ---------------------------------------------------------------------------
+if (process.argv[1] && pathToFileURL(process.argv[1]).href === import.meta.url) {
+  await globalSetup();
+}
+
