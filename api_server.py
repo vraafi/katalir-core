@@ -175,7 +175,13 @@ def _fallback_reason(err: object) -> str:
     if "429" in text or ("rate" in text and "limit" in text) or "too many" in text:
         return "rate_limit"
     if ("503" in text or "unavailable" in text or "overload" in text
-            or "sibuk" in text or "internal error" in text or "500" in text):
+            # "server error"/"servererror" = spasi & nama kelas "InternalServerError"
+            # saat kandidat hulu menolak payload (terbukti: groq/compound +
+            # bind_tools -> 500, sedangkan tanpa tools -> 200). Tanpa token ini
+            # teks itu tak memuat "internal error" (terpisah kata "server")
+            # maupun digit "500", sehingga jatuh ke default model_unavailable
+            # -> frontend menuduh "tidak tersedia untuk tier Anda" padahal 500.
+            or "sibuk" in text or "internal error" in text or "500" in text or "server error" in text or "servererror" in text):
         return "overloaded"
     if ("404" in text or "410" in text or "not found" in text or "gone" in text
             or "tidak dikenal" in text):
