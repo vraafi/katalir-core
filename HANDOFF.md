@@ -1,9 +1,13 @@
 # NEXUS — HANDOFF CONTEXT
 
-Generated: 2026-09-16 01:46 (+07:00) · Dikoreksi terakhir: 2026-09-16 (sesi lanjutan — temuan K & L, angka 84 / pool 20)
-Commit kode terakhir: `3f85c61` — **transien upstream tidak lagi dijawab 500** (§0.1 temuan L:
-`504 DEADLINE_EXCEEDED` → `overloaded` → rotasi kunci → 503). Setelahnya ada
-`c4719d4` (spec E2E `chat-auth`: **503 diizinkan, 500/504 dilarang**) lalu commit dokumentasi ini.
+Generated: 2026-09-16 01:46 (+07:00) · Dikoreksi terakhir: 2026-09-17 (sesi lanjutan — temuan M–P
+(pool 13 kunci, §0.2) dan temuan Q–U (Railway env + Funnel permanen + hambatan jalur gateway, §0.3);
+angka suite **93** / pool **23**)
+Commit kode terakhir: `7a25a00` — **5xx polos dari gateway tidak lagi dituduhkan sebagai tier**
+(`_fallback_reason` mengenal `server error`/`servererror`; +`test_fallback_reason.py`).
+Sebelumnya `3f85c61` (**transien upstream tidak lagi dijawab 500**, §0.1 temuan L:
+`504 DEADLINE_EXCEEDED` → `overloaded` → rotasi kunci → 503) dan `c4719d4`
+(spec E2E `chat-auth`: **503 diizinkan, 500/504 dilarang**).
 Di bawah `3f85c61` ada `e221ad1` — pool kunci
 **tahan SDK lama** (menghapus `500 HttpRetryOptions` di produksi, §0.1 temuan K — sudah
 diverifikasi live di Railway). Riwayat kode lebih lama (terbaru → lama): `df5c71a` (guard CLI
@@ -32,14 +36,14 @@ Branch: `main` — **sinkron dengan `origin/main` (0 ahead / 0 behind)** setelah
 | # | Klaim lama | Fakta terverifikasi | Bukti (perintah/keluaran nyata) |
 |---|---|---|---|
 | 1 | Uji produksi = `npm run build && npm run start` | `next start` **DITOLAK** oleh konfigurasi `output: "export"` | `[Error: "next start" does not work with "output: export" configuration. Use "npx serve@latest out" instead.]` → jalur sah: `npm run build` + **`npm run serve:static`** |
-| 2 | Unit test backend: **27 lulus** | **26 lulus** untuk 3 file (jwt 14 + multiturn 9 + idempotent 3) — naik jadi **56 lulus** setelah `test_model_filter.py` ditambahkan, **61 lulus** setelah `test_chat_budget_invariant.py`, **80 lulus** setelah `test_gemini_key_pool.py` ditambahkan, dan **84 lulus** setelah 3 tes regresi ditambahkan (temuan K & L — lihat §0.1) | `python -m pytest test_security_jwt.py test_multiturn_history.py test_idempotent_add_message.py -q` → `26 passed`; dengan `test_model_filter.py` → `56 passed`; dengan `test_chat_budget_invariant.py` → `61 passed`; suite lengkap saat ini (2 file legacy dikecualikan) → **`84 passed`** (pool kunci = **20** tes; angka antar-tahap 56/61/81 adalah riwayat) |
+| 2 | Unit test backend: **27 lulus** | **26 lulus** untuk 3 file (jwt 14 + multiturn 9 + idempotent 3) — naik jadi **56 lulus** setelah `test_model_filter.py` ditambahkan, **61 lulus** setelah `test_chat_budget_invariant.py`, **80 lulus** setelah `test_gemini_key_pool.py` ditambahkan, dan **84 lulus** setelah 3 tes regresi ditambahkan (temuan K & L — lihat §0.1), serta **93 lulus** per 2026-09-17 (§0.2) | `python -m pytest test_security_jwt.py test_multiturn_history.py test_idempotent_add_message.py -q` → `26 passed`; dengan `test_model_filter.py` → `56 passed`; dengan `test_chat_budget_invariant.py` → `61 passed`; suite lengkap saat ini (2 file legacy dikecualikan) → **`93 passed`** (pool kunci = **23** tes per 2026-09-17; angka antar-tahap 56/61/81/84 adalah riwayat) |
 | 3 | E2E: **9 spec sehat + 3 probe** | **10 spec sehat + 3 probe** (`fix4a.spec.ts` tidak terhitung) | `npx playwright test --list` → `Total: 14 tests in 10 files` |
 | 4 | `scripts/e2e-prod-server.mjs` = npm script `serve:static` | `serve:static` = `scripts/serve-out.mjs`; `e2e-prod-server.mjs` adalah **pembungkus** (build → import `serve-out.mjs`) | `package.json` scripts |
 | 5 | Migrasi OpenNext tidak disebut sama sekali | OpenNext/Workers **sudah disiapkan** (commit `780fe13`) tapi **belum deployable** (KV namespace masih placeholder) | `open-next.config.ts`, `wrangler.jsonc`, `next.config.ts` komentar "TEMPORARY" |
 | 6 | Spec probe `tests/_*.spec.ts` di root `tests/` | Sudah **dikarantina** ke `tests/_probes/` + `testIgnore` | `playwright.config.ts` (`E2E_PROBES=1` untuk menjalankan) |
 | 7 | `ARCHITECTURE_REPORT.txt` menggambarkan state terkini | Report **basi sebagian** (HEAD `d1bfae6`, deps Next 15.1.3, "tanpa playwright", `lang=en`) | lihat §17 report |
 | 8 | Groq perlu rotate karena 403 | Belum terbukti; kuota Groq justru **terbaca aktif** | `GET /api/rate-tracking` → 200, `groq rpm 0/30, rpd 0/14400` (tetap `TODO: verifikasi` via chat nyata) |
-| 9 | Gateway URL "sudah jalan" | Benar **saat diperiksa**, tapi tetap quick tunnel rapuh | `GET /v1/models` → 200, **259 model / 25 provider** |
+| 9 | Gateway URL "sudah jalan" | Benar **saat diperiksa**, tapi tetap quick tunnel rapuh | `GET /v1/models` → 200, **259 model / 25 provider** — **koreksi 2026-09-17:** kerapuhan itu **sudah ditutup** dengan Tailscale Funnel (§0.3 temuan Q–T) |
 
 ### 0.1 TEMUAN & PERBAIKAN — 2026-09-16 (sesi lanjutan: E2E merah → hijau)
 
@@ -92,6 +96,59 @@ Sesi juga **terverifikasi ES256** pada fixture sesi, sehingga hasil di atas buka
 Catatan kejujuran: `RPD` (kuota harian) **tidak pernah terbukti** — lihat temuan H; jangan
 pakai alasan "RPD habis" lagi tanpa membaca `quotaId` dari payload.
 
+### 0.2 TEMUAN 2026-09-17 — pool 13 kunci & keluarga `AIza` vs `AQ.` (verifikasi live)
+
+> Menutup sisa `TODO: verifikasi` §7 butir 3: pool diuji dengan **13 kunci `.env`
+> langsung** (39 panggilan SDK + 4 panggilan REST + 3 `POST /chat` nyata), bukan
+> disimpulkan dari 1–2 kunci. Alat: `_keys_family_probe.py` + `_e_live_rotation_probe.py`
+> (scratch, gitignored, hasil mentah di `_keys_family_result.json`).
+
+| # | Diperiksa | Hasil (bukti live) |
+|---|-----------|--------------------|
+| M | Pool melihat **13 kunci unik** dan rotasi menyentuh semuanya | `_keys_family_probe.py` → `total=13 unik_fp=13 slot_env=13`; `rotasi_unik=13`; log `/chat` → `(pool=13 kunci)` |
+| N | Cooldown **per kunci** + blokir **per (kunci, model)** | `cooldown_victim_out=True`, `cooldown_others_ok=True` (12/13 tetap siap), `entitlement_pair_blocked=True`, `entitlement_model_lain_bebas=True` |
+| O | Keluarga `AIza` (39 char) vs `AQ.` (53 char) — beda perilaku? | **Transport TIDAK beda; entitlement BEDA — dan beda itu BUKAN karena format kunci.** Rincian: §12 butir 11 |
+| P | Kebocoran kunci | `BOCOR_KUNCI_DI_LOG=0`, `BOCOR_KUNCI_DI_RESPONSE=0`, `kunci_di_json=0`; label hanya `GEMINI_KEY_N#fp8`, kunci penuh tidak pernah dicetak |
+
+Bukti rotasi di `/chat` (gateway diarahkan ke port mati agar jalur cadangan aktif),
+3 request → 3 kunci berbeda, semuanya **200** (17,1s / 11,4s / 9,8s):
+
+```
+Gemini GEMINI_KEY_1#e733b96d model=gemini-2.5-flash (pool=13 kunci)
+Gemini GEMINI_KEY_2#a634dfdd model=gemini-2.5-flash gagal (entitlement) -> rotasi kunci
+Gemini GEMINI_KEY_4#a2436cfc model=gemini-2.5-flash (pool=13 kunci)
+KUNCI_DIPAKAI=[KEY_1#e733b96d, KEY_2#a634dfdd, KEY_4#a2436cfc] UNIK=3   ROTASI_PER_REQUEST=LULUS
+```
+
+Unit test `test_gemini_key_pool.py` naik **20 → 23** (3 tes keluarga kunci); suite backend
+(2 file legacy dikecualikan) → **93 passed**.
+
+### 0.3 TEMUAN 2026-09-17 — Railway env + Funnel permanen + hambatan jalur gateway (verifikasi live)
+
+> Menutup butir "Gateway URL memakai Cloudflare *quick tunnel*" (§6) dan §7 butir 1.
+> Alat scratch (gitignored): `_railway_env_fix.py`, `_railway_vars.py`,
+> `_railway_deploy_check.py`, `_gw_e2e_probe.py`, `_gw_roster_probe.py`,
+> `_vps_gw_guard_pubtest.py`, `_gw_tools_probe.py`. Semua **read-only** kecuali `--apply`.
+> Kredensial **tidak pernah dicetak**: hanya `len` / `sha8` / ciri bentuk.
+
+| # | Diperiksa | Hasil (bukti live) |
+|---|-----------|--------------------|
+| Q | Variabel gateway di Railway | Dulu bernama **`LLM_GATEWAY_URL:`** — titik dua ikut ter-paste ke kolom *Name*, jadi `os.getenv("LLM_GATEWAY_URL")` = `None` → `gateway_config()` = `(None, None)` → `model_discovery` memulangkan `[]` **tanpa HTTP apa pun** (itulah sebab jurnal `gw-guard` kosong). Sekarang: 19 variabel produksi memuat `LLM_GATEWAY_URL` (`is_ts_net=True`, `trailing_slash=False`, `match_local=True`) + `LLM_GATEWAY_KEY` (`match_local=True`), nama cacat **sudah tidak ada**. Bukti: `_railway_vars.py [production/web]` |
+| R | URL gateway permanen | Cloudflare quick tunnel → **Tailscale Funnel** `nexus-gateway-vps.tail7f0d5a.ts.net` (Funnel :443 → `gw-guard` :8081 → gateway :8080). Deploy `685de22e` `status=SUCCESS` **lebih baru** dari commit `7a25a00` (`DEPLOY_LEBIH_BARU_DARI_COMMIT=True`). Bukti: `_railway_deploy_check.py` |
+| S | Kebocoran route admin lewat Funnel | Dari **internet tanpa auth**: `/api/connection-info`, `/api/keys`, `/docs`, `/openapi.json` → **403** semua, `rahasia_dalam_body=False` (sebelum penutup: 200 dan membocorkan `master_key` = `LLM_GATEWAY_KEY`). `/api/status` → **401** tanpa key, **200** dengan key (roster butuh ini). Jalur Nexus tetap hidup: `/api/ping` → 200, `/v1/models` → 401 tanpa key / **200 dengan key (259 model)**. Bukti: `_vps_gw_guard_pubtest.py` |
+| T | Gateway benar-benar dipakai Railway | `POST /chat` produksi → **200**, `meta.gateway=True` (flag ini **hanya** diset di `_agentic_run_gateway`), dan `/models` → 200 `refreshed_at=2026-09-17T08:30:53Z count=12`. Jadi jalur Funnel **benar dieksekusi** oleh proses Railway, bukan jalur langsung Gemini. Bukti: `_gw_e2e_probe.py` |
+| U | ❗ **Hambatan nyata: gateway menolak payload ber-`tools`** | Uji langsung ke Funnel (kunci & model sama): `groq/compound` **tanpa** tools → **200** `served='groq/compound'` balasan nyata `'Halo'`; **dengan** tools → **500** body polos `Internal Server Error` (21 byte). Pola sama untuk `openai/gpt-oss-20b` (200 → 500); `nvidia/nemotron-3-nano-omni-30b-a3b-reasoning` → 500 di **kedua** varian. Karena `_agentic_run_gateway` **selalu** `bind_tools` (`api_server.py:431`), tidak ada kandidat gateway yang bisa berhasil → `/chat` prod selalu `fallback=True reason='overloaded'` dalam ~100 ms (fail-fast, bukan provider sibuk) untuk **semua** model roster. Efeknya: **praktis seluruh trafik `/chat` dilayani Gemini**, kuota gratis gateway tidak terpakai. Bukti: `_gw_tools_probe.py` + `_gw_roster_probe.py` |
+
+**Cara membaca butir U (jangan salah simpan):** gateway **sehat dan siap transport** — Funnel stabil,
+auth benar, 259 model terlihat, `/v1/chat/completions` tanpa tools menjawab 200 dengan balasan asli.
+Yang belum ada hanyalah **dukungan payload ber-`tools`** di sisi gateway. Jadi ini **bukan** bug
+Railway/env (nilai env sudah identik `sha8` dengan `.env`) dan **bukan** bug kode Nexus.
+Dua jalan keluar, dan pilihannya adalah **keputusan produk** (jangan diambil otomatis):
+(i) `_agentic_run_gateway` mencoba ulang kandidat yang sama **tanpa** `bind_tools` saat 5xx polos
+— cepat, tapi model roster kehilangan tool calling; atau (ii) memperbaiki sisi gateway agar
+meneruskan `tools`. Perbaikan klasifikasi `7a25a00` membuat gejala ini **jujur**: 500 polos itu kini
+dilaporkan sebagai `overloaded` ("coba lagi"), bukan tuduhan "tidak tersedia untuk tier Anda".
+
 
 ---
 
@@ -107,7 +164,8 @@ pakai alasan "RPD habis" lagi tanpa membaca `quotaId` dari payload.
 
 | # | Isu | Status |
 |---|-----|--------|
-| 1 | Gateway URL memakai **Cloudflare quick tunnel** (`trycloudflare.com`) — URL **berubah** setiap tunnel di-restart → model selector & chat mati total bila URL basi | **BELUM SELESAI** ❗ |
+| 1 | Gateway URL memakai **Cloudflare quick tunnel** (`trycloudflare.com`) — URL **berubah** setiap tunnel di-restart → model selector & chat mati total bila URL basi | **SELESAI 2026-09-17** — kini Tailscale Funnel `*.ts.net` (stabil) + nilai Railway == `.env`; lihat §0.3 temuan Q–R |
+| 1b | ❗ Gateway menolak payload ber-`tools` (**500 polos**) → **semua** model roster jatuh ke Gemini, kuota gateway tak terpakai | **BELUM SELESAI** — butuh keputusan produk; §0.3 temuan U, §7 butir 2a |
 | 2 | `GROQ_API_KEY` dilaporkan 403 di catatan lama | `TODO: verifikasi` (di gateway, Groq justru terpakai & `rate-tracking` 200) |
 | 3 | Kuota Gemini free-tier (`gemini-3.1-pro-preview` RPD 0) menyebabkan **503 transien** → 1 test E2E di-*skip* (bukan bug produk) | Sudah di-*handle* (skip eksplisit) |
 | 4 | Billing Dodo belum diuji end-to-end di produksi | `TODO: verifikasi` |
@@ -132,7 +190,7 @@ Semua commit sudah ter-push.
 | Gateway | **free-llm-gateway** (multi-provider, 259 model) | live |
 | Deploy FE | Cloudflare Pages (static `out/`) | `proyek-agent.pages.dev` |
 | Deploy BE | Railway (`Procfile` + `railway.json`) | `web-production-dc90b.up.railway.app` |
-| Gateway host | VPS (RackNerd) — **diekspos via quick tunnel** | lihat §8 |
+| Gateway host | VPS (RackNerd) — diekspos via **Tailscale Funnel** (stabil, bukan lagi quick tunnel) | lihat §8, §0.3 |
 
 **Multi-provider aktif di gateway:** `google_gemini` (4), `groq` (21), `nvidia` (88),
 `openrouter` (33), `cerebras` (7), `github` (20), `ollama` (10), `cloudflare` (9), dst.
@@ -255,12 +313,14 @@ perlu diperbarui setiap kali dokumen disunting: `HEAD` == `origin/main`,
 
 ## 6. BELUM SELESAI (pending)
 
-- [ ] **❗ PRIORITAS TERTINGGI — Gateway URL memakai Cloudflare *quick tunnel***
-      (`benjamin-alloy-coins-speakers.trycloudflare.com`). URL ini **berganti setiap tunnel
-      di-restart**. Jika URL basi: `/v1/models` mati, roster kosong, chat gagal ke provider
-      non-Gemini. **Ini adalah bentuk kerapuhan produksi yang harus diselesaikan**
-      (funnel/domain tetap), bukan bug kode.
-- [ ] **Tailscale Funnel / URL gateway permanen** — butuh login user (belum tersedia untuk agent).
+- [x] **SELESAI 2026-09-17 — Gateway URL permanen (Tailscale Funnel).** Quick tunnel
+      `trycloudflare.com` diganti `nexus-gateway-vps.tail7f0d5a.ts.net` (Funnel → `gw-guard`
+      8081), nilai di Railway == `.env` (`sha8` sama), jalur gateway terbukti dieksekusi
+      (`meta.gateway=True`), dan kebocoran route admin ditutup (403). Bukti: §0.3 temuan Q–T.
+- [ ] **❗ PRIORITAS TERTINGGI BARU — gateway menolak payload ber-`tools` (HTTP 500 polos)**
+      sehingga **semua** model roster jatuh ke Gemini dan kuota gratis gateway tidak terpakai.
+      Pilihan: retry kandidat **tanpa** `bind_tools` saat 5xx polos, atau perbaiki sisi gateway
+      (keputusan produk — lihat §7 butir 2a). Bukti lengkap: §0.3 temuan U.
 - [ ] **Rotate `GROQ_API_KEY`** — di catatan lama dilaporkan 403, **namun** bukti roster
       menunjukkan model `groq/*` justru **PASS** (mis. `groq/compound` 3.9s, `qwen/qwen3.8-27b` 0.35s)
       dan `rate-tracking` 200. `TODO: verifikasi` status kuota/403 sebenarnya sebelum rotate.
@@ -306,8 +366,17 @@ perlu diperbarui setiap kali dokumen disunting: `HEAD` == `origin/main`,
 
 ## 7. TASK BERIKUTNYA (prioritas)
 
-1. **Stabilkan URL gateway** (Tailscale Funnel / domain tetap / reverse proxy) supaya
-   `LLM_GATEWAY_URL` tidak lagi bergantung pada quick tunnel. **Ini pembuka semua task lain.**
+1. ~~**Stabilkan URL gateway**~~ → **SELESAI 2026-09-17**: Tailscale Funnel
+   `nexus-gateway-vps.tail7f0d5a.ts.net` menggantikan quick tunnel; variabel Railway dibetulkan
+   (dulu bernama `LLM_GATEWAY_URL:` — titik dua ikut ke kolom *Name*) dan nilainya identik dengan
+   `.env`; jalur gateway terbukti hidup (`meta.gateway=True`) + route admin ditutup (403) —
+   §0.3 temuan Q–T.
+2a. **❗ Gateway: payload ber-`tools` ditolak 500 polos** — `groq/compound` &
+   `openai/gpt-oss-20b` menjawab **200 tanpa tools** dan **500 dengan tools**, sehingga
+   `_agentic_run_gateway` (yang **selalu** `bind_tools`) tak pernah berhasil dan seluruh
+   `/chat` dilayani Gemini. Pilih: (i) retry kandidat **tanpa** `bind_tools` pada 5xx polos,
+   atau (ii) benahi sisi gateway. **Keputusan produk** — opsi (i) berarti model roster
+   kehilangan tool calling, jadi **jangan** dipilih otomatis.
 2. **Verifikasi kuota provider** (`groq`, `nvidia`) via `/api/rate-tracking` dan putuskan
    apakah perlu rotate `GROQ_API_KEY`.
 3. ~~**Rotasi kunci Gemini jalur cadangan**~~ → **SELESAI 2026-09-16**: `gemini_key_pool.py`
@@ -317,6 +386,10 @@ perlu diperbarui setiap kali dokumen disunting: `HEAD` == `origin/main`,
    `CHAT_STATUS=200`), sehingga E2E jadi `14 passed / 0 skipped`. **Koreksi:** klaim lama
    "kedua test `/chat` kini 200" **salah** untuk `chat-auth.spec.ts` yang membidik Railway —
    di sana `/chat` justru **500** (temuan K); angka 200 hanya berlaku untuk backend lokal.
+   **Susulan 2026-09-17 (verifikasi tuntas):** pool diuji dengan **13 kunci `.env` langsung** —
+   13/13 unik dan tersentuh rotasi, cooldown per kunci + blokir (kunci × model) terbukti,
+   nol kebocoran kunci, dan keluarga `AIza` vs `AQ.` **tidak** beda di transport (§0.2
+   temuan M–P; detail §12 butir 11). Unit test pool: **20 → 23**.
 4. **Uji billing Dodo end-to-end** (checkout → webhook → `users.tier` berubah) — lihat
    `billing_llm.py`, `dodo_verify.py`, tabel `users`.
 5. ~~**Rapikan test probe** `tests/_*.spec.ts`~~ → **SELESAI 2026-09-16**: dikarantina ke
@@ -336,6 +409,13 @@ perlu diperbarui setiap kali dokumen disunting: `HEAD` == `origin/main`,
    `curl -s -o /dev/null -w "%{http_code}"` ke `.../health` → `200`.
    Sisa (bukan blocker): bila kuota free-tier habis, user tetap menerima 503 "Coba lagi" —
    pantau `/api/rate-tracking` dan pertimbangkan tambahan kunci/kuota.
+8. **Kapasitas jalur cadangan untuk keluarga 2.5 hanya 8/13 kunci** — 5 kunci `AQ.`
+   (project baru) menolak `gemini-2.5-flash` **dan** `gemini-2.5-flash-lite` (404
+   `"no longer available to new users"`), sedangkan `gemini-3-flash-preview` **13/13 OK**
+   (§0.2 temuan O, §12 butir 11). Pertimbangkan `AGENT_FALLBACK_MODEL=gemini-3-flash-preview`
+   **setelah** diuji E2E; bukan blocker, karena pool sudah memblokir pasangan yang 404
+   sehingga `/chat` tetap menjawab 200. **Jangan** minta user membuat kunci baru untuk ini —
+   13 kunci yang ada sudah cukup, yang kurang hanyalah cakupan model pada 5 kunci itu.
 
 > Catatan: klaim template *"Push 5 commit ahead origin"* **salah** — sudah 0 ahead/0 behind.
 > Jangan ulangi pekerjaan itu.
@@ -359,7 +439,7 @@ perlu diperbarui setiap kali dokumen disunting: `HEAD` == `origin/main`,
 
 | Nama | Catatan |
 |---|---|
-| `LLM_GATEWAY_URL` | **variabel yang benar-benar dipakai** (berisi host `*.trycloudflare.com`) |
+| `LLM_GATEWAY_URL` | **variabel yang benar-benar dipakai** — sejak 2026-09-17 berisi host **Tailscale Funnel** `*.ts.net` (bukan lagi `*.trycloudflare.com`) |
 | `LLM_GATEWAY_KEY` | key gateway (format `fgk-...`) |
 | `LLM_GATEWAY_MODELS` | override daftar model gateway (opsional) |
 | `FREELM_GATEWAY_URL`, `GATEWAY_URL` | alias **didukung** oleh `gateway_config()` — saat ini kosong |
@@ -414,7 +494,7 @@ Jangan pula menambah nama keempat tanpa alasan.
 ### 9.2 Perintah uji
 
 ```bash
-# Unit test backend (tanpa jaringan) — 84 test
+# Unit test backend (tanpa jaringan) — 93 test
 #   2 file legacy Streamlit (test_browser_e2e.py, test_e2e_live.py) dikecualikan:
 #   keduanya menargetkan UI lama di port 8501 yang tidak lagi dijalankan (§9.4).
 cd c:/Users/user/Proyek_AI
@@ -565,15 +645,51 @@ sebelum dijadikan dasar keputusan besar.
    `scripts/e2e-prod-server.mjs` (build + serve); untuk uji manual: `npm run build` +
    `npm run serve:static`.
 
-8. **Tunnel `trycloudflare` bersifat sementara** — URL berganti setiap restart dan tidak
-   cocok untuk produksi. Pilihan permanen: Tailscale Funnel, Cloudflare Named Tunnel,
-   atau reverse proxy di VPS dengan domain sendiri.
+8. ~~**Tunnel `trycloudflare` bersifat sementara**~~ → **SELESAI 2026-09-17**: URL gateway kini
+   **Tailscale Funnel** (`*.ts.net`) yang **tidak berganti saat restart**. Pilihan lain
+   (Cloudflare Named Tunnel / reverse proxy + domain sendiri) tetap layak sebagai cadangan.
 
 9. **`hashed_token` GoTrue berada di top-level** respons `generate_link` (bukan di dalam
    `properties`) pada versi SDK yang dipakai. Salah baca → mint sesi E2E gagal.
 
 10. **Idempotensi penyimpanan pesan** diperlukan karena UI melakukan retry/refetch;
     tanpa guard, satu pesan bisa tersimpan dua kali (lihat `test_idempotent_add_message.py`).
+
+11. **Dua format kunci Gemini (`AIza…` 39 char vs `AQ.…` 53 char) TIDAK berperilaku beda —
+    pembeda sesungguhnya adalah entitlement per (kunci, model).** Diuji live 2026-09-17
+    pada 13 kunci `.env` (`_keys_family_probe.py`: 39 panggilan SDK + 4 REST; `_e_live_rotation_probe.py`: 3 `/chat`):
+    - **Transport identik.** `x-goog-api-key` → 200 dan `?key=` → 200 untuk **kedua**
+      keluarga. Jadi bukan soal format kunci atau gaya auth. (`?key=` tetap **dilarang**
+      di kode: kunci bocor ke URL/log — gunakan header.)
+    - **Entitlement beda dan berkorelasi dengan keluarga, tetapi keluarga bukan penyebabnya.**
+      `gemini-2.5-flash-lite` **dan** `gemini-2.5-flash`: `AIza` **5/5 OK**, `AQ.` **3/8 OK**
+      (5 kunci → `404 "no longer available to new users"`). Kuncinya: hasil 404 itu
+      **TERBELAH di dalam** keluarga `AQ.` (3 OK / 5 404) — bila format kunci penyebabnya,
+      ke-8 kunci `AQ.` harus gagal semua. Karena itu variabel penentu = **epoch project**
+      (kunci `AQ.` dibuat belakangan), dan model 2.5 ditarik untuk project baru.
+    - **Bukan blokir level akun.** `gemini-3-flash-preview` → **13/13 kunci OK**.
+    - **Konsekuensi praktis.** `AGENT_FALLBACK_MODEL` default (`gemini-2.5-flash`) hanya
+      dilayani **8/13** kunci, jadi pool **wajib** memblokir per pasangan
+      (`_blocked[(kunci, model)]`, TTL 6 jam) dan tetap merotasi — terbukti di `/chat`:
+      `KEY_1 OK → KEY_2 404 (entitlement) → rotasi → KEY_4 OK`, semuanya 200.
+      Untuk kapasitas maksimum, model 3.x lebih baik (13/13) — lihat §7 butir 8.
+    - **Dikunci unit test** (jangan dihapus): `test_discover_keys_menerima_dua_format_kunci`,
+      `test_keluarga_kunci_diperlakukan_sama_tanpa_pra_penghakiman`,
+      `test_hukuman_satu_keluarga_tidak_menyeret_keluarga_lain` — intinya pool **tidak boleh**
+      memblokir kunci berdasarkan prefix (pra-penghakiman) dan tidak boleh ada bias keluarga
+      dalam rotasi.
+
+12. **Gateway free-llm-gateway MENOLAK payload ber-`tools` (500 polos) — dan itulah sebab
+    seluruh trafik `/chat` dilayani Gemini.** Diuji langsung ke Funnel 2026-09-17
+    (`_gw_tools_probe.py`), kunci & prompt sama: `groq/compound` tanpa tools → **200**
+    (`served='groq/compound'`, balasan `'Halo'`); dengan `tools` → **500** body polos
+    `Internal Server Error` (21 byte). `openai/gpt-oss-20b` sama polanya; satu model
+    `nvidia/*` gagal di kedua varian. Karena `_agentic_run_gateway` **selalu** `bind_tools`
+    (`api_server.py:431`), semua kandidat roster gagal → `fallback=True reason='overloaded'`
+    dalam ~100 ms untuk **semua** model (`_gw_roster_probe.py`). **Jangan** menyimpulkan
+    "provider sibuk" dari gejala ini, dan **jangan** menyalahkan env/Funnel: tanpa tools
+    jalur yang sama menjawab 200. Perbaikan ada dua (retry tanpa tools vs benahi gateway)
+    dan butuh **keputusan produk** — §0.3 temuan U, §7 butir 2a.
 
 ---
 
@@ -584,7 +700,7 @@ sebelum dijadikan dasar keputusan besar.
 | Repo GitHub | `github.com/vraafi/nexus-agent-core` (branch `main`) |
 | Frontend produksi | `https://proyek-agent.pages.dev` (Cloudflare Pages, static export) |
 | Backend produksi | `https://web-production-dc90b.up.railway.app` (Railway; auto-deploy dari `main`) |
-| Gateway LLM | **Cloudflare quick tunnel** `benjamin-alloy-coins-speakers.trycloudflare.com` — lihat `.env` (`LLM_GATEWAY_URL`). **Rentan berganti.** |
+| Gateway LLM | **Tailscale Funnel** `nexus-gateway-vps.tail7f0d5a.ts.net` (VPS → `gw-guard` :8081) — lihat `.env` (`LLM_GATEWAY_URL`). URL **stabil**, tidak berganti saat restart. |
 | Supabase | `https://qmukkphwaajzbqjrcvaz.supabase.co` (nilai di `.env` / `nexus-frontend/.env.local`) |
 | Dokumen internal | `ARCHITECTURE_REPORT.txt` (arsitektur + gap analysis), `HANDOFF.md` (dokumen ini) |
 | Konfigurasi frontend | `nexus-frontend/.env.local` (`NEXT_PUBLIC_API_URL`, `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`) |

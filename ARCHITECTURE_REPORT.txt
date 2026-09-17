@@ -261,11 +261,20 @@ bukan dari catatan perencanaan. Butir yang tak dapat diverifikasi ditandai TODO:
 - Endpoint gateway yang dipakai: GET /v1/models (roster) dan GET /api/rate-tracking (kuota).
 - TERVERIFIKASI empiris: GET /v1/models -> HTTP 200, 259 model / 25 provider
   (angka ini bergerak; jangan di-hardcode).
-- CATATAN ARSITEKTUR PENTING: LLM_GATEWAY_URL di .env menunjuk ke Cloudflare QUICK TUNNEL
-  (*.trycloudflare.com). Sifatnya SEMENTARA: URL berubah setiap restart -> gateway mati
-  secara senyap di produksi bila tunnel di-restart. Rekomendasi: Tailscale Funnel,
-  Cloudflare Named Tunnel (domain tetap), atau reverse proxy di VPS.
-  TODO: verifikasi apakah target akhirnya VPS RackNerd dengan domain sendiri.
+- CATATAN ARSITEKTUR (DIPERBARUI 2026-09-17): LLM_GATEWAY_URL kini menunjuk **Tailscale
+  Funnel** (*.ts.net) di VPS; quick tunnel *.trycloudflare.com SUDAH DITINGGALKAN. Funnel
+  tidak berganti saat restart, jadi kerapuhan "URL basi" hilang. Di depan gateway ada
+  `gw-guard` (systemd, port 8081) sebagai whitelist reverse proxy: route admin
+  (/api/keys, /api/connection-info, /docs, /openapi.json) dari internet -> 403,
+  /api/status butuh key. Endpoint yang dipakai Nexus tetap hidup.
+- CATATAN ARSITEKTUR PENTING (TEMUAN 2026-09-17): gateway MENOLAK payload ber-`tools`
+  dengan 500 polos "Internal Server Error", padahal tanpa tools ia menjawab 200 dengan
+  balasan asli (diuji: groq/compound, openai/gpt-oss-20b). Karena jalur gateway Nexus
+  selalu bind_tools, SEMUA model roster gagal -> /chat produksi selalu fallback ke Gemini
+  (fallback_reason=overloaded) sehingga kuota gratis gateway tidak terpakai. Ini bukan
+  bug env/Funnel. Dua opsi: (a) retry kandidat tanpa tools saat 5xx polos, atau
+  (b) perbaiki sisi gateway. Bukti: _gw_tools_probe.py, _gw_roster_probe.py.
+  TODO: keputusan produk belum diambil (lihat HANDOFF 0.3 temuan U).
 
 16.2 FITUR BARU: MODEL SELECTOR + FILTER PAID-ONLY (3-GERBANG)
 - File baru: gateway_roster.py (roster berbasis PROBE + filter + cache) dan
