@@ -348,3 +348,69 @@ def test_pool_asli_membaca_banyak_kunci_dari_env():
     assert p.size >= 2, (
         f"pool hanya melihat {p.size} kunci unik - env harus memuat GEMINI_KEY_1..N"
     )
+
+
+def keluarga_campuran() -> list[tuple[str, str, str]]:
+    """13 kunci tiruan yang meniru `.env` nyata: 5 `AIza` (39 char) + 8 `AQ.` (53 char)."""
+    aiza = [f"AIzaSyB{'y' * 30}{i:02d}" for i in range(1, 6)]
+    aq = [f"AQ.Ab8RN6J{'z' * 42}{i:02d}" for i in range(1, 9)]
+    return [(f"GEMINI_KEY_{i}", k, gkp.fingerprint(k))
+            for i, k in enumerate(aiza + aq, 1)]
+
+
+def test_discover_keys_menerima_dua_format_kunci():
+    """`discover_keys` tidak boleh menyaring berdasarkan prefix kunci.
+
+    `.env` produksi memuat **5 kunci `AIza` + 8 kunci `AQ.`**. Filter prefix yang
+    salah akan diam-diam menjatuhkan setengah kapasitas - tanpa error apa pun.
+    """
+    env = {f"GEMINI_KEY_{i}": k for i, (_, k, _) in enumerate(keluarga_campuran(), 1)}
+    got = gkp.discover_keys(env=env)
+    assert len(got) == 13
+    assert {k[:4] for _, k, _ in got} == {"AIza", "AQ.A"}
+
+
+def test_keluarga_kunci_diperlakukan_sama_tanpa_pra_penghakiman():
+    """FAMILY-NEUTRALITY: pool tidak boleh menghakimi kunci dari prefix-nya.
+
+    Bukti lapangan 2026-09-17 (13 kunci `.env`, live, `_keys_family_probe.py`):
+      * transport IDENTIK -> `x-goog-api-key` 200 dan `?key=` 200 untuk `AIza`
+        MAUPUN `AQ.` (jadi bukan soal format kunci / gaya auth);
+      * 404 "no longer available to new users" **TERBELAH di dalam** `AQ.`
+        (3 dari 8 siap melayani `gemini-2.5-flash`), sementara `AIza` 5/5 siap
+        -> format kunci BUKAN penentu; yang menentukan entitlement per (kunci, model);
+      * `gemini-3-flash-preview` 200 di 13/13 kunci -> bukan blokir level akun.
+    Karena itu pool hanya boleh memblokir SETELAH menerima 404 nyata.
+    """
+    entries = keluarga_campuran()
+    pool = gkp.KeyPool(entries=entries)
+
+    assert pool.size == 13, "kedua format harus sama-sama masuk pool"
+    assert len(pool.available("gemini-2.5-flash")) == 13, (
+        "pra-penghakiman berbasis prefix dilarang: sebelum ada respons, semua siap"
+    )
+
+    got = [pool.acquire("gemini-2.5-flash") for _ in range(pool.size)]
+    fps = [g[0] for g in got if g]
+    assert len(set(fps)) == 13, "satu putaran harus menyentuh 13 kunci unik"
+    fam = {fp: k[:4] for _, k, fp in entries}
+    assert {fam[fp] for fp in fps} == {"AIza", "AQ.A"}
+    assert sum(1 for fp in fps if fam[fp] == "AIza") == 5, "tidak boleh ada bias keluarga"
+
+
+def test_hukuman_satu_keluarga_tidak_menyeret_keluarga_lain():
+    """Cooldown/404 pada kunci `AQ.` tidak boleh mengurangi ketersediaan `AIza`."""
+    entries = keluarga_campuran()
+    aq_fp = next(fp for _, k, fp in entries if k.startswith("AQ."))
+    aiza_fps = {fp for _, k, fp in entries if k.startswith("AIza")}
+
+    p1 = gkp.KeyPool(entries=entries)
+    p1.mark(aq_fp, "gemini-2.5-flash", kind="rate_limited", ttl=600)
+    siap = p1.available("gemini-2.5-flash")
+    assert aq_fp not in siap and len(siap) == 12
+    assert aiza_fps <= set(siap), "5 kunci AIza harus tetap utuh"
+
+    p2 = gkp.KeyPool(entries=entries)
+    p2.mark(aq_fp, "gemini-2.5-flash", kind="entitlement", ttl=21_600)
+    assert aq_fp not in p2.available("gemini-2.5-flash"), "pasangan (kunci, model) diblokir"
+    assert aq_fp in p2.available("gemini-3-flash-preview"), "model lain tetap boleh"
