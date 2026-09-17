@@ -191,6 +191,25 @@ def _fallback_reason(err: object) -> str:
     return "model_unavailable"
 
 
+def _tools_unsupported(exc: Exception) -> bool:
+    """True bila kegagalan konsisten dengan hulu yang MENOLAK payload ber-tools.
+
+    Bukti empiris (2026-09-17, gateway free-llm-gateway): `groq/compound` dan
+    `openai/gpt-oss-20b` menjawab 200 TANPA `tools`, tetapi 500 polos
+    ("Internal Server Error") BILA `tools` disertakan. Dipakai untuk memicu
+    SATU retry tanpa tools — bukan pengulangan tak terbatas.
+    """
+    text = f"{type(exc).__name__}: {exc}".lower()
+    if not text.strip():
+        return False
+    # Kuota/rate/auth BUKAN masalah bentuk payload -> tools jangan dibuang.
+    if any(tok in text for tok in ("quota", "rate limit", "too many", "429",
+                                   "401", "403", "api key", "unauthorized")):
+        return False
+    return ("internal server error" in text or "servererror" in text
+            or "server error" in text or "500" in text)
+
+
 def _resolve_model(requested: str | None, user_tier: str) -> tuple[str, bool, str | None]:
     """Validasi model + tier-gate terhadap hasil discovery (cache 1 jam).
 
@@ -414,7 +433,8 @@ def _agentic_run_gateway(prompt: str, email: str, model_id: str,
     from langchain_core.messages import HumanMessage, SystemMessage, ToolMessage
     from langchain_openai import ChatOpenAI
 
-    def _bound(model_name: str, timeout: float | None = None):
+    def _bound(model_name: str, timeout: float | None = None,
+               with_tools: bool = True):
         llm = ChatOpenAI(
             model=model_name,
             api_key=gw_key,
@@ -427,6 +447,10 @@ def _agentic_run_gateway(prompt: str, email: str, model_id: str,
             timeout=timeout or _gateway_attempt_timeout_sec(),
             max_retries=0,
         )
+        if not with_tools:
+            # Retry tanpa tools: sebagian kandidat hulu menolak payload
+            # ber-tools dengan 500 polos (lihat `_tools_unsupported`).
+            return llm
         try:
             return llm.bind_tools(tools.TOOL_SCHEMAS_OPENAI)
         except Exception as exc:  # noqa: BLE001 - model tanpa tool calling
@@ -455,8 +479,23 @@ def _agentic_run_gateway(prompt: str, email: str, model_id: str,
         messages.extend(_to_lc_history(history))
         messages.append(HumanMessage(content=prompt))
         _t0 = time.time()
+        tools_dropped = False
         try:
-            resp = chat_model.invoke(messages)
+            try:
+                resp = chat_model.invoke(messages)
+            except Exception as exc:  # noqa: BLE001 - payload ber-tools ditolak?
+                if not _tools_unsupported(exc):
+                    raise
+                # Retry SEKALI tanpa tools: model yang diminta TETAP dipakai,
+                # dan kejadiannya ditandai di meta agar bisa dibedakan dari
+                # fallback antar-provider.
+                print(f"[api_server] {cand}: tools ditolak "
+                      f"({type(exc).__name__}) -> retry tanpa tools")
+                chat_model = _bound(
+                    cand, min(remaining, _gateway_attempt_timeout_sec()),
+                    with_tools=False)
+                tools_dropped = True
+                resp = chat_model.invoke(messages)
             for _ in range(3):  # maksimal 3 ronde tool calling
                 calls = getattr(resp, "tool_calls", None) or []
                 if not calls:
@@ -493,6 +532,10 @@ def _agentic_run_gateway(prompt: str, email: str, model_id: str,
                                         if cand != model_id and last_err is not None
                                         else None),
                     "gateway": True,
+                    # True = model yang diminta TETAP dipakai, hanya `tools`
+                    # yang dibuang karena hulu menolaknya (lihat
+                    # `_tools_unsupported`). Bukan fallback provider lain.
+                    "tools_dropped": tools_dropped,
                 },
             }
         except CredentialMissingError:
