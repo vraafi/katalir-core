@@ -749,11 +749,17 @@ def get_balance(email):
  query gagal 400 dan `except: pass` mengembalikan saldo dari MEMORI proses --
  saldo yang terlihat user tidak pernah berasal dari DB (temuan audit billing).
 
+ KLIEN BACA = service (sama seperti tulis). Regresi yang terbukti di produksi
+ 2026-09-18: dengan klien anon, RLS membuat hasil baca SELALU kosong -> saldo
+ terbaca 0 -> setiap topup MENIMPA alih-alih menjumlah, dan refund menghasilkan
+ saldo negatif (5000000 + refund 2000000 -> -2000000, bukan 3000000).
+
  RAISE bila DB terkonfigurasi tapi query gagal; pemanggil yang memang ingin
  tahan-gagal (mis. execution_engine) sudah membungkusnya dengan try/except.
  """
  if is_configured():
-  r = (_get_client().table('user_balances').select('credit_balance')
+  c = _get_write_client() if SUPABASE_SERVICE_KEY else _get_client()
+  r = (c.table('user_balances').select('credit_balance')
        .eq('email', email).limit(1).execute())
   d = getattr(r, 'data', None) or []
   return float(d[0].get('credit_balance', 0) or 0) if d else 0.0
@@ -838,11 +844,17 @@ def mark_payment_event_processed(webhook_id):
 
 
 def payment_event_exists(webhook_id):
-    """True bila event sudah pernah SELESAI diproses (dipakai tes/audit)."""
+    """True bila event sudah pernah SELESAI diproses (dipakai tes/audit).
+
+    Membaca lewat klien SERVICE (bypass RLS): dengan klien anon, RLS membuat
+    hasil baca kosong sehingga event yang sudah diproses terlihat "belum" dan
+    pembayaran bisa dikredit ulang.
+    """
     if not webhook_id:
         return False
     if is_configured():
-        r = (_get_client().table("payment_events").select("status")
+        c = _get_write_client() if SUPABASE_SERVICE_KEY else _get_client()
+        r = (c.table("payment_events").select("status")
              .eq("webhook_id", webhook_id).limit(1).execute())
         d = getattr(r, "data", None) or []
         return bool(d) and str(d[0].get("status")) == "processed"

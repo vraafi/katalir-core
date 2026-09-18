@@ -184,3 +184,71 @@ def test_db_failure_returns_5xx_not_silent_success(client, signed_in, monkeypatc
     r2 = _post(client, _payload(email="gagal@test.dev"), event_id="msg_fail")
     assert r2.status_code == 200, r2.text
     assert r2.json()["tier"] == "plus"
+
+
+# ---------------------------------------------------------------------------
+# REGRESI PRODUKSI 2026-09-18: saldo dibaca lewat klien ANON yang kena RLS ->
+# hasil selalu kosong -> saldo terbaca 0 -> topup MENIMPA (bukan menjumlah) dan
+# refund menghasilkan saldo NEGATIF (5000000 - 2000000 -> -2000000).
+class _Resp:
+    def __init__(self, data):
+        self.data = data
+
+
+class _Query:
+    def __init__(self, data):
+        self._data = data
+
+    def select(self, *a, **k):
+        return self
+
+    def eq(self, *a, **k):
+        return self
+
+    def limit(self, *a, **k):
+        return self
+
+    def update(self, *a, **k):
+        return self
+
+    def insert(self, *a, **k):
+        return self
+
+    def execute(self):
+        return _Resp(self._data)
+
+
+class _FakeClient:
+    def __init__(self, data):
+        self._data = data
+
+    def table(self, _name):
+        return _Query(self._data)
+
+
+def _force_db(monkeypatch, service_rows, anon_rows=None):
+    """Paksa jalur DB: anon melihat `anon_rows` (simulasi RLS), service melihat aslinya."""
+    monkeypatch.setattr(db, "is_configured", lambda: True)
+    monkeypatch.setattr(db, "SUPABASE_SERVICE_KEY", "svc-key")
+    monkeypatch.setattr(db, "_get_client", lambda: _FakeClient(anon_rows or []))
+    monkeypatch.setattr(db, "_get_write_client", lambda: _FakeClient(service_rows))
+
+
+def test_get_balance_membaca_lewat_klien_service(monkeypatch):
+    """Saldo HARUS dibaca lewat klien service; klien anon (RLS) mengembalikan 0."""
+    _force_db(monkeypatch, [{"credit_balance": 3000000}], anon_rows=[])
+    assert db.get_balance("rls@test.dev") == 3000000.0, (
+        "saldo dibaca lewat klien anon -> RLS -> 0 (regresi produksi)"
+    )
+
+
+def test_topup_menjumlah_bukan_menimpa(monkeypatch):
+    """topup = saldo lama + nominal (bukan menimpa dengan nominal saja)."""
+    _force_db(monkeypatch, [{"credit_balance": 3000000}])
+    assert db.topup_balance("add@test.dev", 2000000) == 5000000.0
+
+
+def test_refund_menghasilkan_saldo_sisa_positif(monkeypatch):
+    """Refund 2jt dari saldo 5jt -> 3jt (bukan -2jt seperti di produksi)."""
+    _force_db(monkeypatch, [{"credit_balance": 5000000}])
+    assert db.deduct_balance("ref@test.dev", 2000000) == 3000000.0
