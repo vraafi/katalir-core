@@ -12,7 +12,7 @@
 #                     unique(user_email, provider_name));
 
 import os
-from datetime import datetime
+from datetime import datetime, timedelta, timezone
 
 from dotenv import load_dotenv
 from fastapi import HTTPException
@@ -868,3 +868,192 @@ def log_payment_event(webhook_id, payment_id=None, event_type=None,
     if state != "processed":
         mark_payment_event_processed(webhook_id)
     return state
+
+
+# ---- KUOTA HARIAN (struktur bisnis final 2026-09-18) ----------------------
+# 1 request = 1 RPD, dihitung PER HARI, reset 00:00 **WIB** (UTC+7).
+#
+# PRINSIP BISNIS (jangan diubah tanpa keputusan user):
+#   * Gemma 4 = jalur GRATIS (kuota upstream 187.200 RPD) -> JANGAN pelit:
+#     free 100/hari, berbayar 500/hari;
+#   * pembeda tier = DeepSeek (Flash/Pro), bukan Gemma;
+#   * bucket `gemma` juga menampung model gratis lain + Flash-Lite INTERNAL,
+#     supaya satu jalur murah punya satu ember kuota yang mudah dijelaskan.
+WIB = timezone(timedelta(hours=7))
+
+QUOTA_LIMITS = {
+    "free":  {"gemma": 100, "flash": 0,    "pro": 0},
+    "plus":  {"gemma": 500, "flash": 100,  "pro": 0},
+    "pro":   {"gemma": 500, "flash": 500,  "pro": 50},
+    "ultra": {"gemma": 500, "flash": 2500, "pro": 200},
+}
+QUOTA_BUCKETS = ("gemma", "flash", "pro")
+# Urutan turun-biaya untuk auto-fallback: Pro -> Flash -> Gemma.
+QUOTA_FALLBACK_ORDER = ("pro", "flash", "gemma")
+
+_LQUOTA: dict[str, dict] = {}
+
+
+def get_quota_limit(tier: str) -> dict:
+    """Batas harian per bucket untuk tier (tier tak dikenal -> free)."""
+    t = (tier or "free").strip().lower()
+    return dict(QUOTA_LIMITS.get(t, QUOTA_LIMITS["free"]))
+
+
+def quota_total_limit(tier: str) -> int:
+    """Total request/hari: free 100, plus 600, pro 1050, ultra 3200."""
+    return sum(get_quota_limit(tier).values())
+
+
+def quota_bucket(model_id: str) -> str:
+    """Petakan id model -> bucket kuota.
+
+    Berdasarkan id yang TERBUKTI ada di katalog gateway:
+      * `deepseek` + `pro` -> pro;
+      * `deepseek`         -> flash (`deepseek-ai/deepseek-v4-flash-0731`);
+      * sisanya (gemma, gemini-*-flash-lite, model gratis lain) -> gemma.
+    """
+    mid = (model_id or "").strip().lower()
+    if "deepseek" in mid:
+        return "pro" if "pro" in mid else "flash"
+    return "gemma"
+
+
+def quota_now() -> datetime:
+    """Waktu sekarang di zona WIB (UTC+7)."""
+    return datetime.now(WIB)
+
+
+def _wib_date(dt: datetime):
+    return dt.astimezone(WIB).date()
+
+
+def quota_reset_due(reset_at, now=None) -> bool:
+    """True bila TANGGAL WIB sudah berganti sejak `reset_at`.
+
+    Memakai tanggal WIB, bukan selisih 24 jam: pengguna yang aktif melewati
+    tengah malam harus mendapat jatah baru tepat saat tanggal berganti di WIB.
+    """
+    if reset_at is None:
+        return True
+    if isinstance(reset_at, str):
+        try:
+            reset_at = datetime.fromisoformat(reset_at.replace("Z", "+00:00"))
+        except ValueError:
+            return True
+    if reset_at.tzinfo is None:
+        reset_at = reset_at.replace(tzinfo=timezone.utc)
+    return _wib_date(reset_at) < _wib_date(now or quota_now())
+
+
+def _quota_row(email: str):
+    """Baris user_usage untuk email (None bila belum ada)."""
+    if is_configured():
+        c = _get_write_client() if SUPABASE_SERVICE_KEY else _get_client()
+        r = (c.table("user_usage").select(
+            "email,daily_gemma,daily_flash,daily_pro,daily_reset_at")
+            .eq("email", email).limit(1).execute())
+        d = getattr(r, "data", None) or []
+        return d[0] if d else None
+    return _LQUOTA.get(email)
+
+
+def _quota_write(email: str, values: dict) -> None:
+    if is_configured():
+        c = _get_write_client()
+        ex = c.table("user_usage").select("email").eq("email", email).limit(1).execute()
+        if getattr(ex, "data", None):
+            c.table("user_usage").update(values).eq("email", email).execute()
+        else:
+            c.table("user_usage").insert({"email": email, **values}).execute()
+        return
+    row = _LQUOTA.setdefault(email, {"email": email, "daily_gemma": 0,
+                                     "daily_flash": 0, "daily_pro": 0,
+                                     "daily_reset_at": quota_now()})
+    row.update(values)
+
+
+def check_and_reset(email: str, now=None) -> bool:
+    """Reset penghitung harian bila tanggal WIB berganti. True bila reset terjadi."""
+    row = _quota_row(email)
+    if row is None:
+        _quota_write(email, {"daily_gemma": 0, "daily_flash": 0, "daily_pro": 0,
+                             "daily_reset_at": (now or quota_now())})
+        return True
+    if not quota_reset_due(row.get("daily_reset_at"), now):
+        return False
+    if is_configured():
+        try:
+            _get_write_client().rpc("reset_daily_quota", {"p_email": email}).execute()
+            return True
+        except Exception:  # noqa: BLE001 - RPC belum dimigrasi -> jalur UPDATE
+            pass
+    _quota_write(email, {"daily_gemma": 0, "daily_flash": 0, "daily_pro": 0,
+                         "daily_reset_at": (now or quota_now())})
+    return True
+
+
+def quota_status(email: str, tier: str = "free") -> dict:
+    """Ringkasan kuota hari ini (endpoint /quota + dashboard frontend)."""
+    check_and_reset(email)
+    row = _quota_row(email) or {}
+    limits = get_quota_limit(tier)
+    used = {b: int(row.get("daily_%s" % b, 0) or 0) for b in QUOTA_BUCKETS}
+    now = quota_now()
+    nxt = (now + timedelta(days=1)).replace(hour=0, minute=0, second=0, microsecond=0)
+    return {
+        "tier": (tier or "free").strip().lower(),
+        "buckets": {
+            b: {"used": used[b], "limit": limits[b],
+                "remaining": max(0, limits[b] - used[b])}
+            for b in QUOTA_BUCKETS
+        },
+        "used_total": sum(used.values()),
+        "limit_total": sum(limits.values()),
+        "reset_at_wib": nxt.isoformat(),
+        "reset_at_utc": nxt.astimezone(timezone.utc).isoformat(),
+    }
+
+
+def check_quota(email: str, model_id: str, tier: str = "free"):
+    """Cek izin satu request. Return `(allowed, info)` dengan info bucket/sisa."""
+    bucket = quota_bucket(model_id)
+    st = quota_status(email, tier)
+    b = st["buckets"][bucket]
+    info = {"bucket": bucket, "used": b["used"], "limit": b["limit"],
+            "remaining": b["remaining"]}
+    return (b["limit"] > 0 and b["remaining"] > 0), info
+
+
+def quota_fallback_bucket(email: str, tier: str, requested: str):
+    """Bucket lebih murah yang MASIH bersisa (Pro -> Flash -> Gemma) atau None."""
+    st = quota_status(email, tier)
+    try:
+        start = QUOTA_FALLBACK_ORDER.index(requested) + 1
+    except ValueError:
+        start = len(QUOTA_FALLBACK_ORDER)
+    for b in QUOTA_FALLBACK_ORDER[start:]:
+        if st["buckets"][b]["limit"] > 0 and st["buckets"][b]["remaining"] > 0:
+            return b
+    return None
+
+
+def increment_quota(email: str, model_id: str) -> dict:
+    """Catat 1 request pada bucket model.
+
+    Memakai RPC `increment_daily_quota` (atomic `x = x + 1`) bila tersedia:
+    read-modify-write dari backend kehilangan hitungan saat dua request paralel,
+    sehingga user bisa melewati kuota.
+    """
+    bucket = quota_bucket(model_id)
+    if is_configured():
+        try:
+            _get_write_client().rpc("increment_daily_quota",
+                                    {"p_email": email, "p_bucket": bucket}).execute()
+            return {"bucket": bucket, "via": "rpc"}
+        except Exception:  # noqa: BLE001 - RPC belum ada -> jalur manual
+            pass
+    row = _quota_row(email) or {}
+    used = int(row.get("daily_%s" % bucket, 0) or 0) + 1
+    _quota_write(email, {"daily_%s" % bucket: used})
+    return {"bucket": bucket, "used": used, "via": "fallback"}
