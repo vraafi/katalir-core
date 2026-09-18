@@ -70,6 +70,26 @@ def test_quota_pro_1050_total():
     assert db.quota_total_limit("pro") == 1050
 
 
+def test_tier_hidden_mapped_to_plus():
+    """Launch: user lama pro/ultra diperlakukan sebagai plus (tidak turun ke free)."""
+    assert db.effective_tier("pro") == "plus"
+    assert db.effective_tier("ultra") == "plus"
+    assert db.effective_tier("PLUS") == "plus"
+    assert db.effective_tier("free") == "free"
+    assert db.effective_tier(None) == "free"
+    assert db.effective_tier("enterprise") == "free"
+    # Kuota & ringkasan mengikuti pemetaan: user pro mendapat batas Plus.
+    assert db.quota_total_limit(db.effective_tier("pro")) == 600
+    _set_used("legacy-pro@test.dev", "pro", gemma=500, flash=0)
+    st = db.quota_status("legacy-pro@test.dev", "pro")
+    assert st["tier"] == "plus"
+    assert st["limit_total"] == 600
+    allowed, _ = db.check_quota("legacy-pro@test.dev", FREE_MODEL, "pro")
+    assert allowed is False  # gemma habis pada batas Plus -> ditolak 429
+    allowed_f, info_f = db.check_quota("legacy-pro@test.dev", FLASH_MODEL, "pro")
+    assert allowed_f is True and info_f["bucket"] == "flash"
+
+
 def test_quota_ultra_3200_total():
     """Ultra (Rp 50jt/tahun): Gemma 500 + Flash 2.500 + Pro 200 = 3.200/hari."""
     lim = db.get_quota_limit("ultra")

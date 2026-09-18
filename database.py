@@ -891,6 +891,27 @@ QUOTA_BUCKETS = ("gemma", "flash", "pro")
 # Urutan turun-biaya untuk auto-fallback: Pro -> Flash -> Gemma.
 QUOTA_FALLBACK_ORDER = ("pro", "flash", "gemma")
 
+# ---- TIER SAAT LAUNCH (keputusan produk 2026-09-18) ----------------------
+# Hanya `free` + `plus` yang DITAWARKAN. `pro` & `ultra` DISEMBUNYIKAN dari UI,
+# bukan dihapus: skema, harga, dan batas kuotanya tetap ada supaya bisa
+# diaktifkan lagi tanpa migrasi.
+#
+# User lama yang tier-nya `pro`/`ultra` TIDAK diturunkan ke `free`: mereka
+# diperlakukan setara `plus` (tetap dapat jalur berbayar), supaya tidak ada yang
+# kehilangan akses yang sudah dibayar.
+LAUNCH_TIERS = ("free", "plus")
+HIDDEN_TIERS = ("pro", "ultra")
+
+
+def effective_tier(tier: str) -> str:
+    """Tier EFEKTIF untuk penegakan kuota & tier-gate.
+
+    `pro`/`ultra` (disembunyikan saat launch) -> dipetakan ke `plus` agar user
+    lama tetap mendapat akses berbayar, bukan turun ke `free`.
+    """
+    t = (tier or "free").strip().lower()
+    return "plus" if t in HIDDEN_TIERS else (t if t in LAUNCH_TIERS else "free")
+
 _LQUOTA: dict[str, dict] = {}
 
 
@@ -1003,15 +1024,21 @@ def check_and_reset(email: str, now=None) -> bool:
 
 
 def quota_status(email: str, tier: str = "free") -> dict:
-    """Ringkasan kuota hari ini (endpoint /quota + dashboard frontend)."""
+    """Ringkasan kuota hari ini (endpoint /quota + dashboard frontend).
+
+    Memakai `effective_tier`: user lama pro/ultra (tier disembunyikan) tetap
+    mendapat batas Plus di ringkasan ini, supaya dashboard tidak menampilkan
+    skema yang tidak ditawarkan.
+    """
+    eff = effective_tier(tier)
     check_and_reset(email)
     row = _quota_row(email) or {}
-    limits = get_quota_limit(tier)
+    limits = get_quota_limit(eff)
     used = {b: int(row.get("daily_%s" % b, 0) or 0) for b in QUOTA_BUCKETS}
     now = quota_now()
     nxt = (now + timedelta(days=1)).replace(hour=0, minute=0, second=0, microsecond=0)
     return {
-        "tier": (tier or "free").strip().lower(),
+        "tier": eff,
         "buckets": {
             b: {"used": used[b], "limit": limits[b],
                 "remaining": max(0, limits[b] - used[b])}

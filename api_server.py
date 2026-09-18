@@ -231,7 +231,9 @@ def _resolve_model(requested: str | None, user_tier: str) -> tuple[str, bool, st
             lama di localStorage yang sudah tidak disajikan lagi).
     """
     default_id = _default_model_id()
-    tier = (user_tier or "free").strip().lower()
+    # Tier EFEKTIF (launch): user lama pro/ultra diperlakukan sebagai plus,
+    # bukan diturunkan ke free (lihat database.effective_tier).
+    tier = db.effective_tier(user_tier)
     if not requested:
         return default_id, False, None
     req = requested.strip()
@@ -934,7 +936,9 @@ def chat(req: ChatRequest, authorization: str | None = Header(None)):
     # (row users dibuat bila belum ada — sama seperti session flow).
     try:
         _u = db.get_or_create_user(user_email, "", auth_id=user_id)
-        user_tier = str((_u or {}).get("tier", "free") or "free")
+        # Tier EFEKTIF (launch 2026-09-18): user lama pro/ultra diperlakukan
+        # sebagai plus (tidak turun ke free, tidak pula ke skema tersembunyi).
+        user_tier = db.effective_tier((_u or {}).get("tier", "free"))
     except Exception:
         user_tier = "free"
 
@@ -1068,7 +1072,8 @@ def me(authorization: str | None = Header(None)):
     user = security.get_current_user(authorization)
     try:
         _u = db.get_or_create_user(user["email"], "", auth_id=user["id"])
-        tier = str((_u or {}).get("tier", "free") or "free").strip().lower()
+        # Tier EFEKTIF (launch): user lama pro/ultra tampil sebagai plus.
+        tier = db.effective_tier((_u or {}).get("tier", "free"))
     except Exception:
         tier = "free"
     return {"status": "success", "email": user["email"], "tier": tier}
@@ -1088,7 +1093,9 @@ def get_quota(authorization: str | None = Header(None)):
     email = user["email"]
     try:
         _u = db.get_or_create_user(email, "", auth_id=user.get("id"))
-        tier = str((_u or {}).get("tier", "free") or "free").strip().lower()
+        # Tier EFEKTIF di sini juga (pro/ultra lama -> plus) supaya dashboard
+        # dan warning kuota tidak menampilkan skema yang disembunyikan.
+        tier = db.effective_tier((_u or {}).get("tier", "free"))
     except Exception:  # noqa: BLE001
         tier = "free"
     try:
@@ -1115,10 +1122,13 @@ def list_models(authorization: str | None = Header(None)):
     user = security.get_current_user(authorization)
     try:
         _u = db.get_or_create_user(user["email"], "", auth_id=user["id"])
-        tier = str((_u or {}).get("tier", "free") or "free").strip().lower()
+        tier = db.effective_tier((_u or {}).get("tier", "free"))
     except Exception:
         tier = "free"
-    is_plus = tier in PLUS_TIERS
+    # Launch 2026-09-18: pro/ultra diperlakukan sebagai plus di database.py;
+    # is_plus di sini berarti akses jalur berbayar (PLUS_TIERS lama diganti
+    # pemeriksaan langsung agar maksudnya jelas).
+    is_plus = (tier == "plus")
     default_id = _default_model_id()
     discovered = md.get_available_models()
     items = [

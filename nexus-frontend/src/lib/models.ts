@@ -24,10 +24,13 @@ export const CHAT_MODELS: ChatModel[] = CHAT_MODELS_FALLBACK;
 export const DEFAULT_MODEL_ID = "gemma-4-31b-it";
 
 // ---------------------------------------------------------------------------
-// MODEL BISNIS (struktur final 2026-09-18)
+// MODEL BISNIS (launch 2026-09-18)
 // ---------------------------------------------------------------------------
-// Yang DIJUAL: Gemma 4 (jalur gratis, jangan pelit), DeepSeek Flash, DeepSeek Pro.
-// Flash-Lite hanya INTERNAL (fallback murah, tidak ditawarkan sebagai produk).
+// Hanya Free + Plus yang DITAWARKAN saat launch ("Pro"/"Ultra" disembunyikan
+// sementara, JANGAN dihapus — id, harga, dan batas kuotanya tetap ada dan siap
+// dinyalakan lagi tanpa migrasi).
+// Yang DIJUAL: Gemma 4 (jalur gratis, jangan pelit) dan DeepSeek Flash
+// (Plus). DeepSeek Pro + tier pro/ultra tetap terdefinisi tapi hidden.
 //
 // Id diambil dari katalog gateway yang TERVERIFIKASI
 // (`deepseek-ai/deepseek-v4-flash-0731`, `google/gemma-4-31b-it`). Varian
@@ -36,7 +39,7 @@ export const DEFAULT_MODEL_ID = "gemma-4-31b-it";
 export interface SellableModel extends ChatModel {
   /** Bucket kuota harian (`database.quota_bucket`). */
   bucket: "gemma" | "flash" | "pro";
-  /** Tampil di picker? (false = internal, mis. Flash-Lite) */
+  /** Tampil di picker? (false = hidden: internal ATAU Pro/Ultra saat launch). */
   sellable: boolean;
   /** Ada di katalog gateway saat ini? */
   available: boolean;
@@ -67,7 +70,9 @@ export const SELLABLE_MODELS: SellableModel[] = [
     provider: "DeepSeek (NVIDIA NIM)",
     tier: "plus",
     bucket: "pro",
-    sellable: true,
+    // HIDDEN saat launch 2026-09-18: hanya Free + Plus yang ditawarkan.
+    // JANGAN hapus — id/harga/kuota Pro tetap ada dan siap dinyalakan lagi.
+    sellable: false,
     available: false, // TODO: aktifkan saat id Pro muncul di katalog gateway
   },
   {
