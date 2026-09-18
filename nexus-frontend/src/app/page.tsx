@@ -856,6 +856,7 @@ return (
       onSelectSession={openSession}
       onNewChat={handleNewChat}
       onDeleteSession={handleDeleteSession}
+      userTier={userTier}
     >
       {/* Fix 6: Chat Baru saat AI bekerja -> dialog konfirmasi agar reply tetap
           diproses di sesi lama; user bisa memilih pindah atau bertahan. */}

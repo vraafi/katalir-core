@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useAuth } from "@/context/auth";
 import VaultModal from "@/components/VaultModal";
 import ThemeToggle from "@/components/ThemeToggle";
+import { UserMenu } from "@/components/UserMenu";
 import { StaggerList, StaggerItem } from "@/components/motion";
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
@@ -20,9 +21,11 @@ interface ShellProps {
   onSelectSession: (id: string) => void;
   onNewChat: () => void;
   onDeleteSession?: (id: string) => void | Promise<void>;
+  /** tier efektif user ("free" | "plus") — diteruskan ke UserMenu footer. */
+  userTier?: "free" | "plus";
 }
 
-export default function Shell({ children, sessions, currentSessionId, onSelectSession, onNewChat, onDeleteSession }: ShellProps) {
+export default function Shell({ children, sessions, currentSessionId, onSelectSession, onNewChat, onDeleteSession, userTier = "free" }: ShellProps) {
   const { email, loading, signInWithGoogle, signOut } = useAuth();
   const [vaultOpen, setVaultOpen] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<string | null>(null);
@@ -90,6 +93,14 @@ export default function Shell({ children, sessions, currentSessionId, onSelectSe
             })}
           </StaggerList>
         </div>
+        {/* Footer sidebar: menu akun (avatar + dropdown). Selalu terlihat
+            saat login — Upgrade ke Plus ada di sini (path upgrade yang jelas),
+            bukan hanya di dalam dropdown model. */}
+        {email && (
+          <div className="border-t border-border p-2">
+            <UserMenu userTier={userTier} />
+          </div>
+        )}
       </aside>
 
       <div className="flex min-w-0 flex-1 flex-col">
