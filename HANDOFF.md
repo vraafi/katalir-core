@@ -841,3 +841,58 @@ langsung berguna, bukan sekadar teknis benar.
 > tidak dapat diverifikasi dari dalam repo ditandai `TODO: verifikasi` — jangan
 > memperlakukannya sebagai fakta.
 
+
+
+---
+
+
+---
+
+## Billing (Dodo Payments) — 2026-09-18
+
+**Keputusan produk (user):** model bisnis = **bayar menaikkan TIER** (bukan hanya
+saldo). **Plus = Rp 5.000.000 / TAHUN** (bukan bulanan, bukan sekali bayar).
+Model Plus yang dituju: **DeepSeek V4 Flash via NVIDIA NIM** (gratis, reasoning
+kuat) — pendaftarannya di roster/tier-gate **masih pending**, lihat butir terbuka.
+
+### Akar masalah "billing mati total" ternyata BERLAPIS (audit → fix)
+| # | Temuan (bukti) | Perbaikan |
+|---|---|---|
+| 1 | `dodopayments` dipin **tanpa extra `[webhooks]`**, sehingga `client.webhooks.unwrap` melempar `You need to install 'dodopayments[webhooks]'` → verifikasi SELALU gagal → **semua webhook 401** (bahkan sebelum soal env) | `requirements.txt` → `dodopayments[webhooks]==1.116.0` + `standardwebhooks==1.1.0` |
+| 2 | Railway `production/web` **tidak punya var Dodo sama sekali** (30 var, 0 Dodo) → `verify_dodo_webhook` `return False` (fail-closed) | Supabase… maaf, **Railway** di-`variableUpsert`: `DODO_WEBHOOK_SECRET`, `DODO_API_KEY`, `DODO_PAYMENTS_ENVIRONMENT=live_mode` (total 33 var) |
+| 3 | Handler hanya `topup_balance` → **bayar tidak menaikkan tier** | Handler memetakan event → `update_tier` (+ topup); tier dari `metadata.tier`, default `plus` |
+| 4 | **Tidak ada idempotensi** padahal Dodo punya retry + bulk replay → double-credit | Tabel `payment_events` (PK `webhook_id`) + `claim_payment_event` / `mark_payment_event_processed` (status `pending`→`processed` = race-safe **dan** retry-safe) |
+| 5 | `except: pass` di `topup_balance`/`update_tier` → **gagal senyap** (200 padahal tidak tersimpan) | Diubah jadi **raise** saat DB terkonfigurasi → webhook 5xx → Dodo retry. `execution_engine` sudah membungkus pemanggilannya, jadi aman |
+| 6 | **Kolom saldo salah**: kode memakai `balance`, skema asli `user_balances` = `email, credit_balance, tier` → query 400 → saldo selalu dari memori | Baca/tulis `credit_balance` |
+| 7 | **RLS**: saldo dibaca lewat klien **anon** (`_get_client`) → hasil kosong → saldo terbaca **0** → topup MENIMPA dan refund jadi **negatif** (terbukti di produksi: 5jt − ref 2jt → **−2jt**) | `get_balance`/`payment_event_exists` memakai klien **service** (sama seperti tulis) |
+| 8 | `billing_llm.verify_dodo_webhook` = dead code dengan **dev-bypass** (`if not secret: return True`) | Di-deprecate: selalu `False` + log peringatan (fail-closed) |
+| 9 | `href="#upgrade"` + `preventDefault` = tombol upgrade tidak bereaksi | `BuyPlusButton` membaca `NEXT_PUBLIC_DODO_CHECKOUT_URL`; bila kosong → tombol NONAKTIF berlabel jujur (bukan link palsu) |
+
+### Bukti produksi (setelah fix, akun UJI `billing-e2e@nexus-local.test`)
+```
+HEALTH=200
+SPOOF tanpa signature        -> 401   (anti-spoof)
+SPOOF signature palsu        -> 401
+payment.succeeded 5jt        -> 200 {tier: plus}   users.tier: [] -> plus
+payment +1jt (webhook BARU)  -> balance 6.000.000  (MENJUMLAH; dulu menimpa)
+duplikat webhook-id sama     -> {"status":"already_processed"}, saldo TETAP
+refund 2jt                   -> balance 4.000.000  (dulu -2.000.000)
+payment_events               -> 3 baris, status "processed"
+```
+Unit test: `tests/test_dodo_webhook.py` **11 test** (spoof 401 ×2, tanda tangan
+nyata 200, duplikat, tier+saldo, refund, 5xx saat DB gagal, dan 3 regresi RLS).
+Suite penuh: **116 passed**.
+
+### Butir TERBUKA (butuh user)
+1. **Produk Dodo belum ada** — API `GET /products` (live) mengembalikan **0 produk**,
+   jadi belum ada Checkout Link untuk `NEXT_PUBLIC_DODO_CHECKOUT_URL`. Buat produk
+   Plus (harga Rp 5.000.000 / TAHUN) di dashboard → pasang link-nya.
+2. **Konversi satuan nominal**: Dodo mengirim nilai pada sebagian event dalam
+   satuan terkecil. Handler menyimpan nilai APA ADANYA (tidak menebak); konversi
+   ke rupiah penuh adalah keputusan bisnis.
+3. **Plus = DeepSeek V4 Flash via NVIDIA NIM**: belum dipetakan ke tier-gate
+   (`PLUS_CHAT_MODELS`) — perlu perubahan roster/penyajian model Plus.
+4. **Dodo test mode tidak tersedia** untuk kunci ini (host test menjawab 401),
+   jadi uji end-to-end tanda tangan dilakukan dengan secret live + akun uji.
+5. Tabel `payment_events` RLS diaktifkan tanpa policy; backend memakai service
+   role (bypass), jadi aman — tapi perlu policy bila kelak diakses klien.

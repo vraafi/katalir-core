@@ -15,6 +15,47 @@ interface ModelSelectorProps {
   userTier?: "free" | "plus";
 }
 
+/**
+ * Link checkout Dodo Payments (Plus: Rp 5.000.000 / TAHUN).
+ *
+ * Diambil dari `NEXT_PUBLIC_DODO_CHECKOUT_URL`. Next meng-INLINE nilai
+ * `NEXT_PUBLIC_*` saat build, jadi mengubah URL = build ulang (bukan runtime).
+ */
+const CHECKOUT_URL = (process.env.NEXT_PUBLIC_DODO_CHECKOUT_URL || "").trim();
+
+/**
+ * Tombol upgrade ke Plus. Dua keadaan, keduanya jujur:
+ *  - URL tersedia  -> tautan keluar ke checkout Dodo (tab baru, noopener).
+ *  - URL belum ada -> tombol NONAKTIF + keterangan, BUKAN link palsu yang
+ *    diam-diam tidak melakukan apa pun (perilaku lama `href="#upgrade"` +
+ *    preventDefault: user bingung karena tombolnya tidak bereaksi).
+ */
+function BuyPlusButton({ checkoutUrl }: { checkoutUrl: string }) {
+  const base =
+    "mt-1 flex items-center justify-center rounded-sm border-t border-border " +
+    "px-2.5 py-2 text-[12px] font-semibold transition-colors";
+  if (!checkoutUrl) {
+    return (
+      <span
+        className={cn(base, "cursor-not-allowed text-fg-subtle")}
+        title="Link checkout belum dikonfigurasi (NEXT_PUBLIC_DODO_CHECKOUT_URL)"
+      >
+        Upgrade ke Plus — Rp 5.000.000 / tahun (segera)
+      </span>
+    );
+  }
+  return (
+    <a
+      href={checkoutUrl}
+      target="_blank"
+      rel="noopener noreferrer"
+      className={cn(base, "text-accent hover:bg-bg-subtle")}
+    >
+      Upgrade ke Plus — Rp 5.000.000 / tahun
+    </a>
+  );
+}
+
 /** Dropdown pemilih model di composer (radix, non-modal → tanpa pointer-events lock).
  *  Baseline: thiagovarela/clankie #49, assistant-ui ModelSelector, hermes-agent #5880. */
 export function ModelSelector({
@@ -118,13 +159,15 @@ export function ModelSelector({
             </div>
           ))}
           {plusDisabled && (
-            <a
-              href="#upgrade"
-              onClick={(e) => e.preventDefault()}
-              className="mt-1 flex items-center justify-center rounded-sm border-t border-border px-2.5 py-2 text-[12px] font-semibold text-accent transition-colors hover:bg-bg-subtle"
-            >
-              Upgrade ke Plus untuk unlocked
-            </a>
+            // Link checkout Dodo Payments. Nilai diambil dari
+            // `NEXT_PUBLIC_DODO_CHECKOUT_URL` (di-INLINE saat build — Next
+            // menyalin env NEXT_PUBLIC_* ke bundle, jadi mengubahnya perlu
+            // build ulang). Sebelumnya `href="#upgrade"` + preventDefault =
+            // tombol mati: user tidak punya jalan membayar.
+            //
+            // Bila env belum di-set (mis. belum ada produk di dashboard Dodo),
+            // penampilan tetap jujur: link TIDAK dibuat seolah berfungsi.
+            <BuyPlusButton checkoutUrl={CHECKOUT_URL} />
           )}
         </DropdownMenu.Content>
       </DropdownMenu.Portal>
