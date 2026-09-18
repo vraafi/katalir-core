@@ -662,7 +662,12 @@ def _agentic_run_direct(prompt: str, email: str, model: str | None = None,
     if not _pool.size:
         if gw_err is not None:
             raise gw_err  # tanpa kunci Gemini, laporkan kegagalan gateway apa adanya
-        raise HTTPException(500, "API key tidak ditemukan.")
+        # Pool kosong = kondisi KONFIGURASI/LAYANAN (env server tidak memuat
+        # `GEMINI_KEY_*`), bukan bug server. Sebelumnya ini 500, sehingga UI
+        # menampilkan "Terjadi kesalahan internal" dan menyembunyikan penyebab
+        # sebenarnya; 503 adalah kontrak yang benar untuk "coba lagi nanti".
+        raise HTTPException(
+            503, "Semua kunci API tidak tersedia. Coba lagi dalam 1 menit.")
 
     if gw_err is not None:
         model = os.getenv("AGENT_FALLBACK_MODEL", "gemini-2.5-flash")

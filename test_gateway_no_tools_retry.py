@@ -1,4 +1,4 @@
-﻿"""Kontrak retry tanpa tools di _agentic_run_gateway (temuan U).
+"""Kontrak retry tanpa tools di _agentic_run_gateway (temuan U).
 
 Gateway free-llm-gateway membalas 500 polos bila payload memuat tools untuk
 model tertentu (mis. groq/compound). Retry tanpa tools harus terjadi, dan
