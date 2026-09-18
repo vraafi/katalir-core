@@ -607,7 +607,30 @@ sebelum dijadikan dasar keputusan besar.
      `is_paid_only()` **wajib**: model Pro tidak boleh muncul sebagai pilihan hidup.
    - Nama keluarga provider yang benar adalah **`google_gemini`**; memakai `"google"`
      membuat pencocokan provider gagal diam-diam.
-   - `TODO: verifikasi` angka RPD persisnya (Google mengubah kuota tanpa pengumuman).
+   - **Angka RPD TERVERIFIKASI 2026-09-18** (screenshot Rate Limit di akun FREE TIER
+     milik user — bukan lagi perkiraan; `TODO: verifikasi` di sini sudah SELESAI).
+     Kuota Google bersifat **PER-MODEL**, bukan per-akun:
+
+     | Model | RPM | RPD | Status |
+     |---|---|---|---|
+     | `gemini-2.5-flash` | 6/5 | 39/20 | OVER |
+     | `gemini-2.5-flash-lite` | 6/10 | 26/20 | OVER |
+     | `gemini-3-flash-preview` | 3/5 | 27/20 | OVER |
+     | `gemini-3.5-flash` … `3.8-flash` | 1/5 | 1–2/20 | tipis |
+     | `gemma-4-31b-it` | 7/30 | 161/14400 | **RECOMMENDED** |
+     | `gemini-3.1-flash-lite` / `3.5-flash-lite` | 2/15 | 2/500 | aman |
+     | `gemini-2.5-pro`, `gemini-3.1-pro`, `nano-banana`, `lyria`, `veo`, `omni`,
+       `computer-use`, `deep-research`, Live APIs | — | **0** | paid-only |
+
+   - **Konsekuensi operasional (penting, bukan bug kode):** RPD habis → probe roster
+     menerima **429** → id itu **dikeluarkan dari roster**. Itu perilaku BENAR (hanya
+     model yang terbukti menjawab yang diserve). Karena itu **JANGAN mem-pin model
+     RPD-20 sebagai `expected` di spec E2E** — tes akan gagal-acak dan MENUDUH filter,
+     padahal penyebabnya kuota Google. Keluarga `gemini-*flash*` yang lama dipin
+     (`gemini-3-flash-preview`) sudah diganti **pola berkuota besar** di
+     `tests/model-filter.spec.ts` (`RELIABLE_FREE_RE`) + pemilihan dari roster live.
+     Terbukti (E2E 2026-09-18): `RELIABLE_FREE_IDS=["google/gemma-4-31b-it"]`,
+     `PICK_MODEL=google/gemma-4-31b-it ROSTER_N=12`, suite **14 passed**.
 
 2. **Model paid-only harus disaring berlapis (3-gerbang)** — pola dari OmniRoute #6495:
    (a) **pola nama** (mis. regex `pro`, `nano-banana`, `lyria`, `robotics`, `transcribe`),
