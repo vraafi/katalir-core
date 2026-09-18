@@ -16,7 +16,7 @@ import type { ChatMessage } from "@/features/chat/hooks/useChat";
 import { useQueryClient } from "@tanstack/react-query";
 import { chatKeys } from "@/lib/query-keys";
 import { ModelSelector } from "@/components/ModelSelector";
-import { CHAT_MODELS, DEFAULT_MODEL_ID } from "@/lib/models";
+import { CHAT_MODELS, DEFAULT_MODEL_ID, pickerModels } from "@/lib/models";
 
 const SUGGESTIONS = ["Kirim pesan WA", "Rangkum dokumen", "Analisis data"];
 
@@ -154,6 +154,105 @@ interface SessionItem {
   title?: string;
 }
 
+/** Kuota harian (GET /quota). Satuan = REQUEST (1 request = 1 RPD), reset 00:00 WIB.
+ *
+ * KENAPA "request", bukan "chat": satu percakapan bisa memakai beberapa request
+ * (agent loop memanggil model lebih dari sekali), jadi menulis "chat" akan
+ * membuat user mengira jatahnya lebih besar daripada kenyataan.
+ */
+type QuotaBucket = { used: number; limit: number; remaining: number };
+type QuotaStatus = {
+  tier: string;
+  buckets: Record<string, QuotaBucket>;
+  used_total: number;
+  limit_total: number;
+  reset_at_wib?: string;
+  labels?: Record<string, string>;
+};
+
+const QUOTA_LABELS_FALLBACK: Record<string, string> = {
+  gemma: "Gemma 4 (default)",
+  flash: "DeepSeek Flash",
+  pro: "DeepSeek Pro",
+};
+/** Urutan tampil: jalur gratis dulu, lalu DeepSeek menaik. */
+const QUOTA_ORDER = ["gemma", "flash", "pro"];
+
+function QuotaBar({ label, used, limit }: { label: string; used: number; limit: number }) {
+  const pct = limit > 0 ? Math.min(100, Math.round((used / limit) * 100)) : 0;
+  // Ambang "hampir habis": sisa <= 10% ATAU <= 2 request (selaras warning pre-flight).
+  const low = limit > 0 && limit - used <= Math.max(2, Math.ceil(limit * 0.1));
+  return (
+    <div className="flex flex-col gap-1">
+      <div className="flex items-center justify-between text-[11px] leading-tight">
+        <span className="text-fg-subtle">{label}</span>
+        <span className={low ? "font-semibold text-amber-500" : "text-fg-subtle"}>
+          {used} / {limit}
+        </span>
+      </div>
+      <div
+        className="h-1.5 w-full overflow-hidden rounded-full bg-bg-subtle"
+        role="progressbar"
+        aria-label={label}
+        aria-valuenow={used}
+        aria-valuemin={0}
+        aria-valuemax={limit}
+      >
+        <div
+          className={
+            low
+              ? "h-full bg-amber-500 transition-all"
+              : "h-full bg-accent transition-all"
+          }
+          style={{ width: `${pct}%` }}
+        />
+      </div>
+    </div>
+  );
+}
+
+/** Panel kuota: progress bar per model + total + jam reset (WIB). */
+function QuotaPanel({ quota }: { quota: QuotaStatus | null }) {
+  if (!quota || !quota.buckets) return null;
+  const labels = quota.labels ?? QUOTA_LABELS_FALLBACK;
+  const shown = QUOTA_ORDER.filter((b) => (quota.buckets[b]?.limit ?? 0) > 0);
+  const pct =
+    quota.limit_total > 0 ? Math.round((quota.used_total / quota.limit_total) * 100) : 0;
+  return (
+    <div className="mb-2 flex flex-col gap-2 rounded-lg border border-border/60 bg-surface/70 px-3 py-2 backdrop-blur">
+      <div className="flex items-center justify-between text-[11px] font-semibold uppercase tracking-wide text-fg-subtle">
+        <span>Kuota {quota.tier} — hari ini</span>
+        <span>{pct}%</span>
+      </div>
+      {shown.map((b) => (
+        <QuotaBar
+          key={b}
+          label={labels[b] ?? b}
+          used={quota.buckets[b].used}
+          limit={quota.buckets[b].limit}
+        />
+      ))}
+      <div className="text-[11px] text-fg-subtle">
+        Total: {quota.used_total} / {quota.limit_total} request · Reset: besok 00:00 WIB
+      </div>
+    </div>
+  );
+}
+
+/** Warning pre-flight (spesifikasi bisnis): Flash sisa < 5, Pro sisa < 2. */
+function quotaWarning(quota: QuotaStatus | null): string | null {
+  if (!quota?.buckets) return null;
+  const p = quota.buckets.pro;
+  const f = quota.buckets.flash;
+  if (p && p.limit > 0 && p.remaining < 2) {
+    return `Kuota DeepSeek Pro hampir habis (sisa ${p.remaining} request hari ini).`;
+  }
+  if (f && f.limit > 0 && f.remaining < 5) {
+    return `Kuota DeepSeek Flash hampir habis (sisa ${f.remaining} request hari ini).`;
+  }
+  return null;
+}
+
 function ChatApp() {
   const { email, loading } = useAuth();
   // URL state: ?s=<sessionId> (nuqs, shallow) — source of truth.
@@ -287,6 +386,28 @@ function ChatApp() {
   const sendMutation = useSendChatMutation();
   const deleteMutation = useDeleteSessionMutation();
   const qc = useQueryClient();
+
+  // ---- KUOTA HARIAN (GET /quota) ----------------------------------------
+  // Informasi saja: kegagalan fetch TIDAK boleh mengganggu chat.
+  const [quota, setQuota] = useState<QuotaStatus | null>(null);
+  const refreshQuota = useCallback(async () => {
+    if (!activeEmail) return;
+    try {
+      // `apiFetch` mengembalikan Response mentah (lihat pemakaian lain di file
+      // ini) -> JSON harus diparse dulu; `as QuotaStatus` langsung DITOLAK tsc.
+      const res = await apiFetch("/quota");
+      const q = (await res.json()) as QuotaStatus;
+      if (q && q.buckets) setQuota(q);
+    } catch {
+      /* diabaikan dengan sengaja (lihat komentar di atas) */
+    }
+  }, [activeEmail]);
+  useEffect(() => {
+    void refreshQuota();
+    // Segarkan tiap menit: kuota bisa habis dari tab/perangkat lain.
+    const t = setInterval(() => void refreshQuota(), 60_000);
+    return () => clearInterval(t);
+  }, [refreshQuota]);
   const loadingMsg = sendMutation.isPending;
 
   // Fase 1 / CallSphere 200ms rule: indikator berstage.
@@ -566,6 +687,9 @@ function ChatApp() {
         // newChat; overlay men-dedup agar tidak duplikat saat frame switch.
         void setSessionId(data.session_id);
       }
+      // Kuota baru saja terpakai 1 request -> segarkan progress bar segera
+      // (tanpa harus menunggu interval 60 detik).
+      void refreshQuota();
       // Reply + kartu kredensial datang via cache update (onSuccess) dan
       // query-invalidatie (messagesData refresh).
     } catch {
@@ -1002,6 +1126,16 @@ return (
         {/* Input bar — flex-none, sticky di bawah, TIDAK ikut scroll */}
         <div className="flex-none bg-transparent px-5 pb-4 pt-2">
           <div className="mx-auto max-w-[48rem]">
+            {/* KUOTA-AREA: progress bar + warning pre-flight, DI ATAS composer
+                supaya terlihat sebelum user mengirim (bukan setelah gagal).
+                Hanya dirender saat login (kuota terikat akun). */}
+            {activeEmail && <QuotaPanel quota={quota} />}
+            {activeEmail && quotaWarning(quota) && (
+              <p className="mb-2 flex items-center gap-1.5 text-[11px] font-medium text-amber-500">
+                <AlertTriangle size={12} strokeWidth={2} />
+                {quotaWarning(quota)}
+              </p>
+            )}
             <form
               onSubmit={(e) => {
                 e.preventDefault();
@@ -1011,7 +1145,7 @@ return (
             >
               {/* Model selector pill di kiri input (mastra #12407, clankie #49). */}
               <ModelSelector
-                models={modelList}
+                models={pickerModels(modelList)}
                 value={selectedModel}
                 onChange={setSelectedModel}
                 disabled={loadingMsg}
