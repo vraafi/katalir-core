@@ -961,11 +961,20 @@ def _quota_row(email: str):
 def _quota_write(email: str, values: dict) -> None:
     if is_configured():
         c = _get_write_client()
+        # WAJIB: datetime -> string ISO. httpx/json TIDAK bisa menyerialkan objek
+        # datetime, sehingga menulis `daily_reset_at` apa adanya melempar
+        # "Object of type datetime is not JSON serializable" -> /chat gagal
+        # untuk setiap user yang BELUM punya baris kuota (regresi produksi
+        # 2026-09-18, tertangkap E2E: 3 tes timeout + 4 TypeError di log server).
+        safe = {
+            k: (v.isoformat() if isinstance(v, datetime) else v)
+            for k, v in values.items()
+        }
         ex = c.table("user_usage").select("email").eq("email", email).limit(1).execute()
         if getattr(ex, "data", None):
-            c.table("user_usage").update(values).eq("email", email).execute()
+            c.table("user_usage").update(safe).eq("email", email).execute()
         else:
-            c.table("user_usage").insert({"email": email, **values}).execute()
+            c.table("user_usage").insert({"email": email, **safe}).execute()
         return
     row = _LQUOTA.setdefault(email, {"email": email, "daily_gemma": 0,
                                      "daily_flash": 0, "daily_pro": 0,

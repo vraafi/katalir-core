@@ -13,6 +13,7 @@ tidak menyentuh Supabase maupun jaringan.
 """
 
 from datetime import datetime, timedelta, timezone
+import json
 
 import pytest
 
@@ -182,3 +183,76 @@ def test_chat_fallback_ke_bucket_lebih_murah(chat_client, monkeypatch):
     assert body["meta"]["quota_fallback_from"] == "pro"
     assert called["counted"] == FLASH_MODEL, "kuota dihitung dari model yang dipakai"
     assert body["meta"]["quota_bucket"] == "flash"
+
+
+# ---------------------------------------------------------------------------
+# REGRESI PRODUKSI 2026-09-18: penulisan kuota mengirim objek `datetime` ke
+# httpx -> "Object of type datetime is not JSON serializable" -> /chat gagal
+# untuk SETIAP user yang belum punya baris kuota (tertangkap 3 tes E2E timeout).
+# ---------------------------------------------------------------------------
+class _Resp:
+    """Respons tiruan (atribut `data`) seperti supabase-py."""
+    def __init__(self, data):
+        self.data = data
+
+
+class _JsonStrictQuery:
+    """Klien tiruan yang MENOLAK payload tak-JSON, seperti httpx sungguhan."""
+
+    def __init__(self, store, exists):
+        self._store = store
+        self._exists = exists
+        self._payload = None
+
+    def select(self, *a, **k):
+        return self
+
+    def eq(self, *a, **k):
+        return self
+
+    def limit(self, *a, **k):
+        return self
+
+    def insert(self, payload, *a, **k):
+        self._payload = payload
+        return self
+
+    def update(self, payload, *a, **k):
+        self._payload = payload
+        return self
+
+    def execute(self):
+        if self._payload is not None:
+            json.dumps(self._payload)  # <- melempar TypeError bila ada datetime
+            self._store.update(self._payload)
+        return _Resp([{"email": "x"}] if self._exists else [])
+
+
+class _JsonStrictClient:
+    def __init__(self, store, exists):
+        self._store = store
+        self._exists = exists
+
+    def table(self, _name):
+        return _JsonStrictQuery(self._store, self._exists)
+
+
+def test_tulis_kuota_tidak_mengirim_datetime(monkeypatch):
+    """`daily_reset_at` WAJIB dikirim sebagai string ISO, bukan objek datetime."""
+    store = {}
+    monkeypatch.setattr(db, "is_configured", lambda: True)
+    monkeypatch.setattr(db, "SUPABASE_SERVICE_KEY", "svc")
+    # Baris BELUM ada -> jalur INSERT (inilah kasus yang meledak di produksi).
+    monkeypatch.setattr(db, "_get_write_client",
+                        lambda: _JsonStrictClient(store, exists=False))
+    monkeypatch.setattr(db, "_get_client", lambda: _JsonStrictClient({}, exists=False))
+
+    # Tidak boleh melempar TypeError dari json.dumps di dalam klien tiruan.
+    db.check_and_reset("baru@test.dev")
+    assert "daily_reset_at" in store, "baris kuota tidak ditulis"
+    assert isinstance(store["daily_reset_at"], str), (
+        "daily_reset_at dikirim sebagai %s (harus string ISO)"
+        % type(store["daily_reset_at"]).__name__
+    )
+    # Dan nilainya harus bisa dibaca kembali oleh pemeriksa reset.
+    assert db.quota_reset_due(store["daily_reset_at"]) is False
