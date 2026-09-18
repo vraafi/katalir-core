@@ -13,6 +13,9 @@ const mono = JetBrains_Mono({ subsets: ["latin"], variable: "--font-mono", displ
 export const metadata: Metadata = {
   title: "Katalir — SaaS AI",
   description: "Katalir: Autonomous AI Agent untuk bisnis Anda.",
+  icons: {
+    icon: "/favicon.ico",
+  },
 };
 
 export default function RootLayout({

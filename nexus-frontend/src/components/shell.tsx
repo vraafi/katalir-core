@@ -1,6 +1,6 @@
 "use client";
 
-import { Plus, Bot, LogIn, LogOut, MessageSquare, Workflow, KeyRound, MoreHorizontal, Trash2 } from "lucide-react";
+import { Plus, LogIn, LogOut, MessageSquare, Workflow, KeyRound, MoreHorizontal, Trash2 } from "lucide-react";
 import Link from "next/link";
 import { useAuth } from "@/context/auth";
 import VaultModal from "@/components/VaultModal";
@@ -95,10 +95,9 @@ export default function Shell({ children, sessions, currentSessionId, onSelectSe
       <div className="flex min-w-0 flex-1 flex-col">
         <header className="sticky top-0 z-10 flex items-center justify-between bg-bg/70 px-5 py-3 backdrop-blur-xl">
           <div className="flex items-center gap-2">
-            <div className="flex h-8 w-8 items-center justify-center rounded-sm bg-gradient-to-br from-accent to-brand text-accent-fg">
-              <Bot className="h-4 w-4" strokeWidth={1.75} />
-            </div>
-            <span className="text-callout font-bold text-fg">Katalir</span>
+            {/* Logo text-only (rebrand 2026-09-18): Inter Bold, text-xl,
+                tracking-tight. TANPA ikon — tidak perlu dependensi gambar. */}
+            <span className="text-xl font-bold tracking-tight text-fg">Katalir</span>
           </div>
           <div className="flex items-center gap-2">
             <ThemeToggle />
