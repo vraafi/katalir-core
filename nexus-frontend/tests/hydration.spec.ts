@@ -8,6 +8,10 @@ const HYDRATION_RE = /hydrat|did not match|server rendered|tree hydrated/i;
 
 const SEED_MODEL = "gemma-4-9b-it"; // BUKAN default & tidak ada di fallback list
 const SEED_QUEUE = [{ id: "hyd-1", text: "pesan antrean hydration" }];
+// Rebrand 2026-09-18: app membaca "katalir.*" DULU, lalu fallback ke key
+// lama "nexus.*" — jadi menanam key BARU menguji jalur utama yang baru.
+const MODEL_KEY = "katalir.model.v1";
+const QUEUE_KEY = "katalir.queue.v1";
 
 /**
  * HYD-1: nilai localStorage yang ditanam SEBELUM app boot tidak boleh
@@ -24,15 +28,15 @@ const SEED_QUEUE = [{ id: "hyd-1", text: "pesan antrean hydration" }];
  */
 test("HYD-1: localStorage tersimpan tidak memicu hydration mismatch", async ({ page }) => {
   await page.addInitScript(
-    (kv) => {
+    (kv: { model: string; queue: string; mkey: string; qkey: string }) => {
       try {
-        window.localStorage.setItem("nexus.model.v1", kv.model);
-        window.localStorage.setItem("nexus.queue.v1", kv.queue);
+        window.localStorage.setItem(kv.mkey, kv.model);
+        window.localStorage.setItem(kv.qkey, kv.queue);
       } catch {
         /* ignore */
       }
     },
-    { model: SEED_MODEL, queue: JSON.stringify(SEED_QUEUE) }
+    { model: SEED_MODEL, queue: JSON.stringify(SEED_QUEUE), mkey: MODEL_KEY, qkey: QUEUE_KEY }
   );
 
   const pageErrors: string[] = [];
@@ -64,7 +68,7 @@ test("HYD-1: localStorage tersimpan tidak memicu hydration mismatch", async ({ p
 
   // 2) Pilihan model tersimpan TIDAK ditimpa balik ke default oleh effect persist
   //    (regresi gate `modelReady`: tanpa gate, commit pertama menulis DEFAULT).
-  const storedAfter = await page.evaluate(() => window.localStorage.getItem("nexus.model.v1"));
+  const storedAfter = await page.evaluate((k: string) => window.localStorage.getItem(k), MODEL_KEY);
   console.log("STORED_MODEL_AFTER=" + storedAfter);
   expect(storedAfter).toBe(SEED_MODEL);
 

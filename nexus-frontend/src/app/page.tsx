@@ -264,7 +264,9 @@ function ChatApp() {
   const [input, setInput] = useState("");
   const [credValue, setCredValue] = useState("");
   // Model selector: daftar DINAMIS dari GET /models (discovery live server).
-  // Persist localStorage 'nexus.model.v1'. Disabled saat streaming.
+  // Persist localStorage 'katalir.model.v1'. Disabled saat streaming.
+  // Fallback baca key lama 'nexus.model.v1' (rebrand 2026-09-18): jangan
+  // hapus data/pilihan user yang tersimpan sebelum rebrand.
   const { data: modelsData } = useModelsQuery(!!activeEmail);
   const serverModels: ChatModelItem[] | null =
     modelsData && modelsData.models.length > 0 ? modelsData.models : null;
@@ -292,7 +294,11 @@ function ChatApp() {
   const [modelReady, setModelReady] = useState(false);
   useEffect(() => {
     try {
-      const stored = window.localStorage.getItem("nexus.model.v1");
+      // Rebrand 2026-09-18: baca key baru dulu, key lama sebagai fallback
+      // (jangan hapus pilihan user lama).
+      const stored =
+        window.localStorage.getItem("katalir.model.v1") ??
+        window.localStorage.getItem("nexus.model.v1");
       if (stored) setSelectedModel(stored);
     } catch {
       /* storage diblokir — pilihan tetap jalan in-memory */
@@ -304,7 +310,7 @@ function ChatApp() {
     // pertama (sebelum state hasil restore commit) -> nilai user tertimpa.
     if (!modelReady) return;
     try {
-      window.localStorage.setItem("nexus.model.v1", selectedModel);
+      window.localStorage.setItem("katalir.model.v1", selectedModel);
     } catch {
       /* storage diblokir — pilihan tetap jalan in-memory */
     }
@@ -319,7 +325,10 @@ function ChatApp() {
   const [queueReady, setQueueReady] = useState(false);
   useEffect(() => {
     try {
-      const raw = window.localStorage.getItem("nexus.queue.v1");
+      // Rebrand 2026-09-18: baca key baru dulu, key lama sebagai fallback.
+      const raw =
+        window.localStorage.getItem("katalir.queue.v1") ??
+        window.localStorage.getItem("nexus.queue.v1");
       if (raw) {
         const arr = JSON.parse(raw) as QueuedMsg[];
         if (Array.isArray(arr)) {
@@ -357,7 +366,7 @@ function ChatApp() {
     // Tanpa gate: commit pertama menulis [] sebelum antrean restored commit.
     if (!queueReady) return;
     try {
-      window.localStorage.setItem("nexus.queue.v1", JSON.stringify(messageQueue));
+      window.localStorage.setItem("katalir.queue.v1", JSON.stringify(messageQueue));
     } catch {
       /* storage penuh/diblokir — queue tetap jalan in-memory */
     }
@@ -1160,7 +1169,7 @@ return (
                     onStop();
                   }
                 }}
-                placeholder={activeEmail ? "Ketik pesan ke Nexus Agent..." : "Login untuk mulai mengobrol"}
+                placeholder={activeEmail ? "Ketik pesan ke Katalir..." : "Login untuk mulai mengobrol"}
                 aria-label="Pesan"
                 className="h-9 border-0 shadow-none bg-transparent focus-visible:shadow-none"
               />

@@ -362,7 +362,7 @@ test.describe("PRODUKSI: filter model paid-only + badge fallback (tanpa mock)", 
     // yang harus dijelaskan ke user: badge menampilkan diminta vs dipakai.
     await page.addInitScript((m: string) => {
       try {
-        window.localStorage.setItem("nexus.model.v1", m);
+        window.localStorage.setItem("katalir.model.v1", m);
       } catch {
         /* ignore */
       }
@@ -437,7 +437,7 @@ test.describe("PRODUKSI: filter model paid-only + badge fallback (tanpa mock)", 
     const okModel = await pickReliableModel(request, session!);
     await page.addInitScript((m: string) => {
       try {
-        window.localStorage.setItem("nexus.model.v1", m);
+        window.localStorage.setItem("katalir.model.v1", m);
       } catch {
         /* ignore */
       }

@@ -98,7 +98,7 @@ export default function Shell({ children, sessions, currentSessionId, onSelectSe
             <div className="flex h-8 w-8 items-center justify-center rounded-sm bg-gradient-to-br from-accent to-brand text-accent-fg">
               <Bot className="h-4 w-4" strokeWidth={1.75} />
             </div>
-            <span className="text-callout font-bold text-fg">Nexus Agent</span>
+            <span className="text-callout font-bold text-fg">Katalir</span>
           </div>
           <div className="flex items-center gap-2">
             <ThemeToggle />

@@ -89,7 +89,7 @@ test("E2E supabase asli: login ter-inject + kirim pesan TIDAK 401 & TIDAK 5xx", 
   });
   await page.waitForTimeout(4000);
 
-  const shell = await page.getByText("Nexus Agent").count();
+  const shell = await page.getByText("Katalir").count();
   const input2 = await page.locator('[aria-label="Pesan"]').count();
   const bodyLen = await page.evaluate(() => document.body.innerText.length).catch(() => -1);
   const bodyText = await page.evaluate(() => document.body.innerText).catch(() => "");

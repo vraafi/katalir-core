@@ -12,8 +12,8 @@ test("3c3: chat page load — no page error + URL ?s state", async ({ page }) =>
 
   const search = await page.evaluate(() => window.location.search);
   console.log("URL_SEARCH=" + search);
-  const hasShell = await page.locator("text=Nexus Agent").count();
-  console.log("SHELL_NEXUS=" + hasShell);
+  const hasShell = await page.locator("text=Katalir").count();
+  console.log("SHELL_KATALIR=" + hasShell);
 
   console.log("PAGE_ERRORS=" + JSON.stringify(errs));
   // 0 errors = nuqs+Suspense intact + geen crash (backend 401 is ok voor leeg).

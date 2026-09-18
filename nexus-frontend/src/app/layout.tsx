@@ -11,8 +11,8 @@ const sans = Inter({ subsets: ["latin"], variable: "--font-sans", display: "swap
 const mono = JetBrains_Mono({ subsets: ["latin"], variable: "--font-mono", display: "swap" });
 
 export const metadata: Metadata = {
-  title: "Nexus Agent — SaaS AI",
-  description: "Autonomous AI Agent untuk bisnis Anda.",
+  title: "Katalir — SaaS AI",
+  description: "Katalir: Autonomous AI Agent untuk bisnis Anda.",
 };
 
 export default function RootLayout({
