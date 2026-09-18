@@ -85,7 +85,31 @@ const FORBIDDEN_RE = /-pro|pro-latest|advanced|transcribe|lyria|nano-banana|robo
  * ketat, tanpa jaringan, dan tidak bisa gagal karena nasib provider.
  * Di sini yang diuji adalah sifat yang memang stabil pada roster LIVE.
  */
-const REQUIRED_IDS = ["gemini-3-flash-preview"];
+/*
+ * DIGANTI 2026-09-18 (sebabnya KUOTA, bukan kode): pin id tunggal
+ * `gemini-3-flash-preview` DIHAPUS. Screenshot Rate Limit user (akun FREE
+ * TIER) membuktikan kuota Google bersifat PER-MODEL dan keluarga Flash hanya
+ * RPD 20/hari sehingga cepat OVER:
+ *     gemini-2.5-flash        RPD 39/20     OVER
+ *     gemini-2.5-flash-lite   RPD 26/20     OVER
+ *     gemini-3-flash-preview  RPD 27/20     OVER   <-- pin lama: 3 tes merah
+ *     gemma-4-31b-it          RPD 161/14400 OK
+ *     gemini-3.1-flash-lite   RPD 2/500     OK
+ *     gemini-3.5-flash-lite   RPD 2/500     OK
+ * RPD habis -> probe roster gateway menerima 429 -> id itu DIKELUARKAN dari
+ * roster. Itu perilaku BENAR (hanya model yang terbukti menjawab yang
+ * diserve), jadi mem-pin id RPD-20 = tes gagal-acak yang MENUDUH filter,
+ * padahal penyebabnya kuota Google.
+ *
+ * Pengganti: POLA keluarga berkuota besar. Pola dipakai (bukan id telanjang)
+ * karena id yang diserve gateway memakai prefix provider -- roster produksi
+ * memuat `google/gemma-4-31b-it`, bukan `gemma-4-31b-it`.
+ */
+const RELIABLE_FREE_RE = /gemma-4.*(31b|26b)|gemini-3[.][15]-flash-lite/i;
+/** Fallback bila roster tidak memuat pola di atas (bentuk id roster produksi). */
+const CANONICAL_FREE_MODEL = "google/gemma-4-31b-it";
+/** Id RPD-20: TIDAK boleh dipin sebagai expected (gampang OVER harian). */
+const LOW_RPD_IDS = ["gemini-2.5-flash", "gemini-2.5-flash-lite", "gemini-3-flash-preview"];
 
 /**
  * Keluarga model WAJIB yang harus tetap terwakili (bukan id spesifik).
@@ -185,6 +209,42 @@ function track(page: Page) {
   return { models, chats };
 }
 
+/** Pilih model free-tier berkuota besar yang BENAR-BENAR ada di roster live.
+ *
+ * Memakai `request` (bukan pin id di kode tes) supaya VALID tidak bergantung
+ * pada satu id yang bisa sedang OVER kuotanya. Bila roster tidak memuat pola
+ * reliable, kembalikan CANONICAL_FREE_MODEL -- jalur substitusi tetap bisa
+ * dievaluasi lewat cabang `substituted` di tes.
+ */
+async function pickReliableModel(
+  req: {
+    get: (
+      url: string,
+      opts?: { headers?: Record<string, string>; timeout?: number }
+    ) => Promise<{ ok(): boolean; status(): number; json(): Promise<unknown> }>;
+  },
+  session: Session
+): Promise<string> {
+  try {
+    const r = await req.get(`${API_ORIGIN}/models`, {
+      headers: { Authorization: `Bearer ${session.access_token ?? ""}` },
+      timeout: 20000,
+    });
+    if (r.ok()) {
+      const j = (await r.json()) as { models?: { id: string }[] };
+      const ids = (j.models ?? []).map((m) => m.id);
+      const hit = ids.find((id) => RELIABLE_FREE_RE.test(id));
+      console.log(`PICK_MODEL=${hit ?? CANONICAL_FREE_MODEL} ROSTER_N=${ids.length}`);
+      if (hit) return hit;
+    } else {
+      console.log(`PICK_MODEL_HTTP=${r.status()}`);
+    }
+  } catch (e) {
+    console.log(`PICK_MODEL_ERR=${String(e).slice(0, 120)}`);
+  }
+  return CANONICAL_FREE_MODEL;
+}
+
 test.describe("PRODUKSI: filter model paid-only + badge fallback (tanpa mock)", () => {
   test("BUG 1 — /models & selector produksi tidak menyajikan model paid-only", async ({ page }) => {
     const session = loadSession();
@@ -250,9 +310,21 @@ test.describe("PRODUKSI: filter model paid-only + badge fallback (tanpa mock)", 
       ids.length,
       `roster terlalu kecil (${ids.length}) — gateway kemungkinan tak terjangkau, bukan soal filter`
     ).toBeGreaterThanOrEqual(MIN_MODELS);
-    for (const need of REQUIRED_IDS) {
-      expect(ids.includes(need), `model valid hilang: ${need}`).toBe(true);
-    }
+    // Minimal SATU model free-tier berkuota besar. Bila ini gagal, penyebab
+    // paling mungkin kuota upstream habis -- BUKAN filter over-delete; pesan
+    // assertion menyebut keduanya supaya tidak menuduh komponen yang salah.
+    const reliable = ids.filter((id) => RELIABLE_FREE_RE.test(id));
+    console.log(`RELIABLE_FREE_IDS=${JSON.stringify(reliable)}`);
+    expect(
+      reliable.length,
+      `tidak ada model free-tier berkuota besar di roster (${JSON.stringify(ids)})` +
+        " -- kemungkinan kuota upstream habis, bukan filter over-delete"
+    ).toBeGreaterThanOrEqual(1);
+    // Guard: pola 'reliable' tidak boleh menyerempet id RPD-20.
+    expect(
+      LOW_RPD_IDS.filter((id) => RELIABLE_FREE_RE.test(id)),
+      "pola model reliable menyerempet id RPD-20 -> tes gagal-acak saat kuota habis"
+    ).toHaveLength(0);
     // Keluarga Flash harus tetap terwakili walau id spesifiknya berganti
     // (liveness upstream flaky). Hilang total = filter over-delete / roster
     // kerdil. Cakupan per-id yang presisi dipegang `test_model_filter.py`.
@@ -352,15 +424,17 @@ test.describe("PRODUKSI: filter model paid-only + badge fallback (tanpa mock)", 
     console.log("CHAT_BODIES=" + JSON.stringify(chats.map((c) => c.status)));
   });
 
-  test("VALID — model gratis hidup tidak memicu badge fallback", async ({ page }) => {
+  test("VALID — model gratis hidup tidak memicu badge fallback", async ({ page, request }) => {
     const session = loadSession();
     const ttl = session?.access_token ? expiresInSec(session.access_token) : -1;
     expect(ttl, "sesi E2E kedaluwarsa -> mint ulang via scripts/e2e-auth-setup.mjs").toBeGreaterThan(30);
 
     await seedSession(page, session!);
-    // Model free-tier yang terbukti STABIL (lihat REQUIRED_IDS) -> tidak
-    // disubstitusi gateway, jadi jalur \"tanpa badge\" benar-benar teruji.
-    const okModel = REQUIRED_IDS[0];
+    // Model free-tier berkuota BESAR diambil dari roster LIVE (bukan pin id):
+    // id yang diserve bisa memakai prefix provider dan bisa berganti; yang
+    // penting modelnya ber-RPD besar sehingga tidak OVER seperti keluarga
+    // RPD-20 (lihat RELIABLE_FREE_RE).
+    const okModel = await pickReliableModel(request, session!);
     await page.addInitScript((m: string) => {
       try {
         window.localStorage.setItem("nexus.model.v1", m);
