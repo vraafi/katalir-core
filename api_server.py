@@ -873,6 +873,47 @@ def _derive_title(prompt: str, max_len: int = 30, max_words: int = 5) -> str:
     return taken
 
 
+# ---------------------------------------------------------------------------
+# KUOTA HARIAN — helper (struktur bisnis final 2026-09-18)
+# ---------------------------------------------------------------------------
+QUOTA_LABELS = {
+    "gemma": "Gemma 4 (default)",
+    "flash": "DeepSeek Flash",
+    "pro": "DeepSeek Pro",
+}
+
+
+def _bucket_model_id(bucket: str) -> str | None:
+    """Id model NYATA untuk sebuah bucket kuota, diambil dari roster live.
+
+    Id tidak di-hardcode: katalog gateway memakai prefix provider
+    (`deepseek-ai/deepseek-v4-flash-0731`, `google/gemma-4-31b-it`), dan id bisa
+    berganti. Bucket `pro` bergantung pada ketersediaan varian Pro di katalog
+    (belum tersedia 2026-09-18) — bila kosong, fallback ke bucket berikutnya.
+    """
+    try:
+        ids = [str(m.get("id") or "") for m in md.get_available_models()]
+    except Exception:  # noqa: BLE001 - discovery opsional; jangan gagalkan chat
+        return None
+    if bucket == "pro":
+        cand = [i for i in ids if "deepseek" in i.lower() and "pro" in i.lower()]
+    elif bucket == "flash":
+        cand = [i for i in ids if "deepseek" in i.lower()]
+    else:
+        cand = [i for i in ids if "gemma" in i.lower()]
+    return cand[0] if cand else None
+
+
+def _quota_exhausted_message(info: dict, tier: str) -> str:
+    """Pesan 429 yang menjelaskan SISA dan KAPAN reset (tanpa menyalahkan user)."""
+    label = QUOTA_LABELS.get(info.get("bucket", ""), info.get("bucket", "model"))
+    return (
+        "Kuota harian habis untuk %s: %d/%d request terpakai (tier %s). "
+        "Kuota direset 00:00 WIB. Naikkan tier untuk kuota lebih besar."
+        % (label, info.get("used", 0), info.get("limit", 0), (tier or "free"))
+    )
+
+
 @app.post("/chat")
 def chat(req: ChatRequest, authorization: str | None = Header(None)):
     """Proses prompt via Agentic Loop + persist pesan ke session.
@@ -914,6 +955,26 @@ def chat(req: ChatRequest, authorization: str | None = Header(None)):
                 }
             prior_session = prior["session_id"]
 
+    # ---- KUOTA HARIAN (struktur bisnis final 2026-09-18) -------------------
+    # Diletakkan SETELAH early-return idempotensi dan SEBELUM menulis pesan:
+    #  * request yang di-replay (sudah dijawab) TIDAK memakan kuota lagi;
+    #  * request yang ditolak kuota TIDAK meninggalkan pesan setengah jadi.
+    _q_requested = (req.model or "").strip() or None
+    _q_run_model = _q_requested
+    _q_allowed, _q_info = db.check_quota(user_email, _q_requested or "", user_tier)
+    _q_fallback_from = None
+    if not _q_allowed:
+        # AUTO-FALLBACK Pro -> Flash -> Gemma: user tidak langsung ditolak hanya
+        # karena bucket termahal habis.
+        _q_fb = db.quota_fallback_bucket(user_email, user_tier, _q_info["bucket"])
+        _q_fb_model = _bucket_model_id(_q_fb) if _q_fb else None
+        if not _q_fb or not _q_fb_model:
+            raise HTTPException(429, _quota_exhausted_message(_q_info, user_tier))
+        _q_fallback_from = _q_info["bucket"]
+        _q_run_model = _q_fb_model
+        print(f"[api_server] kuota {_q_info['bucket']} habis -> fallback "
+              f"{_q_fb} ({_q_fb_model}) untuk {user_email}")
+
     # Pastikan punya session (buat baru bila belum ada).
     # prior_session dipakai saat retry-yang-tanpa-session (tak buat sesi baru 2x).
     session_id = req.session_id or prior_session
@@ -946,7 +1007,7 @@ def chat(req: ChatRequest, authorization: str | None = Header(None)):
         raise HTTPException(500, f"Gagal menyimpan pesan: {type(exc).__name__}: {exc}")
 
     try:
-        _run = _agentic_run_direct(req.prompt, user_email, model=req.model,
+        _run = _agentic_run_direct(req.prompt, user_email, model=_q_run_model,
                                    user_tier=user_tier, history=history)
         reply = _run["reply"]
         meta = _run.get("meta") or {}
@@ -975,6 +1036,26 @@ def chat(req: ChatRequest, authorization: str | None = Header(None)):
         traceback.print_exc()
         raise HTTPException(500, f"Gagal menyimpan balasan: {type(exc).__name__}: {exc}")
 
+    # ---- CATAT KUOTA (setelah jawaban BENAR-BENAR tersimpan) ---------------
+    # Yang dihitung = model yang benar-benar dipakai (`meta.model`), bukan yang
+    # diminta: fallback internal (tier-gate/gateway) harus masuk ember yang
+    # benar supaya hitungannya jujur.
+    _q_counted_model = str(meta.get("model") or _q_run_model or "")
+    try:
+        db.increment_quota(user_email, _q_counted_model)
+    except Exception as exc:  # noqa: BLE001
+        # Pencatatan kuota gagal BUKAN alasan membatalkan jawaban yang sudah jadi;
+        # dicatat ke log supaya tetap terlihat (bukan gagal senyap).
+        print(f"[api_server] gagal mencatat kuota: {type(exc).__name__}: {exc}")
+    try:
+        meta["quota"] = db.quota_status(user_email, user_tier)
+    except Exception as exc:  # noqa: BLE001
+        print(f"[api_server] gagal membaca status kuota: {type(exc).__name__}: {exc}")
+    meta["quota_bucket"] = db.quota_bucket(_q_counted_model)
+    if _q_fallback_from:
+        meta["quota_fallback"] = True
+        meta["quota_fallback_from"] = _q_fallback_from
+
     return {"status": "success", "reply": reply, "session_id": session_id, "meta": meta}
 
 
@@ -991,6 +1072,34 @@ def me(authorization: str | None = Header(None)):
     except Exception:
         tier = "free"
     return {"status": "success", "email": user["email"], "tier": tier}
+
+
+# ---------------------------------------------------------------------------
+# ENDPOINT 1a-2: GET /quota  (kuota HARIAN per model — untuk dashboard & warning)
+# ---------------------------------------------------------------------------
+@app.get("/quota")
+def get_quota(authorization: str | None = Header(None)):
+    """Kuota hari ini untuk user JWT: dipakai progress bar + warning pre-flight.
+
+    Satuannya **REQUEST** (1 request = 1 RPD), bukan "chat": satu percakapan bisa
+    berisi beberapa request (agent loop), jadi menampilkan "chat" akan menipu.
+    """
+    user = security.get_current_user(authorization)
+    email = user["email"]
+    try:
+        _u = db.get_or_create_user(email, "", auth_id=user.get("id"))
+        tier = str((_u or {}).get("tier", "free") or "free").strip().lower()
+    except Exception:  # noqa: BLE001
+        tier = "free"
+    try:
+        st = db.quota_status(email, tier)
+    except Exception as exc:  # noqa: BLE001
+        raise HTTPException(503, f"Gagal membaca kuota: {type(exc).__name__}: {exc}")
+    # Label manusiawi + penanda bucket mana yang boleh dipakai tier ini.
+    st["labels"] = dict(QUOTA_LABELS)
+    st["unit"] = "request"
+    st["enabled_buckets"] = [b for b, v in st["buckets"].items() if v["limit"] > 0]
+    return {"status": "success", "email": email, **st}
 
 
 # ---------------------------------------------------------------------------
