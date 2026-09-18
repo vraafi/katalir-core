@@ -5,6 +5,12 @@ import { join } from "node:path";
 const TARGET = process.env.E2E_TARGET || "https://proyek-agent.pages.dev";
 const REF = "qmukkphwaajzbqjrcvaz";
 const KEY = `sb-${REF}-auth-token`;
+// Batas tunggu respons /chat. Latensi produksi terukur 20-30s (saat fallback
+// Gemini lewat gateway bahkan ~49s), sedangkan nilai lama 25s membuat
+// `waitForResponse` sering timeout -> `chatStatus` tetap -1 -> assertion 5xx
+// di bawah TIDAK PERNAH dievaluasi (hijau palsu). 45s memberi margin tanpa
+// membuat suite lambat (batas keras task: <= 60s).
+const CHAT_WAIT_MS = 45000;
 
 let session: any;
 // PENTING: dahulukan `_e2e_session.refreshed.json` (ditulis globalSetup
@@ -54,11 +60,13 @@ test("E2E supabase asli: login ter-inject + kirim pesan TIDAK 401 & TIDAK 5xx", 
     { key: KEY, value: session }
   );
 
-  const responses: { url: string; status: number }[] = [];
+  // `method` ikut dicatat supaya status POST /chat masih bisa dipulihkan dari
+  // sini bila `waitForResponse` kalah lomba dengan latensi upstream.
+  const responses: { url: string; method: string; status: number }[] = [];
   page.on("response", (r) => {
     const u = r.url();
     if (u.includes("/chat") || u.includes("/sessions")) {
-      responses.push({ url: u, status: r.status() });
+      responses.push({ url: u, method: r.request().method(), status: r.status() });
     }
   });
   // TANGKAP request headers untuk lihat Authorization
@@ -115,7 +123,7 @@ test("E2E supabase asli: login ter-inject + kirim pesan TIDAK 401 & TIDAK 5xx", 
     await page.locator('button[type="submit"]').click();
     const chatResp = await page
       .waitForResponse((r) => r.url().includes("/chat") && r.request().method() === "POST", {
-        timeout: 25000,
+        timeout: CHAT_WAIT_MS,
       })
       .catch((e) => null);
     if (chatResp) {
@@ -125,7 +133,23 @@ test("E2E supabase asli: login ter-inject + kirim pesan TIDAK 401 & TIDAK 5xx", 
       } catch {}
       console.log("CHAT_STATUS=" + chatStatus + " body=" + chatBody);
     } else {
-      console.log("CHAT_RESP_NONE");
+      // Fallback: respons bisa saja sudah lewat sebelum `waitForResponse`
+      // sempat mencocokkannya. Ambil dari listener `page.on("response")`
+      // daripada membiarkan `chatStatus=-1` (yang membuat assert di bawah vakum).
+      const seen = responses.filter((r) => r.method === "POST" && r.url.includes("/chat"));
+      if (seen.length) {
+        chatStatus = seen[seen.length - 1].status;
+        console.log("CHAT_STATUS_FROM_RESPONSES=" + chatStatus);
+        // SPEC_ASSERT_v2: assertion NON-VAKUM (dulu spec hijau padahal /chat 500 / tak tertangkap)
+        if (chatStatus === -1) {
+          throw new Error("SPEK GAGAL: /chat tidak tertangkap (timeout waitForResponse) -> status tidak dinilai");
+        }
+        if (chatStatus !== 200 && chatStatus !== 503) {
+          throw new Error(`SPEK GAGAL: /chat -> ${chatStatus}, harus 200 atau 503`);
+        }
+      } else {
+        console.log("CHAT_RESP_NONE");
+      }
     }
   }
 
@@ -144,11 +168,24 @@ test("E2E supabase asli: login ter-inject + kirim pesan TIDAK 401 & TIDAK 5xx", 
   // 503 (`Model sedang sibuk (quota/overload)`) adalah kondisi upstream yang
   // WAJAR dan justru kontrak yang benar untuk kuota habis / upstream transien —
   // jadi yang DILARANG adalah 500/501/502/504/dst, bukan 503.
-  if (chatStatus >= 500 && chatStatus !== 503) {
+  // Assert #1: status harus KONKLUSIF. `-1` = respons tak tertangkap — dulu ini
+  // dibiarkan lolos sehingga spec hijau tanpa memverifikasi apa pun.
+  if (hasInput && chatStatus === -1) {
     throw new Error(
-      `POST /chat -> HTTP ${chatStatus} (5xx selain 503 = bug server, bukan kuota). body=${chatBody}`
+      `POST /chat tidak tertangkap dalam ${CHAT_WAIT_MS}ms (CHAT_RESP_NONE) — ` +
+        "kegagalan harness, bukan bukti sehat. Periksa latensi upstream lalu ulangi."
     );
   }
+  // Assert #2 (HARD, non-vakum): di titik ini `chatStatus` sudah pasti konkret
+  // karena guard `-1` di atas sudah melempar lebih dulu. Sebelumnya blok ini
+  // berbentuk `if (chatStatus >= 500 && chatStatus !== 503)` sehingga saat
+  // request tidak tertangkap (`-1`) assertion-nya TIDAK PERNAH dievaluasi ->
+  // spec hijau palsu. 200 = sukses, 503 = upstream transien (kontrak sah).
+  console.log(`CHAT_STATUS=${chatStatus}`);
+  expect(
+    [200, 503],
+    `POST /chat -> HTTP ${chatStatus} body=${chatBody}`
+  ).toContain(chatStatus);
 
   await page.screenshot({ path: "test-results/e2e-auth.png" });
 });
