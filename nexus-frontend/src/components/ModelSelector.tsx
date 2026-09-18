@@ -16,7 +16,8 @@ interface ModelSelectorProps {
 }
 
 /**
- * Link checkout Dodo Payments (Plus: Rp 5.000.000 / TAHUN).
+ * Link checkout Dodo Payments (Plus: $299 / TAHUN — produk "Katalir",
+ * pdt_0NnsVLn7IzpG8Sokr3pZh).
  *
  * Diambil dari `NEXT_PUBLIC_DODO_CHECKOUT_URL`. Next meng-INLINE nilai
  * `NEXT_PUBLIC_*` saat build, jadi mengubah URL = build ulang (bukan runtime).
@@ -40,7 +41,7 @@ function BuyPlusButton({ checkoutUrl }: { checkoutUrl: string }) {
         className={cn(base, "cursor-not-allowed text-fg-subtle")}
         title="Link checkout belum dikonfigurasi (NEXT_PUBLIC_DODO_CHECKOUT_URL)"
       >
-        Upgrade ke Plus — Rp 5.000.000 / tahun (segera)
+        Upgrade ke Plus — $299 / tahun (segera)
       </span>
     );
   }
@@ -51,7 +52,7 @@ function BuyPlusButton({ checkoutUrl }: { checkoutUrl: string }) {
       rel="noopener noreferrer"
       className={cn(base, "text-accent hover:bg-bg-subtle")}
     >
-      Upgrade ke Plus — Rp 5.000.000 / tahun
+      Upgrade ke Plus — $299 / tahun
     </a>
   );
 }
@@ -159,8 +160,8 @@ export function ModelSelector({
             </div>
           ))}
           {plusDisabled && (
-            // Link checkout Dodo Payments. Nilai diambil dari
-            // `NEXT_PUBLIC_DODO_CHECKOUT_URL` (di-INLINE saat build — Next
+            // Link checkout Dodo Payments (Plus: $299 / TAHUN — produk "Katalir").
+            // Nilai diambil dari `NEXT_PUBLIC_DODO_CHECKOUT_URL` (di-INLINE saat build — Next
             // menyalin env NEXT_PUBLIC_* ke bundle, jadi mengubahnya perlu
             // build ulang). Sebelumnya `href="#upgrade"` + preventDefault =
             // tombol mati: user tidak punya jalan membayar.
