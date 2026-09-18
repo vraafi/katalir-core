@@ -14,6 +14,7 @@
 # =====================================================================
 
 import os
+import json
 import threading
 import time
 from contextlib import asynccontextmanager
@@ -1290,15 +1291,47 @@ class DodoWebhookPayload(BaseModel):
     payment_id: Optional[str] = None
 
 
+def _dodo_amount(payload: dict, data: dict) -> float:
+    """Ambil nominal dari payload Dodo (beberapa bentuk/versi payload diterima).
+
+    SENGAJA TIDAK dikonversi satuan: Dodo mengirim nominal dalam satuan terkecil
+    (mis. sen/rupiah terkecil) pada sebagian event. Konversi ke rupiah penuh
+    adalah keputusan bisnis -- dicatat sebagai pending, bukan ditebak di sini.
+    """
+    for src in (data, payload):
+        if not isinstance(src, dict):
+            continue
+        for key in ("amount", "total_amount", "amount_paid", "credits"):
+            v = src.get(key)
+            if v in (None, ""):
+                continue
+            try:
+                return float(v)
+            except (TypeError, ValueError):
+                continue
+    return 0.0
+
+
 @app.post("/api/payments/dodo-webhook")
 async def dodo_webhook(request: Request):
-    """Dodo Payments webhook -> topup saldo.
+    """Dodo Payments webhook -> naik TIER + topup saldo (idempoten).
 
     KEAMANAN: Standard Webhooks signature (webhook-id + webhook-timestamp +
-    webhook-signature headers) geverifieerd via dodopayments SDK unwrap().
-    Zonder geldige signature -> 401 (anti-spoof).
+    webhook-signature) diverifikasi `dodo_verify.verify_dodo_webhook` (SDK
+    `webhooks.unwrap`). Tanpa signature sah -> 401. TIDAK ADA dev-bypass.
+
+    IDEMPOTENSI (temuan audit: dulu bisa double-credit): tiap `webhook-id`
+    diklaim SEKALI di tabel `payment_events`. Klaim berstatus "processed" ->
+    balas `already_processed` tanpa menyentuh tier/saldo. Klaim "pending"
+    (percobaan sebelumnya gagal) SENGAJA dilanjutkan supaya retry Dodo tidak
+    menghilangkan hak user.
+
+    TIER (keputusan produk 2026-09-18): bayar = naik tier (free -> plus),
+    bukan sekadar saldo. Tier diambil dari `metadata.tier` (dipilih di checkout),
+    default "plus".
     """
     import dodo_verify as dv
+
     raw = await request.body()
     headers = {
         "webhook-id": request.headers.get("webhook-id", ""),
@@ -1308,25 +1341,74 @@ async def dodo_webhook(request: Request):
     if not dv.verify_dodo_webhook(raw, headers):
         raise HTTPException(401, "Webhook signature invalid (anti-spoof).")
     try:
-        payload = await request.json()
+        payload = json.loads(raw) if raw else {}
     except Exception:  # noqa: BLE001
-        raise HTTPException(400, "Body moet JSON zijn.")
-    data = (payload or {}).get("data") or {}
-    # email/credits: ondersteunt zowel top-level als genest in data
-    email = (payload or {}).get("email") or (payload or {}).get("customer_email") \
-        or data.get("email") or data.get("customer_email")
+        raise HTTPException(400, "Body harus JSON.")
+
+    event_id = headers["webhook-id"]
+    event_type = str(payload.get("type") or payload.get("event") or "").strip().lower()
+    data = payload.get("data") or {}
+    if not isinstance(data, dict):
+        data = {}
+    customer = data.get("customer") or {}
+    if not isinstance(customer, dict):
+        customer = {}
+    # Bentuk resmi = `data.customer.email`; bentuk lama/uji = `data.email`,
+    # `customer_email`, atau top-level. Semua diterima supaya tidak ada
+    # pembayaran yang gagal dipetakan hanya karena bentuk payload berbeda.
+    email = (customer.get("email") or data.get("email") or payload.get("email")
+             or data.get("customer_email") or payload.get("customer_email"))
     if not email:
-        raise HTTPException(422, "email wajib diisi.")
-    topup = (payload or {}).get("credits") or (payload or {}).get("amount") \
-        or data.get("credits") or data.get("amount") or 0
-    if topup <= 0:
-        raise HTTPException(422, "nominal topup harus > 0.")
+        raise HTTPException(422, "email customer wajib diisi.")
+
+    amount = _dodo_amount(payload, data)
+    payment_id = data.get("payment_id") or payload.get("payment_id")
+
+    # --- KLAIM EVENT (idempotency key = webhook-id) -------------------------
     try:
-        db.topup_balance(email, float(topup))
-        return {"status": "success", "email": email, "credited": float(topup),
-                "event": (payload or {}).get("type") or (payload or {}).get("event", "payment.succeeded")}
+        state = db.claim_payment_event(event_id, payment_id, event_type, amount, email)
     except Exception as exc:  # noqa: BLE001
+        # Gagal mencatat = tidak boleh dikreditkan; 5xx membuat Dodo mengirim
+        # ulang (bukan gagal senyap).
+        raise HTTPException(500, f"Gagal mencatat event pembayaran: {exc}")
+    if state == "processed":
+        return {"status": "already_processed", "webhook_id": event_id,
+                "event": event_type}
+
+    try:
+        if event_type in ("payment.succeeded", "subscription.active",
+                          "subscription.renewed", "payment.successful"):
+            tier = str((data.get("metadata") or {}).get("tier") or "plus").strip().lower()
+            db.update_tier(email, tier)
+            credited = db.topup_balance(email, amount) if amount > 0 else None
+            result = {"status": "success", "email": email, "tier": tier,
+                      "credited": amount if amount > 0 else None,
+                      "event": event_type, "retry": state == "pending"}
+        elif event_type in ("refund", "refund.succeeded", "payment.refunded",
+                            "dispute", "dispute.created"):
+            res = db.deduct_balance(email, amount)
+            if res is None:
+                # Saldo kurang: potong apa pun supaya refund TETAP tercatat
+                # (saldo boleh negatif; lebih baik jujur daripada hilang senyap).
+                res = db.topup_balance(email, -amount)
+            result = {"status": "refunded", "email": email, "deducted": amount,
+                      "balance": res, "event": event_type, "retry": state == "pending"}
+        else:
+            # Event lain (mis. payment.failed) tetap dicatat selesai supaya tidak
+            # diulang terus oleh retry Dodo, tanpa menyentuh tier/saldo.
+            result = {"status": "ignored", "event": event_type,
+                      "webhook_id": event_id}
+    except HTTPException:
+        raise
+    except Exception as exc:  # noqa: BLE001
+        # Tier/saldo GAGAL tersimpan -> jangan tandai selesai; 5xx agar Dodo retry.
         raise HTTPException(500, f"Gagal memproses webhook: {exc}")
+
+    try:
+        db.mark_payment_event_processed(event_id)
+    except Exception as exc:  # noqa: BLE001
+        raise HTTPException(500, f"Gagal menandai event selesai: {exc}")
+    return result
 
 
 # ---------------------------------------------------------------------------

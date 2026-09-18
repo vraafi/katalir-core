@@ -41,4 +41,10 @@ langchain-openai==0.3.7
 fastapi==0.115.6
 uvicorn[standard]==0.34.0
 litellm==1.65.1
-dodopayments==1.116.0
+# `webhooks` (standardwebhooks) WAJIB: `client.webhooks.unwrap` yang dipakai
+# `dodo_verify.py` melempar
+#   "You need to install `dodopayments[webhooks]` to use this method"
+# bila extra ini tidak ada. Akibatnya verifikasi SELALU gagal -> webhook 401
+# walaupun DODO_WEBHOOK_SECRET sudah benar (temuan audit billing 2026-09-18).
+dodopayments[webhooks]==1.116.0
+standardwebhooks==1.1.0

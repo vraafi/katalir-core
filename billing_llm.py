@@ -73,23 +73,29 @@ def dodo_checkout_url(plan: str = "pro", email: str = "") -> str:
     return f"{base}{sep}plan={plan}&email={email}"
 
 
-def verify_dodo_webhook(payload: bytes, signature: str = "") -> bool:
-    """Verifieert de Dodo webhook signature (HMAC-SHA256).
+def _deprecated_verify_dodo_webhook(payload: bytes, signature: str = "") -> bool:
+    """DEPRECATED — JANGAN DIPAKAI. Selalu `False`.
 
-    Als DODO_WEBHOOK_SECRET strict is ingesteld (DODO_WEBHOOK_SECRET_STRICT=1)
-    of secret bestaat -> signature IS VERPLICHT. Zonder secret: dev-modus
-    (accepteert alles, status auto-gedeployed NOOIT naar productie).
+    Versi lama fungsi ini memakai HMAC-hex sederhana atas body saja dan
+    mengandung **dev-bypass**: `if not secret: return True` -> tanpa secret,
+    SETIAP webhook diterima tanpa verifikasi. Fungsi itu tidak pernah dipanggil
+    endpoint (endpoint memakai `dodo_verify.verify_dodo_webhook` yang mengikuti
+    Standard Webhooks + SDK unwrap), tetapi menyimpannya sebagai panggilan yang
+    "siap dipakai" adalah ranjau: sekali seseorang memasangnya, spoof langsung
+    diterima.
+
+    Sekarang: gagal-tertutup (selalu False) + peringatan log, supaya sisa
+    pemanggil mana pun terlihat sebagai 401 alih-alih lubang keamanan.
     """
-    secret = os.getenv("DODO_WEBHOOK_SECRET", "")
-    strict = os.getenv("DODO_WEBHOOK_SECRET_STRICT", "1").strip().lower() in ("1", "true", "yes")
-    if not secret:
-        # dev-modus: zonder secret geen verifikatie (NOSPOOF niet mogelijk in prod)
-        return True
-    if not signature:
-        return False  # secret aanwezig maar signature ontbreekt -> REJECT (anti-spoof)
-    try:
-        import hmac, hashlib
-        mac = hmac.new(secret.encode(), payload, hashlib.sha256).hexdigest()
-        return hmac.compare_digest(mac, signature)
-    except Exception:
-        return False
+    import logging
+
+    logging.getLogger(__name__).warning(
+        "billing_llm._deprecated_verify_dodo_webhook dipanggil: fungsi ini "
+        "DEPRECATED (dev-bypass). Gunakan dodo_verify.verify_dodo_webhook."
+    )
+    return False
+
+
+def verify_dodo_webhook(payload: bytes, signature: str = "") -> bool:  # noqa: D401
+    """Alias lama -> dialihkan ke versi deprecated (fail-closed)."""
+    return _deprecated_verify_dodo_webhook(payload, signature)
