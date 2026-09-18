@@ -190,14 +190,20 @@ def get_or_create_user(email, name="", auth_id=None):
 
 
 def update_tier(email, tier):
+    """Set tier user (kanonik di `public.users.tier`).
+
+    RAISE bila DB terkonfigurasi tapi penulisan gagal. Dulu `except: pass`
+    menelan kegagalan sehingga webhook pembayaran membalas SUKSES padahal tier
+    tidak berubah -- user sudah bayar tetapi tetap "free" (temuan audit billing).
+    `UPDATE` pada email yang tidak ada memengaruhi 0 baris TANPA error, jadi
+    baris user dipastikan ada lebih dulu.
+    """
     if is_configured():
-        try:
-            _get_write_client().table("users").update({"tier": tier}).eq("email", email).execute()
-            return
-        except Exception:
-            pass
-    if email in _LUSER:
-        _LUSER[email]["tier"] = tier
+        get_or_create_user(email)
+        _get_write_client().table("users").update({"tier": tier}).eq("email", email).execute()
+        return
+    _local_user(email)
+    _LUSER[email]["tier"] = tier
 
 
 def _local_user(email, name=""):
@@ -736,31 +742,117 @@ def get_execution(execution_id: str):
 _LBAL={}
 
 def get_balance(email):
- try:
-  if is_configured():
-   r=_get_client().table('user_balances').select('balance').eq('email',email).limit(1).execute()
-   d=getattr(r,'data',None) or []
-   return float(d[0].get('balance',0) or 0) if d else 0.0
- except Exception:
-  pass
- return float(_LBAL.get(email,0.0))
+ """Saldo kredit user.
 
-def topup_balance(email,amt):
- try:
-  if is_configured():
-   cur=get_balance(email)
-   c=_get_write_client()
-   ex=c.table('user_balances').select('email').eq('email',email).limit(1).execute()
-   dd=getattr(ex,'data',None) or []
-   nb=cur+float(amt)
-   (c.table('user_balances').update({'balance':nb}).eq('email',email).execute() if dd else c.table('user_balances').insert({'email':email,'balance':nb}).execute())
-   return nb
- except Exception:
-  pass
- _LBAL[email]=float(_LBAL.get(email,0.0))+float(amt)
+ KOLOM ASLI = `credit_balance`. Kode lama membaca/menulis `balance` yang TIDAK
+ ADA di `user_balances` (skema: email, credit_balance, tier), sehingga setiap
+ query gagal 400 dan `except: pass` mengembalikan saldo dari MEMORI proses --
+ saldo yang terlihat user tidak pernah berasal dari DB (temuan audit billing).
+
+ RAISE bila DB terkonfigurasi tapi query gagal; pemanggil yang memang ingin
+ tahan-gagal (mis. execution_engine) sudah membungkusnya dengan try/except.
+ """
+ if is_configured():
+  r = (_get_client().table('user_balances').select('credit_balance')
+       .eq('email', email).limit(1).execute())
+  d = getattr(r, 'data', None) or []
+  return float(d[0].get('credit_balance', 0) or 0) if d else 0.0
+ return float(_LBAL.get(email, 0.0))
+
+def topup_balance(email, amt):
+ """Tambah (atau kurangi dengan `amt` negatif) saldo kredit.
+
+ RAISE bila DB terkonfigurasi tapi penulisan gagal -- itulah yang membuat
+ webhook membalas 5xx dan Dodo mengirim ulang, alih-alih "sukses" padahal
+ tidak ada yang tersimpan (gagal senyap, temuan audit billing).
+ """
+ if is_configured():
+  cur = get_balance(email)
+  c = _get_write_client()
+  ex = c.table('user_balances').select('email').eq('email', email).limit(1).execute()
+  nb = cur + float(amt)
+  if getattr(ex, 'data', None):
+   c.table('user_balances').update({'credit_balance': nb}).eq('email', email).execute()
+  else:
+   c.table('user_balances').insert({'email': email, 'credit_balance': nb}).execute()
+  return nb
+ _LBAL[email] = float(_LBAL.get(email, 0.0)) + float(amt)
  return _LBAL[email]
 
 def deduct_balance(email,amt):
  b=get_balance(email)
  if b < float(amt): return None
  return topup_balance(email,-float(amt))
+
+# ---- PAYMENT EVENTS (idempotensi webhook Dodo Payments) -------------------
+# KENAPA ADA: Dodo punya RETRY otomatis + "bulk replay" (dokumentasi resmi).
+# Handler lama tidak menyimpan id event, sehingga satu pembayaran bisa
+# dikredit BERKALI-KALI (double-credit) setiap Dodo mengirim ulang.
+#
+# Status dipakai, bukan sekadar "ada/tidak ada": bila baris diklaim lalu
+# pemrosesan GAGAL (mis. DB sempat down), retry berikutnya HARUS tetap boleh
+# memproses -- kalau tidak, pembayaran yang sudah dibayar tidak pernah dikredit.
+_LPAY: dict[str, str] = {}   # webhook_id -> "pending" | "processed"
+
+
+def claim_payment_event(webhook_id, payment_id=None, event_type=None,
+                        amount=None, email=None):
+    """Klaim satu event webhook. Return: "new" | "pending" | "processed".
+
+    "processed" = sudah selesai -> handler berhenti (idempoten).
+    "pending"   = percobaan sebelumnya gagal -> LANJUT proses (retry-safe).
+    """
+    if not webhook_id:
+        raise ValueError("webhook_id wajib diisi (idempotency key)")
+    row = {"webhook_id": webhook_id, "payment_id": payment_id,
+           "event_type": event_type, "amount": amount, "email": email}
+    if is_configured():
+        c = _get_write_client()
+        try:
+            c.table("payment_events").insert(dict(row, status="pending")).execute()
+            return "new"
+        except Exception:
+            # Kemungkinan besar PK sudah ada (race/retry). Kalau barisnya TIDAK
+            # ada, penyebabnya lain -> JANGAN telan, biar handler menjawab 5xx.
+            r = (c.table("payment_events").select("status")
+                 .eq("webhook_id", webhook_id).limit(1).execute())
+            d = getattr(r, "data", None) or []
+            if not d:
+                raise
+            return "processed" if str(d[0].get("status")) == "processed" else "pending"
+    st = _LPAY.get(webhook_id)
+    if st is None:
+        _LPAY[webhook_id] = "pending"
+        return "new"
+    return st
+
+
+def mark_payment_event_processed(webhook_id):
+    """Tandai event SELESAI — dipanggil hanya setelah tier/saldo tersimpan."""
+    if is_configured():
+        _get_write_client().table("payment_events").update({"status": "processed"}) \
+            .eq("webhook_id", webhook_id).execute()
+        return True
+    _LPAY[webhook_id] = "processed"
+    return True
+
+
+def payment_event_exists(webhook_id):
+    """True bila event sudah pernah SELESAI diproses (dipakai tes/audit)."""
+    if not webhook_id:
+        return False
+    if is_configured():
+        r = (_get_client().table("payment_events").select("status")
+             .eq("webhook_id", webhook_id).limit(1).execute())
+        d = getattr(r, "data", None) or []
+        return bool(d) and str(d[0].get("status")) == "processed"
+    return _LPAY.get(webhook_id) == "processed"
+
+
+def log_payment_event(webhook_id, payment_id=None, event_type=None,
+                      amount=None, email=None):
+    """Alias ramah-tes: klaim event lalu tandai selesai (atomik dari sisi uji)."""
+    state = claim_payment_event(webhook_id, payment_id, event_type, amount, email)
+    if state != "processed":
+        mark_payment_event_processed(webhook_id)
+    return state
