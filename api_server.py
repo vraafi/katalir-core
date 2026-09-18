@@ -183,6 +183,13 @@ def _fallback_reason(err: object) -> str:
             # -> frontend menuduh "tidak tersedia untuk tier Anda" padahal 500.
             or "sibuk" in text or "internal error" in text or "500" in text or "server error" in text or "servererror" in text):
         return "overloaded"
+    if ("401" in text or "unauthenticated" in text or "unauthorized" in text
+            or "invalid authentication credentials" in text
+            or "tidak valid" in text):
+        # Kunci cadangan ditolak hulu (401). Dari sudut user ini gangguan
+        # layanan yang sementara -- BUKAN "model tidak tersedia untuk tier
+        # Anda" (pesan itu dulu muncul karena 401 jatuh ke default).
+        return "overloaded"
     if ("404" in text or "410" in text or "not found" in text or "gone" in text
             or "tidak dikenal" in text):
         return "model_unavailable"
@@ -734,6 +741,21 @@ def _agentic_run_direct(prompt: str, email: str, model: str | None = None,
         nonlocal model_id, fallback_used, chat, cur_fp, fallback_reason
         ctx = chat_obj
         model_switches = 0
+        # True bila setidaknya satu kunci ditolak hulu karena 401 (kunci dicabut).
+        # Menentukan PESAN 503 terakhir supaya tidak salah dilaporkan sebagai
+        # "sibuk/kuota" padahal masalahnya kredensial.
+        dead_seen = False
+
+        def _final_503():
+            """503 KONKLUSIF setelah semua kunci/model dicoba (bukan 500)."""
+            if dead_seen:
+                return HTTPException(
+                    503,
+                    "Semua kunci Gemini ditolak hulu (401 UNAUTHENTICATED). "
+                    "Periksa GEMINI_KEY_* / GOOGLE_API_KEY di server.")
+            return HTTPException(
+                503, "Model sedang sibuk (quota/overload). Coba lagi dalam 1 menit.")
+
         while True:
             # Batas TOTAL request: percobaan Gemini juga tidak boleh melewati
             # anggaran. Tanpa guard ini klien sudah abort saat jawaban datang
@@ -748,6 +770,8 @@ def _agentic_run_direct(prompt: str, email: str, model: str | None = None,
                 kind, ttl = gemini_key_pool.classify_error(exc)
                 if kind == "unknown":
                     raise
+                if kind == "key_dead":
+                    dead_seen = True
                 _pool.mark(cur_fp, model_id, kind=kind, ttl=ttl)
                 print(f"[api_server] Gemini {_pool.label(cur_fp)} model={model_id} "
                       f"gagal ({kind}) -> rotasi kunci; cooldown={ttl:.0f}s "
@@ -764,8 +788,7 @@ def _agentic_run_direct(prompt: str, email: str, model: str | None = None,
                 model_switches += 1
                 if (model_switches > 1 or fallback_used or not fallback_model
                         or fallback_model == model_id):
-                    raise HTTPException(
-                        503, "Model sedang sibuk (quota/overload). Coba lagi dalam 1 menit.")
+                    raise _final_503()
                 fallback_used = True
                 # `fallback_reason` yang sudah terisi (gateway/tier) tetap
                 # dipertahankan: penyebab pertama lebih informatif bagi user.
@@ -774,8 +797,7 @@ def _agentic_run_direct(prompt: str, email: str, model: str | None = None,
                 model_id = fallback_model
                 nxt = _pool.acquire(model_id)
                 if nxt is None:
-                    raise HTTPException(
-                        503, "Model sedang sibuk (quota/overload). Coba lagi dalam 1 menit.")
+                    raise _final_503()
                 cur_fp, _ = nxt
                 ctx = chat = _chat_with(cur_fp, model_id)
 

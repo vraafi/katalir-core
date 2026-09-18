@@ -38,6 +38,12 @@ _RPM_FLOOR_S = 60.0
 _RPD_FALLBACK_S = 24 * 3600.0
 _ENTITLEMENT_S = 6 * 3600.0
 _OVERLOAD_S = 20.0
+# Kunci yang ditolak hulu karena 401 UNAUTHENTICATED tidak akan sembuh
+# sendiri: kunci itu sudah dicabut/diganti di Google AI Studio. Dibekukan
+# sehari penuh supaya pool berhenti memilihnya. Sebelum ini 401 jatuh ke
+# `unknown` -> TIDAK ada rotasi -> exception lolos ke handler generik dan
+# produksi menjawab 500 (tertangkap spec E2E `chat-auth`, commit 10862fd).
+_KEY_DEAD_S = 24 * 3600.0
 _MAX_KEY_SLOTS = 20
 
 # Batas waktu SATU panggilan Gemini (detik). Ini bukan hiasan: terbukti di SDK
@@ -106,6 +112,10 @@ def classify_error(exc) -> tuple[str, float]:
       * `entitlement`  — model tidak tersedia untuk project kunci ini (404).
       * `overloaded`   — gangguan sementara upstream (503/504/UNAVAILABLE/overload,
                          termasuk `DEADLINE_EXCEEDED` dan `ServerError`).
+      * `key_dead`     - kredensial DITOLAK hulu (401 UNAUTHENTICATED /
+                           "invalid authentication credentials"): kunci
+                           dicabut atau salah. Dibekukan 24 jam lalu rotasi;
+                           bila SEMUA kunci mati, hasil akhirnya 503 (bukan 500).
       * `unknown`      — bukan kelas di atas; pool tidak menandai apa pun.
 
     TTL diambil dari payload (bukan angka karangan): `PerDay` -> tunggu reset,
@@ -123,6 +133,13 @@ def classify_error(exc) -> tuple[str, float]:
         return "rate_limited", max(retry, _RPM_FLOOR_S)
     if "404" in text or "not_found" in low or "no longer available" in low:
         return "entitlement", _ENTITLEMENT_S
+    # Kredensial DITOLAK. Ditaruh eksplisit (bukan mengandalkan urutan cabang
+    # transien) supaya teks hulu yang berubah tidak diam-diam mengubah kelas
+    # error ini menjadi `unknown`.
+    if ("401" in text or "unauthenticated" in low
+            or "invalid authentication credentials" in low
+            or "api key not valid" in low or "api_key_invalid" in low):
+        return "key_dead", _KEY_DEAD_S
     # Gangguan sementara upstream. `504 DEADLINE_EXCEEDED` / `ServerError` masuk
     # ke sini setelah E2E produksi (2026-09-16) menangkap `POST /chat` menjawab
     # **500** `"Terjadi kesalahan internal: ServerError: 504 DEADLINE_EXCEEDED"`:
@@ -285,6 +302,9 @@ class KeyPool:
           - `entitlement` (404 "no longer available to new users"): kunci SAH, hanya
             model itu yang tidak tersedia untuk project-nya -> blokir HANYA pasangan
             (key, model).
+          - `key_dead` (401): kunci TIDAK SAH sama sekali -> dibekukan untuk
+            SEMUA model (sama seperti `rate_limited`), karena menukar model
+            tidak menolong.
         """
         if exc is not None and kind is None:
             kind, auto_ttl = classify_error(exc)
@@ -296,7 +316,7 @@ class KeyPool:
         with self._lock:
             until = self._now() + ttl
             pair = (fp, model)
-            if kind == "rate_limited":
+            if kind in ("rate_limited", "key_dead"):
                 self._cool[fp] = max(self._cool.get(fp, 0.0), until)
             else:
                 self._blocked[pair] = max(self._blocked.get(pair, 0.0), until)
