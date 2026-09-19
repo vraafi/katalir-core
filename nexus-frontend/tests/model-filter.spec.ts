@@ -371,7 +371,7 @@ test.describe("PRODUKSI: filter model paid-only + badge fallback (tanpa mock)", 
     const { chats } = track(page);
     await page.goto("/", { waitUntil: "domcontentloaded" });
 
-    const input = page.locator('[aria-label="Pesan"]');
+    const input = page.locator('[data-testid="composer-input"]');
     await expect(input).toBeVisible({ timeout: 20000 });
     await input.fill("halo, tes badge fallback");
 
@@ -446,7 +446,7 @@ test.describe("PRODUKSI: filter model paid-only + badge fallback (tanpa mock)", 
     const { chats } = track(page);
     await page.goto("/", { waitUntil: "domcontentloaded" });
 
-    const input = page.locator('[aria-label="Pesan"]');
+    const input = page.locator('[data-testid="composer-input"]');
     await expect(input).toBeVisible({ timeout: 20000 });
     await input.fill("halo, tes model valid");
 

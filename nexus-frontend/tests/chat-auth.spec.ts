@@ -90,7 +90,7 @@ test("E2E supabase asli: login ter-inject + kirim pesan TIDAK 401 & TIDAK 5xx", 
   await page.waitForTimeout(4000);
 
   const shell = await page.getByText("Katalir").count();
-  const input2 = await page.locator('[aria-label="Pesan"]').count();
+  const input2 = await page.locator('[data-testid="composer-input"]').count();
   const bodyLen = await page.evaluate(() => document.body.innerText.length).catch(() => -1);
   const bodyText = await page.evaluate(() => document.body.innerText).catch(() => "");
   const ls = await page.evaluate(() => {
@@ -112,7 +112,7 @@ test("E2E supabase asli: login ter-inject + kirim pesan TIDAK 401 & TIDAK 5xx", 
   console.log("EMAIL_VISIBLE=" + emailShown);
 
   // isi input chat + kirim
-  const input = page.locator('[aria-label="Pesan"]');
+  const input = page.locator('[data-testid="composer-input"]');
   const hasInput = await input.count();
   console.log("HAS_INPUT=" + hasInput);
   // Status /chat disimpan di luar blok supaya bisa di-ASSERT (bukan hanya di-log).

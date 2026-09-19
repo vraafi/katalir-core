@@ -1176,6 +1176,11 @@ return (
                 }}
                 placeholder={activeEmail ? t("chat.placeholder") : t("landing.loginCta")}
                 aria-label={t("chat.messageLabel")}
+                /* HOOK STABIL UNTUK E2E: `aria-label` sengaja tetap
+                   diterjemahkan (a11y), jadi tes TIDAK boleh memakainya sebagai
+                   selector — dulu spec memakai [aria-label="Pesan"] dan pecah
+                   begitu bahasa aktif menjadi EN. data-testid tidak ikut bahasa. */
+                data-testid="composer-input"
                 className="h-9 border-0 shadow-none bg-transparent focus-visible:shadow-none"
               />
               <Button
