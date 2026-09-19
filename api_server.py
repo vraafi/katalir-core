@@ -1135,8 +1135,16 @@ def list_models(authorization: str | None = Header(None)):
         {**m, "locked": bool(m.get("tier") == "plus" and not is_plus)}
         for m in discovered
     ]
+    # DIAGNOSTIK (2026-09-19): user pernah melihat dropdown "hanya Google" tanpa
+    # penjelasan karena discovery jatuh ke daftar Gemini secara senyap saat
+    # roster gateway kosong. Kini asal daftar + status degradasi ikut dikirim
+    # supaya UI bisa memperingatkan dan investigasi tidak lagi menebak.
+    health = md.discovery_health()
     return {"status": "success", "tier": tier, "default": default_id,
             "models": items,
+            "roster_source": health.get("source", "unknown"),
+            "degraded": bool(health.get("degraded")),
+            "degraded_reason": health.get("reason", ""),
             "refreshed_at": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime(md._cache["ts"]))}
 
 

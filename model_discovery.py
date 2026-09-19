@@ -26,6 +26,17 @@ PLUS_CHAT_MODELS = frozenset({"gemini-1.5-pro"})
 
 _cache: dict = {"ts": 0.0, "models": []}
 
+# STATUS DISCOVERY (untuk `roster_source` + `degraded` di /models).
+# Sebelum perbaikan ini, roster gateway kosong -> discovery jatuh ke daftar
+# Gemini tanpa sinyal apa pun: user melihat "hanya model Google" tanpa tahu
+# sebabnya (temuan 2026-09-19). Sekarang setiap jalur mencatat asalnya.
+_state: dict = {"source": "unknown", "degraded": False, "reason": ""}
+
+
+def discovery_health() -> dict:
+    """Dari mana daftar model terakhir berasal + status degradasinya."""
+    return dict(_state)
+
 
 def _gemini_key() -> str | None:
     return (
@@ -108,7 +119,33 @@ def get_available_models(force_refresh: bool = False) -> list[dict]:
     if gw:
         _cache["ts"] = now
         _cache["models"] = gw
+        # Sumber = gateway; `degraded` mengikuti kesehatan roster (mis. cache
+        # basi yang disajikan sambil disegarkan).
+        try:
+            from gateway_roster import roster_health
+
+            h = roster_health()
+            _state.update({"source": h.get("source") or "gateway",
+                           "degraded": bool(h.get("degraded")),
+                           "reason": h.get("reason") or ""})
+        except Exception:  # noqa: BLE001 - metadata opsional
+            _state.update({"source": "gateway", "degraded": False, "reason": ""})
         return gw
+
+    # --- Roster gateway kosong ------------------------------------------------
+    # Bedakan DUA kasus yang dulu diperlakukan sama:
+    #   (a) gateway memang tidak dikonfigurasi -> Gemini-only itu SAH;
+    #   (b) gateway dikonfigurasi tapi gagal  -> fallback Gemini = DEGRADASI,
+    #       dan user berhak tahu (sebelumnya senyap).
+    gateway_configured = False
+    gw_reason = ""
+    try:
+        from gateway_roster import gateway_config, roster_health
+
+        gateway_configured = bool(gateway_config()[0])
+        gw_reason = roster_health().get("reason") or ""
+    except Exception as exc:  # noqa: BLE001
+        log.warning("Status gateway tidak terbaca (%s).", exc)
 
     models: list[dict] = []
     try:
@@ -125,4 +162,12 @@ def get_available_models(force_refresh: bool = False) -> list[dict]:
                            "provider": "Google (Gemini)", "tier": "plus"})
     _cache["ts"] = now
     _cache["models"] = models
+    if gateway_configured:
+        log.warning("DEGRADED: roster gateway kosong (%s) -> fallback Gemini "
+                    "direct (%d model).", gw_reason or "tidak diketahui", len(models))
+        _state.update({"source": "gemini_fallback", "degraded": True,
+                       "reason": gw_reason or "gateway_unavailable_no_cache"})
+    else:
+        _state.update({"source": "gemini_only", "degraded": False,
+                       "reason": "LLM_GATEWAY_URL tidak di-set"})
     return models

@@ -27,6 +27,7 @@ import concurrent.futures as cf
 import json
 import logging
 import os
+import random
 import re
 import threading
 import time
@@ -40,6 +41,18 @@ CACHE_PATH = os.getenv("LLM_GATEWAY_ROSTER_CACHE", ".gw_roster_cache.json")
 PROBE_TIMEOUT_S = float(os.getenv("LLM_GATEWAY_PROBE_TIMEOUT", "90"))
 PROBE_WORKERS = int(os.getenv("LLM_GATEWAY_PROBE_WORKERS", "8"))
 MAX_ROSTER = int(os.getenv("LLM_GATEWAY_MAX_MODELS", "40"))
+
+# RETRY (2026-09-19, temuan: roster kosong -> fallback Gemini SENYAP):
+# satu kegagalan HTTP di `/v1/models` (mis. saat Railway baru restart dan
+# gateway sedang sibuk) langsung membuat seluruh roster kosong. Pola AWS
+# "timeouts, retries and backoff": ulang beberapa kali dengan exponential
+# backoff + jitter supaya kegagalan sesaat tidak berubah jadi degradasi.
+LIST_ATTEMPTS = int(os.getenv("LLM_GATEWAY_LIST_ATTEMPTS", "3"))
+BACKOFF_BASE_S = float(os.getenv("LLM_GATEWAY_BACKOFF_BASE", "1.0"))
+
+# STATUS ROSTER (untuk flag `degraded` di /models). Bukan cache — hanya
+# metadata: dari MANA roster terakhir berasal dan apa yang gagal.
+_state: dict = {"source": "unknown", "reason": "", "ts": 0.0, "cache_age_s": None}
 
 # Non-chat / media / special-purpose: bukan model percakapan teks.
 _NON_CHAT = re.compile(
@@ -222,19 +235,44 @@ def chat_capable(model_id: str) -> bool:
     return bool(model_id) and not _NON_CHAT.search(model_id)
 
 
+def _get_json_retry(client: httpx.Client, url: str, hdr: dict,
+                    attempts: int = LIST_ATTEMPTS) -> dict:
+    """GET + retry (exponential backoff + jitter). Melempar bila semua gagal.
+
+    Kenapa penting: kegagalan sesaat di sini membuat SELURUH roster kosong,
+    dan sebelumnya itu berujung fallback Gemini tanpa sinyal apa pun.
+    """
+    last: Exception | None = None
+    for i in range(max(1, attempts)):
+        try:
+            r = client.get(url, headers=hdr)
+            r.raise_for_status()
+            return r.json()
+        except Exception as exc:  # noqa: BLE001 - dicoba ulang
+            last = exc
+            if i < attempts - 1:
+                wait = (BACKOFF_BASE_S * (2 ** i)) + random.uniform(0, 0.5)
+                log.info("Retry %s/%s untuk %s setelah %.1fs (%s)",
+                         i + 1, attempts, url, wait, type(exc).__name__)
+                time.sleep(wait)
+    raise last if last else RuntimeError("GET gagal tanpa exception")
+
+
 def _list_candidates(client: httpx.Client, url: str, key: str) -> list[dict]:
     """Kandidat dari gateway: /v1/models + /api/status (provider ber-key)."""
     hdr = _headers(key)
     have: set[str] = set()
     try:
-        r = client.get(f"{url}/v1/models", headers=hdr)
-        r.raise_for_status()
-        for m in (r.json().get("data") or []):
+        data = _get_json_retry(client, f"{url}/v1/models", hdr)
+        for m in (data.get("data") or []):
             mid = m.get("id") if isinstance(m, dict) else str(m)
             if mid:
                 have.add(mid)
     except Exception as exc:  # noqa: BLE001 - gateway belum siap
-        log.warning("Gateway /v1/models gagal (%s).", exc)
+        _state.update({"source": "empty", "reason": f"list_models_failed:{type(exc).__name__}",
+                       "ts": time.time(), "cache_age_s": None})
+        log.warning("Gateway /v1/models gagal setelah %d percobaan (%s).",
+                    LIST_ATTEMPTS, exc)
         return []
 
     expected: dict[str, set[str]] = {}
@@ -318,7 +356,93 @@ def _probe_one(client: httpx.Client, url: str, key: str, cand: dict,
     return rec
 
 
+# ---------------------------------------------------------------------------
+# CACHE PERSISTENT (Supabase) — A3
+#
+# Filesystem Railway bersifat EPHEMERAL: `.gw_roster_cache.json` hilang setiap
+# deploy/restart, sehingga instance baru hanya bergantung pada SATU probe
+# gateway. Bila probe itu meleset, roster kosong dan (sebelum perbaikan ini)
+# discovery diam-diam jatuh ke daftar Gemini-only. Tabel `roster_cache`
+# (migrations/2026_roster_cache.sql) menyimpan roster terakhir agar restart
+# tidak pernah kehilangan daftar provider.
+# ---------------------------------------------------------------------------
+def _iso(ts: float | None) -> str:
+    from datetime import datetime, timezone
+
+    return datetime.fromtimestamp(ts or time.time(), tz=timezone.utc).isoformat()
+
+
+def _parse_ts(value: object) -> float:
+    from datetime import datetime
+
+    try:
+        return datetime.fromisoformat(str(value).replace("Z", "+00:00")).timestamp()
+    except Exception:  # noqa: BLE001 - format tak terduga -> anggap sekarang
+        return time.time()
+
+
+def _sb_creds() -> tuple[str, str] | None:
+    url = (os.getenv("SUPABASE_URL") or "").strip().rstrip("/")
+    key = (os.getenv("SUPABASE_SERVICE_KEY") or os.getenv("SUPABASE_KEY") or "").strip()
+    return (url, key) if url and key else None
+
+
+def _load_cache_supabase() -> dict | None:
+    creds = _sb_creds()
+    if not creds:
+        return None
+    url, key = creds
+    try:
+        r = httpx.get(
+            f"{url}/rest/v1/roster_cache",
+            params={"id": "eq.current", "select": "models,created_at"},
+            headers={"apikey": key, "Authorization": f"Bearer {key}"},
+            timeout=12,
+        )
+        r.raise_for_status()
+        rows = r.json() or []
+        if rows and isinstance(rows[0].get("models"), list) and rows[0]["models"]:
+            return {"ts": _parse_ts(rows[0].get("created_at")), "models": rows[0]["models"]}
+    except Exception as exc:  # noqa: BLE001 - cache opsional
+        log.info("Cache roster Supabase tidak terbaca (%s).", type(exc).__name__)
+    return None
+
+
+def _save_cache_supabase(ts: float, models: list[dict]) -> bool:
+    creds = _sb_creds()
+    if not creds:
+        return False
+    url, key = creds
+    try:
+        r = httpx.post(
+            f"{url}/rest/v1/roster_cache",
+            headers={
+                "apikey": key,
+                "Authorization": f"Bearer {key}",
+                "Content-Type": "application/json",
+                "Prefer": "resolution=merge-duplicates,return=minimal",
+            },
+            json=[{"id": "current", "models": models, "created_at": _iso(ts)}],
+            timeout=12,
+        )
+        r.raise_for_status()
+        return True
+    except Exception as exc:  # noqa: BLE001 - cache opsional
+        log.info("Cache roster Supabase gagal ditulis (%s).", type(exc).__name__)
+        return False
+
+
 def _load_cache() -> dict:
+    sb = _load_cache_supabase()
+    if sb and sb["models"]:
+        # PENTING: `ts` sengaja di-nol-kan untuk cache Supabase. Tujuannya
+        # bukan menggantikan probe, melainkan JARING PENYELAMAT saat gateway
+        # tidak terjangkau. Dengan ts=0 baris ini selalu dianggap BASI, jadi:
+        #   - probe gateway tetap dijalankan (menyegarkan di latar belakang),
+        #   - penyajian dari cache ditandai degraded=True (jujur ke user).
+        # Tanpa ini, satu baris cache lama bisa disajikan seolah sehat selama TTL.
+        _state.update({"cache_age_s": max(0.0, time.time() - sb["ts"])})
+        return {"ts": 0.0, "models": sb["models"]}
     try:
         with open(CACHE_PATH, encoding="utf-8") as fh:
             d = json.load(fh)
@@ -337,6 +461,20 @@ def _save_cache(ts: float, models: list[dict]) -> None:
             json.dump({"ts": ts, "models": models}, fh, indent=1)
     except Exception as exc:  # noqa: BLE001 - cache opsional
         log.warning("Cache roster gagal ditulis (%s).", exc)
+    if models:
+        _save_cache_supabase(ts, models)
+
+
+def roster_health() -> dict:
+    """Dari mana roster terakhir berasal (untuk flag `degraded` di /models)."""
+    source = _state.get("source") or "unknown"
+    reason = _state.get("reason") or ""
+    age = _state.get("cache_age_s")
+    degraded = source in ("cache", "empty")
+    if source == "not_configured":
+        degraded = False   # gateway memang tidak dipakai: bukan degradasi
+    return {"source": source, "degraded": degraded, "reason": reason,
+            "cache_age_seconds": round(age, 1) if isinstance(age, (int, float)) else None}
 
 
 _refreshing = threading.Event()
@@ -389,20 +527,41 @@ def probe_roster(force: bool = False, blocking: bool = False) -> list[dict]:
     global _cache
     url, key = gateway_config()
     if not url:
+        # Gateway memang tidak dikonfigurasi: Gemini-only itu SAH, bukan degradasi.
+        _state.update({"source": "not_configured",
+                       "reason": "LLM_GATEWAY_URL tidak di-set",
+                       "ts": time.time(), "cache_age_s": None})
         return []
     now = time.time()
     if not _cache["models"]:
         _cache = _load_cache()
     if _cache["models"] and (now - _cache["ts"]) < CACHE_TTL_S and not force:
+        # Cache masih dalam TTL = data gateway yang belum kedaluwarsa: BUKAN degradasi.
+        _state.update({"source": "gateway", "reason": "", "ts": now,
+                       "cache_age_s": max(0.0, now - _cache["ts"])})
         return list(_cache["models"])
     if _cache["models"] and not blocking:
+        # Sajikan cache sambil menyegarkan di latar belakang. Datanya mungkin
+        # BASI -> tandai degraded supaya tidak lagi diam-diam (keluhan user).
+        _state.update({"source": "cache", "reason": "cache_stale_refresh_async",
+                       "ts": now, "cache_age_s": max(0.0, now - _cache["ts"])})
         _refresh_async()
         return list(_cache["models"])
 
     with httpx.Client(timeout=PROBE_TIMEOUT_S) as client:
         cands = _list_candidates(client, url, key)
         if not cands:
-            return list(_cache["models"])
+            # Gagal ambil kandidat (setelah retry): pakai cache apa pun, sekalipun
+            # basi — lebih baik daripada kehilangan seluruh daftar provider.
+            if _cache["models"]:
+                _state.update({"source": "cache",
+                               "reason": _state.get("reason") or "list_models_failed",
+                               "ts": now, "cache_age_s": max(0.0, now - _cache["ts"])})
+                return list(_cache["models"])
+            _state.update({"source": "empty",
+                           "reason": _state.get("reason") or "no_cache",
+                           "ts": now, "cache_age_s": None})
+            return []
         nonce = str(int(now))
         passed: list[dict] = []
         with cf.ThreadPoolExecutor(max_workers=PROBE_WORKERS) as ex:
@@ -433,6 +592,13 @@ def probe_roster(force: bool = False, blocking: bool = False) -> list[dict]:
              len(passed), len(cands), CACHE_TTL_S)
     _cache = {"ts": now, "models": passed}
     _save_cache(now, passed)
+    if passed:
+        _state.update({"source": "gateway", "reason": "", "ts": now, "cache_age_s": 0.0})
+    else:
+        # Semua kandidat gagal probe: roster kosong -> pemanggil akan memakai
+        # fallback, dan itu HARUS terlihat sebagai degraded (bukan senyap).
+        _state.update({"source": "empty", "reason": "probe_all_failed",
+                       "ts": now, "cache_age_s": None})
     return list(passed)
 
 
