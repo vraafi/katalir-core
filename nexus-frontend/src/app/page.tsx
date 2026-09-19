@@ -764,10 +764,15 @@ function ChatApp() {
   async function submitCredential(provider: string, original: string) {
     if (!credValue.trim() || !activeEmail) return;
     try {
-      await apiFetch("/integrations", {
+      // FASE 2.3: kredensial disimpan TERENKRIPSI (Fernet) di Brankas —
+      // bukan lagi kolom plaintext `/integrations`. Server memakai user dari
+      // JWT, jadi body tidak mengirim email. Nilai kunci hanya hidup di
+      // request ini: tidak pernah masuk ke prompt/tool-result model.
+      const r = await apiFetch("/api/vault/save", {
         method: "POST",
-        body: JSON.stringify({ provider, token: credValue.trim() }),
+        body: JSON.stringify({ provider, api_key: credValue.trim() }),
       });
+      if (!r.ok) throw new Error(`HTTP ${r.status}`);
       setCredValue("");
       // Hapus kartu form dari cache (bukan dari useState).
       const keys = [chatKeys.messages(sessionId ?? "__pending__")];

@@ -505,7 +505,15 @@ def save_integration(email, provider_name, api_token):
 
 
 def get_integration(email, provider_name):
-    """Ambil API token milik user untuk provider tertentu."""
+    """Ambil API token milik user untuk provider tertentu.
+
+    FASE 2.3 — urutan sumber (kompatibel mundur):
+      1. `user_integrations` (kolom plaintext, jalur BYOK lama);
+      2. `user_vault` (ciphertext Fernet, jalur form kredensial di chat).
+    Tool di `tools.py` memanggil fungsi ini, jadi tanpa fallback ke-2 kredensial
+    yang user isi lewat form chat (terenkripsi) tidak akan pernah ditemukan —
+    flow akan meminta token berulang-ulang.
+    """
     if is_configured():
         try:
             c = _get_client()
@@ -514,11 +522,35 @@ def get_integration(email, provider_name):
                    .eq("provider_name", provider_name).execute())
             if res.data:
                 return res.data[0]
-            return None
         except Exception:
             _configured = False
     rec = _LINT.get((email, provider_name))
-    return dict(rec) if rec else None
+    if rec:
+        return dict(rec)
+    return _vault_integration(email, provider_name)
+
+
+def _vault_integration(email, provider_name):
+    """Baris bentuk `user_integrations` dari Brankas (didekripsi) atau None.
+
+    Nilai plaintext HANYA hidup di memori proses pemanggil (untuk mengisi header
+    request ke provider); ia tidak pernah dikembalikan lewat API maupun ke model.
+    """
+    try:
+        cipher = vault_get(email, provider_name)
+        if not cipher:
+            return None
+        import vault_security as vs
+        token = vs.decrypt_key(cipher)
+        if not token:
+            return None
+        return {"user_email": email, "provider_name": provider_name,
+                "api_token": token, "source": "vault"}
+    except Exception as exc:  # kunci vault berubah / cryptography tak ada
+        print(f"[database] vault tidak terbaca untuk {provider_name}: "
+              f"{type(exc).__name__}")
+        return None
+
 
 
 def list_integrations(email):
