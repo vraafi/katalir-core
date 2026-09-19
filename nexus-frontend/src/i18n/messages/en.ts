@@ -31,6 +31,8 @@ export const en = {
     send: "Send",
     stop: "Stop",
     messageLabel: "Message",
+    workflowReady: "The AI built your workflow on the canvas.",
+    openCanvas: "Open canvas",
   },
   landing: {
     loginCta: "Sign in to start chatting",

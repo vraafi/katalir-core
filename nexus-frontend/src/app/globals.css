@@ -111,6 +111,29 @@ body {
   background: rgb(var(--fg-subtle));
 }
 
+/* FASE 2.2: animasi "spring" saat node muncul di kanvas (draf dari AI muncul
+   sekaligus, jadi tanpa animasi perubahan terasa seperti halaman melompat).
+   Hanya transform + opacity (GPU), dan prefers-reduced-motion sudah dimatikan
+   global di atas (animation-duration 0.01ms) sehingga tetap aksesibel. */
+@keyframes node-spring-in {
+  0% {
+    opacity: 0;
+    transform: scale(0.86) translateY(6px);
+  }
+  60% {
+    opacity: 1;
+    transform: scale(1.02) translateY(0);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+.react-flow__node {
+  animation: node-spring-in 320ms cubic-bezier(0.34, 1.4, 0.64, 1) both;
+}
+
+
 /* Typing indicator (CallSphere 200ms rule) — 3 bouncing dots.
    Hanya pakai transform + opacity (GPU compositing), TIDAK width/height
    (hindari layout thrash). prefers-reduced-motion di-nonaktifkan secara

@@ -1,5 +1,5 @@
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useReactFlow } from "@xyflow/react";
 import { useShallow } from "zustand/react/shallow";
 import { useQueryState, parseAsString } from "nuqs";
@@ -14,6 +14,8 @@ import { WorkflowSidebar } from "./WorkflowSidebar";
 import { useCanvasStore } from "./store/canvas-store";
 import { useWorkflowsQuery, useSaveWorkflowMutation, applyWorkflowToCanvas, type WorkflowListItem } from "./hooks/useWorkflow";
 import { useExecuteMutation, useExecutionPolling } from "./hooks/useExecution";
+// FASE 2.2: draf dari chat (Discovery Agent) dibaca saat mount.
+import { clearPendingWorkflow, peekPendingWorkflow } from "@/features/agent/workflow-spec";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
@@ -29,7 +31,7 @@ export function BuilderInner() {
   );
 
   // --- canvas state via Zustand store (single-source-of-truth) ---
-  const { nodes, edges, onNodesChange, onEdgesChange, onConnect, setNodes, setEdges, addNode, clearWork } =
+  const { nodes, edges, onNodesChange, onEdgesChange, onConnect, setNodes, setEdges, replaceWork, addNode, clearWork } =
     useCanvasStore(
       useShallow((s) => ({
         nodes: s.nodes,
@@ -39,6 +41,7 @@ export function BuilderInner() {
         onConnect: s.onConnect,
         setNodes: s.setNodes,
         setEdges: s.setEdges,
+        replaceWork: s.replaceWork,
         addNode: s.addNode,
         clearWork: s.clearWork,
       }))
@@ -55,9 +58,27 @@ export function BuilderInner() {
   const execMutation = useExecuteMutation();
   const exec = useExecutionPolling();
 
+  // FASE 2.2: draf dari AI punya PRIORITAS saat halaman Builder dibuka. Kalau
+  // effect di bawah (daftar workflow) jalan lebih dulu, draf AI akan langsung
+  // tertimpa workflow tersimpan pertama dan user melihat kanvas kosong.
+  const aiDraftApplied = useRef(false);
+  useEffect(() => {
+    if (aiDraftApplied.current) return;
+    const pending = peekPendingWorkflow();
+    if (!pending) return;
+    aiDraftApplied.current = true;
+    replaceWork(pending.nodes, pending.edges);
+    // Draf dibuang setelah diterapkan: kalau tetap tersimpan, setiap reload
+    // Builder akan menimpanya lagi dan user tidak bisa membuka workflow lain.
+    clearPendingWorkflow();
+  }, [replaceWork]);
+
   // Laad workflow die in URL staat (?w=) wanneer data klaar is — NIET in render.
   useEffect(() => {
     if (!isSuccess || !Array.isArray(workflowsData) || workflowsData.length === 0) return;
+    // Draf AI barusan diterapkan dan user tidak meminta workflow tertentu
+    // (?w= kosong) -> hormati draf itu, jangan timpa.
+    if (aiDraftApplied.current && !workflowId) return;
     // Zoek workflow op id uit ?w= ; als niet gevonden of geen ?w=, gebruik 'workflows[0]'
     const target = workflowId
       ? workflowsData.find((w) => w.id === workflowId)

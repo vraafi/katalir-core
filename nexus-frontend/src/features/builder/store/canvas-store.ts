@@ -51,6 +51,10 @@ interface CanvasState {
   onConnect: (connection: { source: string; sourceHandle?: string | null; target: string; targetHandle?: string | null }) => void;
   setNodes: (nodes: FlowNode[]) => void;
   setEdges: (edges: Edge[]) => void;
+  /** Ganti seluruh isi kanvas dengan draf dari AI (FASE 2.2). Sengaja BUKAN
+   *  `addNode` berulang: draf harus menggantikan, bukan menumpuk di atas
+   *  workflow lama yang sedang terbuka. */
+  replaceWork: (nodes: FlowNode[], edges: Edge[]) => void;
   addNode: (kind: Kind, position?: { x: number; y: number }) => void;
   clearWork: () => void;
 }
@@ -93,6 +97,12 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
 
   setNodes: (nodes) => set({ nodes }),
   setEdges: (edges) => set({ edges }),
+
+  replaceWork: (nodes, edges) => {
+    // `seq` dinaikkan supaya id node yang ditambahkan manual SESUDAH draf AI
+    // tidak bertabrakan dengan id draf (mis. draf memakai "trigger-100").
+    set({ nodes, edges, seq: 100 + nodes.length });
+  },
 
   addNode: (kind, position) => {
     const pos = position ?? {

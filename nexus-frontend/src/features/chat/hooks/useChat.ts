@@ -37,6 +37,9 @@ export interface ChatMeta {
   fallback_reason?: string | null;
   /** True bila dijawab lewat free-llm-gateway (self-hosted). */
   gateway?: boolean;
+  /** FASE 2.1/2.2: draf workflow dari Discovery Agent (bentuk mentah — divalidasi
+   *  ulang di `parseAgentWorkflow` sebelum menyentuh kanvas). */
+  workflow?: unknown;
   provider?: string;
 }
 

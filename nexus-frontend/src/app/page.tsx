@@ -19,6 +19,14 @@ import { useQueryClient } from "@tanstack/react-query";
 import { chatKeys } from "@/lib/query-keys";
 import { ModelSelector } from "@/components/ModelSelector";
 import { CHAT_MODELS, DEFAULT_MODEL_ID, pickerModels } from "@/lib/models";
+import Link from "next/link";
+// FASE 2.2: draf workflow dari Discovery Agent -> kanvas Builder.
+import { useCanvasStore } from "@/features/builder/store/canvas-store";
+import {
+  parseAgentWorkflow,
+  savePendingWorkflow,
+  type AgentWorkflow,
+} from "@/features/agent/workflow-spec";
 
 const SUGGESTIONS = ["Kirim pesan WA", "Rangkum dokumen", "Analisis data"];
 
@@ -258,6 +266,10 @@ function quotaWarning(quota: QuotaStatus | null): string | null {
 function ChatApp() {
   const { email, loading } = useAuth();
   const { t } = useI18n();
+  // FASE 2.2: satu-satunya penulis draf AI ke kanvas. `replaceWork` dipakai
+  // (bukan addNode) supaya draf MENGGANTIKAN isi kanvas, bukan menumpuk.
+  const replaceWork = useCanvasStore((s) => s.replaceWork);
+  const [aiDraft, setAiDraft] = useState<AgentWorkflow | null>(null);
   // URL state: ?s=<sessionId> (nuqs, shallow) — source of truth.
   const [sessionId, setSessionId] = useQueryState(
     "s",
@@ -702,6 +714,15 @@ function ChatApp() {
       // Kuota baru saja terpakai 1 request -> segarkan progress bar segera
       // (tanpa harus menunggu interval 60 detik).
       void refreshQuota();
+      // FASE 2.2: draf workflow dari Discovery Agent -> kanvas + storage.
+      // `parseAgentWorkflow` menolak payload rusak secara senyap (kanvas tidak
+      // boleh crash karena data jaringan), jadi `null` = tidak ada aksi.
+      const wf = parseAgentWorkflow(data?.meta?.workflow);
+      if (wf) {
+        replaceWork(wf.nodes, wf.edges);
+        savePendingWorkflow(wf);
+        setAiDraft(wf);
+      }
       // Reply + kartu kredensial datang via cache update (onSuccess) dan
       // query-invalidatie (messagesData refresh).
     } catch {
@@ -1143,6 +1164,28 @@ return (
                 supaya terlihat sebelum user mengirim (bukan setelah gagal).
                 Hanya dirender saat login (kuota terikat akun). */}
             {activeEmail && <QuotaPanel quota={quota} />}
+            {/* FASE 2.2: jembatan chat->kanvas. Tanpa penanda ini user tidak
+                tahu bahwa AI baru saja mengisi kanvas (dan harus ke /builder). */}
+            {aiDraft && (
+              <div
+                data-testid="ai-workflow-notice"
+                className="mb-2 flex items-center justify-between gap-2 rounded-lg border border-accent/30 bg-accent/5 px-3 py-2"
+              >
+                <span className="flex min-w-0 items-center gap-1.5 text-[12px] font-medium text-fg">
+                  <Sparkles size={13} strokeWidth={2} className="shrink-0 text-accent" />
+                  <span className="truncate">
+                    {t("chat.workflowReady")}{" "}
+                    <span className="text-fg-muted">({aiDraft.name})</span>
+                  </span>
+                </span>
+                <Link
+                  href="/builder"
+                  className="shrink-0 rounded-md bg-accent px-2 py-1 text-[11px] font-semibold text-accent-fg transition-opacity hover:opacity-90"
+                >
+                  {t("chat.openCanvas")}
+                </Link>
+              </div>
+            )}
             {activeEmail && quotaWarning(quota) && (
               <p className="mb-2 flex items-center gap-1.5 text-[11px] font-medium text-amber-500">
                 <AlertTriangle size={12} strokeWidth={2} />

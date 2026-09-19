@@ -32,6 +32,8 @@ export const id = {
     send: "Kirim",
     stop: "Stop",
     messageLabel: "Pesan",
+    workflowReady: "Workflow dari AI sudah siap di kanvas.",
+    openCanvas: "Buka kanvas",
   },
   landing: {
     loginCta: "Login untuk mulai mengobrol",
