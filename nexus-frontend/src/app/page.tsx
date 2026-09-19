@@ -9,8 +9,10 @@ import { AuthProvider, useAuth } from "@/context/auth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { QueryProvider } from "@/features/builder/provider";
+import { I18nProvider } from "@/i18n/context";
 import { apiFetch } from "@/lib/api";
 import { FadeIn } from "@/components/motion";
+import { useI18n } from "@/i18n/context";
 import { useSessionsQuery, useMessagesQuery, useSendChatMutation, useDeleteSessionMutation, useModelsQuery, type ChatModelItem } from "@/features/chat/hooks/useChat";
 import type { ChatMessage } from "@/features/chat/hooks/useChat";
 import { useQueryClient } from "@tanstack/react-query";
@@ -255,6 +257,7 @@ function quotaWarning(quota: QuotaStatus | null): string | null {
 
 function ChatApp() {
   const { email, loading } = useAuth();
+  const { t } = useI18n();
   // URL state: ?s=<sessionId> (nuqs, shallow) — source of truth.
   const [sessionId, setSessionId] = useQueryState(
     "s",
@@ -1170,14 +1173,14 @@ return (
                     onStop();
                   }
                 }}
-                placeholder={activeEmail ? "Ketik pesan ke Katalir..." : "Login untuk mulai mengobrol"}
-                aria-label="Pesan"
+                placeholder={activeEmail ? t("chat.placeholder") : t("landing.loginCta")}
+                aria-label={t("chat.messageLabel")}
                 className="h-9 border-0 shadow-none bg-transparent focus-visible:shadow-none"
               />
               <Button
                 type={showStop ? "button" : "submit"}
                 size="icon"
-                aria-label={showStop ? "Stop" : "Kirim"}
+                aria-label={showStop ? t("chat.stop") : t("chat.send")}
                 onClick={showStop ? onStop : undefined}
                 disabled={showStop ? false : !input.trim()}
                 className="shrink-0"
@@ -1196,10 +1199,12 @@ export default function Home() {
   return (
     <AuthProvider>
       <QueryProvider>
+        <I18nProvider>
         {/* Suspense DI IN page: vereist door Next 15 static-export voor useSearchParams (nuqs). */}
         <Suspense fallback={null}>
           <ChatApp />
         </Suspense>
+        </I18nProvider>
       </QueryProvider>
     </AuthProvider>
   );

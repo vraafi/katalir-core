@@ -5,6 +5,8 @@ import { Moon, Sun, MonitorSmartphone } from "lucide-react";
 import { useTheme } from "next-themes";
 import { toast } from "sonner";
 import { useAuth } from "@/context/auth";
+import { useI18n } from "@/i18n/context";
+import { LanguageSwitcher } from "@/components/LanguageSwitcher";
 import { SimplePage } from "@/components/SimplePage";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -15,6 +17,7 @@ import { cn } from "@/lib/cn";
  *  dari page.tsx; named export lain merusak type-check route). */
 function SettingsContent() {
   const { email } = useAuth();
+  const { t } = useI18n();
   const { theme, setTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
   useEffect(() => setMounted(true), []);
@@ -28,8 +31,8 @@ function SettingsContent() {
     <>
       <Card>
         <CardHeader>
-          <CardTitle>Profil</CardTitle>
-          <CardDescription>Identitas akun Anda (hanya-baca).</CardDescription>
+          <CardTitle>{t("settings.profile")}</CardTitle>
+          <CardDescription>{t("settings.profileDesc")}</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="flex items-center gap-3">
@@ -40,8 +43,8 @@ function SettingsContent() {
               {initial}
             </span>
             <div className="min-w-0">
-              <p className="truncate text-callout font-medium text-fg">{email ?? "Memuat…"}</p>
-              <p className="text-footnote text-fg-muted">Login via Google OAuth</p>
+              <p className="truncate text-callout font-medium text-fg">{email ?? t("common.loading")}</p>
+              <p className="text-footnote text-fg-muted">{t("settings.loginVia")}</p>
             </div>
           </div>
         </CardContent>
@@ -49,17 +52,17 @@ function SettingsContent() {
 
       <Card>
         <CardHeader>
-          <CardTitle>Preferensi</CardTitle>
-          <CardDescription>Tampilan dan bahasa antarmuka.</CardDescription>
+          <CardTitle>{t("settings.preferences")}</CardTitle>
+          <CardDescription>{t("settings.preferencesDesc")}</CardDescription>
         </CardHeader>
         <CardContent>
-          <p className="mb-2 text-footnote font-semibold uppercase tracking-wide text-fg-subtle">Tema</p>
-          <div className="grid gap-2 sm:grid-cols-3" role="radiogroup" aria-label="Tema">
+          <p className="mb-2 text-footnote font-semibold uppercase tracking-wide text-fg-subtle">{t("settings.theme")}</p>
+          <div className="grid gap-2 sm:grid-cols-3" role="radiogroup" aria-label={t("settings.theme")}>
             {(
               [
-                { id: "light", label: "Terang", Icon: Sun },
-                { id: "dark", label: "Gelap", Icon: Moon },
-                { id: "system", label: "Ikuti Sistem", Icon: MonitorSmartphone },
+                { id: "light", label: t("settings.themeLight"), Icon: Sun },
+                { id: "dark", label: t("settings.themeDark"), Icon: Moon },
+                { id: "system", label: t("settings.themeSystem"), Icon: MonitorSmartphone },
               ] as const
             ).map(({ id, label, Icon }) => (
               <button
@@ -80,21 +83,19 @@ function SettingsContent() {
               </button>
             ))}
           </div>
-          <p className="mb-2 mt-5 text-footnote font-semibold uppercase tracking-wide text-fg-subtle">Bahasa</p>
-          <div className="flex cursor-not-allowed items-center gap-2.5 rounded-md border border-border px-3 py-2.5 text-[13px] text-fg-subtle" title="Segera hadir">
-            Indonesia (segera hadir: English)
-          </div>
+          <p className="mb-2 mt-5 text-footnote font-semibold uppercase tracking-wide text-fg-subtle">{t("settings.language")}</p>
+          <LanguageSwitcher />
         </CardContent>
       </Card>
 
       <Card className="border-danger/40">
         <CardHeader>
-          <CardTitle className="text-danger">Zona Berbahaya</CardTitle>
-          <CardDescription>Menghapus akun bersifat permanen dan tidak bisa dibatalkan.</CardDescription>
+          <CardTitle className="text-danger">{t("settings.dangerZone")}</CardTitle>
+          <CardDescription>{t("settings.dangerDesc")}</CardDescription>
         </CardHeader>
         <CardContent>
-          <Button variant="danger" onClick={() => toast.info("Fitur hapus akun dalam pengembangan.")}>
-            Hapus Akun
+          <Button variant="danger" onClick={() => toast.info(t("settings.deleteToast"))}>
+            {t("settings.deleteAccount")}
           </Button>
         </CardContent>
       </Card>
@@ -102,10 +103,12 @@ function SettingsContent() {
   );
 }
 
-/** Route /settings: SimplePage (provider) + konten. */
+/** Route /settings: SimplePage (provider) + konten. Judul memakai KEY i18n
+ *  supaya ikut bahasa aktif (SimplePageInner menerjemahkannya di dalam
+ *  I18nProvider). */
 export default function SettingsPage() {
   return (
-    <SimplePage title="Pengaturan Akun" subtitle="Kelola preferensi dan profil Anda">
+    <SimplePage title="settings.title" subtitle="settings.subtitle">
       <SettingsContent />
     </SimplePage>
   );

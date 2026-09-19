@@ -5,6 +5,7 @@ import { Suspense } from "react";
 import { ArrowLeft } from "lucide-react";
 import { AuthProvider } from "@/context/auth";
 import { QueryProvider } from "@/features/builder/provider";
+import { I18nProvider, useI18n } from "@/i18n/context";
 
 /**
  * Layout minimal untuk halaman akun (/settings, /billing, /help).
@@ -28,6 +29,32 @@ export function SimplePage({ title, subtitle, children, maxW = "max-w-2xl" }: {
     <Suspense fallback={null}>
       <AuthProvider>
         <QueryProvider>
+          <I18nProvider>
+            <SimplePageInner title={title} subtitle={subtitle} maxW={maxW}>
+              {children}
+            </SimplePageInner>
+          </I18nProvider>
+        </QueryProvider>
+      </AuthProvider>
+    </Suspense>
+  );
+}
+
+/** Kerangka di DALAM provider — judul ikut diterjemahkan bila berupa key i18n. */
+function SimplePageInner({
+  title,
+  subtitle,
+  children,
+  maxW,
+}: {
+  title: string;
+  subtitle?: string;
+  children: React.ReactNode;
+  maxW: string;
+}) {
+  const { t } = useI18n();
+  const tr = (s: string) => (s.includes(".") && !s.includes(" ") ? t(s) : s);
+  return (
           <div className="min-h-screen bg-bg text-fg">
             <nav className="flex items-center justify-between border-b border-border px-5 py-3">
               <Link href="/" className="text-xl font-bold tracking-tight text-fg">
@@ -38,17 +65,14 @@ export function SimplePage({ title, subtitle, children, maxW = "max-w-2xl" }: {
                 className="flex h-9 items-center gap-1.5 rounded-md border border-border bg-surface px-3 text-subhead font-medium text-fg transition hover:bg-bg-subtle"
               >
                 <ArrowLeft size={15} strokeWidth={2} aria-hidden />
-                Kembali
+                {t("common.back")}
               </Link>
             </nav>
             <main className={`mx-auto ${maxW} px-5 py-8`}>
-              <h1 className="text-title2 font-bold tracking-tight">{title}</h1>
-              {subtitle && <p className="mt-1 text-callout text-fg-muted">{subtitle}</p>}
+              <h1 className="text-title2 font-bold tracking-tight">{tr(title)}</h1>
+              {subtitle && <p className="mt-1 text-callout text-fg-muted">{tr(subtitle)}</p>}
               <div className="mt-6 flex flex-col gap-4">{children}</div>
             </main>
           </div>
-        </QueryProvider>
-      </AuthProvider>
-    </Suspense>
   );
 }

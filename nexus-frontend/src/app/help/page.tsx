@@ -1,6 +1,7 @@
 "use client";
 
 import { Mail } from "lucide-react";
+import { useI18n } from "@/i18n/context";
 import { SimplePage } from "@/components/SimplePage";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 
@@ -37,15 +38,20 @@ const FAQS: { q: string; a: string }[] = [
 
 /** Konten Bantuan (tanpa hook auth — aman dipakai di dalam SimplePage). */
 function HelpContent() {
+  const { t } = useI18n();
+  const faqs = [1, 2, 3, 4, 5, 6, 7].map((n) => ({
+    q: t(`help.faq${n}q`),
+    a: t(`help.faq${n}a`),
+  }));
   return (
     <>
       <Card>
         <CardHeader>
-          <CardTitle>Pertanyaan Umum</CardTitle>
+          <CardTitle>{t("help.faq")}</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="flex flex-col gap-2">
-            {FAQS.map((f) => (
+            {faqs.map((f) => (
               <details
                 key={f.q}
                 className="group rounded-md border border-border px-3.5 py-2.5 transition-colors open:bg-bg-subtle/50"
@@ -62,7 +68,7 @@ function HelpContent() {
 
       <Card>
         <CardHeader>
-          <CardTitle>Hubungi Kami</CardTitle>
+          <CardTitle>{t("help.contact")}</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="flex items-center gap-2.5 text-[13px]">
@@ -70,7 +76,7 @@ function HelpContent() {
             <a href="mailto:hello@katalir.id" className="font-medium text-accent hover:underline">
               hello@katalir.id
             </a>
-            <span className="text-fg-subtle">(respon &lt; 24 jam)</span>
+            <span className="text-fg-subtle">{t("help.contactResponse")}</span>
           </div>
         </CardContent>
       </Card>
@@ -81,7 +87,7 @@ function HelpContent() {
 /** Route /help: SimplePage (provider) + konten. */
 export default function HelpPage() {
   return (
-    <SimplePage title="Bantuan" subtitle="Jawaban atas pertanyaan yang sering diajukan">
+    <SimplePage title="help.title" subtitle="help.subtitle">
       <HelpContent />
     </SimplePage>
   );

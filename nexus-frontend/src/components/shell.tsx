@@ -6,6 +6,7 @@ import { useAuth } from "@/context/auth";
 import VaultModal from "@/components/VaultModal";
 import ThemeToggle from "@/components/ThemeToggle";
 import { UserMenu } from "@/components/UserMenu";
+import { useI18n } from "@/i18n/context";
 import { StaggerList, StaggerItem } from "@/components/motion";
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
@@ -27,6 +28,7 @@ interface ShellProps {
 
 export default function Shell({ children, sessions, currentSessionId, onSelectSession, onNewChat, onDeleteSession, userTier = "free" }: ShellProps) {
   const { email, loading, signInWithGoogle, signOut } = useAuth();
+  const { t } = useI18n();
   const [vaultOpen, setVaultOpen] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<string | null>(null);
 
@@ -44,11 +46,11 @@ export default function Shell({ children, sessions, currentSessionId, onSelectSe
     <div className="flex h-screen overflow-hidden bg-bg">
       <aside className="flex w-64 shrink-0 flex-col border-r border-border bg-bg-subtle">
         <Button variant="secondary" size="md" onClick={onNewChat} className="mx-3 mt-3">
-          <Plus className="h-4 w-4" strokeWidth={1.75} /> Chat Baru
+          <Plus className="h-4 w-4" strokeWidth={1.75} /> {t("nav.newChat")}
         </Button>
         <div className="mt-4 flex-1 overflow-y-auto px-2">
-          <p className="px-2 pb-2 text-caption font-semibold uppercase tracking-wide text-fg-subtle">Riwayat Chat</p>
-          {sessions.length === 0 && <p className="px-2 py-1 text-footnote text-fg-subtle">Belum ada riwayat.</p>}
+          <p className="px-2 pb-2 text-caption font-semibold uppercase tracking-wide text-fg-subtle">{t("nav.history")}</p>
+          {sessions.length === 0 && <p className="px-2 py-1 text-footnote text-fg-subtle">{t("nav.noHistory")}</p>}
           <StaggerList>
             {sessions.map((s) => {
               const active = s.id === currentSessionId;
@@ -113,26 +115,26 @@ export default function Shell({ children, sessions, currentSessionId, onSelectSe
           <div className="flex items-center gap-2">
             <ThemeToggle />
             <Link href="/" className="flex h-9 items-center gap-2 rounded-md border border-border bg-surface px-3 text-subhead font-medium text-fg transition duration-200 hover:bg-bg-subtle">
-              <MessageSquare className="h-4 w-4" strokeWidth={1.75} /> Chat
+              <MessageSquare className="h-4 w-4" strokeWidth={1.75} /> {t("nav.chat")}
             </Link>
             <Link href="/builder" className="flex h-9 items-center gap-2 rounded-md border border-border bg-surface px-3 text-subhead font-medium text-fg transition duration-200 hover:bg-bg-subtle">
-              <Workflow className="h-4 w-4" strokeWidth={1.75} /> Builder
+              <Workflow className="h-4 w-4" strokeWidth={1.75} /> {t("nav.builder")}
             </Link>
             {email && (
               <Button variant="secondary" size="md" onClick={() => setVaultOpen(true)}>
-                <KeyRound className="h-4 w-4" strokeWidth={1.75} /> Brankas
+                <KeyRound className="h-4 w-4" strokeWidth={1.75} /> {t("nav.vault")}
               </Button>
             )}
             {email && <span className="max-w-[180px] truncate text-subhead text-fg-muted">{email}</span>}
             {loading ? (
-              <span className="text-subhead text-fg-subtle">Memuat...</span>
+              <span className="text-subhead text-fg-subtle">{t("common.loading")}</span>
             ) : email ? (
               <Button variant="ghost" size="md" onClick={signOut}>
-                <LogOut className="h-4 w-4" strokeWidth={1.75} /> Logout
+                <LogOut className="h-4 w-4" strokeWidth={1.75} /> {t("nav.logout")}
               </Button>
             ) : (
               <Button variant="secondary" size="md" onClick={signInWithGoogle}>
-                <LogIn className="h-4 w-4" strokeWidth={1.75} /> Login dengan Google
+                <LogIn className="h-4 w-4" strokeWidth={1.75} /> {t("nav.loginGoogle")}
               </Button>
             )}
           </div>

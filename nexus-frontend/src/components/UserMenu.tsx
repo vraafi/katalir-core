@@ -15,6 +15,7 @@ import {
   Zap,
 } from "lucide-react";
 import { useAuth } from "@/context/auth";
+import { useI18n } from "@/i18n/context";
 import { cn } from "@/lib/cn";
 
 /**
@@ -38,6 +39,7 @@ interface UserMenuProps {
  */
 export function UserMenu({ userTier = "free" }: UserMenuProps) {
   const { email, signOut } = useAuth();
+  const { t } = useI18n();
   const { resolvedTheme, setTheme } = useTheme();
   // HYDRATION: resolvedTheme undefined di server → label tema dibuat netral
   // sampai mount (pola sama seperti ThemeToggle).
@@ -55,7 +57,7 @@ export function UserMenu({ userTier = "free" }: UserMenuProps) {
       <DropdownMenu.Trigger asChild>
         <button
           type="button"
-          aria-label={`Menu akun ${email}`}
+          aria-label={`${t("userMenu.accountMenu")} ${email}`}
           aria-haspopup="menu"
           className="flex w-full items-center gap-2.5 rounded-lg px-2.5 py-2 text-left transition-colors hover:bg-bg-subtle"
         >
@@ -67,7 +69,7 @@ export function UserMenu({ userTier = "free" }: UserMenuProps) {
           </span>
           <span className="min-w-0 flex-1">
             <span className="block truncate text-[13px] font-medium text-fg">{email}</span>
-            <span className="block text-[11px] text-fg-subtle">{isPlus ? "Plus" : "Free"}</span>
+            <span className="block text-[11px] text-fg-subtle">{isPlus ? t("userMenu.tierPlus") : t("userMenu.tierFree")}</span>
           </span>
           <ChevronUp size={14} strokeWidth={2} className="shrink-0 text-fg-subtle" aria-hidden />
         </button>
@@ -89,7 +91,7 @@ export function UserMenu({ userTier = "free" }: UserMenuProps) {
                   className={cn(itemCls, "font-semibold text-accent")}
                 >
                   <Zap size={14} strokeWidth={2} className="shrink-0" aria-hidden />
-                  Upgrade ke Plus — $299 / tahun
+                  {t("userMenu.upgrade")}
                 </a>
               </DropdownMenu.Item>
               <DropdownMenu.Separator className="my-1 h-px bg-border" />
@@ -99,13 +101,13 @@ export function UserMenu({ userTier = "free" }: UserMenuProps) {
           <DropdownMenu.Item asChild>
             <Link href="/settings" className={itemCls}>
               <Settings size={14} strokeWidth={1.75} className="shrink-0" aria-hidden />
-              Pengaturan Akun
+              {t("userMenu.settings")}
             </Link>
           </DropdownMenu.Item>
           <DropdownMenu.Item asChild>
             <Link href="/billing" className={itemCls}>
               <CreditCard size={14} strokeWidth={1.75} className="shrink-0" aria-hidden />
-              Billing
+              {t("userMenu.billing")}
             </Link>
           </DropdownMenu.Item>
           <DropdownMenu.Item
@@ -117,18 +119,18 @@ export function UserMenu({ userTier = "free" }: UserMenuProps) {
             ) : (
               <Moon size={14} strokeWidth={1.75} className="shrink-0" aria-hidden />
             )}
-            {mounted ? (isDark ? "Tema terang" : "Tema gelap") : "Tema"}
+            {mounted ? (isDark ? t("userMenu.themeLight") : t("userMenu.themeDark")) : t("userMenu.theme")}
           </DropdownMenu.Item>
           <DropdownMenu.Item asChild>
             <Link href="/help" className={itemCls}>
               <HelpCircle size={14} strokeWidth={1.75} className="shrink-0" aria-hidden />
-              Bantuan
+              {t("userMenu.help")}
             </Link>
           </DropdownMenu.Item>
           <DropdownMenu.Separator className="my-1 h-px bg-border" />
           <DropdownMenu.Item onSelect={() => void signOut()} className={cn(itemCls, "text-red-500")}>
             <LogOut size={14} strokeWidth={1.75} className="shrink-0" aria-hidden />
-            Logout
+            {t("userMenu.logout")}
           </DropdownMenu.Item>
         </DropdownMenu.Content>
       </DropdownMenu.Portal>
