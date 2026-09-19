@@ -80,3 +80,6 @@ _*.ps1
 # Cache JWKS publik: runtime cache yang menyegarkan diri (TTL 6 jam).
 # Ditanam lewat env SUPABASE_JWKS utk produksi, jadi tidak perlu di-commit.
 .jwks_cache.json
+# FASE 1 riset Level 3: repo referensi (bahan baca lokal, jangan di-commit).
+.reference/
+_reference/
