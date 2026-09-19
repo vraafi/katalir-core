@@ -1,9 +1,10 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Check, ChevronDown, Lock } from "lucide-react";
+import { AlertCircle, Check, ChevronDown, Lock } from "lucide-react";
 import * as DropdownMenu from "@radix-ui/react-dropdown-menu";
 import { providerGroups, type ChatModel } from "@/lib/models";
+import { useI18n } from "@/i18n/context";
 import { cn } from "@/lib/cn";
 
 interface ModelSelectorProps {
@@ -13,6 +14,10 @@ interface ModelSelectorProps {
   disabled?: boolean;
   /** tier user saat ini: 'free' | 'plus' — mengontrol gating model plus. */
   userTier?: "free" | "plus";
+  /** True bila daftar model dari sumber CADANGAN (roster gateway gagal).
+   *  Ditampilkan sebagai peringatan halus — sebelumnya kondisi ini senyap,
+   *  sehingga user hanya melihat daftar tanpa penjelasan (temuan 2026-09-19). */
+  degraded?: boolean;
 }
 
 /**
@@ -65,6 +70,7 @@ export function ModelSelector({
   onChange,
   disabled,
   userTier = "free",
+  degraded = false,
 }: ModelSelectorProps) {
   const [open, setOpen] = useState(false);
   // HYDRATION (Lapis A): render pertama — HTML server dan render hydration
@@ -81,8 +87,9 @@ export function ModelSelector({
   const [mounted, setMounted] = useState(false);
   useEffect(() => setMounted(true), []);
 
+  const { t } = useI18n();
   const active = models.find((m) => m.id === value);
-  const label = mounted ? (active?.name ?? "Pilih model") : "Memuat…";
+  const label = mounted ? (active?.name ?? t("modelPicker.stub")) : t("modelPicker.loading");
   const plusDisabled = userTier !== "plus";
   const groups = providerGroups(models);
 
@@ -115,6 +122,18 @@ export function ModelSelector({
           collisionPadding={8}
           className="scroll-thin z-[90] max-h-[min(60vh,26rem)] min-w-[240px] overflow-y-auto overscroll-contain rounded-md border border-border bg-surface p-1 text-subhead text-fg shadow-lg"
         >
+          {/* Peringatan degradasi (B): daftar model dari sumber cadangan.
+              Sebelumnya kondisi ini SENYAP — user hanya melihat daftar tanpa
+              model provider lain dan tidak tahu sebabnya. */}
+          {degraded && (
+            <div className="mb-1 flex items-start gap-1.5 rounded-sm border border-warning/30 bg-warning/10 px-2.5 py-1.5 text-[11px] leading-snug text-warning">
+              <AlertCircle size={12} strokeWidth={2} className="mt-0.5 shrink-0" aria-hidden />
+              <span>
+                <span className="block font-medium">{t("modelPicker.degraded")}</span>
+                <span className="block text-warning/90">{t("modelPicker.degradedHint")}</span>
+              </span>
+            </div>
+          )}
           {groups.map((g) => (
             <div key={g.provider} className="mb-1">
               {/* Sticky: saat scroll, label provider tetap terlihat sebagai
@@ -151,7 +170,7 @@ export function ModelSelector({
                       <span className="block">{m.name}</span>
                       {locked && (
                         <span className="block text-[11px] font-normal text-fg-subtle">
-                          Tidak tersedia di tier Anda
+                          {t("modelPicker.locked")}
                         </span>
                       )}
                       {!locked && m.hint && (

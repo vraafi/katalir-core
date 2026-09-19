@@ -146,14 +146,24 @@ export function useMeQuery(enabled: boolean) {
 export function useModelsQuery(enabled: boolean) {
   return useQuery({
     queryKey: ["models"],
-    queryFn: async (): Promise<{ tier: string; def: string; models: ChatModelItem[] }> => {
+    queryFn: async (): Promise<{
+      tier: string;
+      def: string;
+      models: ChatModelItem[];
+      /** True bila daftar berasal dari sumber cadangan (roster gateway gagal). */
+      degraded: boolean;
+    }> => {
       const res = await apiFetch("/models");
-      if (!res.ok) return { tier: "free", def: "", models: [] };
+      if (!res.ok) return { tier: "free", def: "", models: [], degraded: false };
       const data = await res.json();
       return {
         tier: String(data?.tier ?? "free").toLowerCase(),
         def: String(data?.default ?? ""),
         models: (data?.models as ChatModelItem[]) ?? [],
+        // Backend mengirim `degraded` + `roster_source` (2026-09-19). Bila
+        // server belum memuat versi itu, anggap sehat (jangan memunculkan
+        // peringatan palsu).
+        degraded: data?.degraded === true,
       };
     },
     enabled,

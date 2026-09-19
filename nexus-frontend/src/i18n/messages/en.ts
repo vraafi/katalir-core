@@ -48,6 +48,14 @@ export const en = {
     tierPlus: "Plus",
     accountMenu: "Account menu",
   },
+  modelPicker: {
+    label: "Choose AI model",
+    loading: "Loading…",
+    stub: "Choose a model",
+    degraded: "Some models are temporarily unavailable",
+    degradedHint: "The model list came from a fallback source.",
+    locked: "Not available on your tier",
+  },
   settings: {
     title: "Account Settings",
     subtitle: "Manage your preferences and profile",

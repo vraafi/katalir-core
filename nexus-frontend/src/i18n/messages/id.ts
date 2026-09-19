@@ -49,6 +49,14 @@ export const id = {
     tierPlus: "Plus",
     accountMenu: "Menu akun",
   },
+  modelPicker: {
+    label: "Pilih model AI",
+    loading: "Memuat…",
+    stub: "Pilih model",
+    degraded: "Sebagian model sedang tidak tersedia",
+    degradedHint: "Daftar model diambil dari sumber cadangan.",
+    locked: "Tidak tersedia di tier Anda",
+  },
   settings: {
     title: "Pengaturan Akun",
     subtitle: "Kelola preferensi dan profil Anda",

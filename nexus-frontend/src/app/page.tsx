@@ -1163,6 +1163,7 @@ return (
                 onChange={setSelectedModel}
                 disabled={loadingMsg}
                 userTier={userTier}
+                degraded={modelsData?.degraded === true}
               />
               <Input
                 value={input}
