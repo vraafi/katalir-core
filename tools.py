@@ -77,6 +77,44 @@ def tambah_agenda_calendar(nama_acara: str, waktu: str, email: str) -> str:
 
 
 # ---------------------------------------------------------------------------
+# FASE 2.1 — TOOL: generate_workflow_json (Discovery Agent -> canvas)
+# Tool ini TIDAK menyentuh jaringan: tugasnya memvalidasi bentuk workflow yang
+# diusulkan model, lalu mengembalikan status + pesan perbaikan yang bisa dibaca
+# model. Kalau valid, `spec` yang dipulangkan SUDAH siap dirender ke canvas.
+# ---------------------------------------------------------------------------
+def generate_workflow_json(spec_json: str, email: str = "") -> str:
+    """Validasi JSON workflow dari model; kembalikan hasil + spec siap-canvas.
+
+    Args:
+        spec_json: JSON string {"name","nodes":[{"id","kind","label","config"}],
+            "edges":[{"source","target"}]}. kind = trigger|agent|mcp.
+        email: email user (dicatat di meta sebagai pemilik draf; opsional).
+
+    Returns:
+        str: JSON string {"ok":bool, ...} — `errors`/`hint` bila ditolak supaya
+        model bisa memperbaiki dan memanggil ulang (repair loop).
+    """
+    import json as _json
+
+    import workflow_spec as _ws
+
+    result = _ws.validate_spec(spec_json or "")
+    if result.get("ok"):
+        spec = result.get("spec") or {}
+        result = {
+            "ok": True,
+            "spec": spec,
+            "warnings": result.get("warnings", []),
+            "node_count": len(spec.get("nodes", [])),
+            "edge_count": len(spec.get("edges", [])),
+        }
+    if email:
+        result["owner"] = email
+    return _json.dumps(result, ensure_ascii=False)
+
+
+
+# ---------------------------------------------------------------------------
 # SCHEMA DEKLARASI GEMINI (Tool Calling)
 # ---------------------------------------------------------------------------
 _send_whatsapp_declaration = types.FunctionDeclaration(
@@ -157,12 +195,45 @@ _agenda_calendar_declaration = types.FunctionDeclaration(
     ),
 )
 
+_generate_workflow_declaration = types.FunctionDeclaration(
+    name="generate_workflow_json",
+    description=(
+        "Membuat/memperbarui draf workflow di canvas Katalir. PANGGIL HANYA "
+        "SETELAH kamu punya info yang cukup (jenis trigger, aksi, provider, "
+        "jadwal/detail). Kirim seluruh workflow sebagai JSON string. Bentuk: "
+        '{"name":"...","nodes":[{"id":"n1","kind":"trigger|agent|mcp",'
+        '"label":"...","config":{...}}],"edges":[{"source":"n1","target":"n2"}]}. '
+        "Aturan: minimal 1 node kind=trigger; id unik; setiap edge harus "
+        "menunjuk id yang ada; node kind=mcp WAJIB punya config.provider "
+        "(contoh: telegram, gmail, google_sheets, slack, http). Bila jawaban "
+        "ditolak, baca `errors`/`hint` lalu panggil ulang dengan perbaikan."
+    ),
+    parameters=types.Schema(
+        type=types.Type.OBJECT,
+        properties={
+            "spec_json": types.Schema(
+                type=types.Type.STRING,
+                description="Seluruh workflow sebagai JSON string (bukan object).",
+            ),
+            "summary": types.Schema(
+                type=types.Type.STRING,
+                description=(
+                    "Ringkasan 1-2 kalimat untuk user tentang apa yang dibangun."
+                ),
+            ),
+        },
+        required=["spec_json"],
+    ),
+)
+
+
 TOOL_DECLARATIONS = [
     types.Tool(function_declarations=[
         _send_whatsapp_declaration,
         _baca_sheets_declaration,
         _kirim_email_declaration,
         _agenda_calendar_declaration,
+        _generate_workflow_declaration,
     ])
 ]
 
@@ -266,6 +337,11 @@ def execute_tool(name: str, args: dict, email: str) -> str:
         return tambah_agenda_calendar(
             nama_acara=args.get("nama_acara", ""),
             waktu=args.get("waktu", ""),
+            email=email,
+        )
+    if name == "generate_workflow_json":
+        return generate_workflow_json(
+            spec_json=args.get("spec_json", ""),
             email=email,
         )
     raise ValueError(f"Unknown tool: {name}")

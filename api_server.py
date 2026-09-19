@@ -292,8 +292,30 @@ class ExecuteRequest(BaseModel):
 _AGENT_SYSTEM = (
     "Anda adalah Nexus Autonomous Agent. Rencanakan & lakukan tindakan dengan "
     "alat yang tersedia. Setelah eksekusi alat, rangkum hasil untuk pengguna "
-    "secara ringkas dalam Bahasa Indonesia."
+    "secara ringkas dalam Bahasa Indonesia.\n\n"
+    # --- FASE 2.1: DISCOVERY AGENT -------------------------------------------
+    # Tanpa aturan ini, model langsung menebak isi workflow dan hasilnya salah
+    # (provider/jadwal/field karangan). Jadi klarifikasi dulu, baru bangun.
+    "MODE DISCOVERY (membangun workflow baru):\n"
+    "1. Bila pengguna meminta membuat/mengubah workflow dan detailnya belum "
+    "lengkap, JANGAN langsung membangun. Ajukan 2-5 pertanyaan klarifikasi "
+    "yang paling menentukan, dalam daftar bernomor, singkat, dan sebutkan "
+    "pilihan bila ada (contoh: 'Mau dijalankan tiap jam berapa?').\n"
+    "2. Tanyakan hanya yang belum jelas: pemicu/jadwal, aksi yang diinginkan, "
+    "provider tujuan (telegram/gmail/google_sheets/slack/http), dan data yang "
+    "dipindahkan antar langkah.\n"
+    "3. Maksimal satu putaran pertanyaan per pesan pengguna. Bila jawabannya "
+    "sudah cukup, atau pengguna bilang 'langsung buat'/'terserah kamu', "
+    "berhenti bertanya dan lanjut membangun.\n"
+    "4. Bangun workflow dengan memanggil alat `generate_workflow_json` "
+    "(seluruh workflow sebagai JSON string). Jangan menulis JSON di balasan "
+    "chat — kanvas hanya terisi lewat alat itu.\n"
+    "5. Bila alat menolak (ada `errors`), perbaiki sesuai `hint` dan panggil "
+    "ulang; jangan menyerahkan JSON yang ditolak ke pengguna.\n"
+    "6. Setelah alat menerima, balas dengan ringkasan singkat: berapa node, "
+    "alur besarnya, dan tanyakan apakah perlu diubah atau dijalankan.\n"
 )
+
 
 
 def _content_text(resp: Any) -> str:
@@ -309,6 +331,26 @@ def _content_text(resp: Any) -> str:
         raw = "\n".join(parts)
     text = str(raw or "").strip()
     return text or "Tugas selesai dieksekusi."
+def _accepted_workflow(tool_result: Any) -> "dict | None":
+    """Ambil `spec` dari hasil `generate_workflow_json` BILA alat menerimanya.
+
+    Alat memulangkan JSON string: {"ok":True,"spec":{...}} atau
+    {"ok":False,"errors":[...]}. Draf yang DITOLAK sengaja tidak dikembalikan
+    agar canvas tidak pernah terisi workflow setengah benar.
+    """
+    if not isinstance(tool_result, str):
+        return None
+    try:
+        parsed = json.loads(tool_result)
+    except (TypeError, ValueError):
+        return None
+    if not isinstance(parsed, dict) or not parsed.get("ok"):
+        return None
+    spec = parsed.get("spec")
+    return spec if isinstance(spec, dict) else None
+
+
+
 
 
 # ---------------------------------------------------------------------------
@@ -490,6 +532,10 @@ def _agentic_run_gateway(prompt: str, email: str, model_id: str,
         messages.append(HumanMessage(content=prompt))
         _t0 = time.time()
         tools_dropped = False
+        # FASE 2.1 -> 2.2: spec workflow yang DITERIMA alat disimpan di sini dan
+        # ikut di respons (`meta.workflow`). Tanpa ini, hasil generate hanya
+        # hidup di dalam pesan tool lalu hilang -> canvas tidak punya apa pun.
+        workflow_out: dict | None = None
         try:
             try:
                 resp = chat_model.invoke(messages)
@@ -520,6 +566,8 @@ def _agentic_run_gateway(prompt: str, email: str, model_id: str,
                         raise  # -> endpoint ubah jadi needs_credential
                     except Exception as exc:  # noqa: BLE001 - alat gagal
                         result = f"Gagal menjalankan {name}: {exc}"
+                    if name == "generate_workflow_json":
+                        workflow_out = _accepted_workflow(result) or workflow_out
                     messages.append(ToolMessage(
                         content=str(result),
                         tool_call_id=str((call or {}).get("id") or name),
@@ -546,6 +594,8 @@ def _agentic_run_gateway(prompt: str, email: str, model_id: str,
                     # yang dibuang karena hulu menolaknya (lihat
                     # `_tools_unsupported`). Bukan fallback provider lain.
                     "tools_dropped": tools_dropped,
+                    # Draf workflow hasil Discovery Agent (None bila tidak ada).
+                    "workflow": workflow_out,
                 },
             }
         except CredentialMissingError:
@@ -813,6 +863,8 @@ def _agentic_run_direct(prompt: str, email: str, model: str | None = None,
     response = _send_guarded(chat, prompt)
     max_retries = 3
     retry = 0
+    # FASE 2.1 -> 2.2: draf workflow yang diterima alat ikut di meta.workflow.
+    workflow_out: dict | None = None
 
     while response.function_calls:
         if retry >= max_retries:
@@ -824,6 +876,8 @@ def _agentic_run_direct(prompt: str, email: str, model: str | None = None,
 
             # CredentialMissingError dibiarkan menyebar -> endpoint menangkapnya.
             tool_result = tools.execute_tool(name, args, email)
+            if name == "generate_workflow_json":
+                workflow_out = _accepted_workflow(tool_result) or workflow_out
 
             response = _send_guarded(
                 chat,
@@ -853,6 +907,8 @@ def _agentic_run_direct(prompt: str, email: str, model: str | None = None,
         # `fallback_reason` hanya terisi saat fallback — UI memakainya sebagai
         # teks penyebab di badge, bukan sekadar penanda "terjadi fallback".
         "fallback_reason": fallback_reason if fallback_used else None,
+        # Draf workflow hasil Discovery Agent (None bila tidak ada).
+        "workflow": workflow_out,
     }
     return {"reply": reply, "meta": meta}
 
