@@ -95,6 +95,7 @@ export const id = {
     subtitle: "Jawaban atas pertanyaan yang sering diajukan",
     faq: "Pertanyaan Umum",
     contact: "Hubungi Kami",
+    contactEmail: "verdiawanraafi@gmail.com",
     contactResponse: "(respon < 24 jam)",
     faq1q: "Apa itu Katalir?",
     faq1a: "Katalir adalah platform AI automation untuk agency dan bisnis. Bikin workflow, hubungkan AI, deploy tanpa coding.",

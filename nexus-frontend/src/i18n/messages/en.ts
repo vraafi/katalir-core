@@ -94,6 +94,7 @@ export const en = {
     subtitle: "Answers to frequently asked questions",
     faq: "Frequently Asked Questions",
     contact: "Contact Us",
+    contactEmail: "verdiawanraafi@gmail.com",
     contactResponse: "(response < 24h)",
     faq1q: "What is Katalir?",
     faq1a: "Katalir is an AI automation platform for agencies and businesses. Build workflows, connect AI, deploy without coding.",
