@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import * as DropdownMenu from "@radix-ui/react-dropdown-menu";
 import { useTheme } from "next-themes";
 import {
@@ -94,22 +95,18 @@ export function UserMenu({ userTier = "free" }: UserMenuProps) {
               <DropdownMenu.Separator className="my-1 h-px bg-border" />
             </>
           )}
-          {/* Belum ada route-nya → disabled jujur (bukan link mati). */}
-          <DropdownMenu.Item
-            disabled
-            title="Segera hadir"
-            className={cn(itemCls, "cursor-not-allowed text-fg-subtle")}
-          >
-            <Settings size={14} strokeWidth={1.75} className="shrink-0" aria-hidden />
-            Pengaturan Akun
+          {/* Halaman /settings, /billing, /help sudah live — menu aktif (bukan disabled). */}
+          <DropdownMenu.Item asChild>
+            <Link href="/settings" className={itemCls}>
+              <Settings size={14} strokeWidth={1.75} className="shrink-0" aria-hidden />
+              Pengaturan Akun
+            </Link>
           </DropdownMenu.Item>
-          <DropdownMenu.Item
-            disabled
-            title="Segera hadir"
-            className={cn(itemCls, "cursor-not-allowed text-fg-subtle")}
-          >
-            <CreditCard size={14} strokeWidth={1.75} className="shrink-0" aria-hidden />
-            Billing
+          <DropdownMenu.Item asChild>
+            <Link href="/billing" className={itemCls}>
+              <CreditCard size={14} strokeWidth={1.75} className="shrink-0" aria-hidden />
+              Billing
+            </Link>
           </DropdownMenu.Item>
           <DropdownMenu.Item
             onSelect={() => setTheme(isDark ? "light" : "dark")}
@@ -122,13 +119,11 @@ export function UserMenu({ userTier = "free" }: UserMenuProps) {
             )}
             {mounted ? (isDark ? "Tema terang" : "Tema gelap") : "Tema"}
           </DropdownMenu.Item>
-          <DropdownMenu.Item
-            disabled
-            title="Segera hadir"
-            className={cn(itemCls, "cursor-not-allowed text-fg-subtle")}
-          >
-            <HelpCircle size={14} strokeWidth={1.75} className="shrink-0" aria-hidden />
-            Bantuan
+          <DropdownMenu.Item asChild>
+            <Link href="/help" className={itemCls}>
+              <HelpCircle size={14} strokeWidth={1.75} className="shrink-0" aria-hidden />
+              Bantuan
+            </Link>
           </DropdownMenu.Item>
           <DropdownMenu.Separator className="my-1 h-px bg-border" />
           <DropdownMenu.Item onSelect={() => void signOut()} className={cn(itemCls, "text-red-500")}>
