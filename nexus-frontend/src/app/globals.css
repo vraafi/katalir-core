@@ -90,6 +90,27 @@ body {
   background: rgb(var(--fg-subtle));
 }
 
+/* Scrollbar halus untuk panel scroll kecil (dropdown model panjang:
+   12-30 item). 6px + track transparan supaya tidak "berat" di panel kecil;
+   scrollbar global 8px tetap dipakai untuk chat. */
+.scroll-thin {
+  scrollbar-width: thin;
+  scrollbar-color: rgb(var(--border-strong)) transparent;
+}
+.scroll-thin::-webkit-scrollbar {
+  width: 6px;
+}
+.scroll-thin::-webkit-scrollbar-track {
+  background: transparent;
+}
+.scroll-thin::-webkit-scrollbar-thumb {
+  background: rgb(var(--border-strong));
+  border-radius: 3px;
+}
+.scroll-thin::-webkit-scrollbar-thumb:hover {
+  background: rgb(var(--fg-subtle));
+}
+
 /* Typing indicator (CallSphere 200ms rule) — 3 bouncing dots.
    Hanya pakai transform + opacity (GPU compositing), TIDAK width/height
    (hindari layout thrash). prefers-reduced-motion di-nonaktifkan secara

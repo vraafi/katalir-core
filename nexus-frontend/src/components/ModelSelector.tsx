@@ -104,14 +104,23 @@ export function ModelSelector({
       </DropdownMenu.Trigger>
 
       <DropdownMenu.Portal>
+        {/* SCROLLABLE (fix 2026-09-19): tanpa max-height, daftar model terpotong
+            di tepi viewport -> model provider lain (Groq/NVIDIA) tidak bisa
+            dipilih sama sekali. max-h[min(60vh,26rem)] memberi ruang cukup untuk
+            12-30 model tanpa menutupi seluruh layar; overscroll-contain mencegah
+            scroll "bocor" ke halaman di belakang saat panel di ujung. */}
         <DropdownMenu.Content
           align="end"
           sideOffset={6}
-          className="z-[90] min-w-[240px] rounded-md border border-border bg-surface p-1 text-subhead text-fg shadow-lg"
+          collisionPadding={8}
+          className="scroll-thin z-[90] max-h-[min(60vh,26rem)] min-w-[240px] overflow-y-auto overscroll-contain rounded-md border border-border bg-surface p-1 text-subhead text-fg shadow-lg"
         >
           {groups.map((g) => (
             <div key={g.provider} className="mb-1">
-              <p className="px-2.5 pb-1 pt-2 text-caption font-semibold uppercase tracking-wide text-fg-subtle">
+              {/* Sticky: saat scroll, label provider tetap terlihat sebagai
+                  penanda seksi (pola section header iOS). z-20 + bg opaque
+                  supaya item yang lewat di belakangnya tidak tembus. */}
+              <p className="sticky top-0 z-20 bg-surface/95 px-2.5 pb-1 pt-2 text-caption font-semibold uppercase tracking-wide text-fg-subtle backdrop-blur-sm">
                 {g.provider}
               </p>
               {g.models.map((m) => {
@@ -159,6 +168,13 @@ export function ModelSelector({
               })}
             </div>
           ))}
+          {/* Fade bawah: sticky, tetap menempel di tepi bawah panel saat scroll
+              — penanda halus bahwa masih ada item di bawah. `-mb-1` menutup
+              padding p-1 container agar fade rata ke tepi. */}
+          <div
+            aria-hidden
+            className="pointer-events-none sticky bottom-0 z-10 -mb-1 h-3 bg-gradient-to-t from-surface to-transparent"
+          />
           {plusDisabled && (
             // Link checkout Dodo Payments (Plus: $299 / TAHUN — produk "Katalir").
             // Nilai diambil dari `NEXT_PUBLIC_DODO_CHECKOUT_URL` (di-INLINE saat build — Next
@@ -168,7 +184,14 @@ export function ModelSelector({
             //
             // Bila env belum di-set (mis. belum ada produk di dashboard Dodo),
             // penampilan tetap jujur: link TIDAK dibuat seolah berfungsi.
-            <BuyPlusButton checkoutUrl={CHECKOUT_URL} />
+            //
+            // STICKY (fix 2026-09-19): panel kini bisa di-scroll, jadi CTA
+            // pembelian ditempel di tepi bawah supaya tetap terjangkau tanpa
+            // harus scroll ke item terakhir. bg-surface wajib — item lain lewat
+            // di belakangnya.
+            <div className="sticky bottom-0 z-20 bg-surface">
+              <BuyPlusButton checkoutUrl={CHECKOUT_URL} />
+            </div>
           )}
         </DropdownMenu.Content>
       </DropdownMenu.Portal>
