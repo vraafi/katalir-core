@@ -1318,7 +1318,16 @@ def get_execution(execution_id: str, authorization: str | None = Header(None)):
         owner = db.get_workflow_owner(str(wid))
         if owner != user["id"]:
             raise HTTPException(404, "Ejecucion tidak ditemukan.")
-    return {"status": "success", **data}
+    # FASE 2.5: laporan siap-tampil untuk chat/kanvas (diformat di server agar
+    # semua klien menampilkan hal yang sama dan bisa diuji tanpa browser).
+    try:
+        import execution_report as _er
+        report = _er.format_execution_report((data or {}).get("execution"),
+                                            (data or {}).get("logs"))
+    except Exception as exc:  # noqa: BLE001 - laporan tidak boleh memblokir status
+        print(f"[api_server] laporan eksekusi gagal: {type(exc).__name__}")
+        report = ""
+    return {"status": "success", **data, "report": report}
 
 
 # ---------------------------------------------------------------------------

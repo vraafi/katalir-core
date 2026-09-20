@@ -722,52 +722,126 @@ def create_execution(execution_id: str, workflow_id: str, flow_data: dict):
     _L_EXEC[execution_id] = {"workflow_id": workflow_id, "status": "pending", "created_at": _now()}
 
 
+# Kolom ASLI tabel `execution_logs` (dibaca dari PostgREST OpenAPI Supabase):
+#   id, execution_id, node_id, node_type, status, output_data, error_message,
+#   started_at, finished_at
+# Versi lama menulis `step_kind` + `payload` yang TIDAK ADA di skema, sehingga
+# SETIAP insert gagal 400 dan log hanya tersisa di memori proses — itulah sebab
+# `GET /executions/{id}` selalu "belum ada langkah" walau workflow sudah jalan.
+EXECUTION_LOG_COLUMNS = ("execution_id", "node_id", "node_type", "status",
+                         "output_data", "error_message", "started_at",
+                         "finished_at")
+
+
+def execution_log_row(execution_id: str, node_id: str, step_kind: str,
+                      status: str, payload: dict) -> dict:
+    """Baris `execution_logs` sesuai skema nyata (murni, mudah diuji).
+
+    `step_kind` dipetakan ke `node_type`, `payload` ke `output_data`, dan pesan
+    error dipromosikan ke kolomnya sendiri supaya bisa dicari/diindeks.
+    """
+    data = payload if isinstance(payload, dict) else {"output": payload}
+    row: dict = {
+        "execution_id": execution_id,
+        "node_id": node_id,
+        "node_type": step_kind,
+        "status": status,
+        "output_data": data,
+    }
+    err = data.get("error")
+    if err:
+        row["error_message"] = str(err)[:500]
+    stamp = datetime.now(timezone.utc).isoformat()
+    if status == "running":
+        row["started_at"] = stamp
+    else:
+        row["finished_at"] = stamp
+    return row
+
+
+def _normalize_log(row: dict) -> dict:
+    """Baris DB -> bentuk yang dipakai laporan ({node_id, status, payload}).
+
+    Membuat `execution_report` tidak perlu tahu nama kolom fisik, dan tetap
+    menerima baris gaya lama (kalau ada sisa di memori).
+    """
+    if not isinstance(row, dict):
+        return row
+    if "output_data" not in row and "node_type" not in row:
+        return row                      # sudah bentuk lama (memori)
+    payload = row.get("output_data") or {}
+    if row.get("error_message"):
+        if isinstance(payload, dict):
+            payload = {**payload, "error": row["error_message"]}
+        else:
+            payload = {"output": payload, "error": row["error_message"]}
+    return {
+        "node_id": row.get("node_id"),
+        "step_kind": row.get("node_type"),
+        "status": row.get("status"),
+        "payload": payload,
+        "ts": row.get("finished_at") or row.get("started_at"),
+    }
+
+
 def append_execution_log(execution_id: str, node_id: str, step_kind: str, status: str, payload: dict):
-    """Persiste un paso de ejecucion en execution_logs."""
-    if is_configured():
-        try:
-            _get_write_client().table("execution_logs").insert(
-                {
-                    "execution_id": execution_id,
-                    "node_id": node_id,
-                    "step_kind": step_kind,
-                    "status": status,
-                    "payload": payload or {},
-                }
-            ).execute()
+    """Persiste un paso de ejecucion en execution_logs (kolom sesuai skema).
+
+    Sama seperti `get_execution`: kegagalan tulis tidak mematikan `_configured`
+    secara global (satu kegagalan akan mengalihkan SEMUA penulisan berikutnya ke
+    memori sehingga log hilang dari DB tanpa jejak).
+    """
+    row = execution_log_row(execution_id, node_id, step_kind, status, payload)
+    try:
+        if is_configured():
+            _get_write_client().table("execution_logs").insert(row).execute()
             return
-        except Exception:
-            _configured = False
+    except Exception as exc:  # noqa: BLE001
+        print(f"[database] append_execution_log gagal ({type(exc).__name__}); "
+              "disimpan di memori")
     _L_EXLOG.setdefault(execution_id, []).append(
         {"node_id": node_id, "step_kind": step_kind, "status": status, "payload": payload or {}, "ts": _now()}
     )
 
 
 def update_execution_status(execution_id: str, status: str):
-    """Actualiza el estado final de una ejecucion."""
-    if is_configured():
-        try:
+    """Actualiza el estado final de una ejecucion (tanpa mematikan `_configured`)."""
+    try:
+        if is_configured():
             _get_write_client().table("executions").update({"status": status}).eq(
                 "id", execution_id).execute()
             return
-        except Exception:
-            _configured = False
+    except Exception as exc:  # noqa: BLE001
+        print(f"[database] update_execution_status gagal ({type(exc).__name__})")
     if execution_id in _L_EXEC:
         _L_EXEC[execution_id]["status"] = status
 
 
 def get_execution(execution_id: str):
-    """Obtiene el estado y logs de una ejecucion."""
-    if is_configured():
-        try:
+    """Obtiene el estado y logs de una ejecucion.
+
+    CATATAN (FASE 2.5): kegagalan BACA di sini TIDAK lagi mematikan flag global
+    `_configured`. Sebelumnya satu error baca (mis. RLS/timeout sesaat) membuat
+    seluruh proses beralih ke memori: baris `executions` tak terbaca (status
+    `None`) dan `append_execution_log` berikutnya menulis ke memori saja —
+    log terpisah dari DB tanpa pesan error. Sekarang penurunan itu hanya
+    berlaku untuk panggilan ini.
+    """
+    try:
+        if is_configured():
             c = _get_write_client()
             ex = c.table("executions").select("*").eq("id", execution_id).execute()
             logs = (c.table("execution_logs").select("*")
-                    .eq("execution_id", execution_id)
-                    .order("created_at", desc=False).execute())
-            return {"execution": (ex.data or [None])[0], "logs": logs.data or []}
-        except Exception:
-            _configured = False
+                    .eq("execution_id", execution_id).execute())
+            # Urutan dihitung di Python: `execution_logs` TIDAK punya kolom
+            # `created_at`, jadi `.order("created_at")` membuat SELURUH pembacaan
+            # gagal 400 (dan status eksekusi selalu terlihat None).
+            rows = [_normalize_log(r) for r in (logs.data or [])]
+            rows.sort(key=lambda r: str((r or {}).get("ts") or ""))
+            return {"execution": (ex.data or [None])[0], "logs": rows}
+    except Exception as exc:  # noqa: BLE001
+        print(f"[database] get_execution gagal ({type(exc).__name__}); "
+              "pakai salinan memori")
     return {"execution": _L_EXEC.get(execution_id), "logs": _L_EXLOG.get(execution_id, [])}
 
 

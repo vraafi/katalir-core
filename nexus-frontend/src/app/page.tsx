@@ -27,6 +27,7 @@ import {
   savePendingWorkflow,
   type AgentWorkflow,
 } from "@/features/agent/workflow-spec";
+import { autoRunWorkflow } from "@/features/agent/auto-run";
 
 const SUGGESTIONS = ["Kirim pesan WA", "Rangkum dokumen", "Analisis data"];
 
@@ -270,6 +271,9 @@ function ChatApp() {
   // (bukan addNode) supaya draf MENGGANTIKAN isi kanvas, bukan menumpuk.
   const replaceWork = useCanvasStore((s) => s.replaceWork);
   const [aiDraft, setAiDraft] = useState<AgentWorkflow | null>(null);
+  // FASE 2.5: True selama workflow hasil AI dijalankan (auto-run) — dipakai
+  // hanya untuk memberi tanda "sedang dijalankan", bukan untuk memblokir chat.
+  const [runPending, setRunPending] = useState(false);
   // URL state: ?s=<sessionId> (nuqs, shallow) — source of truth.
   const [sessionId, setSessionId] = useQueryState(
     "s",
@@ -722,6 +726,9 @@ function ChatApp() {
         replaceWork(wf.nodes, wf.edges);
         savePendingWorkflow(wf);
         setAiDraft(wf);
+        // FASE 2.5: langsung jalankan + laporkan di chat. `sid` diambil dari
+        // echo sesi (bisa sesi baru) supaya laporan masuk ke percakapan yang benar.
+        void runDraftAndReport(wf, data.session_id ?? sessionId ?? null);
       }
       // Reply + kartu kredensial datang via cache update (onSuccess) dan
       // query-invalidatie (messagesData refresh).
@@ -788,6 +795,33 @@ function ChatApp() {
       alert("Gagal menyimpan kredensial.");
     }
   }
+
+  // FASE 2.5: jalankan workflow hasil AI, lalu tulis LAPORANNYA sebagai pesan
+  // sistem di sesi aktif (bukan di terminal kanvas). Laporan disusun backend
+  // (`execution_report.py`) sehingga tidak ada logika bahasa di sini.
+  const runDraftAndReport = useCallback(
+    async (wf: AgentWorkflow, sid: string | null) => {
+      setRunPending(true);
+      try {
+        const res = await autoRunWorkflow(wf);
+        const key = chatKeys.messages(sid ?? "__pending__");
+        qc.setQueryData<ChatMessage[]>(key, (old) => [
+          ...(old ?? []),
+          { role: "system", content: res.report },
+        ]);
+      } catch {
+        // Laporan gagal ditulis BUKAN alasan menutupi: beri tahu apa adanya.
+        const key = chatKeys.messages(sid ?? "__pending__");
+        qc.setQueryData<ChatMessage[]>(key, (old) => [
+          ...(old ?? []),
+          { role: "system", content: "Gagal menjalankan workflow (kesalahan tak terduga)." },
+        ]);
+      } finally {
+        setRunPending(false);
+      }
+    },
+    [qc]
+  );
 
   // ---- Perf (H1: freeze klik riwayat besar) — jangan mount ribuan motion.div ----
   // Tiap row TIDAK perlu animasi + akan dikomposit (willChange:opacity). Animasi
@@ -1190,6 +1224,17 @@ return (
                   {t("chat.openCanvas")}
                 </Link>
               </div>
+            )}
+            {/* FASE 2.5: tanda bahwa workflow sedang dijalankan (laporannya
+                muncul di percakapan sebagai pesan sistem). */}
+            {runPending && (
+              <p
+                data-testid="ai-run-pending"
+                className="mb-2 flex items-center gap-1.5 text-[11px] font-medium text-fg-muted"
+              >
+                <Clock size={12} strokeWidth={2} />
+                {t("chat.workflowRunning")}
+              </p>
             )}
             {activeEmail && quotaWarning(quota) && (
               <p className="mb-2 flex items-center gap-1.5 text-[11px] font-medium text-amber-500">

@@ -34,6 +34,7 @@ export const id = {
     messageLabel: "Pesan",
     workflowReady: "Workflow dari AI sudah siap di kanvas.",
     openCanvas: "Buka kanvas",
+    workflowRunning: "Menjalankan workflow…",
   },
   landing: {
     loginCta: "Login untuk mulai mengobrol",

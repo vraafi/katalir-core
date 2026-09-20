@@ -616,11 +616,25 @@ class StatefulOrchestrator:
 # API DE ORQUESTACION + PERSISTENCIA (execution_logs)
 # ---------------------------------------------------------------------------
 async def execute_workflow_async(workflow_id: str, flow_data: dict,
-                                 trigger_input: Optional[dict] = None) -> dict:
-    """Ejecuta un workflow e persiste cada paso en execution_logs."""
+                                 trigger_input: Optional[dict] = None,
+                                 execution_id: Optional[str] = None) -> dict:
+    """Ejecuta un workflow e persiste cada paso en execution_logs.
+
+    FASE 2.5: `execution_id` boleh DIBERIKAN pemanggil. Sebelumnya fungsi ini
+    selalu membuat id baru, sementara `launch_execution` sudah membuat baris
+    `executions` (dan mengembalikan id itu ke klien). Akibatnya log & status
+    akhir tersimpan di id yang TIDAK PERNAH di-poll klien: `GET /executions/{id}`
+    selamanya "pending" tanpa satu pun langkah — laporan otomatis di chat mustahil.
+    """
     graph = FlowGraph(**flow_data)
-    execution_id = str(uuid.uuid4())
-    db.create_execution(execution_id, workflow_id, flow_data)
+    provided = bool(execution_id)
+    execution_id = execution_id or str(uuid.uuid4())
+    if not provided:
+        # Hanya pembuat barisnya yang meng-insert. Kalau id diberikan pemanggil
+        # (`launch_execution`), barisnya SUDAH ada — insert ulang akan gagal
+        # (PK duplikat) dan justru mematikan flag `_configured` di database.py
+        # sehingga update status/log setelahnya hilang.
+        db.create_execution(execution_id, workflow_id, flow_data)
 
     async def _log_step(step: ExecutionStep) -> None:
         db.append_execution_log(execution_id, step.node_id, step.kind.value, step.status, step.output)
@@ -653,10 +667,11 @@ _BG_TASKS: dict[str, asyncio.Task] = {}
 
 async def _spawn_execution(workflow_id: str, flow_data: dict, execution_id: str,
                            trigger_input: Optional[dict] = None) -> dict:
-    # Catatan: execute_workflow_async membuat execution_id sendiri; di sini
-    # fokus menjalankan DAG agar non-blocking, lalu kembalikan id pemanggil.
+    # FASE 2.5: id dari `launch_execution` DITERUSKAN ke runner supaya log dan
+    # status akhir menempel pada baris `executions` yang di-pegang klien.
     try:
-        await execute_workflow_async(workflow_id, flow_data, trigger_input)
+        await execute_workflow_async(workflow_id, flow_data, trigger_input,
+                                     execution_id=execution_id)
         return {
             "execution_id": execution_id,
             "workflow_id": workflow_id,

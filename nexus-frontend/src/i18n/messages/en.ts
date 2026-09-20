@@ -33,6 +33,7 @@ export const en = {
     messageLabel: "Message",
     workflowReady: "The AI built your workflow on the canvas.",
     openCanvas: "Open canvas",
+    workflowRunning: "Running the workflow…",
   },
   landing: {
     loginCta: "Sign in to start chatting",
