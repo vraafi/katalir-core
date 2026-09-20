@@ -77,6 +77,134 @@ def tambah_agenda_calendar(nama_acara: str, waktu: str, email: str) -> str:
 
 
 # ---------------------------------------------------------------------------
+# FASE 2.4 — MCP REGISTRY (native, tanpa dependency baru)
+# ---------------------------------------------------------------------------
+# KENAPA NATIVE (bukan Composio/Pipedream): keputusan FASE 1 — nol biaya, nol
+# vendor lock-in, dan backend ini sudah punya registry tool + Brankas. Yang
+# ditambahkan di sini hanya provider yang bisa dipanggil LANGSUNG dengan token
+# user (Telegram Bot API, Slack webhook/bot, HTTP generik).
+#
+# ATURAN KEAMANAN YANG DIPAKSA DI MODUL INI:
+#   1. token dibaca dari Brankas/DB per user (bukan env global);
+#   2. token TIDAK pernah ikut ke hasil tool / pesan model / log;
+#   3. HTTP generik tidak boleh menembak alamat internal (SSRF guard).
+_BLOCKED_HOST_PREFIXES = ("127.", "0.", "10.", "169.254.", "192.168.",
+                          "100.64.", "198.18.")
+
+
+def _host_blocked(host: str) -> bool:
+    """True bila host menunjuk jaringan internal/meta (SSRF)."""
+    import ipaddress
+
+    h = (host or "").strip().strip("[]").lower()
+    if not h or h in ("localhost", "metadata.google.internal", "169.254.169.254"):
+        return True
+    if h.startswith(_BLOCKED_HOST_PREFIXES):
+        return True
+    try:
+        ip = ipaddress.ip_address(h)
+    except ValueError:
+        # Nama domain: resolusi dulu, lalu periksa SETIAP alamat (DNS rebinding).
+        import socket
+
+        try:
+            infos = socket.getaddrinfo(h, None)
+        except Exception:
+            return True                      # tak bisa dipastikan -> tolak
+        for info in infos:
+            addr = info[4][0]
+            try:
+                ip = ipaddress.ip_address(addr)
+            except ValueError:
+                return True
+            if ip.is_private or ip.is_loopback or ip.is_link_local or ip.is_reserved:
+                return True
+        return False
+    return ip.is_private or ip.is_loopback or ip.is_link_local or ip.is_reserved
+
+
+def kirim_telegram_message(chat_id: str, pesan: str, email: str) -> str:
+    """Kirim pesan Telegram (BOT API nyata). Token dari Brankas user.
+
+    Raises:
+        CredentialMissingError: user belum menyimpan token `telegram`.
+    """
+    cred = db.get_integration(email, "telegram")
+    token = (cred or {}).get("api_token") or ""
+    if not cred or not token:
+        raise CredentialMissingError("telegram")
+    # Token Telegram WAJIB di path (desain API-nya) — karena itu URL ini tidak
+    # pernah dicetak/di-log, dan pesan error di bawah tidak memuat URL.
+    url = f"https://api.telegram.org/bot{token}/sendMessage"
+    try:
+        import httpx
+        r = httpx.post(url, json={"chat_id": str(chat_id), "text": str(pesan)},
+                       timeout=15.0)
+    except Exception as exc:  # noqa: BLE001
+        raise RuntimeError(f"Telegram tidak terjangkau ({type(exc).__name__}).")
+    if r.status_code >= 400:
+        raise RuntimeError(f"Telegram menolak permintaan (HTTP {r.status_code}).")
+    try:
+        body = r.json()
+    except Exception:  # noqa: BLE001
+        body = {}
+    mid = (body.get("result") or {}).get("message_id")
+    return f"Pesan Telegram terkirim ke chat {chat_id} (id {mid})."
+
+
+def kirim_slack_message(channel: str, pesan: str, email: str) -> str:
+    """Kirim pesan Slack: webhook URL ATAU bot token (xoxb-)."""
+    cred = db.get_integration(email, "slack")
+    token = (cred or {}).get("api_token") or ""
+    if not cred or not token:
+        raise CredentialMissingError("slack")
+    import httpx
+
+    if token.startswith("http"):
+        if not token.startswith("https://hooks.slack.com/"):
+            raise RuntimeError("Webhook Slack harus dari hooks.slack.com.")
+        r = httpx.post(token, json={"text": str(pesan)}, timeout=15.0)
+    else:
+        r = httpx.post("https://slack.com/api/chat.postMessage",
+                       headers={"Authorization": f"Bearer {token}"},
+                       json={"channel": str(channel), "text": str(pesan)},
+                       timeout=15.0)
+    if r.status_code >= 400:
+        raise RuntimeError(f"Slack menolak permintaan (HTTP {r.status_code}).")
+    return f"Pesan Slack terkirim ke {channel}."
+
+
+def http_request(url: str, method: str = "GET", body: str = "",
+                 email: str = "") -> str:
+    """HTTP generik ke internet publik (SSRF guard aktif).
+
+    Dipakai untuk API apa pun yang belum punya tool khusus. Token provider
+    TIDAK dipakai di sini: kredensial hanya untuk provider bernama.
+    """
+    from urllib.parse import urlparse
+
+    parsed = urlparse(str(url or ""))
+    if parsed.scheme not in ("http", "https"):
+        raise ValueError("URL harus http/https.")
+    verb = (method or "GET").upper()
+    if verb not in ("GET", "POST", "PUT", "PATCH", "DELETE"):
+        raise ValueError(f"Method tidak didukung: {verb}")
+    # SSRF guard SETELAH validasi bentuk: pemeriksaan murah dulu, dan pesan
+    # "host ditolak" tidak menyamarkan kesalahan method.
+    if _host_blocked(parsed.hostname or ""):
+        raise ValueError("Host internal/loopback ditolak (SSRF guard).")
+    import httpx
+
+    try:
+        r = httpx.request(verb, url, content=body or None, timeout=20.0,
+                          headers={"Content-Type": "application/json"})
+    except Exception as exc:  # noqa: BLE001
+        raise RuntimeError(f"Permintaan HTTP gagal ({type(exc).__name__}).")
+    snippet = (r.text or "")[:400]
+    return f"HTTP {r.status_code} dari {parsed.hostname}: {snippet}"
+
+
+# ---------------------------------------------------------------------------
 # FASE 2.1 — TOOL: generate_workflow_json (Discovery Agent -> canvas)
 # Tool ini TIDAK menyentuh jaringan: tugasnya memvalidasi bentuk workflow yang
 # diusulkan model, lalu mengembalikan status + pesan perbaikan yang bisa dibaca
@@ -195,6 +323,62 @@ _agenda_calendar_declaration = types.FunctionDeclaration(
     ),
 )
 
+_telegram_declaration = types.FunctionDeclaration(
+    name="kirim_telegram_message",
+    description=(
+        "Mengirim pesan Telegram ke sebuah chat. Memerlukan token bot Telegram "
+        "user (provider 'telegram'); bila belum ada, sistem meminta credential."
+    ),
+    parameters=types.Schema(
+        type=types.Type.OBJECT,
+        properties={
+            "chat_id": types.Schema(type=types.Type.STRING,
+                description="ID chat/grup Telegram tujuan (mis. -1001234567890)."),
+            "pesan": types.Schema(type=types.Type.STRING,
+                description="Isi pesan yang dikirim."),
+        },
+        required=["chat_id", "pesan"],
+    ),
+)
+
+_slack_declaration = types.FunctionDeclaration(
+    name="kirim_slack_message",
+    description=(
+        "Mengirim pesan ke Slack (webhook URL atau bot token provider 'slack')."
+    ),
+    parameters=types.Schema(
+        type=types.Type.OBJECT,
+        properties={
+            "channel": types.Schema(type=types.Type.STRING,
+                description="Nama/ID channel Slack (mis. #umum)."),
+            "pesan": types.Schema(type=types.Type.STRING,
+                description="Isi pesan yang dikirim."),
+        },
+        required=["channel", "pesan"],
+    ),
+)
+
+_http_declaration = types.FunctionDeclaration(
+    name="http_request",
+    description=(
+        "Memanggil API HTTP publik (GET/POST/PUT/PATCH/DELETE). Untuk integrasi "
+        "yang belum punya tool khusus. Alamat internal/loopback DITOLAK."
+    ),
+    parameters=types.Schema(
+        type=types.Type.OBJECT,
+        properties={
+            "url": types.Schema(type=types.Type.STRING,
+                description="URL lengkap http/https."),
+            "method": types.Schema(type=types.Type.STRING,
+                description="GET (default), POST, PUT, PATCH, atau DELETE."),
+            "body": types.Schema(type=types.Type.STRING,
+                description="Body JSON sebagai string (opsional)."),
+        },
+        required=["url"],
+    ),
+)
+
+
 _generate_workflow_declaration = types.FunctionDeclaration(
     name="generate_workflow_json",
     description=(
@@ -234,6 +418,9 @@ TOOL_DECLARATIONS = [
         _kirim_email_declaration,
         _agenda_calendar_declaration,
         _generate_workflow_declaration,
+        _telegram_declaration,
+        _slack_declaration,
+        _http_declaration,
     ])
 ]
 
@@ -342,6 +529,25 @@ def execute_tool(name: str, args: dict, email: str) -> str:
     if name == "generate_workflow_json":
         return generate_workflow_json(
             spec_json=args.get("spec_json", ""),
+            email=email,
+        )
+    if name == "kirim_telegram_message":
+        return kirim_telegram_message(
+            chat_id=args.get("chat_id", ""),
+            pesan=args.get("pesan", ""),
+            email=email,
+        )
+    if name == "kirim_slack_message":
+        return kirim_slack_message(
+            channel=args.get("channel", ""),
+            pesan=args.get("pesan", ""),
+            email=email,
+        )
+    if name == "http_request":
+        return http_request(
+            url=args.get("url", ""),
+            method=args.get("method", "GET"),
+            body=args.get("body", ""),
             email=email,
         )
     raise ValueError(f"Unknown tool: {name}")
