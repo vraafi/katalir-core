@@ -357,11 +357,17 @@ export function useSendChatMutation() {
       }
       if (data.needsCredential && context) {
         // Ganti placeholder assistant dengan kartu form kredensial.
+        // PENTING: `_localId` HARUS dipertahankan. Layer render (`page.tsx`
+        // `overlay`) hanya meneruskan entri yang punya `_localId`; tanpa itu
+        // kartu kredensial dibuang sebelum sempat tampil dan user tidak pernah
+        // bisa mengisi token (bug nyata pada S2: /chat menjawab
+        // needs_credential, UI tidak menampilkan apa pun).
         qc.setQueryData<ChatMessage[]>(finalKey, (old) =>
           (old ?? []).map((m) =>
             m._localId === context.optimisticAsstId
               ? {
                   id: `local-cred-${Date.now()}`,
+                  _localId: context.optimisticAsstId,
                   role: "system",
                   content: "",
                   type: "credential_form",

@@ -324,6 +324,11 @@ _AGENT_SYSTEM = (
     "ulang; jangan menyerahkan JSON yang ditolak ke pengguna.\n"
     "6. Setelah alat menerima, balas dengan ringkasan singkat: berapa node, "
     "alur besarnya, dan tanyakan apakah perlu diubah atau dijalankan.\n"
+    "7. KEJUJURAN HASIL ALAT: bila hasil alat berstatus 'error' atau berisi "
+    "'GAGAL', katakan kegagalan itu APA ADANYA — sebut alat, penyebab, dan "
+    "langkah perbaikannya (mis. token salah/kedaluwarsa). JANGAN mengaku "
+    "berhasil, JANGAN menyembunyikan penyebab, dan JANGAN menyebutnya "
+    "'kesalahan server' bila penyebabnya penolakan dari provider.\n"
 )
 
 
@@ -885,15 +890,28 @@ def _agentic_run_direct(prompt: str, email: str, model: str | None = None,
             args = dict(call.args) if call.args else {}
 
             # CredentialMissingError dibiarkan menyebar -> endpoint menangkapnya.
-            tool_result = tools.execute_tool(name, args, email)
-            if name == "generate_workflow_json":
+            # Kegagalan tool LAIN (mis. provider menolak token: HTTP 401) tidak
+            # boleh menjatuhkan permintaan sebagai 'kesalahan internal': itu
+            # penolakan dari provider, bukan bug server. Dikembalikan sebagai
+            # hasil tool yang berstatus error supaya model bisa menjelaskan
+            # penyebabnya kepada user (jalur gateway sudah berperilaku begitu).
+            try:
+                tool_result = tools.execute_tool(name, args, email)
+                tool_status = "success"
+            except CredentialMissingError:
+                raise
+            except Exception as exc:  # noqa: BLE001 - kesalahan tool, bukan server
+                tool_result = f"GAGAL menjalankan {name}: {type(exc).__name__}: {exc}"
+                tool_status = "error"
+                print(f"[api_server] tool {name} gagal: {type(exc).__name__}: {exc}")
+            if name == "generate_workflow_json" and tool_status == "success":
                 workflow_out = _accepted_workflow(tool_result) or workflow_out
 
             response = _send_guarded(
                 chat,
                 types.Part.from_function_response(
                     name=name,
-                    response={"status": "success", "result": tool_result},
+                    response={"status": tool_status, "result": tool_result},
                 ),
             )
 
