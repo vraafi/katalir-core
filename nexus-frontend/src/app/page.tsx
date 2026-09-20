@@ -274,6 +274,9 @@ function ChatApp() {
   // FASE 2.5: True selama workflow hasil AI dijalankan (auto-run) — dipakai
   // hanya untuk memberi tanda "sedang dijalankan", bukan untuk memblokir chat.
   const [runPending, setRunPending] = useState(false);
+  // Laporan eksekusi disimpan di STATE LOKAL (bukan cache pesan server) supaya
+  // tidak hilang saat daftar pesan di-refetch.
+  const [runReports, setRunReports] = useState<{ id: string; text: string }[]>([]);
   // URL state: ?s=<sessionId> (nuqs, shallow) — source of truth.
   const [sessionId, setSessionId] = useQueryState(
     "s",
@@ -801,26 +804,23 @@ function ChatApp() {
   // (`execution_report.py`) sehingga tidak ada logika bahasa di sini.
   const runDraftAndReport = useCallback(
     async (wf: AgentWorkflow, sid: string | null) => {
+      void sid;                       // laporan kini per-percakapan di state lokal
       setRunPending(true);
+      const rid = `run-${Date.now()}`;
       try {
         const res = await autoRunWorkflow(wf);
-        const key = chatKeys.messages(sid ?? "__pending__");
-        qc.setQueryData<ChatMessage[]>(key, (old) => [
-          ...(old ?? []),
-          { role: "system", content: res.report },
-        ]);
+        setRunReports((prev) => [...prev, { id: rid, text: res.report }]);
       } catch {
         // Laporan gagal ditulis BUKAN alasan menutupi: beri tahu apa adanya.
-        const key = chatKeys.messages(sid ?? "__pending__");
-        qc.setQueryData<ChatMessage[]>(key, (old) => [
-          ...(old ?? []),
-          { role: "system", content: "Gagal menjalankan workflow (kesalahan tak terduga)." },
+        setRunReports((prev) => [
+          ...prev,
+          { id: rid, text: "Gagal menjalankan workflow (kesalahan tak terduga)." },
         ]);
       } finally {
         setRunPending(false);
       }
     },
-    [qc]
+    []
   );
 
   // ---- Perf (H1: freeze klik riwayat besar) — jangan mount ribuan motion.div ----
@@ -1039,6 +1039,24 @@ return (
                   </span>
                 </div>
               )}
+              {/* FASE 2.5: laporan eksekusi otomatis dirender dari STATE LOKAL,
+                  bukan dari cache pesan server. Alasan (bug yang terlihat saat
+                  uji FASE 3): refetch daftar pesan menimpa cache sehingga pesan
+                  sistem laporan hilang sebelum terbaca user. */}
+              {runReports.map((r) => (
+                <div
+                  key={r.id}
+                  data-testid="run-report"
+                  className="flex items-end gap-2"
+                >
+                  <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-bg-subtle">
+                    <Sparkles size={14} strokeWidth={1.75} className="text-accent" />
+                  </div>
+                  <div className="max-w-[85%] whitespace-pre-wrap rounded-2xl rounded-bl-lg border border-border/60 bg-bg-subtle px-4 py-2.5 text-[14px] leading-[1.6] text-fg tracking-[-0.006em]">
+                    {r.text}
+                  </div>
+                </div>
+              ))}
             </div>
             <div ref={endRef} />
             {messages.length > 0 && (

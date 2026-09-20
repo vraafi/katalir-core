@@ -22,6 +22,10 @@ from typing import Any, Literal
 
 from pydantic import BaseModel, Field, ValidationError
 
+# FASE 2.6: kelengkapan config provider diperiksa memakai tabel yang sama dengan
+# eksekusi, supaya "draf valid" == "draf bisa dijalankan".
+import provider_registry
+
 # Kind node HARUS sama dengan META di types.ts (trigger | agent | mcp).
 Kind = Literal["trigger", "agent", "mcp"]
 
@@ -101,13 +105,26 @@ def validate_spec(raw: str) -> dict[str, Any]:
         errors.append("tidak ada node kind='trigger' (tanpa pemicu workflow tak bisa jalan)")
 
     for n in spec.nodes:
-        if n.kind == "mcp":
-            prov = str(n.config.get("provider") or "").strip().lower()
-            if not prov:
-                errors.append(f"node mcp '{n.id}' wajib punya config.provider "
-                              f"(contoh: {', '.join(KNOWN_PROVIDERS[:3])})")
-            elif prov not in KNOWN_PROVIDERS:
-                warnings.append(f"provider '{prov}' belum punya jalur kredensial bawaan")
+        if n.kind != "mcp":
+            continue
+        prov = str(n.config.get("provider") or "").strip().lower()
+        if not prov:
+            errors.append(f"node mcp '{n.id}' wajib punya config.provider "
+                          f"(contoh: {', '.join(KNOWN_PROVIDERS[:3])})")
+            continue
+        if prov not in KNOWN_PROVIDERS:
+            warnings.append(f"provider '{prov}' belum punya jalur kredensial bawaan")
+            continue
+        # FASE 2.6: draf yang tidak bisa dijalankan DITOLAK di sini, bukan gagal
+        # saat eksekusi sebagai HTTP 400 dari provider. Model lalu memanggil ulang
+        # tool dengan config lengkap (repair loop) — atau bertanya ke user dulu.
+        # Konten (pesan/isi) boleh datang dari node hulu; tujuan (chat_id/url/..)
+        # tidak — itu keputusan user.
+        has_upstream = any(e.target == n.id for e in spec.edges)
+        missing = provider_registry.missing_required(prov, n.config, None, has_upstream)
+        if missing:
+            errors.append(f"node mcp '{n.id}' (provider {prov}) belum lengkap: "
+                          f"{', '.join(missing)} wajib ada di config")
 
     if not spec.edges and len(spec.nodes) > 1:
         warnings.append("tidak ada edge: node akan tampil terpisah di canvas")

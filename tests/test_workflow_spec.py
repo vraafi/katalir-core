@@ -27,7 +27,8 @@ def test_spec_valid_dinormalkan_untuk_canvas():
             {"id": "t1", "kind": "trigger", "label": "Jadwal 09:00",
              "config": {"schedule": "0 9 * * *"}},
             {"id": "m1", "kind": "mcp", "label": "Kirim Telegram",
-             "config": {"provider": "telegram"}},
+             "config": {"provider": "telegram", "chat_id": "-100",
+                        "pesan": "halo"}},
         ],
         [{"source": "t1", "target": "m1"}],
     )
@@ -50,7 +51,8 @@ def test_posisi_dihitung_otomatis_dan_makin_ke_kanan():
         [
             {"id": "t", "kind": "trigger"},
             {"id": "a", "kind": "agent"},
-            {"id": "m", "kind": "mcp", "config": {"provider": "http"}},
+            {"id": "m", "kind": "mcp", "config": {"provider": "http",
+                                                 "url": "https://contoh.id"}},
         ],
         [{"source": "t", "target": "a"}, {"source": "a", "target": "m"}],
     )

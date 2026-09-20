@@ -103,6 +103,49 @@ class ProviderSpec:
     credential: str            # nama kredensial di Brankas ("" = tidak perlu)
     build_args: Callable[[dict, dict, str], dict]
     summary: str
+    required: tuple[str, ...] = ()   # field config WAJIB (lihat REQUIRED_CONFIG)
+
+
+# Field TUJUAN/struktur yang HARUS ada di config node agar bisa dijalankan.
+# Tanpa ini, model cenderung hanya menulis {"provider": "telegram"} dan
+# kegagalannya baru muncul sebagai HTTP 400 dari provider.
+REQUIRED_CONFIG: dict[str, tuple[str, ...]] = {
+    "telegram": ("chat_id",),
+    "slack": ("channel",),
+    "http": ("url",),
+    "gmail": ("tujuan", "subjek"),
+    "google_sheets": ("spreadsheet_id",),
+    "whatsapp": ("nomor_tujuan",),
+    "google_calendar": ("nama_acara", "waktu"),
+}
+
+# Field KONTEN: boleh datang dari config node ATAU dari node sebelumnya
+# (keluaran Agent). Menuntutnya di config akan menolak workflow sah seperti
+# "Agent menulis ringkasan -> Telegram mengirimkannya".
+CONTENT_CONFIG: dict[str, tuple[str, ...]] = {
+    "telegram": ("pesan",),
+    "slack": ("pesan",),
+    "gmail": ("isi",),
+    "whatsapp": ("pesan",),
+}
+
+# Sinonim field yang tetap diterima saat MEMERIKSA kelengkapan config, supaya
+# model tidak dihukum hanya karena memakai nama lain yang sama jelasnya.
+FIELD_ALIASES: dict[str, tuple[str, ...]] = {
+    "chat_id": ("chat_id", "chatId", "to", "channel_id"),
+    "pesan": ("pesan", "message", "text", "body", "isi",
+              "instruction", "reply", "query"),
+    "channel": ("channel", "to"),
+    "url": ("url", "endpoint", "href"),
+    "tujuan": ("tujuan", "to", "email_tujuan"),
+    "subjek": ("subjek", "subject"),
+    "isi": ("isi", "pesan", "message", "body", "text",
+            "instruction", "reply", "query"),
+    "spreadsheet_id": ("spreadsheet_id", "sheet_id"),
+    "nomor_tujuan": ("nomor_tujuan", "to", "phone"),
+    "nama_acara": ("nama_acara", "title", "acara"),
+    "waktu": ("waktu", "start", "when"),
+}
 
 
 PROVIDERS: dict[str, ProviderSpec] = {
@@ -156,6 +199,37 @@ def resolve(cfg: dict | None, params: dict | None = None) -> str | None:
 
 
 
+def missing_required(provider: str, cfg: dict | None,
+                     params: dict | None = None,
+                     has_upstream: bool = True) -> list[str]:
+    """Field yang belum lengkap: tujuan WAJIB di config, konten boleh dari hulu.
+
+    - Field TUJUAN (chat_id/url/channel) hanya diperiksa di `config`: itu
+      keputusan user, bukan efek samping alur.
+    - Field KONTEN (pesan/isi) boleh berasal dari (a) config, (b) input node
+      sebelumnya saat eksekusi (`params`), atau (c) node hulu yang akan mengisi
+      saat runtime (`has_upstream`). Validasi draf memakai (c) karena pada saat
+      validasi belum ada data; ini mencegah penolakan workflow sah seperti
+      "Agent menulis ringkasan -> Telegram mengirimkannya".
+    - Node MCP tanpa pendahulu memang harus menyebut kontennya sendiri, kalau
+      tidak akan terkirim pesan kosong.
+    """
+    cfg = cfg or {}
+    params = params or {}
+    missing: list[str] = []
+    for key in REQUIRED_CONFIG.get(provider, ()):
+        names = FIELD_ALIASES.get(key, (key,))
+        if not any(cfg.get(n) not in (None, "", [], {}) for n in names):
+            missing.append(key)
+    for key in CONTENT_CONFIG.get(provider, ()):
+        names = FIELD_ALIASES.get(key, (key,))
+        in_cfg = any(cfg.get(n) not in (None, "", [], {}) for n in names)
+        in_params = any(params.get(n) not in (None, "", [], {}) for n in names)
+        if not (in_cfg or in_params or has_upstream):
+            missing.append(key)
+    return missing
+
+
 def build_args(provider: str, cfg: dict | None, params: dict | None,
                email: str = "") -> dict:
     spec = PROVIDERS.get(provider)
@@ -176,6 +250,14 @@ def run(provider: str, cfg: dict | None, params: dict | None,
         return {"status": "error", "provider": provider, "tool": None,
                 "error": f"provider '{provider}' belum terdaftar (tersedia: {known})"}
     args = build_args(provider, cfg, params, email)
+    # Kelengkapan config diperiksa LEBIH DULU: kegagalan "chat_id kosong" harus
+    # terbaca sebagai masalah konfigurasi, bukan HTTP 400 dari provider.
+    missing = missing_required(provider, cfg, params)
+    if missing:
+        return {"status": "needs_configuration", "provider": provider,
+                "tool": spec.fn.__name__, "missing": missing,
+                "error": (f"config node '{provider}' belum lengkap: "
+                          f"{', '.join(missing)}")}
     try:
         out = spec.fn(**args)
     except tools.CredentialMissingError as exc:

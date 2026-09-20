@@ -389,8 +389,12 @@ _generate_workflow_declaration = types.FunctionDeclaration(
         '"label":"...","config":{...}}],"edges":[{"source":"n1","target":"n2"}]}. '
         "Aturan: minimal 1 node kind=trigger; id unik; setiap edge harus "
         "menunjuk id yang ada; node kind=mcp WAJIB punya config.provider "
-        "(contoh: telegram, gmail, google_sheets, slack, http). Bila jawaban "
-        "ditolak, baca `errors`/`hint` lalu panggil ulang dengan perbaikan."
+        "(contoh: telegram, gmail, google_sheets, slack, http) DAN config wajib "
+        "per provider: telegram{chat_id,pesan} · slack{channel,pesan} · "
+        "http{url,method} · gmail{tujuan,subjek,isi} · "
+        "google_sheets{spreadsheet_id,range_data} · whatsapp{nomor_tujuan,pesan} · "
+        "google_calendar{nama_acara,waktu}. Bila jawaban ditolak, baca "
+        "`errors`/`hint` lalu panggil ulang dengan perbaikan."
     ),
     parameters=types.Schema(
         type=types.Type.OBJECT,

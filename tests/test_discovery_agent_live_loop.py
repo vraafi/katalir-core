@@ -20,7 +20,8 @@ SPEC = json.dumps({
     "name": "Kirim Telegram 09:00",
     "nodes": [
         {"id": "trg", "kind": "trigger", "config": {"schedule": "0 9 * * *"}},
-        {"id": "tg", "kind": "mcp", "config": {"provider": "telegram"}},
+        {"id": "tg", "kind": "mcp", "config": {"provider": "telegram",
+                                              "chat_id": "-1001"}},
     ],
     "edges": [{"source": "trg", "target": "tg"}],
 })

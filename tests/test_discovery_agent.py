@@ -23,7 +23,7 @@ GOOD_SPEC = json.dumps({
          "config": {"schedule": "0 9 * * *"}},
         {"id": "ai", "kind": "agent", "label": "Ringkas"},
         {"id": "tg", "kind": "mcp", "label": "Kirim Telegram",
-         "config": {"provider": "telegram"}},
+         "config": {"provider": "telegram", "chat_id": "-1001"}},
     ],
     "edges": [{"source": "trg", "target": "ai"}, {"source": "ai", "target": "tg"}],
 })

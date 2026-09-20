@@ -177,6 +177,49 @@ def test_exec_mcp_merutekan_ke_provider_native(monkeypatch):
     assert out["tool"] != "web_search", "masih jatuh ke web_search"
 
 
+# ---------------------------------------------------------------------------
+# Kelengkapan config (FASE 2.6 lanjutan)
+# ---------------------------------------------------------------------------
+def test_tujuan_wajib_di_config_bukan_dari_hulu():
+    assert pr.missing_required("telegram", {"provider": "telegram"}) == ["chat_id"]
+    assert pr.missing_required("http", {}) == ["url"]
+    assert pr.missing_required("slack", {"provider": "slack"}) == ["channel"]
+
+
+def test_konten_boleh_datang_dari_node_hulu():
+    """Agent -> Telegram yang sah: teks belum ada saat validasi draf."""
+    assert pr.missing_required("telegram", {"chat_id": "-1"}, None, True) == []
+
+
+def test_konten_wajib_bila_node_tidak_punya_hulu():
+    assert pr.missing_required("telegram", {"chat_id": "-1"}, None, False) == ["pesan"]
+
+
+def test_alias_field_dihormati_saat_validasi():
+    assert pr.missing_required("telegram", {"chatId": "-1", "message": "hi"}, None, False) == []
+    assert pr.missing_required("http", {"endpoint": "https://x.id"}, None, False) == []
+
+
+def test_run_memberi_needs_configuration_bukan_http_400():
+    out = pr.run("telegram", {"provider": "telegram"}, {}, "u@katalir.id")
+    assert out["status"] == "needs_configuration"
+    assert out["missing"] == ["chat_id"]
+    assert "belum lengkap" in out["error"]
+
+
+def test_validator_menolak_draf_mcp_tanpa_tujuan():
+    import workflow_spec as ws
+    import json
+
+    raw = json.dumps({"name": "x", "nodes": [
+        {"id": "t", "kind": "trigger"},
+        {"id": "m", "kind": "mcp", "config": {"provider": "telegram"}}],
+        "edges": [{"source": "t", "target": "m"}]})
+    res = ws.validate_spec(raw)
+    assert res["ok"] is False
+    assert any("chat_id" in e for e in res["errors"]), res
+
+
 def test_exec_mcp_tanpa_provider_tetap_kompatibel():
     """Workflow lama (tool_name/web_search, tanpa provider) harus tetap jalan."""
     out = asyncio.run(_orch()._exec_mcp(_node({"tool_name": "web_search"}),
