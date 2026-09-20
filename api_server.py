@@ -1297,7 +1297,11 @@ async def execute_workflow(workflow_id: str, req: ExecuteRequest = None,
             raise HTTPException(404, f"Workflow {workflow_id} tidak ditemukan.")
         flow_data = found.get("flow_data") or {}
     try:
-        execution_id = engine.launch_execution(workflow_id, flow_data)
+        # FASE 2.6: sertakan email pemilik agar node MCP bisa membaca kredensial
+        # user dari Brankas (tanpa ini node telegram/slack selalu "belum ada
+        # kredensial" walau user sudah menyimpannya).
+        execution_id = engine.launch_execution(
+            workflow_id, flow_data, owner_email=str(user.get("email") or ""))
     except Exception as exc:  # noqa: BLE001
         raise HTTPException(500, f"Gagal melanjar ejekution: {exc}")
     return {"execution_id": execution_id, "workflow_id": workflow_id, "status": "pending"}
