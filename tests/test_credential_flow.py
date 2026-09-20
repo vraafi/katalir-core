@@ -119,6 +119,44 @@ def test_putaran_penuh_enkripsi_lalu_terbaca_tool(monkeypatch):
     assert row is not None and row["api_token"] == "token-rahasia-telegram"
 
 
+def test_hapus_kredensial_membersihkan_vault_dan_tabel_lama(monkeypatch):
+    """`vault_delete` = satu-satunya cara user MENCABUT kredensial.
+
+    Membersihkan `user_vault` DAN `user_integrations` (jalur lama) supaya tidak
+    ada sisa token yang masih bisa dibaca tool setelah user mencabutnya.
+    """
+    deleted: list[tuple[str, str]] = []
+
+    class _Table:
+        def __init__(self, name):
+            self.name = name
+
+        def delete(self):
+            return self
+
+        def eq(self, col, val):
+            deleted.append((self.name, f"{col}={val}"))
+            return self
+
+        def execute(self):
+            return type("R", (), {"data": []})()
+
+    class _Client:
+        def table(self, name):
+            return _Table(name)
+
+    monkeypatch.setattr(db, "is_configured", lambda: True)
+    monkeypatch.setattr(db, "_get_write_client", lambda: _Client())
+    monkeypatch.setattr(db, "_LVAULT", {"u@k.id": {"telegram": "x"}})
+    monkeypatch.setattr(db, "_LINT", {("u@k.id", "telegram"): {"api_token": "x"}})
+
+    assert db.vault_delete("u@k.id", "telegram") is True
+    tables = {t for t, _ in deleted}
+    assert tables == {"user_vault", "user_integrations"}, tables
+    assert "telegram" not in db._LVAULT["u@k.id"]        # salinan memori ikut bersih
+    assert ("u@k.id", "telegram") not in db._LINT
+
+
 class _EmptyTable:
     """Klien Supabase palsu: semua query mengembalikan data kosong."""
 

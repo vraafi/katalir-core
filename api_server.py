@@ -575,6 +575,9 @@ def _agentic_run_gateway(prompt: str, email: str, model_id: str,
                 for call in calls:
                     name = str((call or {}).get("name") or "")
                     args = dict((call or {}).get("args") or {})
+                    # JEJAK: berapa kali agen meminta tool (untuk memisahkan
+                    # duplikasi "agen memanggil 2x" vs "mesin mengeksekusi 2x").
+                    print(f"[chat/gateway] tool_call name={name}")
                     try:
                         result = tools.execute_tool(name, args, email)
                     except CredentialMissingError:
@@ -895,6 +898,8 @@ def _agentic_run_direct(prompt: str, email: str, model: str | None = None,
             # penolakan dari provider, bukan bug server. Dikembalikan sebagai
             # hasil tool yang berstatus error supaya model bisa menjelaskan
             # penyebabnya kepada user (jalur gateway sudah berperilaku begitu).
+            # JEJAK: berapa kali agen meminta tool (jalur Gemini langsung).
+            print(f"[chat/direct] tool_call name={name}")
             try:
                 tool_result = tools.execute_tool(name, args, email)
                 tool_status = "success"
@@ -1264,6 +1269,24 @@ def vault_save_endpoint(req: VaultSaveRequest, authorization: str | None = Heade
     if not ok:
         raise HTTPException(500, "Gagal menyimpan vault.")
     return {"status": "saved", "provider": req.provider, "saved": True}
+
+
+@app.delete("/api/vault/{provider}")
+def vault_delete_endpoint(provider: str, authorization: str | None = Header(None)):
+    """Cabut kredensial satu provider untuk user pada JWT (self-service).
+
+    KEAMANAN: user TARGET dari JWT, bukan body/query — user tidak bisa menghapus
+    kredensial orang lain. Tanpa endpoint ini user hanya bisa MENIMPA token,
+    tidak pernah bisa mencabutnya.
+    """
+    user = security.get_current_user(authorization)
+    prov = (provider or "").strip().lower()
+    if not prov:
+        raise HTTPException(422, "provider wajib diisi.")
+    ok = db.vault_delete(user["email"], prov)
+    if not ok:
+        raise HTTPException(500, "Gagal menghapus kredensial.")
+    return {"status": "deleted", "provider": prov, "deleted": True}
 
 
 # ---------------------------------------------------------------------------

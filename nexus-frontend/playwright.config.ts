@@ -92,7 +92,12 @@ export default defineConfig({
       command: "node scripts/e2e-prod-server.mjs",
       url: FRONTEND_URL,
       reuseExistingServer: false,
-      timeout: 300000,
+      // 600s (naik dari 300s): build DINGIN harus mengunduh font Google
+      // (`next/font/google`) sehingga pada jaringan lambat/flaky build bisa
+      // melewati 300s dan harness gagal dengan "Timed out waiting ... from
+      // config.webServer" — terbaca seolah aplikasi rusak padahal hanya unduhan
+      // font yang lambat (kejadian nyata 2026-09-20 setelah `.next` dibersihkan).
+      timeout: 600000,
       env: { E2E_API_URL: BACKEND_URL },
     },
   ],

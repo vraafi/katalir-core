@@ -79,6 +79,38 @@ def tambah_agenda_calendar(nama_acara: str, waktu: str, email: str) -> str:
 # ---------------------------------------------------------------------------
 # FASE 2.4 — MCP REGISTRY (native, tanpa dependency baru)
 # ---------------------------------------------------------------------------
+# Penghitung proses untuk membuktikan berapa kali API Telegram BENAR-BENAR
+# dipanggil (bukti "1 perintah = 1 pesan"; lihat `kirim_telegram_message`).
+_TELEGRAM_SEND_SEQ = 0
+
+
+def _text_fp(text: object) -> str:
+    """Sidik jari teks (8 hex) — untuk membandingkan pesan TANPA mencetak isinya."""
+    import hashlib
+
+    return hashlib.sha1(str(text).encode("utf-8")).hexdigest()[:8]
+
+
+def _trace(line: str) -> None:
+    """Catat satu baris jejak ke berkas (bukan stdout — lihat pemanggilnya).
+
+    Lokasi: `TELEGRAM_SEND_LOG` bila di-set, kalau tidak
+    `<temp>/telegram_sends.log`. Kegagalan menulis jejak TIDAK boleh
+    menggagalkan pengiriman pesan.
+    """
+    import os
+    import tempfile
+    import time
+
+    path = os.getenv("TELEGRAM_SEND_LOG") or os.path.join(
+        tempfile.gettempdir(), "telegram_sends.log")
+    try:
+        with open(path, "a", encoding="utf-8") as fh:
+            fh.write(f"{time.strftime('%Y-%m-%dT%H:%M:%S')} {line}\n")
+    except Exception:  # noqa: BLE001
+        pass
+
+
 # KENAPA NATIVE (bukan Composio/Pipedream): keputusan FASE 1 — nol biaya, nol
 # vendor lock-in, dan backend ini sudah punya registry tool + Brankas. Yang
 # ditambahkan di sini hanya provider yang bisa dipanggil LANGSUNG dengan token
@@ -136,6 +168,17 @@ def kirim_telegram_message(chat_id: str, pesan: str, email: str) -> str:
     # Token Telegram WAJIB di path (desain API-nya) — karena itu URL ini tidak
     # pernah dicetak/di-log, dan pesan error di bawah tidak memuat URL.
     url = f"https://api.telegram.org/bot{token}/sendMessage"
+    # JEJAK WAJIB (FILE, bukan stdout): stdout ter-buffer saat proses dipipe
+    # (uvicorn di dalam test harness), sehingga print bisa hilang saat proses
+    # dimatikan. Bukti "1 perintah = 1 pesan" harus bertahan, jadi setiap
+    # panggilan API nyata dicatat ke berkas (mis. %TEMP%\telegram_sends.log).
+    global _TELEGRAM_SEND_SEQ
+    _TELEGRAM_SEND_SEQ += 1
+    _seq = _TELEGRAM_SEND_SEQ
+    _trace(f"SEND seq={_seq} chat={str(chat_id)[:6]}*** "
+           f"text_len={len(str(pesan))} text_sha8={_text_fp(pesan)}")
+    print(f"[telegram] SEND seq={_seq} chat={str(chat_id)[:6]}*** "
+          f"text_len={len(str(pesan))}")
     try:
         import httpx
         r = httpx.post(url, json={"chat_id": str(chat_id), "text": str(pesan)},
@@ -143,12 +186,14 @@ def kirim_telegram_message(chat_id: str, pesan: str, email: str) -> str:
     except Exception as exc:  # noqa: BLE001
         raise RuntimeError(f"Telegram tidak terjangkau ({type(exc).__name__}).")
     if r.status_code >= 400:
+        _trace(f"seq={_seq} FAIL http={r.status_code}")
         raise RuntimeError(f"Telegram menolak permintaan (HTTP {r.status_code}).")
     try:
         body = r.json()
     except Exception:  # noqa: BLE001
         body = {}
     mid = (body.get("result") or {}).get("message_id")
+    _trace(f"seq={_seq} OK message_id={mid}")
     return f"Pesan Telegram terkirim ke chat {chat_id} (id {mid})."
 
 

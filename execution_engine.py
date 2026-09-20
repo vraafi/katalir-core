@@ -656,6 +656,10 @@ async def execute_workflow_async(workflow_id: str, flow_data: dict,
     graph = FlowGraph(**flow_data)
     provided = bool(execution_id)
     execution_id = execution_id or str(uuid.uuid4())
+    # JEJAK: satu baris per eksekusi workflow (untuk memisahkan duplikasi
+    # "mesin dieksekusi 2x" dari "agen memanggil tool 2x").
+    print(f"[engine] start execution_id={execution_id} flow={workflow_id} "
+          f"nodes={len(graph.nodes)} owner={'ya' if owner_email else 'kosong'}")
     if not provided:
         # Hanya pembuat barisnya yang meng-insert. Kalau id diberikan pemanggil
         # (`launch_execution`), barisnya SUDAH ada — insert ulang akan gagal

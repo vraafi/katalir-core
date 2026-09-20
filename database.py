@@ -621,6 +621,29 @@ def vault_get(email: str, provider: str) -> str:
     return _LVAULT.get(email, {}).get(provider, "")
 
 
+def vault_delete(email: str, provider: str) -> bool:
+    """Hapus kredensial user untuk satu provider (Brankas + tabel BYOK).
+
+    KENAPA ADA: tanpa ini user TIDAK bisa mencabut kredensial yang sudah
+    tersimpan — hanya bisa menimpanya. `user_integrations` (jalur lama) ikut
+    dibersihkan supaya tidak ada sisa token yang masih terbaca tool.
+    """
+    removed = False
+    try:
+        if is_configured():
+            c = _get_write_client()
+            c.table("user_vault").delete().eq("email", email).eq(
+                "provider", provider).execute()
+            c.table("user_integrations").delete().eq("user_email", email).eq(
+                "provider_name", provider).execute()
+            removed = True
+    except Exception as exc:  # noqa: BLE001
+        print(f"[database] vault_delete gagal ({type(exc).__name__})")
+    _LVAULT.get(email, {}).pop(provider, None)
+    _LINT.pop((email, provider), None)
+    return removed
+
+
 def vault_list(email: str) -> list[dict]:
     """Palauta daftar provider jolle säilytetty (ei koskaan plaintext avainta)."""
     try:
