@@ -6,6 +6,7 @@ import { ArrowLeft } from "lucide-react";
 import { AuthProvider } from "@/context/auth";
 import { QueryProvider } from "@/features/builder/provider";
 import { I18nProvider, useI18n } from "@/i18n/context";
+import { HydrationReady } from "@/i18n/HydrationReady";
 
 /**
  * Layout minimal untuk halaman akun (/settings, /billing, /help).
@@ -56,6 +57,9 @@ function SimplePageInner({
   const tr = (s: string) => (s.includes(".") && !s.includes(" ") ? t(s) : s);
   return (
           <div className="min-h-screen bg-bg text-fg">
+            {/* Penanda hidrasi rute statis (settings/billing/help): locale
+                diganti hanya setelah subtree ini selesai dihidrasi. */}
+            <HydrationReady />
             <nav className="flex items-center justify-between border-b border-border px-5 py-3">
               <Link href="/" className="text-xl font-bold tracking-tight text-fg">
                 Katalir

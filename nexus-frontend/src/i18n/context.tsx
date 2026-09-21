@@ -2,6 +2,7 @@
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
 import { DEFAULT_LOCALE, LOCALES, STORAGE_KEY, messages, type Locale, type Messages } from "./messages";
+import { isHydrated, markHydrated, onHydrated } from "./hydration-signal";
 
 type Params = Record<string, string | number>;
 
@@ -42,16 +43,38 @@ export function I18nProvider({ children }: { children: React.ReactNode }) {
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
-    try {
-      const stored = window.localStorage.getItem(STORAGE_KEY);
-      const initial: Locale =
-        stored === "id" || stored === "en" ? stored : detectLocale();
-      setLocaleState(initial);
-      document.documentElement.lang = initial;
-    } catch {
-      setLocaleState(detectLocale());
-    }
+    // Terapkan locale terdeteksi SETELAH hidrasi selesai (bukan langsung di
+    // effect ini). SSR selalu memakai DEFAULT_LOCALE; mengganti teks sebelum
+    // subtree selesai dihidrasi membuat React melaporkan hydration mismatch
+    // (dev: overlay merah). `onHydrated` menunggu sinyal dari komponen
+    // terdalam tiap rute, dengan timeout sebagai jaring pengaman bila penanda
+    // tidak terpasang (mis. rute baru yang lupa).
+    let cancel = () => {};
+    let fallback: ReturnType<typeof setTimeout> | undefined;
+    const apply = () => {
+      try {
+        const stored = window.localStorage.getItem(STORAGE_KEY);
+        const initial: Locale =
+          stored === "id" || stored === "en" ? stored : detectLocale();
+        setLocaleState(initial);
+        document.documentElement.lang = initial;
+      } catch {
+        setLocaleState(detectLocale());
+      }
+    };
+    cancel = onHydrated(apply);
+    fallback = setTimeout(() => {
+      // Jaring pengaman: tetap terapkan walau penanda tak pernah datang.
+      if (!isHydrated()) {
+        markHydrated();
+        apply();
+      }
+    }, 2500);
     setMounted(true);
+    return () => {
+      cancel();
+      clearTimeout(fallback);
+    };
   }, []);
 
   const setLocale = useCallback((l: Locale) => {

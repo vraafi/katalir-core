@@ -12,6 +12,7 @@ import { ConfigPanel } from "./ConfigPanel";
 import { Terminal } from "./Terminal";
 import { WorkflowSidebar } from "./WorkflowSidebar";
 import { useCanvasStore } from "./store/canvas-store";
+import { HydrationReady } from "@/i18n/HydrationReady";
 import { useWorkflowsQuery, useSaveWorkflowMutation, applyWorkflowToCanvas, type WorkflowListItem } from "./hooks/useWorkflow";
 import { useExecuteMutation, useExecutionPolling } from "./hooks/useExecution";
 // FASE 2.2: draf dari chat (Discovery Agent) dibaca saat mount.
@@ -152,6 +153,8 @@ export function BuilderInner() {
 
   return (
     <div className="flex h-screen bg-zinc-950 text-zinc-100">
+      {/* Penanda hidrasi rute builder (lihat src/i18n/hydration-signal.ts). */}
+      <HydrationReady />
       <WorkflowSidebar
         workflows={workflowsData ?? []}
         activeId={workflowId}

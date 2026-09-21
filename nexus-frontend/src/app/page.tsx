@@ -27,6 +27,7 @@ import {
   savePendingWorkflow,
   type AgentWorkflow,
 } from "@/features/agent/workflow-spec";
+import { HydrationReady } from "@/i18n/HydrationReady";
 import { autoRunWorkflow } from "@/features/agent/auto-run";
 
 const SUGGESTIONS = ["Kirim pesan WA", "Rangkum dokumen", "Analisis data"];
@@ -921,6 +922,10 @@ return (
       onDeleteSession={handleDeleteSession}
       userTier={userTier}
     >
+      {/* Penanda hidrasi: komponen ini berada DI DALAM Suspense, jadi effect-nya
+          berjalan setelah subtree chat selesai dihidrasi — itulah saat aman
+          mengganti locale (lihat src/i18n/hydration-signal.ts). */}
+      <HydrationReady />
       {/* Fix 6: Chat Baru saat AI bekerja -> dialog konfirmasi agar reply tetap
           diproses di sesi lama; user bisa memilih pindah atau bertahan. */}
       {confirmNewChat && (
