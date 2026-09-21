@@ -29,126 +29,12 @@ import {
 } from "@/features/agent/workflow-spec";
 import { HydrationReady } from "@/i18n/HydrationReady";
 import { autoRunWorkflow } from "@/features/agent/auto-run";
+import { Thread } from "@/features/chat/thread";
+import type { Msg } from "@/features/chat/thread";
 
 const SUGGESTIONS = ["Kirim pesan WA", "Rangkum dokumen", "Analisis data"];
 
-const PROVIDER_LABELS: Record<string, string> = {
-  whatsapp: "WhatsApp Cloud API",
-  google_sheets: "Google Sheets",
-  gmail: "Gmail",
-  google_calendar: "Google Calendar",
-};
 
-/** Indikator mengetik: 3 dot animasi (transform+opacity only, CSS .typing-dot).
- * CallSphere 200ms rule — bukan spinner statis. Reduced-motion di-global CSS. */
-function TypingDots({ ariaHidden }: { ariaHidden?: boolean }) {
-  return (
-    <span
-      aria-hidden={ariaHidden}
-      className="inline-flex items-center text-current"
-    >
-      <span className="typing-dot" />
-      <span className="typing-dot" />
-      <span className="typing-dot" />
-    </span>
-  );
-}
-
-/** Format token count ala DevoxxGenie #1127: 10502 -> "10.5K", 1500000 -> "1.5M". */
-function fmtToken(n: number | undefined | null): string {
-  const v = Number(n ?? 0);
-  if (v >= 1_000_000) return `${(v / 1_000_000).toFixed(1)}M`;
-  if (v >= 1_000) return `${(v / 1_000).toFixed(1)}K`;
-  return String(Math.round(v || 0));
-}
-
-/** Terjemahan kode `fallback_reason` backend -> bahasa manusia (Openclaw
- *  #92672: user harus tahu KENAPA, bukan cuma "terjadi fallback").
- *  Kode yang tidak dikenal tetap tampil sebagai kalimat netral, bukan kosong. */
-function formatFallbackReason(reason: string | null | undefined): string {
-  switch (reason) {
-    case "quota_exhausted":
-      return "Kuota harian model ini habis";
-    case "rate_limit":
-      return "Terlalu banyak permintaan ke model ini";
-    case "overloaded":
-      return "Server model ini sedang sibuk";
-    case "model_unavailable":
-      return "Model tidak tersedia untuk tier Anda";
-    case "gateway_down":
-      return "Layanan gateway sedang tidak tersedia";
-    default:
-      return "Model yang dipilih tidak tersedia";
-  }
-}
-
-/** Keterangan fallback: model DIMINTA vs DIPAKAI + alasan (claude-jacked
- *  0.89.0: "(FALLBACK, not X)" — di sini versi eksplisitnya).
- *  Hanya render saat fallback + nama model berbeda, supaya request normal
- *  benar-benar bersih tanpa badge. */
-function FallbackNotice({ meta }: { meta: NonNullable<ChatMessage["meta"]> }) {
-  const used = meta.model;
-  const wanted = meta.requested_model;
-  // Abaikan bila user tidak memilih model (backend mengirim null) atau bila
-  // nama yang diminta == yang dipakai (bukan substitusi nyata).
-  if (!used || !wanted || wanted === used) return null;
-  return (
-    <span className="mt-2 flex items-start gap-2 rounded-md border border-warning/30 bg-warning/10 px-2.5 py-1.5 text-[11px] leading-snug text-warning">
-      <AlertCircle size={12} strokeWidth={2} className="mt-0.5 shrink-0" aria-hidden />
-      <span className="flex-1">
-        <span className="block font-medium">Model yang Anda pilih tidak tersedia</span>
-        <span className="block text-warning/90">
-          {formatFallbackReason(meta.fallback_reason)} · Beralih ke{" "}
-          <strong className="font-mono font-medium">{used}</strong>
-        </span>
-        <span className="mt-0.5 block font-mono text-[10px] text-warning/70">
-          diminta: {wanted}
-        </span>
-      </span>
-    </span>
-  );
-}
-
-/** Baris metadata model di bubble AI (transparansi model/token/latensi). */
-function MetaRow({ meta }: { meta: NonNullable<ChatMessage["meta"]> }) {
-  const model = meta.model || "model";
-  const secs =
-    typeof meta.latency_ms === "number" ? (meta.latency_ms / 1000).toFixed(1) : null;
-  const hasUsage = meta.total_tokens != null;
-  const parts = [model];
-  if (secs) parts.push(`${secs}s`);
-  if (hasUsage) {
-    const inT = fmtToken(meta.prompt_tokens);
-    const outT = fmtToken(meta.completion_tokens);
-    parts.push(`${inT}→${outT} tok`);
-  }
-  return (
-    <span className="mt-1.5 flex flex-col">
-      <span className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[11px] leading-none text-fg-subtle">
-        <span className="font-mono tracking-tight">{parts.join(" · ")}</span>
-      </span>
-      {meta.fallback && <FallbackNotice meta={meta} />}
-    </span>
-  );
-}
-
-type Msg =
-  | { key: string; role: "user"; content: string }
-  | { key: string; role: "assistant"; content: string; meta?: ChatMessage["meta"] }
-  | {
-      key: string;
-      role: "system";
-      type: "credential_form";
-      provider: string;
-      original: string;
-    }
-  | {
-      key: string;
-      role: "system";
-      type: "error";
-      content: string;
-      original: string;
-    };
 
 /** Pesan yang menunggu diproses saat AI sedang sibuk (queue FIFO). */
 interface QueuedMsg {
@@ -833,85 +719,6 @@ function ChatApp() {
   const ANIM_TAIL = 8;
   // renderMsg: isi bubble (avatar + konten) — dipakai baik row-animasi maupun
   // row-statis, supaya konten & key IDENTIK; tidak ada regresi render.
-  function renderMsg(msg: Msg) {
-    return (
-      <>
-        {msg.role !== "user" && (
-          <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-bg-subtle">
-            <Bot size={14} strokeWidth={1.5} className="text-fg-muted" />
-          </div>
-        )}
-        <div
-          className={
-            msg.role === "user"
-              ? "max-w-[75%] rounded-2xl rounded-br-lg bg-accent px-4 py-2.5 text-[14px] leading-[1.55] text-accent-fg shadow-sm tracking-[-0.006em]"
-              : "max-w-[85%] rounded-2xl rounded-bl-lg bg-surface px-4 py-2.5 text-[15px] leading-[1.68] text-fg shadow-xs tracking-[-0.006em]"
-          }
-        >
-          {msg.role === "system" && msg.type === "credential_form" ? (
-            <div className="w-72">
-              <div className="flex items-center gap-2">
-                <KeyRound size={15} strokeWidth={1.5} className="text-accent" />
-                <span className="font-semibold text-fg">
-                  Akses dibutuhkan: {PROVIDER_LABELS[msg.provider] ?? msg.provider}
-                </span>
-              </div>
-              <p className="mt-1.5 text-footnote text-fg-muted">
-                Masukkan token provider untuk melanjutkan tugas Anda.
-              </p>
-              <Input
-                value={credValue}
-                onChange={(e) => setCredValue(e.target.value)}
-                type="password"
-                placeholder="Token / API key..."
-                aria-label="Token / API key"
-              />
-              <Button
-                disabled={!credValue.trim()}
-                onClick={() => submitCredential(msg.provider, msg.original)}
-                className="mt-2.5 w-full justify-center"
-                variant="secondary"
-              >
-                Simpan & Lanjutkan
-              </Button>
-            </div>
-          ) : msg.role === "system" && msg.type === "error" ? (
-            <div className="w-72">
-              <div className="flex items-center gap-2 text-red-500">
-                <AlertTriangle size={15} strokeWidth={1.75} />
-                <span className="font-semibold text-fg">Gagal mengirim</span>
-              </div>
-              <p className="mt-1.5 text-footnote text-fg-muted">{msg.content}</p>
-              <Button
-                variant="secondary"
-                onClick={() => retryMessage({ content: msg.content, original: msg.original })}
-                className="mt-2.5 w-full justify-center gap-1.5"
-              >
-                <RotateCcw size={14} strokeWidth={1.75} />
-                Coba Lagi
-              </Button>
-            </div>
-          ) : msg.role === "assistant" && msg.content === "…" ? (
-            <span className="inline-flex py-0.5" aria-hidden="true">
-              <TypingDots ariaHidden />
-            </span>
-          ) : (
-            <>
-              <div className="whitespace-pre-wrap break-words">{msg.content}</div>
-              {msg.role === "assistant" && msg.meta && (
-                <MetaRow meta={msg.meta} />
-              )}
-            </>
-          )}
-        </div>
-        {msg.role === "user" && (
-          <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-accent">
-            <User size={14} strokeWidth={1.5} className="text-accent-fg" />
-          </div>
-        )}
-      </>
-    );
-  }
 
 return (
     <Shell
@@ -1003,66 +810,20 @@ return (
             ) : (
           <>
             <div className="flex flex-col gap-4 contain-layout" aria-live="polite" data-testid="msg-list">
-            {messages.map((msg, i) => {
-              // Perf (H1): animasi Framer + willChange hanya di ANIM_TAIL row
-              // terakhir. Row lama = plain <div> (tanpa motion layer/animation)
-              // supaya membuka riwayat besar tidak memblokir main-thread.
-              const animate = i + ANIM_TAIL >= messages.length;
-              const rowCls = `flex items-end gap-2 ${msg.role === "user" ? "justify-end" : ""}`;
-              if (!animate) {
-                return (
-                  <div key={msg.key} className={rowCls}>
-                    {renderMsg(msg)}
-                  </div>
-                );
-              }
-              return (
-                <motion.div
-                  key={msg.key}
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  transition={{ duration: 0.18, ease: "easeOut" }}
-                  style={{ willChange: "opacity" }}
-                  className={rowCls}
-                >
-                  {renderMsg(msg)}
-                </motion.div>
-              );
-            })}
-              {loadingMsg && (
-                <div
-                  role="status"
-                  aria-live="polite"
-                  className="flex min-h-[20px] items-center gap-2 text-subhead text-fg-muted animate-fade-in"
-                >
-                  <TypingDots />
-                  <span>
-                    {longHint
-                      ? "Server sibuk, coba lagi sebentar."
-                      : slowHint
-                        ? "Sedang memproses..."
-                        : "Agen sedang berpikir..."}
-                  </span>
-                </div>
-              )}
-              {/* FASE 2.5: laporan eksekusi otomatis dirender dari STATE LOKAL,
-                  bukan dari cache pesan server. Alasan (bug yang terlihat saat
-                  uji FASE 3): refetch daftar pesan menimpa cache sehingga pesan
-                  sistem laporan hilang sebelum terbaca user. */}
-              {runReports.map((r) => (
-                <div
-                  key={r.id}
-                  data-testid="run-report"
-                  className="flex items-end gap-2"
-                >
-                  <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-bg-subtle">
-                    <Sparkles size={14} strokeWidth={1.75} className="text-accent" />
-                  </div>
-                  <div className="max-w-[85%] whitespace-pre-wrap rounded-2xl rounded-bl-lg border border-border/60 bg-bg-subtle px-4 py-2.5 text-[14px] leading-[1.6] text-fg tracking-[-0.006em]">
-                    {r.text}
-                  </div>
-                </div>
-              ))}
+            <Thread
+              messages={messages}
+              loadingMsg={loadingMsg}
+              longHint={longHint}
+              slowHint={slowHint}
+              animTail={ANIM_TAIL}
+              handlers={{
+                credValue,
+                onCredChange: setCredValue,
+                onCredSubmit: submitCredential,
+                onRetry: retryMessage,
+              }}
+              runReports={runReports}
+            />
             </div>
             <div ref={endRef} />
             {messages.length > 0 && (
