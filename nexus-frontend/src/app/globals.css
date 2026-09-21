@@ -114,7 +114,19 @@ body {
 /* FASE 2.2: animasi "spring" saat node muncul di kanvas (draf dari AI muncul
    sekaligus, jadi tanpa animasi perubahan terasa seperti halaman melompat).
    Hanya transform + opacity (GPU), dan prefers-reduced-motion sudah dimatikan
-   global di atas (animation-duration 0.01ms) sehingga tetap aksesibel. */
+   global di atas (animation-duration 0.01ms) sehingga tetap aksesibel.
+
+   ⚠️ JANGAN memasang animasi ini pada `.react-flow__node`!
+   React Flow menaruh posisi node pada INLINE STYLE (`transform: translate(x,y)`)
+   di elemen `.react-flow__node`. Menurut cascade CSS, deklarasi dari `@keyframes`
+   mengalahkan deklarasi author biasa -- TERMASUK inline style. Dengan
+   `animation-fill-mode: both`, nilai keyframe terakhir (`transform: scale(1)`)
+   terus dipakai setelah animasi selesai, sehingga translate React Flow
+   DITIMPA PERMANEN: state node benar (dan minimap ikut benar karena dihitung
+   dari state), tetapi semua node digambar menumpuk di pojok kiri-atas kanvas.
+   Bug nyata 2026-09-21: "node nyangkut di pojok setelah drag".
+   Karena itu animasi dipasang pada KARTU DI DALAM node (`.node-card-enter`),
+   yang tidak pernah disentuh React Flow. */
 @keyframes node-spring-in {
   0% {
     opacity: 0;
@@ -129,8 +141,10 @@ body {
     transform: scale(1);
   }
 }
-.react-flow__node {
+.react-flow__node .node-card-enter {
   animation: node-spring-in 320ms cubic-bezier(0.34, 1.4, 0.64, 1) both;
+  /* Kartu ini yang boleh dianimasikan; elemen pembungkus React Flow tidak. */
+  transform-origin: center center;
 }
 
 

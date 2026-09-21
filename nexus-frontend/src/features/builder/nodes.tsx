@@ -18,7 +18,7 @@ export function PaletteNode(props: { id: string; data: FlowNodeData; selected?: 
   return (
     <div
       className={
-        "w-56 rounded-xl border bg-zinc-900 text-[13px] text-zinc-100 " +
+        "node-card-enter w-56 rounded-xl border bg-zinc-900 text-[13px] text-zinc-100 " +
         (selected ? " border-accent ring-2 ring-accent/40 shadow-lg" : " border-zinc-700 shadow-md")
       }
     >
