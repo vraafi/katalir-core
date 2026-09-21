@@ -9,6 +9,7 @@ import {
   type EdgeChange,
 } from "@xyflow/react";
 import { type FlowNode, type Kind } from "../types";
+import { dedupeGraph, nextNodeId } from "../node-graph";
 
 /**
  * Genereert een unieke edge-id gebaseerd op de 4-tuple
@@ -44,7 +45,6 @@ export function connectionEdgeId(c: {
 interface CanvasState {
   nodes: FlowNode[];
   edges: Edge[];
-  seq: number;
 
   onNodesChange: (changes: NodeChange<FlowNode>[]) => void;
   onEdgesChange: (changes: EdgeChange<Edge>[]) => void;
@@ -62,7 +62,6 @@ interface CanvasState {
 export const useCanvasStore = create<CanvasState>((set, get) => ({
   nodes: [],
   edges: [],
-  seq: 100,
 
   onNodesChange: (changes) => {
     set({ nodes: applyNodeChanges(changes, get().nodes) });
@@ -95,13 +94,21 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
     });
   },
 
-  setNodes: (nodes) => set({ nodes }),
-  setEdges: (edges) => set({ edges }),
+  setNodes: (nodes) => {
+    // Jalur RESTORE (workflow tersimpan / draf). Wajib dinormalisasi: draf lama
+    // bisa punya id ganda, dan tanpa dedup React Flow mencetak
+    // "two children with the same key" lalu membuang satu node.
+    const g = dedupeGraph({ nodes, edges: get().edges });
+    set({ nodes: g.nodes, edges: g.edges });
+  },
+  setEdges: (edges) => set({ edges: dedupeGraph({ nodes: get().nodes, edges }).edges }),
 
   replaceWork: (nodes, edges) => {
-    // `seq` dinaikkan supaya id node yang ditambahkan manual SESUDAH draf AI
-    // tidak bertabrakan dengan id draf (mis. draf memakai "trigger-100").
-    set({ nodes, edges, seq: 100 + nodes.length });
+    // Draf AI / workflow tersimpan MENGGANTIKAN isi kanvas (bukan menumpuk),
+    // jadi id-nya dinormalisasi di sini juga -- bukan hanya mengandalkan
+    // counter, karena draf bisa memuat id arbitrer dari model.
+    const g = dedupeGraph({ nodes, edges });
+    set({ nodes: g.nodes, edges: g.edges });
   },
 
   addNode: (kind, position) => {
@@ -109,11 +116,16 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
       x: 80 + Math.random() * 120,
       y: 80 + Math.random() * 200,
     };
+    const current = get().nodes;
+    // Id diambil dari daftar id yang BENAR-BENAR ada di kanvas. Ini yang
+    // sebelumnya hilang: store memakai counter yang tidak ikut naik saat
+    // workflow di-restore, sehingga node baru bisa memakai id node lama.
+    const id = nextNodeId(kind, current.map((n) => n.id));
     set({
       nodes: [
-        ...get().nodes,
+        ...current,
         {
-          id: `${kind}-${get().seq++}`,
+          id,
           type: kind,
           position: pos,
           data: { kind, label: kind },

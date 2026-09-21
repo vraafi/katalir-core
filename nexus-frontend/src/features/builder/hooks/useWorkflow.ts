@@ -2,6 +2,7 @@ import { useMutation, useQuery } from "@tanstack/react-query";
 import type { Edge } from "@xyflow/react";
 import { apiFetch } from "@/lib/api";
 import { type FlowNode } from "../types";
+import { dedupeGraph } from "../node-graph";
 
 export interface FlowEdge {
   id: string;
@@ -66,15 +67,12 @@ export function applyWorkflowToCanvas(list: WorkflowListItem[], setNodes: (n: Fl
   if (!Array.isArray(list) || list.length === 0) return;
   const flow = list[0]?.flow_data ?? {};
   if (Array.isArray(flow.nodes) && flow.nodes.length > 0) {
-    setNodes(flow.nodes);
-    const edges = Array.isArray(flow.edges) ? flow.edges : [];
-    // Dedupe edges by id — voorkomt duplicate React keys bij laden.
-    const seen = new Set<string>();
-    const unique = edges.filter((e: any) => {
-      if (!e || seen.has(e.id)) return false;
-      seen.add(e.id);
-      return true;
-    });
-    setEdges(unique);
+    // Dedup PENUH (node + edge). Sebelumnya hanya edge yang di-dedupe,
+    // sehingga workflow lama ber-id ganda tetap masuk kanvas dan node yang
+    // ditambahkan setelahnya bisa memakai id yang sama -> React membuang node
+    // ("node tidak muncul setelah drag").
+    const g = dedupeGraph({ nodes: flow.nodes, edges: (flow.edges ?? []) as Edge[] });
+    setNodes(g.nodes);
+    setEdges(g.edges);
   }
 }
