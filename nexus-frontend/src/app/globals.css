@@ -4,38 +4,41 @@
 
 :root {
   color-scheme: light;
-  --bg: 250 250 250;
-  --bg-subtle: 244 244 245;
-  --surface: 255 255 255;
-  --surface-elevated: 255 255 255;
-  --border: 228 228 231;
-  --border-strong: 212 212 216;
-  --fg: 24 24 27;
-  --fg-muted: 82 82 91;
-  --fg-subtle: 113 113 122;
-  --accent: 99 102 241;
-  --accent-hover: 79 70 229;
-  --accent-fg: 255 255 255;
-  --success: 34 197 94;
-  --danger: 239 68 68;
-  --warning: 245 158 11;
+  /* Tokens 2026 (oklch) — FASE 0 spec, di-apply FASE 1. Nilai 3-komponen
+     (L C H) dipakai via oklch() di tailwind.config + globals body/scrollbar. */
+  --bg: 0.99 0.005 85;
+  --bg-subtle: 0.97 0.008 85;
+  --surface: 0.97 0.008 85;
+  --surface-elevated: 0.99 0.005 85;
+  --border: 0.90 0.010 85;
+  --border-strong: 0.82 0.012 85;
+  --fg: 0.18 0.015 275;
+  --fg-muted: 0.45 0.015 275;
+  --fg-subtle: 0.56 0.015 275;
+  --accent: 0.62 0.18 275;
+  --accent-hover: 0.56 0.19 275;
+  --accent-fg: 0.99 0.005 85;
+  --success: 0.68 0.15 155;
+  --danger: 0.62 0.19 15;
+  --warning: 0.75 0.15 75;
   --brand: #6366f1;
 }
 
 .dark {
   color-scheme: dark;
-  --bg: 9 9 11;
-  --bg-subtle: 24 24 27;
-  --surface: 24 24 27;
-  --surface-elevated: 39 39 42;
-  --border: 39 39 42;
-  --border-strong: 63 63 70;
-  --fg: 250 250 250;
-  --fg-muted: 161 161 170;
-  --fg-subtle: 113 113 122;
-  --accent: 129 140 248;
-  --accent-hover: 165 180 252;
-  --accent-fg: 9 9 11;
+  --bg: 0.15 0.01 275;
+  --bg-subtle: 0.19 0.012 275;
+  --surface: 0.19 0.012 275;
+  --surface-elevated: 0.23 0.014 275;
+  --border: 0.26 0.015 275;
+  --border-strong: 0.34 0.016 275;
+  --fg: 0.95 0.008 85;
+  --fg-muted: 0.65 0.015 275;
+  --fg-subtle: 0.55 0.015 275;
+  --accent: 0.62 0.18 275;
+  --accent-hover: 0.68 0.17 275;
+  --accent-fg: 0.99 0.005 85;
+  --info: 0.68 0.13 230;
 }
 
 html,
@@ -46,8 +49,12 @@ body {
 body {
   font-family: var(--font-sans), -apple-system, BlinkMacSystemFont, "SF Pro Text",
     "Inter", "Segoe UI", Roboto, system-ui, sans-serif;
-  background-color: rgb(var(--bg));
-  color: rgb(var(--fg));
+  background-color: rgb(250, 250, 250);
+  color: rgb(24, 24, 27);
+}
+.dark body {
+  background-color: rgb(9, 9, 11);
+  color: rgb(250, 250, 250);
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -83,11 +90,17 @@ body {
   width: 8px;
 }
 ::-webkit-scrollbar-thumb {
-  background: rgb(var(--border-strong));
+  background: rgb(212, 212, 216);
   border-radius: 8px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: rgb(var(--fg-subtle));
+  background: rgb(113, 113, 122);
+}
+.dark ::-webkit-scrollbar-thumb {
+  background: rgb(63, 63, 70);
+}
+.dark ::-webkit-scrollbar-thumb:hover {
+  background: rgb(113, 113, 122);
 }
 
 /* Scrollbar halus untuk panel scroll kecil (dropdown model panjang:
@@ -95,7 +108,7 @@ body {
    scrollbar global 8px tetap dipakai untuk chat. */
 .scroll-thin {
   scrollbar-width: thin;
-  scrollbar-color: rgb(var(--border-strong)) transparent;
+  scrollbar-color: rgb(212, 212, 216) transparent;
 }
 .scroll-thin::-webkit-scrollbar {
   width: 6px;
@@ -104,11 +117,20 @@ body {
   background: transparent;
 }
 .scroll-thin::-webkit-scrollbar-thumb {
-  background: rgb(var(--border-strong));
+  background: rgb(212, 212, 216);
   border-radius: 3px;
 }
 .scroll-thin::-webkit-scrollbar-thumb:hover {
-  background: rgb(var(--fg-subtle));
+  background: rgb(113, 113, 122);
+}
+.dark .scroll-thin {
+  scrollbar-color: rgb(63, 63, 70) transparent;
+}
+.dark .scroll-thin::-webkit-scrollbar-thumb {
+  background: rgb(63, 63, 70);
+}
+.dark .scroll-thin::-webkit-scrollbar-thumb:hover {
+  background: rgb(113, 113, 122);
 }
 
 /* FASE 2.2: animasi "spring" saat node muncul di kanvas (draf dari AI muncul

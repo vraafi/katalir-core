@@ -58,7 +58,7 @@ export function ConfigPanel({
       style={{ willChange: "opacity, transform" }}
     >
       <div className="flex items-center gap-2">
-        <span className="flex h-8 w-8 items-center justify-center rounded-lg" style={{ background: meta.color, color: "rgb(var(--accent-fg))" }}>
+        <span className="flex h-8 w-8 items-center justify-center rounded-lg" style={{ background: meta.color, color: "rgb(255, 255, 255)" }}>
           <Icon size={16} strokeWidth={1.75} />
         </span>
         <div>

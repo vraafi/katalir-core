@@ -42,7 +42,7 @@ export function PaletteNode(props: { id: string; data: FlowNodeData; selected?: 
         )}
         <span
           className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg"
-          style={{ background: meta.color, color: "rgb(var(--accent-fg))", flexShrink: 0 }}
+          style={{ background: meta.color, color: "rgb(255, 255, 255)", flexShrink: 0 }}
         >
           <Icon size={15} strokeWidth={1.75} />
         </span>

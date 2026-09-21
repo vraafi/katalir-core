@@ -87,7 +87,7 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
           target: connection.target,
           targetHandle: connection.targetHandle ?? undefined,
           animated: true,
-          style: { stroke: "rgb(var(--accent))", strokeWidth: 2 },
+          style: { stroke: "rgb(99, 102, 241)", strokeWidth: 2 },
         },
         existing
       ),

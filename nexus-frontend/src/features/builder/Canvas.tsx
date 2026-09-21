@@ -73,7 +73,7 @@ export function Canvas({
       >
         <Background variant={BackgroundVariant.Dots} gap={12} size={1} />
         <Controls position="bottom-left" />
-        <MiniMap nodeColor="rgb(var(--surface-elevated))" maskColor="rgba(0,0,0,0.8)" position="bottom-right" />
+        <MiniMap nodeColor="rgb(255, 255, 255)" maskColor="rgba(0,0,0,0.8)" position="bottom-right" />
       </ReactFlow>
 
       {/* Toolbar DI LUAR ReactFlow (per rekomendasi: tombol di luar Panel) */}

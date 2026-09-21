@@ -67,7 +67,7 @@ function parseEdge(raw: unknown, known: Set<string>): Edge | null {
     source,
     target,
     animated: e.animated === true,
-    style: { stroke: "rgb(var(--accent))", strokeWidth: 2 },
+    style: { stroke: "rgb(99, 102, 241)", strokeWidth: 2 },
   };
 }
 

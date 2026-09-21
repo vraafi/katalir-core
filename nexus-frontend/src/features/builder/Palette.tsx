@@ -30,7 +30,7 @@ export function Palette({
                 onClick={() => onAddNode(kind)}
                 className="flex w-full cursor-grab items-center gap-3 rounded-xl border border-gray-700 bg-gray-800 px-3 py-3 text-left transition hover:border-accent/60 hover:bg-gray-700"
               >
-                <span className="flex h-8 w-8 items-center justify-center rounded-lg" style={{ background: meta.color, color: "rgb(var(--accent-fg))" }}>
+                <span className="flex h-8 w-8 items-center justify-center rounded-lg" style={{ background: meta.color, color: "rgb(255, 255, 255)" }}>
                   <Icon size={15} strokeWidth={1.75} />
                 </span>
                 <span className="flex-1 text-left">
