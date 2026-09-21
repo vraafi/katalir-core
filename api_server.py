@@ -276,9 +276,18 @@ class VaultSaveRequest(BaseModel):
 
 
 class WorkflowCreateRequest(BaseModel):
+    # `id` opsional: bila diisi dan workflow itu MILIK user, POST = UPDATE
+    # (dulu selalu INSERT sehingga setiap "Simpan Alur" menumpuk baris baru).
+    id: str | None = None
     name: str = "Draft Workflow"
     description: str = ""
     flow_data: dict = {}
+
+
+class WorkflowUpdateRequest(BaseModel):
+    """PATCH /workflows/{id} — rename (dan deskripsi bila perlu)."""
+    name: str | None = None
+    description: str | None = None
 
 
 class ExecuteRequest(BaseModel):
@@ -1307,13 +1316,84 @@ def vault_list_endpoint(authorization: str | None = Header(None)):
 # ---------------------------------------------------------------------------
 @app.post("/workflows", status_code=201)
 def create_workflow(req: WorkflowCreateRequest, authorization: str | None = Header(None)):
-    """Simpan un workflow de nodos/edges (JSONB a tabla workflows)."""
+    """Simpan workflow. `id` diisi -> UPDATE (bila milik user), jika tidak INSERT.
+
+    Idempotensi: menyimpan ulang workflow yang sama TIDAK boleh menumpuk baris
+    baru di sidebar (bug lama: POST selalu INSERT).
+    """
     user = security.get_current_user(authorization)
+    if req.id:
+        existing = db.get_workflow(req.id, user["id"])
+        if not existing:
+            # Membedakan "tidak ada" dari "milik orang lain" berguna untuk
+            # frontend (pesan yang benar), dan tidak membocorkan isi workflow.
+            owner = db.get_workflow_owner(req.id)
+            if owner:
+                raise HTTPException(403, "Workflow ini bukan milik Anda.")
+            raise HTTPException(404, "Workflow tidak ditemukan.")
+        try:
+            row = db.update_workflow(req.id, user["id"], name=req.name,
+                                     description=req.description, flow_data=req.flow_data)
+        except Exception as exc:  # noqa: BLE001
+            raise HTTPException(500, f"Gagal memperbarui workflow: {exc}")
+        if not row:
+            raise HTTPException(404, "Workflow tidak ditemukan.")
+        return {"status": "success", "updated": True, "workflow": row}
     try:
         row = db.create_workflow(user["id"], req.name, req.description, req.flow_data)
     except Exception as exc:  # noqa: BLE001
         raise HTTPException(500, f"Gagal menyimpan workflow: {exc}")
+    return {"status": "success", "updated": False, "workflow": row}
+
+
+@app.get("/workflows/{workflow_id}")
+def get_workflow_detail(workflow_id: str, authorization: str | None = Header(None)):
+    """Detail SATU workflow (termasuk flow_data) — hanya milik user JWT."""
+    user = security.get_current_user(authorization)
+    try:
+        row = db.get_workflow(workflow_id, user["id"])
+    except Exception as exc:  # noqa: BLE001
+        raise HTTPException(500, f"Gagal memuat workflow: {exc}")
+    if not row:
+        raise HTTPException(404, "Workflow tidak ditemukan.")
     return {"status": "success", "workflow": row}
+
+
+@app.patch("/workflows/{workflow_id}")
+def patch_workflow(workflow_id: str, req: WorkflowUpdateRequest,
+                   authorization: str | None = Header(None)):
+    """Rename / ubah deskripsi. Owner-scoped: bukan pemilik -> 403."""
+    user = security.get_current_user(authorization)
+    if req.name is None and req.description is None:
+        raise HTTPException(400, "Tidak ada perubahan yang dikirim.")
+    if req.name is not None and not req.name.strip():
+        raise HTTPException(400, "Nama workflow tidak boleh kosong.")
+    try:
+        row = db.update_workflow(workflow_id, user["id"],
+                                 name=(req.name.strip() if req.name else None),
+                                 description=req.description)
+    except Exception as exc:  # noqa: BLE001
+        raise HTTPException(500, f"Gagal mengubah workflow: {exc}")
+    if not row:
+        if db.get_workflow_owner(workflow_id):
+            raise HTTPException(403, "Workflow ini bukan milik Anda.")
+        raise HTTPException(404, "Workflow tidak ditemukan.")
+    return {"status": "success", "workflow": row}
+
+
+@app.delete("/workflows/{workflow_id}")
+def remove_workflow(workflow_id: str, authorization: str | None = Header(None)):
+    """Hapus SATU workflow milik user JWT. Owner-scoped (bukan pemilik -> 403)."""
+    user = security.get_current_user(authorization)
+    try:
+        ok = db.delete_workflow(workflow_id, user["id"])
+    except Exception as exc:  # noqa: BLE001
+        raise HTTPException(500, f"Gagal menghapus workflow: {exc}")
+    if not ok:
+        if db.get_workflow_owner(workflow_id):
+            raise HTTPException(403, "Workflow ini bukan milik Anda.")
+        raise HTTPException(404, "Workflow tidak ditemukan.")
+    return {"status": "success", "deleted": True, "id": workflow_id}
 
 
 # ---------------------------------------------------------------------------
@@ -1321,6 +1401,11 @@ def create_workflow(req: WorkflowCreateRequest, authorization: str | None = Head
 # ---------------------------------------------------------------------------
 @app.get("/workflows")
 def get_workflows(authorization: str | None = Header(None)):
+    """List workflow user (METADATA saja — tanpa flow_data).
+
+    Isi graf diambil per-workflow lewat GET /workflows/{id} supaya payload list
+    tetap kecil walau user punya banyak workflow.
+    """
     user = security.get_current_user(authorization)
     try:
         rows = db.list_workflows(user["id"])

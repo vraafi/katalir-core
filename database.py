@@ -44,6 +44,7 @@ _LSESS = {}
 _LMSG = {}
 _LINT = {}      # (email, provider) -> {"api_token":..., "updated_at":...}
 _LVAULT = {}    # email -> {provider: encrypted_key}   (in-memory vault fallback)
+_LWORKFLOW = {}  # workflow_id -> row (fallback memori saat Supabase tidak aktif)
 _SEQ = [0]
 
 
@@ -673,12 +674,21 @@ def persistence_info():
 # di-scope dengan user_id supaya service_role/bypass RLS tidak membocorkan
 # data antar-user (defense-in-depth: RLS di DB + filter user di backend).
 def create_workflow(user_id: str, name: str, description: str, flow_data: dict):
-    """Simpan workflow (nodes & edges como JSONB) a la tabla workflows.
+    """INSERT workflow BARU (nodes & edges sebagai JSONB).
 
     user_id diisi dari JWT (di api_server), BUKAN dari body request.
+    Untuk menyimpan ULANG workflow yang sudah ada, pakai `update_workflow`
+    (dulu POST selalu INSERT → setiap klik "Simpan Alur" menumpuk baris baru
+    bernama sama; itu akar duplikat di sidebar).
     """
     if not is_configured():
-        raise RuntimeError("Supabase belum dikonfigurasi — tidak dapat persist workflow.")
+        import uuid as _uuid
+        wid = "local-" + _uuid.uuid4().hex[:12]
+        row = {"id": wid, "user_id": user_id, "name": name,
+               "description": description, "flow_data": flow_data or {},
+               "created_at": _now()}
+        _LWORKFLOW[wid] = row
+        return dict(row)
     c = _get_write_client()
     res = c.table("workflows").insert(
         {"user_id": user_id, "name": name, "description": description, "flow_data": flow_data}
@@ -687,28 +697,120 @@ def create_workflow(user_id: str, name: str, description: str, flow_data: dict):
     return rows[0] if rows else {}
 
 
-def list_workflows(user_id: str):
-    """Listar workflows milik EXPLICIT user (created_at desc).
+def update_workflow(workflow_id: str, user_id: str, name: str | None = None,
+                    description: str | None = None, flow_data: dict | None = None):
+    """UPDATE workflow yang SUDAH ada, HANYA bila milik `user_id`.
 
-    Filter user_id = defense-in-depth, walau RLS sudah aktif.
+    Mengembalikan row terbaru, atau None bila tidak ada / bukan milik user
+    (pemanggil yang memutuskan 404 vs 403).
+    """
+    patch = {}
+    if name is not None:
+        patch["name"] = name
+    if description is not None:
+        patch["description"] = description
+    if flow_data is not None:
+        patch["flow_data"] = flow_data
+    if not patch:
+        return get_workflow(workflow_id, user_id)
+    if not is_configured():
+        row = _LWORKFLOW.get(workflow_id)
+        if not row or str(row.get("user_id")) != str(user_id):
+            return None
+        row.update(patch)
+        return dict(row)
+    c = _get_write_client()
+    res = (c.table("workflows").update(patch)
+           .eq("id", workflow_id).eq("user_id", user_id).execute())
+    rows = res.data or []
+    return rows[0] if rows else None
+
+
+def get_workflow(workflow_id: str, user_id: str):
+    """Detail SATU workflow (termasuk flow_data), hanya bila milik `user_id`."""
+    if not is_configured():
+        row = _LWORKFLOW.get(workflow_id)
+        if row and str(row.get("user_id")) == str(user_id):
+            return dict(row)
+        return None
+    c = _get_write_client()
+    res = (c.table("workflows").select("*")
+           .eq("id", workflow_id).eq("user_id", user_id).limit(1).execute())
+    rows = res.data or []
+    return rows[0] if rows else None
+
+
+def delete_workflow(workflow_id: str, user_id: str) -> bool:
+    """Hapus workflow MILIK `user_id` saja. True bila ada baris terhapus."""
+    if not is_configured():
+        row = _LWORKFLOW.get(workflow_id)
+        if row and str(row.get("user_id")) == str(user_id):
+            del _LWORKFLOW[workflow_id]
+            return True
+        return False
+    c = _get_write_client()
+    res = (c.table("workflows").delete()
+           .eq("id", workflow_id).eq("user_id", user_id).execute())
+    return bool(res.data)
+
+
+def count_nodes(flow_data) -> int:
+    """Jumlah node dari flow_data apa pun bentuknya (tahan nilai rusak)."""
+    if not isinstance(flow_data, dict):
+        return 0
+    nodes = flow_data.get("nodes")
+    return len(nodes) if isinstance(nodes, list) else 0
+
+
+def list_workflows(user_id: str, include_flow: bool = False):
+    """Listar workflows milik user (created_at desc).
+
+    `include_flow=False` (default) mengembalikan METADATA saja -- `flow_data`
+    TIDAK ikut. Dulu list selalu membawa `flow_data` penuh untuk SEMUA workflow
+    (payload besar), padahal frontend hanya butuh isi graf saat membuka SATU
+    workflow (ambil lewat GET /workflows/{id}).
+
+    `node_count` sengaja TIDAK ada di list: menghitungnya butuh membaca
+    `flow_data` (mengembalikan payload yang sedang kita buang) atau kolom
+    generated yang berarti perubahan skema. Sidebar hanya butuh nama.
     """
     if not is_configured():
-        return []
-    c = _get_write_client()
-    res = (
-        c.table("workflows")
-        .select("id,name,description,flow_data,created_at")
-        .eq("user_id", user_id)
-        .order("created_at", desc=True)
-        .execute()
-    )
-    return res.data or []
+        rows = [dict(r) for r in _LWORKFLOW.values()
+                if str(r.get("user_id")) == str(user_id)]
+        rows.sort(key=lambda r: str(r.get("created_at") or ""), reverse=True)
+    else:
+        c = _get_write_client()
+        sel = "id,name,description,flow_data,created_at" if include_flow else "id,name,description,created_at"
+        res = (
+            c.table("workflows")
+            .select(sel)
+            .eq("user_id", user_id)
+            .order("created_at", desc=True)
+            .execute()
+        )
+        rows = res.data or []
+    if include_flow:
+        return [dict(r) for r in rows]
+    out = []
+    for r in rows:
+        row = dict(r)
+        row.pop("flow_data", None)
+        out.append(row)
+    return out
+
 
 
 def get_workflow_owner(workflow_id: str) -> str | None:
-    """Return user_id pemilik workflow, atau None bila workflow tak ada."""
+    """Return user_id pemilik workflow, atau None bila workflow tak ada.
+
+    Jalur memori WAJIB mengembalikan pemilik sebenarnya juga: kalau tidak,
+    backend tidak bisa membedakan "tidak ada" dari "milik orang lain"
+    (sebelumnya selalu None -> akses lintas user dilaporkan 404, bukan 403,
+    sehingga tes/observability kehilangan sinyal ada-tidaknya kepemilikan).
+    """
     if not is_configured():
-        return None
+        row = _LWORKFLOW.get(workflow_id)
+        return str(row.get("user_id")) if row else None
     try:
         c = _get_write_client()
         res = (c.table("workflows").select("user_id").eq("id", workflow_id)

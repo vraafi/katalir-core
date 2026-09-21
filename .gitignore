@@ -83,3 +83,5 @@ _*.ps1
 # FASE 1 riset Level 3: repo referensi (bahan baca lokal, jangan di-commit).
 .reference/
 _reference/
+# Backup data user (docs/audit/backups) — berisi isi workflow, JANGAN di-commit
+docs/audit/backups/

@@ -13,7 +13,11 @@ import { Terminal } from "./Terminal";
 import { WorkflowSidebar } from "./WorkflowSidebar";
 import { useCanvasStore } from "./store/canvas-store";
 import { HydrationReady } from "@/i18n/HydrationReady";
-import { useWorkflowsQuery, useSaveWorkflowMutation, applyWorkflowToCanvas, type WorkflowListItem } from "./hooks/useWorkflow";
+import {
+  useWorkflowsQuery, useSaveWorkflowMutation, useDeleteWorkflowMutation,
+  useRenameWorkflowMutation, useWorkflowClient, workflowKeys,
+  loadWorkflowIntoCanvas, type WorkflowListItem,
+} from "./hooks/useWorkflow";
 import { useExecuteMutation, useExecutionPolling } from "./hooks/useExecution";
 // FASE 2.2: draf dari chat (Discovery Agent) dibaca saat mount.
 import { clearPendingWorkflow, peekPendingWorkflow } from "@/features/agent/workflow-spec";
@@ -56,8 +60,21 @@ export function BuilderInner() {
 
   const { data: workflowsData, isSuccess } = useWorkflowsQuery();
   const saveMutation = useSaveWorkflowMutation();
+  const deleteMutation = useDeleteWorkflowMutation();
+  const renameMutation = useRenameWorkflowMutation();
+  const queryClient = useWorkflowClient();
   const execMutation = useExecuteMutation();
   const exec = useExecutionPolling();
+
+  /** Muat isi graf satu workflow (LIST hanya metadata → detail diambil di sini). */
+  async function loadIntoCanvas(id: string) {
+    const ok = await loadWorkflowIntoCanvas(id, setNodes, setEdges);
+    if (!ok) {
+      // Workflow hilang / bukan milik user: jangan tinggalkan kanvas workflow lama.
+      clearWork();
+    }
+    return ok;
+  }
 
   // FASE 2.2: draf dari AI punya PRIORITAS saat halaman Builder dibuka. Kalau
   // effect di bawah (daftar workflow) jalan lebih dulu, draf AI akan langsung
@@ -85,7 +102,8 @@ export function BuilderInner() {
       ? workflowsData.find((w) => w.id === workflowId)
       : workflowsData[0];
     if (target?.id) {
-      applyWorkflowToCanvas([target], setNodes, setEdges);
+      // LIST tidak lagi membawa flow_data -> ambil detail lalu pasang.
+      void loadIntoCanvas(target.id);
       if (workflowId !== target.id) void setWorkflowId(target.id);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -102,7 +120,37 @@ export function BuilderInner() {
     void setWorkflowId(id);
     setSelectedId(null);
     void setNodeId(null);
-    if (!id) clearWork();
+    if (!id) {
+      clearWork();
+      return;
+    }
+    void loadIntoCanvas(id);
+  }
+
+  /** Ganti nama workflow (PATCH, owner-scoped) lalu segarkan daftar. */
+  async function renameWorkflow(id: string, name: string) {
+    try {
+      await renameMutation.mutateAsync({ id, name });
+      await queryClient.invalidateQueries({ queryKey: workflowKeys.list() });
+    } catch (e) {
+      alert("Gagal mengganti nama: " + (e instanceof Error ? e.message : e));
+    }
+  }
+
+  /** Hapus workflow (DELETE, owner-scoped). Konfirmasi ada di WorkflowSidebar. */
+  async function deleteWorkflow(id: string) {
+    try {
+      await deleteMutation.mutateAsync(id);
+      // Kalau yang dihapus sedang terbuka: kosongkan kanvas + URL.
+      if (savedId === id || workflowId === id) {
+        setId(null);
+        void setWorkflowId(null);
+        clearWork();
+      }
+      await queryClient.invalidateQueries({ queryKey: workflowKeys.list() });
+    } catch (e) {
+      alert("Gagal menghapus alur: " + (e instanceof Error ? e.message : e));
+    }
   }
 
   function onDropNode(kind: Kind, clientX: number, clientY: number) {
@@ -113,11 +161,14 @@ export function BuilderInner() {
   async function save() {
     setSaveState("saving");
     try {
-      const { id } = await saveMutation.mutateAsync({ nodes, edges });
+      // `id: savedId` -> backend UPDATE (bukan INSERT baru). Tanpa ini, setiap
+      // klik "Simpan Alur" menambah baris baru bernama sama di sidebar.
+      const { id, updated } = await saveMutation.mutateAsync({ id: savedId, nodes, edges });
       setId(id ?? savedId);
       setSaveState("ok");
       if (id) void setWorkflowId(id); // URL ?w= bijwerken na opslaan
-      alert("Alur disimpan! ID: " + (id ?? "?"));
+      void queryClient.invalidateQueries({ queryKey: workflowKeys.list() });
+      alert((updated ? "Alur diperbarui! ID: " : "Alur disimpan! ID: ") + (id ?? "?"));
     } catch (e) {
       setSaveState("err");
       alert("Gagal menyimpan alur: " + (e instanceof Error ? e.message : e));
@@ -127,10 +178,11 @@ export function BuilderInner() {
   async function run() {
     setRunState("running");
     try {
-      const { id } = await saveMutation.mutateAsync({ nodes, edges });
+      const { id } = await saveMutation.mutateAsync({ id: savedId, nodes, edges });
       const wid = id ?? savedId;
       setId(wid);
       if (id) void setWorkflowId(id);
+      void queryClient.invalidateQueries({ queryKey: workflowKeys.list() });
       if (!wid) throw new Error("workflow_id kosong setelah save.");
       const resp = await execMutation.mutateAsync({ workflowId: wid });
       setRunState("ok");
@@ -160,6 +212,8 @@ export function BuilderInner() {
         activeId={workflowId}
         onSelect={(id) => selectWorkflow(id)}
         onNew={() => selectWorkflow(null)}
+        onRename={(id, name) => void renameWorkflow(id, name)}
+        onDelete={(id) => void deleteWorkflow(id)}
       />
       <Palette onAddNode={addNode} onClear={() => setNodes([])} />
       <Canvas
