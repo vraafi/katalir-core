@@ -1428,7 +1428,8 @@ async def execute_workflow(workflow_id: str, req: ExecuteRequest = None,
         raise HTTPException(404, "Workflow tidak ditemukan.")
     flow_data = req.flow_data if (req and req.flow_data) else None
     if not flow_data:
-        found = next((w for w in (db.list_workflows(user["id"]) or []) if w.get("id") == workflow_id), None)
+        # LIST tidak lagi membawa flow_data (FASE B) -> ambil DETAIL.
+        found = db.get_workflow(workflow_id, user["id"])
         if not found:
             raise HTTPException(404, f"Workflow {workflow_id} tidak ditemukan.")
         flow_data = found.get("flow_data") or {}
@@ -1526,10 +1527,8 @@ async def webhook_trigger(workflow_id: str, request: Request,
     owner = db.get_workflow_owner(workflow_id)
     if owner is None or owner != user["id"]:
         raise HTTPException(404, "Workflow tidak ditemukan.")
-    found = next(
-        (w for w in (db.list_workflows(user["id"]) or []) if w.get("id") == workflow_id),
-        None,
-    )
+    # LIST tidak lagi membawa flow_data (FASE B) -> ambil DETAIL.
+    found = db.get_workflow(workflow_id, user["id"])
     if not found:
         raise HTTPException(404, f"Workflow {workflow_id} tidak ditemukan.")
     flow_data = found.get("flow_data") or {}
