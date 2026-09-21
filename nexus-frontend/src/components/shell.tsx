@@ -1,11 +1,12 @@
 "use client";
 
-import { Plus, LogIn, LogOut, MessageSquare, Workflow, KeyRound, MoreHorizontal, Trash2 } from "lucide-react";
+import { Plus, LogIn, LogOut, MessageSquare, Menu, X, Workflow, KeyRound, MoreHorizontal, Trash2 } from "lucide-react";
 import Link from "next/link";
 import { useAuth } from "@/context/auth";
 import VaultModal from "@/components/VaultModal";
 import ThemeToggle from "@/components/ThemeToggle";
 import { UserMenu } from "@/components/UserMenu";
+import { CommandPalette } from "@/components/CommandPalette";
 import { useI18n } from "@/i18n/context";
 import { StaggerList, StaggerItem } from "@/components/motion";
 import { useEffect, useState } from "react";
@@ -21,16 +22,19 @@ interface ShellProps {
   currentSessionId: string | null;
   onSelectSession: (id: string) => void;
   onNewChat: () => void;
+  onNewWorkflow?: () => void;
   onDeleteSession?: (id: string) => void | Promise<void>;
   /** tier efektif user ("free" | "plus") — diteruskan ke UserMenu footer. */
   userTier?: "free" | "plus";
 }
 
-export default function Shell({ children, sessions, currentSessionId, onSelectSession, onNewChat, onDeleteSession, userTier = "free" }: ShellProps) {
+export default function Shell({ children, sessions, currentSessionId, onSelectSession, onNewChat, onNewWorkflow, onDeleteSession, userTier = "free" }: ShellProps) {
   const { email, loading, signInWithGoogle, signOut } = useAuth();
   const { t } = useI18n();
   const [vaultOpen, setVaultOpen] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<string | null>(null);
+  // FASE 1: drawer mobile (<768px) — sidebar off-canvas.
+  const [mobileOpen, setMobileOpen] = useState(false);
 
   // Safety net (Radix #3141 / shadcn #7575): bila dialog modal sempat
   // meninggalkan body.pointerEvents="none" (stuck — seluruh halaman tak bisa
@@ -42,10 +46,28 @@ export default function Shell({ children, sessions, currentSessionId, onSelectSe
     };
   }, []);
 
+  // FASE 1: tutup drawer saat Escape + kunci scroll body saat terbuka.
+  useEffect(() => {
+    if (!mobileOpen) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setMobileOpen(false);
+    };
+    document.addEventListener("keydown", onKey);
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.removeEventListener("keydown", onKey);
+      document.body.style.overflow = prev;
+    };
+  }, [mobileOpen]);
+
+  const closeMobile = () => setMobileOpen(false);
+
   return (
     <div className="flex h-screen overflow-hidden bg-bg">
-      <aside className="flex w-64 shrink-0 flex-col border-r border-border bg-bg-subtle">
-        <Button variant="secondary" size="md" onClick={onNewChat} className="mx-3 mt-3">
+      {/* FASE 1: sidebar desktop — tersembunyi di <md, diganti drawer. */}
+      <aside className="hidden w-64 shrink-0 flex-col border-r border-border bg-bg-subtle md:flex">
+        <Button variant="secondary" size="md" onClick={() => { onNewChat(); closeMobile(); }} className="mx-3 mt-3">
           <Plus className="h-4 w-4" strokeWidth={1.75} /> {t("nav.newChat")}
         </Button>
         <div className="mt-4 flex-1 overflow-y-auto px-2">
@@ -57,7 +79,7 @@ export default function Shell({ children, sessions, currentSessionId, onSelectSe
               return (
                 <StaggerItem key={s.id}>
                   <div className="group relative mb-1 flex items-center">
-                    <button onClick={() => onSelectSession(s.id)}
+                    <button onClick={() => { onSelectSession(s.id); closeMobile(); }}
                       className={`flex min-w-0 flex-1 items-center gap-2 rounded-lg border px-3 py-2 text-left text-[13px] leading-[18px] transition-colors duration-150 ${active
                         ? "border-accent/20 bg-accent/10 font-medium text-fg shadow-xs dark:border-accent/25 dark:bg-accent/15"
                         : "border-transparent font-normal text-fg-muted hover:bg-bg-subtle/70 hover:text-fg"}`}>
@@ -104,12 +126,59 @@ export default function Shell({ children, sessions, currentSessionId, onSelectSe
           </div>
         )}
       </aside>
+      {/* FASE 1: drawer mobile — overlay + panel off-canvas (target 44px). */}
+      {mobileOpen && (
+        <div className="fixed inset-0 z-40 md:hidden" role="dialog" aria-modal="true" aria-label="Menu navigasi">
+          <div className="absolute inset-0 bg-black/50" onClick={closeMobile} aria-hidden="true" />
+          <aside className="absolute left-0 top-0 flex h-full w-72 max-w-[85vw] flex-col border-r border-border bg-bg-subtle shadow-lg">
+            <div className="flex items-center justify-between px-3 pt-3">
+            <span className="text-xl font-bold tracking-tight text-fg">Katalir</span>
+              <button
+                type="button"
+                onClick={closeMobile}
+                aria-label="Tutup menu"
+                className="flex h-11 w-11 items-center justify-center rounded-md text-fg-muted transition hover:bg-bg-subtle hover:text-fg"
+              >
+                <X className="h-5 w-5" strokeWidth={1.75} />
+              </button>
+            </div>
+            <Button variant="secondary" size="md" onClick={() => { onNewChat(); closeMobile(); }} className="mx-3 mt-3">
+              <Plus className="h-4 w-4" strokeWidth={1.75} /> {t("nav.newChat")}
+            </Button>
+            <div className="mt-4 flex-1 overflow-y-auto px-2">
+              <p className="px-2 pb-2 text-caption font-semibold uppercase tracking-wide text-fg-subtle">{t("nav.history")}</p>
+              {sessions.length === 0 && <p className="px-2 py-1 text-footnote text-fg-subtle">{t("nav.noHistory")}</p>}
+              {sessions.map((s) => (
+                <button key={s.id} onClick={() => { onSelectSession(s.id); closeMobile(); }}
+                  className="mb-1 flex min-w-0 w-full items-center gap-2 rounded-lg border border-transparent px-3 py-2 text-left text-[13px] font-normal text-fg-muted transition-colors duration-150 hover:bg-bg-subtle/70 hover:text-fg">
+                  <MessageSquare size={12} strokeWidth={1.75} className="shrink-0 text-fg-subtle" />
+                  <span className="truncate">{s.title || "Chat"}</span>
+                </button>
+              ))}
+            </div>
+            {email && (
+              <div className="border-t border-border p-2">
+                <UserMenu userTier={userTier} />
+              </div>
+            )}
+          </aside>
+        </div>
+      )}
 
       <div className="flex min-w-0 flex-1 flex-col">
         <header className="sticky top-0 z-10 flex items-center justify-between bg-bg/70 px-5 py-3 backdrop-blur-xl">
           <div className="flex items-center gap-2">
             {/* Logo text-only (rebrand 2026-09-18): Inter Bold, text-xl,
                 tracking-tight. TANPA ikon — tidak perlu dependensi gambar. */}
+            <button
+              type="button"
+              onClick={() => setMobileOpen(true)}
+              aria-label="Buka menu"
+              aria-expanded={mobileOpen}
+              className="flex h-11 w-11 items-center justify-center rounded-md text-fg-muted transition hover:bg-bg-subtle hover:text-fg md:hidden"
+            >
+              <Menu className="h-5 w-5" strokeWidth={1.75} />
+            </button>
             <span className="text-xl font-bold tracking-tight text-fg">Katalir</span>
           </div>
           <div className="flex items-center gap-2">
@@ -140,6 +209,13 @@ export default function Shell({ children, sessions, currentSessionId, onSelectSe
           </div>
         </header>
         {children}
+        {/* FASE 1: command palette global (Cmd/Ctrl+K). onNewWorkflow opsional:
+            di /builder meneruskan aksi workflow baru, di halaman lain fallback
+            navigasi ke /builder. */}
+        <CommandPalette
+          onNewChat={onNewChat}
+          onNewWorkflow={onNewWorkflow ?? (() => { window.location.href = "/builder"; })}
+        />
         {email && <VaultModal open={vaultOpen} email={email} onClose={() => setVaultOpen(false)} />}
         {/* Confirm delete — sibling Dialog (bukan child DropdownMenu) agar tidak
             kena bug "page stuck setelah dialog dari menu" (@btcv/auth-provider). */}

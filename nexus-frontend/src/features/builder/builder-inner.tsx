@@ -13,6 +13,7 @@ import { Terminal } from "./Terminal";
 import { WorkflowSidebar } from "./WorkflowSidebar";
 import { useCanvasStore } from "./store/canvas-store";
 import { HydrationReady } from "@/i18n/HydrationReady";
+import Shell from "@/components/shell";
 import {
   useWorkflowsQuery, useSaveWorkflowMutation, useDeleteWorkflowMutation,
   useRenameWorkflowMutation, useWorkflowClient, workflowKeys,
@@ -195,6 +196,13 @@ export function BuilderInner() {
     }
   }
 
+  function newWorkflow() {
+    clearWork();
+    setId(null);
+    setSelectedId(null);
+    void setWorkflowId(null);
+  }
+
   function setNodeCfg(key: string, value: string) {
     if (!selectedNode) return;
     updateNodeData(selectedNode.id, {
@@ -204,6 +212,7 @@ export function BuilderInner() {
   }
 
   return (
+    <Shell sessions={[]} currentSessionId={null} onSelectSession={() => {}} onNewChat={() => {}} onNewWorkflow={newWorkflow}>
     <div className="flex h-screen bg-zinc-950 text-zinc-100">
       {/* Penanda hidrasi rute builder (lihat src/i18n/hydration-signal.ts). */}
       <HydrationReady />
@@ -258,5 +267,6 @@ export function BuilderInner() {
         onClose={() => { exec.stop(); exec.setOpen(false); }}
       />
     </div>
+    </Shell>
   );
 }

@@ -919,6 +919,7 @@ return (
       currentSessionId={currentSessionId}
       onSelectSession={openSession}
       onNewChat={handleNewChat}
+      onNewWorkflow={() => { window.location.href = "/builder"; }}
       onDeleteSession={handleDeleteSession}
       userTier={userTier}
     >
