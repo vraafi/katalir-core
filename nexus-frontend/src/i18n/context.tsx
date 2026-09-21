@@ -63,13 +63,25 @@ export function I18nProvider({ children }: { children: React.ReactNode }) {
       }
     };
     cancel = onHydrated(apply);
+    // Jaring pengaman: hanya bila penanda tidak pernah datang (rute baru yang
+    // lupa memasang HydrationReady). SENGAJA tidak menerapkan locale sebelum
+    // dokumen selesai dimuat: pada dev DINGIN, kompilasi+hidrasi bisa > 2,5 s dan
+    // timer buta justru mengganti teks di TENGAH hidrasi — persis yang memicu
+    // mismatch (terbukti: load pertama setelah `next dev` restart masih 2 hit,
+    // load berikutnya 0). Menunggu `load` selalu lebih aman daripada waktu tetap.
     fallback = setTimeout(() => {
-      // Jaring pengaman: tetap terapkan walau penanda tak pernah datang.
-      if (!isHydrated()) {
+      if (isHydrated()) return;
+      const run = () => {
+        if (isHydrated()) return;
         markHydrated();
         apply();
+      };
+      if (document.readyState === "complete") {
+        run();
+      } else {
+        window.addEventListener("load", () => setTimeout(run, 300), { once: true });
       }
-    }, 2500);
+    }, 8000);
     setMounted(true);
     return () => {
       cancel();

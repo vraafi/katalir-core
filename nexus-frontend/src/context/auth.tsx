@@ -9,6 +9,7 @@ import {
 } from "react";
 import { supabase } from "@/lib/supabase";
 import { invalidateChatQueries } from "@/lib/query-client";
+import { isHydrated, onHydrated } from "@/i18n/hydration-signal";
 
 interface AuthContextValue {
   email: string | null;
@@ -28,22 +29,45 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // Ambil sesi yang sudah tersimpan (persistent session)
     // getSession kadang bisa gagal (token expired / offline saat boot).
     // Pastikan loading SELALU selesai agar UI tidak terkunci permanen.
+    // HYDRATION (bug nyata): SSR SELALU merender keadaan "belum login" karena
+    // server tidak bisa membaca localStorage. Bila hasil getSession diterapkan
+    // SEBELUM subtree Suspense selesai dihidrasi, footer sidebar berubah dari
+    // keadaan SSR sehingga React melaporkan hydration mismatch -- dan itu race
+    // (gejala: mismatch muncul bergantian pada rute yang sama) karena
+    // getSession() sering resolve di microtask. Karena itu sesi baru diterapkan
+    // setelah sinyal hidrasi (lihat i18n/hydration-signal.ts).
+    let alive = true;
+    let resolvedEmail: string | null = null;
+    let resolved = false;
+
+    const commit = () => {
+      if (!alive || !resolved) return;
+      setEmail(resolvedEmail);
+      setLoading(false);
+    };
+
+    const cancelHydrationWait = onHydrated(commit);
+
     supabase.auth
       .getSession()
       .then(({ data }) => {
-        setEmail(data.session?.user?.email ?? null);
+        resolvedEmail = data.session?.user?.email ?? null;
+        resolved = true;
+        if (isHydrated()) commit();
       })
       .catch(() => {
-        setEmail(null);
-      })
-      .finally(() => {
-        setLoading(false);
+        resolvedEmail = null;
+        resolved = true;
+        if (isHydrated()) commit();
       });
 
     // Dengarkan perubahan auth (login/logout dari tab lain / provider flow)
     const { data: sub } = supabase.auth.onAuthStateChange((event, session) => {
-      setEmail(session?.user?.email ?? null);
-      setLoading(false);
+      // Login/logout saat runtime BUKAN hidrasi -> boleh langsung, tetapi tetap
+      // lewat `commit()` agar urutan email/loading konsisten.
+      resolvedEmail = session?.user?.email ?? null;
+      resolved = true;
+      if (isHydrated()) commit();
       // Invalideer chat-queries bij auth-wissel zodat sessions/messages
       // automatisch per user herladen (fix "history hilang" bug).
       if (event === "SIGNED_IN" || event === "SIGNED_OUT") {
@@ -58,7 +82,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
     });
 
-    return () => sub.subscription.unsubscribe();
+    return () => {
+      alive = false;
+      cancelHydrationWait();
+      sub.subscription.unsubscribe();
+    };
   }, []);
 
   async function signInWithGoogle() {
