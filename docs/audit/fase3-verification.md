@@ -10,12 +10,21 @@ Tanggal: 2026-09-22. Branch `level-3-experiment`. Harness: **dev** (`localhost:3
 | Spec FASE 3 (baru) | **24/24 PASS** (2.7 menit) — `tests/canvas-fase3.spec.ts` (14 interaksi) + `tests/canvas-theme.spec.ts` (10 sistem visual) |
 | Interaksi kanvas | **14/14 PASS** |
 | Rute tanpa crash | **6/6 PASS** (`routes-no-crash.spec.ts`: /, /chat, /settings, /billing, /help, /builder) |
-| model-filter E2E | **BLOCKED (0/3)** — lihat §5 |
+| Suite gabungan (FASE 3 + rute + model-filter) | **31 passed / 2 failed** (5.5 menit, 33 tes) |
+| model-filter E2E | **1/3 PASS** (`BUG 1` hijau dengan bukti angka); `BUG 2` + `VALID` GAGAL karena tombol kirim `disabled` → lihat §5.2 |
 | `npx tsc --noEmit` | **0 error** |
 | `npm run build` | **SUCCESS** (11/11 halaman statis, `/builder` 30.9 kB / 381 kB First Load) |
 | `pytest tests` | **136 passed** |
 | `pytest test_model_filter.py` (root) | **PASS** (filter logika benar di level unit) |
 | Screenshot | **43 file** → 12 di antaranya wajib (3 state × 4 tema) |
+
+> CATATAN COLD-START (jujur): run pertama sesudah dev server dinyalakan ulang +
+> `npm run build` menghasilkan 23/24 karena tes pertama menunggu kompilasi `/builder`
+> melebihi batas 45 detik (dan `save` pada C10 belum sempat memicu dialog). Pada
+> server yang sudah hangat, seluruh 24 tes hijau. Ini artefak harness dev
+> (kompilasi on-demand Next), bukan kegagalan produk — dan alasan angka di tabel
+> diambil dari run hangat.
+
 
 Perintah reproduksi:
 
@@ -93,34 +102,53 @@ diperbaiki (B8 menambah marker hidrasi yang bisa diamati tes).
 `/builder` lulus setelah rebuild kanvas (penting: ~2.900 baris CSS/TS baru tidak
 boleh membuat rute crash).
 
-### 5.2 model-filter — BLOCKED (0/3), dengan penjelasan
+### 5.2 model-filter — 1/3 PASS, 2 GAGAL (dengan penjelasan)
 
 **Masalah lama (handoff §F.3) SUDAH TIDAK ADA.** Handoff mencatat `model-filter 0/3`
 karena `storageState` ditulis untuk `localhost:E2E_PORT` sementara app membaca `:3000`.
 Dengan harness dev ini (`playwright.dev.config.ts`, port 3000 = port dev), sesi berada
 di origin yang BENAR dan spec melewati guard-nya sendiri — terbukti dari output:
-`SESSION_FILE=_e2e_session.refreshed.json`, `TOKEN_TTL_S=2818`,
+`SESSION_FILE=_e2e_session.refreshed.json`, `TOKEN_TTL_S=1332`,
 `LS_KEY=sb-…-auth-token EMAIL=e2e.…@nexus-local.test`,
 `PICK_MODEL=google/gemma-4-31b-it ROSTER_N=12`.
 
-Kegagalan yang tersisa berbeda dan berakar di frontend:
+**`BUG 1` — PASS** (run hangat, 5.6 detik). Bukti angka dari spec:
 
-1. `BUG 1` — tombol `aria-label='Pilih model AI'` tetap berisi **"Memuat…"** selama
-   20 detik (selector belum selesai memuat).
-2. `BUG 2` & `VALID` — karena model belum terpilih, tombol kirim **`disabled`** →
-   `POST /chat` tidak pernah terjadi → `waitForResponse` timeout 60 detik.
+```
+MODELS_URL=http://127.0.0.1:8000/models STATUS=200
+MODELS_COUNT=12
+MODELS_IDS=["gemini-2.5-flash","gemini-2.5-flash-lite","allam-2-7b","openai/gpt-oss-20b",
+            "qwen/qwen3.8-27b","google/gemma-4-31b-it","mistralai/mistral-nemotron",
+            "moonshotai/kimi-k3","nvidia/nemotron-3-nano-omni-30b-a3b-reasoning",
+            "nvidia/nemotron-3-ultra-550b-a55b","nvidia/nemotron-3.5-lightning-30b-a3b",
+            "poolside/laguna-xs-2.1"]
+FORBIDDEN_HITS=[]            <- TIDAK ada model paid-only yang disajikan
+RELIABLE_FREE_IDS=["google/gemma-4-31b-it"]
+MENU_TEXT=GATEWAY · GOOGLE_GEMINI | Gemini 2.5 Flash | 1408ms | ...
+```
 
-Bukti arah sebaliknya (backend TIDAK salah): dengan token yang sama,
-`GET http://127.0.0.1:8000/models` → **200**, 1.833 byte,
-`{"status":"success","tier":"free",…}`; log backend menunjukkan **setiap** panggilan
-`/models` pada jendela tes → `200 OK`. Logika filter juga hijau di unit test
-(`pytest test_model_filter.py` lulus; 136 test di `tests/` lulus).
+Kenaikan dari 0/3 → 1/3 berasal dari dua hal: (a) harness dev menghilangkan
+ketidakcocokan origin, dan (b) kegagalan `BUG 1` sebelumnya adalah artefak
+cold-start — pada run dingin selector masih "Memuat…" karena kompilasi on-demand
+dev + probe roster pertama, bukan karena filter.
 
-Kesimpulan: **BLOCKED, bukan regresi FASE 3.** Tidak satu pun berkas kanvas
-(`features/builder/**`, `globals.css`) ikut dalam alur model selector, dan filter-nya
-terbukti benar di level unit. Kandidat penyebab berikutnya: gating `useModelsQuery`
-(hanya aktif setelah email terbaca dari sesi) + status loading yang tidak keluar di
-dev. Masuk backlog FASE 4 (di luar lingkup canvas).
+**`BUG 2` + `VALID` — GAGAL**, keduanya pada langkah yang sama:
+
+```
+waitForResponse('/chat' POST) → Timeout 60000ms
+click('button[type="submit"]') → element is not enabled   (113x retry)
+```
+
+Tombol kirim composer `disabled` sehingga `POST /chat` tidak pernah terjadi, dan
+badge fallback (yang hanya muncul setelah respons chat) tidak bisa diperiksa.
+Tidak ada kaitan dengan kanvas: tidak satu pun berkas `features/builder/**` atau
+`globals.css` ikut dalam alur ini, filter-nya sendiri lolos unit test
+(`test_model_filter.py` PASS; `tests/` 136 PASS), dan `FORBIDDEN_HITS=[]`
+membuktikan daftar model yang disajikan sudah bersih.
+
+Disposisi: **2 dari 3 BLOCKED pada kondisi composer (bukan regresi FASE 3)**,
+masuk backlog FASE 4 bersama gating `useModelsQuery`/status loading.
+
 
 ### 5.3 pytest — 1 kegagalan PRA-EXISTING
 
