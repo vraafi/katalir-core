@@ -203,3 +203,505 @@ body {
     opacity: 1;
   }
 }
+
+/* ===========================================================================
+   FASE 3 — SISTEM VISUAL KANVAS MULTI-TEMA (4 tema, dipilih user)
+   ---------------------------------------------------------------------------
+   Kontrak token (nama sesuai misi + MachinaOS `--node-pulse-color`):
+     --canvas-bg --canvas-grid-color --node-bg --node-border
+     --node-trigger-color --node-action-color --node-success-glow
+     --node-error-glow --node-pulse-color --edge-color
+     --edge-animated-color --panel-bg --text-primary --text-secondary
+   Blok tema dipasang di <html data-canvas-theme="..."> oleh
+   CanvasThemeProvider, jadi panel/toolbar/minimap ikut tema tanpa prop-drilling.
+
+   Jembatan ke React Flow: style bawaan library membaca `--xy-*`. Menyetel
+   variabel itu di blok tema membuat Background/MiniMap/Controls/Handle ikut
+   tema tanpa mengoper puluhan prop. Nama var yang DIPAKAI library (bukan
+   `-default`) adalah: --xy-background-color, --xy-background-pattern-color,
+   --xy-edge-stroke, --xy-edge-stroke-selected, --xy-handle-background-color,
+   --xy-handle-border-color, --xy-minimap-*, --xy-controls-button-*.
+   =========================================================================== */
+
+[data-canvas-theme="midnight"] {
+  --canvas-bg: #1b1f23;
+  --canvas-grid-color: rgba(255, 255, 255, 0.04);
+  --canvas-panel-bg: #1e2227;
+  --canvas-text-primary: #f0f2f5;
+  --canvas-text-secondary: #8b909a;
+  --canvas-accent: #6366f1;
+  --canvas-shadow: 0 8px 24px -8px rgba(0, 0, 0, 0.7);
+  --node-bg: #282e36;
+  --node-border: #363d47;
+  --node-trigger-color: #ff6d5a;
+  --node-action-color: #5c9df5;
+  --node-mcp-color: #8b5cf6;
+  --node-success-glow: #26bd73;
+  --node-error-glow: #f55c5c;
+  --node-pulse-color: #6366f1;
+  --edge-color: #5c9df5;
+  --edge-animated-color: #8b5cf6;
+  --node-hover-bg: #2f3640;
+  --xy-background-color: var(--canvas-bg);
+  --xy-background-pattern-color: var(--canvas-grid-color);
+  --xy-edge-stroke: var(--edge-color);
+  --xy-edge-stroke-width: 2;
+  --xy-edge-stroke-selected: var(--canvas-accent);
+  --xy-handle-background-color: #5c9df5;
+  --xy-handle-border-color: var(--canvas-bg);
+  --xy-minimap-background-color: var(--canvas-panel-bg);
+  --xy-minimap-mask-background-color: rgba(27, 31, 35, 0.75);
+  --xy-minimap-node-background-color: #3a424c;
+  --xy-controls-button-background-color: var(--canvas-panel-bg);
+  --xy-controls-button-background-color-hover: #2c333b;
+  --xy-controls-button-color: var(--canvas-text-primary);
+  --xy-controls-button-color-hover: var(--canvas-text-primary);
+  --xy-controls-button-border-color: var(--node-border);
+  --xy-controls-box-shadow: 0 2px 10px rgba(0, 0, 0, 0.45);
+}
+
+[data-canvas-theme="daylight"] {
+  --canvas-bg: #fafaf8;
+  --canvas-grid-color: rgba(24, 24, 27, 0.06);
+  --canvas-panel-bg: #ffffff;
+  --canvas-text-primary: #18181b;
+  --canvas-text-secondary: #52525b;
+  --canvas-accent: #6366f1;
+  --canvas-shadow: 0 6px 18px -8px rgba(24, 24, 27, 0.25);
+  --node-bg: #ffffff;
+  --node-border: #e4e4e7;
+  --node-trigger-color: #ea580c;
+  --node-action-color: #4f46e5;
+  --node-mcp-color: #7c3aed;
+  --node-success-glow: #16a34a;
+  --node-error-glow: #dc2626;
+  --node-pulse-color: #6366f1;
+  --edge-color: #6366f1;
+  --edge-animated-color: #8b5cf6;
+  --node-hover-bg: #fafaf8;
+  --xy-background-color: var(--canvas-bg);
+  --xy-background-pattern-color: var(--canvas-grid-color);
+  --xy-edge-stroke: var(--edge-color);
+  --xy-edge-stroke-width: 2;
+  --xy-edge-stroke-selected: var(--canvas-accent);
+  --xy-handle-background-color: #6366f1;
+  --xy-handle-border-color: #ffffff;
+  --xy-minimap-background-color: var(--canvas-panel-bg);
+  --xy-minimap-mask-background-color: rgba(250, 250, 248, 0.75);
+  --xy-minimap-node-background-color: #d4d4d8;
+  --xy-controls-button-background-color: var(--canvas-panel-bg);
+  --xy-controls-button-background-color-hover: #f4f4f5;
+  --xy-controls-button-color: var(--canvas-text-primary);
+  --xy-controls-button-color-hover: var(--canvas-text-primary);
+  --xy-controls-button-border-color: var(--node-border);
+  --xy-controls-box-shadow: 0 2px 10px rgba(24, 24, 27, 0.12);
+}
+
+[data-canvas-theme="cyberpunk"] {
+  --canvas-bg: #0a0a0f;
+  --canvas-grid-color: rgba(0, 255, 213, 0.1);
+  --canvas-panel-bg: #11111c;
+  --canvas-text-primary: #e9fff9;
+  --canvas-text-secondary: #8c93b0;
+  --canvas-accent: #00ffd5;
+  --canvas-shadow: 0 10px 28px -6px rgba(0, 255, 213, 0.28);
+  --node-bg: #1a1a2e;
+  --node-border: #2e2e52;
+  --node-trigger-color: #ff2e63;
+  --node-action-color: #00ffd5;
+  --node-mcp-color: #b14aed;
+  --node-success-glow: #00ffd5;
+  --node-error-glow: #ff2e63;
+  --node-pulse-color: #00ffd5;
+  --edge-color: #00ffd5;
+  --edge-animated-color: #ff2e63;
+  --node-hover-bg: #21213a;
+  --xy-background-color: var(--canvas-bg);
+  --xy-background-pattern-color: var(--canvas-grid-color);
+  --xy-edge-stroke: var(--edge-color);
+  --xy-edge-stroke-width: 2;
+  --xy-edge-stroke-selected: var(--edge-animated-color);
+  --xy-handle-background-color: #00ffd5;
+  --xy-handle-border-color: #0a0a0f;
+  --xy-minimap-background-color: var(--canvas-panel-bg);
+  --xy-minimap-mask-background-color: rgba(10, 10, 15, 0.8);
+  --xy-minimap-node-background-color: #00ffd5;
+  --xy-controls-button-background-color: var(--canvas-panel-bg);
+  --xy-controls-button-background-color-hover: #1a1a2e;
+  --xy-controls-button-color: var(--canvas-text-primary);
+  --xy-controls-button-color-hover: var(--canvas-accent);
+  --xy-controls-button-border-color: var(--node-border);
+  --xy-controls-box-shadow: 0 2px 14px rgba(0, 255, 213, 0.25);
+}
+
+[data-canvas-theme="minimal"] {
+  --canvas-bg: #ffffff;
+  --canvas-grid-color: rgba(0, 0, 0, 0.05);
+  --canvas-panel-bg: #fafafa;
+  --canvas-text-primary: #18181b;
+  --canvas-text-secondary: #71717a;
+  --canvas-accent: #18181b;
+  --canvas-shadow: 0 2px 8px -4px rgba(24, 24, 27, 0.2);
+  --node-bg: #f5f5f5;
+  --node-border: #e5e5e5;
+  --node-trigger-color: #18181b;
+  --node-action-color: #18181b;
+  --node-mcp-color: #52525b;
+  --node-success-glow: #18181b;
+  --node-error-glow: #18181b;
+  --node-pulse-color: #18181b;
+  --edge-color: #a1a1aa;
+  --edge-animated-color: #18181b;
+  --node-hover-bg: #efefef;
+  --xy-background-color: var(--canvas-bg);
+  --xy-background-pattern-color: var(--canvas-grid-color);
+  --xy-edge-stroke: var(--edge-color);
+  --xy-edge-stroke-width: 2;
+  --xy-edge-stroke-selected: var(--edge-animated-color);
+  --xy-handle-background-color: #a1a1aa;
+  --xy-handle-border-color: #ffffff;
+  --xy-minimap-background-color: var(--canvas-panel-bg);
+  --xy-minimap-mask-background-color: rgba(255, 255, 255, 0.8);
+  --xy-minimap-node-background-color: #d4d4d8;
+  --xy-controls-button-background-color: var(--canvas-panel-bg);
+  --xy-controls-button-background-color-hover: #f4f4f5;
+  --xy-controls-button-color: var(--canvas-text-primary);
+  --xy-controls-button-color-hover: var(--canvas-text-primary);
+  --xy-controls-button-border-color: var(--node-border);
+  --xy-controls-box-shadow: 0 2px 8px rgba(24, 24, 27, 0.1);
+}
+
+/* Alias nama token PERSIS seperti kontrak misi (`--panel-bg`, `--text-primary`,
+   `--text-secondary`) supaya tema bisa dikonsumsi kode mana pun tanpa harus
+   tahu prefix internal `--canvas-*`. Tidak menimpa token app (`--bg`/`--fg`)
+   karena namanya berbeda. */
+[data-canvas-theme] {
+  --panel-bg: var(--canvas-panel-bg);
+  --text-primary: var(--canvas-text-primary);
+  --text-secondary: var(--canvas-text-secondary);
+}
+
+
+/* ---------------------------------------------------------------------------
+   KANVAS + KARTU NODE
+   --------------------------------------------------------------------------- */
+.k-canvas {
+  background-color: var(--canvas-bg, rgb(20, 20, 20));
+  color: var(--canvas-text-primary, rgb(244, 244, 245));
+}
+
+/* Pembungkus node bawaan React Flow: chrome dimatikan karena kartu kita
+   menggambar border/latar sendiri (kalau tidak, terlihat border ganda). */
+.react-flow__node {
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  padding: 0;
+  width: auto;
+  font-size: inherit;
+}
+
+.k-node {
+  width: 224px;
+  border-radius: 14px;
+  background-color: var(--node-bg, #282e36);
+  border: 1px solid var(--node-border, #363d47);
+  box-shadow: var(--canvas-shadow, 0 8px 24px -8px rgba(0, 0, 0, 0.6));
+  color: var(--canvas-text-primary, #f0f2f5);
+  transition: border-color 160ms ease, box-shadow 160ms ease;
+}
+.k-node:hover {
+  border-color: var(--canvas-accent, #6366f1);
+  background-color: var(--node-hover-bg, var(--node-bg));
+}
+/* Selected: ring 2px + glow (kontrak misi: "Selected: ring 2px + glow"). */
+.k-node--selected {
+  border-color: var(--canvas-accent, #6366f1);
+  box-shadow: 0 0 0 2px var(--canvas-accent, #6366f1),
+    0 0 18px -2px var(--canvas-accent, #6366f1);
+}
+
+.k-node__header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+}
+.k-node__icon {
+  display: flex;
+  width: 28px;
+  height: 28px;
+  flex: 0 0 28px;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  background: var(--node-kind-color, var(--node-action-color, #5c9df5));
+  color: #ffffff;
+}
+.k-node__title {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 16px;
+}
+.k-node__subtitle {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 10px;
+  line-height: 13px;
+  color: var(--canvas-text-secondary, #8b909a);
+}
+.k-node__body {
+  border-top: 1px solid var(--node-border, #363d47);
+  padding: 8px 12px 10px;
+  font-size: 11px;
+  line-height: 15px;
+  color: var(--canvas-text-secondary, #8b909a);
+}
+.k-node__preview {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+
+
+/* ---------------------------------------------------------------------------
+   STATUS DOT (pola n8n N8nStatusDot): dekoratif (aria-hidden), makna dibawa
+   teks pendamping. initial = abu tanpa glow; loading = amber + pulse ring;
+   success = glow hijau; error = glow merah.
+   --------------------------------------------------------------------------- */
+.k-status-dot {
+  position: relative;
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  flex: 0 0 10px;
+  border-radius: 9999px;
+  background: var(--canvas-text-secondary, #6b7280);
+}
+.k-status-dot[data-state="loading"] {
+  background: #f59e0b;
+}
+.k-status-dot[data-state="success"] {
+  background: var(--node-success-glow, #26bd73);
+  box-shadow: 0 0 8px var(--node-success-glow, #26bd73);
+}
+.k-status-dot[data-state="error"] {
+  background: var(--node-error-glow, #f55c5c);
+  box-shadow: 0 0 8px var(--node-error-glow, #f55c5c);
+}
+.k-status-dot[data-pulse="true"]::after {
+  content: "";
+  position: absolute;
+  inset: -4px;
+  border-radius: 9999px;
+  border: 2px solid #f59e0b;
+  animation: k-status-pulse 1.6s ease-out infinite;
+}
+@keyframes k-status-pulse {
+  0% {
+    transform: scale(0.6);
+    opacity: 0.9;
+  }
+  100% {
+    transform: scale(1.6);
+    opacity: 0;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .k-status-dot[data-pulse="true"]::after {
+    animation: none;
+  }
+}
+
+/* ---------------------------------------------------------------------------
+   NODE SEDANG DIEKSEKUSI: glowing border (pola n8n v2 yang menggantikan
+   spinner lama). `--node-pulse-color` = kontrak MachinaOS.
+   --------------------------------------------------------------------------- */
+@keyframes node-executing-glow {
+  0%,
+  100% {
+    box-shadow: 0 0 4px var(--node-pulse-color, #6366f1),
+      inset 0 0 2px var(--node-pulse-color, #6366f1);
+  }
+  50% {
+    box-shadow: 0 0 16px var(--node-pulse-color, #6366f1),
+      inset 0 0 4px var(--node-pulse-color, #6366f1);
+  }
+}
+.k-node--executing {
+  border-color: var(--node-pulse-color, #6366f1);
+  animation: node-executing-glow 2s ease-in-out infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  .k-node--executing {
+    animation: none;
+    box-shadow: 0 0 10px var(--node-pulse-color, #6366f1);
+  }
+}
+
+/* ---------------------------------------------------------------------------
+   HANDLE: 12px desktop; 20px + tap target 44x44 di perangkat sentuh.
+   Pseudo-element `::after` (bukan elemen baru) memperluas area sentuh —
+   pseudo-element di-hit-test sebagai bagian elemen induk, jadi React Flow
+   tetap menerima pointerdown pada handle.
+   --------------------------------------------------------------------------- */
+.react-flow__handle.k-handle {
+  width: 12px;
+  height: 12px;
+  min-width: 12px;
+  min-height: 12px;
+  border-radius: 9999px;
+  border: 2px solid var(--canvas-bg, #1b1f23);
+  background-color: var(--xy-handle-background-color, #5c9df5);
+}
+@media (pointer: coarse) {
+  .react-flow__handle.k-handle {
+    width: 20px;
+    height: 20px;
+    min-width: 20px;
+    min-height: 20px;
+  }
+  .react-flow__handle.k-handle::after {
+    content: "";
+    position: absolute;
+    inset: -12px;
+    border-radius: 9999px;
+  }
+}
+
+/* ---------------------------------------------------------------------------
+   EDGE: default BaseEdge + getSmoothStepPath, 2px, warna tema. Animasi saat
+   data mengalir (kelas `animated` dipasang React Flow dari edge.animated).
+   --------------------------------------------------------------------------- */
+.react-flow__edge .k-edge {
+  stroke: var(--edge-color, #5c9df5);
+  stroke-width: 2;
+}
+.react-flow__edge.selected .k-edge,
+.react-flow__edge .k-edge--selected {
+  stroke: var(--canvas-accent, #6366f1);
+  stroke-width: 3;
+  filter: drop-shadow(0 0 3px var(--canvas-accent, #6366f1));
+}
+@keyframes edge-flow {
+  to {
+    stroke-dashoffset: -20;
+  }
+}
+.react-flow__edge.animated .k-edge,
+.react-flow__edge .k-edge--flowing {
+  stroke: var(--edge-animated-color, #8b5cf6);
+  stroke-dasharray: 8 4;
+  animation: edge-flow 0.8s linear infinite;
+  filter: drop-shadow(0 0 3px var(--edge-animated-color, #8b5cf6));
+}
+@media (prefers-reduced-motion: reduce) {
+  .react-flow__edge.animated .k-edge,
+  .react-flow__edge .k-edge--flowing {
+    animation: none;
+  }
+}
+
+/* ---------------------------------------------------------------------------
+   AUTO LAYOUT: transisi spring 320ms hanya selama animasi layout. `transform`
+   DITRANSISIKAN (bukan dianimasikan keyframe) — keyframe pada
+   `.react-flow__node` menimpa inline transform React Flow dan pernah membuat
+   semua node menumpuk di pojok (bug nyata 2026-09-21, lihat tests/builder-drop-position).
+   --------------------------------------------------------------------------- */
+.react-flow--layout-anim .react-flow__node {
+  transition: transform 320ms cubic-bezier(0.34, 1.4, 0.64, 1);
+}
+@media (prefers-reduced-motion: reduce) {
+  .react-flow--layout-anim .react-flow__node {
+    transition: none;
+  }
+}
+
+/* Empty state kanvas: ilustrasi + CTA. */
+.k-empty {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+  z-index: 4;
+}
+.k-empty__panel {
+  pointer-events: auto;
+  max-width: 430px;
+  border-radius: 20px;
+  border: 1px dashed var(--node-border, #363d47);
+  background: var(--canvas-panel-bg, #1e2227);
+  padding: 24px;
+  text-align: center;
+  box-shadow: var(--canvas-shadow);
+}
+.k-empty__title {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--canvas-text-primary, #f0f2f5);
+}
+.k-empty__desc {
+  margin-top: 6px;
+  font-size: 12px;
+  line-height: 17px;
+  color: var(--canvas-text-secondary, #8b909a);
+}
+
+
+
+/* ---------------------------------------------------------------------------
+   JEMBATAN SEMENTARA: panel konfigurasi (ConfigPanel) masih memakai warna
+   Tailwind keras dari era sebelum token tema (`text-gray-100` di atas latar
+   putih tema Daylight = tidak terbaca). Alih-alih menulis ulang seluruh
+   komponen di FASE 3 (diff besar, risiko regresi form), warna teks + kontrol
+   form-nya diarahkan ke token tema lewat pembungkus `.k-config-host`.
+   TECH-DEBT FASE 4: ganti kelas keras di ConfigPanel dengan token tema, lalu
+   hapus blok ini.
+   --------------------------------------------------------------------------- */
+.k-config-host .text-zinc-400,
+.k-config-host .text-zinc-500,
+.k-config-host .text-gray-300,
+.k-config-host .text-gray-500 {
+  color: var(--canvas-text-secondary);
+}
+.k-config-host .text-gray-100,
+.k-config-host .text-gray-200,
+.k-config-host .text-zinc-100 {
+  color: var(--canvas-text-primary);
+}
+.k-config-host input,
+.k-config-host select,
+.k-config-host textarea {
+  background-color: var(--canvas-bg);
+  border-color: var(--node-border);
+  color: var(--canvas-text-primary);
+}
+
+
+/* ---------------------------------------------------------------------------
+   TAP TARGET 44x44 di perangkat sentuh (WCAG 2.5.5 / pedoman 2026).
+   Toolbar kanvas punya 9 kontrol dalam satu baris; pada 390px, ukuran 32px
+   membuat jari tidak akurat. Semua kontrol kanvas (tombol toolbar + kartu
+   node) dipaksa memenuhi 44px saat `pointer: coarse`, tanpa mengubah tata
+   letak desktop.
+   --------------------------------------------------------------------------- */
+@media (pointer: coarse) {
+  [data-testid="canvas-toolbar"] button {
+    min-width: 44px;
+    min-height: 44px;
+  }
+  [data-testid="canvas-empty-state"] button {
+    min-height: 44px;
+  }
+}
+

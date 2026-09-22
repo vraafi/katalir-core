@@ -48,3 +48,38 @@ Legenda: PASS = bukti kuantitatif hijau; FAIL = terukur rusak; UNKNOWN = butuh s
 ## P3 Esc UNKNOWN
 ## Sidebar/lifecycle (5): L1 create PASS · L2 save-update PASS · L3 rename
 ## PASS · L4 delete PASS · L5 restore PASS (sesi lifecycle 28be291 + spec hijau)
+
+---
+
+# UPDATE FASE 3 (2026-09-22) — canvas rebuild + multi-tema + mobile
+
+Sumber: `tests/canvas-fase3.spec.ts` (14 interaksi) + `tests/canvas-theme.spec.ts`
+(10 sistem visual) + `scripts/fase3-shots.mjs` (angka) di harness dev
+(`playwright.dev.config.ts`, port 3000). **24/24 PASS** — rincian & bukti angka di
+`docs/audit/fase3-verification.md`.
+
+| # | Interaksi | Status FASE 0 | Status FASE 3 | Bukti |
+|---|---|---|---|---|
+| C1 | Drag palette → titik drop | PASS | **PASS** | pusat node ≤15px dari titik drop |
+| C2 | Click-to-place | UNKNOWN | **PASS** | node +1, `data-kind` benar |
+| C3 | Drag node | UNKNOWN | **PASS** | delta layar (120,98) = target |
+| C4 | Delete node | UNKNOWN | **PASS** | node −1 + edge menempel −1 |
+| C5 | Connect handle | UNKNOWN | **PASS** | `connectingto=1`, edge 3 → 4, tipe `flow` |
+| C6 | Delete edge | UNKNOWN | **PASS** | edge −1, node tetap |
+| C7 | Pan | UNKNOWN | **PASS** | viewport transform berubah |
+| C8 | Zoom | UNKNOWN | **PASS** | skala 1 → 1.2 → 1 |
+| C9 | Minimap konsisten | PASS | **PASS** | 4 node = 4 titik minimap |
+| C10 | Save → reload persist | PASS | **PASS** | ID tersimpan, reload node/edge identik |
+| C11 | Undo/redo | UNKNOWN (fitur belum ada) | **PASS** | tombol + Ctrl/Cmd+Z, riwayat 50 langkah |
+| C12 | Mobile tap node → panel | FAIL (dugaan) | **PASS** | Sheet konfigurasi + `?n=<id>` |
+| C13 | Mobile long-press | UNKNOWN | **PASS** | CDP touch: `data-armed=true` + menu |
+| C14 | Bottom-sheet palette | FAIL (sidebar sempit) | **PASS** | drag-up membuka sheet, node +1 |
+
+Tambahan FASE 3 (di luar 14): 4 tema + switcher + persist · status node 4 state
+(dot/glow/indicator resmi) · Auto Layout dagre · edge animasi saat data mengalir ·
+empty state + CTA.
+
+**Catatan penting**: angka "elemen <44px" di ringkasan FASE 0 (builder=10) sekarang
+**0** pada toolbar kanvas di perangkat sentuh (`@media (pointer: coarse)` → 44×44),
+terukur di C14: 10 tombol, `tooSmall=0`.
+

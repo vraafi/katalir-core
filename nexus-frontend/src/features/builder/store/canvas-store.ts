@@ -9,6 +9,7 @@ import {
   type EdgeChange,
 } from "@xyflow/react";
 import { type FlowNode, type Kind } from "../types";
+import type { NodeStatus } from "@/components/ui/node-status-indicator";
 import { dedupeGraph, nextNodeId } from "../node-graph";
 
 /**
@@ -57,13 +58,51 @@ interface CanvasState {
   replaceWork: (nodes: FlowNode[], edges: Edge[]) => void;
   addNode: (kind: Kind, position?: { x: number; y: number }) => void;
   clearWork: () => void;
+
+  // --- FASE 3 -----------------------------------------------------------------
+  /** Hapus satu node + edge yang menempel padanya (dipakai kartu node). */
+  removeNode: (id: string) => void;
+  /** Salin node (offset 32px) dengan id baru yang dijamin unik. */
+  duplicateNode: (id: string) => void;
+  /** Node yang sedang dalam mode geser (hasil long-press di perangkat sentuh). */
+  armedNodeId: string | null;
+  armNodeDrag: (id: string) => void;
+  disarmNodeDrag: () => void;
+  /** Tulis status eksekusi ke node (dari polling /executions/{id}). */
+  setNodeStatuses: (byNodeId: Record<string, NodeStatus>) => void;
+  /** Tandai edge yang sedang mengalirkan data (animated). */
+  setFlowingEdges: (sourceIds: string[]) => void;
+
+  // --- Undo/redo (toolbar) ----------------------------------------------------
+  past: CanvasSnapshot[];
+  future: CanvasSnapshot[];
+  /** Simpan keadaan SEKARANG ke tumpukan undo (dipanggil SEBELUM mutasi). */
+  commitHistory: () => void;
+  undo: () => void;
+  redo: () => void;
 }
+
+interface CanvasSnapshot {
+  nodes: FlowNode[];
+  edges: Edge[];
+}
+
+/**
+ * Batas tumpukan undo. 50 langkah: cukup untuk "salah klik" yang realistis,
+ * dan tiap snapshot hanya menyimpan referensi ke array node/edge (tidak
+ * menyalin isinya), jadi memori tetap kecil meski kanvas punya 100+ node.
+ */
+const HISTORY_LIMIT = 50;
+
 
 export const useCanvasStore = create<CanvasState>((set, get) => ({
   nodes: [],
   edges: [],
 
   onNodesChange: (changes) => {
+    // Hapus lewat keyboard (Delete/Backspace) TIDAK melewati removeNode, jadi
+    // riwayat undo dicatat di sini juga supaya undo konsisten untuk kedua jalur.
+    if (changes.some((c) => c.type === "remove")) get().commitHistory();
     set({ nodes: applyNodeChanges(changes, get().nodes) });
   },
 
@@ -86,8 +125,12 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
           sourceHandle: connection.sourceHandle ?? undefined,
           target: connection.target,
           targetHandle: connection.targetHandle ?? undefined,
-          animated: true,
-          style: { stroke: "rgb(99, 102, 241)", strokeWidth: 2 },
+          // FASE 3: edge baru memakai tipe kustom `flow` (BaseEdge +
+          // getSmoothStepPath) dan TIDAK langsung beranimasi — animasi hanya
+          // saat data benar-benar mengalir (lihat setFlowingEdges).
+          // Warna TIDAK di-set di sini: berasal dari token tema via CSS.
+          type: "flow",
+          animated: false,
         },
         existing
       ),
@@ -112,6 +155,7 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
   },
 
   addNode: (kind, position) => {
+    get().commitHistory();
     const pos = position ?? {
       x: 80 + Math.random() * 120,
       y: 80 + Math.random() * 200,
@@ -135,4 +179,101 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
   },
 
   clearWork: () => set({ nodes: [], edges: [] }),
+
+  // --- FASE 3 -----------------------------------------------------------------
+
+  removeNode: (id) => {
+    get().commitHistory();
+    set({
+      nodes: get().nodes.filter((n) => n.id !== id),
+      // Edge yang menunjuk node terhapus WAJIB ikut dibuang: React Flow
+      // mencetak error dan edge itu tidak akan pernah bisa dilihat lagi.
+      edges: get().edges.filter((e) => e.source !== id && e.target !== id),
+      armedNodeId: null,
+    });
+  },
+
+  duplicateNode: (id) => {
+    const src = get().nodes.find((n) => n.id === id);
+    if (!src) return;
+    get().commitHistory();
+    const current = get().nodes;
+    const newId = nextNodeId(src.data?.kind ?? "agent", current.map((n) => n.id));
+    set({
+      nodes: [
+        ...current,
+        {
+          ...src,
+          id: newId,
+          selected: false,
+          position: { x: src.position.x + 32, y: src.position.y + 32 },
+          data: { ...src.data, label: `${src.data?.label ?? src.data?.kind ?? "node"} copy` },
+        },
+      ],
+    });
+  },
+
+  armedNodeId: null,
+  armNodeDrag: (id) => set({ armedNodeId: id }),
+  disarmNodeDrag: () => set({ armedNodeId: null }),
+
+  setNodeStatuses: (byNodeId) => {
+    // PENTING: hanya tulis bila ADA yang berubah. `map()` selalu membuat array
+    // baru, dan pemanggil (efek di builder-inner) bergantung pada identitas
+    // `nodes` — tanpa penjagaan ini efek <-> setter akan berputar tanpa henti.
+    let changed = false;
+    const next = get().nodes.map((n) => {
+      const want = byNodeId[n.id];
+      if (want && want !== n.data?.status) {
+        changed = true;
+        return { ...n, data: { ...n.data, status: want } };
+      }
+      return n;
+    });
+    if (changed) set({ nodes: next });
+  },
+
+  setFlowingEdges: (sourceIds) => {
+    const set$ = new Set(sourceIds);
+    let changed = false;
+    const next = get().edges.map((e) => {
+      const shouldFlow = set$.has(e.source);
+      if (Boolean(e.animated) === shouldFlow) return e;
+      changed = true;
+      return { ...e, animated: shouldFlow };
+    });
+    if (changed) set({ edges: next });
+  },
+
+  past: [],
+  future: [],
+  commitHistory: () =>
+    set((s) => ({
+      past: [...s.past, { nodes: s.nodes, edges: s.edges }].slice(-HISTORY_LIMIT),
+      future: [],
+    })),
+  undo: () => {
+    const { past, future, nodes, edges } = get();
+    if (past.length === 0) return;
+    const prev = past[past.length - 1];
+    set({
+      past: past.slice(0, -1),
+      future: [...future, { nodes, edges }].slice(-HISTORY_LIMIT),
+      nodes: prev.nodes,
+      edges: prev.edges,
+      armedNodeId: null,
+    });
+  },
+  redo: () => {
+    const { past, future, nodes, edges } = get();
+    if (future.length === 0) return;
+    const next = future[future.length - 1];
+    set({
+      future: future.slice(0, -1),
+      past: [...past, { nodes, edges }].slice(-HISTORY_LIMIT),
+      nodes: next.nodes,
+      edges: next.edges,
+      armedNodeId: null,
+    });
+  },
 }));

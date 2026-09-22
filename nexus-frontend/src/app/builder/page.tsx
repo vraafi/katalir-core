@@ -11,6 +11,7 @@ import { QueryProvider } from "@/features/builder/provider";
 import { AuthProvider } from "@/context/auth";
 import { I18nProvider } from "@/i18n/context";
 import { BuilderInner } from "@/features/builder/builder-inner";
+import { CanvasThemeProvider } from "@/features/builder/themes/CanvasThemeProvider";
 
 export default function Builder() {
   return (
@@ -24,9 +25,14 @@ export default function Builder() {
       <AuthProvider>
         <QueryProvider>
           <I18nProvider>
-            <ReactFlowProvider>
-              <BuilderInner />
-            </ReactFlowProvider>
+            {/* CanvasThemeProvider (FASE 3) menulis `data-canvas-theme` ke
+                <html>, jadi semua token tema kanvas berlaku untuk kanvas,
+                toolbar, palette, dan panel konfigurasi sekaligus. */}
+            <CanvasThemeProvider>
+              <ReactFlowProvider>
+                <BuilderInner />
+              </ReactFlowProvider>
+            </CanvasThemeProvider>
           </I18nProvider>
         </QueryProvider>
       </AuthProvider>

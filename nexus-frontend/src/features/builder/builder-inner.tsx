@@ -3,15 +3,18 @@ import { useEffect, useRef, useState } from "react";
 import { useReactFlow } from "@xyflow/react";
 import { useShallow } from "zustand/react/shallow";
 import { useQueryState, parseAsString } from "nuqs";
-import { X, Zap } from "lucide-react";
+import { X } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Sheet } from "@/components/ui/sheet";
 import { type FlowNode, type Kind } from "./types";
-import { Palette } from "./Palette";
+import { Palette, PaletteSheet } from "./Palette";
 import { Canvas } from "./Canvas";
 import { ConfigPanel } from "./ConfigPanel";
 import { Terminal } from "./Terminal";
 import { WorkflowSidebar } from "./WorkflowSidebar";
 import { useCanvasStore } from "./store/canvas-store";
+import { demoWorkflow } from "./demo-workflow";
+import { deriveNodeStatuses } from "./node-status";
 import { HydrationReady } from "@/i18n/HydrationReady";
 import Shell from "@/components/shell";
 import {
@@ -53,6 +56,9 @@ export function BuilderInner() {
       }))
     );
 
+  const setNodeStatuses = useCanvasStore((s) => s.setNodeStatuses);
+  const setFlowingEdges = useCanvasStore((s) => s.setFlowingEdges);
+
   const { screenToFlowPosition, updateNodeData } = useReactFlow<FlowNode>();
   const [savedId, setId] = useState<string | null>(null);
   const [saveState, setSaveState] = useState<"idle" | "saving" | "ok" | "err">("idle");
@@ -66,6 +72,22 @@ export function BuilderInner() {
   const queryClient = useWorkflowClient();
   const execMutation = useExecuteMutation();
   const exec = useExecutionPolling();
+
+  // FASE 3: status eksekusi backend -> status visual node + edge yang mengalir.
+  // Polling sudah ada sejak Level 3 (`GET /executions/{id}` tiap 2 dtk), jadi
+  // tidak ada kontrak baru — hanya pemetaan state (lihat node-status.ts).
+  //
+  // GUARD PENTING: kalau belum ada eksekusi sama sekali, JANGAN menulis apa
+  // pun. Tanpa guard ini, menjalankan pemetaan "semua initial" akan menghapus
+  // status contoh (`?demo=1` beserta edge yang mengalir) — bug yang benar-benar
+  // terjadi di sesi ini: `dots=0 anim=0` pada audit pertama.
+  useEffect(() => {
+    const hasExecution = exec.status !== null || (exec.logs ?? []).length > 0;
+    if (!hasExecution) return;
+    const { byNode, flowing } = deriveNodeStatuses(nodes, exec.logs ?? [], exec.status);
+    setNodeStatuses(byNode);
+    setFlowingEdges(flowing);
+  }, [nodes, exec.logs, exec.status, setNodeStatuses, setFlowingEdges]);
 
   /** Muat isi graf satu workflow (LIST hanya metadata → detail diambil di sini). */
   async function loadIntoCanvas(id: string) {
@@ -92,12 +114,39 @@ export function BuilderInner() {
     clearPendingWorkflow();
   }, [replaceWork]);
 
+  // FASE 3: `?demo=1` mengisi kanvas dengan contoh workflow ber-status
+  // (initial/loading/success/error). Dipakai screenshot + E2E supaya KEEMPAT
+  // status bisa diukur tanpa menjalankan eksekusi nyata (yang butuh kuota LLM).
+  const demoApplied = useRef(false);
+  const [demoParam] = useQueryState("demo", parseAsString.withOptions({ shallow: true }));
+  const demoRequested = demoParam === "1";
+  useEffect(() => {
+    if (demoApplied.current || demoParam !== "1") return;
+    demoApplied.current = true;
+    const d = demoWorkflow();
+    replaceWork(d.nodes, d.edges);
+  }, [demoParam, replaceWork]);
+
+  /** CTA empty state: muat contoh workflow siap pakai. */
+  function loadExample() {
+    const d = demoWorkflow();
+    replaceWork(d.nodes, d.edges);
+  }
+
   // Laad workflow die in URL staat (?w=) wanneer data klaar is — NIET in render.
   useEffect(() => {
     if (!isSuccess || !Array.isArray(workflowsData) || workflowsData.length === 0) return;
     // Draf AI barusan diterapkan dan user tidak meminta workflow tertentu
     // (?w= kosong) -> hormati draf itu, jangan timpa.
     if (aiDraftApplied.current && !workflowId) return;
+    // FASE 3 (race nyata): `?demo=1` = niat EKSPLISIT di URL, jadi harus
+    // MENANG atas pemuatan workflow tersimpan — tanpa guard ini, daftar
+    // workflow yang resolve lebih dulu (nuqs baru menyediakan `demo` setelah
+    // mount, sedangkan query sudah jalan) menimpa contoh, node contoh
+    // ter-unmount di tengah interaksi, dan tes connect gagal seolah bug UI.
+    if (demoRequested) return;
+    // FASE 3: contoh dari `?demo=1` juga tidak boleh ditimpa workflow tersimpan.
+    if (demoApplied.current && !workflowId) return;
     // Zoek workflow op id uit ?w= ; als niet gevonden of geen ?w=, gebruik 'workflows[0]'
     const target = workflowId
       ? workflowsData.find((w) => w.id === workflowId)
@@ -108,7 +157,7 @@ export function BuilderInner() {
       if (workflowId !== target.id) void setWorkflowId(target.id);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isSuccess, workflowId]);
+  }, [isSuccess, workflowId, demoRequested]);
 
   const selectedNode = nodes.find((n) => n.id === (nodeId ?? selectedId)) ?? null;
 
@@ -213,7 +262,16 @@ export function BuilderInner() {
 
   return (
     <Shell sessions={[]} currentSessionId={null} onSelectSession={() => {}} onNewChat={() => {}} onNewWorkflow={newWorkflow}>
-    <div className="flex h-screen bg-zinc-950 text-zinc-100">
+    {/* TINGGI: `flex-1 min-h-0`, BUKAN `h-screen`/`h-[100dvh]`.
+        Bug nyata FASE 3 (ditemukan spec C4/C11): Shell merender header sticky
+        (z-10) DI ATAS `{children}` dalam kolom flex. Dengan `h-[100dvh]`, tinggi
+        anak = tinggi viewport penuh sehingga kanvas meluber ke bawah header dan
+        ~56px bagian atas kanvas TERTUTUP header — klik pada NodeToolbar
+        (Hapus/Duplikat) node yang berada di dekat atas tidak pernah sampai ke
+        kanvas (Playwright melaporkan "header intercepts pointer events").
+        `flex-1 min-h-0` membuat kanvas mengisi SISA ruang di bawah header,
+        sehingga tidak ada bagian kanvas yang tertutup. */}
+    <div className="k-canvas flex min-h-0 flex-1 overflow-hidden">
       {/* Penanda hidrasi rute builder (lihat src/i18n/hydration-signal.ts). */}
       <HydrationReady />
       <WorkflowSidebar
@@ -233,33 +291,66 @@ export function BuilderInner() {
         onConnect={onConnect}
         onNodeClick={handleNodeClick}
         onDropNode={onDropNode}
+        onLoadExample={loadExample}
         save={save}
         saveState={saveState}
         run={run}
         runState={runState}
       />
-      <aside className="flex w-80 flex-col gap-4 overflow-y-auto border-l border-gray-700 bg-gray-900 p-4">
-        {selectedNode ? (
-          <>
-            <div className="flex items-center justify-between">
-              <div className="text-[11px] font-bold uppercase tracking-wide text-zinc-400">Konfigurasi Node</div>
-              <Button variant="ghost" size="icon" aria-label="Tutup panel" onClick={() => { setSelectedId(null); void setNodeId(null); }}>
-                <X size={15} strokeWidth={1.75} />
-              </Button>
-            </div>
+      {/* Panel konfigurasi desktop — muncul HANYA saat ada node terpilih.
+          Sebelumnya panel ini selalu tampil (walau kosong) dengan lebar 320px,
+          sehingga pada 1440px kanvas hanya tersisa 368px: kanvas jadi panel
+          TERKECIL, berlawanan dengan misi ("canvas dominan, panel samping
+          muted"). Terukur: kanvas 368px -> 688px saat panel tertutup.
+          Di layar sempit panel ini tetap digantikan Sheet bawah. */}
+      {selectedNode && (
+        <aside
+          data-testid="config-aside"
+          className="hidden w-80 shrink-0 flex-col gap-4 overflow-y-auto border-l p-4 lg:flex"
+          style={{
+            borderColor: "var(--node-border)",
+            background: "var(--canvas-panel-bg)",
+            color: "var(--canvas-text-primary)",
+          }}
+        >
+          <div className="flex items-center justify-between">
+            <div className="text-[11px] font-bold uppercase tracking-wide">Konfigurasi Node</div>
+            <Button variant="ghost" size="icon" aria-label="Tutup panel" onClick={() => { setSelectedId(null); void setNodeId(null); }}>
+              <X size={15} strokeWidth={1.75} />
+            </Button>
+          </div>
+          <div className="k-config-host">
             <ConfigPanel node={selectedNode} setNodeCfg={setNodeCfg} apiUrl={API_URL} workflowId={savedId} />
-          </>
-        ) : (
-          <div className="flex h-full flex-col items-center justify-center gap-2 text-center">
-            <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-gray-800 text-zinc-500">
-              <Zap size={18} strokeWidth={1.25} />
-            </span>
-            <p className="max-w-[180px] text-[12px] leading-snug text-zinc-500">
-              Klik sebuah node untuk membuka panel konfigurasinya di sini.
-            </p>
+          </div>
+        </aside>
+      )}
+
+      {/* Mobile: palette bottom-sheet (drag-up) + panel konfigurasi sebagai sheet. */}
+      <PaletteSheet
+        onAddNode={addNode}
+        onClear={() => {
+          setNodes([]);
+          setEdges([]);
+        }}
+      />
+      <Sheet
+        open={!!selectedNode}
+        onOpenChange={(o) => {
+          if (!o) {
+            setSelectedId(null);
+            void setNodeId(null);
+          }
+        }}
+        side="bottom"
+        title="Konfigurasi Node"
+        description={selectedNode ? (selectedNode.data?.label ?? selectedNode.data?.kind) : undefined}
+      >
+        {selectedNode && (
+          <div className="k-config-host">
+            <ConfigPanel node={selectedNode} setNodeCfg={setNodeCfg} apiUrl={API_URL} workflowId={savedId} />
           </div>
         )}
-      </aside>
+      </Sheet>
       <Terminal
         open={exec.open}
         status={exec.status}

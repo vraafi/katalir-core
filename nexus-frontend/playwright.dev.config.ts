@@ -1,0 +1,68 @@
+import { defineConfig, devices } from "@playwright/test";
+
+/**
+ * Harness E2E FASE 3 — menembak DEV server yang sudah hidup (localhost:3000).
+ *
+ * KENAPA TAMBAHAN CONFIG, BUKAN MEMAKAI playwright.config.ts:
+ * config utama membangun PRODUKSI lewat `scripts/e2e-prod-server.mjs`
+ * (`webServer`), dan build-nya butuh >300 detik di mesin ini (font Google) —
+ * sudah terdokumentasi macet di FASE 2. Untuk menguji 14 interaksi kanvas
+ * sambil mengembangkan, itu terlalu berat dan terbukti menghambat verifikasi.
+ *
+ * KONSEKUENSI YANG DISADARI: tes di sini berjalan di DEV, jadi yang diuji
+ * adalah perilaku runtime + DOM nyata, BUKAN bundle produksi. Karena itu
+ * `playwright.config.ts` (produksi) TETAP menjadi jalur regresi resmi, dan
+ * hasil dev-config TIDAK boleh diklaim setara produksi.
+ *
+ * CATATAN ORIGIN (akar masalah `model-filter 0/3`): `globalSetup`
+ * `scripts/e2e-auth-setup.mjs` menulis storageState untuk
+ * `http://localhost:${E2E_PORT||3000}`. Karena config ini memakai port 3000 —
+ * sementara dev server juga 3000 — sesi tersimpan dan sesi yang dibaca app
+ * BERADA DI ORIGIN YANG SAMA. Dengan `playwright.config.ts` (port 3201 lewat
+ * E2E_PORT) sesi ditulis untuk 3201 sementara app membaca :3000, sehingga
+ * `/models` tak pernah dipanggil. Di sini ketidakcocokan itu hilang.
+ */
+const FRONTEND_PORT = Number(process.env.E2E_PORT || 3000);
+const FRONTEND_URL = `http://localhost:${FRONTEND_PORT}`;
+
+// Spec menghitung API_ORIGIN dari env ini; dev FE dijalankan dengan
+// NEXT_PUBLIC_API_URL=http://127.0.0.1:8000 (lihat handoff §I.4).
+process.env.E2E_BACKEND_URL = process.env.E2E_BACKEND_URL || "http://127.0.0.1:8000";
+
+export default defineConfig({
+  testDir: "./tests",
+  testMatch: [
+    "canvas-fase3.spec.ts",
+    "canvas-theme.spec.ts",
+    // Regresi yang diminta misi FASE 3 + rute menyeluruh; ikut di harness dev
+    // karena harness build-produksi tidak selesai di mesin ini (lihat catatan
+    // di atas dan docs/audit/fase3-verification.md).
+    "model-filter.spec.ts",
+    "routes-no-crash.spec.ts",
+  ],
+  testIgnore: ["**/_probes/**"],
+  timeout: 90000,
+  retries: 0,
+  workers: 1,
+  reporter: [["list"]],
+  globalSetup: "./scripts/e2e-auth-setup.mjs",
+  use: {
+    baseURL: FRONTEND_URL,
+    headless: true,
+    viewport: { width: 1440, height: 900 },
+    trace: "retain-on-failure",
+    screenshot: "only-on-failure",
+  },
+  // PENTING: `viewport` di sini WAJIB, bukan hanya di `use` global.
+  // `devices["Desktop Chrome"]` membawa viewport-nya sendiri (1280x720) dan
+  // `use` tingkat PROJECT menang atas `use` tingkat config — sehingga nilai
+  // 1440x900 yang ditulis di atas DIABAIKAN tanpa peringatan. Akibat nyatanya
+  // terukur: node contoh terjepit di luar viewport 1280 (`elementFromPoint`
+  // mengembalikan null, handle tidak bisa diklik) dan tes connect gagal seolah
+  // bug UI. Ditulis eksplisit di sini supaya tidak bisa tertimpa lagi.
+  projects: [
+    { name: "chromium-dev", use: { ...devices["Desktop Chrome"], viewport: { width: 1440, height: 900 } } },
+  ],
+  // SENGAJA TANPA webServer: dev server dijalankan terpisah (handoff §I.4),
+  // dan config ini tidak boleh menyalakan/tidak boleh membangun apa pun.
+});
