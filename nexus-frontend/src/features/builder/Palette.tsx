@@ -3,6 +3,7 @@
 import { useCallback, useRef, useState } from "react";
 import { ChevronUp, Plus, Trash2 } from "lucide-react";
 import { META, type Kind } from "./types";
+import { useI18n } from "@/i18n/context";
 import { StaggerItem, StaggerList } from "@/components/motion";
 
 /**
@@ -104,9 +105,13 @@ export function Palette({
   onAddNode: (kind: Kind) => void;
   onClear: () => void;
 }) {
+  // FASE 5: nama landmark ikut bahasa pengguna (Palette selalu dirender di
+  // dalam I18nProvider — /builder memasangnya di page.tsx).
+  const { t } = useI18n();
   return (
     <aside
       data-testid="palette"
+      aria-label={t("builder.paletteLabel")}
       className="hidden w-64 flex-col gap-4 border-r p-4 md:flex"
       style={{
         borderColor: "var(--node-border)",

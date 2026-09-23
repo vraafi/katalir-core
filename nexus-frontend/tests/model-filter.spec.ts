@@ -293,7 +293,9 @@ test.describe("PRODUKSI: filter model paid-only + badge fallback (tanpa mock)", 
     await waitAppReady(page);
 
     // Buka selector supaya daftar benar-benar dirender dari GET /models.
-    const trigger = page.locator("button[aria-label='Pilih model AI']");
+    // FASE 5: pakai `data-testid` (stabil), bukan aria-label berbahasa Indonesia —
+    // lihat catatan di ModelSelector.tsx.
+    const trigger = page.locator('[data-testid="model-selector"]');
     await expect(trigger).toBeVisible({ timeout: 20000 });
     await expect(trigger.locator("span").first()).not.toHaveText(/Memuat/, { timeout: 20000 });
     await trigger.click();

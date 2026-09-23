@@ -9,6 +9,7 @@ import { UserMenu } from "@/components/UserMenu";
 import { CommandPalette } from "@/components/CommandPalette";
 import { useI18n } from "@/i18n/context";
 import { StaggerList, StaggerItem } from "@/components/motion";
+import { SkipToContent } from "@/components/SkipToContent";
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import * as DropdownMenu from "@radix-ui/react-dropdown-menu";
@@ -65,8 +66,11 @@ export default function Shell({ children, sessions, currentSessionId, onSelectSe
 
   return (
     <div className="flex h-screen overflow-hidden bg-bg">
+      {/* FASE 5: tautan lewati-ke-konten — elemen fokusable PERTAMA di halaman
+          (targetnya `<main id="main-content">` di bawah). */}
+      <SkipToContent />
       {/* FASE 1: sidebar desktop — tersembunyi di <md, diganti drawer. */}
-      <aside className="hidden w-64 shrink-0 flex-col border-r border-border bg-bg-subtle md:flex">
+      <aside aria-label={t("nav.sessionsLabel")} className="hidden w-64 shrink-0 flex-col border-r border-border bg-bg-subtle md:flex">
         <Button variant="secondary" size="md" onClick={() => { onNewChat(); closeMobile(); }} className="mx-3 mt-3">
           <Plus className="h-4 w-4" strokeWidth={1.75} /> {t("nav.newChat")}
         </Button>
@@ -179,7 +183,10 @@ export default function Shell({ children, sessions, currentSessionId, onSelectSe
             >
               <Menu className="h-5 w-5" strokeWidth={1.75} />
             </button>
-            <span className="text-xl font-bold tracking-tight text-fg">Katalir</span>
+            {/* FASE 5: judul aplikasi = <h1> halaman. Sebelumnya <span>, sehingga
+                axe `page-has-heading-one` (best-practice) merah di /, /chat, dan
+                /builder: pembaca layar tidak punya penanda awal struktur. */}
+            <h1 className="text-xl font-bold tracking-tight text-fg">Katalir</h1>
           </div>
           <div className="flex items-center gap-2">
             <ThemeToggle />
@@ -208,7 +215,15 @@ export default function Shell({ children, sessions, currentSessionId, onSelectSe
             )}
           </div>
         </header>
-        {children}
+        {/* FASE 5: `children` dibungkus landmark <main> supaya tautan
+            lewati-ke-konten punya target nyata dan pembaca layar bisa melompat
+            ke konten (sebelumnya halaman ini TIDAK punya landmark main sama
+            sekali). `tabIndex={-1}` membuat target bisa menerima fokus saat
+            tautan diklik — tanpa itu Safari/screen reader tidak berpindah.
+            Kelas flex dipertahankan agar tinggi kanvas/chat tidak berubah. */}
+        <main id="main-content" tabIndex={-1} className="flex min-h-0 flex-1 flex-col outline-none">
+          {children}
+        </main>
         {/* FASE 1: command palette global (Cmd/Ctrl+K). onNewWorkflow opsional:
             di /builder meneruskan aksi workflow baru, di halaman lain fallback
             navigasi ke /builder. */}

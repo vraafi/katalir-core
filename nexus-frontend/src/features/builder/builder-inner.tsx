@@ -16,6 +16,7 @@ import { useCanvasStore } from "./store/canvas-store";
 import { demoWorkflow } from "./demo-workflow";
 import { deriveNodeStatuses } from "./node-status";
 import { HydrationReady } from "@/i18n/HydrationReady";
+import { useI18n } from "@/i18n/context";
 import Shell from "@/components/shell";
 import {
   useWorkflowsQuery, useSaveWorkflowMutation, useDeleteWorkflowMutation,
@@ -29,6 +30,8 @@ import { clearPendingWorkflow, peekPendingWorkflow } from "@/features/agent/work
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
 export function BuilderInner() {
+  // FASE 5: nama landmark panel konfigurasi (lihat messages `builder.configPanelLabel`).
+  const { t } = useI18n();
   // --- URL state (nuqs): ?w=<workflowId>&n=<nodeId> = source of truth, shallow ---
   const [workflowId, setWorkflowId] = useQueryState(
     "w",
@@ -306,6 +309,7 @@ export function BuilderInner() {
       {selectedNode && (
         <aside
           data-testid="config-aside"
+          aria-label={t("builder.configPanelLabel")}
           className="hidden w-80 shrink-0 flex-col gap-4 overflow-y-auto border-l p-4 lg:flex"
           style={{
             borderColor: "var(--node-border)",

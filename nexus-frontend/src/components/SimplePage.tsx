@@ -9,6 +9,7 @@ import { I18nProvider, useI18n } from "@/i18n/context";
 import { HydrationReady } from "@/i18n/HydrationReady";
 import { CanvasThemeProvider } from "@/features/builder/themes/CanvasThemeProvider";
 import { PageTransition } from "@/components/PageTransition";
+import { SkipToContent } from "@/components/SkipToContent";
 import { CommandPalette } from "@/components/CommandPalette";
 
 /**
@@ -66,15 +67,10 @@ function SimplePageInner({
   const tr = (s: string) => (s.includes(".") && !s.includes(" ") ? t(s) : s);
   return (
           <div className="min-h-screen bg-bg text-fg">
-            {/* FASE 4 (Lighthouse `skip-link`): lompatan ke konten untuk pengguna
-                keyboard/screen reader — terlihat saat fokus, tersembunyi
-                sebaliknya (pola `sr-only focus:not-sr-only`). */}
-            <a
-              href="#main-content"
-              className="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-[200] focus:rounded-md focus:border focus:border-border focus:bg-surface focus:px-3 focus:py-2 focus:text-subhead focus:text-fg"
-            >
-              {t("common.skipToContent")}
-            </a>
+            {/* FASE 5: tautan lewati-ke-konten dipindah ke komponen bersama
+                (`SkipToContent`) karena `useI18n` harus berada di dalam
+                provider; targetnya `<main id="main-content">` di bawah. */}
+            <SkipToContent />
             {/* Penanda hidrasi rute statis (settings/billing/help): locale
                 diganti hanya setelah subtree ini selesai dihidrasi. */}
             <HydrationReady />

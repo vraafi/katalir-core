@@ -57,8 +57,8 @@ export function CanvasEmptyState({
             type="button"
             data-testid="btn-empty-add-node"
             onClick={onAddNode}
-            className="flex h-10 items-center gap-2 rounded-lg px-4 text-[13px] font-semibold text-white"
-            style={{ background: "var(--canvas-accent)" }}
+            className="flex h-10 items-center gap-2 rounded-lg px-4 text-[13px] font-semibold text-[color:var(--canvas-accent-fg)]"
+            style={{ background: "var(--canvas-accent-solid)" }}
           >
             <Plus size={16} strokeWidth={2} aria-hidden="true" />
             Tambah Node

@@ -143,8 +143,8 @@ export function CanvasToolbar({
         data-testid="btn-save"
         onClick={save}
         disabled={saveState === "saving"}
-        className="flex h-8 items-center gap-1.5 rounded-md px-2.5 text-[12px] font-semibold text-white disabled:opacity-50"
-        style={{ background: "var(--canvas-accent)" }}
+        className="flex h-8 items-center gap-1.5 rounded-md px-2.5 text-[12px] font-semibold text-[color:var(--canvas-accent-fg)] disabled:opacity-50"
+        style={{ background: "var(--canvas-accent-solid)" }}
       >
         <Save size={14} strokeWidth={1.75} aria-hidden="true" />
         <span>{saveState === "saving" ? "Menyimpan…" : compact ? "Simpan" : "Simpan Alur"}</span>
@@ -154,8 +154,8 @@ export function CanvasToolbar({
         data-testid="btn-run"
         onClick={run}
         disabled={runState === "running"}
-        className="flex h-8 items-center gap-1.5 rounded-md px-2.5 text-[12px] font-semibold text-white disabled:opacity-50"
-        style={{ background: "var(--node-success-glow)" }}
+        className="flex h-8 items-center gap-1.5 rounded-md px-2.5 text-[12px] font-semibold text-[color:var(--node-success-fg)] disabled:opacity-50"
+        style={{ background: "var(--node-success-solid)" }}
       >
         <Play size={14} strokeWidth={1.75} aria-hidden="true" />
         <span>{runState === "running" ? "Menjalankan…" : compact ? "Jalankan" : "Jalankan Alur"}</span>

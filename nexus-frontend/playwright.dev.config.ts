@@ -36,6 +36,7 @@ export default defineConfig({
     "canvas-theme.spec.ts",
     "fase4-pages.spec.ts",
     "fase4-a11y.spec.ts",
+    "fase5-a11y.spec.ts",
     // Regresi yang diminta misi FASE 3 + rute menyeluruh; ikut di harness dev
     // karena harness build-produksi tidak selesai di mesin ini (lihat catatan
     // di atas dan docs/audit/fase3-verification.md).

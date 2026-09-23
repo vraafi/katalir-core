@@ -19,6 +19,8 @@ export const en = {
     logout: "Sign out",
     newChat: "New Chat",
     history: "Chat History",
+    /* FASE 5: accessible name for the chat sidebar <aside> landmark (see id.ts). */
+    sessionsLabel: "Chat history",
     noHistory: "No chats yet.",
     loginGoogle: "Sign in with Google",
   },
@@ -86,6 +88,17 @@ export const en = {
     runHint: "run",
     closeHint: "close",
     newWorkflow: "New workflow",
+  },
+  builder: {
+    /* FASE 5: accessible names for the two <aside> landmarks in /builder.
+       Without names, axe reports two identical "complementary" landmarks
+       (`landmark-unique`, impact moderate) and screen-reader users cannot tell
+       them apart. */
+    configPanelLabel: "Node configuration panel",
+    paletteLabel: "Node palette",
+    workflowListLabel: "Workflow list",
+    /* FASE 5: short label for the canvas theme button on narrow screens (see id.ts). */
+    canvasThemeShort: "Theme",
   },
   modelPicker: {
     label: "Choose AI model",

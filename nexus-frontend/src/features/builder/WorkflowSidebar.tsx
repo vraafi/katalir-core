@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { Check, Pencil, Plus, Trash2, Workflow, X, Zap } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { StaggerList, StaggerItem } from "@/components/motion";
+import { useI18n } from "@/i18n/context";
 import { type WorkflowListItem } from "./hooks/useWorkflow";
 
 /**
@@ -28,6 +29,10 @@ export function WorkflowSidebar({
   onRename: (id: string, name: string) => void;
   onDelete: (id: string) => void;
 }) {
+  // FASE 5: aside ini SEBELUMNYA tanpa nama, sehingga di /builder ada dua
+  // landmark "complementary" tanpa nama (bareng sidebar Shell) -> axe
+  // `landmark-unique`. Nama aksesibel membuat keduanya bisa dibedakan.
+  const { t } = useI18n();
   const [editingId, setEditingId] = useState<string | null>(null);
   const [draft, setDraft] = useState("");
   const inputRef = useRef<HTMLInputElement | null>(null);
@@ -48,14 +53,14 @@ export function WorkflowSidebar({
   }
 
   return (
-    <aside className="flex w-60 flex-col gap-4 border-r border-gray-700 bg-zinc-900 p-3">
+    <aside aria-label={t("builder.workflowListLabel")} className="flex w-60 flex-col gap-4 border-r border-gray-700 bg-zinc-900 p-3">
       <div className="text-[11px] font-bold uppercase tracking-wide text-zinc-400">Alur Kerja</div>
       <Button variant="secondary" size="sm" onClick={onNew} className="w-full justify-center">
         <Plus size={14} strokeWidth={1.75} /> Alur Baru
       </Button>
       <div className="mt-1 flex-1 overflow-y-auto" data-testid="workflow-list">
         {workflows.length === 0 && (
-          <p className="text-[11px] leading-snug text-zinc-500">
+          <p className="text-[11px] leading-snug text-zinc-400">
             Belum ada alur. Klik &quot;+ Alur Baru&quot;.
           </p>
         )}

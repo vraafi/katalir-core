@@ -230,6 +230,13 @@ body {
   --canvas-text-primary: #f0f2f5;
   --canvas-text-secondary: #8b909a;
   --canvas-accent: #6366f1;
+  /* FASE 5 (kontras): `--canvas-accent` dipakai untuk garis/cahaya dan nilainya
+     DIKUNCI oleh tests/canvas-theme.spec.ts, jadi varian isi-tombol dipisah.
+     Angka rasio dihitung dari rumus WCAG (bukan perkiraan): putih di atas
+     #4f46e5 = 4.95:1 (lolos 4.5:1 untuk teks 13px), sedangkan putih di atas
+     #6366f1 hanya 4.40:1 -> itulah kegagalan yang ditemukan audit FASE 5. */
+  --canvas-accent-solid: #4f46e5;
+  --canvas-accent-fg: #ffffff;
   --canvas-shadow: 0 8px 24px -8px rgba(0, 0, 0, 0.7);
   --node-bg: #282e36;
   --node-border: #363d47;
@@ -237,6 +244,11 @@ body {
   --node-action-color: #5c9df5;
   --node-mcp-color: #8b5cf6;
   --node-success-glow: #26bd73;
+  /* FASE 5 (kontras): tombol "Jalankan" memakai isi ini. Putih di atas #26bd73
+     hanya 2.46:1 -> isi digelapkan ke green-700 (putih = 4.7:1) tanpa mengubah
+     warna glow/status yang dikunci tes tema. */
+  --node-success-solid: #15803d;
+  --node-success-fg: #ffffff;
   --node-error-glow: #f55c5c;
   --node-pulse-color: #6366f1;
   --edge-color: #5c9df5;
@@ -267,6 +279,9 @@ body {
   --canvas-text-primary: #18181b;
   --canvas-text-secondary: #52525b;
   --canvas-accent: #6366f1;
+  /* FASE 5 (kontras): lihat catatan di tema `midnight`. */
+  --canvas-accent-solid: #4f46e5;
+  --canvas-accent-fg: #ffffff;
   --canvas-shadow: 0 6px 18px -8px rgba(24, 24, 27, 0.25);
   --node-bg: #ffffff;
   --node-border: #e4e4e7;
@@ -274,6 +289,9 @@ body {
   --node-action-color: #4f46e5;
   --node-mcp-color: #7c3aed;
   --node-success-glow: #16a34a;
+  /* FASE 5 (kontras): putih di atas #16a34a = 3.35:1 -> digelapkan (lihat midnight). */
+  --node-success-solid: #15803d;
+  --node-success-fg: #ffffff;
   --node-error-glow: #dc2626;
   --node-pulse-color: #6366f1;
   --edge-color: #6366f1;
@@ -304,6 +322,11 @@ body {
   --canvas-text-primary: #e9fff9;
   --canvas-text-secondary: #8c93b0;
   --canvas-accent: #00ffd5;
+  /* FASE 5 (kontras): ini akar kegagalan audit — teks putih di atas #00ffd5
+     hanya 1.29:1 (axe `color-contrast`, impact serious). Tema neon memakai teks
+     GELAP di atas isi terang: #041512 di atas #00ffd5 = 16.3:1. */
+  --canvas-accent-solid: #00ffd5;
+  --canvas-accent-fg: #041512;
   --canvas-shadow: 0 10px 28px -6px rgba(0, 255, 213, 0.28);
   --node-bg: #1a1a2e;
   --node-border: #2e2e52;
@@ -311,6 +334,9 @@ body {
   --node-action-color: #00ffd5;
   --node-mcp-color: #b14aed;
   --node-success-glow: #00ffd5;
+  /* FASE 5 (kontras): tema neon -> isi tetap #00ffd5, teks gelap (16.3:1). */
+  --node-success-solid: #00ffd5;
+  --node-success-fg: #041512;
   --node-error-glow: #ff2e63;
   --node-pulse-color: #00ffd5;
   --edge-color: #00ffd5;
@@ -341,6 +367,9 @@ body {
   --canvas-text-primary: #18181b;
   --canvas-text-secondary: #71717a;
   --canvas-accent: #18181b;
+  /* FASE 5 (kontras): lihat catatan di tema `midnight`. */
+  --canvas-accent-solid: #18181b;
+  --canvas-accent-fg: #ffffff;
   --canvas-shadow: 0 2px 8px -4px rgba(24, 24, 27, 0.2);
   --node-bg: #f5f5f5;
   --node-border: #e5e5e5;
@@ -348,6 +377,8 @@ body {
   --node-action-color: #18181b;
   --node-mcp-color: #52525b;
   --node-success-glow: #18181b;
+  --node-success-solid: #18181b;
+  --node-success-fg: #ffffff;
   --node-error-glow: #18181b;
   --node-pulse-color: #18181b;
   --edge-color: #a1a1aa;

@@ -20,6 +20,10 @@ export const id = {
     logout: "Keluar",
     newChat: "Chat Baru",
     history: "Riwayat Chat",
+    /* FASE 5: nama aksesibel untuk landmark <aside> sidebar chat. Sebelumnya
+       tanpa nama; di /builder ia bertabrakan dengan sidebar alur kerja yang
+       juga tanpa nama -> axe `landmark-unique`. */
+    sessionsLabel: "Riwayat chat",
     noHistory: "Belum ada riwayat.",
     loginGoogle: "Login dengan Google",
   },
@@ -87,6 +91,19 @@ export const id = {
     runHint: "jalankan",
     closeHint: "tutup",
     newWorkflow: "Workflow baru",
+  },
+  builder: {
+    /* FASE 5: nama landmark untuk dua <aside> di /builder. Tanpa nama, dua
+       landmark "complementary" terdeteksi kembar oleh axe (`landmark-unique`,
+       impact moderate) dan pengguna screen reader tidak bisa membedakannya. */
+    configPanelLabel: "Panel konfigurasi node",
+    paletteLabel: "Palet node",
+    workflowListLabel: "Daftar alur kerja",
+    /* FASE 5: teks pendek tombol tema kanvas di layar sempit. Sebelumnya
+       HARDCODE "Tema" di JSX sementara nama aksesibelnya ikut i18n — di locale
+       `en` teks terlihat "Tema" tidak ada di dalam "Builder Canvas Theme",
+       sehingga `label-content-name-mismatch` (Label in Name) muncul di mobile. */
+    canvasThemeShort: "Tema",
   },
   modelPicker: {
     label: "Pilih model AI",

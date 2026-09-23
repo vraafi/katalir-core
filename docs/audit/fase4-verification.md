@@ -50,8 +50,13 @@ Di atas ambang misi (≥90). Dua audit biner yang ditemukan:
    (`sr-only focus:not-sr-only`), dengan `<main id="main-content" tabIndex={-1}>`
    sebagai target. Pengukuran ulang desktop (`lh_d3.json`) tetap **98** dengan
    `skip-link` masih merah → audit ini **TIDAK diklaim PASS** dan masuk backlog
-   FASE 5 (dugaan:audit menguji perilaku fokus setelah Enter atau mengharapkan
-   tautan di dalam landmark, bukan sebelum `<nav>`).
+   FASE 5.
+   **DIPERBAIKI DI FASE 5** (`docs/audit/fase5-verification.md` §4.1): akar
+   masalahnya ternyata tautan LAMA di `app/layout.tsx` ber-`href="#main"` yang
+   targetnya tidak pernah ada ("No skip link target"); tautan itu dihapus dan
+   diganti satu tautan per halaman (`SkipToContent` → `#main-content`). Hasil:
+   Lighthouse `/settings` **100** (`GAGAL=[]`) dan perilaku Tab→Enter
+   diverifikasi di 5 rute.
 
 ## 4. Motion + a11y yang ditambahkan
 

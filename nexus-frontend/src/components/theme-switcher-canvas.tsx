@@ -4,6 +4,7 @@ import * as DropdownMenu from "@radix-ui/react-dropdown-menu";
 import { Check, Palette } from "lucide-react";
 import { useCanvasTheme } from "@/features/builder/themes/CanvasThemeProvider";
 import { THEMES, type CanvasTheme, type CanvasThemeId } from "@/features/builder/themes/canvas-themes";
+import { useI18n } from "@/i18n/context";
 
 /**
  * Pemilih tema kanvas (FASE 3).
@@ -78,6 +79,7 @@ function MiniPreview({ theme }: { theme: CanvasTheme }) {
 
 export function ThemeSwitcherCanvas({ compact = false }: { compact?: boolean }) {
   const { themeId, setTheme, mounted } = useCanvasTheme();
+  const { t } = useI18n();
   const active = THEMES[themeId];
 
   return (
@@ -85,7 +87,12 @@ export function ThemeSwitcherCanvas({ compact = false }: { compact?: boolean }) 
       <DropdownMenu.Trigger asChild>
         <button
           type="button"
-          aria-label="Tema Kanvas"
+          /* FASE 5 (Lighthouse `label-content-name-mismatch`): teks yang TERLIHAT
+             adalah nama tema ("Midnight"/"Cyberpunk") atau "Tema Kanvas" sebelum
+             mount. `aria-label` statis "Tema Kanvas" membuat nama aksesibel TIDAK
+             memuat teks terlihat -> pelanggaran WCAG 2.5.3. Karena itu label
+             dibangun dari teks yang benar-benar tampil. */
+          aria-label={mounted ? `${active.name} — ${t("settings.canvasTheme")}` : t("settings.canvasTheme")}
           data-testid="canvas-theme-trigger"
           className={
             "flex items-center gap-2 rounded-md border px-2 text-[12px] font-medium transition-colors " +
@@ -99,7 +106,7 @@ export function ThemeSwitcherCanvas({ compact = false }: { compact?: boolean }) 
         >
           <Palette size={14} strokeWidth={1.75} aria-hidden="true" />
           <span className="hidden sm:inline">{mounted ? active.name : "Tema Kanvas"}</span>
-          <span className="sm:hidden">Tema</span>
+          <span className="sm:hidden">{t("builder.canvasThemeShort")}</span>
         </button>
       </DropdownMenu.Trigger>
 

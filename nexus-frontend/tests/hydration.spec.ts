@@ -74,7 +74,9 @@ test("HYD-1: localStorage tersimpan tidak memicu hydration mismatch", async ({ p
 
   // 3) Gate `mounted` di ModelSelector (Lapis A) HARUS melepas: label netral
   //    hanya untuk render pertama, bukan placeholder permanen.
-  const trigger = page.locator("button[aria-label='Pilih model AI']");
+  //    FASE 5: selector pindah ke `data-testid` karena label aksesibelnya kini
+  //    memuat nama model + ikut bahasa pengguna.
+  const trigger = page.locator('[data-testid="model-selector"]');
   await expect(trigger).toBeVisible();
   await expect(trigger.locator("span").first()).not.toHaveText(/Memuat/, { timeout: 5000 });
 

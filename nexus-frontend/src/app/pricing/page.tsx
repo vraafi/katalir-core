@@ -38,7 +38,7 @@ const TIERS = [
  */
 export default function PricingPage() {
   return (
-    <main className="mx-auto flex min-h-screen max-w-3xl flex-col items-center px-6 py-16">
+    <main id="main-content" tabIndex={-1} className="mx-auto flex min-h-screen max-w-3xl flex-col items-center px-6 py-16 outline-none">
       <h1 className="text-3xl font-bold">Katalir</h1>
       <p className="mt-2 text-[14px] text-fg-subtle">
         Satu harga per tier per tahun. Kuota dihitung per <b>request</b> dan direset 00:00 WIB.
