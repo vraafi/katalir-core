@@ -8,13 +8,16 @@ Tanggal: 2026-09-24. Branch `level-3-experiment`. Harness: **dev**
 | # | Deliverable | Status | Bukti (angka yang bisa dibaca ulang) |
 |---|---|---|---|
 | 1 | skip-link berfungsi di 5 rute | **PASS** | `SKIP_<route>` = tepat 1 tautan, `href="#main-content"`, target ada, `tabindex=-1`, elemen fokusable pertama; `SKIP_FOCUS_*` kotak terlihat **119.4×36 @16,16** (sebelum fokus **1×1 @-1,-1**); `SKIP_AFTER_ENTER_*` → `activeElement.id=main-content` |
-| 2 | axe + Lighthouse 100 di semua rute | **PASS** | axe `[]` di **7 rute** (bersesi) + **3 rute** (tanpa sesi) + `/builder` dengan node; Lighthouse **desktop 100×5** dan **mobile 100×5**, semuanya `GAGAL=[]` |
+| 2 | axe + Lighthouse 100 di semua rute | **PASS** | axe `[]` di **7 rute** (bersesi) + **3 rute** (tanpa sesi) + `/builder` dengan node — **dan diulang pada build produksi: 23/23 lulus, semua `AXE_*` = `[]`**; Lighthouse **desktop 100×5** dan **mobile 100×5** pada build produksi, 10/10 laporan valid, `GAGAL=[]` (§2) |
 | 3 | Migration `user_preferences` + dry-run reversible | **PASS** | `--dry-run` mencetak DDL tanpa mengubah apa pun; `--apply` → tabel + index dibuat (via `psql`), `NOTIFY pgrst` reload; `--verify` → kolom `user_email/prefs/updated_at` ADA, round-trip tulis→baca `{"canvasTheme":"midnight"}`; rollback tersedia (`DROP TABLE`, butuh `--yes-rollback`) |
 | 4 | Hutang FASE 4 — verifikasi Dodo | **PARTIAL (jujur)** | API key Dodo valid di **live_mode** (`GET /products` → **200**); webhook `pytest tests/test_dodo_webhook.py` → **11 passed**; **pembayaran sungguhan TIDAK diuji** (butuh kartu/akun pemilik) |
 
 ## 2. Angka Lighthouse (final)
 
-`scripts/fase5-lighthouse.cmd` (10 run) + `scripts/fase5-lighthouse-mobile.cmd` (3 run ulang):
+Angka yang berlaku sekarang: **satu batch 10 run, pada BUILD PRODUKSI** — `npm run
+build` lalu `npm run serve:static` (`out/` disajikan statis di `:3000`), dijalankan
+oleh `node scripts/fase5-lighthouse.mjs`. Semua 10 laporan **valid** (tidak ada
+`runtimeError`), tidak ada audit merah, dan **tidak ada audit merah berbobot 0**:
 
 | Rute | Desktop | Mobile |
 |---|---|---|
@@ -24,14 +27,33 @@ Tanggal: 2026-09-24. Branch `level-3-experiment`. Harness: **dev**
 | `/help` | **100** `[]` | **100** `[]` |
 | `/builder` | **100** `[]` | **100** `[]` |
 
-Catatan kejujuran: `/builder` mobile awalnya ber-skor `100` tetapi masih
-menyisakan satu audit berbobot **0** (`label-content-name-mismatch`). Skornya 100
-karena bobotnya nol, BUKAN karena bersih. Audit itu diperbaiki (§4.6) dan diukur
-ulang → `[]`.
+Verifikasi silang dari berkas bukti (bukan dari proses yang menjalankannya):
+
+```
+node scripts/fase5-lighthouse-read.mjs
+desktop /  100 lhf_desktop_root.json    2026-09-23 23:31:47 valid
+...  (10 baris, semuanya SKOR=100, GAGAL=[-], BOBOT0=[-])
+SEMUA_100
+```
+
+Batasan yang tetap berlaku: **semua halaman diukur TANPA SESI**, karena Lighthouse
+tidak bisa menanam sesi Supabase (disimpan di `localStorage`, bukan cookie).
+Halaman `/chat` karena itu tidak terukur (ia butuh sesi) — lihat §5.4.
+
+Catatan kejujuran: `/builder` mobile pernah ber-skor `100` tetapi masih menyisakan
+satu audit berbobot **0** (`label-content-name-mismatch`). Skornya 100 karena
+bobotnya nol, BUKAN karena bersih. Audit itu diperbaiki (§4.6) dan diukur ulang →
+`[]`. Pelajaran ini kini melekat di alat: `fase5-lighthouse-read.mjs` melaporkan
+`BOBOT0=[...]` secara terpisah, dan skrip pengukuran **menolak** laporan yang tidak
+valid (§7.2) alih-alih mencetak skornya.
 
 ## 3. Angka axe (final)
 
-`AXE_<route>` = daftar `id(impact)xjumlah`:
+`AXE_<route>` = daftar `id(impact)xjumlah`. Diukur ulang pada **build produksi**
+(server statis `out/`, artefak yang sama dengan §2): **23 tes lulus, seluruh
+`AXE_*` = `[]`**, dan `MODEL_TRIGGER` menampilkan nama model asli
+(`Gemma 4 31B`) sehingga aturan Label in Name benar-benar dievaluasi — bukan
+mengukur label kosong:
 
 | Keadaan | Rute | Hasil |
 |---|---|---|
@@ -103,9 +125,11 @@ ulang → `[]`.
 1. **Pembayaran Dodo end-to-end** — butuh akun+kartu pemilik. Yang dibuktikan
    hanya lapisan milik kita (kredensial live 200, tautan checkout di `.env.local`,
    webhook 11 tes).
-2. **Mobile `/billing` & `/help`** diukur pada batch yang sama SEBELUM perbaikan
-   `builder.canvasThemeShort`; rute itu tidak memakai tombol tema kanvas sehingga
-   tidak terpengaruh — tetapi secara metodologis angkanya bukan dari kode terakhir.
+2. **~~Mobile `/billing` & `/help` diukur pada batch sebelum perbaikan
+   `builder.canvasThemeShort`.~~ SUDAH DITUTUP.** Kedua rute itu kini diukur pada
+   batch produksi 10-run yang sama dengan rute lain (§2), jadi tidak ada lagi angka
+   yang berasal dari kode antara. (Rute tersebut memang tidak memakai tombol tema
+   kanvas, jadi hasilnya tidak berubah — yang berubah adalah kerapian bukti.)
 3. **Migrasi dijalankan pada database PRODUKSI bersama.** Sifatnya aditif +
    idempoten + reversible (ada `--rollback`), tetapi tetap perlu disadari: tabel
    `user_preferences` kini ada di project Supabase yang dipakai bersama.
@@ -131,8 +155,22 @@ cd c:\Users\user\Proyek_AI\nexus-frontend; $env:NEXT_PUBLIC_API_URL="http://127.
 npx playwright test -c playwright.dev.config.ts tests/fase5-a11y.spec.ts
 
 # Lighthouse 5 rute x 2 preset
+#  - `.cmd` untuk batch klasik (dev server di :3000)
+#  - `node scripts/fase5-lighthouse.mjs` untuk versi yang MEMVALIDASI laporan
+#    (menolak laporan `runtimeError`; toleran terhadap exit code non-nol dari bug
+#    pembersihan chrome-launcher di Windows)
+#  - diagnosa cepat SATU rute tanpa menunggu 10 run:
+$env:ONLY_ROUTE='/'; $env:ONLY_PRESET='desktop'; node scripts/fase5-lighthouse.mjs
+Remove-Item Env:ONLY_ROUTE, Env:ONLY_PRESET   # WAJIB dibersihkan (lihat §7.3)
 .\scripts\fase5-lighthouse.cmd
 .\scripts\fase5-lighthouse-mobile.cmd
+
+# Ukur pada BUILD PRODUKSI (metode yang dipakai untuk angka §2) -- lebih
+# representatif daripada dev server dan jauh lebih ringan di RAM:
+npm run build
+npm run serve:static          # out/ disajikan statis di :3000
+node scripts/fase5-lighthouse.mjs
+node scripts/fase5-lighthouse-read.mjs   # baca ulang artefak + cek validitas
 
 # migrasi (SELALU dry-run dulu)
 cd c:\Users\user\Proyek_AI
@@ -209,3 +247,71 @@ Frontend: `npx tsc --noEmit` -> 0 error; `npm run build` -> **SUCCESS** (9 rute)
 
 Artefak: commit `3cbfe5d` di branch `level-3-experiment`; PR #2 diperbarui
 (komentar `issuecomment-5800202124`) dan **tetap DRAFT** (tidak di-merge di fase ini).
+
+## 8. Jebakan alat ukur yang DITEMUKAN saat mengulang pengukuran (2026-09-24 pagi)
+
+Saat mencoba mengukur ulang agar semua 10 angka berasal dari satu batch, ketiga
+jebakan di bawah muncul berurutan. Semuanya menghasilkan **angka yang terlihat
+sah padahal bukan** — dan semuanya sudah ditutup di kode.
+
+### 8.1 Laporan Lighthouse bisa "berisi" walaupun halaman TIDAK PERNAH dimuat
+
+Dev server mati tepat saat batch dimulai (penyebabnya di §8.4: RAM). Chrome di
+dalam Lighthouse mendapat `ERR_CONNECTION_REFUSED` dan **Lighthouse tetap menulis
+berkas laporan**:
+`runtimeError = CHROME_INTERSTITIAL_ERROR`, `categories.accessibility.score = null`,
+dan **nol audit dinilai**. Skrip lama mencetak:
+
+```
+SKOR=0 GAGAL=[]        <-- terbaca "nol pelanggaran", padahal halaman tidak dimuat
+```
+
+Perbaikan: `fase5-lighthouse.mjs` **menolak** laporan dengan `runtimeError` /
+skor `null` (`TIDAK_VALID (...) audit_dinilai=0`), dan
+`fase5-lighthouse-read.mjs` menandai berkas seperti itu sebagai `TIDAK_VALID` +
+mencetak `PERINGATAN: N berkas TIDAK VALID` serta menahan `SEMUA_100`. Tanpa ini,
+sebuah server yang mati bisa dilaporkan sebagai "aksesibilitas tanpa pelanggaran".
+
+Bukti (berkas batch 06:00, sekarang ditolak):
+
+```
+PERINGATAN: 10 berkas TIDAK VALID (navigasi gagal) -- angkanya TIDAK boleh dipakai:
+desktop/=CHROME_INTERSTITIAL_ERROR, desktop/settings=CHROME_INTERSTITIAL_ERROR, ...
+```
+
+### 8.2 Exit code non-nol TIDAK berarti pengukuran gagal (bug Windows)
+
+`chrome-launcher` gagal menghapus profil sementaranya
+(`EPERM ... \Temp\lighthouse.<pid>`) **setelah** laporan selesai ditulis, sehingga
+`npx lighthouse` keluar dengan status non-nol. Batch `.cmd` pertama hari ini
+menghasilkan **9 error** semacam itu padahal 10 laporannya lengkap. Skrip lama
+langsung `continue` → laporan yang sah dibuang dan batch tampak gagal total.
+Perbaikan: kegagalan exit code dicatat (`EXIT_NONZERO ... berkas laporan tetap
+diperiksa`), lalu **berkasnya yang menentukan** valid/tidak.
+
+### 8.3 Kebocoran variabel lingkungan antar perintah = batch "10 run" yang hanya 1 run
+
+`ONLY_ROUTE`/`ONLY_PRESET` (filter diagnosa) yang diset untuk satu probe ternyata
+**terwarisi perintah berikutnya** di shell yang sama, sehingga "batch penuh" hanya
+mengukur 1 rute — dan karena guard-nya membandingkan dengan daftar rute yang
+tersisa, hasilnya mencetak **`SEMUA_100`** dari satu rute. Ini angka paling
+menyesatkan dari semuanya: hijau sempurna untuk cakupan 10%.
+Mitigasi sekarang: (a) guard menolak nilai `ONLY_ROUTE` yang tidak dikenal
+(terbukti menangkap `ONLY_ROUTE=" "` saat `set X=` menghasilkan spasi), (b) §6
+memuat `Remove-Item Env:ONLY_ROUTE, Env:ONLY_PRESET` sebagai langkah wajib,
+(c) ringkasan selalu mencetak jumlah hasil (`BELUM_SEMPURNA (N hasil...)`) sehingga
+batch yang tidak lengkap tidak pernah terlihat seperti batch penuh.
+
+### 8.4 Mengapa metode berubah ke build produksi
+
+Mesin ini punya **7,8 GB RAM dengan ~1,1 GB bebas** saat dev server hidup
+(dev = 526 MB). Chrome untuk Lighthouse butuh ratusan MB per run → dev server mati
+di tengah batch (§8.2/§8.1). `next dev` juga menyuntikkan perangkat dev (overlay)
+yang tidak ada di produksi. Karena itu angka §2 diukur pada `out/` hasil
+`npm run build` yang disajikan `scripts/serve-out.mjs` (`npm run serve:static`):
+lebih representatif (halaman yang benar-benar dikirim ke Cloudflare Pages) dan
+jauh lebih ringan, sehingga 10/10 laporan valid.
+
+Catatan tambahan: `next start` **tidak bisa** dipakai di project ini karena
+build-nya `output: "export"` — jawabannya persis itu, dan `serve:static` adalah
+jalur yang benar (tercatat di `scripts/serve-out.mjs` §1-8).
