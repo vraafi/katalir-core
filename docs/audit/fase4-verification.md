@@ -38,9 +38,20 @@ Total Playwright (semua suite, dev harness): **57/58** — 1 merah adalah BUG 1 
 | Desktop | **98** | `skip-link` |
 | Mobile | **97** | `skip-link`, `heading-order` |
 
-Di atas ambang misi (≥90). Dua audit yang ditemukan sudah diperbaiki setelah pengukuran dan **belum diukur ulang** (jujur: angka di tabel adalah sebelum perbaikan ini):
-1. `heading-order` — `CardTitle` dulu `<h3>` sehingga halaman akun melompat `h1 → h3`; kini `<h2>` (`src/components/ui/card.tsx`). Desktop terbukti naik 97 → **98** setelah perbaikan ini.
-2. `skip-link` — ditambahkan tautan "Lompat ke konten / Skip to content" (`common.skipToContent`) sebagai elemen fokusable pertama di `SimplePage`, dengan `<main id="main-content" tabIndex={-1}>` sebagai target fokus.
+Di atas ambang misi (≥90). Dua audit biner yang ditemukan:
+
+1. `heading-order` — **FIXED & terverifikasi**: `CardTitle` dulu `<h3>` sehingga
+   halaman akun melompat `h1 → h3`; kini `<h2>` (`src/components/ui/card.tsx`).
+   Pengukuran ulang desktop setelah perbaikan: **97 → 98** (audit `heading-order`
+   hilang dari daftar biner yang gagal).
+2. `skip-link` — **MASIH MERAH (belum selesai, jujur)**. Perbaikan yang dicoba:
+   tautan "Lompat ke konten / Skip to content" (`common.skipToContent`) sebagai
+   elemen fokusable pertama di `SimplePage`, terlihat saat fokus
+   (`sr-only focus:not-sr-only`), dengan `<main id="main-content" tabIndex={-1}>`
+   sebagai target. Pengukuran ulang desktop (`lh_d3.json`) tetap **98** dengan
+   `skip-link` masih merah → audit ini **TIDAK diklaim PASS** dan masuk backlog
+   FASE 5 (dugaan:audit menguji perilaku fokus setelah Enter atau mengharapkan
+   tautan di dalam landmark, bukan sebelum `<nav>`).
 
 ## 4. Motion + a11y yang ditambahkan
 
