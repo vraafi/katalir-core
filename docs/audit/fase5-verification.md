@@ -189,7 +189,10 @@ Artinya `data-testid="model-selector"` benar-benar ada & terlihat, dan gate
 `mounted` masih melepas (label netral "Memuat" tidak permanen).
 
 Verifikasi terakhir pada dev server bersih (setelah `.next` dihapus dan dev
-di-restart) — ini angka dari KODE YANG DI-COMMIT (`3cbfe5d`):
+di-restart) — ini angka dari KODE YANG DI-COMMIT. Angka di bawah diambil pada
+`3cbfe5d`; `git diff --stat 3cbfe5d..24aed79` membuktikan commit berikutnya hanya
+menyentuh `docs/audit/fase5-verification.md` + `playwright.dev.config.ts` (daftar
+spec harness), jadi tidak ada kode a11y/ui yang berubah di antaranya:
 
 ```
 AXE_/ = []   AXE_/chat = []   AXE_/settings = []   AXE_/billing = []
