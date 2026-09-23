@@ -87,7 +87,7 @@ export function Canvas({
   runState: "idle" | "running" | "ok" | "err";
 }) {
   const { theme } = useCanvasTheme();
-  const { screenToFlowPosition, fitView, zoomIn, zoomOut } = useReactFlow<FlowNode>();
+  const { screenToFlowPosition, fitView, zoomIn, zoomOut, setViewport } = useReactFlow<FlowNode>();
   const coarse = useIsCoarsePointer();
   const { run: runAutoLayout } = useAutoLayout();
 
@@ -130,6 +130,35 @@ export function Canvas({
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, [undo, redo]);
+
+  // FASE 4: pintasan zoom/fit kanvas (`+` `-` `0` `1`).
+  // Sebelumnya tombol-tombol ini hanya punya `title` berisi hint pintasan
+  // ("Fit View (0)") TANPA binding-nya — janji yang tidak ditepati, dan
+  // Cheat Sheet di /help akan berbohong. Sekarang benar-benar terpasang, dengan
+  // syarat sama seperti undo/redo: diabaikan saat fokus di kolom teks.
+  useEffect(() => {
+    function onKey(e: KeyboardEvent) {
+      const target = e.target as HTMLElement | null;
+      const tag = target?.tagName?.toLowerCase();
+      if (tag === "input" || tag === "textarea" || target?.isContentEditable) return;
+      if (e.metaKey || e.ctrlKey || e.altKey) return;
+      if (e.key === "+" || e.key === "=") {
+        e.preventDefault();
+        void zoomIn();
+      } else if (e.key === "-" || e.key === "_") {
+        e.preventDefault();
+        void zoomOut();
+      } else if (e.key === "0") {
+        e.preventDefault();
+        void fitView({ padding: 0.2, duration: 300 });
+      } else if (e.key === "1") {
+        e.preventDefault();
+        void setViewport({ x: 0, y: 0, zoom: 1 });
+      }
+    }
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [zoomIn, zoomOut, fitView, setViewport]);
 
   // Node yang boleh digeser: desktop semua; perangkat sentuh hanya node yang
   // sudah di-long-press (drag mode).

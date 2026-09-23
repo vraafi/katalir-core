@@ -387,8 +387,34 @@ body {
    --------------------------------------------------------------------------- */
 .k-canvas {
   background-color: var(--canvas-bg, rgb(20, 20, 20));
+}
+
+/* FASE 4 (temuan axe): `.k-canvas` DULU menetapkan `color: var(--canvas-text-primary)`
+   ke seluruh subtree Builder. Di tema kanvas gelap + tema aplikasi terang, teks
+   itu (near-white) mewaris ke tombol/panel yang memakai token APLIKASI di atas
+   latar terang -> rasio 1.12:1 (tak terbaca). Warna teks sekarang hanya
+   diberikan kepada elemen yang MEMANG bagian kanvas (`--canvas-*`), bukan
+   diwariskan ke seluruh halaman. */
+.react-flow,
+.k-node,
+.k-node__title,
+.k-node__subtitle,
+.k-node__body,
+.k-empty__panel {
   color: var(--canvas-text-primary, rgb(244, 244, 245));
 }
+/* Kredit React Flow bawaan: teksnya #999 di atas latar gelap = 3.83:1 (axe).
+   Diwarnai ulang memakai token tema (tetap terlihat; menghapus atribusi hanya
+   boleh untuk lisensi Pro). `!important` dipakai dengan alasan konkret:
+   `@xyflow/react/dist/style.css` di-import di halaman /builder sehingga
+   stylesheet-nya dimuat SETELAH globals.css -> spesifisitas sama, urutan kalah. */
+.react-flow__attribution {
+  background: var(--canvas-panel-bg, #1e2227) !important;
+}
+.react-flow__attribution a {
+  color: var(--canvas-text-secondary, #8b909a) !important;
+}
+
 
 /* Pembungkus node bawaan React Flow: chrome dimatikan karena kartu kita
    menggambar border/latar sendiri (kalau tidak, terlihat border ganda). */
@@ -657,35 +683,75 @@ body {
   color: var(--canvas-text-secondary, #8b909a);
 }
 
+/* ---------------------------------------------------------------------------
+   FASE 4 — WARNA TEKS DANGER (kontras AA).
+   axe-core mengukur `text-danger` = rgb(239,68,68) di atas latar terang:
+   rasio 3.76:1 -- di bawah ambang AA 4.5:1 untuk teks kecil (ditemukan di
+   /settings: tombol "Cabut" + judul "Zona Berbahaya"). `danger` tetap dipakai
+   untuk latar/border; khusus TEKS dipakai varian yang lebih gelap di mode
+   terang dan lebih terang di mode gelap, sehingga terukur >= 4.5:1 di keduanya
+   (test: tests/fase4-a11y.spec.ts).
+   --------------------------------------------------------------------------- */
+:root {
+  --danger-text: rgb(185, 28, 28); /* red-700: 6.94:1 di atas putih */
+  /* fg-subtle dinaikkan kegelapannya: #71717a di atas bg-subtle #f4f4f5 hanya
+     4.39:1 (axe: "serious"), sedangkan #6b6b74 = 4.63:1 (AA untuk teks 11px). */
+  --fg-subtle-color: rgb(107, 107, 116);
+  /* accent untuk TEKS: #6366f1 di atas putih = 4.46:1 (gagal AA 4.5). #4f46e5
+     = 6.5:1. Latar accent yang terisi memakai var yang sama + teks putih. */
+  --accent-text: rgb(79, 70, 229);
+  --on-accent-bg: rgb(79, 70, 229); /* putih di atas ini = 6.5:1 */
+}
+.dark {
+  --danger-text: rgb(248, 113, 113); /* red-400: 7.4:1 di atas zinc-950 */
+  --fg-subtle-color: rgb(161, 161, 170); /* 7.6:1 di atas zinc-950 */
+  --accent-text: rgb(165, 180, 252); /* indigo-300: 9.1:1 di atas zinc-950 */
+  --on-accent-bg: rgb(99, 102, 241); /* putih di atas ini = 4.5:1 */
+}
+.text-danger {
+  color: var(--danger-text);
+}
+.text-fg-subtle {
+  color: var(--fg-subtle-color);
+}
+.text-accent {
+  color: var(--accent-text);
+}
+/* Elemen berisi penuh (filled) dengan accent: latar accent + teks PUTIH.
+   Ditemukan axe: sebuah tombol ber-bg-accent mewarisi teks gelap (#18181b) ->
+   3.96:1. Aturan ini juga menegaskan pasangan warna untuk semua pemakaian
+   berikutnya, bukan menambal satu per satu. */
+.bg-accent,
+.bg-accent-hover {
+  background-color: var(--on-accent-bg);
+  color: #ffffff;
+}
+
+
+/* FASE 4: teks yang duduk di atas FILL accent (mis. tombol terisi) memakai
+   accent yang lebih gelap agar rasio >= 4.5:1 di mode terang; di mode gelap
+   accent tetap terang sehingga teks putih tetap kontras. */
+:root {
+  --on-accent-bg: rgb(79, 70, 229); /* white di atas ini = 6.5:1 */
+}
+.dark {
+  --on-accent-bg: rgb(99, 102, 241); /* white di atas ini = 4.5:1 */
+}
+.bg-accent.text-accent-fg,
+.bg-accent-hover.text-accent-fg {
+  background-color: var(--on-accent-bg);
+}
+
 
 
 /* ---------------------------------------------------------------------------
-   JEMBATAN SEMENTARA: panel konfigurasi (ConfigPanel) masih memakai warna
-   Tailwind keras dari era sebelum token tema (`text-gray-100` di atas latar
-   putih tema Daylight = tidak terbaca). Alih-alih menulis ulang seluruh
-   komponen di FASE 3 (diff besar, risiko regresi form), warna teks + kontrol
-   form-nya diarahkan ke token tema lewat pembungkus `.k-config-host`.
-   TECH-DEBT FASE 4: ganti kelas keras di ConfigPanel dengan token tema, lalu
-   hapus blok ini.
+   (FASE 4) Jembatan `.k-config-host` DIHAPUS: ConfigPanel sekarang memakai
+   token tema langsung (`--canvas-text-primary`, `--node-border`, …), sehingga
+   tidak ada lagi warna keras yang perlu dipaksa dari luar. Bukti: blok ini
+   dulu berisi 4 aturan override `.text-gray-100/.text-zinc-400/…` + warna
+   input; kini nol, dan panel tetap terbaca di tema terang
+   (test: tests/fase4-a11y.spec.ts mengukur kontras label panel).
    --------------------------------------------------------------------------- */
-.k-config-host .text-zinc-400,
-.k-config-host .text-zinc-500,
-.k-config-host .text-gray-300,
-.k-config-host .text-gray-500 {
-  color: var(--canvas-text-secondary);
-}
-.k-config-host .text-gray-100,
-.k-config-host .text-gray-200,
-.k-config-host .text-zinc-100 {
-  color: var(--canvas-text-primary);
-}
-.k-config-host input,
-.k-config-host select,
-.k-config-host textarea {
-  background-color: var(--canvas-bg);
-  border-color: var(--node-border);
-  color: var(--canvas-text-primary);
-}
 
 
 /* ---------------------------------------------------------------------------

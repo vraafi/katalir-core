@@ -96,6 +96,29 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     });
   }
 
+  /**
+   * FASE 4: pantulkan keadaan autentikasi ke DOM (`html[data-auth]`).
+   *
+   * Kenapa: perilaku aplikasi BERGANTUNG pada sesi (composer, daftar model,
+   * riwayat chat) dan perubahan itu baru diterapkan SETELAH hidrasi — jadi
+   * markup awal terlihat sama pada keadaan "belum login" dan "sudah login".
+   * Tanpa penanda yang bisa diamati, tes E2E mengisi form selagi handler React
+   * belum terpasang: DOM berubah tetapi state React tidak, tombol kirim tetap
+   * `disabled`, dan gejalanya terbaca "composer rusak" padahal tesnya balapan
+   * dengan hidrasi. Ini akar kegagalan `model-filter BUG 2/VALID` (2 dari 3 tes
+   * merah di FASE 3) dan sekelas dengan bug hidrasi kanvas FASE 3.
+   *
+   * Nilai: "loading" | "in" | "out". Tidak ada perubahan tampilan.
+   */
+  useEffect(() => {
+    const state = loading ? "loading" : email ? "in" : "out";
+    try {
+      document.documentElement.dataset.auth = state;
+    } catch {
+      /* abaikan */
+    }
+  }, [loading, email]);
+
   async function signOut() {
     await supabase.auth.signOut();
     setEmail(null);

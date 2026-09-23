@@ -2,6 +2,7 @@
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
 import { useSearchParams } from "next/navigation";
+import { apiFetch } from "@/lib/api";
 import {
   CANVAS_THEME_STORAGE_KEY,
   DEFAULT_CANVAS_THEME,
@@ -50,12 +51,45 @@ function applyToDom(id: CanvasThemeId) {
 }
 
 /**
- * Titik sambung persist server-side. Sengaja TIDAK memanggil endpoint apa pun
- * dulu: belum ada endpoint preferensi (lihat catatan di atas), dan memanggil
- * endpoint yang tidak ada hanya menghasilkan 404 + error konsol di tiap klik.
+ * Persist tema ke profil (Supabase, lewat backend) — FASE 4.
+ *
+ * Sebelumnya fungsi ini no-op karena belum ada endpoint preferensi. Sekarang
+ * endpoint ada (`PUT /preferences`), jadi:
+ *   - localStorage TETAP sumber utama (instan, offline-safe, tidak butuh login);
+ *   - sinkronisasi profil bersifat best-effort: gagal (401/offline/tabel belum
+ *     ada) TIDAK boleh mengganggu pemilihan tema — pemanggil tidak menunggu,
+ *     dan error ditelan dengan sengaja.
  */
-export function syncToProfile(_id: CanvasThemeId): void {
-  /* no-op by design — lihat dokumentasi gap di docblock provider. */
+export function syncToProfile(id: CanvasThemeId): void {
+  if (typeof window === "undefined") return;
+  void (async () => {
+    try {
+      const res = await apiFetch("/preferences", {
+        method: "PUT",
+        body: JSON.stringify({ prefs: { canvasTheme: id } }),
+        timeoutMs: 8000,
+      });
+      if (!res.ok) return; // 401 (belum login) / 404 (tabel belum ada): abaikan
+    } catch {
+      /* offline / backend mati: preferensi lokal tetap berlaku */
+    }
+  })();
+}
+
+/**
+ * Ambil tema tersimpan dari profil bila localStorage kosong (perangkat baru).
+ * Mengembalikan `null` bila tidak ada / gagal — pemanggil memakai default.
+ */
+export async function fetchThemeFromProfile(): Promise<CanvasThemeId | null> {
+  try {
+    const res = await apiFetch("/preferences", { timeoutMs: 8000 });
+    if (!res.ok) return null;
+    const data = (await res.json()) as { prefs?: { canvasTheme?: unknown } };
+    const theme = data?.prefs?.canvasTheme;
+    return isCanvasThemeId(theme) ? theme : null;
+  } catch {
+    return null;
+  }
 }
 
 export function CanvasThemeProvider({ children }: { children: ReactNode }) {
@@ -69,12 +103,16 @@ export function CanvasThemeProvider({ children }: { children: ReactNode }) {
   // nilai tersimpan pada efek pertama.
   useEffect(() => {
     let next: CanvasThemeId = DEFAULT_CANVAS_THEME;
+    let fromLocal: CanvasThemeId | null = null;
     if (isCanvasThemeId(themeFromUrl)) {
       next = themeFromUrl;
     } else {
       try {
         const saved = window.localStorage.getItem(CANVAS_THEME_STORAGE_KEY);
-        if (isCanvasThemeId(saved)) next = saved;
+        if (isCanvasThemeId(saved)) {
+          next = saved;
+          fromLocal = saved;
+        }
       } catch {
         /* localStorage diblokir (private mode) -> pakai default, jangan crash */
       }
@@ -82,6 +120,17 @@ export function CanvasThemeProvider({ children }: { children: ReactNode }) {
     setThemeId(next);
     applyToDom(next);
     setMounted(true);
+
+    // FASE 4: perangkat baru (localStorage kosong) -> ambil tema dari profil.
+    // Best-effort: kalau gagal/ belum login, tetap pakai default. Tidak boleh
+    // memblokir render pertama (karena itu tidak di-await di atas).
+    if (!fromLocal && !isCanvasThemeId(themeFromUrl)) {
+      void fetchThemeFromProfile().then((remote) => {
+        if (!remote) return;
+        setThemeId(remote);
+        applyToDom(remote);
+      });
+    }
   }, [themeFromUrl]);
 
   const setTheme = useCallback((id: CanvasThemeId) => {

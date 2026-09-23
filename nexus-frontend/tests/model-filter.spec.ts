@@ -188,6 +188,24 @@ async function seedSession(page: Page, session: Session): Promise<void> {
   );
 }
 
+/**
+ * Tunggu aplikasi SIAP DIINTERAKSI: hidrasi React selesai DAN sesi sudah
+ * diterapkan (`html[data-auth="in"]`).
+ *
+ * Kenapa wajib (akar kegagalan FASE 3, 2 dari 3 tes merah):
+ * markup hasil render server untuk keadaan "belum login" dan "sudah login"
+ * TERLIHAT SAMA; sesi baru diterapkan setelah hidrasi. Tes yang mengisi form
+ * sebelum itu mengubah DOM tanpa mengubah state React -> tombol kirim tetap
+ * `disabled` -> `waitForResponse('/chat')` timeout, dan gejalanya menyesatkan
+ * ("composer rusak") padahal tesnya balapan dengan hidrasi. Penanda
+ * `data-hydrated`/`data-auth` dipasang oleh HidrationReady + AuthProvider
+ * (FASE 4) supaya balapan ini bisa dihilangkan, bukan ditebak.
+ */
+async function waitAppReady(page: Page): Promise<void> {
+  await page.waitForSelector("html[data-hydrated='true']", { timeout: 45000 });
+  await page.waitForSelector("html[data-auth='in']", { timeout: 45000 });
+}
+
 /** Rekam SETIAP respons /models + /chat (observasi, bukan mock). */
 function track(page: Page) {
   const models: { url: string; status: number; body: unknown }[] = [];
@@ -272,6 +290,7 @@ test.describe("PRODUKSI: filter model paid-only + badge fallback (tanpa mock)", 
       .catch(() => null);
 
     await page.goto("/", { waitUntil: "domcontentloaded" });
+    await waitAppReady(page);
 
     // Buka selector supaya daftar benar-benar dirender dari GET /models.
     const trigger = page.locator("button[aria-label='Pilih model AI']");
@@ -370,6 +389,7 @@ test.describe("PRODUKSI: filter model paid-only + badge fallback (tanpa mock)", 
 
     const { chats } = track(page);
     await page.goto("/", { waitUntil: "domcontentloaded" });
+    await waitAppReady(page);
 
     const input = page.locator('[data-testid="composer-input"]');
     await expect(input).toBeVisible({ timeout: 20000 });
@@ -379,7 +399,7 @@ test.describe("PRODUKSI: filter model paid-only + badge fallback (tanpa mock)", 
       (r) => r.url().includes("/chat") && r.request().method() === "POST",
       { timeout: 60000 }
     );
-    await page.locator('button[type="submit"]').click();
+    await page.locator('[data-testid="composer-send"]').click();
     const resp = await chatResp;
     expect(resp.url().startsWith(API_ORIGIN), `bundle membidik origin lain: ${resp.url()}`).toBe(true);
     const body = await resp.json();
@@ -445,6 +465,7 @@ test.describe("PRODUKSI: filter model paid-only + badge fallback (tanpa mock)", 
 
     const { chats } = track(page);
     await page.goto("/", { waitUntil: "domcontentloaded" });
+    await waitAppReady(page);
 
     const input = page.locator('[data-testid="composer-input"]');
     await expect(input).toBeVisible({ timeout: 20000 });
@@ -454,7 +475,7 @@ test.describe("PRODUKSI: filter model paid-only + badge fallback (tanpa mock)", 
       (r) => r.url().includes("/chat") && r.request().method() === "POST",
       { timeout: 60000 }
     );
-    await page.locator('button[type="submit"]').click();
+    await page.locator('[data-testid="composer-send"]').click();
     const resp = await chatResp;
     expect(resp.url().startsWith(API_ORIGIN), `bundle membidik origin lain: ${resp.url()}`).toBe(true);
     const body = await resp.json();

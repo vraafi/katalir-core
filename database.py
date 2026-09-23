@@ -10,6 +10,14 @@
 #                     api_token text not null, created_at timestamptz default now(),
 #                     updated_at timestamptz default now(),
 #                     unique(user_email, provider_name));
+#
+# FASE 4 -- preferensi UI (tema kanvas, dsb):
+#   user_preferences(user_email text primary key,
+#                    prefs jsonb not null default '{}'::jsonb,
+#                    updated_at timestamptz default now());
+#   CATATAN: tabel ini ADITIF dan opsional. Kode di bawah memakai tabel itu bila
+#   sudah ada (Supabase), dan jatuh ke penyimpanan memori bila belum -- sehingga
+#   fitur tetap jalan tanpa memaksa migration ke database produksi.
 
 import os
 from datetime import datetime, timedelta, timezone
@@ -45,6 +53,7 @@ _LMSG = {}
 _LINT = {}      # (email, provider) -> {"api_token":..., "updated_at":...}
 _LVAULT = {}    # email -> {provider: encrypted_key}   (in-memory vault fallback)
 _LWORKFLOW = {}  # workflow_id -> row (fallback memori saat Supabase tidak aktif)
+_LPREF = {}     # email -> dict preferensi UI (fallback memori; tabel user_preferences)
 _SEQ = [0]
 
 
@@ -1324,3 +1333,54 @@ def increment_quota(email: str, model_id: str) -> dict:
     used = int(row.get("daily_%s" % bucket, 0) or 0) + 1
     _quota_write(email, {"daily_%s" % bucket: used})
     return {"bucket": bucket, "used": used, "via": "fallback"}
+
+# ---------------------------------------------------------------------------
+# FASE 4: preferensi UI per user (tema kanvas, dsb).
+#
+# Kenapa ada di sini: FASE 3 menyimpan tema kanvas hanya di localStorage
+# (per-browser). Misi FASE 4 meminta persist ke profil Supabase. Backend repo ini
+# memakai PostgREST (bukan SQL mentah), jadi "migration" = membuat tabel
+# `user_preferences` di Supabase; DDL-nya didokumentasikan di kepala modul ini.
+#
+# KEAMANAN OPERASIONAL: bila tabel belum ada, kode ini TIDAK melempar 5xx ke
+# user -- ia jatuh ke penyimpanan memori `_LPREF` (pola fallback yang sama
+# dipakai tabel lain di modul ini). Jadi fitur tidak pernah memaksa migration
+# ke database PRODUKSI hanya supaya endpoint-nya tidak 500.
+# ---------------------------------------------------------------------------
+def save_user_preferences(email: str, prefs: dict) -> dict:
+    """Upsert preferensi UI (dict JSON) untuk satu email. Kembalikan yang tersimpan."""
+    email = (email or "").strip()
+    if not email:
+        raise HTTPException(status_code=400, detail="email kosong")
+    payload = dict(prefs or {})
+    if is_configured():
+        try:
+            c = _get_client()
+            row = {"user_email": email, "prefs": payload,
+                   "updated_at": datetime.now(timezone.utc).isoformat()}
+            c.table("user_preferences").upsert(row, on_conflict="user_email").execute()
+            return payload
+        except Exception:  # noqa: BLE001 -- tabel belum ada / RLS: pakai fallback
+            pass
+    _LPREF[email] = payload
+    return payload
+
+
+def get_user_preferences(email: str) -> dict:
+    """Preferensi UI user; {} bila belum pernah disimpan."""
+    email = (email or "").strip()
+    if not email:
+        return {}
+    if is_configured():
+        try:
+            c = _get_client()
+            res = c.table("user_preferences").select("prefs").eq("user_email", email).execute()
+            if res.data:
+                val = res.data[0].get("prefs")
+                if isinstance(val, dict):
+                    return val
+            return {}
+        except Exception:  # noqa: BLE001
+            pass
+    return dict(_LPREF.get(email, {}))
+

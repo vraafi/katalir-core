@@ -1178,6 +1178,40 @@ def me(authorization: str | None = Header(None)):
 
 
 # ---------------------------------------------------------------------------
+# ENDPOINT: GET /preferences + PUT /preferences  (FASE 4)
+#
+# Preferensi UI per user (tema kanvas dst) supaya pilihan tidak hilang saat
+# berpindah browser/perangkat. localStorage TETAP sumber utama di klien
+# (instan, offline-safe); endpoint ini sinkronisasi profil.
+#
+# Tabel `user_preferences` bersifat ADITIF & opsional -- lihat catatan di
+# kepala `database.py`. Bila belum dibuat, penyimpanan jatuh ke memori proses
+# dan endpoint TETAP 200 (bukan 500), sehingga klien tidak pernah rusak karena
+# migration yang belum dijalankan.
+# ---------------------------------------------------------------------------
+class PreferencesBody(BaseModel):
+    prefs: dict[str, Any] = Field(default_factory=dict)
+
+
+@app.get("/preferences")
+def get_preferences(authorization: str | None = Header(None)):
+    """Preferensi UI user JWT (kosong bila belum pernah disimpan)."""
+    user = security.get_current_user(authorization)
+    prefs = db.get_user_preferences(user["email"])
+    return {"status": "success", "prefs": prefs}
+
+
+@app.put("/preferences")
+def put_preferences(body: PreferencesBody, authorization: str | None = Header(None)):
+    """Simpan (merge) preferensi UI user JWT. Kunci yang tidak dikirim tetap utuh."""
+    user = security.get_current_user(authorization)
+    merged = dict(db.get_user_preferences(user["email"]))
+    merged.update({k: v for k, v in (body.prefs or {}).items() if isinstance(k, str)})
+    saved = db.save_user_preferences(user["email"], merged)
+    return {"status": "success", "prefs": saved}
+
+
+# ---------------------------------------------------------------------------
 # ENDPOINT 1a-2: GET /quota  (kuota HARIAN per model — untuk dashboard & warning)
 # ---------------------------------------------------------------------------
 @app.get("/quota")

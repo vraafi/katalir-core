@@ -87,6 +87,15 @@ test("E2E supabase asli: login ter-inject + kirim pesan TIDAK 401 & TIDAK 5xx", 
   await page.goto(TARGET + "/", { waitUntil: "domcontentloaded", timeout: 60000 }).catch((e) => {
     console.log("GOTO_ERR=" + String(e));
   });
+  // FASE 4: tunggu hidrasi + sesi BENAR-BENAR diterapkan sebelum memeriksa email.
+  // Penanda `html[data-hydrated]`/`html[data-auth]` dipasang aplikasi; tanpa ini
+  // pemeriksaan `getByText(email)` bisa berlomba dengan penerapan sesi dan gagal
+  // dengan pesan "injeksi session gagal" (padahal sesinya sah).
+  // Batas 15 detik (bukan 45): spec ini punya batas waktu sendiri, jadi menunggu
+  // terlalu lama membuat Playwright menutup halaman dan gejalanya berubah jadi
+  // "context has been closed" — pesan yang menyesatkan.
+  await page.waitForSelector("html[data-hydrated='true']", { timeout: 15000 }).catch(() => {});
+  await page.waitForSelector("html[data-auth='in']", { timeout: 15000 }).catch(() => {});
   await page.waitForTimeout(4000);
 
   const shell = await page.getByText("Katalir").count();

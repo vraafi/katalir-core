@@ -19,7 +19,9 @@ export function CardHeader({ className, ...props }: React.HTMLAttributes<HTMLDiv
 }
 
 export function CardTitle({ className, ...props }: React.HTMLAttributes<HTMLHeadingElement>) {
-  return <h3 className={cn("text-title3 text-fg", className)} {...props} />;
+  // FASE 4 (Lighthouse `heading-order`): dulu <h3> sehingga halaman akun melompat
+  // h1 -> h3. <h2> adalah tingkat yang benar di bawah <h1> halaman.
+  return <h2 className={cn("text-title3 text-fg", className)} {...props} />;
 }
 
 export function CardDescription({ className, ...props }: React.HTMLAttributes<HTMLParagraphElement>) {

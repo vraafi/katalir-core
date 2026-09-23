@@ -34,11 +34,14 @@ export default defineConfig({
   testMatch: [
     "canvas-fase3.spec.ts",
     "canvas-theme.spec.ts",
+    "fase4-pages.spec.ts",
+    "fase4-a11y.spec.ts",
     // Regresi yang diminta misi FASE 3 + rute menyeluruh; ikut di harness dev
     // karena harness build-produksi tidak selesai di mesin ini (lihat catatan
     // di atas dan docs/audit/fase3-verification.md).
     "model-filter.spec.ts",
     "routes-no-crash.spec.ts",
+    "chat-auth.spec.ts",
   ],
   testIgnore: ["**/_probes/**"],
   timeout: 90000,

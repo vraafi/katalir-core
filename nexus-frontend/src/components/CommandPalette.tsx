@@ -67,7 +67,7 @@ export function CommandPalette({ onNewChat, onNewWorkflow }: PaletteProps) {
       { id: "chat", icon: MessageSquare, label: t("nav.chat"), run: () => go("/") },
       { id: "builder", icon: Workflow, label: t("nav.builder"), run: () => go("/builder") },
       { id: "new-chat", icon: Plus, label: t("nav.newChat"), run: () => { setOpen(false); onNewChat(); } },
-      { id: "new-wf", icon: Plus, label: "Workflow baru", run: () => { setOpen(false); onNewWorkflow(); } },
+      { id: "new-wf", icon: Plus, label: t("palette.newWorkflow"), run: () => { setOpen(false); onNewWorkflow(); } },
       { id: "settings", icon: Settings, label: t("userMenu.settings"), run: () => go("/settings") },
       { id: "billing", icon: CreditCard, label: t("userMenu.billing"), run: () => go("/billing") },
       { id: "help", icon: HelpCircle, label: t("userMenu.help"), run: () => go("/help") },
@@ -92,21 +92,21 @@ export function CommandPalette({ onNewChat, onNewWorkflow }: PaletteProps) {
     <Command.Dialog
       open={open}
       onOpenChange={setOpen}
-      label="Command palette"
+      label={t("palette.label")}
       className="fixed left-1/2 top-[18vh] z-[100] w-[92vw] max-w-lg -translate-x-1/2 overflow-hidden rounded-md border border-border bg-surface-elevated shadow-lg"
     >
       <div className="flex items-center gap-2 border-b border-border px-3">
         <Search size={15} strokeWidth={1.75} className="shrink-0 text-fg-subtle" aria-hidden />
         <Command.Input
-          placeholder="Ketik perintah atau cari…"
+          placeholder={t("palette.placeholder")}
           className="h-11 w-full bg-transparent text-callout text-fg outline-none placeholder:text-fg-subtle"
         />
       </div>
       <Command.List className="max-h-[50vh] overflow-y-auto p-1.5">
         <Command.Empty className="px-3 py-6 text-center text-footnote text-fg-subtle">
-          Tidak ada hasil.
+          {t("palette.empty")}
         </Command.Empty>
-        <Command.Group heading="Perintah">
+        <Command.Group heading={t("palette.group")}>
           {items.map((it) => (
             <Command.Item
               key={it.id}
@@ -120,9 +120,9 @@ export function CommandPalette({ onNewChat, onNewWorkflow }: PaletteProps) {
         </Command.Group>
       </Command.List>
       <div className="flex items-center gap-3 border-t border-border px-3 py-2 text-footnote text-fg-subtle">
-        <span><kbd className="rounded border border-border bg-bg-subtle px-1">↑↓</kbd> navigasi</span>
-        <span><kbd className="rounded border border-border bg-bg-subtle px-1">↵</kbd> jalankan</span>
-        <span><kbd className="rounded border border-border bg-bg-subtle px-1">esc</kbd> tutup</span>
+        <span><kbd className="rounded border border-border bg-bg-subtle px-1">↑↓</kbd> {t("palette.navHint")}</span>
+        <span><kbd className="rounded border border-border bg-bg-subtle px-1">↵</kbd> {t("palette.runHint")}</span>
+        <span><kbd className="rounded border border-border bg-bg-subtle px-1">esc</kbd> {t("palette.closeHint")}</span>
       </div>
     </Command.Dialog>
   );

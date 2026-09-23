@@ -319,7 +319,7 @@ export function BuilderInner() {
               <X size={15} strokeWidth={1.75} />
             </Button>
           </div>
-          <div className="k-config-host">
+          <div data-testid="config-panel-host">
             <ConfigPanel node={selectedNode} setNodeCfg={setNodeCfg} apiUrl={API_URL} workflowId={savedId} />
           </div>
         </aside>
@@ -346,7 +346,7 @@ export function BuilderInner() {
         description={selectedNode ? (selectedNode.data?.label ?? selectedNode.data?.kind) : undefined}
       >
         {selectedNode && (
-          <div className="k-config-host">
+          <div data-testid="config-panel-host">
             <ConfigPanel node={selectedNode} setNodeCfg={setNodeCfg} apiUrl={API_URL} workflowId={savedId} />
           </div>
         )}

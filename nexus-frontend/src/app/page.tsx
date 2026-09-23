@@ -32,7 +32,13 @@ import { autoRunWorkflow } from "@/features/agent/auto-run";
 import { Thread } from "@/features/chat/thread";
 import type { Msg } from "@/features/chat/thread";
 
-const SUGGESTIONS = ["Kirim pesan WA", "Rangkum dokumen", "Analisis data"];
+/** FASE 4: saran di empty state diambil dari i18n, bukan konstanta ID.
+ *  Sebelumnya array ini hardcoded bahasa Indonesia, sehingga dengan locale EN
+ *  halaman menampilkan judul EN + saran ID (temuan inkonsistensi FASE 2 yang
+ *  dulu salah diatribusikan ke `detectLocale`). */
+function suggestionsFor(t: (k: string) => string): string[] {
+  return [t("chat.suggestion1"), t("chat.suggestion2"), t("chat.suggestion3")];
+}
 
 
 
@@ -109,8 +115,11 @@ function QuotaBar({ label, used, limit }: { label: string; used: number; limit: 
   );
 }
 
-/** Panel kuota: progress bar per model + total + jam reset (WIB). */
+/** Panel kuota: progress bar per model + total + jam reset (WIB).
+ *  FASE 4: seluruh label diambil dari i18n (`quota.*`) — sebelumnya teks ID
+ *  ditulis langsung di JSX, sehingga locale EN tetap menampilkan "Kuota … hari ini". */
 function QuotaPanel({ quota }: { quota: QuotaStatus | null }) {
+  const { t } = useI18n();
   if (!quota || !quota.buckets) return null;
   const labels = quota.labels ?? QUOTA_LABELS_FALLBACK;
   const shown = QUOTA_ORDER.filter((b) => (quota.buckets[b]?.limit ?? 0) > 0);
@@ -119,7 +128,7 @@ function QuotaPanel({ quota }: { quota: QuotaStatus | null }) {
   return (
     <div className="mb-2 flex flex-col gap-2 rounded-lg border border-border/60 bg-surface/70 px-3 py-2 backdrop-blur">
       <div className="flex items-center justify-between text-[11px] font-semibold uppercase tracking-wide text-fg-subtle">
-        <span>Kuota {quota.tier} — hari ini</span>
+        <span>{t("quota.title", { tier: quota.tier })}</span>
         <span>{pct}%</span>
       </div>
       {shown.map((b) => (
@@ -131,22 +140,27 @@ function QuotaPanel({ quota }: { quota: QuotaStatus | null }) {
         />
       ))}
       <div className="text-[11px] text-fg-subtle">
-        Total: {quota.used_total} / {quota.limit_total} request · Reset: besok 00:00 WIB
+        {t("quota.total")}: {quota.used_total} / {quota.limit_total} {t("quota.request")} ·{" "}
+        {t("quota.reset")}
       </div>
     </div>
   );
 }
 
-/** Warning pre-flight (spesifikasi bisnis): Flash sisa < 5, Pro sisa < 2. */
-function quotaWarning(quota: QuotaStatus | null): string | null {
+/** Warning pre-flight (spesifikasi bisnis): Flash sisa < 5, Pro sisa < 2.
+ *  FASE 4: pesan dari i18n (`quota.warnPro`/`quota.warnFlash`). */
+function quotaWarning(
+  quota: QuotaStatus | null,
+  t: (k: string, p?: Record<string, string | number>) => string
+): string | null {
   if (!quota?.buckets) return null;
   const p = quota.buckets.pro;
   const f = quota.buckets.flash;
   if (p && p.limit > 0 && p.remaining < 2) {
-    return `Kuota DeepSeek Pro hampir habis (sisa ${p.remaining} request hari ini).`;
+    return t("quota.warnPro", { n: p.remaining });
   }
   if (f && f.limit > 0 && f.remaining < 5) {
-    return `Kuota DeepSeek Flash hampir habis (sisa ${f.remaining} request hari ini).`;
+    return t("quota.warnFlash", { n: f.remaining });
   }
   return null;
 }
@@ -682,7 +696,7 @@ function ChatApp() {
       }
       await sendPrompt(original);
     } catch {
-      alert("Gagal menyimpan kredensial.");
+      alert(t("chat.credSaveFailed"));
     }
   }
 
@@ -701,7 +715,7 @@ function ChatApp() {
         // Laporan gagal ditulis BUKAN alasan menutupi: beri tahu apa adanya.
         setRunReports((prev) => [
           ...prev,
-          { id: rid, text: "Gagal menjalankan workflow (kesalahan tak terduga)." },
+          { id: rid, text: t("chat.workflowFailed") },
         ]);
       } finally {
         setRunPending(false);
@@ -749,14 +763,14 @@ return (
             className="w-full max-w-sm rounded-md border border-border bg-surface p-5 shadow-md"
             onClick={(e) => e.stopPropagation()}
           >
-            <p className="text-subhead font-semibold text-fg">AI sedang bekerja di chat ini.</p>
+            <p className="text-subhead font-semibold text-fg">{t("chat.newChatBusyTitle")}</p>
             <p className="mt-1.5 text-footnote text-fg-muted">
-              Yakin pindah ke chat baru? Reply tetap diproses dan muncul di riwayat.
-              {messageQueue.length > 0 ? ` (${messageQueue.length} pesan antrean ikut dibatalkan)` : ""}
+              {t("chat.newChatBusyDesc")}
+              {messageQueue.length > 0 ? t("chat.newChatBusyQueue", { n: messageQueue.length }) : ""}
             </p>
             <div className="mt-4 flex justify-end gap-2">
               <Button variant="secondary" onClick={() => setConfirmNewChat(false)}>
-                Tetap di sini
+                {t("chat.stayHere")}
               </Button>
               <Button
                 onClick={() => {
@@ -781,10 +795,9 @@ return (
             {!loading && !activeEmail ? (
               <FadeIn className="m-auto flex w-full flex-col items-center text-center">
                 <Bot size={48} strokeWidth={1.25} className="text-fg-subtle" />
-                <h2 className="mt-4 text-title3 font-semibold text-fg">Silakan masuk dulu</h2>
+                <h2 className="mt-4 text-title3 font-semibold text-fg">{t("chat.loginTitle")}</h2>
                 <p className="mt-1 max-w-sm text-callout text-fg-muted">
-                  Gunakan tombol "Login dengan Google" di pojok kanan atas
-                  untuk memulai percakapan.
+                  {t("chat.loginHint")}
                 </p>
               </FadeIn>
             ) : messages.length === 0 && !loadingMsg ? (
@@ -793,10 +806,10 @@ return (
                   <Sparkles size={52} strokeWidth={1.25} className="text-accent drop-shadow-md" />
                 </div>
                 <h2 className="mt-5 text-title2 font-bold tracking-tight">
-                  Halo, ada yang bisa saya bantu hari ini?
+                  {t("chat.greeting")}
                 </h2>
                 <div className="mt-6 grid w-full max-w-md grid-cols-3 gap-3">
-                  {SUGGESTIONS.map((s) => (
+                  {suggestionsFor(t).map((s) => (
                     <button
                       key={s}
                       onClick={() => sendPrompt(s)}
@@ -866,12 +879,12 @@ return (
                   type="button"
                   onClick={() => setQueueExpanded((v) => !v)}
                   aria-expanded={queueExpanded}
-                  aria-label={queueExpanded ? "Tutup antrean" : "Buka antrean"}
+                  aria-label={queueExpanded ? t("chat.queue.close") : t("chat.queue.open")}
                   data-testid="queue-toggle"
                   className="flex items-center gap-1.5 text-footnote text-fg-muted transition-opacity hover:text-fg"
                 >
                   <Clock size={12} strokeWidth={1.75} />
-                  <span>Antrean ({messageQueue.length})</span>
+                  <span>{t("chat.queue.title", { n: messageQueue.length })}</span>
                   {queueExpanded ? <ChevronDown size={12} /> : <ChevronRight size={12} />}
                 </button>
                 {!queueExpanded && messageQueue[0] && (
@@ -887,10 +900,10 @@ return (
                       setEditingId(null);
                       setMessageQueue([]);
                     }}
-                    aria-label="Hapus semua antrean"
+                    aria-label={t("chat.queue.clearAll")}
                     className="ml-auto text-footnote text-fg-muted underline underline-offset-2 transition-opacity hover:text-fg"
                   >
-                    Clear all
+                    {t("chat.queue.clearAll")}
                   </button>
                 )}
               </div>
@@ -919,13 +932,13 @@ return (
                                 setEditingId(null);
                               }
                             }}
-                            aria-label="Ubah teks antrean"
+                            aria-label={t("chat.queue.editText")}
                             autoFocus
                             className="h-7 min-w-0 flex-1 rounded-sm bg-bg px-2 text-footnote text-fg outline-none"
                           />
                           <button
                             type="button"
-                            aria-label="Simpan edit antrean"
+                            aria-label={t("chat.queue.saveEdit")}
                             onClick={() => {
                               const t = editText.trim();
                               if (t) setMessageQueue((prev) => prev.map((m) => (m.id === q.id ? { ...m, text: t } : m)));
@@ -933,11 +946,11 @@ return (
                             }}
                             className="shrink-0 rounded-sm px-1.5 py-1 text-footnote font-medium underline underline-offset-2"
                           >
-                            Simpan
+                            {t("chat.queue.save")}
                           </button>
                           <button
                             type="button"
-                            aria-label="Batal edit antrean"
+                            aria-label={t("chat.queue.cancelEdit")}
                             onClick={() => setEditingId(null)}
                             className="shrink-0 rounded-sm p-1 opacity-80 hover:opacity-100"
                           >
@@ -948,11 +961,11 @@ return (
                         <>
                           <span className="min-w-0 flex-1 truncate text-fg">{q.text}</span>
                           <span className="shrink-0 rounded-full border border-current/30 px-1.5 py-px text-[10px] font-medium uppercase tracking-wide text-fg-muted">
-                            Queued
+                            {t("chat.queue.badge")}
                           </span>
                           <button
                             type="button"
-                            aria-label="Edit antrean"
+                            aria-label={t("chat.queue.edit")}
                             onClick={() => {
                               setEditingId(q.id);
                               setEditText(q.text);
@@ -963,7 +976,7 @@ return (
                           </button>
                           <button
                             type="button"
-                            aria-label="Hapus antrean"
+                            aria-label={t("chat.queue.remove")}
                             onClick={() => {
                               if (editingId === q.id) setEditingId(null);
                               setMessageQueue((prev) => prev.filter((m) => m.id !== q.id));
@@ -1021,10 +1034,10 @@ return (
                 {t("chat.workflowRunning")}
               </p>
             )}
-            {activeEmail && quotaWarning(quota) && (
+            {activeEmail && quotaWarning(quota, t) && (
               <p className="mb-2 flex items-center gap-1.5 text-[11px] font-medium text-amber-500">
                 <AlertTriangle size={12} strokeWidth={2} />
-                {quotaWarning(quota)}
+                {quotaWarning(quota, t)}
               </p>
             )}
             <form
@@ -1067,7 +1080,7 @@ return (
                 aria-label={showStop ? t("chat.stop") : t("chat.send")}
                 onClick={showStop ? onStop : undefined}
                 disabled={showStop ? false : !input.trim()}
-                className="shrink-0"
+                data-testid="composer-send"
               >
                 {showStop ? <Square size={16} strokeWidth={1.75} /> : <Send size={16} strokeWidth={1.75} />}
               </Button>

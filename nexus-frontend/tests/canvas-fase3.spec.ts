@@ -469,9 +469,10 @@ test("C12 mobile tap node membuka panel konfigurasi (sheet) + ?n=<id>", async ({
   console.log(`C12 dialog=${await dialog.count()} urlNode=${urlNode}`);
   expect(urlNode, "?n= tidak di-set saat node dipilih").toBeTruthy();
   // Panel konfigurasi ada di Sheet (dialog) di mobile. Di-scope ke dialog:
-  // saat ada node terpilih, elemen `.k-config-host` desktop (aside) juga
-  // ter-render walau `hidden` di mobile — tanpa scope, locator ambigu.
-  await expect(page.locator('[role="dialog"] .k-config-host')).toBeVisible();
+  // saat ada node terpilih, elemen panel desktop (aside) juga ter-render walau
+  // `hidden` di mobile — tanpa scope, locator ambigu. Testid `config-panel-host`
+  // menggantikan kelas `.k-config-host` yang DIHAPUS di FASE 4 (backlog #5).
+  await expect(page.locator('[role="dialog"] [data-testid="config-panel-host"]')).toBeVisible();
   await ctx.close();
 });
 
