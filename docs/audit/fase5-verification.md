@@ -121,6 +121,12 @@ ulang → `[]`.
 cd c:\Users\user\Proyek_AI; python api_server.py
 cd c:\Users\user\Proyek_AI\nexus-frontend; $env:NEXT_PUBLIC_API_URL="http://127.0.0.1:8000"; npm run dev
 
+# PENTING (terbukti di fase ini): JANGAN menjalankan `npm run build` saat dev
+# masih hidup. Build dan dev memakai folder `.next` yang sama; setelah build,
+# `/` menjawab **500** (rute lain masih 200, jadi gejalanya menyesatkan).
+# Pemulihan: matikan dev, hapus `nexus-frontend/.next`, jalankan `npm run dev`
+# lagi (dilakukan di sini dan semua rute kembali 200).
+
 # a11y (axe: WCAG + best-practice; bersesi & tanpa sesi)
 npx playwright test -c playwright.dev.config.ts tests/fase5-a11y.spec.ts
 
@@ -140,3 +146,63 @@ python _verify_prefs_persistence.py     # PUT/GET /preferences + baris di Postgr
 python _verify_dodo_live.py             # kredensial + tautan checkout Dodo
 python -m pytest tests/test_dodo_webhook.py -q
 ```
+
+## 7. Hasil regresi penuh (semua suite, bukan hanya a11y)
+
+```
+npx playwright test -c playwright.dev.config.ts      ->  80 passed, 1 failed  (8.7m)
+  1 failed: tests/model-filter.spec.ts:267 "BUG 1 -- /models & selector
+            produksi tidak menyajikan model paid-only"
+            MODELS_COUNT=9  FORBIDDEN_HITS=[]   <-- filter kita bersih;
+            upstream memang tidak mengirim model berkuota besar (sama seperti FASE 4)
+```
+
+Bukti suite lain di run yang sama (semuanya hijau):
+
+| Suite | Bukti dari log |
+|---|---|
+| `fase5-a11y` | `23 passed`; `AXE_*` = `[]` di 7 rute bersesi, 3 rute tanpa sesi, dan `/builder+nodes` |
+| `canvas-*` | lulus (termasuk `canvas-theme.spec.ts` yang mengunci `--canvas-accent`) |
+| `fase4-*` | lulus |
+| `model-filter` | lulus kecuali BUG 1 di atas |
+| `chat-auth` | lulus — `EMAIL_VISIBLE=2`, `CHAT_STATUS=200`, `VALID_CHAT_BODIES=[200]` |
+| `routes` | lulus — 5 rute `200` |
+
+**Cakupan harness (temuan saat menulis laporan ini).** Run di atas = 81 tes dari 8
+spec yang terdaftar di `playwright.dev.config.ts` (`canvas-fase3`, `canvas-theme`,
+`fase4-pages`, `fase4-a11y`, `fase5-a11y`, `model-filter`, `routes-no-crash`,
+`chat-auth`). `hydration.spec.ts` **TIDAK ada di daftar itu** — ia hanya dimuat
+`playwright.config.ts`, yang mem-build produksi >300 detik dan menolak port
+terpakai, sehingga **perubahan FASE 5 pada spec itu tidak pernah dijalankan**
+(saya awalnya menuliskan "lulus" di tabel ini; itu salah dan sudah dikoreksi).
+Tindakan: `hydration.spec.ts` ditambahkan ke harness dev dan dijalankan langsung
+pada dev server bersih:
+
+```
+npx playwright test -c playwright.dev.config.ts tests/hydration.spec.ts
+HYDRATION_HITS=0   PAGEERRORS=[]   MONITOR_RECOVERED=0
+STORED_MODEL_AFTER=gemma-4-9b-it   QUEUE_AREA_COUNT=0
+1 passed (6.0s)
+```
+
+Artinya `data-testid="model-selector"` benar-benar ada & terlihat, dan gate
+`mounted` masih melepas (label netral "Memuat" tidak permanen).
+
+Verifikasi terakhir pada dev server bersih (setelah `.next` dihapus dan dev
+di-restart) — ini angka dari KODE YANG DI-COMMIT (`3cbfe5d`):
+
+```
+AXE_/ = []   AXE_/chat = []   AXE_/settings = []   AXE_/billing = []
+AXE_/help = []   AXE_/builder = []   AXE_/pricing = []
+AXE_UNAUTH_/ = []   AXE_UNAUTH_/builder = []   AXE_UNAUTH_/settings = []
+AXE_UNAUTH_BUILDER_ALL = []        AXE_/builder+nodes = []
+MODEL_TRIGGER={"visible":"Choose a model","name":"Choose a model — Choose AI model"}
+SKIP_AFTER_ENTER_* = {"id":"main-content","tag":"main"}   (5/5 rute)
+23 passed (1.7m)
+```
+
+Backend: `pytest tests -q` -> **136 passed** (di antaranya 11 tes webhook Dodo).
+Frontend: `npx tsc --noEmit` -> 0 error; `npm run build` -> **SUCCESS** (9 rute).
+
+Artefak: commit `3cbfe5d` di branch `level-3-experiment`; PR #2 diperbarui
+(komentar `issuecomment-5800202124`) dan **tetap DRAFT** (tidak di-merge di fase ini).

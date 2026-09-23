@@ -43,6 +43,12 @@ export default defineConfig({
     "model-filter.spec.ts",
     "routes-no-crash.spec.ts",
     "chat-auth.spec.ts",
+    // FASE 5: spec ini DISENTUH fase 5 (selector model pindah ke data-testid)
+    // tetapi TIDAK ada di harness mana pun yang bisa dijalankan di mesin ini —
+    // `playwright.config.ts` (satu-satunya yang memuatnya sebelumnya) mem-build
+    // produksi >300 detik dan menolak port yang sudah terpakai. Tanpa baris ini
+    // perubahan pada spec-nya tidak pernah diuji, jadi ia ikut di harness dev.
+    "hydration.spec.ts",
   ],
   testIgnore: ["**/_probes/**"],
   timeout: 90000,
