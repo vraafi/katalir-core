@@ -89,5 +89,23 @@ def test_langkah_sukses_tetap_ok():
 
 def test_hasil_format_bisa_dijadikan_json_aman():
     rep = er.format_execution_report({"status": "completed"},
-                                     [{"node_id": "n", "status": "completed", "payload": {"a": 1}}])
+                                      [{"node_id": "n", "status": "completed", "payload": {"a": 1}}])
     assert json.dumps({"report": rep})  # tidak ada karakter yang merusak JSON
+
+
+def test_report_english_dan_indonesia():
+    execution = {"status": "completed"}
+    logs = [{"node_id": "mail", "status": "completed", "payload": {"summary": "Sent"}}]
+    en = er.format_execution_report(execution, logs, locale="en")
+    id_ = er.format_execution_report(execution, logs, locale="id")
+    assert en.startswith("Workflow succeeded: 1 steps succeeded, 0 failed.")
+    assert "FAILED" not in en
+    assert id_.startswith("Workflow berhasil: 1 langkah berhasil, 0 gagal.")
+    assert "Sent" in en and "Sent" in id_
+
+
+def test_accept_language_negotiation_dan_default_indonesia():
+    assert er.locale_from_accept_language("en-US,en;q=0.9") == "en"
+    assert er.locale_from_accept_language("id-ID,id;q=0.9,en;q=0.8") == "id"
+    assert er.locale_from_accept_language("fr-FR") == "id"
+    assert er.locale_from_accept_language(None) == "id"

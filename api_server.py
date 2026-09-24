@@ -1741,7 +1741,8 @@ async def execute_workflow(workflow_id: str, req: ExecuteRequest = None,
 
 
 @app.get("/executions/{execution_id}")
-def get_execution(execution_id: str, authorization: str | None = Header(None)):
+def get_execution(execution_id: str, authorization: str | None = Header(None),
+                  accept_language: str | None = Header(None)):
     """Devuelve estado y logs de una ejecucion."""
     user = security.get_current_user(authorization)
     try:
@@ -1759,8 +1760,9 @@ def get_execution(execution_id: str, authorization: str | None = Header(None)):
     # semua klien menampilkan hal yang sama dan bisa diuji tanpa browser).
     try:
         import execution_report as _er
+        locale = _er.locale_from_accept_language(accept_language)
         report = _er.format_execution_report((data or {}).get("execution"),
-                                            (data or {}).get("logs"))
+                                             (data or {}).get("logs"), locale=locale)
     except Exception as exc:  # noqa: BLE001 - laporan tidak boleh memblokir status
         print(f"[api_server] laporan eksekusi gagal: {type(exc).__name__}")
         report = ""

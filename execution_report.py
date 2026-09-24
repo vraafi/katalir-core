@@ -17,9 +17,33 @@ Detail yang sengaja ditangani:
 
 from __future__ import annotations
 
+import json
+from pathlib import Path
 from typing import Any
 
 MAX_SNIPPET = 160
+_LOCALES = {"id": {}, "en": {}}
+for _locale in _LOCALES:
+    _LOCALES[_locale] = json.loads(
+        (Path(__file__).parent / "locales" / f"{_locale}.json").read_text(encoding="utf-8")
+    )
+
+
+def t(key: str, locale: str = "id", **values: Any) -> str:
+    """Lookup pesan execution report; locale tak dikenal jatuh ke Indonesia."""
+    catalog = _LOCALES.get((locale or "id").split("-", 1)[0].lower(), _LOCALES["id"])
+    return str(catalog.get(key, _LOCALES["id"].get(key, key))).format(**values)
+
+
+def locale_from_accept_language(value: str | None) -> str:
+    """Negotiate hanya ID/EN; bahasa lain memakai default ID."""
+    for part in (value or "").split(","):
+        tag = part.split(";", 1)[0].strip().lower()
+        if tag.startswith("id"):
+            return "id"
+        if tag.startswith("en"):
+            return "en"
+    return "id"
 
 
 def _snippet(value: Any) -> str:
@@ -78,8 +102,9 @@ def _step_failed(step: dict) -> bool:
 
 
 def format_execution_report(execution: dict | None,
-                            logs: list[dict] | None) -> str:
-    """Laporan siap-tampil untuk satu eksekusi (selalu string, tanpa JSON mentah)."""
+                            logs: list[dict] | None,
+                            locale: str = "id") -> str:
+    """Laporan siap-tampil dalam locale ID/EN (default mempertahankan ID lama)."""
     steps = collapse_steps(logs)
     status = str((execution or {}).get("status") or ("completed" if steps else "unknown"))
     err = sum(1 for s in steps if _step_failed(s))
@@ -87,17 +112,17 @@ def format_execution_report(execution: dict | None,
 
     if not steps:
         if status in ("pending", "running"):
-            return "Workflow sedang dijalankan…"
-        return f"Workflow selesai dengan status '{status}', tetapi belum ada langkah yang tercatat."
+            return t("workflow.running", locale)
+        return t("workflow.no_steps", locale, status=status)
 
-    head = (f"Workflow {'berhasil' if err == 0 else 'berhenti karena error'}: "
-            f"{ok} langkah berhasil, {err} gagal.")
+    head = t("workflow.success" if err == 0 else "workflow.error", locale, ok=ok, err=err)
     lines = [head]
     for i, step in enumerate(steps, 1):
         node = str(step.get("node_id") or "?")
         failed = _step_failed(step)
         st = str(step.get("status") or "?")
-        icon = "GAGAL" if failed else ("OK" if st == "completed" else st)
+        icon = t("step.failed", locale) if failed else (
+            t("step.ok", locale) if st == "completed" else st)
         payload = step.get("payload")
         detail = _snippet(payload)
         lines.append(f"{i}. {node} — {icon}" + (f": {detail}" if detail else ""))
