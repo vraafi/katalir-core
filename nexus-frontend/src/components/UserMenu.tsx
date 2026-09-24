@@ -3,7 +3,6 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import * as DropdownMenu from "@radix-ui/react-dropdown-menu";
-import { useTheme } from "next-themes";
 import {
   ChevronDown,
   CreditCard,
@@ -18,6 +17,7 @@ import {
 import { useAuth } from "@/context/auth";
 import { useI18n } from "@/i18n/context";
 import { cn } from "@/lib/cn";
+import { applyAppTheme, THEME_KEY } from "@/components/ThemeToggle";
 
 /**
  * Link checkout Dodo Payments (Plus: $299 / TAHUN — produk "Katalir").
@@ -43,12 +43,16 @@ interface UserMenuProps {
 export function UserMenu({ userTier = "free", compact = false }: UserMenuProps) {
   const { email, avatarUrl, displayName, signOut } = useAuth();
   const { t } = useI18n();
-  const { resolvedTheme, setTheme } = useTheme();
+  const [appTheme, setAppTheme] = useState<"light" | "dark">("light");
+  useEffect(() => {
+    const saved = window.localStorage.getItem(THEME_KEY);
+    setAppTheme(saved === "dark" ? "dark" : "light");
+  }, []);
   // HYDRATION: resolvedTheme undefined di server → label tema dibuat netral
   // sampai mount (pola sama seperti ThemeToggle).
   const [mounted, setMounted] = useState(false);
   useEffect(() => setMounted(true), []);
-  const isDark = mounted && resolvedTheme === "dark";
+  const isDark = appTheme === "dark";
   const isPlus = userTier === "plus";
 
   const initial = (email?.trim()?.[0] ?? "?").toUpperCase();
@@ -131,7 +135,7 @@ export function UserMenu({ userTier = "free", compact = false }: UserMenuProps) 
             </Link>
           </DropdownMenu.Item>
           {!compact && (
-            <DropdownMenu.Item onSelect={() => setTheme(isDark ? "light" : "dark")} className={itemCls}>
+            <DropdownMenu.Item onSelect={() => { const next = isDark ? "light" : "dark"; setAppTheme(next); applyAppTheme(next); }} className={itemCls}>
               {isDark ? <Sun size={14} strokeWidth={1.75} className="shrink-0" aria-hidden /> : <Moon size={14} strokeWidth={1.75} className="shrink-0" aria-hidden />}
               {mounted ? (isDark ? t("userMenu.themeLight") : t("userMenu.themeDark")) : t("userMenu.theme")}
             </DropdownMenu.Item>

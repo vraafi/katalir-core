@@ -49,7 +49,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="id" suppressHydrationWarning>
-      <body className={`${sans.variable} ${mono.variable} font-sans bg-bg text-fg antialiased`}>
+      <body className={`${sans.variable} ${mono.variable} font-sans antialiased`}>
         <NuqsAdapter>
           <MotionConfig reducedMotion="user">
             <ThemeProvider attribute="class" defaultTheme="system" enableSystem>

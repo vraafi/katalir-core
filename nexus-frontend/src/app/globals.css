@@ -56,6 +56,17 @@ body {
   background-color: rgb(9, 9, 11);
   color: rgb(250, 250, 250);
 }
+/* Semantic dark overrides: Tailwind v3 palette uses literal light RGB values,
+   so darkMode classes alone do not change component surfaces/text. */
+.dark .bg-bg { background-color: rgb(9, 9, 11); }
+.dark .bg-bg-subtle, .dark .bg-surface { background-color: rgb(24, 24, 29); }
+.dark .bg-surface-elevated { background-color: rgb(39, 39, 42); }
+.dark .text-fg { color: rgb(250, 250, 250); }
+.dark .text-fg-muted { color: rgb(161, 161, 170); }
+.dark .text-fg-subtle { color: rgb(161, 161, 170); }
+.dark .border-border { border-color: rgb(63, 63, 70); }
+.dark .border-border-strong { border-color: rgb(82, 82, 91); }
+.dark .bg-accent-hover { background-color: rgb(79, 70, 229); }
 
 @media (prefers-reduced-motion: reduce) {
   *,
