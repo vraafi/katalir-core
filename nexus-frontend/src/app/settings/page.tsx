@@ -328,7 +328,7 @@ function ConnectionsSection() {
         <CardDescription>{t("settings.connectionsDesc")}</CardDescription>
       </CardHeader>
       <CardContent>
-        <div className="grid gap-3 sm:grid-cols-2">
+        <div data-testid="oauth-cards" className="grid gap-3 sm:grid-cols-2">
           {OAUTH_CARDS.map((card) => {
             const st = state[card.id];
             const loading = !st?.loaded;
