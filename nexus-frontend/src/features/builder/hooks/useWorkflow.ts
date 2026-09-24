@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import type { Edge } from "@xyflow/react";
 import { apiFetch } from "@/lib/api";
+import { supabase } from "@/lib/supabase";
 import { type FlowNode } from "../types";
 import { dedupeGraph } from "../node-graph";
 
@@ -37,6 +38,8 @@ export const workflowKeys = {
 };
 
 async function fetchWorkflows(): Promise<WorkflowListItem[]> {
+  const { data: session } = await supabase.auth.getSession();
+  if (!session.session?.access_token) return [];
   const res = await apiFetch("/workflows");
   if (!res.ok) return [];
   const data = await res.json();

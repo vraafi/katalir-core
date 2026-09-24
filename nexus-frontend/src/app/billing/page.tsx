@@ -8,6 +8,7 @@ import { SimplePage } from "@/components/SimplePage";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { apiFetch } from "@/lib/api";
+import { supabase } from "@/lib/supabase";
 import { cn } from "@/lib/cn";
 
 /**
@@ -47,6 +48,11 @@ function UsageCard() {
     let alive = true;
     (async () => {
       try {
+        const { data: session } = await supabase.auth.getSession();
+        if (!session.session?.access_token) {
+          if (alive) setState("empty");
+          return;
+        }
         const r = await apiFetch("/quota", { timeoutMs: 20000 });
         if (!alive) return;
         if (!r.ok) {

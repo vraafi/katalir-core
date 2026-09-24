@@ -3,6 +3,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
 import { useSearchParams } from "next/navigation";
 import { apiFetch } from "@/lib/api";
+import { supabase } from "@/lib/supabase";
 import {
   CANVAS_THEME_STORAGE_KEY,
   DEFAULT_CANVAS_THEME,
@@ -64,6 +65,8 @@ export function syncToProfile(id: CanvasThemeId): void {
   if (typeof window === "undefined") return;
   void (async () => {
     try {
+      const { data } = await supabase.auth.getSession();
+      if (!data.session?.access_token) return;
       const res = await apiFetch("/preferences", {
         method: "PUT",
         body: JSON.stringify({ prefs: { canvasTheme: id } }),
@@ -82,10 +85,14 @@ export function syncToProfile(id: CanvasThemeId): void {
  */
 export async function fetchThemeFromProfile(): Promise<CanvasThemeId | null> {
   try {
+    // Profil bersifat privat. Jangan melakukan request bila browser belum punya
+    // sesi; ini mencegah 401 dari tema kanvas pada route publik.
+    const { data } = await supabase.auth.getSession();
+    if (!data.session?.access_token) return null;
     const res = await apiFetch("/preferences", { timeoutMs: 8000 });
     if (!res.ok) return null;
-    const data = (await res.json()) as { prefs?: { canvasTheme?: unknown } };
-    const theme = data?.prefs?.canvasTheme;
+    const payload = (await res.json()) as { prefs?: { canvasTheme?: unknown } };
+    const theme = payload?.prefs?.canvasTheme;
     return isCanvasThemeId(theme) ? theme : null;
   } catch {
     return null;

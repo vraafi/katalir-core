@@ -6,8 +6,8 @@ p.on('console', m => { if (m.type() === 'error') errors.push('CONSOLE: ' + m.tex
 p.on('pageerror', e => errors.push('PAGEERROR: ' + e.message));
 p.on('requestfailed', r => errors.push('REQFAIL: ' + r.url() + ' ' + r.failure()?.errorText));
 p.on('response', r => { if (r.status() >= 400) errors.push('HTTP' + r.status() + ': ' + r.url()); });
-await p.goto('http://localhost:3000/settings', { waitUntil: 'networkidle', timeout: 30000 });
-await p.waitForTimeout(3000);
+await p.goto('http://localhost:3000/settings', { waitUntil: 'domcontentloaded', timeout: 30000 });
+await p.waitForTimeout(5000);
 const bodyText = await p.locator('body').innerText();
 const html = await p.content();
 console.log('=== DIAG ===');

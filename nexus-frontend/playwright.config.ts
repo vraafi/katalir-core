@@ -98,7 +98,7 @@ export default defineConfig({
       // config.webServer" — terbaca seolah aplikasi rusak padahal hanya unduhan
       // font yang lambat (kejadian nyata 2026-09-20 setelah `.next` dibersihkan).
       timeout: 600000,
-      env: { E2E_API_URL: BACKEND_URL },
+      env: { E2E_API_URL: BACKEND_URL, E2E_PORT: String(FRONTEND_PORT) },
     },
   ],
 });

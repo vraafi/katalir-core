@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { apiFetch } from "@/lib/api";
+import { supabase } from "@/lib/supabase";
 
 /** Profil minimal untuk halaman akun — tanpa TanStack (aman untuk prerender statis). */
 export function useMeSimple(enabled: boolean): { email: string; tier: string } | null {
@@ -11,10 +12,12 @@ export function useMeSimple(enabled: boolean): { email: string; tier: string } |
     let cancelled = false;
     (async () => {
       try {
+        const { data } = await supabase.auth.getSession();
+        if (!data.session?.access_token) return;
         const res = await apiFetch("/me");
         if (!res.ok) return;
-        const data = await res.json();
-        if (!cancelled) setMe({ email: data?.email ?? "", tier: data?.tier ?? "free" });
+        const payload = await res.json();
+        if (!cancelled) setMe({ email: payload?.email ?? "", tier: payload?.tier ?? "free" });
       } catch {
         /* offline — halaman tetap render dengan default */
       }

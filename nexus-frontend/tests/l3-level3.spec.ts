@@ -154,7 +154,7 @@ test("S1 chat -> AI tanya detail -> build workflow -> Telegram terkirim + report
     if (m.type() === "error") errors.push(m.text().slice(0, 160));
   });
 
-  await page.goto("/", { waitUntil: "domcontentloaded" });
+  await page.goto("/chat", { waitUntil: "domcontentloaded" });
   await expect(page.locator('[data-testid="composer-input"]')).toBeVisible();
 
   // Langkah 1: permintaan samar -> AI HARUS bertanya dulu.
@@ -208,7 +208,7 @@ test("S2 kredensial hilang -> form muncul -> isi di UI -> AI lanjut kirim", asyn
   await clearTelegramCredential(request, session);
   await seedSession(page, session);
 
-  await page.goto("/", { waitUntil: "domcontentloaded" });
+  await page.goto("/chat", { waitUntil: "domcontentloaded" });
   await expect(page.locator('[data-testid="composer-input"]')).toBeVisible();
 
   await ask(
@@ -249,7 +249,7 @@ test("S3 token salah -> laporan GAGAL jujur (bukan 'berhasil')", async ({
   await clearTelegramCredential(request, session);
   await seedSession(page, session);
 
-  await page.goto("/", { waitUntil: "domcontentloaded" });
+  await page.goto("/chat", { waitUntil: "domcontentloaded" });
   await expect(page.locator('[data-testid="composer-input"]')).toBeVisible();
 
   await ask(
