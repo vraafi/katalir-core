@@ -9,7 +9,7 @@ kecuali Lighthouse yang memakai **build produksi** (`out/`).
 | Kriteria FASE 6 | Ambang | Hasil | Status |
 |---|---|---|---|
 | Audit interaksi FASE 0-5 | 39+ item | **81 item PASS** (15 + 24 + 10 + 9 + 23) — rekap: `final-interactions.md` | **PASS** |
-| E2E Level 3 (S1/S2/S3) | 3/3 | **TIDAK dijalankan ulang sesi ini** (butuh kredensial Telegram nyata + kuota LLM). Terakhir lulus di FASE 2/4; tidak ada perubahan pada jalur eksekusi/kredensial sejak itu — kecuali penambahan kartu laporan (testid `run-report` DIKUNCI di spec L3) | **SKIPPED (jujur)** |
+| E2E Level 3 (S1/S2/S3) | 3/3 | **SKIPPED (jujur, dengan sebab)**: `playwright.config.ts` menolak port 3000 yang sudah dipakai dev (`reuseExistingServer:false` — desain sengaja, lihat kepala config), dan menjalankannya berarti mematikan dev server yang diminta tetap hidup. Selain itu S1/S2 butuh kredensial Telegram nyata + kuota LLM. Tidak ada klaim lulus. Kontrak yang dipakai S1 (`[data-testid="run-report"]` + teks laporan backend) **sengaja dipertahankan** saat kartu laporan FASE 5 dibuat, sehingga spec itu tidak ikut rusak | **SKIPPED** |
 | Fix lama tetap aman | — | duplicate-key, drop-position, lifecycle, hydration, dark, AuthProvider — semuanya di suite dev | **PASS** |
 | Mobile 6 halaman × 3 device | pageerror 0, tap ≥ 44, layout utuh | **18/18 PASS** (`final-mobile.spec.ts`) | **PASS** |
 | axe 6 rute × 3 device | 0 serious/critical | **18/18 `[]`** | **PASS** |
