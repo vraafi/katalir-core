@@ -63,7 +63,7 @@ export function UserMenu({ userTier = "free", compact = false }: UserMenuProps) 
           aria-label={`${t("userMenu.accountMenu")} ${email}`}
           aria-haspopup="menu"
           className={compact
-            ? "flex h-11 w-11 items-center justify-center rounded-full transition-colors hover:bg-bg-subtle"
+            ? "flex h-11 w-11 items-center justify-center rounded-full transition-colors hover:bg-bg-subtle md:hidden"
             : "flex w-full items-center gap-2.5 rounded-lg px-2.5 py-2 text-left transition-colors hover:bg-bg-subtle"}
           data-testid="profile-avatar"
         >
