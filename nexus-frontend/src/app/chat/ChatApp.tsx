@@ -895,7 +895,7 @@ return (
           Saat pindah sesi, React membuat instance fresh — state turunan
           (scroll, guard anti-blank) tidak menahan pesan sesi lama.
           Queue/input/sidebar di luar div ini -> TIDAK ikut remount. */}
-      <div key={sessionId ?? "new"} className="flex min-h-0 w-full flex-1 flex-col">
+      <div key={sessionId ?? "new"} className="k-chat-main flex min-h-0 w-full flex-1 flex-col bg-bg dark:bg-zinc-900">
         {/* Chat area — scroll independen (flex-1), input di flow terpisah */}
         <div ref={scrollRef} className="chat-scroll min-h-0 w-full flex-1 overflow-y-auto">
           <div className="mx-auto flex min-h-full w-full max-w-[48rem] flex-col justify-end px-5 pt-4">
@@ -1112,7 +1112,7 @@ return (
           </div>
         )}
         {/* Input bar — flex-none, sticky di bawah, TIDAK ikut scroll */}
-        <div className="flex-none bg-transparent px-5 pb-4 pt-2">
+        <div className="k-chat-footer flex-none bg-transparent px-5 pb-4 pt-2 dark:bg-zinc-900">
           <div className="mx-auto max-w-[48rem]">
             {/* KUOTA-AREA: progress bar + warning pre-flight, DI ATAS composer
                 supaya terlihat sebelum user mengirim (bukan setelah gagal).
@@ -1162,7 +1162,7 @@ return (
                 e.preventDefault();
                 if (input.trim()) sendPrompt(input.trim());
               }}
-              className="flex items-center gap-2 rounded-xl border border-border/60 bg-surface/90 px-3 py-2 shadow-sm backdrop-blur transition-shadow duration-200 hover:shadow-md focus-within:border-accent/50"
+              className="k-chat-composer flex items-center gap-2 rounded-3xl border-0 bg-surface px-3 py-2 shadow-lg backdrop-blur transition-shadow duration-200 hover:shadow-xl focus-within:ring-2 focus-within:ring-accent/30 dark:bg-zinc-800"
             >
               {/* Model selector pill di kiri input (mastra #12407, clankie #49). */}
               <ModelSelector

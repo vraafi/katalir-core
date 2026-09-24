@@ -86,12 +86,12 @@ export default function Shell({ children, sessions, currentSessionId, onSelectSe
   const closeMobile = () => setMobileOpen(false);
 
   return (
-    <div className="flex h-screen overflow-hidden bg-bg">
+    <div className="k-chat-shell flex h-screen overflow-hidden bg-bg dark:bg-zinc-900">
       {/* FASE 5: tautan lewati-ke-konten — elemen fokusable PERTAMA di halaman
           (targetnya `<main id="main-content">` di bawah). */}
       <SkipToContent />
       {/* FASE 1: sidebar desktop — tersembunyi di <md, diganti drawer. */}
-      <aside aria-label={t("nav.sessionsLabel")} className="hidden w-64 shrink-0 flex-col border-r border-border bg-bg-subtle md:flex">
+      <aside aria-label={t("nav.sessionsLabel")} className="hidden w-64 shrink-0 flex-col bg-bg-subtle md:flex dark:bg-zinc-950">
         <Button variant="secondary" size="md" onClick={() => { onNewChat(); closeMobile(); }} className="mx-3 mt-3">
           <Plus className="h-4 w-4" strokeWidth={1.75} /> {t("nav.newChat")}
         </Button>
@@ -106,7 +106,7 @@ export default function Shell({ children, sessions, currentSessionId, onSelectSe
                   <div className="group relative mb-1 flex items-center">
                     <button onClick={() => { onSelectSession(s.id); closeMobile(); }}
                       className={`flex min-w-0 flex-1 items-center gap-2 rounded-lg border px-3 py-2 text-left text-[13px] leading-[18px] transition-colors duration-150 ${active
-                        ? "border-accent/20 bg-accent/10 font-medium text-fg shadow-xs dark:border-accent/25 dark:bg-accent/15"
+                        ? "border-0 bg-surface font-medium text-fg shadow-xs dark:bg-zinc-800"
                         : "border-transparent font-normal text-fg-muted hover:bg-bg-subtle/70 hover:text-fg"}`}>
                       <MessageSquare size={12} strokeWidth={1.75} className={`shrink-0 ${active ? "text-accent" : "text-fg-subtle"}`} />
                       <span className="truncate">{s.title || "Chat"}</span>
@@ -146,7 +146,7 @@ export default function Shell({ children, sessions, currentSessionId, onSelectSe
             saat login — Upgrade ke Plus ada di sini (path upgrade yang jelas),
             bukan hanya di dalam dropdown model. */}
         {email && (
-          <div className="border-t border-border p-2">
+          <div className="p-2">
             <UserMenu userTier={userTier} />
           </div>
         )}
@@ -175,14 +175,14 @@ export default function Shell({ children, sessions, currentSessionId, onSelectSe
               {sessions.length === 0 && <p className="px-2 py-1 text-footnote text-fg-subtle">{t("nav.noHistory")}</p>}
               {sessions.map((s) => (
                 <button key={s.id} onClick={() => { onSelectSession(s.id); closeMobile(); }}
-                  className="mb-1 flex min-w-0 w-full items-center gap-2 rounded-lg border border-transparent px-3 py-2 text-left text-[13px] font-normal text-fg-muted transition-colors duration-150 hover:bg-bg-subtle/70 hover:text-fg">
+                  className="mb-1 flex min-w-0 w-full items-center gap-2 rounded-lg border-0 px-3 py-2 text-left text-[13px] font-normal text-fg-muted transition-colors duration-150 hover:bg-bg-subtle/70 hover:text-fg">
                   <MessageSquare size={12} strokeWidth={1.75} className="shrink-0 text-fg-subtle" />
                   <span className="truncate">{s.title || "Chat"}</span>
                 </button>
               ))}
             </div>
             {email && (
-              <div className="border-t border-border p-2">
+              <div className="p-2">
                 <UserMenu userTier={userTier} />
               </div>
             )}
@@ -190,8 +190,8 @@ export default function Shell({ children, sessions, currentSessionId, onSelectSe
         </div>
       )}
 
-      <div className="flex min-w-0 flex-1 flex-col">
-        <header className="sticky top-0 z-10 flex items-center justify-between bg-bg/70 px-5 py-3 backdrop-blur-xl">
+      <div className="k-chat-header flex min-w-0 flex-1 flex-col dark:bg-zinc-900">
+        <header className="sticky top-0 z-10 flex items-center justify-between bg-bg/70 px-5 py-3 backdrop-blur-xl dark:bg-zinc-900">
           <div className="flex items-center gap-2">
             <BrandMark data-testid="header-logo" />
             <button
@@ -210,10 +210,10 @@ export default function Shell({ children, sessions, currentSessionId, onSelectSe
           </div>
           <div className="flex items-center gap-2">
             <ThemeToggle />
-            <Link href="/" className="flex h-9 items-center gap-2 rounded-md border border-border bg-surface px-3 text-subhead font-medium text-fg transition duration-200 hover:bg-bg-subtle">
+            <Link href="/" className="flex h-9 items-center gap-2 rounded-md border-0 bg-surface px-3 text-subhead font-medium text-fg transition duration-200 hover:bg-bg-subtle">
               <MessageSquare className="h-4 w-4" strokeWidth={1.75} /> {t("nav.chat")}
             </Link>
-            <Link href="/builder" className="flex h-9 items-center gap-2 rounded-md border border-border bg-surface px-3 text-subhead font-medium text-fg transition duration-200 hover:bg-bg-subtle">
+            <Link href="/builder" className="flex h-9 items-center gap-2 rounded-md border-0 bg-surface px-3 text-subhead font-medium text-fg transition duration-200 hover:bg-bg-subtle">
               <Workflow className="h-4 w-4" strokeWidth={1.75} /> {t("nav.builder")}
             </Link>
             {email && (
