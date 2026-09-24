@@ -1,11 +1,12 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import { Plus, LogIn, LogOut, MessageSquare, Menu, X, Workflow, KeyRound, MoreHorizontal, Trash2 } from "lucide-react";
+import { Plus, LogIn, MessageSquare, Menu, X, Workflow, KeyRound, MoreHorizontal, Trash2 } from "lucide-react";
 import Link from "next/link";
 import { useAuth } from "@/context/auth";
 import ThemeToggle from "@/components/ThemeToggle";
 import { UserMenu } from "@/components/UserMenu";
+import { BrandMark } from "@/components/BrandMark";
 import { useI18n } from "@/i18n/context";
 import { StaggerList, StaggerItem } from "@/components/motion";
 import { SkipToContent } from "@/components/SkipToContent";
@@ -50,7 +51,7 @@ interface ShellProps {
 }
 
 export default function Shell({ children, sessions, currentSessionId, onSelectSession, onNewChat, onNewWorkflow, onDeleteSession, userTier = "free" }: ShellProps) {
-  const { email, loading, signInWithGoogle, signOut } = useAuth();
+  const { email, signInWithGoogle } = useAuth();
   const { t } = useI18n();
   const [vaultOpen, setVaultOpen] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<string | null>(null);
@@ -192,8 +193,7 @@ export default function Shell({ children, sessions, currentSessionId, onSelectSe
       <div className="flex min-w-0 flex-1 flex-col">
         <header className="sticky top-0 z-10 flex items-center justify-between bg-bg/70 px-5 py-3 backdrop-blur-xl">
           <div className="flex items-center gap-2">
-            {/* Logo text-only (rebrand 2026-09-18): Inter Bold, text-xl,
-                tracking-tight. TANPA ikon — tidak perlu dependensi gambar. */}
+            <BrandMark data-testid="header-logo" />
             <button
               type="button"
               onClick={() => setMobileOpen(true)}
@@ -206,7 +206,7 @@ export default function Shell({ children, sessions, currentSessionId, onSelectSe
             {/* FASE 5: judul aplikasi = <h1> halaman. Sebelumnya <span>, sehingga
                 axe `page-has-heading-one` (best-practice) merah di /, /chat, dan
                 /builder: pembaca layar tidak punya penanda awal struktur. */}
-            <h1 className="text-xl font-bold tracking-tight text-fg">Katalir</h1>
+            <h1 className="sr-only">Katalir</h1>
           </div>
           <div className="flex items-center gap-2">
             <ThemeToggle />
@@ -221,14 +221,7 @@ export default function Shell({ children, sessions, currentSessionId, onSelectSe
                 <KeyRound className="h-4 w-4" strokeWidth={1.75} /> {t("nav.vault")}
               </Button>
             )}
-            {email && <span className="max-w-[180px] truncate text-subhead text-fg-muted">{email}</span>}
-            {loading ? (
-              <span className="text-subhead text-fg-subtle">{t("common.loading")}</span>
-            ) : email ? (
-              <Button variant="ghost" size="md" onClick={signOut}>
-                <LogOut className="h-4 w-4" strokeWidth={1.75} /> {t("nav.logout")}
-              </Button>
-            ) : (
+            {email ? <UserMenu userTier={userTier} compact /> : (
               <Button variant="secondary" size="md" onClick={signInWithGoogle}>
                 <LogIn className="h-4 w-4" strokeWidth={1.75} /> {t("nav.loginGoogle")}
               </Button>

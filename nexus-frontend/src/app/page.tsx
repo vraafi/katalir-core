@@ -25,6 +25,7 @@ import { Bot, ArrowRight, BookOpen, Plug, Workflow } from "lucide-react";
 import { I18nProvider, useI18n } from "@/i18n/context";
 import { HydrationReady } from "@/i18n/HydrationReady";
 import { SkipToContent } from "@/components/SkipToContent";
+import { BrandMark } from "@/components/BrandMark";
 
 function Landing() {
   const { t } = useI18n();
@@ -33,7 +34,9 @@ function Landing() {
       <SkipToContent />
       <div className="flex min-h-dvh flex-col bg-bg text-fg">
         <header className="flex items-center justify-between px-5 py-4 sm:px-8">
-          <span className="text-subhead font-semibold tracking-tight">{t("landing.brand")}</span>
+          <Link href="/chat" aria-label="Katalir" className="rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent">
+            <BrandMark data-testid="landing-logo" />
+          </Link>
           <Link
             href="/chat"
             className="rounded-md border border-border px-3 py-2 text-footnote text-fg-muted transition-colors hover:text-fg"

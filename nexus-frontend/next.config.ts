@@ -13,6 +13,9 @@ const nextConfig: NextConfig = {
   // TEMPORARY (deploy pipeline): static export untuk Cloudflare Pages (out/).
   // Kembalikan ke mode OpenNext (tanpa output:export) setelah deploy selesai.
   output: "export",
+  // The circular Next.js "N" badge is a dev-only build tool, not product UI.
+  // Hiding it prevents users from mistaking it for a broken action button.
+  devIndicators: false,
   images: { unoptimized: true },
   // PENTING: pada `output: "export"` fungsi ini DIABAIKAN untuk aset statis.
   // Dibuktikan dengan build pada task ini: `next build` SUKSES tetapi menulis

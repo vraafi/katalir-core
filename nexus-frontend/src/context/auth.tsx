@@ -13,6 +13,8 @@ import { isHydrated, onHydrated } from "@/i18n/hydration-signal";
 
 interface AuthContextValue {
   email: string | null;
+  avatarUrl: string | null;
+  displayName: string | null;
   loading: boolean;
   signInWithGoogle: () => Promise<void>;
   signOut: () => Promise<void>;
@@ -23,6 +25,8 @@ const AuthContext = createContext<AuthContextValue | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [email, setEmail] = useState<string | null>(null);
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
+  const [displayName, setDisplayName] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -52,11 +56,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       .getSession()
       .then(({ data }) => {
         resolvedEmail = data.session?.user?.email ?? null;
+        setAvatarUrl(data.session?.user?.user_metadata?.avatar_url ?? data.session?.user?.user_metadata?.picture ?? null);
+        setDisplayName(data.session?.user?.user_metadata?.full_name ?? data.session?.user?.user_metadata?.name ?? null);
         resolved = true;
         if (isHydrated()) commit();
       })
       .catch(() => {
         resolvedEmail = null;
+        setAvatarUrl(null);
+        setDisplayName(null);
         resolved = true;
         if (isHydrated()) commit();
       });
@@ -66,6 +74,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // Login/logout saat runtime BUKAN hidrasi -> boleh langsung, tetapi tetap
       // lewat `commit()` agar urutan email/loading konsisten.
       resolvedEmail = session?.user?.email ?? null;
+      setAvatarUrl(session?.user?.user_metadata?.avatar_url ?? session?.user?.user_metadata?.picture ?? null);
+      setDisplayName(session?.user?.user_metadata?.full_name ?? session?.user?.user_metadata?.name ?? null);
       resolved = true;
       if (isHydrated()) commit();
       // Invalideer chat-queries bij auth-wissel zodat sessions/messages
@@ -122,6 +132,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   async function signOut() {
     await supabase.auth.signOut();
     setEmail(null);
+    setAvatarUrl(null);
+    setDisplayName(null);
   }
 
   async function getToken(): Promise<string | null> {
@@ -135,7 +147,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   return (
     <AuthContext.Provider
-      value={{ email, loading, signInWithGoogle, signOut, getToken }}
+      value={{ email, avatarUrl, displayName, loading, signInWithGoogle, signOut, getToken }}
     >
       {children}
     </AuthContext.Provider>
