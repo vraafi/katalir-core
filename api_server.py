@@ -1296,6 +1296,106 @@ def save_integration(req: IntegrationRequest, authorization: str | None = Header
 
 
 # ---------------------------------------------------------------------------
+# ---------------------------------------------------------------------------
+# ENDPOINTS: OAuth Google Sheets (OAuth 2.1 + PKCE)
+#
+# KENAPA TERPISAH DARI `/api/vault/save`: alur ini REDIRECT, bukan XHR. User
+# meninggalkan aplikasi, menyetujui di Google, lalu kembali ke /settings.
+# Identitas user dibawa di `state` bertanda tangan (backend tidak punya sesi
+# cookie), dan `code_verifier` tetap di server — lihat oauth_google.py.
+# ---------------------------------------------------------------------------
+def _og():
+    import oauth_google as og  # impor lokal: api_server tetap bisa start tanpa modul ini
+
+    return og
+
+
+def _ui_base() -> str:
+    return (os.getenv("APP_UI_URL") or os.getenv("CORS_ORIGIN") or "http://localhost:3000").split(",")[0].strip().rstrip("/")
+
+
+@app.get("/oauth/google/authorize")
+def oauth_google_authorize(authorization: str | None = Header(None), redirect_base: str | None = None):
+    """Redirect ke consent Google (PKCE S256, access_type=offline, prompt=consent)."""
+    user = security.get_current_user(authorization)
+    og = _og()
+    if not og.configured():
+        # Jujur: tanpa kunci, jangan menebak URL yang pasti gagal.
+        raise HTTPException(503, "OAuth Google belum dikonfigurasi (GOOGLE_CLIENT_ID/SECRET kosong).")
+    try:
+        url = og.build_authorize_url(user["email"], redirect_base)
+    except RuntimeError as exc:
+        raise HTTPException(503, str(exc))
+    from fastapi.responses import RedirectResponse  # impor lokal: hindari ubah blok impor
+
+    return RedirectResponse(url, status_code=302)
+
+
+@app.get("/oauth/google/callback")
+def oauth_google_callback(code: str = "", state: str = "", error: str = ""):
+    """Terima `code`, tukar jadi token, simpan terenkripsi, lalu balik ke /settings."""
+    from fastapi.responses import RedirectResponse
+
+    og = _og()
+    ui = _ui_base()
+    if error:
+        # User menolak / Google menolak: sampaikan alasannya, jangan diam.
+        return RedirectResponse(f"{ui}/settings?google=denied&reason={error}", status_code=302)
+    if not code or not state:
+        return RedirectResponse(f"{ui}/settings?google=error&reason=missing_code_or_state", status_code=302)
+    try:
+        tokens = og.exchange_code(code, state)
+    except (ValueError, RuntimeError) as exc:
+        print(f"[oauth] google callback gagal: {type(exc).__name__}: {exc}")
+        return RedirectResponse(f"{ui}/settings?google=error&reason=exchange_failed", status_code=302)
+    email = tokens.get("email") or ""
+    if not email or not og.save_tokens(email, tokens):
+        return RedirectResponse(f"{ui}/settings?google=error&reason=vault_save_failed", status_code=302)
+    print(f"[oauth] google terhubung untuk {email} (refresh_token={'ada' if tokens.get('refresh_token') else 'TIDAK ADA'})")
+    return RedirectResponse(f"{ui}/settings?google=connected", status_code=302)
+
+
+@app.post("/oauth/google/refresh")
+def oauth_google_refresh(authorization: str | None = Header(None)):
+    """Perbarui access_token manual (selain jalur otomatis di `access_token()`)."""
+    user = security.get_current_user(authorization)
+    og = _og()
+    tokens = og.load_tokens(user["email"])
+    if not tokens:
+        raise HTTPException(404, "Belum terhubung ke Google Sheets.")
+    try:
+        updated = og.refresh_tokens(tokens)
+    except RuntimeError as exc:
+        raise HTTPException(400, str(exc))
+    og.save_tokens(user["email"], updated)
+    return {"status": "success", "expires_in_s": og.connection_status(user["email"]).get("expires_in_s")}
+
+
+@app.get("/oauth/google/status")
+def oauth_google_status(authorization: str | None = Header(None)):
+    """Status untuk UI `/settings` — TANPA nilai token (hanya boolean/umur)."""
+    user = security.get_current_user(authorization)
+    og = _og()
+    return {"status": "success", "configured": og.configured(), "google_sheets": og.connection_status(user["email"])}
+
+
+@app.get("/oauth/slack/status")
+def oauth_slack_status():
+    """Slack: dilaporkan jujur sebagai belum dikonfigurasi.
+
+    Kunci `*_slack` TIDAK ADA di `.env` mana pun (diperiksa menyeluruh: .env,
+    .env.local, nexus-frontend/.env*, .env.example, 3 backup). Endpoint ini
+    sengaja tetap ada supaya UI tidak perlu menebak, dan pesannya menyebut apa
+    yang harus disiapkan pemilik.
+    """
+    return {
+        "status": "success",
+        "configured": False,
+        "reason": "Kunci Slack belum ada di .env (App_ID_slack/Client_ID_slack/"
+                  "Client_Secret_slack/Signing_Secret_slack). Buat app di api.slack.com lalu simpan kunci.",
+    }
+
+
 # ENDPOINT: POST /api/vault/save   (Brankas: enkripsi + upsert user_vault)
 #   KEAMANAN: user TARGET dari JWT (Authorization Bearer), BUKAN dari body.
 # ---------------------------------------------------------------------------
