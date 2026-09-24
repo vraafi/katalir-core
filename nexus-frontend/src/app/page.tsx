@@ -11,7 +11,6 @@ import { Input } from "@/components/ui/input";
 import { QueryProvider } from "@/features/builder/provider";
 import { I18nProvider } from "@/i18n/context";
 import { apiFetch } from "@/lib/api";
-import { FadeIn } from "@/components/motion";
 import { useI18n } from "@/i18n/context";
 import { useSessionsQuery, useMessagesQuery, useSendChatMutation, useDeleteSessionMutation, useModelsQuery, type ChatModelItem } from "@/features/chat/hooks/useChat";
 import type { ChatMessage } from "@/features/chat/hooks/useChat";
@@ -30,7 +29,18 @@ import {
 import { HydrationReady } from "@/i18n/HydrationReady";
 import { autoRunWorkflow } from "@/features/agent/auto-run";
 import { buildExecutionReport, type ExecutionReport } from "@/features/agent/execution-report";
-import { OnboardingFlow } from "@/components/onboarding/OnboardingFlow";
+import dynamic from "next/dynamic";
+
+/** FASE 6 lanjutan: onboarding dimuat sebagai chunk terpisah — ia hanya muncul
+ *  untuk pengguna TANPA riwayat chat, jadi tidak boleh ikut membebani first paint
+ *  semua orang (temuan perf: mainthread 8s di mobile).
+ *  PENTING: `import()` harus dinamis. Versi pertama saya memakai
+ *  `Promise.resolve({default: X})` yang MASIH meng-import modulnya secara statis
+ *  — jadi tidak ada pemisahan bundle sama sekali. */
+const OnboardingFlow = dynamic(
+  () => import("@/components/onboarding/OnboardingFlow").then((m) => m.OnboardingFlow),
+  { ssr: false }
+);
 import { useRouter } from "next/navigation";
 import { Thread } from "@/features/chat/thread";
 import type { Msg } from "@/features/chat/thread";
@@ -861,15 +871,20 @@ return (
         <div ref={scrollRef} className="chat-scroll min-h-0 w-full flex-1 overflow-y-auto">
           <div className="mx-auto flex min-h-full w-full max-w-[48rem] flex-col justify-end px-5 pt-4">
             {!loading && !activeEmail ? (
-              <FadeIn className="m-auto flex w-full flex-col items-center text-center">
+              /* FASE 6 lanjutan (perf): blok ini adalah kandidat elemen LCP.
+                 Sebelumnya dibungkus `FadeIn` (opacity 0 -> 1); Chrome baru
+                 mencatat LCP saat elemen TERLIHAT, sehingga animasi masuk ikut
+                 menunda LCP (terukur LCP 4.78s vs FCP 1.75s). Hero kini tampil
+                 seketika; animasi masuk hanya dipakai untuk konten di bawah layar. */
+              <div className="m-auto flex w-full flex-col items-center text-center">
                 <Bot size={48} strokeWidth={1.25} className="text-fg-subtle" />
                 <h2 className="mt-4 text-title3 font-semibold text-fg">{t("chat.loginTitle")}</h2>
                 <p className="mt-1 max-w-sm text-callout text-fg-muted">
                   {t("chat.loginHint")}
                 </p>
-              </FadeIn>
+              </div>
             ) : messages.length === 0 && !loadingMsg ? (
-              <FadeIn className="m-auto flex w-full flex-col items-center text-center">
+              <div className="m-auto flex w-full flex-col items-center text-center">
                 <div className="rounded-sm bg-surface/70 p-5 shadow-sm">
                   <Sparkles size={52} strokeWidth={1.25} className="text-accent drop-shadow-md" />
                 </div>
@@ -887,7 +902,7 @@ return (
                     </button>
                   ))}
                 </div>
-              </FadeIn>
+              </div>
             ) : (
           <>
             <div className="flex flex-col gap-4 contain-layout" aria-live="polite" data-testid="msg-list">

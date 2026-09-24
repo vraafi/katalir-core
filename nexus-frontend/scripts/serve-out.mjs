@@ -15,6 +15,7 @@
  */
 import { createReadStream, existsSync, statSync } from "node:fs";
 import { createServer } from "node:http";
+import { createBrotliCompress, createGzip } from "node:zlib";
 import { extname, join, normalize } from "node:path";
 
 const ROOT = join(process.cwd(), "out");
@@ -66,11 +67,25 @@ const server = createServer((req, res) => {
     return;
   }
 
-  res.writeHead(200, {
-    "Content-Type": TYPES[extname(filePath).toLowerCase()] || "application/octet-stream",
-    "Cache-Control": "no-store",
-  });
-  createReadStream(filePath).pipe(res);
+  const type = TYPES[extname(filePath).toLowerCase()] || "application/octet-stream";
+  // KOMPRESI (FASE 6 lanjutan): sebelumnya server ini mengirim JS apa adanya,
+  // sehingga Lighthouse mengukur ~1,38 MB script untuk halaman yang hanya
+  // menampilkan hero login. Cloudflare Pages (produksi sebenarnya) mengompres
+  // otomatis (gzip/brotli), jadi TANPA kompresi di sini pengukurannya tidak
+  // mewakili produk -- dan keputusan optimasi bisa salah sasaran.
+  const compressible = /^(text\/|application\/(javascript|json|xml)|image\/svg)/.test(type);
+  const accept = String(req.headers["accept-encoding"] || "");
+  const headers = { "Content-Type": type, "Cache-Control": "no-store", Vary: "Accept-Encoding" };
+  let body = createReadStream(filePath);
+  if (compressible && /\bbr\b/.test(accept)) {
+    headers["Content-Encoding"] = "br";
+    body = body.pipe(createBrotliCompress());
+  } else if (compressible && /\bgzip\b/.test(accept)) {
+    headers["Content-Encoding"] = "gzip";
+    body = body.pipe(createGzip());
+  }
+  res.writeHead(200, headers);
+  body.pipe(res);
 });
 
 server.listen(PORT, () => {

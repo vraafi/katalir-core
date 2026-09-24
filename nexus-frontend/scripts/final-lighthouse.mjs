@@ -25,11 +25,21 @@ import { join } from "node:path";
 
 const BASE = process.env.BASE_URL || "http://localhost:3000";
 const CATEGORIES = ["accessibility", "performance", "best-practices", "seo"];
-const ROUTES = ["/", "/chat", "/settings", "/billing", "/help", "/builder"];
+const ROUTES_ALL = ["/", "/chat", "/settings", "/billing", "/help", "/builder"];
+// Filter diagnosa/iterasi: ukur SATU rute saja supaya tiap iterasi perf bisa
+// diukur dalam ~40 detik, bukan menunggu 12 run. Guard di bawah menjaga agar
+// nilai yang tidak dikenal GAGAL KERAS (bukan diam-diam mengukur separuh).
+const ONLY = process.env.ONLY_ROUTE || "";
+const ROUTES = ONLY ? ROUTES_ALL.filter((r) => r === ONLY) : ROUTES_ALL;
+if (!ROUTES.length) {
+  console.log(`ONLY_ROUTE="${ONLY}" tidak ada di ${JSON.stringify(ROUTES_ALL)}`);
+  process.exit(2);
+}
+const ONLY_PRESET = process.env.ONLY_PRESET || "";
 const PRESETS = [
   { key: "desktop", arg: "--preset=desktop" },
   { key: "mobile", arg: "" },
-];
+].filter((p) => !ONLY_PRESET || p.key === ONLY_PRESET);
 
 /** Ambang kriteria FASE 6 (hanya yang punya ambang eksplisit di misi). */
 const THRESHOLD = { accessibility: 90, performance: null, "best-practices": 90, seo: 90 };

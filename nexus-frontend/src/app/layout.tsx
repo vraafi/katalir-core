@@ -9,7 +9,10 @@ import { ServiceWorkerRegistrar } from "@/components/pwa/ServiceWorkerRegistrar"
 import "./globals.css";
 
 const sans = Inter({ subsets: ["latin"], variable: "--font-sans", display: "swap" });
-const mono = JetBrains_Mono({ subsets: ["latin"], variable: "--font-mono", display: "swap" });
+// FASE 6 lanjutan (perf): JetBrains Mono HANYA dipakai untuk potongan mono
+// (model id, metadata), bukan untuk teks LCP. `preload: false` mengeluarkan
+// font ini dari jalur kritis sehingga unduhan font tak lagi menahan LCP.
+const mono = JetBrains_Mono({ subsets: ["latin"], variable: "--font-mono", display: "swap", preload: false });
 
 export const metadata: Metadata = {
   title: "Katalir — SaaS AI",

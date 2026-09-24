@@ -1,12 +1,11 @@
 "use client";
 
+import dynamic from "next/dynamic";
 import { Plus, LogIn, LogOut, MessageSquare, Menu, X, Workflow, KeyRound, MoreHorizontal, Trash2 } from "lucide-react";
 import Link from "next/link";
 import { useAuth } from "@/context/auth";
-import VaultModal from "@/components/VaultModal";
 import ThemeToggle from "@/components/ThemeToggle";
 import { UserMenu } from "@/components/UserMenu";
-import { CommandPalette } from "@/components/CommandPalette";
 import { useI18n } from "@/i18n/context";
 import { StaggerList, StaggerItem } from "@/components/motion";
 import { SkipToContent } from "@/components/SkipToContent";
@@ -14,6 +13,27 @@ import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import * as DropdownMenu from "@radix-ui/react-dropdown-menu";
 import * as Dialog from "@radix-ui/react-dialog";
+
+/**
+ * FASE 6 lanjutan — CODE SPLITTING (Pendekatan 1).
+ *
+ * TEMUAN TERUKUR: Lighthouse mobile `/` = perf **57-65** dengan
+ * `mainthread=8035ms` / `bootup=5908ms` dan 1,38 MB script. Tiga chunk terberat
+ * adalah Radix (281 KB) dan motion (2 × ~180 KB). Shell ini membungkus SEMUA
+ * rute, dan dua komponen di bawah adalah penyumbang Radix-Dialog terbesar padahal
+ * TIDAK diperlukan untuk first paint:
+ *   * `VaultModal` hanya tampil saat user membuka Brankas,
+ *   * `CommandPalette` hanya saat Cmd+K ditekan.
+ * Keduanya kini dimuat sebagai chunk terpisah SETELAH hidrasi (ssr:false), jadi
+ * unduhan + parsing-nya tidak lagi menghalangi LCP.
+ *
+ * Catatan: `ssr:false` aman di sini karena keduanya memang hanya hidup di klien
+ * (dialog yang dibuka oleh interaksi user) dan build ini `output: "export"`.
+ */
+const VaultModal = dynamic(() => import("@/components/VaultModal"), { ssr: false });
+const CommandPalette = dynamic(() => import("@/components/CommandPalette").then((m) => m.CommandPalette), {
+  ssr: false,
+});
 
 interface SessionItem { id: string; title?: string; }
 
