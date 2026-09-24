@@ -297,12 +297,16 @@ function ConnectionsSection() {
     setBusy(card.id);
     try {
       const r = await apiFetch(`${card.authorize}?mode=json`, { method: "GET" });
-      const d = (await r.json().catch(() => ({}))) as { url?: string };
-      if (!r.ok || !d.url) throw new Error(`HTTP ${r.status}`);
+      const d = (await r.json().catch(() => ({}))) as { url?: string; detail?: string };
+      if (!r.ok || !d.url) throw new Error(d.detail || `HTTP ${r.status}`);
       window.location.href = d.url; // halaman penuh (bukan popup)
-    } catch {
+    } catch (error) {
       setBusy(null);
-      toast.error(t("settings.connectFailed"));
+      // Preserve the backend's actionable reason (missing session, missing
+      // provider configuration, redirect mismatch) instead of hiding it behind
+      // the old generic toast.
+      const message = error instanceof Error ? error.message : "";
+      toast.error(message || t("settings.connectFailed"));
     }
   }
 
