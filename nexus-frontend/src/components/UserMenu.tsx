@@ -5,10 +5,11 @@ import Link from "next/link";
 import * as DropdownMenu from "@radix-ui/react-dropdown-menu";
 import { useTheme } from "next-themes";
 import {
-  ChevronUp,
+  ChevronDown,
   CreditCard,
   HelpCircle,
   LogOut,
+  MoreHorizontal,
   Moon,
   Settings,
   Sun,
@@ -82,10 +83,13 @@ export function UserMenu({ userTier = "free", compact = false }: UserMenuProps) 
           {!compact && (
             <span className="min-w-0 flex-1">
               <span className="block truncate text-[13px] font-medium text-fg">{displayName || email}</span>
-              <span className="block text-[11px] text-fg-subtle">{isPlus ? t("userMenu.tierPlus") : t("userMenu.tierFree")}</span>
             </span>
           )}
-          {!compact && <ChevronUp size={14} strokeWidth={2} className="shrink-0 text-fg-subtle" aria-hidden />}
+          {compact ? (
+            <ChevronDown size={14} strokeWidth={2} className="shrink-0 text-fg-subtle" aria-hidden />
+          ) : (
+            <MoreHorizontal size={16} strokeWidth={2} className="shrink-0 text-fg-subtle" aria-hidden />
+          )}
         </button>
       </DropdownMenu.Trigger>
       <DropdownMenu.Portal>
