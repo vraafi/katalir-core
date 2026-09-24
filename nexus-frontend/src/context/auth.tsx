@@ -100,9 +100,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   async function signInWithGoogle() {
+    // Preserve the user's intended destination across the external OAuth
+    // round-trip. The landing page has no useful post-login destination, so
+    // it defaults to /chat; all other pages retain their path and query.
+    const currentPath = `${window.location.pathname}${window.location.search}`;
+    const returnTo = currentPath === "/" || currentPath === "" ? "/chat" : currentPath;
     await supabase.auth.signInWithOAuth({
       provider: "google",
-      options: { redirectTo: window.location.origin },
+      options: { redirectTo: `${window.location.origin}${returnTo}` },
     });
   }
 
