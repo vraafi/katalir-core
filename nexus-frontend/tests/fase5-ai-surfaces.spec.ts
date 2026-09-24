@@ -107,7 +107,8 @@ async function stubApi(page: Page, opts: Stub) {
 }
 
 async function openChat(page: Page) {
-  await page.goto("/", { waitUntil: "domcontentloaded" });
+  // FASE 6 final: aplikasi chat kini di `/chat` (`/` = landing ringan).
+  await page.goto("/chat", { waitUntil: "domcontentloaded" });
   await page.waitForSelector("html[data-hydrated='true']", { timeout: 45000 });
   await expect(page.getByTestId("composer-input")).toBeVisible();
 }

@@ -759,6 +759,33 @@ body {
 }
 
 /* ---------------------------------------------------------------------------
+   FASE 6 final — ANIMASI MASUK LANDING (`/`) TANPA framer-motion.
+   Alasan: `motion/framer` menempati 2 chunk (@ ~180 KB) dan ikut dimuat di `/`.
+   Landing hanya butuh satu gerakan halus, jadi cukup CSS. Dipakai HANYA di
+   bagian bawah lipatan: hero sengaja TIDAK dianimasikan dari opacity 0 karena
+   elemen LCP baru tercatat saat terlihat (temuan FASE 6: fade-in hero menunda
+   LCP). Reduced-motion dihormati sesuai preferensi sistem.
+   --------------------------------------------------------------------------- */
+@keyframes k-fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+.k-fade-up {
+  animation: k-fade-up 420ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+@media (prefers-reduced-motion: reduce) {
+  .k-fade-up {
+    animation: none;
+  }
+}
+
+/* ---------------------------------------------------------------------------
    FASE 6 — TARGET SENTUH MINIMUM 44x44 PADA PERANGKAT SENTUH.
    ALASAN ANGKA (bukan selera): matriks mobile 6 halaman x 3 device mengukur
    kontrol header/nav/settings/help pada 28-42 px — mis. nav "Chat" 79x36,

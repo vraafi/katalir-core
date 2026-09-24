@@ -271,7 +271,7 @@ test("A2 auth: logout mengosongkan sesi (data-auth=out) tanpa error halaman", as
   // localStorage lalu reload: skrip seed sesi E2E berjalan di SETIAP navigasi
   // (addInitScript), jadi sesi akan muncul kembali dan tesnya menyesatkan
   // (percobaan pertama persis begitu: data-auth tetap "in" selamanya).
-  await openPage(page, "/");
+  await openPage(page, "/chat");
   await page.waitForTimeout(1500);
 
   // Buka menu akun (aria-label dari i18n: "Menu akun <email>").

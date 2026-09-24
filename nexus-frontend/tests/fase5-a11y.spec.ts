@@ -77,9 +77,13 @@ async function ready(page: Page, route: string) {
     .catch(() => {});
 }
 
-/** Pemilih model harus punya nama aksesibel yang MEMUAT teks terlihat (WCAG 2.5.3). */
+/**
+ * Pemilih model harus punya nama aksesibel yang MEMUAT teks terlihat (WCAG 2.5.3).
+ * FASE 6 final: diukur di `/chat` karena aplikasi chat pindah ke sana
+ * (`/` kini landing ringan yang memang tidak punya pemilih model).
+ */
 test("label-in-name: pemilih model memuat nama model yang terlihat", async ({ page }) => {
-  await ready(page, "/");
+  await ready(page, "/chat");
   const info = await page.evaluate(() => {
     const b = document.querySelector('[data-testid="model-selector"]');
     if (!b) return null;

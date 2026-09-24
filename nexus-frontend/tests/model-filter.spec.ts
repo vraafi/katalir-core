@@ -1,13 +1,13 @@
-import { test, expect, type Page, type Response } from "@playwright/test";
+﻿import { test, expect, type Page, type Response } from "@playwright/test";
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 
 /**
- * E2E PRODUCTION BUILD — jalur nyata frontend -> backend, TANPA mocking.
+ * E2E PRODUCTION BUILD â€” jalur nyata frontend -> backend, TANPA mocking.
  *
  * KENAPA spec ini ditulis ulang: versi sebelumnya memakai `page.route` dengan
  * glob `**` + `/models` dan sebuah fixture. Mock itu membuat tes LULUS
- * padahal user tetap melihat model paid di selector — persis kegagalan
+ * padahal user tetap melihat model paid di selector â€” persis kegagalan
  * "agent bilang PASS, user lihat bug". Sekarang:
  *   - `/models` & `/chat` TIDAK di-mock; responsnya dibaca dari backend nyata.
  *   - Ada guard yang GAGAL bila bundle membidik origin lain (mis. Railway),
@@ -18,7 +18,7 @@ import { join } from "node:path";
  */
 
 /**
- * REF proyek Supabase. DITURUNKAN dari `NEXT_PUBLIC_SUPABASE_URL` — sumber yang
+ * REF proyek Supabase. DITURUNKAN dari `NEXT_PUBLIC_SUPABASE_URL` â€” sumber yang
  * sama dengan yang dipakai app untuk membentuk storage key (`sb-<ref>-auth-token`).
  *
  * Kenapa tidak hardcode: versi sebelumnya menulis REF tangan dan SATU KARAKTER
@@ -59,29 +59,29 @@ const FORBIDDEN_IDS = [
   "lyria-3-pro-preview",
   "nano-banana-pro-preview",
 ];
-/** Pola umum paid-only (koreksi: "omni" TIDAK dipakai — nemotron omni valid). */
+/** Pola umum paid-only (koreksi: "omni" TIDAK dipakai â€” nemotron omni valid). */
 const FORBIDDEN_RE = /-pro|pro-latest|advanced|transcribe|lyria|nano-banana|robotics|deep-research/i;
 /**
  * Model free-tier yang WAJIB tetap tersedia setelah filter.
  *
- * SENGAJA hanya id yang STABIL secara empiris — hadir di KETIGA pengamatan
+ * SENGAJA hanya id yang STABIL secara empiris â€” hadir di KETIGA pengamatan
  * independen: cache roster A (13 entri), cache roster B (12 entri), dan run E2E
  * produksi. Hanya `gemini-3-flash-preview` yang lolos uji itu.
  *
- * KOREKSI (2026-09-16) — `gemini-2.5-flash-lite` DULU dipin di sini dan itu
+ * KOREKSI (2026-09-16) â€” `gemini-2.5-flash-lite` DULU dipin di sini dan itu
  * salah. Sesi ini membuktikan rotasi liveness terjadi DUA ARAH pada cache roster
  * yang ditulis beberapa jam berbeda:
  *     masuk : `mistralai/mistral-nemotron`, `poolside/laguna-xs-2.1`
  *     keluar: `gemini-2.5-flash-lite`, `moonshotai/kimi-k3`
  * Sementara katalog gateway (259 model) TETAP memuat `gemini-2.5-flash-lite`.
- * Jadi id itu hilang karena provider mencabutnya saat probe paralel berjalan —
+ * Jadi id itu hilang karena provider mencabutnya saat probe paralel berjalan â€”
  * bukan karena filter menghapusnya. Mem-pin id bergantung-liveness -> tes
  * gagal-acak dan MENUDUH filter ("model valid hilang") padahal gateway yang
  * tidak menyajikannya; akibatnya bug filter yang sungguhan justru tersamarkan.
  *
  * Konsekuensinya cakupan "filter tidak over-delete" DIPINDAH (bukan dihapus) ke
  * unit test deterministik `test_model_filter.py::test_filter_tidak_over_delete_model_valid`,
- * yang menguji `filter_free_models()` langsung dengan input terkendali — lebih
+ * yang menguji `filter_free_models()` langsung dengan input terkendali â€” lebih
  * ketat, tanpa jaringan, dan tidak bisa gagal karena nasib provider.
  * Di sini yang diuji adalah sifat yang memang stabil pada roster LIVE.
  */
@@ -116,7 +116,7 @@ const LOW_RPD_IDS = ["gemini-2.5-flash", "gemini-2.5-flash-lite", "gemini-3-flas
  *
  * Ini pengganti non-flaky untuk pin per-id: gateway selalu menyajikan beberapa
  * model Flash free-tier, tetapi id mananya yang hidup bisa berganti. Yang tidak
- * boleh terjadi adalah keluarga Flash hilang SAMA SEKALI dari selector — itu
+ * boleh terjadi adalah keluarga Flash hilang SAMA SEKALI dari selector â€” itu
  * tanda filter over-delete atau roster kerdil.
  */
 const REQUIRED_FAMILY_RE = /^gemini-.*flash/i;
@@ -264,7 +264,7 @@ async function pickReliableModel(
 }
 
 test.describe("PRODUKSI: filter model paid-only + badge fallback (tanpa mock)", () => {
-  test("BUG 1 — /models & selector produksi tidak menyajikan model paid-only", async ({ page }) => {
+  test("BUG 1 â€” /models & selector produksi tidak menyajikan model paid-only", async ({ page }) => {
     const session = loadSession();
     const ttl = session?.access_token ? expiresInSec(session.access_token) : -1;
     console.log(`TOKEN_TTL_S=${ttl}`);
@@ -279,7 +279,7 @@ test.describe("PRODUKSI: filter model paid-only + badge fallback (tanpa mock)", 
 
     // Registrasi SEBELUM goto: respons bisa mendarat kapan saja setelah auth
     // selesai. Versi sebelumnya membaca `models.at(-1)` tepat setelah menu
-    // terbuka — menu TETAP ter-render dari fallback CHAT_MODELS lokal, jadi
+    // terbuka â€” menu TETAP ter-render dari fallback CHAT_MODELS lokal, jadi
     // assertion balapan dengan round-trip `/models` dan gagal dengan gejala
     // menyesatkan "GET /models tidak terpantau" padahal produk sehat.
     const modelsWait = page
@@ -289,11 +289,11 @@ test.describe("PRODUKSI: filter model paid-only + badge fallback (tanpa mock)", 
       )
       .catch(() => null);
 
-    await page.goto("/", { waitUntil: "domcontentloaded" });
+    await page.goto("/chat", { waitUntil: "domcontentloaded" });
     await waitAppReady(page);
 
     // Buka selector supaya daftar benar-benar dirender dari GET /models.
-    // FASE 5: pakai `data-testid` (stabil), bukan aria-label berbahasa Indonesia —
+    // FASE 5: pakai `data-testid` (stabil), bukan aria-label berbahasa Indonesia â€”
     // lihat catatan di ModelSelector.tsx.
     const trigger = page.locator('[data-testid="model-selector"]');
     await expect(trigger).toBeVisible({ timeout: 20000 });
@@ -312,7 +312,7 @@ test.describe("PRODUKSI: filter model paid-only + badge fallback (tanpa mock)", 
     // GUARD ENVIRONMENT: respons harus dari backend LOKAL, bukan Railway.
     expect(
       modelsUrl.startsWith(API_ORIGIN),
-      `bundle membidik origin lain (${modelsUrl}) — build/env salah, hasil tes tidak sah`
+      `bundle membidik origin lain (${modelsUrl}) â€” build/env salah, hasil tes tidak sah`
     ).toBe(true);
     expect(modelsResp!.status()).toBe(200);
 
@@ -329,7 +329,7 @@ test.describe("PRODUKSI: filter model paid-only + badge fallback (tanpa mock)", 
     // 2) Model free-tier yang valid TETAP ada.
     expect(
       ids.length,
-      `roster terlalu kecil (${ids.length}) — gateway kemungkinan tak terjangkau, bukan soal filter`
+      `roster terlalu kecil (${ids.length}) â€” gateway kemungkinan tak terjangkau, bukan soal filter`
     ).toBeGreaterThanOrEqual(MIN_MODELS);
     // Minimal SATU model free-tier berkuota besar. Bila ini gagal, penyebab
     // paling mungkin kuota upstream habis -- BUKAN filter over-delete; pesan
@@ -372,7 +372,7 @@ test.describe("PRODUKSI: filter model paid-only + badge fallback (tanpa mock)", 
     await page.keyboard.press("Escape");
   });
 
-  test("BUG 2 — badge fallback render dengan model diminta vs dipakai", async ({ page }) => {
+  test("BUG 2 â€” badge fallback render dengan model diminta vs dipakai", async ({ page }) => {
     const session = loadSession();
     const ttl = session?.access_token ? expiresInSec(session.access_token) : -1;
     expect(ttl, "sesi E2E kedaluwarsa -> mint ulang via scripts/e2e-auth-setup.mjs").toBeGreaterThan(30);
@@ -390,7 +390,7 @@ test.describe("PRODUKSI: filter model paid-only + badge fallback (tanpa mock)", 
     }, PRO_MODEL);
 
     const { chats } = track(page);
-    await page.goto("/", { waitUntil: "domcontentloaded" });
+    await page.goto("/chat", { waitUntil: "domcontentloaded" });
     await waitAppReady(page);
 
     const input = page.locator('[data-testid="composer-input"]');
@@ -419,7 +419,7 @@ test.describe("PRODUKSI: filter model paid-only + badge fallback (tanpa mock)", 
     if (resp.status() === 503) {
       test.skip(
         true,
-        `Upstream 503 (kuota/overload) — jalur badge fallback tidak dapat dievaluasi: ${JSON.stringify(
+        `Upstream 503 (kuota/overload) â€” jalur badge fallback tidak dapat dievaluasi: ${JSON.stringify(
           body?.detail ?? body
         )}`
       );
@@ -446,7 +446,7 @@ test.describe("PRODUKSI: filter model paid-only + badge fallback (tanpa mock)", 
     console.log("CHAT_BODIES=" + JSON.stringify(chats.map((c) => c.status)));
   });
 
-  test("VALID — model gratis hidup tidak memicu badge fallback", async ({ page, request }) => {
+  test("VALID â€” model gratis hidup tidak memicu badge fallback", async ({ page, request }) => {
     const session = loadSession();
     const ttl = session?.access_token ? expiresInSec(session.access_token) : -1;
     expect(ttl, "sesi E2E kedaluwarsa -> mint ulang via scripts/e2e-auth-setup.mjs").toBeGreaterThan(30);
@@ -466,7 +466,7 @@ test.describe("PRODUKSI: filter model paid-only + badge fallback (tanpa mock)", 
     }, okModel);
 
     const { chats } = track(page);
-    await page.goto("/", { waitUntil: "domcontentloaded" });
+    await page.goto("/chat", { waitUntil: "domcontentloaded" });
     await waitAppReady(page);
 
     const input = page.locator('[data-testid="composer-input"]');
@@ -486,13 +486,13 @@ test.describe("PRODUKSI: filter model paid-only + badge fallback (tanpa mock)", 
     console.log("VALID_META=" + JSON.stringify(meta));
 
     // Sama seperti BUG 2: 503 = upstream transien (kuota/overload), bukan cacat
-    // produk. Di-skip dengan alasan eksplisit agar tidak jadi merah palsu —
+    // produk. Di-skip dengan alasan eksplisit agar tidak jadi merah palsu â€”
     // dan karena SKIP bukan PASS, backend yang benar-benar selalu 503 tetap
     // terlihat sebagai "tidak terverifikasi", bukan hijau.
     if (resp.status() === 503) {
       test.skip(
         true,
-        `Upstream 503 (kuota/overload) — jalur "tanpa badge" tidak dapat dievaluasi: ${JSON.stringify(
+        `Upstream 503 (kuota/overload) â€” jalur "tanpa badge" tidak dapat dievaluasi: ${JSON.stringify(
           body?.detail ?? body
         )}`
       );

@@ -108,7 +108,21 @@ export const id = {
     done: "Mengerti",
   },
   landing: {
-    loginCta: "Login untuk mulai mengobrol",
+    loginCta: "Masuk untuk mulai mengobrol",
+    brand: "Katalir",
+    openApp: "Buka aplikasi",
+    title: "Ubah satu kalimat menjadi otomasi yang benar-benar berjalan.",
+    subtitle:
+      "Ceritakan kebutuhan Anda dengan bahasa sehari-hari. Katalir menyusun workflow-nya, menjalankannya, lalu melapor — tanpa perlu menyusun kotak di kanvas, tanpa koding.",
+    cta: "Mulai sekarang",
+    ctaSecondary: "Lihat cara kerjanya",
+    feature1Title: "Tulis kebutuhannya",
+    feature1Desc: "Cukup satu kalimat. Anda tidak perlu tahu apa itu node atau pemicu.",
+    feature2Title: "Dapatkan workflow",
+    feature2Desc: "Draf muncul di kanvas, siap dijalankan atau diubah.",
+    feature3Title: "Hubungkan alat Anda",
+    feature3Desc: "Telegram, Gmail, Sheets, Slack, dan HTTP — sekali hubungkan, bisa dipakai terus.",
+    footer: "Katalir — agen AI otonom untuk bisnis Anda.",
   },
   userMenu: {
     upgrade: "Upgrade ke Plus — $299 / tahun",

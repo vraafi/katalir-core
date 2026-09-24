@@ -1,4 +1,4 @@
-import { test, expect } from "@playwright/test";
+﻿import { test, expect } from "@playwright/test";
 
 const BASE = "http://localhost:3000";
 const sleep = (ms: number) => new Promise<void>((r) => setTimeout(r, ms));
@@ -9,7 +9,7 @@ const HYDRATION_RE = /hydrat|did not match|server rendered|tree hydrated/i;
 const SEED_MODEL = "gemma-4-9b-it"; // BUKAN default & tidak ada di fallback list
 const SEED_QUEUE = [{ id: "hyd-1", text: "pesan antrean hydration" }];
 // Rebrand 2026-09-18: app membaca "katalir.*" DULU, lalu fallback ke key
-// lama "nexus.*" — jadi menanam key BARU menguji jalur utama yang baru.
+// lama "nexus.*" â€” jadi menanam key BARU menguji jalur utama yang baru.
 const MODEL_KEY = "katalir.model.v1";
 const QUEUE_KEY = "katalir.queue.v1";
 
@@ -53,7 +53,7 @@ test("HYD-1: localStorage tersimpan tidak memicu hydration mismatch", async ({ p
     if (HYDRATION_RE.test(text)) hydrationHits.push(`[${m.type()}] ${text}`);
   });
 
-  await page.goto(`${BASE}/`, { waitUntil: "domcontentloaded" }).catch(() => {});
+  await page.goto(`${BASE}/chat`, { waitUntil: "domcontentloaded" }).catch(() => {});
   await sleep(2500);
 
   console.log("HYDRATION_HITS=" + hydrationHits.length);

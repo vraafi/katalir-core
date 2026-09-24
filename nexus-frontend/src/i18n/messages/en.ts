@@ -106,6 +106,20 @@ export const en = {
   },
   landing: {
     loginCta: "Sign in to start chatting",
+    brand: "Katalir",
+    openApp: "Open app",
+    title: "Turn a sentence into a working automation.",
+    subtitle:
+      "Describe what you need in plain language. Katalir drafts the workflow, runs it, and reports back — no drag-and-drop puzzle, no code.",
+    cta: "Start now",
+    ctaSecondary: "See how it works",
+    feature1Title: "Describe it",
+    feature1Desc: "Write one sentence. You do not need to know what a node or a trigger is.",
+    feature2Title: "Get a workflow",
+    feature2Desc: "The draft appears on the canvas, ready to run or adjust.",
+    feature3Title: "Connect your tools",
+    feature3Desc: "Telegram, Gmail, Sheets, Slack and HTTP — connect once, reuse forever.",
+    footer: "Katalir — autonomous AI agent for your business.",
   },
   userMenu: {
     upgrade: "Upgrade to Plus — $299 / year",
