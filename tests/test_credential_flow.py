@@ -17,7 +17,29 @@ sys.path.insert(0, str(ROOT))
 import database as db  # noqa: E402
 import tools  # noqa: E402
 
-FRONTEND_PAGE = ROOT / "nexus-frontend" / "src" / "app" / "page.tsx"
+# FASE 6 final: aplikasi chat DIPINDAH dari `src/app/page.tsx` (kini landing
+# ringan) ke `src/app/chat/ChatApp.tsx`. Tes ini menjaga SATU perilaku: form
+# kredensial chat menyimpan lewat Brankas terenkripsi, bukan kolom plaintext.
+# Karena itu berkasnya DICARI, dan tes gagal keras bila tidak ada kandidat yang
+# benar-benar memuat form itu — supaya perpindahan file berikutnya tidak membuat
+# tes "hijau" dengan memeriksa halaman yang salah (kelas bug palsu-hijau).
+_FRONTEND_PAGE_CANDIDATES = [
+    ROOT / "nexus-frontend" / "src" / "app" / "chat" / "ChatApp.tsx",
+    ROOT / "nexus-frontend" / "src" / "app" / "page.tsx",
+]
+
+
+def _chat_app_source() -> str:
+    for path in _FRONTEND_PAGE_CANDIDATES:
+        if path.exists():
+            src = path.read_text(encoding="utf-8")
+            if "async function submitCredential" in src:
+                return src
+    raise AssertionError(
+        "form kredensial chat tidak ditemukan di kandidat mana pun: "
+        + ", ".join(str(p) for p in _FRONTEND_PAGE_CANDIDATES)
+    )
+
 
 
 def test_vault_dipakai_saat_tabel_plaintext_kosong(monkeypatch):
@@ -92,7 +114,7 @@ def test_respons_needs_credential_tidak_memuat_field_kunci():
 
 
 def test_form_chat_menyimpan_lewat_vault_bukan_plaintext():
-    src = FRONTEND_PAGE.read_text(encoding="utf-8")
+    src = _chat_app_source()
     start = src.index("async function submitCredential")
     block = src[start:start + 1200]
     assert '"/api/vault/save"' in block, "form kredensial tidak memakai Brankas"
