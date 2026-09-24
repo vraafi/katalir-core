@@ -1320,6 +1320,41 @@ def list_models(authorization: str | None = Header(None)):
 # ---------------------------------------------------------------------------
 # MCP federated catalog (metadata discovery; execution is intentionally separate)
 # ---------------------------------------------------------------------------
+@app.get("/mcp/gateway/health")
+def mcp_gateway_health(authorization: str | None = Header(None)):
+    from mcp_gateway.client import GatewayClient
+    security.get_current_user(authorization)
+    try:
+        return GatewayClient().health()
+    except Exception as exc:  # noqa: BLE001
+        raise HTTPException(503, f"Gateway tidak tersedia: {type(exc).__name__}")
+
+@app.get("/mcp/gateway/servers")
+def mcp_gateway_servers(authorization: str | None = Header(None)):
+    from mcp_gateway.client import GatewayClient
+    security.get_current_user(authorization)
+    try:
+        return GatewayClient().list_servers()
+    except Exception as exc:  # noqa: BLE001
+        raise HTTPException(503, f"Gateway tidak tersedia: {type(exc).__name__}")
+
+class GatewayCallRequest(BaseModel):
+    server_id: str
+    tool: str
+    arguments: dict[str, Any] = Field(default_factory=dict)
+
+@app.post("/mcp/gateway/call")
+def mcp_gateway_call(req: GatewayCallRequest, authorization: str | None = Header(None)):
+    from mcp_gateway.client import GatewayClient
+    security.get_current_user(authorization)
+    if not req.server_id or not req.tool:
+        raise HTTPException(422, "server_id dan tool wajib")
+    try:
+        return GatewayClient().call_tool(req.server_id, req.tool, req.arguments)
+    except Exception as exc:  # noqa: BLE001
+        raise HTTPException(503, f"Gateway call gagal: {type(exc).__name__}")
+
+
 @app.get("/mcp/registry")
 def mcp_registry(page: int = 1, limit: int = 50, search: str = "", category: str = ""):
     import mcp_registry as catalog
