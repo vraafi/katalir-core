@@ -1,3 +1,22 @@
+import mcp_registry
+
+
+def test_catalog_pagination_search_dan_detail():
+    mcp_registry.load_cached()
+    page = mcp_registry.list_servers(page=1, limit=50)
+    assert len(page["items"]) <= 50
+    assert page["total"] >= 500
+    found = mcp_registry.list_servers(search="slack", limit=5)
+    assert found["items"]
+    item = found["items"][0]
+    assert mcp_registry.get_server(item["id"])["id"] == item["id"]
+
+
+def test_catalog_menolak_pagination_tidak_aman():
+    import pytest
+    with pytest.raises(ValueError):
+        mcp_registry.list_servers(limit=101)
+
 # tests/test_mcp_registry.py
 """FASE 2.4 — MCP registry native: registry, token, dan SSRF guard.
 

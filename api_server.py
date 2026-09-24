@@ -1318,6 +1318,39 @@ def list_models(authorization: str | None = Header(None)):
 # ---------------------------------------------------------------------------
 # ENDPOINT 2: POST /integrations
 # ---------------------------------------------------------------------------
+# MCP federated catalog (metadata discovery; execution is intentionally separate)
+# ---------------------------------------------------------------------------
+@app.get("/mcp/registry")
+def mcp_registry(page: int = 1, limit: int = 50, search: str = "", category: str = ""):
+    import mcp_registry as catalog
+    try:
+        return catalog.list_servers(page=page, limit=limit, search=search, category=category)
+    except ValueError as exc:
+        raise HTTPException(400, str(exc))
+
+
+@app.get("/mcp/registry/{server_id:path}")
+def mcp_registry_detail(server_id: str):
+    import mcp_registry as catalog
+    try:
+        return catalog.get_server(server_id)
+    except KeyError:
+        raise HTTPException(404, "MCP server tidak ditemukan")
+
+
+@app.post("/mcp/registry/sync")
+def mcp_registry_sync(authorization: str | None = Header(None)):
+    import mcp_registry as catalog
+    security.get_current_user(authorization)
+    try:
+        count = catalog.sync_from_public()
+    except Exception as exc:  # noqa: BLE001
+        raise HTTPException(502, f"Gagal sync registry publik: {type(exc).__name__}")
+    return {"status": "success", "synced": count, "source": catalog.SOURCE_URL}
+
+
+
+# ---------------------------------------------------------------------------
 @app.post("/integrations")
 def save_integration(req: IntegrationRequest, authorization: str | None = Header(None)):
     """Simpan token kredensial user (BYOK)."""
