@@ -241,7 +241,7 @@ function ConnectionsSection() {
     const next: Record<string, OAuthState> = {};
     for (const card of OAUTH_CARDS) {
       try {
-        const r = await apiFetch(`/oauth/${card.id}/status`, { method: "GET" });
+        const r = await apiFetch(`/oauth/${card.id}/status`, { method: "GET", timeoutMs: 5_000 });
         if (!r.ok) throw new Error(`HTTP ${r.status}`);
         const d = (await r.json()) as Record<string, unknown>;
         if (card.id === "google") {
@@ -371,9 +371,20 @@ function ConnectionsSection() {
                   </p>
                 )}
                 {st?.error && (
-                  <p className="text-caption text-danger" data-testid={`oauth-error-${card.id}`}>
-                    {t("settings.oauthLoadFailed")}
-                  </p>
+                  <div className="flex flex-wrap items-center gap-2" role="status" aria-live="polite">
+                    <p className="text-caption text-danger" data-testid={`oauth-error-${card.id}`}>
+                      {t("settings.oauthLoadFailed")}
+                    </p>
+                    <Button
+                      type="button"
+                      variant="secondary"
+                      size="sm"
+                      data-testid={`oauth-retry-${card.id}`}
+                      onClick={() => void refresh()}
+                    >
+                      {t("common.retry")}
+                    </Button>
+                  </div>
                 )}
                 <div className="mt-auto pt-1">
                   {st?.connected ? (
