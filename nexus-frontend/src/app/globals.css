@@ -53,6 +53,13 @@ body {
     "Inter", "Segoe UI", Roboto, system-ui, sans-serif;
   background-color: rgb(250, 250, 250);
   color: rgb(24, 24, 27);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+html {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 .dark body {
   background-color: rgb(9, 9, 11);

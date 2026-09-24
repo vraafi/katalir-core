@@ -21,7 +21,6 @@ export function PageTransition({ children, className }: { children: React.ReactN
       initial={{ opacity: 0, y: reduce ? 0 : 8 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.2, ease: [0.32, 0.72, 0, 1] }}
-      style={{ willChange: "opacity, transform" }}
       data-testid="page-transition"
     >
       {children}
