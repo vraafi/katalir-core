@@ -4,8 +4,8 @@ import { useState } from "react";
 import { SimplePage } from "@/components/SimplePage";
 
 const DATE = "24 September 2026";
-const DOMAIN = "https://proyek-agent.pages.dev";
-const EMAIL = "support@proyek-agent.pages.dev";
+const DOMAIN = "https://katalir.de5.net";
+const EMAIL = "support@katalir.de5.net";
 const ADDRESS = "Jakarta, Indonesia";
 type Language = "id" | "en";
 type LegalKind = "privacy" | "terms";

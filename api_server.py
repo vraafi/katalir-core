@@ -63,6 +63,7 @@ app = FastAPI(title="Nexus Agent API Gateway", version="1.0.0",
 # CORS: izinkan frontend publik Cloudflare Pages + local dev.
 # Nota: allow_credentials=True no se puede combinar con origin "*".
 allowed = [
+    "https://katalir.de5.net",
     "https://proyek-agent.pages.dev",
     "http://localhost:3000",
     "http://localhost:3001",
