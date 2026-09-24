@@ -69,9 +69,11 @@ export function UserMenu({ userTier = "free", compact = false }: UserMenuProps) 
         >
           <span
             aria-hidden
+            data-testid="profile-avatar-visual"
+            style={{ borderRadius: "9999px", aspectRatio: "1 / 1" }}
             className={compact
-              ? "flex h-8 w-8 items-center justify-center overflow-hidden rounded-full border border-border bg-accent/15 text-xs font-bold text-accent"
-              : "flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-accent/15 text-[13px] font-bold text-accent"}
+              ? "flex h-8 w-8 items-center justify-center overflow-hidden !rounded-full border border-border bg-accent/15 text-xs font-bold text-accent"
+              : "flex h-8 w-8 shrink-0 items-center justify-center overflow-hidden !rounded-full bg-accent/15 text-[13px] font-bold text-accent"}
           >
             {avatarUrl ? (
               // URL profil berasal dari Google OAuth; next/image static export

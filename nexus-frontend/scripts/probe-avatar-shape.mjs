@@ -1,0 +1,31 @@
+import { chromium } from "playwright";
+import { mkdirSync } from "node:fs";
+import { join } from "node:path";
+import { existsSync, readFileSync } from "node:fs";
+
+const root = process.cwd();
+const out = join(root, "test-results", "avatar-shape");
+mkdirSync(out, { recursive: true });
+const storagePath = join(root, "_e2e_storage.json");
+const storage = existsSync(storagePath) ? JSON.parse(readFileSync(storagePath, "utf8")) : undefined;
+const browser = await chromium.launch();
+const context = await browser.newContext({ viewport: { width: 1280, height: 800 }, ...(storage ? { storageState: storage } : {}) });
+const page = await context.newPage();
+await page.goto("http://localhost:3000/chat", { waitUntil: "networkidle", timeout: 30000 });
+await page.waitForTimeout(2500);
+const skip = page.locator('[data-testid="onboarding-skip"]');
+if (await skip.count()) await skip.click();
+await page.waitForTimeout(300);
+const avatar = page.locator('[data-testid="profile-avatar-visual"]').first();
+const info = await avatar.evaluate((node) => {
+  const r = node.getBoundingClientRect();
+  const cs = getComputedStyle(node);
+  return { width: r.width, height: r.height, borderRadius: cs.borderRadius, overflow: cs.overflow, display: cs.display };
+});
+console.log("AVATAR_COUNT=" + await page.locator('[data-testid="profile-avatar-visual"]').count());
+console.log("AVATAR_FOOTER_METRICS=" + JSON.stringify(info));
+await avatar.screenshot({ path: join(out, "footer-avatar-cropped.png") });
+await page.screenshot({ path: join(out, "footer-avatar-page.png"), fullPage: true });
+await context.close();
+await browser.close();
+if (info.width !== info.height || info.borderRadius !== "9999px" || info.overflow !== "hidden") process.exitCode = 1;
