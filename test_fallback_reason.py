@@ -17,6 +17,17 @@ BUG YANG DIJAGA (2026-09-17, terbukti di produksi):
     benar-benar diterjemahkan ke bahasa manusia (pola sama dengan
     `test_chat_budget_invariant.py`: dua lapisan yang tidak pernah saling
     memeriksa = bug hidup diam-diam).
+
+DIPERBARUI (FASE 4, 2026-09-22) -- dua hal berubah dan keduanya lebih baik:
+    1. Frontend TIDAK LAGI memetakan kode `fallback_reason` menjadi teks UI.
+       Penerjemahan status HTTP kini terpusat di `classifyHttpError`
+       (`src/lib/api.ts`), dan tuduhan tier TIDAK ADA di sana sama sekali.
+       Pesan tier yang akurat sekarang hidup di pemilih model (ikon kunci +
+       keterangan "Plus"), tempat user benar-benar memilih model.
+    2. Karena itu assertion lama (`case "overloaded"` di page.tsx) memeriksa kode
+       yang memang sudah tidak pernah ditulis lagi -> merah permanen yang
+       MENYESATKAN (dilaporkan sebagai utang teknis di FASE 3, diperbaiki di
+       FASE 4). Tes diganti menjadi kontrak yang MEMANG berlaku sekarang.
 """
 from __future__ import annotations
 
@@ -25,8 +36,8 @@ import re
 
 import api_server
 
-PAGE_TSX = (
-    pathlib.Path(__file__).resolve().parent / "nexus-frontend" / "src" / "app" / "page.tsx"
+API_TS = (
+    pathlib.Path(__file__).resolve().parent / "nexus-frontend" / "src" / "lib" / "api.ts"
 )
 
 TIER_TEXT = "Model tidak tersedia untuk tier Anda"
@@ -69,16 +80,28 @@ def test_kuota_dimenangkan_atas_rate_limit():
     assert api_server._fallback_reason(text) == "quota_exhausted"
 
 
-def test_kode_overloaded_dikenali_dan_beda_dari_tuduhan_tier():
-    """Lintas-lapisan: `overloaded` wajib punya terjemahan sendiri di frontend."""
-    src = PAGE_TSX.read_text(encoding="utf-8")
-    hit = re.search(r'case "overloaded":\s*return "([^"]+)"', src)
-    assert hit, 'case "overloaded" hilang dari page.tsx (kode backend tak diterjemahkan)'
-    assert hit.group(1) != TIER_TEXT, (
-        "`overloaded` (5xx gateway) tidak boleh diterjemahkan sama dengan "
-        "`model_unavailable` — itu justru tuduhan tier yang salah"
+def test_5xx_tidak_pernah_diterjemahkan_sebagai_tuduhan_tier():
+    """Lintas-lapisan: kegagalan gateway (5xx) -> "server sibuk", bukan tier.
+
+    Kontrak yang berlaku sekarang (dibaca dari modul penerjemah error yang
+    BENAR-BENAR dipakai UI):
+      a. 503 punya pesan sendiri yang menyebut "sibuk" dan ditandai retryable
+         (5xx gateway = transien, user boleh coba lagi) -- TIDAK dianggap
+         masalah tier;
+      b. 500 juga punya pesan sendiri (bukan angka status telanjang);
+      c. modul itu tidak memuat tuduhan tier sama sekali.
+    """
+    assert API_TS.exists(), f"modul penerjemah error hilang: {API_TS}"
+    src = API_TS.read_text(encoding="utf-8")
+
+    busy = re.search(r'case 503:\s*return \{ message: "([^"]+)", retryable: (\w+) \}', src)
+    assert busy, "503 tidak punya pesan khusus di classifyHttpError (5xx tak diterjemahkan)"
+    assert "sibuk" in busy.group(1), f"pesan 503 tidak menyebut sibuk: {busy.group(1)!r}"
+    assert busy.group(2) == "true", "503 harus retryable (gateway transien)"
+
+    srv = re.search(r'case 500:\s*return \{ message: "([^"]+)", retryable: (\w+) \}', src)
+    assert srv, "500 tidak punya pesan khusus di classifyHttpError"
+    assert TIER_TEXT not in src and "tier" not in srv.group(1).lower(), (
+        "error 5xx tidak boleh diterjemahkan sebagai masalah tier"
     )
-    tier = re.search(r'case "model_unavailable":\s*return "([^"]+)"', src)
-    assert tier and tier.group(1) == TIER_TEXT, (
-        "`model_unavailable` harus tetap berarti masalah tier/keberadaan model"
-    )
+

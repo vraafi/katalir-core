@@ -1,5 +1,11 @@
 import type { Config } from "tailwindcss";
 
+// Catatan oklch + Tailwind 3.4 (temuan FASE 1, 2026-09-21):
+// - Parser PostCSS MENOLAK sintaks spasi "rgb(R G B / a)" -> ModuleBuildError
+//   500, halaman blank. Karena itu SEMUA warna di sini bentuk koma klasik.
+// - Var 3-komponen oklch "L C H" + rgb(var(--x)/alpha) dirender UNGU oleh
+//   Tailwind 3.4 (lihat globals.css). Nilai oklch tetap di :root globals.css
+//   sebagai dokumen target migrasi Tailwind v4.
 const config: Config = {
   content: [
     "./src/pages/**/*.{js,ts,jsx,tsx,mdx}",
@@ -12,30 +18,30 @@ const config: Config = {
     extend: {
       colors: {
         bg: {
-          DEFAULT: "rgb(var(--bg) / <alpha-value>)",
-          subtle: "rgb(var(--bg-subtle) / <alpha-value>)",
+          DEFAULT: "rgb(250, 250, 250)",
+          subtle: "rgb(244, 244, 245)",
         },
         surface: {
-          DEFAULT: "rgb(var(--surface) / <alpha-value>)",
-          elevated: "rgb(var(--surface-elevated) / <alpha-value>)",
+          DEFAULT: "rgb(255, 255, 255)",
+          elevated: "rgb(255, 255, 255)",
         },
         border: {
-          DEFAULT: "rgb(var(--border) / <alpha-value>)",
-          strong: "rgb(var(--border-strong) / <alpha-value>)",
+          DEFAULT: "rgb(228, 228, 231)",
+          strong: "rgb(212, 212, 216)",
         },
         fg: {
-          DEFAULT: "rgb(var(--fg) / <alpha-value>)",
-          muted: "rgb(var(--fg-muted) / <alpha-value>)",
-          subtle: "rgb(var(--fg-subtle) / <alpha-value>)",
+          DEFAULT: "rgb(24, 24, 27)",
+          muted: "rgb(82, 82, 91)",
+          subtle: "rgb(113, 113, 122)",
         },
         accent: {
-          DEFAULT: "rgb(var(--accent) / <alpha-value>)",
-          hover: "rgb(var(--accent-hover) / <alpha-value>)",
-          fg: "rgb(var(--accent-fg) / <alpha-value>)",
+          DEFAULT: "rgb(99, 102, 241)",
+          hover: "rgb(79, 70, 229)",
+          fg: "rgb(255, 255, 255)",
         },
-        success: "rgb(var(--success) / <alpha-value>)",
-        danger: "rgb(var(--danger) / <alpha-value>)",
-        warning: "rgb(var(--warning) / <alpha-value>)",
+        success: "rgb(34, 197, 94)",
+        danger: "rgb(239, 68, 68)",
+        warning: "rgb(245, 158, 11)",
         brand: {
           DEFAULT: "#6366F1",
           dark: "#4F46E5",
@@ -49,11 +55,11 @@ const config: Config = {
         xl: "28px",
       },
       boxShadow: {
-        xs: "0 1px 2px 0 rgb(0 0 0 / 0.04)",
-        sm: "0 1px 3px 0 rgb(0 0 0 / 0.06), 0 1px 2px -1px rgb(0 0 0 / 0.04)",
-        md: "0 4px 12px -2px rgb(0 0 0 / 0.08), 0 2px 4px -2px rgb(0 0 0 / 0.04)",
-        lg: "0 12px 32px -4px rgb(0 0 0 / 0.10), 0 4px 8px -4px rgb(0 0 0 / 0.04)",
-        focus: "0 0 0 4px rgb(var(--accent) / 0.18)",
+        xs: "0 1px 2px 0 rgb(0, 0, 0, 0.04)",
+        sm: "0 1px 3px 0 rgb(0, 0, 0, 0.06), 0 1px 2px -1px rgb(0, 0, 0, 0.04)",
+        md: "0 4px 12px -2px rgb(0, 0, 0, 0.08), 0 2px 4px -2px rgb(0, 0, 0, 0.04)",
+        lg: "0 12px 32px -4px rgb(0, 0, 0, 0.10), 0 4px 8px -4px rgb(0, 0, 0, 0.04)",
+        focus: "0 0 0 4px rgb(99, 102, 241, 0.18)",
       },
       fontFamily: {
         sans: ["var(--font-sans)"],

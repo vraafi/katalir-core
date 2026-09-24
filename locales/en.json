@@ -1,0 +1,12 @@
+{
+  "workflow.running": "Workflow is running…",
+  "workflow.no_steps": "Workflow finished with status '{status}', but no steps were recorded.",
+  "workflow.success": "Workflow succeeded: {ok} steps succeeded, {err} failed.",
+  "workflow.error": "Workflow stopped due to an error: {ok} steps succeeded, {err} failed.",
+  "step.ok": "OK",
+  "step.failed": "FAILED",
+  "counts.summary": "{ok} steps succeeded, {err} failed.",
+  "status.running": "running",
+  "status.pending": "pending",
+  "status.unknown": "unknown"
+}

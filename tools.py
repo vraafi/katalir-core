@@ -77,6 +77,244 @@ def tambah_agenda_calendar(nama_acara: str, waktu: str, email: str) -> str:
 
 
 # ---------------------------------------------------------------------------
+# FASE 2.4 — MCP REGISTRY (native, tanpa dependency baru)
+# ---------------------------------------------------------------------------
+# Penghitung proses untuk membuktikan berapa kali API Telegram BENAR-BENAR
+# dipanggil (bukti "1 perintah = 1 pesan"; lihat `kirim_telegram_message`).
+_TELEGRAM_SEND_SEQ = 0
+
+
+def _text_fp(text: object) -> str:
+    """Sidik jari teks (8 hex) — untuk membandingkan pesan TANPA mencetak isinya."""
+    import hashlib
+
+    return hashlib.sha1(str(text).encode("utf-8")).hexdigest()[:8]
+
+
+def _trace(line: str) -> None:
+    """Catat satu baris jejak ke berkas (bukan stdout — lihat pemanggilnya).
+
+    Lokasi: `TELEGRAM_SEND_LOG` bila di-set, kalau tidak
+    `<temp>/telegram_sends.log`. Kegagalan menulis jejak TIDAK boleh
+    menggagalkan pengiriman pesan.
+    """
+    import os
+    import tempfile
+    import time
+
+    path = os.getenv("TELEGRAM_SEND_LOG") or os.path.join(
+        tempfile.gettempdir(), "telegram_sends.log")
+    try:
+        with open(path, "a", encoding="utf-8") as fh:
+            fh.write(f"{time.strftime('%Y-%m-%dT%H:%M:%S')} {line}\n")
+    except Exception:  # noqa: BLE001
+        pass
+
+
+# KENAPA NATIVE (bukan Composio/Pipedream): keputusan FASE 1 — nol biaya, nol
+# vendor lock-in, dan backend ini sudah punya registry tool + Brankas. Yang
+# ditambahkan di sini hanya provider yang bisa dipanggil LANGSUNG dengan token
+# user (Telegram Bot API, Slack webhook/bot, HTTP generik).
+#
+# ATURAN KEAMANAN YANG DIPAKSA DI MODUL INI:
+#   1. token dibaca dari Brankas/DB per user (bukan env global);
+#   2. token TIDAK pernah ikut ke hasil tool / pesan model / log;
+#   3. HTTP generik tidak boleh menembak alamat internal (SSRF guard).
+_BLOCKED_HOST_PREFIXES = ("127.", "0.", "10.", "169.254.", "192.168.",
+                          "100.64.", "198.18.")
+
+
+def _host_blocked(host: str) -> bool:
+    """True bila host menunjuk jaringan internal/meta (SSRF)."""
+    import ipaddress
+
+    h = (host or "").strip().strip("[]").lower()
+    if not h or h in ("localhost", "metadata.google.internal", "169.254.169.254"):
+        return True
+    if h.startswith(_BLOCKED_HOST_PREFIXES):
+        return True
+    try:
+        ip = ipaddress.ip_address(h)
+    except ValueError:
+        # Nama domain: resolusi dulu, lalu periksa SETIAP alamat (DNS rebinding).
+        import socket
+
+        try:
+            infos = socket.getaddrinfo(h, None)
+        except Exception:
+            return True                      # tak bisa dipastikan -> tolak
+        for info in infos:
+            addr = info[4][0]
+            try:
+                ip = ipaddress.ip_address(addr)
+            except ValueError:
+                return True
+            if ip.is_private or ip.is_loopback or ip.is_link_local or ip.is_reserved:
+                return True
+        return False
+    return ip.is_private or ip.is_loopback or ip.is_link_local or ip.is_reserved
+
+
+def _get_telegram_token(owner_email: str) -> str:
+    """Token Telegram: Brankas user DULU, lalu fallback `.env`.
+
+    KENAPA ADA FALLBACK: di dev/self-hosted hanya ada SATU bot (milik pemilik),
+    sehingga memaksa setiap user menempel token manual menghalangi pengujian
+    end-to-end. Urutannya sengaja "vault dulu" supaya token user selalu menang
+    atas token owner.
+
+    BATASAN PENTING (jangan lupa saat produksi multi-tenant): pada SaaS publik
+    fallback ini membuat SEMUA user memakai bot owner — perilaku yang salah untuk
+    tenant nyata. Matikan dengan `TELEGRAM_ENV_FALLBACK=0` di produksi.
+    """
+    import os as _os
+
+    cred = db.get_integration(owner_email, "telegram")
+    vault_token = (cred or {}).get("api_token") or ""
+    if vault_token:
+        return vault_token
+    fallback_on = (_os.environ.get("TELEGRAM_ENV_FALLBACK") or "1").strip() != "0"
+    env_token = (_os.environ.get("TELEGRAM_BOT_TOKEN") or "").strip() if fallback_on else ""
+    if env_token:
+        _trace("telegram token dari .env (fallback owner) — JANGAN dipakai di SaaS multi-tenant")
+        return env_token
+    raise CredentialMissingError("telegram")
+
+
+def kirim_telegram_message(chat_id: str, pesan: str, email: str) -> str:
+    """Kirim pesan Telegram (BOT API nyata). Token dari Brankas user, fallback `.env`.
+
+    Raises:
+        CredentialMissingError: tidak ada token di Brankas DAN fallback `.env`
+            dimatikan/kosong.
+    """
+    cred = db.get_integration(email, "telegram")
+    token = (cred or {}).get("api_token") or ""
+    if not token:
+        token = _get_telegram_token(email)
+    # Token Telegram WAJIB di path (desain API-nya) — karena itu URL ini tidak
+    # pernah dicetak/di-log, dan pesan error di bawah tidak memuat URL.
+    url = f"https://api.telegram.org/bot{token}/sendMessage"
+    # JEJAK WAJIB (FILE, bukan stdout): stdout ter-buffer saat proses dipipe
+    # (uvicorn di dalam test harness), sehingga print bisa hilang saat proses
+    # dimatikan. Bukti "1 perintah = 1 pesan" harus bertahan, jadi setiap
+    # panggilan API nyata dicatat ke berkas (mis. %TEMP%\telegram_sends.log).
+    global _TELEGRAM_SEND_SEQ
+    _TELEGRAM_SEND_SEQ += 1
+    _seq = _TELEGRAM_SEND_SEQ
+    _trace(f"SEND seq={_seq} chat={str(chat_id)[:6]}*** "
+           f"text_len={len(str(pesan))} text_sha8={_text_fp(pesan)}")
+    print(f"[telegram] SEND seq={_seq} chat={str(chat_id)[:6]}*** "
+          f"text_len={len(str(pesan))}")
+    try:
+        import httpx
+        r = httpx.post(url, json={"chat_id": str(chat_id), "text": str(pesan)},
+                       timeout=15.0)
+    except Exception as exc:  # noqa: BLE001
+        raise RuntimeError(f"Telegram tidak terjangkau ({type(exc).__name__}).")
+    if r.status_code >= 400:
+        _trace(f"seq={_seq} FAIL http={r.status_code}")
+        raise RuntimeError(f"Telegram menolak permintaan (HTTP {r.status_code}).")
+    try:
+        body = r.json()
+    except Exception:  # noqa: BLE001
+        body = {}
+    mid = (body.get("result") or {}).get("message_id")
+    _trace(f"seq={_seq} OK message_id={mid}")
+    return f"Pesan Telegram terkirim ke chat {chat_id} (id {mid})."
+
+
+def kirim_slack_message(channel: str, pesan: str, email: str) -> str:
+    """Kirim pesan Slack: webhook URL ATAU bot token (xoxb-)."""
+    cred = db.get_integration(email, "slack")
+    token = (cred or {}).get("api_token") or ""
+    if not cred or not token:
+        raise CredentialMissingError("slack")
+    import httpx
+
+    if token.startswith("http"):
+        if not token.startswith("https://hooks.slack.com/"):
+            raise RuntimeError("Webhook Slack harus dari hooks.slack.com.")
+        r = httpx.post(token, json={"text": str(pesan)}, timeout=15.0)
+    else:
+        r = httpx.post("https://slack.com/api/chat.postMessage",
+                       headers={"Authorization": f"Bearer {token}"},
+                       json={"channel": str(channel), "text": str(pesan)},
+                       timeout=15.0)
+    if r.status_code >= 400:
+        raise RuntimeError(f"Slack menolak permintaan (HTTP {r.status_code}).")
+    return f"Pesan Slack terkirim ke {channel}."
+
+
+def http_request(url: str, method: str = "GET", body: str = "",
+                 email: str = "") -> str:
+    """HTTP generik ke internet publik (SSRF guard aktif).
+
+    Dipakai untuk API apa pun yang belum punya tool khusus. Token provider
+    TIDAK dipakai di sini: kredensial hanya untuk provider bernama.
+    """
+    from urllib.parse import urlparse
+
+    parsed = urlparse(str(url or ""))
+    if parsed.scheme not in ("http", "https"):
+        raise ValueError("URL harus http/https.")
+    verb = (method or "GET").upper()
+    if verb not in ("GET", "POST", "PUT", "PATCH", "DELETE"):
+        raise ValueError(f"Method tidak didukung: {verb}")
+    # SSRF guard SETELAH validasi bentuk: pemeriksaan murah dulu, dan pesan
+    # "host ditolak" tidak menyamarkan kesalahan method.
+    if _host_blocked(parsed.hostname or ""):
+        raise ValueError("Host internal/loopback ditolak (SSRF guard).")
+    import httpx
+
+    try:
+        r = httpx.request(verb, url, content=body or None, timeout=20.0,
+                          headers={"Content-Type": "application/json"})
+    except Exception as exc:  # noqa: BLE001
+        raise RuntimeError(f"Permintaan HTTP gagal ({type(exc).__name__}).")
+    snippet = (r.text or "")[:400]
+    return f"HTTP {r.status_code} dari {parsed.hostname}: {snippet}"
+
+
+# ---------------------------------------------------------------------------
+# FASE 2.1 — TOOL: generate_workflow_json (Discovery Agent -> canvas)
+# Tool ini TIDAK menyentuh jaringan: tugasnya memvalidasi bentuk workflow yang
+# diusulkan model, lalu mengembalikan status + pesan perbaikan yang bisa dibaca
+# model. Kalau valid, `spec` yang dipulangkan SUDAH siap dirender ke canvas.
+# ---------------------------------------------------------------------------
+def generate_workflow_json(spec_json: str, email: str = "") -> str:
+    """Validasi JSON workflow dari model; kembalikan hasil + spec siap-canvas.
+
+    Args:
+        spec_json: JSON string {"name","nodes":[{"id","kind","label","config"}],
+            "edges":[{"source","target"}]}. kind = trigger|agent|mcp.
+        email: email user (dicatat di meta sebagai pemilik draf; opsional).
+
+    Returns:
+        str: JSON string {"ok":bool, ...} — `errors`/`hint` bila ditolak supaya
+        model bisa memperbaiki dan memanggil ulang (repair loop).
+    """
+    import json as _json
+
+    import workflow_spec as _ws
+
+    result = _ws.validate_spec(spec_json or "")
+    if result.get("ok"):
+        spec = result.get("spec") or {}
+        result = {
+            "ok": True,
+            "spec": spec,
+            "warnings": result.get("warnings", []),
+            "node_count": len(spec.get("nodes", [])),
+            "edge_count": len(spec.get("edges", [])),
+        }
+    if email:
+        result["owner"] = email
+    return _json.dumps(result, ensure_ascii=False)
+
+
+
+# ---------------------------------------------------------------------------
 # SCHEMA DEKLARASI GEMINI (Tool Calling)
 # ---------------------------------------------------------------------------
 _send_whatsapp_declaration = types.FunctionDeclaration(
@@ -157,12 +395,108 @@ _agenda_calendar_declaration = types.FunctionDeclaration(
     ),
 )
 
+_telegram_declaration = types.FunctionDeclaration(
+    name="kirim_telegram_message",
+    description=(
+        "Mengirim pesan Telegram ke sebuah chat. Memerlukan token bot Telegram "
+        "user (provider 'telegram'); bila belum ada, sistem meminta credential."
+    ),
+    parameters=types.Schema(
+        type=types.Type.OBJECT,
+        properties={
+            "chat_id": types.Schema(type=types.Type.STRING,
+                description="ID chat/grup Telegram tujuan (mis. -1001234567890)."),
+            "pesan": types.Schema(type=types.Type.STRING,
+                description="Isi pesan yang dikirim."),
+        },
+        required=["chat_id", "pesan"],
+    ),
+)
+
+_slack_declaration = types.FunctionDeclaration(
+    name="kirim_slack_message",
+    description=(
+        "Mengirim pesan ke Slack (webhook URL atau bot token provider 'slack')."
+    ),
+    parameters=types.Schema(
+        type=types.Type.OBJECT,
+        properties={
+            "channel": types.Schema(type=types.Type.STRING,
+                description="Nama/ID channel Slack (mis. #umum)."),
+            "pesan": types.Schema(type=types.Type.STRING,
+                description="Isi pesan yang dikirim."),
+        },
+        required=["channel", "pesan"],
+    ),
+)
+
+_http_declaration = types.FunctionDeclaration(
+    name="http_request",
+    description=(
+        "Memanggil API HTTP publik (GET/POST/PUT/PATCH/DELETE). Untuk integrasi "
+        "yang belum punya tool khusus. Alamat internal/loopback DITOLAK."
+    ),
+    parameters=types.Schema(
+        type=types.Type.OBJECT,
+        properties={
+            "url": types.Schema(type=types.Type.STRING,
+                description="URL lengkap http/https."),
+            "method": types.Schema(type=types.Type.STRING,
+                description="GET (default), POST, PUT, PATCH, atau DELETE."),
+            "body": types.Schema(type=types.Type.STRING,
+                description="Body JSON sebagai string (opsional)."),
+        },
+        required=["url"],
+    ),
+)
+
+
+_generate_workflow_declaration = types.FunctionDeclaration(
+    name="generate_workflow_json",
+    description=(
+        "Membuat/memperbarui draf workflow di canvas Katalir. PANGGIL HANYA "
+        "SETELAH kamu punya info yang cukup (jenis trigger, aksi, provider, "
+        "jadwal/detail). Kirim seluruh workflow sebagai JSON string. Bentuk: "
+        '{"name":"...","nodes":[{"id":"n1","kind":"trigger|agent|mcp",'
+        '"label":"...","config":{...}}],"edges":[{"source":"n1","target":"n2"}]}. '
+        "Aturan: minimal 1 node kind=trigger; id unik; setiap edge harus "
+        "menunjuk id yang ada; node kind=mcp WAJIB punya config.provider "
+        "(contoh: telegram, gmail, google_sheets, slack, http) DAN config wajib "
+        "per provider: telegram{chat_id,pesan} · slack{channel,pesan} · "
+        "http{url,method} · gmail{tujuan,subjek,isi} · "
+        "google_sheets{spreadsheet_id,range_data} · whatsapp{nomor_tujuan,pesan} · "
+        "google_calendar{nama_acara,waktu}. Bila jawaban ditolak, baca "
+        "`errors`/`hint` lalu panggil ulang dengan perbaikan."
+    ),
+    parameters=types.Schema(
+        type=types.Type.OBJECT,
+        properties={
+            "spec_json": types.Schema(
+                type=types.Type.STRING,
+                description="Seluruh workflow sebagai JSON string (bukan object).",
+            ),
+            "summary": types.Schema(
+                type=types.Type.STRING,
+                description=(
+                    "Ringkasan 1-2 kalimat untuk user tentang apa yang dibangun."
+                ),
+            ),
+        },
+        required=["spec_json"],
+    ),
+)
+
+
 TOOL_DECLARATIONS = [
     types.Tool(function_declarations=[
         _send_whatsapp_declaration,
         _baca_sheets_declaration,
         _kirim_email_declaration,
         _agenda_calendar_declaration,
+        _generate_workflow_declaration,
+        _telegram_declaration,
+        _slack_declaration,
+        _http_declaration,
     ])
 ]
 
@@ -233,16 +567,61 @@ TOOL_SCHEMAS_OPENAI = openai_tool_schemas()
 # ---------------------------------------------------------------------------
 # DISPATCHER EKSEKUSI ALAT
 # ---------------------------------------------------------------------------
-def execute_tool(name: str, args: dict, email: str) -> str:
+# Provider yang punya alur OAuth sendiri: user TIDAK boleh diminta menempel
+# token manual — UI harus menawarkan tombol Connect ke `/oauth/.../authorize`.
+OAUTH_CONNECT_URLS = {
+    "google_sheets": "/oauth/google/authorize",
+    "gmail": "/oauth/google/authorize",
+    "google_calendar": "/oauth/google/authorize",
+    "slack": "/oauth/slack/authorize",
+}
+
+
+def _needs_oauth_result(provider: str) -> dict | None:
+    """Hasil tool untuk provider ber-OAuth, atau None bila provider manual."""
+    url = OAUTH_CONNECT_URLS.get(str(provider or "").strip().lower())
+    if not url:
+        return None
+    return {
+        "status": "needs_oauth",
+        "provider": provider,
+        "connect_url": url,
+        "message": (f"Provider {provider} memakai OAuth. Klik Connect untuk "
+                    f"menghubungkan akun Anda, lalu ulangi perintah ini."),
+    }
+
+
+def execute_tool(name: str, args: dict, email: str) -> str | dict:
     """Eksekusi alat by name dengan argumen + konteks user.
 
-    Semua CredentialMissingError dibiarkan menyebar agar caller (app_frontend)
-    dapat menangkapnya untuk memicu UI form kredensial.
+    DUA BENTUK HASIL (dan kenapa):
+      * `str`  — hasil normal alat;
+      * `dict` — `{"status": "needs_oauth", ...}` untuk provider ber-OAuth yang
+        belum terhubung (Task 1C). User diberi tombol Connect, BUKAN form token
+        manual: Google Sheets/Gmail/Calendar/Slack hanya bisa diakses lewat
+        OAuth, jadi menempel token di form tidak akan pernah berhasil.
+
+    `CredentialMissingError` untuk provider MANUAL (whatsapp, telegram, custom)
+    tetap dilempar — perilaku itu dipakai UI form kredensial dan sudah dikunci
+    tes lama. Provider manual tidak punya jalur OAuth, jadi tidak ada tombol
+    Connect yang bisa ditawarkan.
 
     Raises:
-        CredentialMissingError: kredensial provider belum tersedia.
+        CredentialMissingError: kredensial provider MANUAL belum tersedia.
         ValueError: alat tidak dikenal.
     """
+    try:
+        return _execute_tool_inner(name, args, email)
+    except CredentialMissingError as exc:
+        oauth_out = _needs_oauth_result(exc.provider_name)
+        if oauth_out is None:
+            raise
+        _trace(f"needs_oauth provider={exc.provider_name} url={oauth_out['connect_url']}")
+        return oauth_out
+
+
+def _execute_tool_inner(name: str, args: dict, email: str) -> str:
+    """Badan dispatcher (dipisah supaya `execute_tool` bisa menangkap kredensial)."""
     if name == "send_whatsapp_message":
         return send_whatsapp_message(
             pesan=args.get("pesan", ""),
@@ -266,6 +645,30 @@ def execute_tool(name: str, args: dict, email: str) -> str:
         return tambah_agenda_calendar(
             nama_acara=args.get("nama_acara", ""),
             waktu=args.get("waktu", ""),
+            email=email,
+        )
+    if name == "generate_workflow_json":
+        return generate_workflow_json(
+            spec_json=args.get("spec_json", ""),
+            email=email,
+        )
+    if name == "kirim_telegram_message":
+        return kirim_telegram_message(
+            chat_id=args.get("chat_id", ""),
+            pesan=args.get("pesan", ""),
+            email=email,
+        )
+    if name == "kirim_slack_message":
+        return kirim_slack_message(
+            channel=args.get("channel", ""),
+            pesan=args.get("pesan", ""),
+            email=email,
+        )
+    if name == "http_request":
+        return http_request(
+            url=args.get("url", ""),
+            method=args.get("method", "GET"),
+            body=args.get("body", ""),
             email=email,
         )
     raise ValueError(f"Unknown tool: {name}")

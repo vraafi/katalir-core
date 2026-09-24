@@ -5,10 +5,11 @@ import Link from "next/link";
 import * as DropdownMenu from "@radix-ui/react-dropdown-menu";
 import { useTheme } from "next-themes";
 import {
-  ChevronUp,
+  ChevronDown,
   CreditCard,
   HelpCircle,
   LogOut,
+  MoreHorizontal,
   Moon,
   Settings,
   Sun,
@@ -27,6 +28,8 @@ const CHECKOUT_URL = (process.env.NEXT_PUBLIC_DODO_CHECKOUT_URL || "").trim();
 interface UserMenuProps {
   /** tier efektif user ("free" | "plus") — diteruskan dari parent agar konsisten. */
   userTier?: "free" | "plus";
+  /** Header memakai avatar 32px saja; sidebar mempertahankan email+tier. */
+  compact?: boolean;
 }
 
 /**
@@ -37,8 +40,8 @@ interface UserMenuProps {
  * Escape-menutup, dan navigasi panah/Tab secara native — tidak perlu
  * implementasi keyboard manual.
  */
-export function UserMenu({ userTier = "free" }: UserMenuProps) {
-  const { email, signOut } = useAuth();
+export function UserMenu({ userTier = "free", compact = false }: UserMenuProps) {
+  const { email, avatarUrl, displayName, signOut } = useAuth();
   const { t } = useI18n();
   const { resolvedTheme, setTheme } = useTheme();
   // HYDRATION: resolvedTheme undefined di server → label tema dibuat netral
@@ -59,25 +62,42 @@ export function UserMenu({ userTier = "free" }: UserMenuProps) {
           type="button"
           aria-label={`${t("userMenu.accountMenu")} ${email}`}
           aria-haspopup="menu"
-          className="flex w-full items-center gap-2.5 rounded-lg px-2.5 py-2 text-left transition-colors hover:bg-bg-subtle"
+          className={compact
+            ? "flex h-11 w-11 items-center justify-center rounded-full transition-colors hover:bg-bg-subtle md:hidden"
+            : "flex w-full items-center gap-2.5 rounded-lg px-2.5 py-2 text-left transition-colors hover:bg-bg-subtle"}
+          data-testid="profile-avatar"
         >
           <span
             aria-hidden
-            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-accent/15 text-[13px] font-bold text-accent"
+            data-testid="profile-avatar-visual"
+            style={{ borderRadius: "9999px", aspectRatio: "1 / 1" }}
+            className={compact
+              ? "flex h-8 w-8 items-center justify-center overflow-hidden !rounded-full border border-border bg-accent/15 text-xs font-bold text-accent"
+              : "flex h-8 w-8 shrink-0 items-center justify-center overflow-hidden !rounded-full bg-accent/15 text-[13px] font-bold text-accent"}
           >
-            {initial}
+            {avatarUrl ? (
+              // URL profil berasal dari Google OAuth; next/image static export
+              // memakai unoptimized config sehingga host eksternal tetap aman.
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={avatarUrl} alt="" className="h-full w-full object-cover" referrerPolicy="no-referrer" />
+            ) : initial}
           </span>
-          <span className="min-w-0 flex-1">
-            <span className="block truncate text-[13px] font-medium text-fg">{email}</span>
-            <span className="block text-[11px] text-fg-subtle">{isPlus ? t("userMenu.tierPlus") : t("userMenu.tierFree")}</span>
-          </span>
-          <ChevronUp size={14} strokeWidth={2} className="shrink-0 text-fg-subtle" aria-hidden />
+          {!compact && (
+            <span className="min-w-0 flex-1">
+              <span className="block truncate text-[13px] font-medium text-fg">{displayName || email}</span>
+            </span>
+          )}
+          {compact ? (
+            <ChevronDown size={14} strokeWidth={2} className="shrink-0 text-fg-subtle" aria-hidden />
+          ) : (
+            <MoreHorizontal size={16} strokeWidth={2} className="shrink-0 text-fg-subtle" aria-hidden />
+          )}
         </button>
       </DropdownMenu.Trigger>
       <DropdownMenu.Portal>
         <DropdownMenu.Content
-          side="top"
-          align="start"
+          side={compact ? "bottom" : "top"}
+          align={compact ? "end" : "start"}
           sideOffset={8}
           className="z-[90] w-64 rounded-md border border-border bg-surface p-1 text-fg shadow-lg"
         >
@@ -110,17 +130,12 @@ export function UserMenu({ userTier = "free" }: UserMenuProps) {
               {t("userMenu.billing")}
             </Link>
           </DropdownMenu.Item>
-          <DropdownMenu.Item
-            onSelect={() => setTheme(isDark ? "light" : "dark")}
-            className={itemCls}
-          >
-            {isDark ? (
-              <Sun size={14} strokeWidth={1.75} className="shrink-0" aria-hidden />
-            ) : (
-              <Moon size={14} strokeWidth={1.75} className="shrink-0" aria-hidden />
-            )}
-            {mounted ? (isDark ? t("userMenu.themeLight") : t("userMenu.themeDark")) : t("userMenu.theme")}
-          </DropdownMenu.Item>
+          {!compact && (
+            <DropdownMenu.Item onSelect={() => setTheme(isDark ? "light" : "dark")} className={itemCls}>
+              {isDark ? <Sun size={14} strokeWidth={1.75} className="shrink-0" aria-hidden /> : <Moon size={14} strokeWidth={1.75} className="shrink-0" aria-hidden />}
+              {mounted ? (isDark ? t("userMenu.themeLight") : t("userMenu.themeDark")) : t("userMenu.theme")}
+            </DropdownMenu.Item>
+          )}
           <DropdownMenu.Item asChild>
             <Link href="/help" className={itemCls}>
               <HelpCircle size={14} strokeWidth={1.75} className="shrink-0" aria-hidden />

@@ -99,7 +99,18 @@ export function ModelSelector({
         <button
           type="button"
           disabled={disabled}
-          aria-label="Pilih model AI"
+          /* FASE 5: `data-testid` STABIL. Sebelumnya tes memilih tombol ini lewat
+             `button[aria-label='Pilih model AI']` (teks berbahasa Indonesia),
+             padahal label aksesibel kini memuat nama model yang berubah-ubah dan
+             ikut bahasa pengguna -> selector lama rapuh dan pecah begitu label
+             diperbaiki. Pola yang sama sudah dipakai untuk `composer-input` /
+             `composer-send`. */
+          data-testid="model-selector"
+          /* FASE 5 (Lighthouse `label-content-name-mismatch`, ditemukan di `/`):
+             nama aksesibel WAJIB memuat teks yang terlihat ("Gemma 4…"), bukan
+             hanya tujuannya. Label lama "Pilih model AI" tidak memuat nama model
+             -> pelanggaran WCAG 2.5.3 (Label in Name). */
+          aria-label={`${label} — ${t("modelPicker.label")}`}
           className={cn(
             "flex h-8 items-center gap-1.5 rounded-full border border-border bg-surface px-3 text-[12px] font-medium text-fg transition-colors",
             "hover:bg-bg-subtle hover:text-fg focus-visible:shadow-focus disabled:opacity-40 disabled:pointer-events-none"

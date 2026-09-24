@@ -26,7 +26,7 @@ export function Terminal({
   const reduce = useReducedMotion();
   return (
     <motion.div
-      className="fixed inset-x-0 bottom-0 z-50 border-t border-gray-700 bg-[rgb(var(--bg-subtle))] font-mono"
+      className="fixed inset-x-0 bottom-0 z-50 border-t border-gray-700 bg-bg-subtle font-mono"
       initial={{ opacity: 0, y: reduce ? 0 : 32 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ type: "spring", stiffness: 300, damping: 25 }}

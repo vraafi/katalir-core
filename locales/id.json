@@ -1,0 +1,12 @@
+{
+  "workflow.running": "Workflow sedang dijalankan…",
+  "workflow.no_steps": "Workflow selesai dengan status '{status}', tetapi belum ada langkah yang tercatat.",
+  "workflow.success": "Workflow berhasil: {ok} langkah berhasil, {err} gagal.",
+  "workflow.error": "Workflow berhenti karena error: {ok} langkah berhasil, {err} gagal.",
+  "step.ok": "OK",
+  "step.failed": "GAGAL",
+  "counts.summary": "{ok} langkah berhasil, {err} gagal.",
+  "status.running": "sedang dijalankan",
+  "status.pending": "menunggu",
+  "status.unknown": "tidak diketahui"
+}

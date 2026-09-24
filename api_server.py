@@ -276,9 +276,18 @@ class VaultSaveRequest(BaseModel):
 
 
 class WorkflowCreateRequest(BaseModel):
+    # `id` opsional: bila diisi dan workflow itu MILIK user, POST = UPDATE
+    # (dulu selalu INSERT sehingga setiap "Simpan Alur" menumpuk baris baru).
+    id: str | None = None
     name: str = "Draft Workflow"
     description: str = ""
     flow_data: dict = {}
+
+
+class WorkflowUpdateRequest(BaseModel):
+    """PATCH /workflows/{id} — rename (dan deskripsi bila perlu)."""
+    name: str | None = None
+    description: str | None = None
 
 
 class ExecuteRequest(BaseModel):
@@ -292,8 +301,45 @@ class ExecuteRequest(BaseModel):
 _AGENT_SYSTEM = (
     "Anda adalah Nexus Autonomous Agent. Rencanakan & lakukan tindakan dengan "
     "alat yang tersedia. Setelah eksekusi alat, rangkum hasil untuk pengguna "
-    "secara ringkas dalam Bahasa Indonesia."
+    "secara ringkas dalam Bahasa Indonesia.\n\n"
+    # --- FASE 2.1: DISCOVERY AGENT -------------------------------------------
+    # Tanpa aturan ini, model langsung menebak isi workflow dan hasilnya salah
+    # (provider/jadwal/field karangan). Jadi klarifikasi dulu, baru bangun.
+    "MODE DISCOVERY (membangun workflow baru):\n"
+    "1. Bila pengguna meminta membuat/mengubah workflow dan detailnya belum "
+    "lengkap, JANGAN langsung membangun. Ajukan 2-5 pertanyaan klarifikasi "
+    "yang paling menentukan, dalam daftar bernomor, singkat, dan sebutkan "
+    "pilihan bila ada (contoh: 'Mau dijalankan tiap jam berapa?').\n"
+    "2. Tanyakan hanya yang belum jelas: pemicu/jadwal, aksi yang diinginkan, "
+    "provider tujuan (telegram/gmail/google_sheets/slack/http), dan data yang "
+    "dipindahkan antar langkah. Untuk node mcp, TUJUAN harus disebut pengguna "
+    "(chat_id Telegram, channel Slack, atau URL HTTP) — tanyakan bila belum ada, "
+    "karena tanpa itu workflow tidak bisa dijalankan.\n"
+    "3. Maksimal satu putaran pertanyaan per pesan pengguna. Bila jawabannya "
+    "sudah cukup, atau pengguna bilang 'langsung buat'/'terserah kamu', "
+    "berhenti bertanya dan lanjut membangun. Bila pengguna tetap belum "
+    "menyebut tujuan, gunakan pilihan aman dan tulis di config supaya bisa "
+    "diubah nanti.\n"
+    "4. Bangun workflow dengan memanggil alat `generate_workflow_json` "
+    "(seluruh workflow sebagai JSON string). Jangan menulis JSON di balasan "
+    "chat — kanvas hanya terisi lewat alat itu. WAJIB isi config per provider:\n"
+    "   telegram: {provider, chat_id, pesan} · slack: {provider, channel, pesan} · "
+    "http: {provider, url, method} · gmail: {provider, tujuan, subjek, isi} · "
+    "google_sheets: {provider, spreadsheet_id, range_data} · whatsapp: "
+    "{provider, nomor_tujuan, pesan} · google_calendar: {provider, nama_acara, waktu}. "
+    "`pesan`/`isi` boleh memakai teks permintaan pengguna; `chat_id`/`url`/"
+    "`channel` TIDAK boleh dikarang — kalau belum disebut, tanya dulu.\n"
+    "5. Bila alat menolak (ada `errors`), perbaiki sesuai `hint` dan panggil "
+    "ulang; jangan menyerahkan JSON yang ditolak ke pengguna.\n"
+    "6. Setelah alat menerima, balas dengan ringkasan singkat: berapa node, "
+    "alur besarnya, dan tanyakan apakah perlu diubah atau dijalankan.\n"
+    "7. KEJUJURAN HASIL ALAT: bila hasil alat berstatus 'error' atau berisi "
+    "'GAGAL', katakan kegagalan itu APA ADANYA — sebut alat, penyebab, dan "
+    "langkah perbaikannya (mis. token salah/kedaluwarsa). JANGAN mengaku "
+    "berhasil, JANGAN menyembunyikan penyebab, dan JANGAN menyebutnya "
+    "'kesalahan server' bila penyebabnya penolakan dari provider.\n"
 )
+
 
 
 def _content_text(resp: Any) -> str:
@@ -309,6 +355,26 @@ def _content_text(resp: Any) -> str:
         raw = "\n".join(parts)
     text = str(raw or "").strip()
     return text or "Tugas selesai dieksekusi."
+def _accepted_workflow(tool_result: Any) -> "dict | None":
+    """Ambil `spec` dari hasil `generate_workflow_json` BILA alat menerimanya.
+
+    Alat memulangkan JSON string: {"ok":True,"spec":{...}} atau
+    {"ok":False,"errors":[...]}. Draf yang DITOLAK sengaja tidak dikembalikan
+    agar canvas tidak pernah terisi workflow setengah benar.
+    """
+    if not isinstance(tool_result, str):
+        return None
+    try:
+        parsed = json.loads(tool_result)
+    except (TypeError, ValueError):
+        return None
+    if not isinstance(parsed, dict) or not parsed.get("ok"):
+        return None
+    spec = parsed.get("spec")
+    return spec if isinstance(spec, dict) else None
+
+
+
 
 
 # ---------------------------------------------------------------------------
@@ -490,6 +556,10 @@ def _agentic_run_gateway(prompt: str, email: str, model_id: str,
         messages.append(HumanMessage(content=prompt))
         _t0 = time.time()
         tools_dropped = False
+        # FASE 2.1 -> 2.2: spec workflow yang DITERIMA alat disimpan di sini dan
+        # ikut di respons (`meta.workflow`). Tanpa ini, hasil generate hanya
+        # hidup di dalam pesan tool lalu hilang -> canvas tidak punya apa pun.
+        workflow_out: dict | None = None
         try:
             try:
                 resp = chat_model.invoke(messages)
@@ -514,12 +584,25 @@ def _agentic_run_gateway(prompt: str, email: str, model_id: str,
                 for call in calls:
                     name = str((call or {}).get("name") or "")
                     args = dict((call or {}).get("args") or {})
+                    # JEJAK: berapa kali agen meminta tool (untuk memisahkan
+                    # duplikasi "agen memanggil 2x" vs "mesin mengeksekusi 2x").
+                    print(f"[chat/gateway] tool_call name={name}")
                     try:
                         result = tools.execute_tool(name, args, email)
                     except CredentialMissingError:
                         raise  # -> endpoint ubah jadi needs_credential
                     except Exception as exc:  # noqa: BLE001 - alat gagal
                         result = f"Gagal menjalankan {name}: {exc}"
+                    if isinstance(result, dict) and result.get("status") == "needs_oauth":
+                        # Task 1C: `tools.execute_tool` MENGEMBALIKAN sinyal OAuth
+                        # (bukan melempar) untuk provider ber-OAuth. Teruskan ke
+                        # endpoint lewat jalur yang sudah ada supaya user menerima
+                        # {status: needs_oauth, connect_url} + tombol Connect —
+                        # jangan meneruskan hasil palsu ke model.
+                        raise CredentialMissingError(str(result.get("provider") or ""))
+
+                    if name == "generate_workflow_json":
+                        workflow_out = _accepted_workflow(result) or workflow_out
                     messages.append(ToolMessage(
                         content=str(result),
                         tool_call_id=str((call or {}).get("id") or name),
@@ -546,6 +629,8 @@ def _agentic_run_gateway(prompt: str, email: str, model_id: str,
                     # yang dibuang karena hulu menolaknya (lihat
                     # `_tools_unsupported`). Bukan fallback provider lain.
                     "tools_dropped": tools_dropped,
+                    # Draf workflow hasil Discovery Agent (None bila tidak ada).
+                    "workflow": workflow_out,
                 },
             }
         except CredentialMissingError:
@@ -813,6 +898,8 @@ def _agentic_run_direct(prompt: str, email: str, model: str | None = None,
     response = _send_guarded(chat, prompt)
     max_retries = 3
     retry = 0
+    # FASE 2.1 -> 2.2: draf workflow yang diterima alat ikut di meta.workflow.
+    workflow_out: dict | None = None
 
     while response.function_calls:
         if retry >= max_retries:
@@ -823,13 +910,35 @@ def _agentic_run_direct(prompt: str, email: str, model: str | None = None,
             args = dict(call.args) if call.args else {}
 
             # CredentialMissingError dibiarkan menyebar -> endpoint menangkapnya.
-            tool_result = tools.execute_tool(name, args, email)
+            # Kegagalan tool LAIN (mis. provider menolak token: HTTP 401) tidak
+            # boleh menjatuhkan permintaan sebagai 'kesalahan internal': itu
+            # penolakan dari provider, bukan bug server. Dikembalikan sebagai
+            # hasil tool yang berstatus error supaya model bisa menjelaskan
+            # penyebabnya kepada user (jalur gateway sudah berperilaku begitu).
+            # JEJAK: berapa kali agen meminta tool (jalur Gemini langsung).
+            print(f"[chat/direct] tool_call name={name}")
+            try:
+                tool_result = tools.execute_tool(name, args, email)
+                tool_status = "success"
+            except CredentialMissingError:
+                raise
+            except Exception as exc:  # noqa: BLE001 - kesalahan tool, bukan server
+                tool_result = f"GAGAL menjalankan {name}: {type(exc).__name__}: {exc}"
+                tool_status = "error"
+                print(f"[api_server] tool {name} gagal: {type(exc).__name__}: {exc}")
+            if isinstance(tool_result, dict) and tool_result.get("status") == "needs_oauth":
+                # Task 1C (jalur Gemini langsung): sinyal OAuth diteruskan ke
+                # endpoint supaya user menerima connect_url, bukan teks mentah.
+                raise CredentialMissingError(str(tool_result.get("provider") or ""))
+
+            if name == "generate_workflow_json" and tool_status == "success":
+                workflow_out = _accepted_workflow(tool_result) or workflow_out
 
             response = _send_guarded(
                 chat,
                 types.Part.from_function_response(
                     name=name,
-                    response={"status": "success", "result": tool_result},
+                    response={"status": tool_status, "result": tool_result},
                 ),
             )
 
@@ -853,6 +962,8 @@ def _agentic_run_direct(prompt: str, email: str, model: str | None = None,
         # `fallback_reason` hanya terisi saat fallback — UI memakainya sebagai
         # teks penyebab di badge, bukan sekadar penanda "terjadi fallback".
         "fallback_reason": fallback_reason if fallback_used else None,
+        # Draf workflow hasil Discovery Agent (None bila tidak ada).
+        "workflow": workflow_out,
     }
     return {"reply": reply, "meta": meta}
 
@@ -1017,10 +1128,31 @@ def chat(req: ChatRequest, authorization: str | None = Header(None)):
         meta = _run.get("meta") or {}
     except CredentialMissingError as e:
         # Persist hanya pesan user; UI menampilkan form credential & akan submit ulang.
+        #
+        # FASE backlog (Task 1C): provider yang punya alur OAuth TIDAK boleh
+        # meminta user menempel token manual — UI harus menawarkan "Connect".
+        # Kontrak `tools.py` sengaja TIDAK diubah (masih melempar
+        # CredentialMissingError, sudah diuji di test_mcp_registry), jadi
+        # pemetaan ke `needs_oauth` dilakukan di sini: satu tempat, tidak
+        # mengguncang tool yang sudah stabil.
+        _oauth_providers = {
+            "google_sheets": "/oauth/google/authorize",
+            "gmail": "/oauth/google/authorize",
+            "google_calendar": "/oauth/google/authorize",
+            "slack": "/oauth/slack/authorize",
+        }
+        connect_url = _oauth_providers.get(str(e.provider_name or "").lower())
         return {
-            "status": "needs_credential",
+            "status": "needs_oauth" if connect_url else "needs_credential",
             "provider": e.provider_name,
-            "message": "Akses dibutuhkan",
+            "connect_url": connect_url,
+            "message": (
+                f"Provider {e.provider_name} memakai OAuth — hubungkan akun lewat tombol Connect."
+                if connect_url
+                else "Akses dibutuhkan"
+            ),
+            # session_id WAJIB tetap ada: frontend memakainya untuk melanjutkan
+            # percakapan yang sama setelah user menyelesaikan Connect.
             "session_id": session_id,
         }
     except HTTPException:
@@ -1077,6 +1209,40 @@ def me(authorization: str | None = Header(None)):
     except Exception:
         tier = "free"
     return {"status": "success", "email": user["email"], "tier": tier}
+
+
+# ---------------------------------------------------------------------------
+# ENDPOINT: GET /preferences + PUT /preferences  (FASE 4)
+#
+# Preferensi UI per user (tema kanvas dst) supaya pilihan tidak hilang saat
+# berpindah browser/perangkat. localStorage TETAP sumber utama di klien
+# (instan, offline-safe); endpoint ini sinkronisasi profil.
+#
+# Tabel `user_preferences` bersifat ADITIF & opsional -- lihat catatan di
+# kepala `database.py`. Bila belum dibuat, penyimpanan jatuh ke memori proses
+# dan endpoint TETAP 200 (bukan 500), sehingga klien tidak pernah rusak karena
+# migration yang belum dijalankan.
+# ---------------------------------------------------------------------------
+class PreferencesBody(BaseModel):
+    prefs: dict[str, Any] = Field(default_factory=dict)
+
+
+@app.get("/preferences")
+def get_preferences(authorization: str | None = Header(None)):
+    """Preferensi UI user JWT (kosong bila belum pernah disimpan)."""
+    user = security.get_current_user(authorization)
+    prefs = db.get_user_preferences(user["email"])
+    return {"status": "success", "prefs": prefs}
+
+
+@app.put("/preferences")
+def put_preferences(body: PreferencesBody, authorization: str | None = Header(None)):
+    """Simpan (merge) preferensi UI user JWT. Kunci yang tidak dikirim tetap utuh."""
+    user = security.get_current_user(authorization)
+    merged = dict(db.get_user_preferences(user["email"]))
+    merged.update({k: v for k, v in (body.prefs or {}).items() if isinstance(k, str)})
+    saved = db.save_user_preferences(user["email"], merged)
+    return {"status": "success", "prefs": saved}
 
 
 # ---------------------------------------------------------------------------
@@ -1164,6 +1330,234 @@ def save_integration(req: IntegrationRequest, authorization: str | None = Header
 
 
 # ---------------------------------------------------------------------------
+# ---------------------------------------------------------------------------
+# ENDPOINTS: OAuth Google Sheets (OAuth 2.1 + PKCE)
+#
+# KENAPA TERPISAH DARI `/api/vault/save`: alur ini REDIRECT, bukan XHR. User
+# meninggalkan aplikasi, menyetujui di Google, lalu kembali ke /settings.
+# Identitas user dibawa di `state` bertanda tangan (backend tidak punya sesi
+# cookie), dan `code_verifier` tetap di server — lihat oauth_google.py.
+# ---------------------------------------------------------------------------
+def _og():
+    import oauth_google as og  # impor lokal: api_server tetap bisa start tanpa modul ini
+
+    return og
+
+
+def _ui_base() -> str:
+    return (os.getenv("APP_UI_URL") or os.getenv("CORS_ORIGIN") or "http://localhost:3000").split(",")[0].strip().rstrip("/")
+
+
+@app.get("/oauth/google/authorize")
+def oauth_google_authorize(authorization: str | None = Header(None), redirect_base: str | None = None,
+                          mode: str = ""):
+    """Redirect ke consent Google (PKCE S256, access_type=offline, prompt=consent).
+
+    `mode=json` mengembalikan {"url": ...} alih-alih 302. KENAPA: tombol
+    "Connect" di `/settings` memakai redirect HALAMAN PENUH (bukan popup), dan
+    redirect halaman penuh TIDAK bisa membawa header Authorization. Dengan mode
+    ini, frontend meminta URL lewat `apiFetch` (JWT ikut di header), lalu
+    mengarahkan browser ke URL itu — sehingga JWT tidak pernah masuk ke URL/log.
+    """
+    user = security.get_current_user(authorization)
+    og = _og()
+    if not og.configured():
+        # Jujur: tanpa kunci, jangan menebak URL yang pasti gagal.
+        raise HTTPException(503, "OAuth Google belum dikonfigurasi (GOOGLE_CLIENT_ID/SECRET kosong).")
+    try:
+        url = og.build_authorize_url(user["email"], redirect_base)
+    except RuntimeError as exc:
+        raise HTTPException(503, str(exc))
+    if mode == "json":
+        return {"status": "success", "provider": og.PROVIDER, "url": url}
+    from fastapi.responses import RedirectResponse  # impor lokal: hindari ubah blok impor
+
+    return RedirectResponse(url, status_code=302)
+
+
+
+@app.get("/oauth/google/callback")
+def oauth_google_callback(code: str = "", state: str = "", error: str = ""):
+    """Terima `code`, tukar jadi token, simpan terenkripsi, lalu balik ke /settings."""
+    from fastapi.responses import RedirectResponse
+
+    og = _og()
+    ui = _ui_base()
+    if error:
+        # User menolak / Google menolak: sampaikan alasannya, jangan diam.
+        return RedirectResponse(f"{ui}/settings?google=denied&reason={error}", status_code=302)
+    if not code or not state:
+        return RedirectResponse(f"{ui}/settings?google=error&reason=missing_code_or_state", status_code=302)
+    try:
+        tokens = og.exchange_code(code, state)
+    except (ValueError, RuntimeError) as exc:
+        print(f"[oauth] google callback gagal: {type(exc).__name__}: {exc}")
+        return RedirectResponse(f"{ui}/settings?google=error&reason=exchange_failed", status_code=302)
+    email = tokens.get("email") or ""
+    if not email or not og.save_tokens(email, tokens):
+        return RedirectResponse(f"{ui}/settings?google=error&reason=vault_save_failed", status_code=302)
+    print(f"[oauth] google terhubung untuk {email} (refresh_token={'ada' if tokens.get('refresh_token') else 'TIDAK ADA'})")
+    return RedirectResponse(f"{ui}/settings?google=connected", status_code=302)
+
+
+@app.post("/oauth/google/refresh")
+def oauth_google_refresh(authorization: str | None = Header(None)):
+    """Perbarui access_token manual (selain jalur otomatis di `access_token()`)."""
+    user = security.get_current_user(authorization)
+    og = _og()
+    tokens = og.load_tokens(user["email"])
+    if not tokens:
+        raise HTTPException(404, "Belum terhubung ke Google Sheets.")
+    try:
+        updated = og.refresh_tokens(tokens)
+    except RuntimeError as exc:
+        raise HTTPException(400, str(exc))
+    og.save_tokens(user["email"], updated)
+    return {"status": "success", "expires_in_s": og.connection_status(user["email"]).get("expires_in_s")}
+
+
+@app.get("/oauth/google/status")
+def oauth_google_status(authorization: str | None = Header(None)):
+    """Status untuk UI `/settings` — TANPA nilai token (hanya boolean/umur)."""
+    user = security.get_current_user(authorization)
+    og = _og()
+    return {"status": "success", "configured": og.configured(), "google_sheets": og.connection_status(user["email"])}
+
+
+@app.delete("/oauth/google")
+def oauth_google_disconnect(authorization: str | None = Header(None)):
+    """Cabut koneksi Google Sheets user (hapus token dari Brankas).
+
+    KEAMANAN: user diambil dari JWT — user tidak bisa memutus koneksi orang lain.
+    Tanpa endpoint ini tombol "Disconnect" di `/settings` tidak punya cara sah
+    untuk mencabut akses; user hanya bisa menimpa token.
+    """
+    user = security.get_current_user(authorization)
+    og = _og()
+    existed = bool(og.load_tokens(user["email"]))
+    if not og.clear_tokens(user["email"]):
+        raise HTTPException(500, "Gagal menghapus token Google dari Brankas.")
+    print(f"[oauth] google diputus untuk {user['email']} (sebelumnya_ada={existed})")
+    return {"status": "success", "provider": og.PROVIDER, "disconnected": True, "existed": existed}
+
+
+@app.get("/oauth/slack/authorize")
+def oauth_slack_authorize(authorization: str | None = Header(None), redirect_base: str | None = None,
+                          mode: str = ""):
+    """Redirect ke consent Slack (scope chat:write, channels:read, users:read).
+
+    `mode=json` → {"url": ...} (lihat penjelasan di `/oauth/google/authorize`:
+    tombol Connect memakai redirect halaman penuh, dan JWT tidak boleh masuk URL).
+    """
+    user = security.get_current_user(authorization)
+    import oauth_slack as osl
+
+    if not osl.configured():
+        raise HTTPException(503, "OAuth Slack belum dikonfigurasi (SLACK_CLIENT_ID/SECRET kosong).")
+    try:
+        url = osl.build_authorize_url(user["email"], redirect_base)
+    except RuntimeError as exc:
+        raise HTTPException(503, str(exc))
+    if mode == "json":
+        return {"status": "success", "provider": osl.PROVIDER, "url": url}
+    from fastapi.responses import RedirectResponse
+
+    return RedirectResponse(url, status_code=302)
+
+
+
+@app.get("/oauth/slack/callback")
+def oauth_slack_callback(code: str = "", state: str = "", error: str = ""):
+    """Tukar code -> bot token workspace -> simpan terenkripsi di Vault."""
+    from fastapi.responses import RedirectResponse
+
+    import oauth_slack as osl
+
+    ui = _ui_base()
+    if error:
+        return RedirectResponse(f"{ui}/settings?slack=denied&reason={error}", status_code=302)
+    if not code or not state:
+        return RedirectResponse(f"{ui}/settings?slack=error&reason=missing_code_or_state", status_code=302)
+    try:
+        data = osl.exchange_code(code, state)
+    except (ValueError, RuntimeError) as exc:
+        print(f"[oauth] slack callback gagal: {type(exc).__name__}: {exc}")
+        return RedirectResponse(f"{ui}/settings?slack=error&reason=exchange_failed", status_code=302)
+    email = data.get("email") or ""
+    if not email or not osl.save_installation(email, data):
+        return RedirectResponse(f"{ui}/settings?slack=error&reason=vault_save_failed", status_code=302)
+    print(f"[oauth] slack terhubung untuk {email} team={data.get('team_name') or '?'}")
+    return RedirectResponse(f"{ui}/settings?slack=connected", status_code=302)
+
+
+@app.get("/oauth/slack/status")
+def oauth_slack_status(authorization: str | None = Header(None)):
+    """Status Slack: kunci ada + alur OAuth SUDAH diimplementasikan (Task 1A).
+
+    Dibuat menerima JWT (opsional) supaya bisa dipakai dua konteks: probe tanpa
+    login (hanya status kunci) dan UI `/settings` (status koneksi per user).
+    """
+    import oauth_slack as osl
+
+    keys = {
+        "SLACK_APP_ID": bool((os.getenv("SLACK_APP_ID") or "").strip()),
+        "SLACK_CLIENT_ID": bool((os.getenv("SLACK_CLIENT_ID") or "").strip()),
+        "SLACK_CLIENT_SECRET": bool((os.getenv("SLACK_CLIENT_SECRET") or "").strip()),
+        "SLACK_SIGNING_SECRET": bool((os.getenv("SLACK_SIGNING_SECRET") or "").strip()),
+        "SLACK_VERIFICATION_TOKEN": bool((os.getenv("SLACK_VERIFICATION_TOKEN") or "").strip()),
+    }
+    filled = sum(1 for v in keys.values() if v)
+    out = {
+        "status": "success",
+        "keys_present": filled,
+        "keys_total": len(keys),
+        "keys": keys,
+        "implemented": True,
+        "authorize_endpoint": "/oauth/slack/authorize",
+        "reason": (
+            "Alur OAuth Slack siap; kunci lengkap."
+            if filled == len(keys)
+            else "Sebagian kunci Slack kosong — isi dari api.slack.com/apps."
+        ),
+    }
+    if authorization:
+        try:
+            user = security.get_current_user(authorization)
+            out["slack"] = osl.connection_status(user["email"])
+        except HTTPException:
+            out["slack"] = {"connected": False, "provider": "slack"}
+    else:
+        out["slack"] = {"connected": False, "provider": "slack"}
+
+    # Kontrak yang diminta UI (Task 1B): `connected` + `team_name` di tingkat
+    # atas, supaya kartu `/settings` tidak perlu tahu bentuk bersarang `slack`.
+    # `slack` (bersarang) tetap dikirim agar probe/tes lama tidak pecah.
+    out["connected"] = bool(out["slack"].get("connected"))
+    out["team_name"] = out["slack"].get("team_name") or ""
+    return out
+
+
+@app.delete("/oauth/slack")
+def oauth_slack_disconnect(authorization: str | None = Header(None)):
+    """Cabut instalasi Slack user (bot token dihapus dari Brankas).
+
+    KEAMANAN: user dari JWT. Bot token dihapus DARI SISI KITA; untuk mencabut di
+    sisi Slack, user juga perlu menghapus app-nya di workspace (dicatat di UI
+    supaya tidak ada klaim berlebihan bahwa ini "revoke penuh").
+    """
+    user = security.get_current_user(authorization)
+    import oauth_slack as osl
+
+    existed = bool(osl.load_installation(user["email"]))
+    if not osl.clear_installation(user["email"]):
+        raise HTTPException(500, "Gagal menghapus instalasi Slack dari Brankas.")
+    print(f"[oauth] slack diputus untuk {user['email']} (sebelumnya_ada={existed})")
+    return {"status": "success", "provider": osl.PROVIDER, "disconnected": True, "existed": existed}
+
+
+
+
+
 # ENDPOINT: POST /api/vault/save   (Brankas: enkripsi + upsert user_vault)
 #   KEAMANAN: user TARGET dari JWT (Authorization Bearer), BUKAN dari body.
 # ---------------------------------------------------------------------------
@@ -1180,6 +1574,24 @@ def vault_save_endpoint(req: VaultSaveRequest, authorization: str | None = Heade
     if not ok:
         raise HTTPException(500, "Gagal menyimpan vault.")
     return {"status": "saved", "provider": req.provider, "saved": True}
+
+
+@app.delete("/api/vault/{provider}")
+def vault_delete_endpoint(provider: str, authorization: str | None = Header(None)):
+    """Cabut kredensial satu provider untuk user pada JWT (self-service).
+
+    KEAMANAN: user TARGET dari JWT, bukan body/query — user tidak bisa menghapus
+    kredensial orang lain. Tanpa endpoint ini user hanya bisa MENIMPA token,
+    tidak pernah bisa mencabutnya.
+    """
+    user = security.get_current_user(authorization)
+    prov = (provider or "").strip().lower()
+    if not prov:
+        raise HTTPException(422, "provider wajib diisi.")
+    ok = db.vault_delete(user["email"], prov)
+    if not ok:
+        raise HTTPException(500, "Gagal menghapus kredensial.")
+    return {"status": "deleted", "provider": prov, "deleted": True}
 
 
 # ---------------------------------------------------------------------------
@@ -1200,13 +1612,84 @@ def vault_list_endpoint(authorization: str | None = Header(None)):
 # ---------------------------------------------------------------------------
 @app.post("/workflows", status_code=201)
 def create_workflow(req: WorkflowCreateRequest, authorization: str | None = Header(None)):
-    """Simpan un workflow de nodos/edges (JSONB a tabla workflows)."""
+    """Simpan workflow. `id` diisi -> UPDATE (bila milik user), jika tidak INSERT.
+
+    Idempotensi: menyimpan ulang workflow yang sama TIDAK boleh menumpuk baris
+    baru di sidebar (bug lama: POST selalu INSERT).
+    """
     user = security.get_current_user(authorization)
+    if req.id:
+        existing = db.get_workflow(req.id, user["id"])
+        if not existing:
+            # Membedakan "tidak ada" dari "milik orang lain" berguna untuk
+            # frontend (pesan yang benar), dan tidak membocorkan isi workflow.
+            owner = db.get_workflow_owner(req.id)
+            if owner:
+                raise HTTPException(403, "Workflow ini bukan milik Anda.")
+            raise HTTPException(404, "Workflow tidak ditemukan.")
+        try:
+            row = db.update_workflow(req.id, user["id"], name=req.name,
+                                     description=req.description, flow_data=req.flow_data)
+        except Exception as exc:  # noqa: BLE001
+            raise HTTPException(500, f"Gagal memperbarui workflow: {exc}")
+        if not row:
+            raise HTTPException(404, "Workflow tidak ditemukan.")
+        return {"status": "success", "updated": True, "workflow": row}
     try:
         row = db.create_workflow(user["id"], req.name, req.description, req.flow_data)
     except Exception as exc:  # noqa: BLE001
         raise HTTPException(500, f"Gagal menyimpan workflow: {exc}")
+    return {"status": "success", "updated": False, "workflow": row}
+
+
+@app.get("/workflows/{workflow_id}")
+def get_workflow_detail(workflow_id: str, authorization: str | None = Header(None)):
+    """Detail SATU workflow (termasuk flow_data) — hanya milik user JWT."""
+    user = security.get_current_user(authorization)
+    try:
+        row = db.get_workflow(workflow_id, user["id"])
+    except Exception as exc:  # noqa: BLE001
+        raise HTTPException(500, f"Gagal memuat workflow: {exc}")
+    if not row:
+        raise HTTPException(404, "Workflow tidak ditemukan.")
     return {"status": "success", "workflow": row}
+
+
+@app.patch("/workflows/{workflow_id}")
+def patch_workflow(workflow_id: str, req: WorkflowUpdateRequest,
+                   authorization: str | None = Header(None)):
+    """Rename / ubah deskripsi. Owner-scoped: bukan pemilik -> 403."""
+    user = security.get_current_user(authorization)
+    if req.name is None and req.description is None:
+        raise HTTPException(400, "Tidak ada perubahan yang dikirim.")
+    if req.name is not None and not req.name.strip():
+        raise HTTPException(400, "Nama workflow tidak boleh kosong.")
+    try:
+        row = db.update_workflow(workflow_id, user["id"],
+                                 name=(req.name.strip() if req.name else None),
+                                 description=req.description)
+    except Exception as exc:  # noqa: BLE001
+        raise HTTPException(500, f"Gagal mengubah workflow: {exc}")
+    if not row:
+        if db.get_workflow_owner(workflow_id):
+            raise HTTPException(403, "Workflow ini bukan milik Anda.")
+        raise HTTPException(404, "Workflow tidak ditemukan.")
+    return {"status": "success", "workflow": row}
+
+
+@app.delete("/workflows/{workflow_id}")
+def remove_workflow(workflow_id: str, authorization: str | None = Header(None)):
+    """Hapus SATU workflow milik user JWT. Owner-scoped (bukan pemilik -> 403)."""
+    user = security.get_current_user(authorization)
+    try:
+        ok = db.delete_workflow(workflow_id, user["id"])
+    except Exception as exc:  # noqa: BLE001
+        raise HTTPException(500, f"Gagal menghapus workflow: {exc}")
+    if not ok:
+        if db.get_workflow_owner(workflow_id):
+            raise HTTPException(403, "Workflow ini bukan milik Anda.")
+        raise HTTPException(404, "Workflow tidak ditemukan.")
+    return {"status": "success", "deleted": True, "id": workflow_id}
 
 
 # ---------------------------------------------------------------------------
@@ -1214,6 +1697,11 @@ def create_workflow(req: WorkflowCreateRequest, authorization: str | None = Head
 # ---------------------------------------------------------------------------
 @app.get("/workflows")
 def get_workflows(authorization: str | None = Header(None)):
+    """List workflow user (METADATA saja — tanpa flow_data).
+
+    Isi graf diambil per-workflow lewat GET /workflows/{id} supaya payload list
+    tetap kecil walau user punya banyak workflow.
+    """
     user = security.get_current_user(authorization)
     try:
         rows = db.list_workflows(user["id"])
@@ -1236,19 +1724,25 @@ async def execute_workflow(workflow_id: str, req: ExecuteRequest = None,
         raise HTTPException(404, "Workflow tidak ditemukan.")
     flow_data = req.flow_data if (req and req.flow_data) else None
     if not flow_data:
-        found = next((w for w in (db.list_workflows(user["id"]) or []) if w.get("id") == workflow_id), None)
+        # LIST tidak lagi membawa flow_data (FASE B) -> ambil DETAIL.
+        found = db.get_workflow(workflow_id, user["id"])
         if not found:
             raise HTTPException(404, f"Workflow {workflow_id} tidak ditemukan.")
         flow_data = found.get("flow_data") or {}
     try:
-        execution_id = engine.launch_execution(workflow_id, flow_data)
+        # FASE 2.6: sertakan email pemilik agar node MCP bisa membaca kredensial
+        # user dari Brankas (tanpa ini node telegram/slack selalu "belum ada
+        # kredensial" walau user sudah menyimpannya).
+        execution_id = engine.launch_execution(
+            workflow_id, flow_data, owner_email=str(user.get("email") or ""))
     except Exception as exc:  # noqa: BLE001
         raise HTTPException(500, f"Gagal melanjar ejekution: {exc}")
     return {"execution_id": execution_id, "workflow_id": workflow_id, "status": "pending"}
 
 
 @app.get("/executions/{execution_id}")
-def get_execution(execution_id: str, authorization: str | None = Header(None)):
+def get_execution(execution_id: str, authorization: str | None = Header(None),
+                  accept_language: str | None = Header(None)):
     """Devuelve estado y logs de una ejecucion."""
     user = security.get_current_user(authorization)
     try:
@@ -1262,7 +1756,17 @@ def get_execution(execution_id: str, authorization: str | None = Header(None)):
         owner = db.get_workflow_owner(str(wid))
         if owner != user["id"]:
             raise HTTPException(404, "Ejecucion tidak ditemukan.")
-    return {"status": "success", **data}
+    # FASE 2.5: laporan siap-tampil untuk chat/kanvas (diformat di server agar
+    # semua klien menampilkan hal yang sama dan bisa diuji tanpa browser).
+    try:
+        import execution_report as _er
+        locale = _er.locale_from_accept_language(accept_language)
+        report = _er.format_execution_report((data or {}).get("execution"),
+                                             (data or {}).get("logs"), locale=locale)
+    except Exception as exc:  # noqa: BLE001 - laporan tidak boleh memblokir status
+        print(f"[api_server] laporan eksekusi gagal: {type(exc).__name__}")
+        report = ""
+    return {"status": "success", **data, "report": report}
 
 
 # ---------------------------------------------------------------------------
@@ -1321,10 +1825,8 @@ async def webhook_trigger(workflow_id: str, request: Request,
     owner = db.get_workflow_owner(workflow_id)
     if owner is None or owner != user["id"]:
         raise HTTPException(404, "Workflow tidak ditemukan.")
-    found = next(
-        (w for w in (db.list_workflows(user["id"]) or []) if w.get("id") == workflow_id),
-        None,
-    )
+    # LIST tidak lagi membawa flow_data (FASE B) -> ambil DETAIL.
+    found = db.get_workflow(workflow_id, user["id"])
     if not found:
         raise HTTPException(404, f"Workflow {workflow_id} tidak ditemukan.")
     flow_data = found.get("flow_data") or {}

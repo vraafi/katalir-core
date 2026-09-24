@@ -124,6 +124,31 @@ FREE_TIER_MODEL_IDS = frozenset({
 })
 
 
+ALLOWED_MODELS = {
+    "free": frozenset(FREE_TIER_MODEL_IDS),
+    "plus": frozenset({"*"}),
+}
+
+
+def is_allowed(model: str, tier: str) -> bool:
+    """Allowlist ketat per tier; unknown/empty tier selalu deny."""
+    allowed = ALLOWED_MODELS.get((tier or "").strip().lower(), frozenset())
+    if not allowed:
+        return False
+    return "*" in allowed or model in allowed
+
+
+def _log_blocked_model(model: str, tier: str, reason: str) -> None:
+    log.info("model_blocked model=%s tier=%s reason=%s", model, tier, reason)
+
+
+def _model_allowed_for_tier(model: str, tier: str = "free") -> bool:
+    if is_allowed(model, tier):
+        return True
+    _log_blocked_model(model, tier, "tier_allowlist")
+    return False
+
+
 def _provider_family(provider: str) -> str:
     """Normalisasi nama provider lintas sumber (roster vs discovery)."""
     p = (provider or "").strip().lower()
@@ -181,7 +206,7 @@ def filter_free_models(models: list[dict]) -> list[dict]:
         mid = str(m.get("id") or "")
         if not mid or not chat_capable(mid):
             continue
-        if is_paid_only(mid, str(m.get("provider") or "")):
+        if is_paid_only(mid, str(m.get("provider") or "")) or not _model_allowed_for_tier(mid, "free"):
             continue
         out.append(m)
     return out

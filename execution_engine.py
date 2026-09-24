@@ -27,6 +27,8 @@ from dotenv import load_dotenv
 load_dotenv()
 
 import database as db
+# FASE 2.6: node MCP dengan `config.provider` dirutekan ke registry tool native.
+import provider_registry
 
 
 # ---------------------------------------------------------------------------
@@ -400,10 +402,16 @@ class StatefulOrchestrator:
     """
 
     def __init__(self, graph: FlowGraph, registry: Optional[MCPRegistry] = None,
-                 trigger_input: Optional[dict] = None):
+                 trigger_input: Optional[dict] = None,
+                 owner_email: str = ""):
         self.graph = graph
         self.registry = registry or get_registry()
         self.trigger_input = dict(trigger_input or {})
+        # FASE 2.6: pemilik eksekusi (email) WAJIB diketahui node MCP — tool
+        # kredensial (telegram/slack/gmail/…) membaca token dari Brankas milik
+        # user. Tanpa ini setiap node ber-kredensial gagal "CredentialMissing"
+        # walau user sudah menyimpannya.
+        self.owner_email = owner_email or ""
         self.states: dict[str, str] = {n.id: "pending" for n in graph.nodes}
         self.outputs: dict[str, dict] = {}
         self._by_id = {n.id: n for n in graph.nodes}
@@ -523,8 +531,26 @@ class StatefulOrchestrator:
         }
 
     async def _exec_mcp(self, node: FlowNode, inp: dict) -> dict:
-        # Baca instruksi/tool_call dari output Agent sebelumnya (Agent -> MCP).
+        """Node MCP: `config.provider` -> registry native, lalu tool bawaan mesin.
+
+        FASE 2.6: sebelumnya executor mengabaikan `config.provider` dan memilih
+        tool dari `config.tool_name` dengan default `web_search`, sehingga
+        workflow "kirim Telegram" justru melakukan pencarian web. Sekarang:
+          1. provider terdaftar -> `provider_registry` (Telegram/Slack/HTTP/...);
+          2. provider TAK dikenal -> payload error eksplisit (tidak menebak);
+          3. tanpa provider -> jalur lama (web_search/http_request) demi
+             kompatibilitas workflow yang sudah tersimpan.
+        """
         cfg = node.data.config or {}
+        owner = (getattr(self, "owner_email", None)
+                 or cfg.get("owner_email") or "")
+        provider = provider_registry.resolve(cfg, inp)
+        if provider:
+            result = await provider_registry.run_async(provider, cfg, inp, owner)
+            return {"type": "mcp.call", "provider": provider,
+                    "tool": result.get("tool"), "result": result}
+
+        # --- jalur lama (tanpa provider) ------------------------------------
         tool = cfg.get("tool_name") or inp.get("tool") or inp.get("tool_name") or "web_search"
         param = (
             cfg.get("tool_param")
@@ -616,16 +642,36 @@ class StatefulOrchestrator:
 # API DE ORQUESTACION + PERSISTENCIA (execution_logs)
 # ---------------------------------------------------------------------------
 async def execute_workflow_async(workflow_id: str, flow_data: dict,
-                                 trigger_input: Optional[dict] = None) -> dict:
-    """Ejecuta un workflow e persiste cada paso en execution_logs."""
+                                 trigger_input: Optional[dict] = None,
+                                 execution_id: Optional[str] = None,
+                                 owner_email: str = "") -> dict:
+    """Ejecuta un workflow e persiste cada paso en execution_logs.
+
+    FASE 2.5: `execution_id` boleh DIBERIKAN pemanggil. Sebelumnya fungsi ini
+    selalu membuat id baru, sementara `launch_execution` sudah membuat baris
+    `executions` (dan mengembalikan id itu ke klien). Akibatnya log & status
+    akhir tersimpan di id yang TIDAK PERNAH di-poll klien: `GET /executions/{id}`
+    selamanya "pending" tanpa satu pun langkah — laporan otomatis di chat mustahil.
+    """
     graph = FlowGraph(**flow_data)
-    execution_id = str(uuid.uuid4())
-    db.create_execution(execution_id, workflow_id, flow_data)
+    provided = bool(execution_id)
+    execution_id = execution_id or str(uuid.uuid4())
+    # JEJAK: satu baris per eksekusi workflow (untuk memisahkan duplikasi
+    # "mesin dieksekusi 2x" dari "agen memanggil tool 2x").
+    print(f"[engine] start execution_id={execution_id} flow={workflow_id} "
+          f"nodes={len(graph.nodes)} owner={'ya' if owner_email else 'kosong'}")
+    if not provided:
+        # Hanya pembuat barisnya yang meng-insert. Kalau id diberikan pemanggil
+        # (`launch_execution`), barisnya SUDAH ada — insert ulang akan gagal
+        # (PK duplikat) dan justru mematikan flag `_configured` di database.py
+        # sehingga update status/log setelahnya hilang.
+        db.create_execution(execution_id, workflow_id, flow_data)
 
     async def _log_step(step: ExecutionStep) -> None:
         db.append_execution_log(execution_id, step.node_id, step.kind.value, step.status, step.output)
 
-    orch = StatefulOrchestrator(graph, trigger_input=trigger_input)
+    orch = StatefulOrchestrator(graph, trigger_input=trigger_input,
+                                owner_email=owner_email)
     try:
         steps = await orch.run(on_step=_log_step)
         status = "completed"
@@ -652,11 +698,14 @@ _BG_TASKS: dict[str, asyncio.Task] = {}
 
 
 async def _spawn_execution(workflow_id: str, flow_data: dict, execution_id: str,
-                           trigger_input: Optional[dict] = None) -> dict:
-    # Catatan: execute_workflow_async membuat execution_id sendiri; di sini
-    # fokus menjalankan DAG agar non-blocking, lalu kembalikan id pemanggil.
+                           trigger_input: Optional[dict] = None,
+                           owner_email: str = "") -> dict:
+    # FASE 2.5: id dari `launch_execution` DITERUSKAN ke runner supaya log dan
+    # status akhir menempel pada baris `executions` yang di-pegang klien.
     try:
-        await execute_workflow_async(workflow_id, flow_data, trigger_input)
+        await execute_workflow_async(workflow_id, flow_data, trigger_input,
+                                     execution_id=execution_id,
+                                     owner_email=owner_email)
         return {
             "execution_id": execution_id,
             "workflow_id": workflow_id,
@@ -672,15 +721,18 @@ async def _spawn_execution(workflow_id: str, flow_data: dict, execution_id: str,
 
 
 def launch_execution(workflow_id: str, flow_data: dict,
-                     trigger_input: Optional[dict] = None) -> str:
+                     trigger_input: Optional[dict] = None,
+                     owner_email: str = "") -> str:
     """Inicia la ejecucion en background y devuelve execution_id al instante.
 
     Non-blocking: retorna inmediatamente con status 'pending'.
     trigger_input diteruskan ke node Trigger (webhook payload).
+    owner_email diteruskan ke node MCP agar kredensial user bisa dibaca.
     """
     execution_id = str(uuid.uuid4())
     db.create_execution(execution_id, workflow_id, flow_data)
     task = asyncio.create_task(
-        _spawn_execution(workflow_id, flow_data, execution_id, trigger_input))
+        _spawn_execution(workflow_id, flow_data, execution_id, trigger_input,
+                         owner_email))
     _BG_TASKS[execution_id] = task
     return execution_id

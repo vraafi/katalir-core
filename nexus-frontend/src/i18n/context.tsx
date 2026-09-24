@@ -2,6 +2,7 @@
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
 import { DEFAULT_LOCALE, LOCALES, STORAGE_KEY, messages, type Locale, type Messages } from "./messages";
+import { isHydrated, markHydrated, onHydrated } from "./hydration-signal";
 
 type Params = Record<string, string | number>;
 
@@ -42,16 +43,50 @@ export function I18nProvider({ children }: { children: React.ReactNode }) {
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
-    try {
-      const stored = window.localStorage.getItem(STORAGE_KEY);
-      const initial: Locale =
-        stored === "id" || stored === "en" ? stored : detectLocale();
-      setLocaleState(initial);
-      document.documentElement.lang = initial;
-    } catch {
-      setLocaleState(detectLocale());
-    }
+    // Terapkan locale terdeteksi SETELAH hidrasi selesai (bukan langsung di
+    // effect ini). SSR selalu memakai DEFAULT_LOCALE; mengganti teks sebelum
+    // subtree selesai dihidrasi membuat React melaporkan hydration mismatch
+    // (dev: overlay merah). `onHydrated` menunggu sinyal dari komponen
+    // terdalam tiap rute, dengan timeout sebagai jaring pengaman bila penanda
+    // tidak terpasang (mis. rute baru yang lupa).
+    let cancel = () => {};
+    let fallback: ReturnType<typeof setTimeout> | undefined;
+    const apply = () => {
+      try {
+        const stored = window.localStorage.getItem(STORAGE_KEY);
+        const initial: Locale =
+          stored === "id" || stored === "en" ? stored : detectLocale();
+        setLocaleState(initial);
+        document.documentElement.lang = initial;
+      } catch {
+        setLocaleState(detectLocale());
+      }
+    };
+    cancel = onHydrated(apply);
+    // Jaring pengaman: hanya bila penanda tidak pernah datang (rute baru yang
+    // lupa memasang HydrationReady). SENGAJA tidak menerapkan locale sebelum
+    // dokumen selesai dimuat: pada dev DINGIN, kompilasi+hidrasi bisa > 2,5 s dan
+    // timer buta justru mengganti teks di TENGAH hidrasi — persis yang memicu
+    // mismatch (terbukti: load pertama setelah `next dev` restart masih 2 hit,
+    // load berikutnya 0). Menunggu `load` selalu lebih aman daripada waktu tetap.
+    fallback = setTimeout(() => {
+      if (isHydrated()) return;
+      const run = () => {
+        if (isHydrated()) return;
+        markHydrated();
+        apply();
+      };
+      if (document.readyState === "complete") {
+        run();
+      } else {
+        window.addEventListener("load", () => setTimeout(run, 300), { once: true });
+      }
+    }, 8000);
     setMounted(true);
+    return () => {
+      cancel();
+      clearTimeout(fallback);
+    };
   }, []);
 
   const setLocale = useCallback((l: Locale) => {

@@ -43,5 +43,9 @@ if (!SKIP_BUILD) {
   console.log("[e2e-prod] E2E_SKIP_BUILD=1 -> memakai out/ yang ada");
 }
 
+// `serve-out.mjs` membaca PORT. Teruskan override E2E_PORT supaya harness
+// benar-benar listen di port yang diharapkan config, bukan selalu 3000.
+if (process.env.E2E_PORT) process.env.PORT = process.env.E2E_PORT;
+
 // serve-out.mjs memeriksa `out/` dan langsung listen saat di-import.
 await import("./serve-out.mjs");

@@ -1,4 +1,4 @@
-import { test, expect } from "@playwright/test";
+﻿import { test, expect } from "@playwright/test";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 
@@ -41,7 +41,7 @@ let session: any;
       /* lanjut ke kandidat berikutnya */
     }
   }
-  if (!session) console.log("NO_SESSION_FILE — jalankan node scripts/e2e-auth-setup.mjs dulu");
+  if (!session) console.log("NO_SESSION_FILE â€” jalankan node scripts/e2e-auth-setup.mjs dulu");
 }
 
 test("E2E supabase asli: login ter-inject + kirim pesan TIDAK 401 & TIDAK 5xx", async ({ page }) => {
@@ -84,9 +84,22 @@ test("E2E supabase asli: login ter-inject + kirim pesan TIDAK 401 & TIDAK 5xx", 
     if (m.type() === "error") cons.push(m.text().slice(0, 120));
   });
 
+  // PENTING: spec ini menguji SITUS PRODUKSI (`TARGET`), yang belum memuat
+  // pemisahan landing/chat dari FASE 6 final — di sana aplikasi chat masih di "/".
+  // Percobaan mengubahnya ke "/chat" membuat spec ini 404 (terbukti di regresi),
+  // jadi "/" dipertahankan sampai produksi ter-deploy ulang.
   await page.goto(TARGET + "/", { waitUntil: "domcontentloaded", timeout: 60000 }).catch((e) => {
     console.log("GOTO_ERR=" + String(e));
   });
+  // FASE 4: tunggu hidrasi + sesi BENAR-BENAR diterapkan sebelum memeriksa email.
+  // Penanda `html[data-hydrated]`/`html[data-auth]` dipasang aplikasi; tanpa ini
+  // pemeriksaan `getByText(email)` bisa berlomba dengan penerapan sesi dan gagal
+  // dengan pesan "injeksi session gagal" (padahal sesinya sah).
+  // Batas 15 detik (bukan 45): spec ini punya batas waktu sendiri, jadi menunggu
+  // terlalu lama membuat Playwright menutup halaman dan gejalanya berubah jadi
+  // "context has been closed" â€” pesan yang menyesatkan.
+  await page.waitForSelector("html[data-hydrated='true']", { timeout: 15000 }).catch(() => {});
+  await page.waitForSelector("html[data-auth='in']", { timeout: 15000 }).catch(() => {});
   await page.waitForTimeout(4000);
 
   const shell = await page.getByText("Katalir").count();
@@ -157,22 +170,22 @@ test("E2E supabase asli: login ter-inject + kirim pesan TIDAK 401 & TIDAK 5xx", 
   console.log("REQ_HEADERS=" + JSON.stringify(reqHdrs));
 
   // Assert: email user tampil = login sukses (injeksi berhasil)
-  if (!emailShown) throw new Error("email test-user tidak tampil → injeksi session gagal");
+  if (!emailShown) throw new Error("email test-user tidak tampil â†’ injeksi session gagal");
 
-  // Assert: `/chat` prod TIDAK boleh 5xx — KECUALI 503.
+  // Assert: `/chat` prod TIDAK boleh 5xx â€” KECUALI 503.
   // Sebelumnya spec ini HANYA memeriksa "email tampil" (dan dulu "bukan 401"),
   // sehingga **500 nyata lolos hijau**: Railway menjawab
   //   {"detail":"Terjadi kesalahan internal: AttributeError: module
   //    'google.genai.types' has no attribute 'HttpRetryOptions'"}
   // karena requirements.txt memasang google-genai 1.6.0.
   // 503 (`Model sedang sibuk (quota/overload)`) adalah kondisi upstream yang
-  // WAJAR dan justru kontrak yang benar untuk kuota habis / upstream transien —
+  // WAJAR dan justru kontrak yang benar untuk kuota habis / upstream transien â€”
   // jadi yang DILARANG adalah 500/501/502/504/dst, bukan 503.
-  // Assert #1: status harus KONKLUSIF. `-1` = respons tak tertangkap — dulu ini
+  // Assert #1: status harus KONKLUSIF. `-1` = respons tak tertangkap â€” dulu ini
   // dibiarkan lolos sehingga spec hijau tanpa memverifikasi apa pun.
   if (hasInput && chatStatus === -1) {
     throw new Error(
-      `POST /chat tidak tertangkap dalam ${CHAT_WAIT_MS}ms (CHAT_RESP_NONE) — ` +
+      `POST /chat tidak tertangkap dalam ${CHAT_WAIT_MS}ms (CHAT_RESP_NONE) â€” ` +
         "kegagalan harness, bukan bukti sehat. Periksa latensi upstream lalu ulangi."
     );
   }

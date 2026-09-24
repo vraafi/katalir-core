@@ -10,6 +10,14 @@
 #                     api_token text not null, created_at timestamptz default now(),
 #                     updated_at timestamptz default now(),
 #                     unique(user_email, provider_name));
+#
+# FASE 4 -- preferensi UI (tema kanvas, dsb):
+#   user_preferences(user_email text primary key,
+#                    prefs jsonb not null default '{}'::jsonb,
+#                    updated_at timestamptz default now());
+#   CATATAN: tabel ini ADITIF dan opsional. Kode di bawah memakai tabel itu bila
+#   sudah ada (Supabase), dan jatuh ke penyimpanan memori bila belum -- sehingga
+#   fitur tetap jalan tanpa memaksa migration ke database produksi.
 
 import os
 from datetime import datetime, timedelta, timezone
@@ -44,6 +52,8 @@ _LSESS = {}
 _LMSG = {}
 _LINT = {}      # (email, provider) -> {"api_token":..., "updated_at":...}
 _LVAULT = {}    # email -> {provider: encrypted_key}   (in-memory vault fallback)
+_LWORKFLOW = {}  # workflow_id -> row (fallback memori saat Supabase tidak aktif)
+_LPREF = {}     # email -> dict preferensi UI (fallback memori; tabel user_preferences)
 _SEQ = [0]
 
 
@@ -505,7 +515,15 @@ def save_integration(email, provider_name, api_token):
 
 
 def get_integration(email, provider_name):
-    """Ambil API token milik user untuk provider tertentu."""
+    """Ambil API token milik user untuk provider tertentu.
+
+    FASE 2.3 — urutan sumber (kompatibel mundur):
+      1. `user_integrations` (kolom plaintext, jalur BYOK lama);
+      2. `user_vault` (ciphertext Fernet, jalur form kredensial di chat).
+    Tool di `tools.py` memanggil fungsi ini, jadi tanpa fallback ke-2 kredensial
+    yang user isi lewat form chat (terenkripsi) tidak akan pernah ditemukan —
+    flow akan meminta token berulang-ulang.
+    """
     if is_configured():
         try:
             c = _get_client()
@@ -514,11 +532,35 @@ def get_integration(email, provider_name):
                    .eq("provider_name", provider_name).execute())
             if res.data:
                 return res.data[0]
-            return None
         except Exception:
             _configured = False
     rec = _LINT.get((email, provider_name))
-    return dict(rec) if rec else None
+    if rec:
+        return dict(rec)
+    return _vault_integration(email, provider_name)
+
+
+def _vault_integration(email, provider_name):
+    """Baris bentuk `user_integrations` dari Brankas (didekripsi) atau None.
+
+    Nilai plaintext HANYA hidup di memori proses pemanggil (untuk mengisi header
+    request ke provider); ia tidak pernah dikembalikan lewat API maupun ke model.
+    """
+    try:
+        cipher = vault_get(email, provider_name)
+        if not cipher:
+            return None
+        import vault_security as vs
+        token = vs.decrypt_key(cipher)
+        if not token:
+            return None
+        return {"user_email": email, "provider_name": provider_name,
+                "api_token": token, "source": "vault"}
+    except Exception as exc:  # kunci vault berubah / cryptography tak ada
+        print(f"[database] vault tidak terbaca untuk {provider_name}: "
+              f"{type(exc).__name__}")
+        return None
+
 
 
 def list_integrations(email):
@@ -589,6 +631,29 @@ def vault_get(email: str, provider: str) -> str:
     return _LVAULT.get(email, {}).get(provider, "")
 
 
+def vault_delete(email: str, provider: str) -> bool:
+    """Hapus kredensial user untuk satu provider (Brankas + tabel BYOK).
+
+    KENAPA ADA: tanpa ini user TIDAK bisa mencabut kredensial yang sudah
+    tersimpan — hanya bisa menimpanya. `user_integrations` (jalur lama) ikut
+    dibersihkan supaya tidak ada sisa token yang masih terbaca tool.
+    """
+    removed = False
+    try:
+        if is_configured():
+            c = _get_write_client()
+            c.table("user_vault").delete().eq("email", email).eq(
+                "provider", provider).execute()
+            c.table("user_integrations").delete().eq("user_email", email).eq(
+                "provider_name", provider).execute()
+            removed = True
+    except Exception as exc:  # noqa: BLE001
+        print(f"[database] vault_delete gagal ({type(exc).__name__})")
+    _LVAULT.get(email, {}).pop(provider, None)
+    _LINT.pop((email, provider), None)
+    return removed
+
+
 def vault_list(email: str) -> list[dict]:
     """Palauta daftar provider jolle säilytetty (ei koskaan plaintext avainta)."""
     try:
@@ -618,12 +683,21 @@ def persistence_info():
 # di-scope dengan user_id supaya service_role/bypass RLS tidak membocorkan
 # data antar-user (defense-in-depth: RLS di DB + filter user di backend).
 def create_workflow(user_id: str, name: str, description: str, flow_data: dict):
-    """Simpan workflow (nodes & edges como JSONB) a la tabla workflows.
+    """INSERT workflow BARU (nodes & edges sebagai JSONB).
 
     user_id diisi dari JWT (di api_server), BUKAN dari body request.
+    Untuk menyimpan ULANG workflow yang sudah ada, pakai `update_workflow`
+    (dulu POST selalu INSERT → setiap klik "Simpan Alur" menumpuk baris baru
+    bernama sama; itu akar duplikat di sidebar).
     """
     if not is_configured():
-        raise RuntimeError("Supabase belum dikonfigurasi — tidak dapat persist workflow.")
+        import uuid as _uuid
+        wid = "local-" + _uuid.uuid4().hex[:12]
+        row = {"id": wid, "user_id": user_id, "name": name,
+               "description": description, "flow_data": flow_data or {},
+               "created_at": _now()}
+        _LWORKFLOW[wid] = row
+        return dict(row)
     c = _get_write_client()
     res = c.table("workflows").insert(
         {"user_id": user_id, "name": name, "description": description, "flow_data": flow_data}
@@ -632,28 +706,120 @@ def create_workflow(user_id: str, name: str, description: str, flow_data: dict):
     return rows[0] if rows else {}
 
 
-def list_workflows(user_id: str):
-    """Listar workflows milik EXPLICIT user (created_at desc).
+def update_workflow(workflow_id: str, user_id: str, name: str | None = None,
+                    description: str | None = None, flow_data: dict | None = None):
+    """UPDATE workflow yang SUDAH ada, HANYA bila milik `user_id`.
 
-    Filter user_id = defense-in-depth, walau RLS sudah aktif.
+    Mengembalikan row terbaru, atau None bila tidak ada / bukan milik user
+    (pemanggil yang memutuskan 404 vs 403).
+    """
+    patch = {}
+    if name is not None:
+        patch["name"] = name
+    if description is not None:
+        patch["description"] = description
+    if flow_data is not None:
+        patch["flow_data"] = flow_data
+    if not patch:
+        return get_workflow(workflow_id, user_id)
+    if not is_configured():
+        row = _LWORKFLOW.get(workflow_id)
+        if not row or str(row.get("user_id")) != str(user_id):
+            return None
+        row.update(patch)
+        return dict(row)
+    c = _get_write_client()
+    res = (c.table("workflows").update(patch)
+           .eq("id", workflow_id).eq("user_id", user_id).execute())
+    rows = res.data or []
+    return rows[0] if rows else None
+
+
+def get_workflow(workflow_id: str, user_id: str):
+    """Detail SATU workflow (termasuk flow_data), hanya bila milik `user_id`."""
+    if not is_configured():
+        row = _LWORKFLOW.get(workflow_id)
+        if row and str(row.get("user_id")) == str(user_id):
+            return dict(row)
+        return None
+    c = _get_write_client()
+    res = (c.table("workflows").select("*")
+           .eq("id", workflow_id).eq("user_id", user_id).limit(1).execute())
+    rows = res.data or []
+    return rows[0] if rows else None
+
+
+def delete_workflow(workflow_id: str, user_id: str) -> bool:
+    """Hapus workflow MILIK `user_id` saja. True bila ada baris terhapus."""
+    if not is_configured():
+        row = _LWORKFLOW.get(workflow_id)
+        if row and str(row.get("user_id")) == str(user_id):
+            del _LWORKFLOW[workflow_id]
+            return True
+        return False
+    c = _get_write_client()
+    res = (c.table("workflows").delete()
+           .eq("id", workflow_id).eq("user_id", user_id).execute())
+    return bool(res.data)
+
+
+def count_nodes(flow_data) -> int:
+    """Jumlah node dari flow_data apa pun bentuknya (tahan nilai rusak)."""
+    if not isinstance(flow_data, dict):
+        return 0
+    nodes = flow_data.get("nodes")
+    return len(nodes) if isinstance(nodes, list) else 0
+
+
+def list_workflows(user_id: str, include_flow: bool = False):
+    """Listar workflows milik user (created_at desc).
+
+    `include_flow=False` (default) mengembalikan METADATA saja -- `flow_data`
+    TIDAK ikut. Dulu list selalu membawa `flow_data` penuh untuk SEMUA workflow
+    (payload besar), padahal frontend hanya butuh isi graf saat membuka SATU
+    workflow (ambil lewat GET /workflows/{id}).
+
+    `node_count` sengaja TIDAK ada di list: menghitungnya butuh membaca
+    `flow_data` (mengembalikan payload yang sedang kita buang) atau kolom
+    generated yang berarti perubahan skema. Sidebar hanya butuh nama.
     """
     if not is_configured():
-        return []
-    c = _get_write_client()
-    res = (
-        c.table("workflows")
-        .select("id,name,description,flow_data,created_at")
-        .eq("user_id", user_id)
-        .order("created_at", desc=True)
-        .execute()
-    )
-    return res.data or []
+        rows = [dict(r) for r in _LWORKFLOW.values()
+                if str(r.get("user_id")) == str(user_id)]
+        rows.sort(key=lambda r: str(r.get("created_at") or ""), reverse=True)
+    else:
+        c = _get_write_client()
+        sel = "id,name,description,flow_data,created_at" if include_flow else "id,name,description,created_at"
+        res = (
+            c.table("workflows")
+            .select(sel)
+            .eq("user_id", user_id)
+            .order("created_at", desc=True)
+            .execute()
+        )
+        rows = res.data or []
+    if include_flow:
+        return [dict(r) for r in rows]
+    out = []
+    for r in rows:
+        row = dict(r)
+        row.pop("flow_data", None)
+        out.append(row)
+    return out
+
 
 
 def get_workflow_owner(workflow_id: str) -> str | None:
-    """Return user_id pemilik workflow, atau None bila workflow tak ada."""
+    """Return user_id pemilik workflow, atau None bila workflow tak ada.
+
+    Jalur memori WAJIB mengembalikan pemilik sebenarnya juga: kalau tidak,
+    backend tidak bisa membedakan "tidak ada" dari "milik orang lain"
+    (sebelumnya selalu None -> akses lintas user dilaporkan 404, bukan 403,
+    sehingga tes/observability kehilangan sinyal ada-tidaknya kepemilikan).
+    """
     if not is_configured():
-        return None
+        row = _LWORKFLOW.get(workflow_id)
+        return str(row.get("user_id")) if row else None
     try:
         c = _get_write_client()
         res = (c.table("workflows").select("user_id").eq("id", workflow_id)
@@ -690,52 +856,126 @@ def create_execution(execution_id: str, workflow_id: str, flow_data: dict):
     _L_EXEC[execution_id] = {"workflow_id": workflow_id, "status": "pending", "created_at": _now()}
 
 
+# Kolom ASLI tabel `execution_logs` (dibaca dari PostgREST OpenAPI Supabase):
+#   id, execution_id, node_id, node_type, status, output_data, error_message,
+#   started_at, finished_at
+# Versi lama menulis `step_kind` + `payload` yang TIDAK ADA di skema, sehingga
+# SETIAP insert gagal 400 dan log hanya tersisa di memori proses — itulah sebab
+# `GET /executions/{id}` selalu "belum ada langkah" walau workflow sudah jalan.
+EXECUTION_LOG_COLUMNS = ("execution_id", "node_id", "node_type", "status",
+                         "output_data", "error_message", "started_at",
+                         "finished_at")
+
+
+def execution_log_row(execution_id: str, node_id: str, step_kind: str,
+                      status: str, payload: dict) -> dict:
+    """Baris `execution_logs` sesuai skema nyata (murni, mudah diuji).
+
+    `step_kind` dipetakan ke `node_type`, `payload` ke `output_data`, dan pesan
+    error dipromosikan ke kolomnya sendiri supaya bisa dicari/diindeks.
+    """
+    data = payload if isinstance(payload, dict) else {"output": payload}
+    row: dict = {
+        "execution_id": execution_id,
+        "node_id": node_id,
+        "node_type": step_kind,
+        "status": status,
+        "output_data": data,
+    }
+    err = data.get("error")
+    if err:
+        row["error_message"] = str(err)[:500]
+    stamp = datetime.now(timezone.utc).isoformat()
+    if status == "running":
+        row["started_at"] = stamp
+    else:
+        row["finished_at"] = stamp
+    return row
+
+
+def _normalize_log(row: dict) -> dict:
+    """Baris DB -> bentuk yang dipakai laporan ({node_id, status, payload}).
+
+    Membuat `execution_report` tidak perlu tahu nama kolom fisik, dan tetap
+    menerima baris gaya lama (kalau ada sisa di memori).
+    """
+    if not isinstance(row, dict):
+        return row
+    if "output_data" not in row and "node_type" not in row:
+        return row                      # sudah bentuk lama (memori)
+    payload = row.get("output_data") or {}
+    if row.get("error_message"):
+        if isinstance(payload, dict):
+            payload = {**payload, "error": row["error_message"]}
+        else:
+            payload = {"output": payload, "error": row["error_message"]}
+    return {
+        "node_id": row.get("node_id"),
+        "step_kind": row.get("node_type"),
+        "status": row.get("status"),
+        "payload": payload,
+        "ts": row.get("finished_at") or row.get("started_at"),
+    }
+
+
 def append_execution_log(execution_id: str, node_id: str, step_kind: str, status: str, payload: dict):
-    """Persiste un paso de ejecucion en execution_logs."""
-    if is_configured():
-        try:
-            _get_write_client().table("execution_logs").insert(
-                {
-                    "execution_id": execution_id,
-                    "node_id": node_id,
-                    "step_kind": step_kind,
-                    "status": status,
-                    "payload": payload or {},
-                }
-            ).execute()
+    """Persiste un paso de ejecucion en execution_logs (kolom sesuai skema).
+
+    Sama seperti `get_execution`: kegagalan tulis tidak mematikan `_configured`
+    secara global (satu kegagalan akan mengalihkan SEMUA penulisan berikutnya ke
+    memori sehingga log hilang dari DB tanpa jejak).
+    """
+    row = execution_log_row(execution_id, node_id, step_kind, status, payload)
+    try:
+        if is_configured():
+            _get_write_client().table("execution_logs").insert(row).execute()
             return
-        except Exception:
-            _configured = False
+    except Exception as exc:  # noqa: BLE001
+        print(f"[database] append_execution_log gagal ({type(exc).__name__}); "
+              "disimpan di memori")
     _L_EXLOG.setdefault(execution_id, []).append(
         {"node_id": node_id, "step_kind": step_kind, "status": status, "payload": payload or {}, "ts": _now()}
     )
 
 
 def update_execution_status(execution_id: str, status: str):
-    """Actualiza el estado final de una ejecucion."""
-    if is_configured():
-        try:
+    """Actualiza el estado final de una ejecucion (tanpa mematikan `_configured`)."""
+    try:
+        if is_configured():
             _get_write_client().table("executions").update({"status": status}).eq(
                 "id", execution_id).execute()
             return
-        except Exception:
-            _configured = False
+    except Exception as exc:  # noqa: BLE001
+        print(f"[database] update_execution_status gagal ({type(exc).__name__})")
     if execution_id in _L_EXEC:
         _L_EXEC[execution_id]["status"] = status
 
 
 def get_execution(execution_id: str):
-    """Obtiene el estado y logs de una ejecucion."""
-    if is_configured():
-        try:
+    """Obtiene el estado y logs de una ejecucion.
+
+    CATATAN (FASE 2.5): kegagalan BACA di sini TIDAK lagi mematikan flag global
+    `_configured`. Sebelumnya satu error baca (mis. RLS/timeout sesaat) membuat
+    seluruh proses beralih ke memori: baris `executions` tak terbaca (status
+    `None`) dan `append_execution_log` berikutnya menulis ke memori saja —
+    log terpisah dari DB tanpa pesan error. Sekarang penurunan itu hanya
+    berlaku untuk panggilan ini.
+    """
+    try:
+        if is_configured():
             c = _get_write_client()
             ex = c.table("executions").select("*").eq("id", execution_id).execute()
             logs = (c.table("execution_logs").select("*")
-                    .eq("execution_id", execution_id)
-                    .order("created_at", desc=False).execute())
-            return {"execution": (ex.data or [None])[0], "logs": logs.data or []}
-        except Exception:
-            _configured = False
+                    .eq("execution_id", execution_id).execute())
+            # Urutan dihitung di Python: `execution_logs` TIDAK punya kolom
+            # `created_at`, jadi `.order("created_at")` membuat SELURUH pembacaan
+            # gagal 400 (dan status eksekusi selalu terlihat None).
+            rows = [_normalize_log(r) for r in (logs.data or [])]
+            rows.sort(key=lambda r: str((r or {}).get("ts") or ""))
+            return {"execution": (ex.data or [None])[0], "logs": rows}
+    except Exception as exc:  # noqa: BLE001
+        print(f"[database] get_execution gagal ({type(exc).__name__}); "
+              "pakai salinan memori")
     return {"execution": _L_EXEC.get(execution_id), "logs": _L_EXLOG.get(execution_id, [])}
 
 
@@ -1093,3 +1333,54 @@ def increment_quota(email: str, model_id: str) -> dict:
     used = int(row.get("daily_%s" % bucket, 0) or 0) + 1
     _quota_write(email, {"daily_%s" % bucket: used})
     return {"bucket": bucket, "used": used, "via": "fallback"}
+
+# ---------------------------------------------------------------------------
+# FASE 4: preferensi UI per user (tema kanvas, dsb).
+#
+# Kenapa ada di sini: FASE 3 menyimpan tema kanvas hanya di localStorage
+# (per-browser). Misi FASE 4 meminta persist ke profil Supabase. Backend repo ini
+# memakai PostgREST (bukan SQL mentah), jadi "migration" = membuat tabel
+# `user_preferences` di Supabase; DDL-nya didokumentasikan di kepala modul ini.
+#
+# KEAMANAN OPERASIONAL: bila tabel belum ada, kode ini TIDAK melempar 5xx ke
+# user -- ia jatuh ke penyimpanan memori `_LPREF` (pola fallback yang sama
+# dipakai tabel lain di modul ini). Jadi fitur tidak pernah memaksa migration
+# ke database PRODUKSI hanya supaya endpoint-nya tidak 500.
+# ---------------------------------------------------------------------------
+def save_user_preferences(email: str, prefs: dict) -> dict:
+    """Upsert preferensi UI (dict JSON) untuk satu email. Kembalikan yang tersimpan."""
+    email = (email or "").strip()
+    if not email:
+        raise HTTPException(status_code=400, detail="email kosong")
+    payload = dict(prefs or {})
+    if is_configured():
+        try:
+            c = _get_client()
+            row = {"user_email": email, "prefs": payload,
+                   "updated_at": datetime.now(timezone.utc).isoformat()}
+            c.table("user_preferences").upsert(row, on_conflict="user_email").execute()
+            return payload
+        except Exception:  # noqa: BLE001 -- tabel belum ada / RLS: pakai fallback
+            pass
+    _LPREF[email] = payload
+    return payload
+
+
+def get_user_preferences(email: str) -> dict:
+    """Preferensi UI user; {} bila belum pernah disimpan."""
+    email = (email or "").strip()
+    if not email:
+        return {}
+    if is_configured():
+        try:
+            c = _get_client()
+            res = c.table("user_preferences").select("prefs").eq("user_email", email).execute()
+            if res.data:
+                val = res.data[0].get("prefs")
+                if isinstance(val, dict):
+                    return val
+            return {}
+        except Exception:  # noqa: BLE001
+            pass
+    return dict(_LPREF.get(email, {}))
+
