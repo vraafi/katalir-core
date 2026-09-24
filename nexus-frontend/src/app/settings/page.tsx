@@ -388,7 +388,7 @@ function ConnectionsSection() {
                       size="sm"
                       data-testid={`oauth-connect-${card.id}`}
                       loading={busy === card.id}
-                      disabled={loading || st?.configured === false}
+                      disabled={loading}
                       onClick={() => void connect(card)}
                     >
                       {t("settings.connect", { provider: card.provider })}
