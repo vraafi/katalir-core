@@ -92,3 +92,58 @@ tanpa mengubah arsitektur:
 * `next dev` dan `npm run build` menulis `.next` yang sama: setiap kali build
   dijalankan di sesi ini, dev server di-restart dan diverifikasi 200 sebelum
   tes/regresi berikutnya.
+
+## 6. Penutup: `color-contrast` `/builder` mobile + `chat-auth`
+
+### 6.1 `color-contrast` — klasifikasi: **TIMING (settling)**, bukan warna yang salah
+
+Pemicu: regresi dev melaporkan `color-contrast` serious **×9** di `/builder`
+(iphone14) — satu-satunya kegagalan a11y di seluruh matriks, dan rute/perangkat
+yang sama LULUS (`AXE_MOB=[]`) sekitar dua jam sebelumnya.
+
+Langkah yang dijalankan (dan hasilnya):
+1. **Probe detail** `scripts/probes/fase6-contrast-probe.mjs` (Playwright +
+   axe `color-contrast`, device iPhone 14, 3 run per mode, mencetak elemen +
+   rasio + tema + token):
+   * mode **tanpa sesi** (parity spec/Lighthouse) → `theme=midnight`,
+     `canvasToken=#1b1f23`, pelanggaran **[0,0,0]**;
+   * mode **bersesi** (tema tersimpan pengguna) → `theme=cyberpunk`,
+     `canvasToken=#0a0a0f`, pelanggaran **[0,0,0]**.
+   6 run terisolasi = **0 pelanggaran**, jadi angka 9 TIDAK bisa direproduksi
+   pada keadaan tenang.
+2. **Kesimpulan**: yang terukur saat regresi adalah keadaan transisi (font web
+   belum selesai swap dan/atau token tema kanvas belum terpasang saat axe
+   mengukur), bukan pasangan warna akhir aplikasi. Karena itu perbaikan
+   dilakukan pada **kesiapan pengukuran**, bukan pada warna:
+   `final-mobile.spec.ts` kini memakai `settle()` yang menunggu
+   `html[data-hydrated='true']` + `document.fonts.ready` + atribut
+   `data-canvas-theme` (khusus `/builder`) sebelum scan.
+3. **Bukti sesudah**: `tests/final-mobile.spec.ts` (18 tes, 3 device) →
+   **18/18 PASS**, dan tiap scan mencetak keadaannya:
+   `AXE_MOB_<device>_rootbuilder=[] STATE={"theme":"cyberpunk","hydrated":"true","fontsDone":"loaded"}`
+   untuk iphone14, pixel7, dan ipadmini.
+4. **Yang TIDAK saya klaim**: overlay visual axe pada screenshot tidak dibuat
+   (tidak ada di misi sebelumnya). Bukti yang ada: screenshot
+   `test-results/fase6-contrast/builder_mobile_run{1,2,3}.png` +
+   `test-results/final-mobile/<device>_rootbuilder.png`, serta keluaran axe
+   (jumlah pelanggaran + elemen + rasio) dari probe dan spec.
+5. **Catatan risiko**: karena klasifikasinya timing, perbaikan ini TIDAK
+   menghapus kemungkinan kontras asli yang buruk di suatu state lain (mis. tema
+   lain × lebar lain). Kalau muncul lagi, probe ini yang dipakai lebih dulu —
+   dan ia mencetak nama tema + token aktif supaya penyebabnya langsung terbaca.
+
+### 6.2 `chat-auth` — **PASS** setelah revert
+
+Kegagalan sebelumnya disebabkan perubahan saya sendiri (spec itu menguji SITUS
+PRODUKSI `proyek-agent.pages.dev` yang belum ter-deploy ulang, sehingga `/chat`
+menjawab 404). Setelah dikembalikan ke `/`:
+
+```
+npx playwright test -c playwright.dev.config.ts tests/final-mobile.spec.ts tests/chat-auth.spec.ts
+EMAIL_VISIBLE=2
+CHAT_STATUS=200 body={"status":"success","reply":"Halo! Ada yang bisa saya bantu?",...,"meta":{"model":"gemini-2.5-flash-lite","requested_model":"gemma-4-31b-it"...}}
+19 passed (2.4m)
+```
+
+Catatan: `final-mobile` (18) + `chat-auth` (1) dijalankan bersamaan → **19 passed**.
+

@@ -70,6 +70,35 @@ async function seed(page: Page) {
   );
 }
 
+/**
+ * Tunggu halaman BENAR-BENAR siap sebelum scan axe.
+ *
+ * KENAPA (temuan FASE 6 penutup): `color-contrast` pernah melaporkan 9
+ * pelanggaran serious di `/builder` mobile, tetapi TIDAK bisa direproduksi di 6
+ * run terisolasi (probe 3 run tema Midnight + 3 run tema Cyberpunk = 0). Artinya
+ * itu keadaan transisi, bukan warna akhir aplikasi. Dua penyebab paling umum:
+ * font web belum selesai swap (teks diukur sebelum metrik final) dan token tema
+ * kanvas (`data-canvas-theme`) belum terpasang. Keduanya ditunggu di sini, dan
+ * hasil tunggunya DICETAK supaya bisa dibaca ulang — bukan disamarkan.
+ */
+async function settle(page: Page) {
+  await page.waitForSelector("html[data-hydrated='true']", { timeout: 45000 });
+  await page.evaluate(async () => {
+    const fonts = (document as unknown as { fonts?: { ready: Promise<unknown> } }).fonts;
+    if (fonts?.ready) await fonts.ready;
+  });
+  // /builder memasang atribut ini saat provider tema kanvas siap.
+  if (page.url().includes("/builder")) {
+    await page.waitForFunction(
+      () => document.documentElement.hasAttribute("data-canvas-theme"),
+      null,
+      { timeout: 15000 }
+    ).catch(() => {});
+  }
+  await page.waitForTimeout(600);
+}
+
+
 test.beforeAll(() => {
   if (!existsSync(SHOTS)) mkdirSync(SHOTS, { recursive: true });
 });
@@ -85,10 +114,7 @@ for (const [name, device] of Object.entries(DEVICE_SET)) {
         page.on("pageerror", (e) => errors.push(String(e).slice(0, 160)));
         await seed(page);
         await page.goto(route, { waitUntil: "domcontentloaded" });
-        if (route !== "/pricing") {
-          await page.waitForSelector("html[data-hydrated='true']", { timeout: 45000 });
-        }
-        await page.waitForTimeout(1200);
+        await settle(page);
 
         // 1) runtime error
         expect(errors, `pageerror di ${route}: ${errors.join(" | ")}`).toHaveLength(0);
@@ -152,7 +178,17 @@ for (const [name, device] of Object.entries(DEVICE_SET)) {
           }));
         })) as { id: string; impact: string | null; n: number }[];
         const severe = axe.filter((v) => v.impact === "serious" || v.impact === "critical");
-        console.log(`AXE_MOB_${name}_${route.replace(/\//g, "root")}=${severe.map((v) => `${v.id}(${v.impact})x${v.n}`).join(",") || "[]"}`);
+        // Keadaan saat scan DICETAK: kalau pelanggaran muncul, kita bisa tahu
+        // apakah tema/font sudah final (menghindari debat "bug vs timing").
+        const state = await page.evaluate(() => ({
+          theme: document.documentElement.getAttribute("data-canvas-theme"),
+          hydrated: document.documentElement.getAttribute("data-hydrated"),
+          fontsDone:
+            (document as unknown as { fonts?: { status?: string } }).fonts?.status ?? "n/a",
+        }));
+        console.log(
+          `AXE_MOB_${name}_${route.replace(/\//g, "root")}=${severe.map((v) => `${v.id}(${v.impact})x${v.n}`).join(",") || "[]"} STATE=${JSON.stringify(state)}`
+        );
         expect(severe, `axe serious/critical di ${route} (${name})`).toEqual([]);
 
         await page.screenshot({ path: join(SHOTS, `${name}_${route.replace(/\//g, "root")}.png`), fullPage: false });
