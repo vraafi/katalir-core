@@ -1381,19 +1381,35 @@ def oauth_google_status(authorization: str | None = Header(None)):
 
 @app.get("/oauth/slack/status")
 def oauth_slack_status():
-    """Slack: dilaporkan jujur sebagai belum dikonfigurasi.
+    """Status Slack: JUJUR soal kunci vs implementasi (dua hal berbeda).
 
-    Kunci `*_slack` TIDAK ADA di `.env` mana pun (diperiksa menyeluruh: .env,
-    .env.local, nexus-frontend/.env*, .env.example, 3 backup). Endpoint ini
-    sengaja tetap ada supaya UI tidak perlu menebak, dan pesannya menyebut apa
-    yang harus disiapkan pemilik.
+    Riwayat penting: kunci Slack di `.env` sempat TIDAK terbaca karena formatnya
+    `Key: value` (titik dua), sehingga `load_dotenv` mengabaikannya dan Slack
+    dianggap "tidak ada". Setelah format diperbaiki (`KEY=value`) kelima kunci
+    terisi 5/5. Namun **kode alur OAuth Slack belum ada**, jadi `implemented`
+    tetap False — jangan menyamakan "kunci siap" dengan "fitur siap".
     """
+    keys = {
+        "SLACK_APP_ID": bool((os.getenv("SLACK_APP_ID") or "").strip()),
+        "SLACK_CLIENT_ID": bool((os.getenv("SLACK_CLIENT_ID") or "").strip()),
+        "SLACK_CLIENT_SECRET": bool((os.getenv("SLACK_CLIENT_SECRET") or "").strip()),
+        "SLACK_SIGNING_SECRET": bool((os.getenv("SLACK_SIGNING_SECRET") or "").strip()),
+        "SLACK_VERIFICATION_TOKEN": bool((os.getenv("SLACK_VERIFICATION_TOKEN") or "").strip()),
+    }
+    filled = sum(1 for v in keys.values() if v)
     return {
         "status": "success",
-        "configured": False,
-        "reason": "Kunci Slack belum ada di .env (App_ID_slack/Client_ID_slack/"
-                  "Client_Secret_slack/Signing_Secret_slack). Buat app di api.slack.com lalu simpan kunci.",
+        "keys_present": filled,
+        "keys_total": len(keys),
+        "keys": keys,
+        "implemented": False,
+        "reason": (
+            "Kunci Slack terbaca lengkap; alur OAuth Slack belum diimplementasikan."
+            if filled == len(keys)
+            else "Sebagian kunci Slack kosong — isi dari api.slack.com/apps (Basic Information)."
+        ),
     }
+
 
 
 # ENDPOINT: POST /api/vault/save   (Brankas: enkripsi + upsert user_vault)
