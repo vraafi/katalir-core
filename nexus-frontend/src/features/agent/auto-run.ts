@@ -17,6 +17,13 @@ export type AutoRunResult = {
   report: string;
   workflowId?: string;
   executionId?: string;
+  /** FASE 5: data TERSTRUKTUR untuk kartu laporan di chat. `logs` = baris mentah
+   *  `execution_logs` (sumber paling kuat); `durationMs` diukur di sini karena
+   *  backend tidak mengirim durasi eksekusi. Keduanya opsional: kalau tidak ada,
+   *  UI jatuh ke `report` (teks) — tidak pernah mengarang langkah. */
+  status?: string;
+  logs?: unknown[];
+  durationMs?: number;
 };
 
 type Options = { timeoutMs?: number; intervalMs?: number };
@@ -33,11 +40,12 @@ export async function autoRunWorkflow(
   wf: AgentWorkflow,
   opts: Options = {}
 ): Promise<AutoRunResult> {
+  const t0 = Date.now();
   const timeoutMs = opts.timeoutMs ?? 45_000;
   const intervalMs = opts.intervalMs ?? 1_500;
 
   if (!wf.nodes.length) {
-    return { ok: false, report: "Workflow kosong — tidak ada yang dijalankan." };
+    return { ok: false, report: "Workflow kosong — tidak ada yang dijalankan.", durationMs: 0 };
   }
 
   // 1) Simpan dulu: eksekusi selalu bekerja pada workflow yang punya id.
@@ -104,6 +112,9 @@ export async function autoRunWorkflow(
           report: report || `Workflow selesai dengan status '${status}'.`,
           workflowId,
           executionId,
+          status,
+          logs: Array.isArray(data.logs) ? (data.logs as unknown[]) : [],
+          durationMs: Date.now() - t0,
         };
       }
     } catch {
@@ -114,6 +125,8 @@ export async function autoRunWorkflow(
     ok: false,
     workflowId,
     executionId,
+    status: "timeout",
+    durationMs: Date.now() - t0,
     report:
       "Eksekusi masih berjalan setelah batas tunggu. Buka kanvas untuk melihat log terbaru.",
   };

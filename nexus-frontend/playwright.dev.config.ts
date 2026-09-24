@@ -37,6 +37,9 @@ export default defineConfig({
     "fase4-pages.spec.ts",
     "fase4-a11y.spec.ts",
     "fase5-a11y.spec.ts",
+    // FASE 5 (B1-B6): permukaan AI-native + onboarding. Deterministik karena
+    // jaringan di-stub (lihat catatan di kepala spec).
+    "fase5-ai-surfaces.spec.ts",
     // Regresi yang diminta misi FASE 3 + rute menyeluruh; ikut di harness dev
     // karena harness build-produksi tidak selesai di mesin ini (lihat catatan
     // di atas dan docs/audit/fase3-verification.md).

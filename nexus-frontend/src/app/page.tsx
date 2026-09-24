@@ -29,6 +29,9 @@ import {
 } from "@/features/agent/workflow-spec";
 import { HydrationReady } from "@/i18n/HydrationReady";
 import { autoRunWorkflow } from "@/features/agent/auto-run";
+import { buildExecutionReport, type ExecutionReport } from "@/features/agent/execution-report";
+import { OnboardingFlow } from "@/components/onboarding/OnboardingFlow";
+import { useRouter } from "next/navigation";
 import { Thread } from "@/features/chat/thread";
 import type { Msg } from "@/features/chat/thread";
 
@@ -176,8 +179,9 @@ function ChatApp() {
   // hanya untuk memberi tanda "sedang dijalankan", bukan untuk memblokir chat.
   const [runPending, setRunPending] = useState(false);
   // Laporan eksekusi disimpan di STATE LOKAL (bukan cache pesan server) supaya
-  // tidak hilang saat daftar pesan di-refetch.
-  const [runReports, setRunReports] = useState<{ id: string; text: string }[]>([]);
+  // tidak hilang saat daftar pesan di-refetch. FASE 5: bentuknya TERSTRUKTUR
+  // (status/durasi/langkah), bukan lagi satu string teks.
+  const [runReports, setRunReports] = useState<{ id: string; report: ExecutionReport }[]>([]);
   // URL state: ?s=<sessionId> (nuqs, shallow) — source of truth.
   const [sessionId, setSessionId] = useQueryState(
     "s",
@@ -304,7 +308,7 @@ function ChatApp() {
   }, [messageQueue.length]);
 
   // Server-state via TanStack Query v5 (staleTime 60s, refetchOnWindowFocus=true).
-  const { data: sessions = [] } = useSessionsQuery(activeEmail);
+  const { data: sessions = [], isFetched: sessionsFetched } = useSessionsQuery(activeEmail);
   const {
     data: messagesDataRaw = [],
     isFetching: messagesFetching,
@@ -318,6 +322,8 @@ function ChatApp() {
   const sendMutation = useSendChatMutation();
   const deleteMutation = useDeleteSessionMutation();
   const qc = useQueryClient();
+  // FASE 5: "Buka di Kanvas" dari kartu draf di chat.
+  const router = useRouter();
 
   // ---- KUOTA HARIAN (GET /quota) ----------------------------------------
   // Informasi saja: kegagalan fetch TIDAK boleh mengganggu chat.
@@ -438,7 +444,16 @@ function ChatApp() {
         // dulu berbagi prefix key dan memicu remount/jitter.
         m.role === "user"
           ? { key: `srv-${m.id ?? `u-${i}`}`, role: "user", content: m.content }
-          : { key: `srv-${m.id ?? `a-${i}`}`, role: "assistant", content: m.content, meta: m.meta }
+          : {
+              key: `srv-${m.id ?? `a-${i}`}`,
+              role: "assistant",
+              content: m.content,
+              meta: m.meta,
+              // FASE 5 (B1): kartu draf harus tetap ada setelah reload, jadi
+              // workflow diambil dari meta yang dipersist server — divalidasi
+              // ulang oleh `parseAgentWorkflow` (payload jaringan = tak terpercaya).
+              workflow: m.meta?.workflow ? parseAgentWorkflow(m.meta.workflow) ?? undefined : undefined,
+            }
       ),
     ...unconfirmed.map((m): Msg | null => {
       if (m.type === "credential_form" && m.provider && m.original !== undefined) {
@@ -448,7 +463,15 @@ function ChatApp() {
         return { key: `err-${m.id ?? m._localId ?? m.original}`, role: "system", type: "error", content: m.content, original: m.original };
       }
       if (m.role === "user") return { key: `opt-${m._localId ?? m.id ?? m.content}`, role: "user", content: m.content };
-      if (m.role === "assistant") return { key: `opt-${m._localId ?? m.id ?? "pending"}`, role: "assistant", content: m.content, meta: m.meta };
+      if (m.role === "assistant")
+        return {
+          key: `opt-${m._localId ?? m.id ?? "pending"}`,
+          role: "assistant",
+          content: m.content,
+          meta: m.meta,
+          // FASE 5 (B1): draf muncul SEKETIKA di bubble yang sama dengan jawaban.
+          workflow: m.meta?.workflow ? parseAgentWorkflow(m.meta.workflow) ?? undefined : undefined,
+        };
       return null;
     }).filter((m): m is Msg => m !== null),
   ];
@@ -700,9 +723,10 @@ function ChatApp() {
     }
   }
 
-  // FASE 2.5: jalankan workflow hasil AI, lalu tulis LAPORANNYA sebagai pesan
-  // sistem di sesi aktif (bukan di terminal kanvas). Laporan disusun backend
-  // (`execution_report.py`) sehingga tidak ada logika bahasa di sini.
+  // FASE 2.5 + FASE 5: jalankan workflow hasil AI, lalu tulis LAPORANNYA sebagai
+  // kartu terstruktur di percakapan aktif (bukan di terminal kanvas). BAHASA
+  // laporan tetap milik backend (`execution_report.py`); di sini hanya dibentuk
+  // ulang menjadi bagian-bagian yang bisa dirender (status, durasi, langkah).
   const runDraftAndReport = useCallback(
     async (wf: AgentWorkflow, sid: string | null) => {
       void sid;                       // laporan kini per-percakapan di state lokal
@@ -710,18 +734,52 @@ function ChatApp() {
       const rid = `run-${Date.now()}`;
       try {
         const res = await autoRunWorkflow(wf);
-        setRunReports((prev) => [...prev, { id: rid, text: res.report }]);
-      } catch {
-        // Laporan gagal ditulis BUKAN alasan menutupi: beri tahu apa adanya.
         setRunReports((prev) => [
           ...prev,
-          { id: rid, text: t("chat.workflowFailed") },
+          {
+            id: rid,
+            report: buildExecutionReport({
+              text: res.report,
+              logs: res.logs,
+              status: res.status,
+              durationMs: res.durationMs,
+              workflowId: res.workflowId,
+              executionId: res.executionId,
+              workflowRef: wf,
+            }),
+          },
+        ]);
+      } catch {
+        // Laporan gagal ditulis BUKAN alasan menutupi: beri tahu apa adanya.
+        const msg = t("chat.workflowFailed");
+        setRunReports((prev) => [
+          ...prev,
+          { id: rid, report: buildExecutionReport({ text: msg, status: "failed", workflowRef: wf }) },
         ]);
       } finally {
         setRunPending(false);
       }
     },
-    []
+    [t]
+  );
+
+  /** FASE 5 (B1): "Buka di Kanvas" — draf sudah disimpan pemanggil, jadi cukup
+   *  berpindah halaman (Kanvas membacanya dari localStorage saat mount). */
+  const openCanvas = useCallback(
+    (wf: AgentWorkflow | null) => {
+      if (wf) savePendingWorkflow(wf);
+      void router.push("/builder");
+    },
+    [router]
+  );
+
+  /** FASE 5 (B1/B2): "Jalankan Langsung"/"Jalankan Ulang" dari kartu di chat. */
+  const runFromMessage = useCallback(
+    (wf: AgentWorkflow | null) => {
+      if (!wf) return;
+      void runDraftAndReport(wf, sessionId ?? null);
+    },
+    [runDraftAndReport, sessionId]
   );
 
   // ---- Perf (H1: freeze klik riwayat besar) — jangan mount ribuan motion.div ----
@@ -748,6 +806,16 @@ return (
           berjalan setelah subtree chat selesai dihidrasi — itulah saat aman
           mengganti locale (lihat src/i18n/hydration-signal.ts). */}
       <HydrationReady />
+      {/* FASE 5 (B5): onboarding 3 langkah untuk pengguna baru. Muncul hanya
+          bila /preferences belum menandai selesai DAN localStorage kosong, dan
+          selalu bisa dilewati. */}
+      <OnboardingFlow
+        historyKnown={sessionsFetched && !!activeEmail}
+        hasHistory={sessions.length > 0}
+        models={(modelsData?.models ?? []).slice(0, 4).map((m) => ({ id: m.id, label: m.name }))}
+        onPickModel={(id) => setSelectedModel(id)}
+        onTrySample={(prompt) => void sendPrompt(prompt)}
+      />
       {/* Fix 6: Chat Baru saat AI bekerja -> dialog konfirmasi agar reply tetap
           diproses di sesi lama; user bisa memilih pindah atau bertahan. */}
       {confirmNewChat && (
@@ -836,6 +904,9 @@ return (
                 onRetry: retryMessage,
               }}
               runReports={runReports}
+              draftRunning={runPending}
+              onOpenCanvas={openCanvas}
+              onRunDraft={runFromMessage}
             />
             </div>
             <div ref={endRef} />

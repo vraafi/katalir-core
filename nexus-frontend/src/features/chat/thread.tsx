@@ -6,15 +6,31 @@
  * pemilik state & logika; file ini hanya render. Diekstrak dari page.tsx
  * (bukan ditulis ulang) supaya perilaku identik.
  */
-import { Bot, KeyRound, AlertTriangle, RotateCcw, AlertCircle, Sparkles } from "lucide-react";
+import { AlertCircle, AlertTriangle, Bot, RotateCcw, Sparkles } from "lucide-react";
 import { motion } from "motion/react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { useI18n } from "@/i18n/context";
 import type { ChatMessage } from "@/features/chat/hooks/useChat";
+import type { AgentWorkflow } from "@/features/agent/workflow-spec";
+import type { ExecutionReport } from "@/features/agent/execution-report";
+import {
+  ChainOfThought,
+  CredentialPromptCard,
+  ExecutionReportCard,
+  WorkflowDraftCard,
+  splitReasoning,
+} from "./ai-surfaces";
 
 export type Msg =
   | { key: string; role: "user"; content: string }
-  | { key: string; role: "assistant"; content: string; meta?: ChatMessage["meta"] }
+  | {
+      key: string;
+      role: "assistant";
+      content: string;
+      meta?: ChatMessage["meta"];
+      /** FASE 5 (B1): draf workflow yang sudah lolos `parseAgentWorkflow`. */
+      workflow?: AgentWorkflow;
+    }
   | {
       key: string;
       role: "system";
@@ -121,13 +137,23 @@ export function Message({
   onCredChange,
   onCredSubmit,
   onRetry,
+  draftRunning = false,
+  onOpenCanvas,
+  onRunDraft,
 }: {
   msg: Msg;
   credValue: string;
   onCredChange: (v: string) => void;
   onCredSubmit: (provider: string, original: string) => void;
   onRetry: (m: { content: string; original: string }) => void;
+  /** FASE 5: draf sedang dijalankan (tombol "Jalankan Langsung" disabled). */
+  draftRunning?: boolean;
+  onOpenCanvas: (wf: AgentWorkflow) => void;
+  onRunDraft: (wf: AgentWorkflow) => void;
 }) {
+  const { t } = useI18n();
+  // B4: hitung sekali per pesan. Pesan non-assistant diabaikan isinya.
+  const { reason, answer } = msg.role === "assistant" ? splitReasoning(msg.content) : { reason: "", answer: "" };
   return (
     <>
       {msg.role !== "user" && (
@@ -143,37 +169,17 @@ export function Message({
         }
       >
         {msg.role === "system" && msg.type === "credential_form" ? (
-          <div className="w-72">
-            <div className="flex items-center gap-2">
-              <KeyRound size={15} strokeWidth={1.5} className="text-accent" />
-              <span className="font-semibold text-fg">
-                Akses dibutuhkan: {PROVIDER_LABELS[msg.provider] ?? msg.provider}
-              </span>
-            </div>
-            <p className="mt-1.5 text-footnote text-fg-muted">
-              Masukkan token provider untuk melanjutkan tugas Anda.
-            </p>
-            <Input
-              value={credValue}
-              onChange={(e) => onCredChange(e.target.value)}
-              type="password"
-              placeholder="Token / API key..."
-              aria-label="Token / API key"
-            />
-            <Button
-              disabled={!credValue.trim()}
-              onClick={() => onCredSubmit(msg.provider, msg.original)}
-              className="mt-2.5 w-full justify-center"
-              variant="secondary"
-            >
-              Simpan & Lanjutkan
-            </Button>
-          </div>
+          <CredentialPromptCard
+            provider={msg.provider}
+            value={credValue}
+            onChange={onCredChange}
+            onSubmit={(p) => onCredSubmit(p, msg.original)}
+          />
         ) : msg.role === "system" && msg.type === "error" ? (
-          <div className="w-72">
-            <div className="flex items-center gap-2 text-red-500">
-              <AlertTriangle size={15} strokeWidth={1.75} />
-              <span className="font-semibold text-fg">Gagal mengirim</span>
+          <div className="w-72" data-testid="error-card">
+            <div className="flex items-center gap-2 text-danger">
+              <AlertTriangle size={15} strokeWidth={1.75} aria-hidden />
+              <span className="font-semibold text-fg">{t("chat.errorTitle")}</span>
             </div>
             <p className="mt-1.5 text-footnote text-fg-muted">{msg.content}</p>
             <Button
@@ -181,8 +187,8 @@ export function Message({
               onClick={() => onRetry({ content: msg.content, original: msg.original })}
               className="mt-2.5 w-full justify-center gap-1.5"
             >
-              <RotateCcw size={14} strokeWidth={1.75} />
-              Coba Lagi
+              <RotateCcw size={14} strokeWidth={1.75} aria-hidden />
+              {t("chat.retry")}
             </Button>
           </div>
         ) : msg.role === "assistant" && msg.content === "…" ? (
@@ -191,7 +197,20 @@ export function Message({
           </span>
         ) : (
           <>
-            <div className="whitespace-pre-wrap break-words">{msg.content}</div>
+            {/* FASE 5 (B4): blok penalaran dipisah dari jawaban. Bila model tidak
+                mengirim penalaran, `reason` kosong dan ChainOfThought tidak
+                merender apa pun — tidak ada "berpikir..." palsu. */}
+            {msg.role === "assistant" && reason && <ChainOfThought reason={reason} />}
+            <div className="whitespace-pre-wrap break-words">{msg.role === "assistant" ? answer : msg.content}</div>
+            {/* FASE 5 (B1): draf workflow + aksinya, DI DALAM pesan. */}
+            {msg.role === "assistant" && msg.workflow && (
+              <WorkflowDraftCard
+                wf={msg.workflow}
+                running={draftRunning}
+                onOpenCanvas={() => onOpenCanvas(msg.workflow as AgentWorkflow)}
+                onRun={() => onRunDraft(msg.workflow as AgentWorkflow)}
+              />
+            )}
             {msg.role === "assistant" && msg.meta && (
               <MetaRow meta={msg.meta} />
             )}
@@ -210,6 +229,9 @@ export function Thread({
   slowHint,
   handlers,
   runReports = [],
+  draftRunning = false,
+  onOpenCanvas,
+  onRunDraft,
   animTail = 8,
 }: {
   messages: Msg[];
@@ -222,10 +244,16 @@ export function Thread({
     onCredSubmit: (p: string, o: string) => void;
     onRetry: (m: { content: string; original: string }) => void;
   };
-  /** FASE 2.5: laporan eksekusi otomatis dirender dari STATE LOKAL. */
-  runReports?: { id: string; text: string }[];
+  /** FASE 5 (B2): laporan eksekusi TERSTRUKTUR dari state lokal. */
+  runReports?: { id: string; report: ExecutionReport }[];
+  draftRunning?: boolean;
+  onOpenCanvas?: (wf: AgentWorkflow | null) => void;
+  onRunDraft?: (wf: AgentWorkflow | null) => void;
   animTail?: number;
 }) {
+  const { t } = useI18n();
+  const openCanvas = onOpenCanvas ?? (() => {});
+  const runDraft = onRunDraft ?? (() => {});
   return (
     <>
       {messages.map((msg, i) => {
@@ -239,6 +267,9 @@ export function Thread({
             onCredChange={handlers.onCredChange}
             onCredSubmit={handlers.onCredSubmit}
             onRetry={handlers.onRetry}
+            draftRunning={draftRunning}
+            onOpenCanvas={openCanvas}
+            onRunDraft={runDraft}
           />
         );
         if (!animate) {
@@ -277,21 +308,21 @@ export function Thread({
           </span>
         </div>
       )}
-      {/* FASE 2.5: laporan eksekusi otomatis dirender dari STATE LOKAL,
-          bukan dari cache pesan server. Refetch daftar pesan menimpa cache
-          sehingga pesan sistem laporan hilang sebelum terbaca user. */}
+      {/* FASE 2.5/5: laporan eksekusi dirender dari STATE LOKAL (bukan cache
+          pesan server — refetch menimpa cache sehingga laporan hilang sebelum
+          terbaca). Sejak FASE 5 bentuknya kartu TERSTRUKTUR, tetapi testid
+          `run-report` dipertahankan karena E2E L3 S1 memakainya. */}
       {runReports.map((r) => (
-        <div
-          key={r.id}
-          data-testid="run-report"
-          className="flex items-end gap-2"
-        >
+        <div key={r.id} data-testid="run-report" className="flex items-end gap-2">
           <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-bg-subtle">
-            <Sparkles size={14} strokeWidth={1.75} className="text-accent" />
+            <Sparkles size={14} strokeWidth={1.75} className="text-accent" aria-hidden />
           </div>
-          <div className="max-w-[85%] whitespace-pre-wrap rounded-2xl rounded-bl-lg border border-border/60 bg-bg-subtle px-4 py-2.5 text-[14px] leading-[1.6] text-fg tracking-[-0.006em]">
-            {r.text}
-          </div>
+          <ExecutionReportCard
+            report={r.report}
+            running={Boolean(draftRunning)}
+            onOpenCanvas={() => openCanvas(r.report.workflowRef ?? null)}
+            onRunAgain={() => runDraft(r.report.workflowRef ?? null)}
+          />
         </div>
       ))}
     </>
