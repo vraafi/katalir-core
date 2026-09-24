@@ -24,13 +24,14 @@ export const metadata: Metadata = {
   appleWebApp: { capable: true, title: "Katalir", statusBarStyle: "default" },
   icons: {
     icon: [
-      { url: "/favicon.ico" },
+      { url: "/katalir-logo.png", type: "image/png", sizes: "192x192" },
       { url: "/icon-192.png", sizes: "192x192", type: "image/png" },
       { url: "/icon-512.png", sizes: "512x512", type: "image/png" },
       { url: "/icon.svg", type: "image/svg+xml" },
       { url: "/katalir-logo.png", type: "image/png" },
     ],
-    apple: [{ url: "/icon-192.png", sizes: "192x192" }],
+    shortcut: "/katalir-logo.png",
+    apple: "/katalir-logo.png",
   },
 };
 

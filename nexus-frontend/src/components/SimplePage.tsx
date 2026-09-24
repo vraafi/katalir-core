@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { Suspense } from "react";
 import { ArrowLeft } from "lucide-react";
+import { BrandMark } from "@/components/BrandMark";
 import { AuthProvider } from "@/context/auth";
 import { QueryProvider } from "@/features/builder/provider";
 import { I18nProvider, useI18n } from "@/i18n/context";
@@ -75,8 +76,8 @@ function SimplePageInner({
                 diganti hanya setelah subtree ini selesai dihidrasi. */}
             <HydrationReady />
             <nav className="flex items-center justify-between border-b border-border px-5 py-3">
-              <Link href="/" className="text-xl font-bold tracking-tight text-fg">
-                Katalir
+              <Link href="/" className="flex items-center" aria-label="Katalir">
+                <BrandMark />
               </Link>
               <Link
                 href="/"
