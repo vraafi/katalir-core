@@ -1115,10 +1115,31 @@ def chat(req: ChatRequest, authorization: str | None = Header(None)):
         meta = _run.get("meta") or {}
     except CredentialMissingError as e:
         # Persist hanya pesan user; UI menampilkan form credential & akan submit ulang.
+        #
+        # FASE backlog (Task 1C): provider yang punya alur OAuth TIDAK boleh
+        # meminta user menempel token manual — UI harus menawarkan "Connect".
+        # Kontrak `tools.py` sengaja TIDAK diubah (masih melempar
+        # CredentialMissingError, sudah diuji di test_mcp_registry), jadi
+        # pemetaan ke `needs_oauth` dilakukan di sini: satu tempat, tidak
+        # mengguncang tool yang sudah stabil.
+        _oauth_providers = {
+            "google_sheets": "/oauth/google/authorize",
+            "gmail": "/oauth/google/authorize",
+            "google_calendar": "/oauth/google/authorize",
+            "slack": "/oauth/slack/authorize",
+        }
+        connect_url = _oauth_providers.get(str(e.provider_name or "").lower())
         return {
-            "status": "needs_credential",
+            "status": "needs_oauth" if connect_url else "needs_credential",
             "provider": e.provider_name,
-            "message": "Akses dibutuhkan",
+            "connect_url": connect_url,
+            "message": (
+                f"Provider {e.provider_name} memakai OAuth — hubungkan akun lewat tombol Connect."
+                if connect_url
+                else "Akses dibutuhkan"
+            ),
+            # session_id WAJIB tetap ada: frontend memakainya untuk melanjutkan
+            # percakapan yang sama setelah user menyelesaikan Connect.
             "session_id": session_id,
         }
     except HTTPException:
@@ -1379,16 +1400,56 @@ def oauth_google_status(authorization: str | None = Header(None)):
     return {"status": "success", "configured": og.configured(), "google_sheets": og.connection_status(user["email"])}
 
 
-@app.get("/oauth/slack/status")
-def oauth_slack_status():
-    """Status Slack: JUJUR soal kunci vs implementasi (dua hal berbeda).
+@app.get("/oauth/slack/authorize")
+def oauth_slack_authorize(authorization: str | None = Header(None), redirect_base: str | None = None):
+    """Redirect ke consent Slack (scope chat:write, channels:read, users:read)."""
+    user = security.get_current_user(authorization)
+    import oauth_slack as osl
 
-    Riwayat penting: kunci Slack di `.env` sempat TIDAK terbaca karena formatnya
-    `Key: value` (titik dua), sehingga `load_dotenv` mengabaikannya dan Slack
-    dianggap "tidak ada". Setelah format diperbaiki (`KEY=value`) kelima kunci
-    terisi 5/5. Namun **kode alur OAuth Slack belum ada**, jadi `implemented`
-    tetap False — jangan menyamakan "kunci siap" dengan "fitur siap".
+    if not osl.configured():
+        raise HTTPException(503, "OAuth Slack belum dikonfigurasi (SLACK_CLIENT_ID/SECRET kosong).")
+    try:
+        url = osl.build_authorize_url(user["email"], redirect_base)
+    except RuntimeError as exc:
+        raise HTTPException(503, str(exc))
+    from fastapi.responses import RedirectResponse
+
+    return RedirectResponse(url, status_code=302)
+
+
+@app.get("/oauth/slack/callback")
+def oauth_slack_callback(code: str = "", state: str = "", error: str = ""):
+    """Tukar code -> bot token workspace -> simpan terenkripsi di Vault."""
+    from fastapi.responses import RedirectResponse
+
+    import oauth_slack as osl
+
+    ui = _ui_base()
+    if error:
+        return RedirectResponse(f"{ui}/settings?slack=denied&reason={error}", status_code=302)
+    if not code or not state:
+        return RedirectResponse(f"{ui}/settings?slack=error&reason=missing_code_or_state", status_code=302)
+    try:
+        data = osl.exchange_code(code, state)
+    except (ValueError, RuntimeError) as exc:
+        print(f"[oauth] slack callback gagal: {type(exc).__name__}: {exc}")
+        return RedirectResponse(f"{ui}/settings?slack=error&reason=exchange_failed", status_code=302)
+    email = data.get("email") or ""
+    if not email or not osl.save_installation(email, data):
+        return RedirectResponse(f"{ui}/settings?slack=error&reason=vault_save_failed", status_code=302)
+    print(f"[oauth] slack terhubung untuk {email} team={data.get('team_name') or '?'}")
+    return RedirectResponse(f"{ui}/settings?slack=connected", status_code=302)
+
+
+@app.get("/oauth/slack/status")
+def oauth_slack_status(authorization: str | None = Header(None)):
+    """Status Slack: kunci ada + alur OAuth SUDAH diimplementasikan (Task 1A).
+
+    Dibuat menerima JWT (opsional) supaya bisa dipakai dua konteks: probe tanpa
+    login (hanya status kunci) dan UI `/settings` (status koneksi per user).
     """
+    import oauth_slack as osl
+
     keys = {
         "SLACK_APP_ID": bool((os.getenv("SLACK_APP_ID") or "").strip()),
         "SLACK_CLIENT_ID": bool((os.getenv("SLACK_CLIENT_ID") or "").strip()),
@@ -1397,18 +1458,29 @@ def oauth_slack_status():
         "SLACK_VERIFICATION_TOKEN": bool((os.getenv("SLACK_VERIFICATION_TOKEN") or "").strip()),
     }
     filled = sum(1 for v in keys.values() if v)
-    return {
+    out = {
         "status": "success",
         "keys_present": filled,
         "keys_total": len(keys),
         "keys": keys,
-        "implemented": False,
+        "implemented": True,
+        "authorize_endpoint": "/oauth/slack/authorize",
         "reason": (
-            "Kunci Slack terbaca lengkap; alur OAuth Slack belum diimplementasikan."
+            "Alur OAuth Slack siap; kunci lengkap."
             if filled == len(keys)
-            else "Sebagian kunci Slack kosong — isi dari api.slack.com/apps (Basic Information)."
+            else "Sebagian kunci Slack kosong — isi dari api.slack.com/apps."
         ),
     }
+    if authorization:
+        try:
+            user = security.get_current_user(authorization)
+            out["slack"] = osl.connection_status(user["email"])
+        except HTTPException:
+            out["slack"] = {"connected": False, "provider": "slack"}
+    else:
+        out["slack"] = {"connected": False, "provider": "slack"}
+    return out
+
 
 
 

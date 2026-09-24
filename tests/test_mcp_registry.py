@@ -77,7 +77,15 @@ def test_telegram_mengirim_payload_benar_tanpa_membocorkan_token(monkeypatch):
 
 
 def test_telegram_tanpa_kredensial_meminta_form(monkeypatch):
+    """SaaS multi-tenant: tanpa token di Brankas HARUS minta kredensial.
+
+    Task 4A menambah fallback `.env` untuk dev/self-hosted, jadi tes ini
+    menyalakan mode produksinya (`TELEGRAM_ENV_FALLBACK=0`) — justru itu jalur
+    yang benar-benar mencegah user A memakai bot user B.
+    """
     monkeypatch.setattr(db, "get_integration", lambda e, p: None)
+    monkeypatch.setenv("TELEGRAM_ENV_FALLBACK", "0")
+    monkeypatch.delenv("TELEGRAM_BOT_TOKEN", raising=False)
     try:
         t.execute_tool("kirim_telegram_message",
                        {"chat_id": "1", "pesan": "x"}, "u@katalir.id")
@@ -85,6 +93,7 @@ def test_telegram_tanpa_kredensial_meminta_form(monkeypatch):
         assert exc.provider_name == "telegram"
     else:
         raise AssertionError("harus CredentialMissingError")
+
 
 
 def test_slack_menolak_webhook_bukan_slack(monkeypatch):

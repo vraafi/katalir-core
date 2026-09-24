@@ -155,16 +155,43 @@ def _host_blocked(host: str) -> bool:
     return ip.is_private or ip.is_loopback or ip.is_link_local or ip.is_reserved
 
 
+def _get_telegram_token(owner_email: str) -> str:
+    """Token Telegram: Brankas user DULU, lalu fallback `.env`.
+
+    KENAPA ADA FALLBACK: di dev/self-hosted hanya ada SATU bot (milik pemilik),
+    sehingga memaksa setiap user menempel token manual menghalangi pengujian
+    end-to-end. Urutannya sengaja "vault dulu" supaya token user selalu menang
+    atas token owner.
+
+    BATASAN PENTING (jangan lupa saat produksi multi-tenant): pada SaaS publik
+    fallback ini membuat SEMUA user memakai bot owner — perilaku yang salah untuk
+    tenant nyata. Matikan dengan `TELEGRAM_ENV_FALLBACK=0` di produksi.
+    """
+    import os as _os
+
+    cred = db.get_integration(owner_email, "telegram")
+    vault_token = (cred or {}).get("api_token") or ""
+    if vault_token:
+        return vault_token
+    fallback_on = (_os.environ.get("TELEGRAM_ENV_FALLBACK") or "1").strip() != "0"
+    env_token = (_os.environ.get("TELEGRAM_BOT_TOKEN") or "").strip() if fallback_on else ""
+    if env_token:
+        _trace("telegram token dari .env (fallback owner) — JANGAN dipakai di SaaS multi-tenant")
+        return env_token
+    raise CredentialMissingError("telegram")
+
+
 def kirim_telegram_message(chat_id: str, pesan: str, email: str) -> str:
-    """Kirim pesan Telegram (BOT API nyata). Token dari Brankas user.
+    """Kirim pesan Telegram (BOT API nyata). Token dari Brankas user, fallback `.env`.
 
     Raises:
-        CredentialMissingError: user belum menyimpan token `telegram`.
+        CredentialMissingError: tidak ada token di Brankas DAN fallback `.env`
+            dimatikan/kosong.
     """
     cred = db.get_integration(email, "telegram")
     token = (cred or {}).get("api_token") or ""
-    if not cred or not token:
-        raise CredentialMissingError("telegram")
+    if not token:
+        token = _get_telegram_token(email)
     # Token Telegram WAJIB di path (desain API-nya) — karena itu URL ini tidak
     # pernah dicetak/di-log, dan pesan error di bawah tidak memuat URL.
     url = f"https://api.telegram.org/bot{token}/sendMessage"

@@ -9,6 +9,7 @@ Tiga hal yang dijaga (ketiganya mudah rusak tanpa terlihat):
 import json
 import os
 import pathlib
+import re
 import sys
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
@@ -104,13 +105,28 @@ def test_tool_tidak_pernah_mengembalikan_nilai_kunci(monkeypatch):
 
 
 def test_respons_needs_credential_tidak_memuat_field_kunci():
-    """Kontrak HTTP: {status, provider, message, session_id} — tanpa token."""
+    """Kontrak HTTP: {status, provider, connect_url?, message, session_id} — tanpa token.
+
+    CATATAN (Task 1C): tes ini dulu mengambil jendela tetap 260 karakter setelah
+    `"status": "needs_credential"`. Setelah respons ditambah `connect_url` +
+    penjelasan OAuth, jendela itu bergeser sampai menyentuh kode SETELAHNYA
+    (`prompt_tokens`/`completion_tokens` di meta chat) sehingga gagal padahal
+    responsnya bersih. Sekarang yang diuji adalah DICT-nya sendiri (dari `return {`
+    sampai `}` penutup), jadi tes menguji maksudnya: tidak ada field rahasia.
+    """
     src = (ROOT / "api_server.py").read_text(encoding="utf-8")
-    start = src.index('"status": "needs_credential"')
-    block = src[start:start + 260]
+    start = src.index('"status": "needs_oauth" if connect_url else "needs_credential"')
+    open_idx = src.rindex("return {", 0, start)
+    end = src.index("\n        }", start)
+    block = src[open_idx:end]
     assert '"provider": e.provider_name' in block
+    # Hanya kunci yang memang bagian kontrak.
+    keys = set(re.findall(r'"([a-z_]+)":', block))
+    assert keys <= {"status", "provider", "connect_url", "message", "session_id"}, f"kunci tak terduga: {keys}"
     for leak in ("api_key", "api_token", "token"):
-        assert leak not in block, f"respons needs_credential memuat '{leak}'"
+        assert leak not in block.lower().replace("needs_oauth", ""), f"respons memuat '{leak}'"
+    print(f"NEEDS_RESPONSE_KEYS={sorted(keys)} TANPA_FIELD_KUNCI=true")
+
 
 
 def test_form_chat_menyimpan_lewat_vault_bukan_plaintext():
