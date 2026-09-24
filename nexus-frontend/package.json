@@ -4,7 +4,9 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
+    "predev": "node scripts/check-no-build-running.mjs",
     "build": "next build",
+    "prebuild": "node scripts/check-no-dev-running.mjs",
     "start": "next start",
     "serve:static": "node scripts/serve-out.mjs",
     "e2e:prod": "playwright test",
