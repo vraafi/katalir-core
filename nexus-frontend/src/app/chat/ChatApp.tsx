@@ -3,6 +3,7 @@
 import { Suspense, useCallback, useEffect, useRef, useState } from "react";
 import { Send, Square, Sparkles, Bot, User, KeyRound, RotateCcw, AlertTriangle, AlertCircle, Pencil, X, Clock, ChevronDown, ChevronRight } from "lucide-react";
 import { motion } from "motion/react";
+import { toast } from "sonner";
 import { useQueryState, parseAsString } from "nuqs";
 import Shell from "@/components/shell";
 import { AuthProvider, useAuth } from "@/context/auth";
@@ -200,6 +201,8 @@ function ChatApp() {
   const activeEmail = email || null;
   const [input, setInput] = useState("");
   const [credValue, setCredValue] = useState("");
+  /** Task 1C: tombol Connect sedang meminta URL authorize (mencegah klik ganda). */
+  const [oauthBusy, setOauthBusy] = useState(false);
   // Model selector: daftar DINAMIS dari GET /models (discovery live server).
   // Persist localStorage 'katalir.model.v1'. Disabled saat streaming.
   // Fallback baca key lama 'nexus.model.v1' (rebrand 2026-09-18): jangan
@@ -434,7 +437,7 @@ function ChatApp() {
   // Dengan counter, tiap optimistic yang tampil di server mengkonsumsi 1
   // slot; optimistic LEBIH dari jumlah di server tetap dirender (unconfirmed).
   const unconfirmed = overlay.filter((m) => {
-    if (m.type === "credential_form") return true;
+    if (m.type === "credential_form" || m.type === "oauth_prompt") return true;
     if (m.role !== "user" && m.role !== "assistant") return true;
     const k = `${m.role}|${m.content}`;
     const n = serverConfirmedCount.get(k) ?? 0;
@@ -468,6 +471,10 @@ function ChatApp() {
     ...unconfirmed.map((m): Msg | null => {
       if (m.type === "credential_form" && m.provider && m.original !== undefined) {
         return { key: `cred-${m.id ?? m._localId ?? m.provider}`, role: "system", type: "credential_form", provider: m.provider, original: m.original };
+      }
+      // Task 1C: kartu Connect OAuth — provider ber-OAuth tidak lewat form token.
+      if (m.type === "oauth_prompt" && m.provider) {
+        return { key: `oauth-${m.id ?? m._localId ?? m.provider}`, role: "system", type: "oauth_prompt", provider: m.provider, connectUrl: m.connectUrl };
       }
       if (m.type === "error" && m.original !== undefined) {
         return { key: `err-${m.id ?? m._localId ?? m.original}`, role: "system", type: "error", content: m.content, original: m.original };
@@ -705,6 +712,28 @@ function ChatApp() {
     }
   }
 
+  /** Task 1C — tombol Connect pada kartu OAuth di dalam chat.
+   *
+   * DUA LANGKAH, bukan redirect mentah ke `/oauth/...`: endpoint authorize butuh
+   * header Authorization, sedangkan redirect halaman penuh tidak bisa membawa
+   * header apa pun. Jadi URL consent diminta lewat `apiFetch` (JWT di header,
+   * backend membalas `mode=json`), lalu browser diarahkan ke URL itu. Popup
+   * SENGAJA tidak dipakai: diblokir sebagian browser dan sulit diuji ulang.
+   */
+  async function connectOauth(provider: string, connectUrl?: string) {
+    const path = connectUrl || (provider === "slack" ? "/oauth/slack/authorize" : "/oauth/google/authorize");
+    setOauthBusy(true);
+    try {
+      const r = await apiFetch(`${path}${path.includes("?") ? "&" : "?"}mode=json`, { method: "GET" });
+      const d = (await r.json().catch(() => ({}))) as { url?: string };
+      if (!r.ok || !d.url) throw new Error(`HTTP ${r.status}`);
+      window.location.href = d.url;
+    } catch {
+      setOauthBusy(false);
+      toast.error(t("settings.connectFailed"));
+    }
+  }
+
   async function submitCredential(provider: string, original: string) {
     if (!credValue.trim() || !activeEmail) return;
     try {
@@ -916,6 +945,8 @@ return (
                 credValue,
                 onCredChange: setCredValue,
                 onCredSubmit: submitCredential,
+                onOauthConnect: connectOauth,
+                oauthBusy,
                 onRetry: retryMessage,
               }}
               runReports={runReports}

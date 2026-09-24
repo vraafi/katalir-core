@@ -175,3 +175,151 @@ def test_config_membaca_redirect_uri_yang_harus_didaftarkan():
     assert osl.configured() is True
     print(f"SLACK_REDIRECT_URI={cfg['redirect_uri']}")
 
+
+# ---------------------------------------------------------------------------
+# ENDPOINT HTTP (TestClient) — misi meminta bukti jalur /callback & /status
+# ---------------------------------------------------------------------------
+def _endpoint_client(monkeypatch, store: dict):
+    """TestClient + JWT palsu + Vault palsu.
+
+    JWT di-patch di modul `security` (bukan di api_server) karena api_server
+    memanggil `security.get_current_user(...)` secara dinamis — jadi patch ini
+    berlaku untuk SEMUA endpoint yang butuh login.
+    """
+    import api_server
+    import security
+    from fastapi.testclient import TestClient
+
+    _fake_vault(monkeypatch, store)
+    monkeypatch.setattr(security, "get_current_user",
+                        lambda authorization=None: {"email": "u@k.test"})
+    # Header JWT default: `/oauth/slack/status` sengaja hanya memuat status
+    # per-user bila Authorization dikirim (tanpa itu ia ramah-probe: connected
+    # false). Pakai header supaya tes menguji jalur UI yang berlogin.
+    return TestClient(api_server.app, headers={"Authorization": "Bearer uji-jwt"}), api_server
+
+
+
+def test_callback_state_tidak_dikenal_ditolak(monkeypatch):
+    """State asing (CSRF/replay) TIDAK boleh menukar code apa pun."""
+    store: dict = {}
+    client, srv = _endpoint_client(monkeypatch, store)
+    r = client.get("/oauth/slack/callback?code=CODE&state=STATE-PALSU",
+                   follow_redirects=False)
+    assert r.status_code == 302
+    assert "slack=error" in r.headers["location"]
+    assert "reason=exchange_failed" in r.headers["location"]
+    assert store == {}, "tidak boleh ada apa pun tersimpan saat state ditolak"
+    print(f"CALLBACK_STATE_PALSU=302 {r.headers['location']}")
+
+
+def test_callback_menyimpan_ke_vault_dan_status_jadi_connected(monkeypatch):
+    """Jalur UTUH: /authorize -> /callback -> Vault terenkripsi -> /status."""
+    store: dict = {}
+    client, srv = _endpoint_client(monkeypatch, store)
+    # State asli dari endpoint authorize, tapi klien Slack-nya palsu (tanpa jaringan).
+    state = _state(osl.build_authorize_url("u@k.test"))
+    monkeypatch.setattr(osl, "httpx", type("H", (), {"Client": lambda *a, **k: _Client(_Res(200, _slack_ok()))}))
+
+    r = client.get(f"/oauth/slack/callback?code=CODE&state={state}",
+                   follow_redirects=False)
+    assert r.status_code == 302
+    assert "slack=connected" in r.headers["location"], r.headers["location"]
+    ct = store[("u@k.test", "slack")]
+    assert "xoxb-BOT-TOKEN" not in ct, "Vault harus terenkripsi"
+
+    st = client.get("/oauth/slack/status").json()
+    assert st["connected"] is True and st["team_name"] == "Workspace Uji"
+    assert "xoxb-BOT-TOKEN" not in json.dumps(st)
+    print(f"CALLBACK_TO_VAULT=ok redirect={r.headers['location']} "
+          f"status_connected={st['connected']} team={st['team_name']}")
+
+
+def test_status_kosong_berarti_belum_connect(monkeypatch):
+    store: dict = {}
+    client, _ = _endpoint_client(monkeypatch, store)
+    st = client.get("/oauth/slack/status").json()
+    assert st["implemented"] is True and st["connected"] is False
+    assert st["team_name"] == "" and st["slack"]["connected"] is False
+    assert st["keys_total"] == 5
+def test_callback_exchange_gagal_tidak_bocor_secret(monkeypatch):
+    """Slack `ok:false` (HTTP 200) → laporan gagal JUJUR, secret tidak bocor.
+
+    Dua hal diuji: (a) tidak ada yang tersimpan; (b) `client_secret` tidak
+    pernah muncul di URL redirect (kelas kebocoran klasik saat pesan error
+    ditempel mentah ke query string).
+    """
+    store: dict = {}
+    client, _ = _endpoint_client(monkeypatch, store)
+    state = _state(osl.build_authorize_url("u@k.test"))
+    monkeypatch.setattr(osl, "httpx", type("H", (), {
+        "Client": lambda *a, **k: _Client(_Res(200, {"ok": False, "error": "invalid_code"}))}))
+
+    r = client.get(f"/oauth/slack/callback?code=CODE&state={state}",
+                   follow_redirects=False)
+    loc = r.headers["location"]
+    assert r.status_code == 302 and "reason=exchange_failed" in loc
+    secret = osl.config()["client_secret"]
+    assert "client_secret" not in loc.lower()
+    if secret:
+        assert secret not in loc, "client_secret bocor ke URL redirect"
+    assert store == {}, "exchange gagal tidak boleh menyimpan apa pun"
+    print(f"CALLBACK_GAGAL=302 reason=exchange_failed secret_bocor=False secret_dicek={bool(secret)}")
+
+
+def test_disconnect_slack_menghapus_vault_dan_status_kembali_kosong(monkeypatch):
+    store: dict = {}
+    client, _ = _endpoint_client(monkeypatch, store)
+    state = _state(osl.build_authorize_url("u@k.test"))
+    monkeypatch.setattr(osl, "httpx", type("H", (), {"Client": lambda *a, **k: _Client(_Res(200, _slack_ok()))}))
+    client.get(f"/oauth/slack/callback?code=CODE&state={state}", follow_redirects=False)
+    assert store, "prasyarat: instalasi tersimpan"
+
+    d = client.delete("/oauth/slack")
+    assert d.status_code == 200 and d.json()["disconnected"] is True
+    assert store == {}, "Disconnect harus menghapus bot token dari Vault"
+    assert client.get("/oauth/slack/status").json()["connected"] is False
+    print("DISCONNECT_SLACK=vault_kosong status=connected_false")
+
+
+def test_disconnect_google_menghapus_token(monkeypatch):
+    store: dict = {}
+    client, _ = _endpoint_client(monkeypatch, store)
+    import oauth_google as og
+
+    og.save_tokens("u@k.test", {"access_token": "AT-X", "refresh_token": "RT-X"})
+    assert store, "prasyarat: token tersimpan"
+    d = client.delete("/oauth/google")
+    assert d.status_code == 200 and d.json()["provider"] == "google_sheets"
+    assert store == {}
+    print("DISCONNECT_GOOGLE=vault_kosong")
+
+
+def test_authorize_mode_json_mengembalikan_url(monkeypatch):
+    """Tombol Connect butuh URL, dan JWT harus tetap di header (bukan URL)."""
+    store: dict = {}
+    client, _ = _endpoint_client(monkeypatch, store)
+    r = client.get("/oauth/slack/authorize?mode=json")
+    assert r.status_code == 200
+    url = r.json()["url"]
+    parsed = urllib.parse.urlparse(url)
+    assert parsed.netloc == "slack.com"
+    assert urllib.parse.parse_qs(parsed.query)["state"], "state tetap wajib"
+    assert "Bearer" not in url and "uji-jwt" not in url, "JWT tidak boleh ikut ke URL"
+    print(f"AUTHORIZE_MODE_JSON=ok host={parsed.netloc}")
+
+
+def test_authorize_mode_json_google_juga(monkeypatch):
+    store: dict = {}
+    client, _ = _endpoint_client(monkeypatch, store)
+    r = client.get("/oauth/google/authorize?mode=json")
+    assert r.status_code == 200
+    url = r.json()["url"]
+    assert urllib.parse.urlparse(url).netloc == "accounts.google.com"
+    qs = urllib.parse.parse_qs(urllib.parse.urlparse(url).query)
+    assert qs["code_challenge_method"] == ["S256"]
+    print("AUTHORIZE_MODE_JSON_GOOGLE=ok host=accounts.google.com pkce=S256")
+
+
+
+

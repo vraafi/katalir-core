@@ -567,16 +567,61 @@ TOOL_SCHEMAS_OPENAI = openai_tool_schemas()
 # ---------------------------------------------------------------------------
 # DISPATCHER EKSEKUSI ALAT
 # ---------------------------------------------------------------------------
-def execute_tool(name: str, args: dict, email: str) -> str:
+# Provider yang punya alur OAuth sendiri: user TIDAK boleh diminta menempel
+# token manual — UI harus menawarkan tombol Connect ke `/oauth/.../authorize`.
+OAUTH_CONNECT_URLS = {
+    "google_sheets": "/oauth/google/authorize",
+    "gmail": "/oauth/google/authorize",
+    "google_calendar": "/oauth/google/authorize",
+    "slack": "/oauth/slack/authorize",
+}
+
+
+def _needs_oauth_result(provider: str) -> dict | None:
+    """Hasil tool untuk provider ber-OAuth, atau None bila provider manual."""
+    url = OAUTH_CONNECT_URLS.get(str(provider or "").strip().lower())
+    if not url:
+        return None
+    return {
+        "status": "needs_oauth",
+        "provider": provider,
+        "connect_url": url,
+        "message": (f"Provider {provider} memakai OAuth. Klik Connect untuk "
+                    f"menghubungkan akun Anda, lalu ulangi perintah ini."),
+    }
+
+
+def execute_tool(name: str, args: dict, email: str) -> str | dict:
     """Eksekusi alat by name dengan argumen + konteks user.
 
-    Semua CredentialMissingError dibiarkan menyebar agar caller (app_frontend)
-    dapat menangkapnya untuk memicu UI form kredensial.
+    DUA BENTUK HASIL (dan kenapa):
+      * `str`  — hasil normal alat;
+      * `dict` — `{"status": "needs_oauth", ...}` untuk provider ber-OAuth yang
+        belum terhubung (Task 1C). User diberi tombol Connect, BUKAN form token
+        manual: Google Sheets/Gmail/Calendar/Slack hanya bisa diakses lewat
+        OAuth, jadi menempel token di form tidak akan pernah berhasil.
+
+    `CredentialMissingError` untuk provider MANUAL (whatsapp, telegram, custom)
+    tetap dilempar — perilaku itu dipakai UI form kredensial dan sudah dikunci
+    tes lama. Provider manual tidak punya jalur OAuth, jadi tidak ada tombol
+    Connect yang bisa ditawarkan.
 
     Raises:
-        CredentialMissingError: kredensial provider belum tersedia.
+        CredentialMissingError: kredensial provider MANUAL belum tersedia.
         ValueError: alat tidak dikenal.
     """
+    try:
+        return _execute_tool_inner(name, args, email)
+    except CredentialMissingError as exc:
+        oauth_out = _needs_oauth_result(exc.provider_name)
+        if oauth_out is None:
+            raise
+        _trace(f"needs_oauth provider={exc.provider_name} url={oauth_out['connect_url']}")
+        return oauth_out
+
+
+def _execute_tool_inner(name: str, args: dict, email: str) -> str:
+    """Badan dispatcher (dipisah supaya `execute_tool` bisa menangkap kredensial)."""
     if name == "send_whatsapp_message":
         return send_whatsapp_message(
             pesan=args.get("pesan", ""),

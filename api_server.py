@@ -593,6 +593,14 @@ def _agentic_run_gateway(prompt: str, email: str, model_id: str,
                         raise  # -> endpoint ubah jadi needs_credential
                     except Exception as exc:  # noqa: BLE001 - alat gagal
                         result = f"Gagal menjalankan {name}: {exc}"
+                    if isinstance(result, dict) and result.get("status") == "needs_oauth":
+                        # Task 1C: `tools.execute_tool` MENGEMBALIKAN sinyal OAuth
+                        # (bukan melempar) untuk provider ber-OAuth. Teruskan ke
+                        # endpoint lewat jalur yang sudah ada supaya user menerima
+                        # {status: needs_oauth, connect_url} + tombol Connect —
+                        # jangan meneruskan hasil palsu ke model.
+                        raise CredentialMissingError(str(result.get("provider") or ""))
+
                     if name == "generate_workflow_json":
                         workflow_out = _accepted_workflow(result) or workflow_out
                     messages.append(ToolMessage(
@@ -918,6 +926,11 @@ def _agentic_run_direct(prompt: str, email: str, model: str | None = None,
                 tool_result = f"GAGAL menjalankan {name}: {type(exc).__name__}: {exc}"
                 tool_status = "error"
                 print(f"[api_server] tool {name} gagal: {type(exc).__name__}: {exc}")
+            if isinstance(tool_result, dict) and tool_result.get("status") == "needs_oauth":
+                # Task 1C (jalur Gemini langsung): sinyal OAuth diteruskan ke
+                # endpoint supaya user menerima connect_url, bukan teks mentah.
+                raise CredentialMissingError(str(tool_result.get("provider") or ""))
+
             if name == "generate_workflow_json" and tool_status == "success":
                 workflow_out = _accepted_workflow(tool_result) or workflow_out
 
@@ -1336,8 +1349,16 @@ def _ui_base() -> str:
 
 
 @app.get("/oauth/google/authorize")
-def oauth_google_authorize(authorization: str | None = Header(None), redirect_base: str | None = None):
-    """Redirect ke consent Google (PKCE S256, access_type=offline, prompt=consent)."""
+def oauth_google_authorize(authorization: str | None = Header(None), redirect_base: str | None = None,
+                          mode: str = ""):
+    """Redirect ke consent Google (PKCE S256, access_type=offline, prompt=consent).
+
+    `mode=json` mengembalikan {"url": ...} alih-alih 302. KENAPA: tombol
+    "Connect" di `/settings` memakai redirect HALAMAN PENUH (bukan popup), dan
+    redirect halaman penuh TIDAK bisa membawa header Authorization. Dengan mode
+    ini, frontend meminta URL lewat `apiFetch` (JWT ikut di header), lalu
+    mengarahkan browser ke URL itu — sehingga JWT tidak pernah masuk ke URL/log.
+    """
     user = security.get_current_user(authorization)
     og = _og()
     if not og.configured():
@@ -1347,9 +1368,12 @@ def oauth_google_authorize(authorization: str | None = Header(None), redirect_ba
         url = og.build_authorize_url(user["email"], redirect_base)
     except RuntimeError as exc:
         raise HTTPException(503, str(exc))
+    if mode == "json":
+        return {"status": "success", "provider": og.PROVIDER, "url": url}
     from fastapi.responses import RedirectResponse  # impor lokal: hindari ubah blok impor
 
     return RedirectResponse(url, status_code=302)
+
 
 
 @app.get("/oauth/google/callback")
@@ -1400,9 +1424,31 @@ def oauth_google_status(authorization: str | None = Header(None)):
     return {"status": "success", "configured": og.configured(), "google_sheets": og.connection_status(user["email"])}
 
 
+@app.delete("/oauth/google")
+def oauth_google_disconnect(authorization: str | None = Header(None)):
+    """Cabut koneksi Google Sheets user (hapus token dari Brankas).
+
+    KEAMANAN: user diambil dari JWT — user tidak bisa memutus koneksi orang lain.
+    Tanpa endpoint ini tombol "Disconnect" di `/settings` tidak punya cara sah
+    untuk mencabut akses; user hanya bisa menimpa token.
+    """
+    user = security.get_current_user(authorization)
+    og = _og()
+    existed = bool(og.load_tokens(user["email"]))
+    if not og.clear_tokens(user["email"]):
+        raise HTTPException(500, "Gagal menghapus token Google dari Brankas.")
+    print(f"[oauth] google diputus untuk {user['email']} (sebelumnya_ada={existed})")
+    return {"status": "success", "provider": og.PROVIDER, "disconnected": True, "existed": existed}
+
+
 @app.get("/oauth/slack/authorize")
-def oauth_slack_authorize(authorization: str | None = Header(None), redirect_base: str | None = None):
-    """Redirect ke consent Slack (scope chat:write, channels:read, users:read)."""
+def oauth_slack_authorize(authorization: str | None = Header(None), redirect_base: str | None = None,
+                          mode: str = ""):
+    """Redirect ke consent Slack (scope chat:write, channels:read, users:read).
+
+    `mode=json` → {"url": ...} (lihat penjelasan di `/oauth/google/authorize`:
+    tombol Connect memakai redirect halaman penuh, dan JWT tidak boleh masuk URL).
+    """
     user = security.get_current_user(authorization)
     import oauth_slack as osl
 
@@ -1412,9 +1458,12 @@ def oauth_slack_authorize(authorization: str | None = Header(None), redirect_bas
         url = osl.build_authorize_url(user["email"], redirect_base)
     except RuntimeError as exc:
         raise HTTPException(503, str(exc))
+    if mode == "json":
+        return {"status": "success", "provider": osl.PROVIDER, "url": url}
     from fastapi.responses import RedirectResponse
 
     return RedirectResponse(url, status_code=302)
+
 
 
 @app.get("/oauth/slack/callback")
@@ -1479,7 +1528,32 @@ def oauth_slack_status(authorization: str | None = Header(None)):
             out["slack"] = {"connected": False, "provider": "slack"}
     else:
         out["slack"] = {"connected": False, "provider": "slack"}
+
+    # Kontrak yang diminta UI (Task 1B): `connected` + `team_name` di tingkat
+    # atas, supaya kartu `/settings` tidak perlu tahu bentuk bersarang `slack`.
+    # `slack` (bersarang) tetap dikirim agar probe/tes lama tidak pecah.
+    out["connected"] = bool(out["slack"].get("connected"))
+    out["team_name"] = out["slack"].get("team_name") or ""
     return out
+
+
+@app.delete("/oauth/slack")
+def oauth_slack_disconnect(authorization: str | None = Header(None)):
+    """Cabut instalasi Slack user (bot token dihapus dari Brankas).
+
+    KEAMANAN: user dari JWT. Bot token dihapus DARI SISI KITA; untuk mencabut di
+    sisi Slack, user juga perlu menghapus app-nya di workspace (dicatat di UI
+    supaya tidak ada klaim berlebihan bahwa ini "revoke penuh").
+    """
+    user = security.get_current_user(authorization)
+    import oauth_slack as osl
+
+    existed = bool(osl.load_installation(user["email"]))
+    if not osl.clear_installation(user["email"]):
+        raise HTTPException(500, "Gagal menghapus instalasi Slack dari Brankas.")
+    print(f"[oauth] slack diputus untuk {user['email']} (sebelumnya_ada={existed})")
+    return {"status": "success", "provider": osl.PROVIDER, "disconnected": True, "existed": existed}
+
 
 
 

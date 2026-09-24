@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { Check, KeyRound, MonitorSmartphone, Moon, Sun, Trash2 } from "lucide-react";
+import { Check, KeyRound, Loader2, MonitorSmartphone, Moon, Sun, Trash2 } from "lucide-react";
 import { useTheme } from "next-themes";
 import { toast } from "sonner";
 import { useAuth } from "@/context/auth";
@@ -198,6 +198,216 @@ function CredentialsSection() {
 }
 
 
+/**
+ * Task 1B — kartu koneksi OAuth (Google Sheets + Slack).
+ *
+ * KENAPA KARTU TERPISAH dari form Brankas: koneksi ini BUKAN token yang bisa
+ * ditempel user. Kalau digabung, user akan mencari "token Slack" yang tidak
+ * pernah ada dan mengisi sesuatu yang mustahil benar.
+ *
+ * Redirect memakai HALAMAN PENUH (bukan popup) setelah URL authorize diambil
+ * lewat `apiFetch`: endpoint authorize butuh header Authorization, dan redirect
+ * mentah tidak bisa membawa header — karena itu backend punya `mode=json`.
+ * JWT tidak pernah masuk ke URL.
+ */
+interface OAuthCardSpec {
+  id: "google" | "slack";
+  provider: string;
+  authorize: string;
+  disconnect: string;
+  testid: string;
+}
+
+const OAUTH_CARDS: OAuthCardSpec[] = [
+  { id: "google", provider: "Google Sheets", authorize: "/oauth/google/authorize", disconnect: "/oauth/google", testid: "card-oauth-google" },
+  { id: "slack", provider: "Slack", authorize: "/oauth/slack/authorize", disconnect: "/oauth/slack", testid: "card-oauth-slack" },
+];
+
+interface OAuthState {
+  loaded: boolean;
+  connected: boolean;
+  target: string;
+  configured: boolean;
+  error?: boolean;
+}
+
+function ConnectionsSection() {
+  const { t } = useI18n();
+  const { email } = useAuth();
+  const [state, setState] = useState<Record<string, OAuthState>>({});
+  const [busy, setBusy] = useState<string | null>(null);
+
+  const refresh = useCallback(async () => {
+    const next: Record<string, OAuthState> = {};
+    for (const card of OAUTH_CARDS) {
+      try {
+        const r = await apiFetch(`/oauth/${card.id}/status`, { method: "GET" });
+        if (!r.ok) throw new Error(`HTTP ${r.status}`);
+        const d = (await r.json()) as Record<string, unknown>;
+        if (card.id === "google") {
+          const g = (d.google_sheets ?? {}) as { connected?: boolean };
+          next[card.id] = {
+            loaded: true,
+            connected: Boolean(g.connected),
+            target: email ?? "",
+            configured: Boolean(d.configured),
+          };
+        } else {
+          next[card.id] = {
+            loaded: true,
+            connected: Boolean(d.connected),
+            target: String(d.team_name ?? ""),
+            configured: d.keys_present === d.keys_total,
+          };
+        }
+      } catch {
+        next[card.id] = { loaded: true, connected: false, target: "", configured: false, error: true };
+      }
+    }
+    setState(next);
+  }, [email]);
+
+  useEffect(() => {
+    if (email) void refresh();
+  }, [email, refresh]);
+
+  /** Setelah consent, callback backend mengarahkan ke `/settings?<provider>=...`.
+   *  Dibaca dari `window.location` (bukan useSearchParams) supaya halaman ini
+   *  tidak butuh boundary Suspense tambahan. Query dibersihkan agar toast tidak
+   *  muncul lagi saat refresh. */
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    let changed = false;
+    for (const card of OAUTH_CARDS) {
+      const v = params.get(card.id);
+      if (!v) continue;
+      changed = true;
+      if (v === "connected") toast.success(t("settings.oauthConnected", { provider: card.provider }));
+      else toast.error(t("settings.oauthDenied", { provider: card.provider, reason: v }));
+      params.delete(card.id);
+    }
+    if (changed) {
+      const q = params.toString();
+      window.history.replaceState({}, "", `${window.location.pathname}${q ? `?${q}` : ""}`);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  async function connect(card: OAuthCardSpec) {
+    setBusy(card.id);
+    try {
+      const r = await apiFetch(`${card.authorize}?mode=json`, { method: "GET" });
+      const d = (await r.json().catch(() => ({}))) as { url?: string };
+      if (!r.ok || !d.url) throw new Error(`HTTP ${r.status}`);
+      window.location.href = d.url; // halaman penuh (bukan popup)
+    } catch {
+      setBusy(null);
+      toast.error(t("settings.connectFailed"));
+    }
+  }
+
+  async function disconnect(card: OAuthCardSpec) {
+    setBusy(card.id);
+    try {
+      const r = await apiFetch(card.disconnect, { method: "DELETE" });
+      if (!r.ok) throw new Error(`HTTP ${r.status}`);
+      toast.success(t("settings.disconnectDone", { provider: card.provider }));
+      await refresh();
+    } catch {
+      toast.error(t("settings.disconnectFailed", { provider: card.provider }));
+    } finally {
+      setBusy(null);
+    }
+  }
+
+
+  return (
+    <Card data-testid="card-connections">
+      <CardHeader>
+        <CardTitle>{t("settings.connections")}</CardTitle>
+        <CardDescription>{t("settings.connectionsDesc")}</CardDescription>
+      </CardHeader>
+      <CardContent>
+        <div className="grid gap-3 sm:grid-cols-2">
+          {OAUTH_CARDS.map((card) => {
+            const st = state[card.id];
+            const loading = !st?.loaded;
+            const target = card.id === "slack" ? st?.target || "" : email || "";
+            return (
+              <div
+                key={card.id}
+                data-testid={card.testid}
+                className="flex flex-col gap-2 rounded-md border border-border p-3"
+              >
+                <div className="flex items-center justify-between gap-2">
+                  <span className="text-footnote font-medium text-fg">{card.provider}</span>
+                  {loading ? (
+                    <span className="inline-flex items-center gap-1 text-caption text-fg-muted">
+                      <Loader2 size={12} className="animate-spin" aria-hidden /> {t("common.loading")}
+                    </span>
+                  ) : st?.connected ? (
+                    <span
+                      data-testid={`oauth-badge-${card.id}`}
+                      className="inline-flex items-center gap-1 rounded-full bg-success/15 px-2 py-0.5 text-caption font-medium text-success"
+                    >
+                      <Check size={12} strokeWidth={2.5} aria-hidden /> {t("settings.connected")}
+                    </span>
+                  ) : (
+                    <span
+                      data-testid={`oauth-badge-${card.id}`}
+                      className="inline-flex items-center rounded-full border border-border px-2 py-0.5 text-caption text-fg-muted"
+                    >
+                      {t("settings.notConnected")}
+                    </span>
+                  )}
+                </div>
+                {st?.connected && target && (
+                  <p className="text-caption text-fg-muted" data-testid={`oauth-target-${card.id}`}>
+                    {t("settings.connectedAs", { target })}
+                  </p>
+                )}
+                {st?.error && (
+                  <p className="text-caption text-danger" data-testid={`oauth-error-${card.id}`}>
+                    {t("settings.oauthLoadFailed")}
+                  </p>
+                )}
+                <div className="mt-auto pt-1">
+                  {st?.connected ? (
+                    <Button
+                      variant="danger"
+                      size="sm"
+                      data-testid={`oauth-disconnect-${card.id}`}
+                      loading={busy === card.id}
+                      onClick={() => void disconnect(card)}
+                    >
+                      {t("settings.disconnect")}
+                    </Button>
+                  ) : (
+                    <Button
+                      variant="primary"
+                      size="sm"
+                      data-testid={`oauth-connect-${card.id}`}
+                      loading={busy === card.id}
+                      disabled={loading || st?.configured === false}
+                      onClick={() => void connect(card)}
+                    >
+                      {t("settings.connect", { provider: card.provider })}
+                    </Button>
+                  )}
+                </div>
+                {card.id === "slack" && st?.connected && (
+                  <p className="text-caption text-fg-subtle">{t("settings.slackRevokeNote")}</p>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+
 /** Konten Pengaturan — di DALAM SimplePage (SimplePage yang memegang provider). */
 function SettingsContent() {
   const { email } = useAuth();
@@ -345,6 +555,9 @@ function SettingsContent() {
 
       {/* 5. KREDENSIAL (Vault Fernet) */}
       <CredentialsSection />
+
+      {/* 5b. KONEKSI OAUTH (Task 1B: tombol Connect/Disconnect + badge) */}
+      <ConnectionsSection />
 
       {/* 6. ZONA BERBAHAYA */}
       <Card className="border-danger/40" data-testid="card-danger">

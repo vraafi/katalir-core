@@ -17,6 +17,7 @@ import {
   ChainOfThought,
   CredentialPromptCard,
   ExecutionReportCard,
+  OAuthConnectCard,
   WorkflowDraftCard,
   splitReasoning,
 } from "./ai-surfaces";
@@ -37,6 +38,15 @@ export type Msg =
       type: "credential_form";
       provider: string;
       original: string;
+    }
+  | {
+      /* Task 1C: provider ber-OAuth — bukan form token, tapi tombol Connect. */
+      key: string;
+      role: "system";
+      type: "oauth_prompt";
+      provider: string;
+      /** Dari backend (`connect_url`); dipakai agar FE tidak menebak endpoint. */
+      connectUrl?: string;
     }
   | {
       key: string;
@@ -136,6 +146,8 @@ export function Message({
   credValue,
   onCredChange,
   onCredSubmit,
+  onOauthConnect,
+  oauthBusy = false,
   onRetry,
   draftRunning = false,
   onOpenCanvas,
@@ -145,6 +157,9 @@ export function Message({
   credValue: string;
   onCredChange: (v: string) => void;
   onCredSubmit: (provider: string, original: string) => void;
+  /** Task 1C: tombol Connect pada provider ber-OAuth (handler dari ChatApp). */
+  onOauthConnect: (provider: string, connectUrl?: string) => void;
+  oauthBusy?: boolean;
   onRetry: (m: { content: string; original: string }) => void;
   /** FASE 5: draf sedang dijalankan (tombol "Jalankan Langsung" disabled). */
   draftRunning?: boolean;
@@ -174,6 +189,12 @@ export function Message({
             value={credValue}
             onChange={onCredChange}
             onSubmit={(p) => onCredSubmit(p, msg.original)}
+          />
+        ) : msg.role === "system" && msg.type === "oauth_prompt" ? (
+          <OAuthConnectCard
+            provider={msg.provider}
+            busy={oauthBusy}
+            onConnect={(p) => onOauthConnect(p, msg.connectUrl)}
           />
         ) : msg.role === "system" && msg.type === "error" ? (
           <div className="w-72" data-testid="error-card">
@@ -242,6 +263,9 @@ export function Thread({
     credValue: string;
     onCredChange: (v: string) => void;
     onCredSubmit: (p: string, o: string) => void;
+    /** Task 1C: handler tombol Connect (diisi ChatApp; default = no-op). */
+    onOauthConnect?: (p: string, connectUrl?: string) => void;
+    oauthBusy?: boolean;
     onRetry: (m: { content: string; original: string }) => void;
   };
   /** FASE 5 (B2): laporan eksekusi TERSTRUKTUR dari state lokal. */
@@ -266,6 +290,8 @@ export function Thread({
             credValue={handlers.credValue}
             onCredChange={handlers.onCredChange}
             onCredSubmit={handlers.onCredSubmit}
+            onOauthConnect={handlers.onOauthConnect ?? (() => {})}
+            oauthBusy={handlers.oauthBusy ?? false}
             onRetry={handlers.onRetry}
             draftRunning={draftRunning}
             onOpenCanvas={openCanvas}

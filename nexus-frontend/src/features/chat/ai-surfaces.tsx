@@ -18,6 +18,7 @@ import {
   CheckCircle2,
   ChevronDown,
   KeyRound,
+  Link2,
   Loader2,
   Play,
   Workflow as WorkflowIcon,
@@ -362,6 +363,60 @@ export function CredentialPromptCard({
         </Button>
       </form>
       <p className="mt-1.5 text-[11px] leading-snug text-fg-muted">{t("chat.credHint")}</p>
+    </div>
+  );
+}
+
+/** Task 1C — kartu koneksi OAuth INLINE di dalam bubble chat.
+ *
+ * KENAPA TANPA INPUT TOKEN: Google Sheets/Gmail/Calendar dan Slack hanya bisa
+ * diakses lewat OAuth. Menampilkan form token di sini akan membuat user
+ * menempel sesuatu yang MUSTAHIL benar, jadi satu-satunya jalan yang ditawarkan
+ * adalah tombol Connect.
+ *
+ * Redirect memakai HALAMAN PENUH (bukan popup): popup diblokir browser pada
+ * beberapa konfigurasi dan tidak bisa diuji ulang dengan andal. Handler-nya
+ * (`onConnect`) disediakan ChatApp — ia meminta URL authorize lewat apiFetch
+ * (JWT di header) lalu mengarahkan browser, sehingga JWT tidak pernah masuk URL.
+ */
+export function OAuthConnectCard({
+  provider,
+  busy = false,
+  onConnect,
+}: {
+  provider: string;
+  busy?: boolean;
+  onConnect: (provider: string) => void;
+}) {
+  const { t } = useI18n();
+  const label = PROVIDER_LABELS[provider] ?? provider;
+  return (
+    <div data-testid="oauth-connect" data-provider={provider} className="w-80 max-w-full">
+      <div className="flex items-center gap-2">
+        <Link2 size={14} strokeWidth={1.9} aria-hidden className="shrink-0 text-accent" />
+        <p className="text-[12.5px] font-medium text-fg">{t("chat.oauthTitle", { provider: label })}</p>
+      </div>
+      <p className="mt-1 text-[11.5px] leading-snug text-fg-muted">
+        {t("chat.oauthDesc")}
+      </p>
+      <Button
+        type="button"
+        size="sm"
+        variant="primary"
+        className="mt-2"
+        disabled={busy}
+        onClick={() => onConnect(provider)}
+        data-testid="oauth-connect-button"
+      >
+        {busy ? (
+          <span className="inline-flex items-center gap-1.5">
+            <Loader2 size={13} className="animate-spin" aria-hidden /> {t("settings.connecting")}
+          </span>
+        ) : (
+          t("chat.oauthConnect", { provider: label })
+        )}
+      </Button>
+      <p className="mt-1.5 text-[11px] leading-snug text-fg-muted">{t("chat.oauthHint", { provider: label })}</p>
     </div>
   );
 }

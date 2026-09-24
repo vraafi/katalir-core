@@ -50,10 +50,12 @@ export interface ChatMessage {
   created_at?: string;
   /** Tag optimistic lokal (pattern openclaw #14859) — tidak dikirim ke server. */
   _localId?: string;
-  /** Kartu form kredensial / kartu error kontekstual (system message khusus). */
-  type?: "credential_form" | "error";
+  /** Kartu form kredensial / kartu OAuth / kartu error kontekstual (system message khusus). */
+  type?: "credential_form" | "oauth_prompt" | "error";
   provider?: string;
   original?: string;
+  /** Task 1C: endpoint authorize dari backend (hanya untuk `oauth_prompt`). */
+  connectUrl?: string;
   /** Metadata model (transparansi): model, latency, tokens, fallback. */
   meta?: ChatMeta;
 }
@@ -207,7 +209,7 @@ export function useDeleteSessionMutation() {
 export function useSendChatMutation() {
   const qc = useQueryClient();
   return useMutation<
-    { reply: string; session_id?: string; needsCredential?: boolean; provider?: string; message?: string; meta?: ChatMeta },
+    { reply: string; session_id?: string; needsCredential?: boolean; needsOauth?: boolean; provider?: string; connectUrl?: string; message?: string; meta?: ChatMeta },
     Error & { provider?: string; promptEcho?: string },
     { prompt: string; sessionId?: string | null; email?: string | null; abortSignal?: AbortSignal; clientRequestId?: string; model?: string },
     {
@@ -261,6 +263,19 @@ export function useSendChatMutation() {
             session_id: data.session_id as string | undefined,
             needsCredential: true,
             provider: data.provider as string | undefined,
+            message: data.message as string | undefined,
+          };
+        }
+        if (data.status === "needs_oauth") {
+          // Task 1C: provider OAuth (Google/Slack). UI menampilkan TOMBOL
+          // Connect, bukan form token — form akan meminta user menempel
+          // sesuatu yang tidak mungkin benar untuk provider ber-OAuth.
+          return {
+            reply: "",
+            session_id: data.session_id as string | undefined,
+            needsOauth: true,
+            provider: data.provider as string | undefined,
+            connectUrl: data.connect_url as string | undefined,
             message: data.message as string | undefined,
           };
         }
@@ -355,13 +370,14 @@ export function useSendChatMutation() {
         // CATATAN: sengaja TIDAK reset context.targetKey ("__pending__") di sini —
         // lihat FIX A di atas; "__pending__" dikosongkan oleh effect[sessionId].
       }
-      if (data.needsCredential && context) {
-        // Ganti placeholder assistant dengan kartu form kredensial.
-        // PENTING: `_localId` HARUS dipertahankan. Layer render (`page.tsx`
-        // `overlay`) hanya meneruskan entri yang punya `_localId`; tanpa itu
-        // kartu kredensial dibuang sebelum sempat tampil dan user tidak pernah
-        // bisa mengisi token (bug nyata pada S2: /chat menjawab
-        // needs_credential, UI tidak menampilkan apa pun).
+      if ((data.needsCredential || data.needsOauth) && context) {
+        // Ganti placeholder assistant dengan kartu form kredensial / kartu
+        // Connect OAuth (Task 1C: `oauth_prompt`). PENTING: `_localId` HARUS
+        // dipertahankan. Layer render (`page.tsx` `overlay`) hanya meneruskan
+        // entri yang punya `_localId`; tanpa itu kartu kredensial dibuang
+        // sebelum sempat tampil dan user tidak pernah bisa mengisi token
+        // (bug nyata pada S2: /chat menjawab needs_credential, UI tidak
+        // menampilkan apa pun).
         qc.setQueryData<ChatMessage[]>(finalKey, (old) =>
           (old ?? []).map((m) =>
             m._localId === context.optimisticAsstId
@@ -370,8 +386,9 @@ export function useSendChatMutation() {
                   _localId: context.optimisticAsstId,
                   role: "system",
                   content: "",
-                  type: "credential_form",
+                  type: data.needsOauth ? "oauth_prompt" : "credential_form",
                   provider: data.provider,
+                  connectUrl: data.connectUrl,
                   original: context.prompt,
                 }
               : m
