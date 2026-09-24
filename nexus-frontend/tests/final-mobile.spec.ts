@@ -104,9 +104,17 @@ for (const [name, device] of Object.entries(DEVICE_SET)) {
             const r = el.getBoundingClientRect();
             const st = getComputedStyle(el);
             if (r.width === 0 || r.height === 0 || st.visibility === "hidden" || st.display === "none") continue;
+            // Kecuali: tautan sr-only (1x1 memang disengaja) dan isi kanvas
+            // React Flow (punya aturan 44 px sendiri sejak FASE 3).
+            if (el.closest(".sr-only") || el.closest(".react-flow")) continue;
+            // DIBULATKAN ke CSS px sebelum dibandingkan: dengan DPR 2 (iPad Mini)
+            // elemen 44 px terukur 43.99 sehingga gagal ambang padahal ukurannya
+            // benar. Ambang 44 px adalah ukuran CSS, jadi pembulatan itu sahih.
+            const w = Math.round(r.width);
+            const h = Math.round(r.height);
             total += 1;
-            if (r.width < 44 || r.height < 44) {
-              small.push(`${el.tagName.toLowerCase()}:${(el.getAttribute("data-testid") || el.getAttribute("aria-label") || el.textContent || "?").trim().slice(0, 22)}=${Math.round(r.width)}x${Math.round(r.height)}`);
+            if (w < 44 || h < 44) {
+              small.push(`${el.tagName.toLowerCase()}:${(el.getAttribute("data-testid") || el.getAttribute("aria-label") || el.textContent || "?").trim().slice(0, 22)}=${w}x${h}`);
             }
           }
           return {
@@ -120,6 +128,13 @@ for (const [name, device] of Object.entries(DEVICE_SET)) {
           `MOB_${name}_${route.replace(/\//g, "root")}=touch:${metrics.total} tooSmall:${metrics.small.length} overflow:${Math.max(0, metrics.scrollW - metrics.clientW)}`
         );
         if (metrics.small.length) console.log(`MOB_SMALL_${name}_${route.replace(/\//g, "root")}=${metrics.small.slice(0, 6).join(", ")}`);
+        // AMBANG TAP 44 px = ASSERTION, bukan catatan. Sebelum ini angkanya hanya
+        // dicetak sehingga 14 kontrol kecil per halaman lolos sebagai "PASS" --
+        // itulah kenapa assertion ini ditambahkan (temuan FASE 6).
+        expect(
+          metrics.small,
+          `target sentuh < 44px di ${route} (${name}): ${metrics.small.join(", ")}`
+        ).toEqual([]);
         // Toleransi 1px untuk pembulatan sub-pixel.
         expect(metrics.scrollW - metrics.clientW, `overflow horizontal di ${route} (${name})`).toBeLessThanOrEqual(1);
 

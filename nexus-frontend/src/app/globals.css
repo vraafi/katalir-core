@@ -758,6 +758,43 @@ body {
   color: #ffffff;
 }
 
+/* ---------------------------------------------------------------------------
+   FASE 6 — TARGET SENTUH MINIMUM 44x44 PADA PERANGKAT SENTUH.
+   ALASAN ANGKA (bukan selera): matriks mobile 6 halaman x 3 device mengukur
+   kontrol header/nav/settings/help pada 28-42 px — mis. nav "Chat" 79x36,
+   tombol tema 36x36, radio tema 42 px, tombol bagian Help 30 px. Itu di bawah
+   ambang WCAG 2.5.5 / Apple HIG (44 px). `min-height` sengaja dipakai (bukan
+   `height`) supaya tetap menang atas utility `h-8`/`h-9` tanpa mengubah
+   tinggi desktop: aturan ini hanya aktif pada `pointer: coarse`.
+
+   DIKECUALIKAN DENGAN SENGAJA:
+     * `.sr-only` — tautan lewati-ke-konten yang memang 1x1 saat tidak fokus;
+       ukuran itu perilaku yang diinginkan, bukan pelanggaran target sentuh.
+     * isi kanvas React Flow — sudah punya aturan 44 px sendiri dari FASE 3, dan
+       `min-width` global di sana bisa menggeser node/handle.
+   --------------------------------------------------------------------------- */
+@media (pointer: coarse) {
+  button,
+  a[href],
+  [role="button"],
+  [role="tab"],
+  input,
+  select,
+  summary {
+    min-height: 44px;
+    min-width: 44px;
+  }
+  .sr-only,
+  .sr-only *,
+  .react-flow button,
+  .react-flow a[href],
+  .react-flow [role="button"] {
+    min-height: 0;
+    min-width: 0;
+  }
+}
+
+
 
 /* FASE 4: teks yang duduk di atas FILL accent (mis. tombol terisi) memakai
    accent yang lebih gelap agar rasio >= 4.5:1 di mode terang; di mode gelap
