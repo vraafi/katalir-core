@@ -1,21 +1,25 @@
-﻿"""HTTP adapter for an externally deployed agentgateway."""
+﻿"""MCP Streamable HTTP client for agentgateway v1.5.0."""
 from __future__ import annotations
-import os
-import httpx
+import asyncio, os
+from mcp import ClientSession
+from mcp.client.streamable_http import streamablehttp_client
 class GatewayClient:
-    def __init__(self, base_url=None, api_key=None, timeout=10.0):
-        self.base_url=(base_url or os.getenv('AGENTGATEWAY_URL') or '').rstrip('/')
-        self.api_key=api_key or os.getenv('AGENTGATEWAY_API_KEY') or ''
-        self.timeout=timeout
-    def _headers(self): return {'Authorization':f'Bearer {self.api_key}'} if self.api_key else {}
-    def _get(self,path):
-        if not self.base_url: raise RuntimeError('AGENTGATEWAY_URL belum dikonfigurasi')
-        r=httpx.get(self.base_url+path,headers=self._headers(),timeout=self.timeout,follow_redirects=False); r.raise_for_status(); return r.json()
-    def health(self): return self._get('/health')
-    def list_servers(self): return self._get('/servers')
-    def list_tools(self,server_id: str):
-        from urllib.parse import quote
-        return self._get('/servers/' + quote(server_id, safe='') + '/tools')
-    def call_tool(self,server_id,tool,args):
-        if not self.base_url: raise RuntimeError('AGENTGATEWAY_URL belum dikonfigurasi')
-        r=httpx.post(self.base_url+'/call',headers={**self._headers(),'Content-Type':'application/json'},json={'server_id':server_id,'tool':tool,'arguments':args},timeout=self.timeout,follow_redirects=False); r.raise_for_status(); return r.json()
+    def __init__(self, url: str | None = None):
+        base=(url or os.getenv('AGENTGATEWAY_URL') or '').rstrip('/')
+        if not base: raise RuntimeError('AGENTGATEWAY_URL belum dikonfigurasi')
+        self.mcp_url=base+'/mcp'
+    async def _session(self):
+        return streamablehttp_client(self.mcp_url)
+    async def list_tools(self):
+        async with streamablehttp_client(self.mcp_url) as (r,w,_):
+            async with ClientSession(r,w) as s:
+                await s.initialize(); result=await s.list_tools(); return [x.model_dump() for x in result.tools]
+    async def call_tool(self, name, args):
+        async with streamablehttp_client(self.mcp_url) as (r,w,_):
+            async with ClientSession(r,w) as s:
+                await s.initialize(); result=await s.call_tool(name,args); return result.model_dump()
+    def list_tools_sync(self): return asyncio.run(self.list_tools())
+    def call_tool_sync(self,name,args): return asyncio.run(self.call_tool(name,args))
+    def health(self):
+        try: self.list_tools_sync(); return {'status':'ok'}
+        except Exception as exc: return {'status':'error','error':type(exc).__name__}

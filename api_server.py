@@ -1334,12 +1334,12 @@ def mcp_gateway_servers(authorization: str | None = Header(None)):
     from mcp_gateway.client import GatewayClient
     security.get_current_user(authorization)
     try:
-        return GatewayClient().list_servers()
+        return {"tools": GatewayClient().list_tools_sync()}
     except Exception as exc:  # noqa: BLE001
         raise HTTPException(503, f"Gateway tidak tersedia: {type(exc).__name__}")
 
 class GatewayCallRequest(BaseModel):
-    server_id: str
+    server_id: str | None = None
     tool: str
     arguments: dict[str, Any] = Field(default_factory=dict)
 
@@ -1347,10 +1347,10 @@ class GatewayCallRequest(BaseModel):
 def mcp_gateway_call(req: GatewayCallRequest, authorization: str | None = Header(None)):
     from mcp_gateway.client import GatewayClient
     security.get_current_user(authorization)
-    if not req.server_id or not req.tool:
-        raise HTTPException(422, "server_id dan tool wajib")
+    if not req.tool:
+        raise HTTPException(422, "tool wajib")
     try:
-        return GatewayClient().call_tool(req.server_id, req.tool, req.arguments)
+        return GatewayClient().call_tool_sync(req.tool, req.arguments)
     except Exception as exc:  # noqa: BLE001
         raise HTTPException(503, f"Gateway call gagal: {type(exc).__name__}")
 
