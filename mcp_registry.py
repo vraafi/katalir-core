@@ -66,7 +66,7 @@ def _normalize_official(entry: dict[str, Any]) -> dict[str, Any] | None:
     return {'id':str(server['name']),'name':str(server.get('title') or server['name']),'description':str(server.get('description') or ''),'repo_url':str((server.get('repository') or {}).get('url') or ''),'install_config':{'transport':str((remote or {}).get('type') or 'metadata-only'),'package':str((remote or {}).get('url') or ''),'install_method':'remote'},'tenant_scope':'user','validated':True,'tools':[],'source':'official-mcp-registry'}
 
 def sync_official_registry(*,limit=100,timeout=30) -> list[dict[str,Any]]:
-    r=httpx.get('https://registry.modelcontextprotocol.io/v0/servers',params={'limit':min(int(limit),100)},timeout=timeout,follow_redirects=True);r.raise_for_status()
+    r=httpx.get('https://registry.modelcontextprotocol.io/v0/servers',params={'limit':min(int(limit),100),'offset':'0'},timeout=timeout,follow_redirects=True);r.raise_for_status()
     out=[]
     for e in r.json().get('servers',[]):
         x=_normalize_official(e)
