@@ -61,6 +61,7 @@ BLOCKED hanya valid untuk: user action (login/approve/bayar), keputusan keamanan
 - `.env` root: token/credential production; jangan commit atau print value.
 - `nexus-frontend/.env.local`: konfigurasi `NEXT_PUBLIC_*`.
 - `test-jwt.txt`: JWT sementara, harus gitignored dan dihapus setelah test.
+- Test JWT untuk audit dapat dibuat otomatis lewat Supabase Admin API menggunakan `SUPABASE_SERVICE_ROLE_KEY`; jangan meminta user mengambil JWT dari browser. User sementara harus dihapus kembali melalui Admin API.
 
 ## User Action
 - Login/consent Google, Slack, atau Cloudflare: user manual.
