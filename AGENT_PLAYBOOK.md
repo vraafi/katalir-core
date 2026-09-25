@@ -1,5 +1,22 @@
 ﻿# Agent Playbook — Katalir
 
+## ⚠️ NO-SURRENDER PROTOCOL (WAJIB — BERLAKU SETIAP SESI)
+
+### Prinsip Inti
+Kamu tidak boleh menyerah pada error. Cari, uji, dan dokumentasikan pendekatan berbeda sampai berhasil atau ada kondisi berhenti yang sah.
+
+### SEARCH-FIRST MANDATE
+Sebelum tindakan baru, tidak yakin, atau stuck: cari exact error di GitHub Issues, Stack Overflow, docs resmi, Discussion/Discord, dan changelog. Dilarang menebak API atau melakukan coba-coba tanpa sumber. Jika satu sumber gagal, gunakan minimal tiga sumber berbeda.
+
+### NO-SURRENDER LOOP
+Ulangi: **search → isolate → fix → test**. Catat setiap iterasi sebagai `ITERATION=N | PROBLEM=... | SOURCE=URL | ATTEMPT=... | RESULT=...`. Jangan berhenti sebelum sukses terverifikasi, aksi user yang benar-benar diperlukan, security issue, atau lima pendekatan berbeda telah dicoba dan didokumentasikan.
+
+### NEVER-DECLARE-DONE-WITHOUT-TEST
+Sebelum DONE: assertion kuantitatif, screenshot/bukti visual, dan regression test wajib. DONE tanpa test tidak sah.
+
+### HARD RULE
+BLOCKED hanya valid untuk: user action (login/approve/bayar), keputusan keamanan, lima+ pendekatan dan tiga+ sumber search yang tetap gagal, atau TODO habis. Dilarang berhenti dengan alasan “sulit”, “aneh”, atau “tidak tahu”. User action harus spesifik: `USER ACTION: <aksi> di <tempat>`.
+
 ## Cara Kerja Tiap Sesi
 1. Baca file ini dulu.
 2. Baca `TODO.md` — kerjakan task teratas yang `[ ]`.
@@ -13,7 +30,10 @@
 9. Kalau blocked, lapor satu baris: `BLOCKED: <alasan>. User action: <satu baris>.`
 
 ## Aturan Otonom
-- Berhenti hanya jika butuh user action (login/API/approve), error 7 iterasi, security issue, atau TODO habis.
+- Berhenti hanya jika: a) butuh user action (login/approve/bayar) dan tulis aksi spesifik; b) security issue butuh keputusan user; c) sudah mencoba 5+ pendekatan berbeda + 3+ sumber search dan tetap gagal; d) TODO habis.
+- Dilarang berhenti karena “sulit”, “aneh”, “tidak tahu”, atau gagal 1–2 kali.
+- Wajib search real-time sebelum menebak atau melakukan tindakan baru.
+- Wajib test + screenshot sebelum claim DONE.
 - Selain itu auto-lanjut.
 - Setiap task commit terpisah.
 - Setiap commit memperbarui TODO.md.
