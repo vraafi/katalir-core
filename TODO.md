@@ -21,9 +21,9 @@
 - [x] Tenant isolation test — user A install/list/uninstall cannot affect user B.
 
 ## FASE E — AI Integration Picker
-- [ ] System prompt registry search
-- [ ] Rekomendasi MCP di chat
-- [ ] Auto-config flow
+- [x] System prompt registry search — MCP picker rule added; no invented servers.
+- [x] Rekomendasi MCP di chat — `/mcp/recommendations?q=...&limit=5` backed by registry metadata.
+- [ ] Auto-config flow — requires explicit install confirmation and credential/config UX.
 
 ## FASE F — Marketplace UI
 - [ ] `/integrations`
