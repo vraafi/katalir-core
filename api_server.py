@@ -1321,13 +1321,14 @@ def list_models(authorization: str | None = Header(None)):
 # MCP federated catalog (metadata discovery; execution is intentionally separate)
 # ---------------------------------------------------------------------------
 @app.get("/mcp/gateway/health")
-def mcp_gateway_health(authorization: str | None = Header(None)):
+async def mcp_gateway_health(authorization: str | None = Header(None)):
     from mcp_gateway.client import GatewayClient
     security.get_current_user(authorization)
     try:
-        return GatewayClient().health()
-    except Exception as exc:
-        raise HTTPException(503, f"Gateway tidak tersedia: {type(exc).__name__}")
+        ok = await GatewayClient().health()
+        return {"status": "ok" if ok else "unreachable"}
+    except Exception:
+        return {"status": "unreachable"}
 
 @app.get("/mcp/gateway/servers")
 def mcp_gateway_servers(authorization: str | None = Header(None)):

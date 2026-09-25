@@ -21,8 +21,11 @@ class GatewayClient:
     def list_tools_sync(self): return asyncio.run(self.list_tools())
     def call_tool_sync(self,name,args): return asyncio.run(self.call_tool(name,args))
     async def health(self):
+        import httpx
+        payload={"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-03-26","capabilities":{},"clientInfo":{"name":"health","version":"1"}}}
         try:
-            await self.list_tools()
-            return True
+            async with httpx.AsyncClient(timeout=5) as client:
+                response=await client.post(self.mcp_url,json=payload,headers={"Content-Type":"application/json","Accept":"application/json, text/event-stream"})
+                return response.status_code in (200, 202)
         except Exception:
             return False
