@@ -42,20 +42,17 @@ The "1000+ integrations" target is therefore **not yet achieved** and must not b
 ## Phase status (25 September 2026)
 
 - Phase 1 research: complete (this document).
-## Composio key verification (25 September 2026)
+## Composio verification (25 September 2026)
 
-`COMPOSIO_API_KEY` is present in `.env`, but live non-destructive verification failed:
+Project API key (`ak_...`, header `x-api-key`) verified successful:
 
-- `GET https://backend.composio.dev/api/v3.1/toolkits?limit=5` → HTTP 401
-- `GET https://backend.composio.dev/api/v3/toolkits?limit=1` → HTTP 401
-- `GET https://backend.composio.dev/api/v3.1/toolkits/categories` → HTTP 401
+- `GET /api/v3.1/toolkits` → HTTP 200, `total_items=1562`
+- `scripts/composio_sync.py` synced 1,562 toolkits into `composio_toolkits.json`
+- 20/20 target toolkits passed live `list_tools` (`GET /api/v3.1/tools?toolkit_slug=...`)
+- `POST /api/v3.1/tools/execute/COMPOSIO_LIST_TOOLKITS` → `successful: true` (no-auth toolkit, real execution)
+- Verification results are in `composio-verify.json`; only these 20 are marked `runtime_verified` and show the `Ready` badge
 
-The key present in `.env` is the workspace **Consumer API Key** shown at `dashboard.composio.dev/.../connect/settings/sessions` (format `ck_...`, header `x-consumer-api-key`). It authenticates MCP clients for the user's own account. Katalir needs the separate **Project API Key** (header `x-api-key`) for backend toolkit/tool APIs. Verification with the consumer key:
-
-- `GET /api/v3.1/toolkits` + `x-api-key` → 401
-- `GET /api/v3.1/toolkits` + `x-consumer-api-key` → 401
-
-Correct next action: create a project key at `dashboard.composio.dev/~/project/settings/api-keys` and put it in `COMPOSIO_API_KEY`. The consumer key can later be used for an MCP client path (`x-consumer-api-key`), not for the backend toolkit sync.
+Auth-required toolkits (Gmail, Slack, WhatsApp, etc.) still need a per-user connected account before `call_tool`; listing tools and catalog sync are verified. Never print or commit the API key.
 - Phase 3 LangGraph: evaluated as optional adapter; production engine deliberately not replaced without shadow-run evidence.
 - Phase 4 agentgateway: existing verified runtime kept; Composio backend cannot be configured without Composio credentials.
 - Phase 5 NL→workflow: Katalir already has a validated `generate_workflow_json` tool and `workflow_spec.py`; LoomFlow is a pattern reference, not a required dependency.

@@ -9,7 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { apiFetch } from "@/lib/api";
 
-type Server = { id: string; name: string; category: string; description: string; tools?: { name: string }[]; install_config?: { transport?: string; package?: string } };
+type Server = { id: string; name: string; category: string; description: string; tools?: { name: string }[]; install_config?: { transport?: string; package?: string }; source?: string; runtime_verified?: boolean };
 
 export default function IntegrationsPage() {
   const [search, setSearch] = useState("");
@@ -53,13 +53,13 @@ export default function IntegrationsPage() {
       {error && <div role="alert" className="rounded-lg border border-danger/40 bg-danger/10 p-3 text-sm text-danger">{error}</div>}
       <div className="grid gap-3 sm:grid-cols-2">
         {items.map(item => <Card key={item.id} data-testid="integration-card">
-          <CardHeader><CardTitle className="truncate">{item.name}</CardTitle><CardDescription>{item.category} · {item.tools?.length ?? 0} tools</CardDescription></CardHeader>
+          <CardHeader><CardTitle className="truncate">{item.name} {item.runtime_verified && <span className="ml-1 rounded-full bg-emerald-500/15 px-2 py-0.5 text-[10px] font-semibold text-emerald-600" data-testid="badge-verified">Ready</span>}</CardTitle><CardDescription>{item.category} · {item.tools?.length ?? 0} tools{item.source === "composio" ? " · Composio" : ""}</CardDescription></CardHeader>
           <CardContent className="flex flex-col gap-3"><p className="line-clamp-2 text-sm text-fg-muted">{item.description}</p><div className="flex gap-2"><Button size="sm" onClick={() => install(item)} loading={installing === item.id} data-testid="integration-install"><Plus size={14}/> Pasang</Button><Button size="sm" variant="ghost" onClick={() => window.location.href = `/integrations/${encodeURIComponent(item.id)}`}><ExternalLink size={14}/> Detail</Button></div></CardContent>
         </Card>)}
       </div>
       {!items.length && !error && <div className="rounded-xl border border-dashed border-border p-8 text-center text-sm text-fg-muted">Belum ada hasil. Coba kata kunci lain.</div>}
       <Link href="/my-integrations" className="text-sm text-primary hover:underline">Kelola integrasi saya →</Link>
-      <p className="text-xs text-fg-subtle">4.548 metadata katalog · 5 runtime target terverifikasi · 39 tools. Metadata belum berarti server executable; batch test memerlukan manifest runtime.</p>
+      <p className="text-xs text-fg-subtle">4.548 metadata + 1.562 toolkit Composio · 20 runtime target terverifikasi · 39 tools MCP native. Badge Ready hanya untuk toolbox yang lolos verifikasi.</p>
     </div>
   </SimplePage>;
 }

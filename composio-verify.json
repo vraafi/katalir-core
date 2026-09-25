@@ -1,0 +1,102 @@
+[
+  {
+    "slug": "whatsapp",
+    "status": "ok",
+    "tools": 58
+  },
+  {
+    "slug": "slack",
+    "status": "ok",
+    "tools": 168
+  },
+  {
+    "slug": "gmail",
+    "status": "ok",
+    "tools": 62
+  },
+  {
+    "slug": "github",
+    "status": "ok",
+    "tools": 896
+  },
+  {
+    "slug": "notion",
+    "status": "ok",
+    "tools": 57
+  },
+  {
+    "slug": "linear",
+    "status": "ok",
+    "tools": 48
+  },
+  {
+    "slug": "stripe",
+    "status": "ok",
+    "tools": 433
+  },
+  {
+    "slug": "googlesheets",
+    "status": "ok",
+    "tools": 58
+  },
+  {
+    "slug": "telegram",
+    "status": "ok",
+    "tools": 18
+  },
+  {
+    "slug": "discord",
+    "status": "ok",
+    "tools": 28
+  },
+  {
+    "slug": "twitter",
+    "status": "ok",
+    "tools": 79
+  },
+  {
+    "slug": "linkedin",
+    "status": "ok",
+    "tools": 25
+  },
+  {
+    "slug": "hubspot",
+    "status": "ok",
+    "tools": 263
+  },
+  {
+    "slug": "salesforce",
+    "status": "ok",
+    "tools": 224
+  },
+  {
+    "slug": "airtable",
+    "status": "ok",
+    "tools": 27
+  },
+  {
+    "slug": "dropbox",
+    "status": "ok",
+    "tools": 178
+  },
+  {
+    "slug": "googledrive",
+    "status": "ok",
+    "tools": 104
+  },
+  {
+    "slug": "googlecalendar",
+    "status": "ok",
+    "tools": 50
+  },
+  {
+    "slug": "trello",
+    "status": "ok",
+    "tools": 330
+  },
+  {
+    "slug": "asana",
+    "status": "ok",
+    "tools": 153
+  }
+]

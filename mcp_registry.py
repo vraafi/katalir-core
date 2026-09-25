@@ -5,7 +5,7 @@ from pathlib import Path
 from typing import Any
 import httpx
 SOURCE_URL='https://raw.githubusercontent.com/ToolSDK-AI/toolsdk-mcp-registry/main/indexes/packages-list.json'
-CACHE_PATH=Path(__file__).with_name('mcp_registry_cache.json'); _CACHE={}; _LOCK=threading.RLock()
+CACHE_PATH=Path(__file__).with_name('mcp_registry_cache.json'); COMPOSIO_PATH=Path(__file__).with_name('composio_toolkits.json'); _CACHE={}; _LOCK=threading.RLock(); _COMPOSIO_LOADED=False
 _ALLOWED_TRANSPORTS={'stdio','http','sse'}
 
 
@@ -28,10 +28,17 @@ def _normalize(i,item):
  tools=item.get('tools') if isinstance(item.get('tools'),dict) else {}
  return {'id':i,'name':i.rsplit('/',1)[-1],'category':str(item.get('category') or 'other'),'description':str(item.get('description') or f'MCP server {i}'),'repo_url':str(item.get('repo') or item.get('repository') or ''),'install_config':{'transport':'metadata-only','package':i},'tenant_scope':'user','validated':bool(item.get('validated')),'tools':[{'name':str(n),'description':str((v or {}).get('description') or '')} for n,v in tools.items()]}
 def load_cached():
+ global _COMPOSIO_LOADED
  with _LOCK:
   if not _CACHE and CACHE_PATH.exists():
    try:_CACHE.update({str(k):_normalize(str(k),v or {}) for k,v in json.loads(CACHE_PATH.read_text(encoding='utf-8')).items() if isinstance(v,dict)})
    except (OSError,ValueError,TypeError):_CACHE.clear()
+  if not _COMPOSIO_LOADED and COMPOSIO_PATH.exists():
+   try:
+    rows=json.loads(COMPOSIO_PATH.read_text(encoding='utf-8'))
+    if isinstance(rows,dict): _CACHE.update({str(k):v for k,v in rows.items() if isinstance(v,dict)})
+    _COMPOSIO_LOADED=True
+   except (OSError,ValueError,TypeError): pass
   return _CACHE
 def sync_from_public(*,timeout=30):
  r=httpx.get(SOURCE_URL,timeout=timeout,follow_redirects=True);r.raise_for_status();raw=r.json()
@@ -56,7 +63,7 @@ def executable_servers():
 
     ToolSDK metadata is currently metadata-only; do not treat it as runnable.
     """
-    return [x for x in load_cached().values() if x.get('install_config', {}).get('transport') in {'stdio','http','sse'}]
+    return [x for x in load_cached().values() if isinstance(x, dict) and (x.get('runtime_verified') is True or x.get('install_config', {}).get('transport') in {'stdio','http','sse'})]
 
 def _normalize_official(entry: dict[str, Any]) -> dict[str, Any] | None:
     server=(entry or {}).get('server') if isinstance(entry,dict) else None
@@ -84,8 +91,10 @@ def executable_candidates():
     return out
 
 def coverage():
-    items = list(load_cached().values())
-    return {'total': len(items), 'executable': len(executable_servers()), 'metadata_only': len(items) - len(executable_servers())}
+    items = [x for x in load_cached().values() if isinstance(x, dict) and x.get('id')]
+    composio = [x for x in items if x.get('source') == 'composio']
+    official = [x for x in items if x.get('source') == 'official-mcp-registry']
+    return {'total': len(items), 'executable': len(executable_servers()), 'metadata_only': len(items) - len(executable_servers()), 'composio_toolkits': len(composio), 'official_remote': len(official)}
 
 def recommend_servers(query: str, limit: int = 5):
     """Return catalog matches for the AI integration picker; metadata only."""
