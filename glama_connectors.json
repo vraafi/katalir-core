@@ -8919,8 +8919,14 @@
   "runtime_verified": false,
   "verification": {
    "discovered": true,
-   "tools_listed": false,
+   "tools_listed": true,
    "call_verified": false
+  },
+  "tools_listed_count": 4,
+  "last_probe": {
+   "status": "ok",
+   "tools": 4,
+   "latency_ms": 1902
   }
  },
  "glama-connector/nxs3w6tkyr": {
@@ -9362,6 +9368,12 @@
    "discovered": true,
    "tools_listed": false,
    "call_verified": false
+  },
+  "tools_listed_count": 0,
+  "last_probe": {
+   "status": "auth_required",
+   "tools": 0,
+   "latency_ms": 255
   }
  },
  "glama-connector/z02ipmpeg1": {
@@ -9752,8 +9764,14 @@
   "runtime_verified": false,
   "verification": {
    "discovered": true,
-   "tools_listed": false,
+   "tools_listed": true,
    "call_verified": false
+  },
+  "tools_listed_count": 4,
+  "last_probe": {
+   "status": "ok",
+   "tools": 4,
+   "latency_ms": 2063
   }
  },
  "glama-connector/xsi53o6sii": {
@@ -10672,6 +10690,12 @@
    "discovered": true,
    "tools_listed": false,
    "call_verified": false
+  },
+  "tools_listed_count": 0,
+  "last_probe": {
+   "status": "auth_required",
+   "tools": 0,
+   "latency_ms": 381
   }
  },
  "glama-connector/wiuhm61h1d": {
@@ -11144,8 +11168,14 @@
   "runtime_verified": false,
   "verification": {
    "discovered": true,
-   "tools_listed": false,
+   "tools_listed": true,
    "call_verified": false
+  },
+  "tools_listed_count": 3,
+  "last_probe": {
+   "status": "ok",
+   "tools": 3,
+   "latency_ms": 1132
   }
  },
  "glama-connector/vzznh59e7w": {
@@ -11190,8 +11220,14 @@
   "runtime_verified": false,
   "verification": {
    "discovered": true,
-   "tools_listed": false,
+   "tools_listed": true,
    "call_verified": false
+  },
+  "tools_listed_count": 9,
+  "last_probe": {
+   "status": "ok",
+   "tools": 9,
+   "latency_ms": 1763
   }
  },
  "glama-connector/vvnupzg5jr": {
@@ -11496,8 +11532,14 @@
   "runtime_verified": false,
   "verification": {
    "discovered": true,
-   "tools_listed": false,
+   "tools_listed": true,
    "call_verified": false
+  },
+  "tools_listed_count": 2,
+  "last_probe": {
+   "status": "ok",
+   "tools": 2,
+   "latency_ms": 1716
   }
  },
  "glama-connector/ixlcddiiu5": {
@@ -11966,8 +12008,14 @@
   "runtime_verified": false,
   "verification": {
    "discovered": true,
-   "tools_listed": false,
+   "tools_listed": true,
    "call_verified": false
+  },
+  "tools_listed_count": 9,
+  "last_probe": {
+   "status": "ok",
+   "tools": 9,
+   "latency_ms": 2118
   }
  },
  "glama-connector/pntdlbfi6b": {
@@ -13128,8 +13176,14 @@
   "runtime_verified": false,
   "verification": {
    "discovered": true,
-   "tools_listed": false,
+   "tools_listed": true,
    "call_verified": false
+  },
+  "tools_listed_count": 40,
+  "last_probe": {
+   "status": "ok",
+   "tools": 40,
+   "latency_ms": 2660
   }
  },
  "glama-connector/mkh3a9m1zk": {
@@ -13483,8 +13537,14 @@
   "runtime_verified": false,
   "verification": {
    "discovered": true,
-   "tools_listed": false,
+   "tools_listed": true,
    "call_verified": false
+  },
+  "tools_listed_count": 10,
+  "last_probe": {
+   "status": "ok",
+   "tools": 10,
+   "latency_ms": 1154
   }
  },
  "glama-connector/hriwgtfbpk": {
@@ -13528,8 +13588,14 @@
   "runtime_verified": false,
   "verification": {
    "discovered": true,
-   "tools_listed": false,
+   "tools_listed": true,
    "call_verified": false
+  },
+  "tools_listed_count": 18,
+  "last_probe": {
+   "status": "ok",
+   "tools": 18,
+   "latency_ms": 1184
   }
  },
  "glama-connector/mfq1rus97r": {
@@ -13573,8 +13639,14 @@
   "runtime_verified": false,
   "verification": {
    "discovered": true,
-   "tools_listed": false,
+   "tools_listed": true,
    "call_verified": false
+  },
+  "tools_listed_count": 12,
+  "last_probe": {
+   "status": "ok",
+   "tools": 12,
+   "latency_ms": 1661
   }
  },
  "glama-connector/duafxzjrty": {
@@ -13715,8 +13787,14 @@
   "runtime_verified": false,
   "verification": {
    "discovered": true,
-   "tools_listed": false,
+   "tools_listed": true,
    "call_verified": false
+  },
+  "tools_listed_count": 22,
+  "last_probe": {
+   "status": "ok",
+   "tools": 22,
+   "latency_ms": 280
   }
  },
  "glama-connector/jqu75c5429": {
@@ -13818,6 +13896,12 @@
    "discovered": true,
    "tools_listed": false,
    "call_verified": false
+  },
+  "tools_listed_count": 0,
+  "last_probe": {
+   "status": "auth_required",
+   "tools": 0,
+   "latency_ms": 119
   }
  },
  "glama-connector/xd6tl7d6qa": {
@@ -14369,6 +14453,12 @@
    "discovered": true,
    "tools_listed": false,
    "call_verified": false
+  },
+  "tools_listed_count": 0,
+  "last_probe": {
+   "status": "unreachable",
+   "tools": 0,
+   "latency_ms": 26384
   }
  },
  "glama-connector/aneau7941q": {
@@ -14416,6 +14506,12 @@
    "discovered": true,
    "tools_listed": false,
    "call_verified": false
+  },
+  "tools_listed_count": 0,
+  "last_probe": {
+   "status": "auth_required",
+   "tools": 0,
+   "latency_ms": 151
   }
  },
  "glama-connector/xuqqytz7hy": {
@@ -15582,8 +15678,14 @@
   "runtime_verified": false,
   "verification": {
    "discovered": true,
-   "tools_listed": false,
+   "tools_listed": true,
    "call_verified": false
+  },
+  "tools_listed_count": 1,
+  "last_probe": {
+   "status": "ok",
+   "tools": 1,
+   "latency_ms": 750
   }
  },
  "glama-connector/jyqdt4jsoy": {
@@ -15683,6 +15785,12 @@
    "discovered": true,
    "tools_listed": false,
    "call_verified": false
+  },
+  "tools_listed_count": 0,
+  "last_probe": {
+   "status": "auth_required",
+   "tools": 0,
+   "latency_ms": 132
   }
  },
  "glama-connector/xjlpzkjby4": {
@@ -15784,6 +15892,12 @@
    "discovered": true,
    "tools_listed": false,
    "call_verified": false
+  },
+  "tools_listed_count": 0,
+  "last_probe": {
+   "status": "auth_required",
+   "tools": 0,
+   "latency_ms": 4240
   }
  },
  "glama-connector/n2ypbi2slk": {
@@ -15828,8 +15942,14 @@
   "runtime_verified": false,
   "verification": {
    "discovered": true,
-   "tools_listed": false,
+   "tools_listed": true,
    "call_verified": false
+  },
+  "tools_listed_count": 5,
+  "last_probe": {
+   "status": "ok",
+   "tools": 5,
+   "latency_ms": 2149
   }
  },
  "glama-connector/l6s7h4mx7s": {
@@ -15931,6 +16051,12 @@
    "discovered": true,
    "tools_listed": false,
    "call_verified": false
+  },
+  "tools_listed_count": 0,
+  "last_probe": {
+   "status": "auth_required",
+   "tools": 0,
+   "latency_ms": 200
   }
  },
  "glama-connector/qceqv06vlq": {
@@ -16316,8 +16442,14 @@
   "runtime_verified": false,
   "verification": {
    "discovered": true,
-   "tools_listed": false,
+   "tools_listed": true,
    "call_verified": false
+  },
+  "tools_listed_count": 2,
+  "last_probe": {
+   "status": "ok",
+   "tools": 2,
+   "latency_ms": 1661
   }
  },
  "glama-connector/cy9qxv3opr": {
@@ -16416,8 +16548,14 @@
   "runtime_verified": false,
   "verification": {
    "discovered": true,
-   "tools_listed": false,
+   "tools_listed": true,
    "call_verified": false
+  },
+  "tools_listed_count": 3,
+  "last_probe": {
+   "status": "ok",
+   "tools": 3,
+   "latency_ms": 2198
   }
  },
  "glama-connector/tpk65i736o": {
@@ -16959,8 +17097,14 @@
   "runtime_verified": false,
   "verification": {
    "discovered": true,
-   "tools_listed": false,
+   "tools_listed": true,
    "call_verified": false
+  },
+  "tools_listed_count": 92,
+  "last_probe": {
+   "status": "ok",
+   "tools": 92,
+   "latency_ms": 2826
   }
  },
  "glama-connector/u8mym8ohan": {
@@ -17059,8 +17203,14 @@
   "runtime_verified": false,
   "verification": {
    "discovered": true,
-   "tools_listed": false,
+   "tools_listed": true,
    "call_verified": false
+  },
+  "tools_listed_count": 45,
+  "last_probe": {
+   "status": "ok",
+   "tools": 45,
+   "latency_ms": 2848
   }
  },
  "glama-connector/ixsqiwzgyg": {
@@ -17163,6 +17313,12 @@
    "discovered": true,
    "tools_listed": false,
    "call_verified": false
+  },
+  "tools_listed_count": 0,
+  "last_probe": {
+   "status": "auth_required",
+   "tools": 0,
+   "latency_ms": 129
   }
  },
  "glama-connector/lymx33wcd6": {
@@ -17308,8 +17464,14 @@
   "runtime_verified": false,
   "verification": {
    "discovered": true,
-   "tools_listed": false,
+   "tools_listed": true,
    "call_verified": false
+  },
+  "tools_listed_count": 18,
+  "last_probe": {
+   "status": "ok",
+   "tools": 18,
+   "latency_ms": 1534
   }
  },
  "glama-connector/wykkauqm4z": {
@@ -18609,8 +18771,14 @@
   "runtime_verified": false,
   "verification": {
    "discovered": true,
-   "tools_listed": false,
+   "tools_listed": true,
    "call_verified": false
+  },
+  "tools_listed_count": 23,
+  "last_probe": {
+   "status": "ok",
+   "tools": 23,
+   "latency_ms": 295
   }
  },
  "glama-connector/xqz0kyeprv": {
@@ -18906,6 +19074,12 @@
    "discovered": true,
    "tools_listed": false,
    "call_verified": false
+  },
+  "tools_listed_count": 0,
+  "last_probe": {
+   "status": "auth_required",
+   "tools": 0,
+   "latency_ms": 339
   }
  },
  "glama-connector/wzuu2fa83g": {
@@ -19095,8 +19269,14 @@
   "runtime_verified": false,
   "verification": {
    "discovered": true,
-   "tools_listed": false,
+   "tools_listed": true,
    "call_verified": false
+  },
+  "tools_listed_count": 58,
+  "last_probe": {
+   "status": "ok",
+   "tools": 58,
+   "latency_ms": 1040
   }
  },
  "glama-connector/wbzuvfs7qb": {
@@ -19144,6 +19324,12 @@
    "discovered": true,
    "tools_listed": false,
    "call_verified": false
+  },
+  "tools_listed_count": 0,
+  "last_probe": {
+   "status": "auth_required",
+   "tools": 0,
+   "latency_ms": 119
   }
  },
  "glama-connector/j17g9av88r": {
@@ -19287,6 +19473,12 @@
    "discovered": true,
    "tools_listed": false,
    "call_verified": false
+  },
+  "tools_listed_count": 0,
+  "last_probe": {
+   "status": "auth_required",
+   "tools": 0,
+   "latency_ms": 231
   }
  },
  "glama-connector/zw5fevfvol": {
@@ -19386,6 +19578,12 @@
    "discovered": true,
    "tools_listed": false,
    "call_verified": false
+  },
+  "tools_listed_count": 0,
+  "last_probe": {
+   "status": "auth_required",
+   "tools": 0,
+   "latency_ms": 9421
   }
  },
  "glama-connector/y6i6ooif0x": {
@@ -19740,6 +19938,12 @@
    "discovered": true,
    "tools_listed": false,
    "call_verified": false
+  },
+  "tools_listed_count": 0,
+  "last_probe": {
+   "status": "auth_required",
+   "tools": 0,
+   "latency_ms": 124
   }
  },
  "glama-connector/sc9diz2qkk": {
@@ -19987,6 +20191,12 @@
    "discovered": true,
    "tools_listed": false,
    "call_verified": false
+  },
+  "tools_listed_count": 0,
+  "last_probe": {
+   "status": "auth_required",
+   "tools": 0,
+   "latency_ms": 424
   }
  },
  "glama-connector/o948g8qku5": {
@@ -20234,8 +20444,14 @@
   "runtime_verified": false,
   "verification": {
    "discovered": true,
-   "tools_listed": false,
+   "tools_listed": true,
    "call_verified": false
+  },
+  "tools_listed_count": 37,
+  "last_probe": {
+   "status": "ok",
+   "tools": 37,
+   "latency_ms": 950
   }
  },
  "glama-connector/xtsk9mb1tc": {
@@ -21383,8 +21599,14 @@
   "runtime_verified": false,
   "verification": {
    "discovered": true,
-   "tools_listed": false,
+   "tools_listed": true,
    "call_verified": false
+  },
+  "tools_listed_count": 16,
+  "last_probe": {
+   "status": "ok",
+   "tools": 16,
+   "latency_ms": 9361
   }
  },
  "glama-connector/djl3593hfz": {
@@ -21537,8 +21759,14 @@
   "runtime_verified": false,
   "verification": {
    "discovered": true,
-   "tools_listed": false,
+   "tools_listed": true,
    "call_verified": false
+  },
+  "tools_listed_count": 15,
+  "last_probe": {
+   "status": "ok",
+   "tools": 15,
+   "latency_ms": 1951
   }
  },
  "glama-connector/ul04024zmx": {
@@ -21584,6 +21812,12 @@
    "discovered": true,
    "tools_listed": false,
    "call_verified": false
+  },
+  "tools_listed_count": 0,
+  "last_probe": {
+   "status": "auth_required",
+   "tools": 0,
+   "latency_ms": 361
   }
  },
  "glama-connector/zdvfto6doj": {
@@ -21734,8 +21968,14 @@
   "runtime_verified": false,
   "verification": {
    "discovered": true,
-   "tools_listed": false,
+   "tools_listed": true,
    "call_verified": false
+  },
+  "tools_listed_count": 39,
+  "last_probe": {
+   "status": "ok",
+   "tools": 39,
+   "latency_ms": 909
   }
  },
  "glama-connector/ykiy7wtq6j": {
@@ -21926,8 +22166,14 @@
   "runtime_verified": false,
   "verification": {
    "discovered": true,
-   "tools_listed": false,
+   "tools_listed": true,
    "call_verified": false
+  },
+  "tools_listed_count": 3,
+  "last_probe": {
+   "status": "ok",
+   "tools": 3,
+   "latency_ms": 936
   }
  },
  "glama-connector/pcugjsivq1": {
@@ -22074,8 +22320,14 @@
   "runtime_verified": false,
   "verification": {
    "discovered": true,
-   "tools_listed": false,
+   "tools_listed": true,
    "call_verified": false
+  },
+  "tools_listed_count": 45,
+  "last_probe": {
+   "status": "ok",
+   "tools": 45,
+   "latency_ms": 986
   }
  },
  "glama-connector/eb4w2tj773": {
@@ -22519,6 +22771,12 @@
    "discovered": true,
    "tools_listed": false,
    "call_verified": false
+  },
+  "tools_listed_count": 0,
+  "last_probe": {
+   "status": "auth_required",
+   "tools": 0,
+   "latency_ms": 127
   }
  },
  "glama-connector/pnvsisalpi": {
@@ -22760,6 +23018,12 @@
    "discovered": true,
    "tools_listed": false,
    "call_verified": false
+  },
+  "tools_listed_count": 0,
+  "last_probe": {
+   "status": "auth_required",
+   "tools": 0,
+   "latency_ms": 132
   }
  },
  "glama-connector/dal2nm4yh0": {
@@ -24627,8 +24891,14 @@
   "runtime_verified": false,
   "verification": {
    "discovered": true,
-   "tools_listed": false,
+   "tools_listed": true,
    "call_verified": false
+  },
+  "tools_listed_count": 8,
+  "last_probe": {
+   "status": "ok",
+   "tools": 8,
+   "latency_ms": 810
   }
  },
  "glama-connector/mokofyepug": {
@@ -24781,8 +25051,14 @@
   "runtime_verified": false,
   "verification": {
    "discovered": true,
-   "tools_listed": false,
+   "tools_listed": true,
    "call_verified": false
+  },
+  "tools_listed_count": 17,
+  "last_probe": {
+   "status": "ok",
+   "tools": 17,
+   "latency_ms": 3787
   }
  },
  "glama-connector/ma6ackjejf": {
@@ -24884,6 +25160,12 @@
    "discovered": true,
    "tools_listed": false,
    "call_verified": false
+  },
+  "tools_listed_count": 0,
+  "last_probe": {
+   "status": "auth_required",
+   "tools": 0,
+   "latency_ms": 332
   }
  },
  "glama-connector/c37dg41qnh": {
@@ -25035,6 +25317,12 @@
    "discovered": true,
    "tools_listed": false,
    "call_verified": false
+  },
+  "tools_listed_count": 0,
+  "last_probe": {
+   "status": "auth_required",
+   "tools": 0,
+   "latency_ms": 114
   }
  },
  "glama-connector/fa73s183nr": {
@@ -25080,6 +25368,12 @@
    "discovered": true,
    "tools_listed": false,
    "call_verified": false
+  },
+  "tools_listed_count": 0,
+  "last_probe": {
+   "status": "auth_required",
+   "tools": 0,
+   "latency_ms": 423
   }
  },
  "glama-connector/kf8k3bjr4j": {
@@ -25176,8 +25470,14 @@
   "runtime_verified": false,
   "verification": {
    "discovered": true,
-   "tools_listed": false,
+   "tools_listed": true,
    "call_verified": false
+  },
+  "tools_listed_count": 11,
+  "last_probe": {
+   "status": "ok",
+   "tools": 11,
+   "latency_ms": 635
   }
  },
  "glama-connector/ocghgw9unf": {
@@ -25376,8 +25676,14 @@
   "runtime_verified": false,
   "verification": {
    "discovered": true,
-   "tools_listed": false,
+   "tools_listed": true,
    "call_verified": false
+  },
+  "tools_listed_count": 10,
+  "last_probe": {
+   "status": "ok",
+   "tools": 10,
+   "latency_ms": 5406
   }
  },
  "glama-connector/yv59247py6": {
@@ -25425,8 +25731,14 @@
   "runtime_verified": false,
   "verification": {
    "discovered": true,
-   "tools_listed": false,
+   "tools_listed": true,
    "call_verified": false
+  },
+  "tools_listed_count": 4,
+  "last_probe": {
+   "status": "ok",
+   "tools": 4,
+   "latency_ms": 570
   }
  },
  "glama-connector/sdkewv6oub": {
@@ -25683,8 +25995,14 @@
   "runtime_verified": false,
   "verification": {
    "discovered": true,
-   "tools_listed": false,
+   "tools_listed": true,
    "call_verified": false
+  },
+  "tools_listed_count": 6,
+  "last_probe": {
+   "status": "ok",
+   "tools": 6,
+   "latency_ms": 14747
   }
  },
  "glama-connector/r43g8we796": {
@@ -25781,8 +26099,14 @@
   "runtime_verified": false,
   "verification": {
    "discovered": true,
-   "tools_listed": false,
+   "tools_listed": true,
    "call_verified": false
+  },
+  "tools_listed_count": 70,
+  "last_probe": {
+   "status": "ok",
+   "tools": 70,
+   "latency_ms": 9003
   }
  },
  "glama-connector/jrmjby9l6p": {
@@ -25831,6 +26155,12 @@
    "discovered": true,
    "tools_listed": false,
    "call_verified": false
+  },
+  "tools_listed_count": 0,
+  "last_probe": {
+   "status": "protocol_error",
+   "tools": 0,
+   "latency_ms": 689
   }
  },
  "glama-connector/du7vauiqv9": {
@@ -26278,6 +26608,12 @@
    "discovered": true,
    "tools_listed": false,
    "call_verified": false
+  },
+  "tools_listed_count": 0,
+  "last_probe": {
+   "status": "auth_required",
+   "tools": 0,
+   "latency_ms": 1248
   }
  },
  "glama-connector/il1wepyeab": {
@@ -26416,8 +26752,14 @@
   "runtime_verified": false,
   "verification": {
    "discovered": true,
-   "tools_listed": false,
+   "tools_listed": true,
    "call_verified": false
+  },
+  "tools_listed_count": 5,
+  "last_probe": {
+   "status": "ok",
+   "tools": 5,
+   "latency_ms": 896
   }
  },
  "glama-connector/c5nidwxa36": {
@@ -26464,6 +26806,12 @@
    "discovered": true,
    "tools_listed": false,
    "call_verified": false
+  },
+  "tools_listed_count": 0,
+  "last_probe": {
+   "status": "auth_required",
+   "tools": 0,
+   "latency_ms": 147
   }
  },
  "glama-connector/zj8b82bll5": {
@@ -27800,8 +28148,14 @@
   "runtime_verified": false,
   "verification": {
    "discovered": true,
-   "tools_listed": false,
+   "tools_listed": true,
    "call_verified": false
+  },
+  "tools_listed_count": 1,
+  "last_probe": {
+   "status": "ok",
+   "tools": 1,
+   "latency_ms": 1955
   }
  },
  "glama-connector/a9zv6i44wr": {
@@ -27849,6 +28203,12 @@
    "discovered": true,
    "tools_listed": false,
    "call_verified": false
+  },
+  "tools_listed_count": 0,
+  "last_probe": {
+   "status": "auth_required",
+   "tools": 0,
+   "latency_ms": 145
   }
  },
  "glama-connector/r8r64lfff8": {
@@ -28045,6 +28405,12 @@
    "discovered": true,
    "tools_listed": false,
    "call_verified": false
+  },
+  "tools_listed_count": 0,
+  "last_probe": {
+   "status": "auth_required",
+   "tools": 0,
+   "latency_ms": 113
   }
  },
  "glama-connector/mgmesy9s18": {
@@ -28091,8 +28457,14 @@
   "runtime_verified": false,
   "verification": {
    "discovered": true,
-   "tools_listed": false,
+   "tools_listed": true,
    "call_verified": false
+  },
+  "tools_listed_count": 45,
+  "last_probe": {
+   "status": "ok",
+   "tools": 45,
+   "latency_ms": 718
   }
  },
  "glama-connector/tdhpt2pgc2": {
@@ -28384,8 +28756,14 @@
   "runtime_verified": false,
   "verification": {
    "discovered": true,
-   "tools_listed": false,
+   "tools_listed": true,
    "call_verified": false
+  },
+  "tools_listed_count": 95,
+  "last_probe": {
+   "status": "ok",
+   "tools": 95,
+   "latency_ms": 895
   }
  },
  "glama-connector/raplg0cf2y": {
@@ -28483,8 +28861,14 @@
   "runtime_verified": false,
   "verification": {
    "discovered": true,
-   "tools_listed": false,
+   "tools_listed": true,
    "call_verified": false
+  },
+  "tools_listed_count": 17,
+  "last_probe": {
+   "status": "ok",
+   "tools": 17,
+   "latency_ms": 1929
   }
  },
  "glama-connector/opmuzb872r": {
@@ -28626,6 +29010,12 @@
    "discovered": true,
    "tools_listed": false,
    "call_verified": false
+  },
+  "tools_listed_count": 0,
+  "last_probe": {
+   "status": "auth_required",
+   "tools": 0,
+   "latency_ms": 278
   }
  },
  "glama-connector/tzgpm79ev0": {
@@ -28670,8 +29060,14 @@
   "runtime_verified": false,
   "verification": {
    "discovered": true,
-   "tools_listed": false,
+   "tools_listed": true,
    "call_verified": false
+  },
+  "tools_listed_count": 21,
+  "last_probe": {
+   "status": "ok",
+   "tools": 21,
+   "latency_ms": 1494
   }
  },
  "glama-connector/ytsr0z31va": {
@@ -28813,8 +29209,14 @@
   "runtime_verified": false,
   "verification": {
    "discovered": true,
-   "tools_listed": false,
+   "tools_listed": true,
    "call_verified": false
+  },
+  "tools_listed_count": 9,
+  "last_probe": {
+   "status": "ok",
+   "tools": 9,
+   "latency_ms": 798
   }
  },
  "glama-connector/vnj0icwily": {
@@ -28960,8 +29362,14 @@
   "runtime_verified": false,
   "verification": {
    "discovered": true,
-   "tools_listed": false,
+   "tools_listed": true,
    "call_verified": false
+  },
+  "tools_listed_count": 59,
+  "last_probe": {
+   "status": "ok",
+   "tools": 59,
+   "latency_ms": 1041
   }
  },
  "glama-connector/gt32uan00d": {
@@ -29054,8 +29462,14 @@
   "runtime_verified": false,
   "verification": {
    "discovered": true,
-   "tools_listed": false,
+   "tools_listed": true,
    "call_verified": false
+  },
+  "tools_listed_count": 13,
+  "last_probe": {
+   "status": "ok",
+   "tools": 13,
+   "latency_ms": 14915
   }
  },
  "glama-connector/xmbot5cl8n": {
@@ -29498,8 +29912,14 @@
   "runtime_verified": false,
   "verification": {
    "discovered": true,
-   "tools_listed": false,
+   "tools_listed": true,
    "call_verified": false
+  },
+  "tools_listed_count": 4,
+  "last_probe": {
+   "status": "ok",
+   "tools": 4,
+   "latency_ms": 1567
   }
  },
  "glama-connector/jngen7k6lv": {
@@ -29598,6 +30018,12 @@
    "discovered": true,
    "tools_listed": false,
    "call_verified": false
+  },
+  "tools_listed_count": 0,
+  "last_probe": {
+   "status": "auth_required",
+   "tools": 0,
+   "latency_ms": 3919
   }
  },
  "glama-connector/zi02rqrpbs": {
@@ -30833,8 +31259,14 @@
   "runtime_verified": false,
   "verification": {
    "discovered": true,
-   "tools_listed": false,
+   "tools_listed": true,
    "call_verified": false
+  },
+  "tools_listed_count": 34,
+  "last_probe": {
+   "status": "ok",
+   "tools": 34,
+   "latency_ms": 708
   }
  },
  "glama-connector/v91bh3bitg": {
@@ -30882,6 +31314,12 @@
    "discovered": true,
    "tools_listed": false,
    "call_verified": false
+  },
+  "tools_listed_count": 0,
+  "last_probe": {
+   "status": "auth_required",
+   "tools": 0,
+   "latency_ms": 122
   }
  },
  "glama-connector/ubyqewjk36": {
@@ -31243,6 +31681,12 @@
    "discovered": true,
    "tools_listed": false,
    "call_verified": false
+  },
+  "tools_listed_count": 0,
+  "last_probe": {
+   "status": "auth_required",
+   "tools": 0,
+   "latency_ms": 1177
   }
  },
  "glama-connector/vgq7agk6iq": {
@@ -31397,6 +31841,12 @@
    "discovered": true,
    "tools_listed": false,
    "call_verified": false
+  },
+  "tools_listed_count": 0,
+  "last_probe": {
+   "status": "auth_required",
+   "tools": 0,
+   "latency_ms": 107
   }
  },
  "glama-connector/cabzrtcljj": {
@@ -31762,6 +32212,12 @@
    "discovered": true,
    "tools_listed": false,
    "call_verified": false
+  },
+  "tools_listed_count": 0,
+  "last_probe": {
+   "status": "auth_required",
+   "tools": 0,
+   "latency_ms": 235
   }
  },
  "glama-connector/cg8toylzyv": {
@@ -32270,6 +32726,12 @@
    "discovered": true,
    "tools_listed": false,
    "call_verified": false
+  },
+  "tools_listed_count": 0,
+  "last_probe": {
+   "status": "auth_required",
+   "tools": 0,
+   "latency_ms": 197
   }
  },
  "glama-connector/ts309t7ilk": {
@@ -32512,8 +32974,14 @@
   "runtime_verified": false,
   "verification": {
    "discovered": true,
-   "tools_listed": false,
+   "tools_listed": true,
    "call_verified": false
+  },
+  "tools_listed_count": 7,
+  "last_probe": {
+   "status": "ok",
+   "tools": 7,
+   "latency_ms": 1862
   }
  },
  "glama-connector/h3yfw3iqvi": {
@@ -32813,8 +33281,14 @@
   "runtime_verified": false,
   "verification": {
    "discovered": true,
-   "tools_listed": false,
+   "tools_listed": true,
    "call_verified": false
+  },
+  "tools_listed_count": 6,
+  "last_probe": {
+   "status": "ok",
+   "tools": 6,
+   "latency_ms": 1405
   }
  },
  "glama-connector/f6wduvpw52": {
@@ -32911,6 +33385,12 @@
    "discovered": true,
    "tools_listed": false,
    "call_verified": false
+  },
+  "tools_listed_count": 0,
+  "last_probe": {
+   "status": "auth_required",
+   "tools": 0,
+   "latency_ms": 116
   }
  },
  "glama-connector/ziblbpgljz": {
@@ -33353,6 +33833,12 @@
    "discovered": true,
    "tools_listed": false,
    "call_verified": false
+  },
+  "tools_listed_count": 0,
+  "last_probe": {
+   "status": "auth_required",
+   "tools": 0,
+   "latency_ms": 140
   }
  },
  "glama-connector/e6xu9w1gdn": {
@@ -33859,6 +34345,12 @@
    "discovered": true,
    "tools_listed": false,
    "call_verified": false
+  },
+  "tools_listed_count": 0,
+  "last_probe": {
+   "status": "auth_required",
+   "tools": 0,
+   "latency_ms": 756
   }
  },
  "glama-connector/ncb7y46xhx": {
@@ -34063,8 +34555,14 @@
   "runtime_verified": false,
   "verification": {
    "discovered": true,
-   "tools_listed": false,
+   "tools_listed": true,
    "call_verified": false
+  },
+  "tools_listed_count": 41,
+  "last_probe": {
+   "status": "ok",
+   "tools": 41,
+   "latency_ms": 2427
   }
  },
  "glama-connector/khbb3mokag": {
@@ -34271,6 +34769,12 @@
    "discovered": true,
    "tools_listed": false,
    "call_verified": false
+  },
+  "tools_listed_count": 0,
+  "last_probe": {
+   "status": "auth_required",
+   "tools": 0,
+   "latency_ms": 298
   }
  },
  "glama-connector/yycntr8sl9": {
@@ -34419,8 +34923,14 @@
   "runtime_verified": false,
   "verification": {
    "discovered": true,
-   "tools_listed": false,
+   "tools_listed": true,
    "call_verified": false
+  },
+  "tools_listed_count": 23,
+  "last_probe": {
+   "status": "ok",
+   "tools": 23,
+   "latency_ms": 991
   }
  },
  "glama-connector/o2oc5esl3y": {
@@ -34466,8 +34976,14 @@
   "runtime_verified": false,
   "verification": {
    "discovered": true,
-   "tools_listed": false,
+   "tools_listed": true,
    "call_verified": false
+  },
+  "tools_listed_count": 19,
+  "last_probe": {
+   "status": "ok",
+   "tools": 19,
+   "latency_ms": 1821
   }
  },
  "glama-connector/o5un515v3d": {
@@ -34829,8 +35345,14 @@
   "runtime_verified": false,
   "verification": {
    "discovered": true,
-   "tools_listed": false,
+   "tools_listed": true,
    "call_verified": false
+  },
+  "tools_listed_count": 2,
+  "last_probe": {
+   "status": "ok",
+   "tools": 2,
+   "latency_ms": 1634
   }
  },
  "glama-connector/gxwsuh94i7": {
@@ -34930,6 +35452,12 @@
    "discovered": true,
    "tools_listed": false,
    "call_verified": false
+  },
+  "tools_listed_count": 0,
+  "last_probe": {
+   "status": "auth_required",
+   "tools": 0,
+   "latency_ms": 205
   }
  },
  "glama-connector/dqafuwppm7": {
@@ -34974,8 +35502,14 @@
   "runtime_verified": false,
   "verification": {
    "discovered": true,
-   "tools_listed": false,
+   "tools_listed": true,
    "call_verified": false
+  },
+  "tools_listed_count": 28,
+  "last_probe": {
+   "status": "ok",
+   "tools": 28,
+   "latency_ms": 4314
   }
  },
  "glama-connector/rwa7bcp2x5": {
@@ -35022,6 +35556,12 @@
    "discovered": true,
    "tools_listed": false,
    "call_verified": false
+  },
+  "tools_listed_count": 0,
+  "last_probe": {
+   "status": "auth_required",
+   "tools": 0,
+   "latency_ms": 248
   }
  },
  "glama-connector/p99v90n7hk": {
@@ -35268,8 +35808,14 @@
   "runtime_verified": false,
   "verification": {
    "discovered": true,
-   "tools_listed": false,
+   "tools_listed": true,
    "call_verified": false
+  },
+  "tools_listed_count": 14,
+  "last_probe": {
+   "status": "ok",
+   "tools": 14,
+   "latency_ms": 1844
   }
  },
  "glama-connector/w0qdu5ic7k": {
@@ -35317,8 +35863,14 @@
   "runtime_verified": false,
   "verification": {
    "discovered": true,
-   "tools_listed": false,
+   "tools_listed": true,
    "call_verified": false
+  },
+  "tools_listed_count": 4,
+  "last_probe": {
+   "status": "ok",
+   "tools": 4,
+   "latency_ms": 1053
   }
  },
  "glama-connector/sbc4ha3lzh": {
@@ -35747,8 +36299,14 @@
   "runtime_verified": false,
   "verification": {
    "discovered": true,
-   "tools_listed": false,
+   "tools_listed": true,
    "call_verified": false
+  },
+  "tools_listed_count": 5,
+  "last_probe": {
+   "status": "ok",
+   "tools": 5,
+   "latency_ms": 618
   }
  },
  "glama-connector/dxnokfheo6": {
@@ -35849,6 +36407,12 @@
    "discovered": true,
    "tools_listed": false,
    "call_verified": false
+  },
+  "tools_listed_count": 0,
+  "last_probe": {
+   "status": "auth_required",
+   "tools": 0,
+   "latency_ms": 849
   }
  },
  "glama-connector/b2zbx1nvcp": {
@@ -36042,6 +36606,12 @@
    "discovered": true,
    "tools_listed": false,
    "call_verified": false
+  },
+  "tools_listed_count": 0,
+  "last_probe": {
+   "status": "auth_required",
+   "tools": 0,
+   "latency_ms": 194
   }
  },
  "glama-connector/kb0jcixkpk": {
@@ -36872,8 +37442,14 @@
   "runtime_verified": false,
   "verification": {
    "discovered": true,
-   "tools_listed": false,
+   "tools_listed": true,
    "call_verified": false
+  },
+  "tools_listed_count": 18,
+  "last_probe": {
+   "status": "ok",
+   "tools": 18,
+   "latency_ms": 1104
   }
  },
  "glama-connector/bs1j1j76vc": {
@@ -37065,8 +37641,14 @@
   "runtime_verified": false,
   "verification": {
    "discovered": true,
-   "tools_listed": false,
+   "tools_listed": true,
    "call_verified": false
+  },
+  "tools_listed_count": 4,
+  "last_probe": {
+   "status": "ok",
+   "tools": 4,
+   "latency_ms": 2324
   }
  },
  "glama-connector/uv9xugovvf": {
@@ -37113,6 +37695,12 @@
    "discovered": true,
    "tools_listed": false,
    "call_verified": false
+  },
+  "tools_listed_count": 0,
+  "last_probe": {
+   "status": "auth_required",
+   "tools": 0,
+   "latency_ms": 136
   }
  },
  "glama-connector/y06vecqudi": {
@@ -37214,8 +37802,14 @@
   "runtime_verified": false,
   "verification": {
    "discovered": true,
-   "tools_listed": false,
+   "tools_listed": true,
    "call_verified": false
+  },
+  "tools_listed_count": 9,
+  "last_probe": {
+   "status": "ok",
+   "tools": 9,
+   "latency_ms": 1181
   }
  },
  "glama-connector/j3tffclid9": {
@@ -37311,8 +37905,14 @@
   "runtime_verified": false,
   "verification": {
    "discovered": true,
-   "tools_listed": false,
+   "tools_listed": true,
    "call_verified": false
+  },
+  "tools_listed_count": 6,
+  "last_probe": {
+   "status": "ok",
+   "tools": 6,
+   "latency_ms": 1688
   }
  },
  "glama-connector/jp3cad5gss": {
@@ -37413,8 +38013,14 @@
   "runtime_verified": false,
   "verification": {
    "discovered": true,
-   "tools_listed": false,
+   "tools_listed": true,
    "call_verified": false
+  },
+  "tools_listed_count": 45,
+  "last_probe": {
+   "status": "ok",
+   "tools": 45,
+   "latency_ms": 24901
   }
  },
  "glama-connector/oq77odfzsh": {
@@ -37661,6 +38267,12 @@
    "discovered": true,
    "tools_listed": false,
    "call_verified": false
+  },
+  "tools_listed_count": 0,
+  "last_probe": {
+   "status": "auth_required",
+   "tools": 0,
+   "latency_ms": 6836
   }
  },
  "glama-connector/m3qk45zwxw": {
@@ -37708,8 +38320,14 @@
   "runtime_verified": false,
   "verification": {
    "discovered": true,
-   "tools_listed": false,
+   "tools_listed": true,
    "call_verified": false
+  },
+  "tools_listed_count": 26,
+  "last_probe": {
+   "status": "ok",
+   "tools": 26,
+   "latency_ms": 1765
   }
  },
  "glama-connector/wv098o84nh": {
@@ -37756,8 +38374,14 @@
   "runtime_verified": false,
   "verification": {
    "discovered": true,
-   "tools_listed": false,
+   "tools_listed": true,
    "call_verified": false
+  },
+  "tools_listed_count": 6,
+  "last_probe": {
+   "status": "ok",
+   "tools": 6,
+   "latency_ms": 2352
   }
  },
  "glama-connector/x4ui4nwfq0": {
@@ -37805,6 +38429,12 @@
    "discovered": true,
    "tools_listed": false,
    "call_verified": false
+  },
+  "tools_listed_count": 0,
+  "last_probe": {
+   "status": "auth_required",
+   "tools": 0,
+   "latency_ms": 5261
   }
  },
  "glama-connector/waywlmf61k": {
@@ -38166,8 +38796,14 @@
   "runtime_verified": false,
   "verification": {
    "discovered": true,
-   "tools_listed": false,
+   "tools_listed": true,
    "call_verified": false
+  },
+  "tools_listed_count": 10,
+  "last_probe": {
+   "status": "ok",
+   "tools": 10,
+   "latency_ms": 990
   }
  },
  "glama-connector/ytc8359tki": {
@@ -38370,6 +39006,12 @@
    "discovered": true,
    "tools_listed": false,
    "call_verified": false
+  },
+  "tools_listed_count": 0,
+  "last_probe": {
+   "status": "auth_required",
+   "tools": 0,
+   "latency_ms": 138
   }
  },
  "glama-connector/a09mmcczpl": {
@@ -38465,8 +39107,14 @@
   "runtime_verified": false,
   "verification": {
    "discovered": true,
-   "tools_listed": false,
+   "tools_listed": true,
    "call_verified": false
+  },
+  "tools_listed_count": 44,
+  "last_probe": {
+   "status": "ok",
+   "tools": 44,
+   "latency_ms": 1352
   }
  },
  "glama-connector/ybdtgpyl9c": {
@@ -38871,8 +39519,14 @@
   "runtime_verified": false,
   "verification": {
    "discovered": true,
-   "tools_listed": false,
+   "tools_listed": true,
    "call_verified": false
+  },
+  "tools_listed_count": 16,
+  "last_probe": {
+   "status": "ok",
+   "tools": 16,
+   "latency_ms": 2176
   }
  },
  "glama-connector/seabcquz9s": {
@@ -39270,8 +39924,14 @@
   "runtime_verified": false,
   "verification": {
    "discovered": true,
-   "tools_listed": false,
+   "tools_listed": true,
    "call_verified": false
+  },
+  "tools_listed_count": 3,
+  "last_probe": {
+   "status": "ok",
+   "tools": 3,
+   "latency_ms": 1884
   }
  },
  "glama-connector/ejjkkfh6po": {
@@ -39318,8 +39978,14 @@
   "runtime_verified": false,
   "verification": {
    "discovered": true,
-   "tools_listed": false,
+   "tools_listed": true,
    "call_verified": false
+  },
+  "tools_listed_count": 20,
+  "last_probe": {
+   "status": "ok",
+   "tools": 20,
+   "latency_ms": 3856
   }
  },
  "glama-connector/f1zhlzgm6j": {
@@ -39418,6 +40084,12 @@
    "discovered": true,
    "tools_listed": false,
    "call_verified": false
+  },
+  "tools_listed_count": 0,
+  "last_probe": {
+   "status": "auth_required",
+   "tools": 0,
+   "latency_ms": 145
   }
  },
  "glama-connector/xngs5yo8tq": {
@@ -39560,6 +40232,12 @@
    "discovered": true,
    "tools_listed": false,
    "call_verified": false
+  },
+  "tools_listed_count": 0,
+  "last_probe": {
+   "status": "auth_required",
+   "tools": 0,
+   "latency_ms": 115
   }
  },
  "glama-connector/eyay1pinwj": {
@@ -39607,8 +40285,14 @@
   "runtime_verified": false,
   "verification": {
    "discovered": true,
-   "tools_listed": false,
+   "tools_listed": true,
    "call_verified": false
+  },
+  "tools_listed_count": 1,
+  "last_probe": {
+   "status": "ok",
+   "tools": 1,
+   "latency_ms": 817
   }
  },
  "glama-connector/n8g5t484tg": {
@@ -39657,6 +40341,12 @@
    "discovered": true,
    "tools_listed": false,
    "call_verified": false
+  },
+  "tools_listed_count": 0,
+  "last_probe": {
+   "status": "auth_required",
+   "tools": 0,
+   "latency_ms": 192
   }
  },
  "glama-connector/heq56sikjj": {
@@ -39703,6 +40393,12 @@
    "discovered": true,
    "tools_listed": false,
    "call_verified": false
+  },
+  "tools_listed_count": 0,
+  "last_probe": {
+   "status": "auth_required",
+   "tools": 0,
+   "latency_ms": 300
   }
  },
  "glama-connector/ng8m7sac3q": {
@@ -39750,6 +40446,12 @@
    "discovered": true,
    "tools_listed": false,
    "call_verified": false
+  },
+  "tools_listed_count": 0,
+  "last_probe": {
+   "status": "auth_required",
+   "tools": 0,
+   "latency_ms": 122
   }
  },
  "glama-connector/adwq52tomk": {
@@ -39797,8 +40499,14 @@
   "runtime_verified": false,
   "verification": {
    "discovered": true,
-   "tools_listed": false,
+   "tools_listed": true,
    "call_verified": false
+  },
+  "tools_listed_count": 8,
+  "last_probe": {
+   "status": "ok",
+   "tools": 8,
+   "latency_ms": 602
   }
  },
  "glama-connector/odhw5cocom": {
@@ -39848,6 +40556,12 @@
    "discovered": true,
    "tools_listed": false,
    "call_verified": false
+  },
+  "tools_listed_count": 0,
+  "last_probe": {
+   "status": "auth_required",
+   "tools": 0,
+   "latency_ms": 104
   }
  },
  "glama-connector/a63ilmw7ue": {
@@ -39894,8 +40608,14 @@
   "runtime_verified": false,
   "verification": {
    "discovered": true,
-   "tools_listed": false,
+   "tools_listed": true,
    "call_verified": false
+  },
+  "tools_listed_count": 12,
+  "last_probe": {
+   "status": "ok",
+   "tools": 12,
+   "latency_ms": 961
   }
  },
  "glama-connector/xffsggool6": {
@@ -39993,8 +40713,14 @@
   "runtime_verified": false,
   "verification": {
    "discovered": true,
-   "tools_listed": false,
+   "tools_listed": true,
    "call_verified": false
+  },
+  "tools_listed_count": 3,
+  "last_probe": {
+   "status": "ok",
+   "tools": 3,
+   "latency_ms": 1792
   }
  },
  "glama-connector/qzttd7pe0s": {
@@ -40042,6 +40768,12 @@
    "discovered": true,
    "tools_listed": false,
    "call_verified": false
+  },
+  "tools_listed_count": 0,
+  "last_probe": {
+   "status": "auth_required",
+   "tools": 0,
+   "latency_ms": 96
   }
  },
  "glama-connector/fgf3j7xdl9": {
@@ -40087,8 +40819,14 @@
   "runtime_verified": false,
   "verification": {
    "discovered": true,
-   "tools_listed": false,
+   "tools_listed": true,
    "call_verified": false
+  },
+  "tools_listed_count": 7,
+  "last_probe": {
+   "status": "ok",
+   "tools": 7,
+   "latency_ms": 778
   }
  },
  "glama-connector/mk0ummc22j": {
@@ -40231,8 +40969,14 @@
   "runtime_verified": false,
   "verification": {
    "discovered": true,
-   "tools_listed": false,
+   "tools_listed": true,
    "call_verified": false
+  },
+  "tools_listed_count": 2,
+  "last_probe": {
+   "status": "ok",
+   "tools": 2,
+   "latency_ms": 1738
   }
  },
  "glama-connector/jvb6g2ypju": {
@@ -40280,6 +41024,12 @@
    "discovered": true,
    "tools_listed": false,
    "call_verified": false
+  },
+  "tools_listed_count": 0,
+  "last_probe": {
+   "status": "auth_required",
+   "tools": 0,
+   "latency_ms": 140
   }
  },
  "glama-connector/ns48sj4u94": {
@@ -40326,6 +41076,12 @@
    "discovered": true,
    "tools_listed": false,
    "call_verified": false
+  },
+  "tools_listed_count": 0,
+  "last_probe": {
+   "status": "auth_required",
+   "tools": 0,
+   "latency_ms": 213
   }
  },
  "glama-connector/xn0hqr3bto": {
@@ -40372,6 +41128,12 @@
    "discovered": true,
    "tools_listed": false,
    "call_verified": false
+  },
+  "tools_listed_count": 0,
+  "last_probe": {
+   "status": "auth_required",
+   "tools": 0,
+   "latency_ms": 110
   }
  },
  "glama-connector/ibbw96nk9b": {
@@ -40418,8 +41180,14 @@
   "runtime_verified": false,
   "verification": {
    "discovered": true,
-   "tools_listed": false,
+   "tools_listed": true,
    "call_verified": false
+  },
+  "tools_listed_count": 47,
+  "last_probe": {
+   "status": "ok",
+   "tools": 47,
+   "latency_ms": 8594
   }
  },
  "glama-connector/zei0rokuk0": {
@@ -40564,6 +41332,12 @@
    "discovered": true,
    "tools_listed": false,
    "call_verified": false
+  },
+  "tools_listed_count": 0,
+  "last_probe": {
+   "status": "auth_required",
+   "tools": 0,
+   "latency_ms": 463
   }
  },
  "glama-connector/gg2c68hmqo": {
@@ -40611,6 +41385,12 @@
    "discovered": true,
    "tools_listed": false,
    "call_verified": false
+  },
+  "tools_listed_count": 0,
+  "last_probe": {
+   "status": "auth_required",
+   "tools": 0,
+   "latency_ms": 171
   }
  },
  "glama-connector/ekzhpetk76": {
@@ -40658,8 +41438,14 @@
   "runtime_verified": false,
   "verification": {
    "discovered": true,
-   "tools_listed": false,
+   "tools_listed": true,
    "call_verified": false
+  },
+  "tools_listed_count": 34,
+  "last_probe": {
+   "status": "ok",
+   "tools": 34,
+   "latency_ms": 1354
   }
  },
  "glama-connector/y8n4b0b5rr": {
@@ -41113,8 +41899,14 @@
   "runtime_verified": false,
   "verification": {
    "discovered": true,
-   "tools_listed": false,
+   "tools_listed": true,
    "call_verified": false
+  },
+  "tools_listed_count": 1,
+  "last_probe": {
+   "status": "ok",
+   "tools": 1,
+   "latency_ms": 1763
   }
  },
  "glama-connector/yraxlgxdq6": {
@@ -41265,6 +42057,12 @@
    "discovered": true,
    "tools_listed": false,
    "call_verified": false
+  },
+  "tools_listed_count": 0,
+  "last_probe": {
+   "status": "auth_required",
+   "tools": 0,
+   "latency_ms": 201
   }
  },
  "glama-connector/ks8iofri9l": {
@@ -41361,6 +42159,12 @@
    "discovered": true,
    "tools_listed": false,
    "call_verified": false
+  },
+  "tools_listed_count": 0,
+  "last_probe": {
+   "status": "auth_required",
+   "tools": 0,
+   "latency_ms": 210
   }
  },
  "glama-connector/cwjr90h5na": {
@@ -41514,8 +42318,14 @@
   "runtime_verified": false,
   "verification": {
    "discovered": true,
-   "tools_listed": false,
+   "tools_listed": true,
    "call_verified": false
+  },
+  "tools_listed_count": 13,
+  "last_probe": {
+   "status": "ok",
+   "tools": 13,
+   "latency_ms": 1707
   }
  },
  "glama-connector/z95bk4zqr8": {
@@ -42415,6 +43225,12 @@
    "discovered": true,
    "tools_listed": false,
    "call_verified": false
+  },
+  "tools_listed_count": 0,
+  "last_probe": {
+   "status": "unreachable",
+   "tools": 0,
+   "latency_ms": 30129
   }
  },
  "glama-connector/r3vq07wii6": {
@@ -42461,6 +43277,12 @@
    "discovered": true,
    "tools_listed": false,
    "call_verified": false
+  },
+  "tools_listed_count": 0,
+  "last_probe": {
+   "status": "protocol_error",
+   "tools": 0,
+   "latency_ms": 428
   }
  },
  "glama-connector/aswvk7hv94": {
@@ -42508,6 +43330,12 @@
    "discovered": true,
    "tools_listed": false,
    "call_verified": false
+  },
+  "tools_listed_count": 0,
+  "last_probe": {
+   "status": "auth_required",
+   "tools": 0,
+   "latency_ms": 420
   }
  },
  "glama-connector/yr2iwsz8tj": {
@@ -42553,8 +43381,14 @@
   "runtime_verified": false,
   "verification": {
    "discovered": true,
-   "tools_listed": false,
+   "tools_listed": true,
    "call_verified": false
+  },
+  "tools_listed_count": 3,
+  "last_probe": {
+   "status": "ok",
+   "tools": 3,
+   "latency_ms": 1270
   }
  },
  "glama-connector/zytki5kmj7": {
@@ -42598,8 +43432,14 @@
   "runtime_verified": false,
   "verification": {
    "discovered": true,
-   "tools_listed": false,
+   "tools_listed": true,
    "call_verified": false
+  },
+  "tools_listed_count": 9,
+  "last_probe": {
+   "status": "ok",
+   "tools": 9,
+   "latency_ms": 1243
   }
  },
  "glama-connector/v39o4v2boh": {
@@ -42644,8 +43484,14 @@
   "runtime_verified": false,
   "verification": {
    "discovered": true,
-   "tools_listed": false,
+   "tools_listed": true,
    "call_verified": false
+  },
+  "tools_listed_count": 6,
+  "last_probe": {
+   "status": "ok",
+   "tools": 6,
+   "latency_ms": 2242
   }
  },
  "glama-connector/kqnbfcg4yw": {
@@ -42691,8 +43537,14 @@
   "runtime_verified": false,
   "verification": {
    "discovered": true,
-   "tools_listed": false,
+   "tools_listed": true,
    "call_verified": false
+  },
+  "tools_listed_count": 8,
+  "last_probe": {
+   "status": "ok",
+   "tools": 8,
+   "latency_ms": 11522
   }
  },
  "glama-connector/sur1ru1yq0": {
@@ -42741,6 +43593,12 @@
    "discovered": true,
    "tools_listed": false,
    "call_verified": false
+  },
+  "tools_listed_count": 0,
+  "last_probe": {
+   "status": "unreachable",
+   "tools": 0,
+   "latency_ms": 31888
   }
  },
  "glama-connector/hifzmzgibw": {
@@ -42787,8 +43645,14 @@
   "runtime_verified": false,
   "verification": {
    "discovered": true,
-   "tools_listed": false,
+   "tools_listed": true,
    "call_verified": false
+  },
+  "tools_listed_count": 46,
+  "last_probe": {
+   "status": "ok",
+   "tools": 46,
+   "latency_ms": 4534
   }
  },
  "glama-connector/h6htcqst8u": {
@@ -42835,8 +43699,14 @@
   "runtime_verified": false,
   "verification": {
    "discovered": true,
-   "tools_listed": false,
+   "tools_listed": true,
    "call_verified": false
+  },
+  "tools_listed_count": 33,
+  "last_probe": {
+   "status": "ok",
+   "tools": 33,
+   "latency_ms": 6787
   }
  },
  "glama-connector/l731cqdamj": {
@@ -42883,8 +43753,14 @@
   "runtime_verified": false,
   "verification": {
    "discovered": true,
-   "tools_listed": false,
+   "tools_listed": true,
    "call_verified": false
+  },
+  "tools_listed_count": 15,
+  "last_probe": {
+   "status": "ok",
+   "tools": 15,
+   "latency_ms": 8295
   }
  },
  "glama-connector/l84wqe3jg5": {
@@ -42976,8 +43852,14 @@
   "runtime_verified": false,
   "verification": {
    "discovered": true,
-   "tools_listed": false,
+   "tools_listed": true,
    "call_verified": false
+  },
+  "tools_listed_count": 12,
+  "last_probe": {
+   "status": "ok",
+   "tools": 12,
+   "latency_ms": 14177
   }
  },
  "glama-connector/hksoyikaz0": {
@@ -43701,8 +44583,14 @@
   "runtime_verified": false,
   "verification": {
    "discovered": true,
-   "tools_listed": false,
+   "tools_listed": true,
    "call_verified": false
+  },
+  "tools_listed_count": 21,
+  "last_probe": {
+   "status": "ok",
+   "tools": 21,
+   "latency_ms": 855
   }
  },
  "glama-connector/lil7pwjosp": {
@@ -43749,8 +44637,14 @@
   "runtime_verified": false,
   "verification": {
    "discovered": true,
-   "tools_listed": false,
+   "tools_listed": true,
    "call_verified": false
+  },
+  "tools_listed_count": 3,
+  "last_probe": {
+   "status": "ok",
+   "tools": 3,
+   "latency_ms": 1165
   }
  },
  "glama-connector/g02c0omdit": {
@@ -43959,8 +44853,14 @@
   "runtime_verified": false,
   "verification": {
    "discovered": true,
-   "tools_listed": false,
+   "tools_listed": true,
    "call_verified": false
+  },
+  "tools_listed_count": 142,
+  "last_probe": {
+   "status": "ok",
+   "tools": 142,
+   "latency_ms": 4729
   }
  },
  "glama-connector/qvrfd752lt": {
@@ -44108,8 +45008,14 @@
   "runtime_verified": false,
   "verification": {
    "discovered": true,
-   "tools_listed": false,
+   "tools_listed": true,
    "call_verified": false
+  },
+  "tools_listed_count": 2,
+  "last_probe": {
+   "status": "ok",
+   "tools": 2,
+   "latency_ms": 1176
   }
  },
  "glama-connector/v05orj9xkp": {
@@ -44448,8 +45354,14 @@
   "runtime_verified": false,
   "verification": {
    "discovered": true,
-   "tools_listed": false,
+   "tools_listed": true,
    "call_verified": false
+  },
+  "tools_listed_count": 4,
+  "last_probe": {
+   "status": "ok",
+   "tools": 4,
+   "latency_ms": 1170
   }
  },
  "glama-connector/om4hh9kk9f": {
@@ -44853,8 +45765,14 @@
   "runtime_verified": false,
   "verification": {
    "discovered": true,
-   "tools_listed": false,
+   "tools_listed": true,
    "call_verified": false
+  },
+  "tools_listed_count": 51,
+  "last_probe": {
+   "status": "ok",
+   "tools": 51,
+   "latency_ms": 1449
   }
  },
  "glama-connector/zvrencr3z2": {
@@ -44996,8 +45914,14 @@
   "runtime_verified": false,
   "verification": {
    "discovered": true,
-   "tools_listed": false,
+   "tools_listed": true,
    "call_verified": false
+  },
+  "tools_listed_count": 11,
+  "last_probe": {
+   "status": "ok",
+   "tools": 11,
+   "latency_ms": 1488
   }
  },
  "glama-connector/o2e35z55qt": {
@@ -45093,8 +46017,14 @@
   "runtime_verified": false,
   "verification": {
    "discovered": true,
-   "tools_listed": false,
+   "tools_listed": true,
    "call_verified": false
+  },
+  "tools_listed_count": 15,
+  "last_probe": {
+   "status": "ok",
+   "tools": 15,
+   "latency_ms": 21665
   }
  },
  "glama-connector/b5ktplniva": {
@@ -45186,8 +46116,14 @@
   "runtime_verified": false,
   "verification": {
    "discovered": true,
-   "tools_listed": false,
+   "tools_listed": true,
    "call_verified": false
+  },
+  "tools_listed_count": 4,
+  "last_probe": {
+   "status": "ok",
+   "tools": 4,
+   "latency_ms": 1617
   }
  },
  "glama-connector/pd44holb3n": {
@@ -45236,8 +46172,14 @@
   "runtime_verified": false,
   "verification": {
    "discovered": true,
-   "tools_listed": false,
+   "tools_listed": true,
    "call_verified": false
+  },
+  "tools_listed_count": 9,
+  "last_probe": {
+   "status": "ok",
+   "tools": 9,
+   "latency_ms": 706
   }
  },
  "glama-connector/omypycc4oj": {
@@ -45283,8 +46225,14 @@
   "runtime_verified": false,
   "verification": {
    "discovered": true,
-   "tools_listed": false,
+   "tools_listed": true,
    "call_verified": false
+  },
+  "tools_listed_count": 14,
+  "last_probe": {
+   "status": "ok",
+   "tools": 14,
+   "latency_ms": 766
   }
  },
  "glama-connector/jawd22bgx8": {
@@ -45425,6 +46373,12 @@
    "discovered": true,
    "tools_listed": false,
    "call_verified": false
+  },
+  "tools_listed_count": 0,
+  "last_probe": {
+   "status": "unreachable",
+   "tools": 0,
+   "latency_ms": 152
   }
  },
  "glama-connector/br0vwtkfu8": {
@@ -45473,8 +46427,14 @@
   "runtime_verified": false,
   "verification": {
    "discovered": true,
-   "tools_listed": false,
+   "tools_listed": true,
    "call_verified": false
+  },
+  "tools_listed_count": 24,
+  "last_probe": {
+   "status": "ok",
+   "tools": 24,
+   "latency_ms": 820
   }
  },
  "glama-connector/qr2021k15s": {
@@ -45521,6 +46481,12 @@
    "discovered": true,
    "tools_listed": false,
    "call_verified": false
+  },
+  "tools_listed_count": 0,
+  "last_probe": {
+   "status": "auth_required",
+   "tools": 0,
+   "latency_ms": 472
   }
  },
  "glama-connector/bw8r1wd7hv": {
@@ -45567,6 +46533,12 @@
    "discovered": true,
    "tools_listed": false,
    "call_verified": false
+  },
+  "tools_listed_count": 0,
+  "last_probe": {
+   "status": "auth_required",
+   "tools": 0,
+   "latency_ms": 2531
   }
  },
  "glama-connector/m7ybvpyamj": {
@@ -45616,6 +46588,12 @@
    "discovered": true,
    "tools_listed": false,
    "call_verified": false
+  },
+  "tools_listed_count": 0,
+  "last_probe": {
+   "status": "protocol_error",
+   "tools": 0,
+   "latency_ms": 901
   }
  },
  "glama-connector/c7pzpk1071": {
@@ -45665,6 +46643,12 @@
    "discovered": true,
    "tools_listed": false,
    "call_verified": false
+  },
+  "tools_listed_count": 0,
+  "last_probe": {
+   "status": "auth_required",
+   "tools": 0,
+   "latency_ms": 145
   }
  },
  "glama-connector/mq3elpeigl": {
@@ -45710,8 +46694,14 @@
   "runtime_verified": false,
   "verification": {
    "discovered": true,
-   "tools_listed": false,
+   "tools_listed": true,
    "call_verified": false
+  },
+  "tools_listed_count": 50,
+  "last_probe": {
+   "status": "ok",
+   "tools": 50,
+   "latency_ms": 2093
   }
  },
  "glama-connector/x7iphruxqn": {
@@ -45758,6 +46748,12 @@
    "discovered": true,
    "tools_listed": false,
    "call_verified": false
+  },
+  "tools_listed_count": 0,
+  "last_probe": {
+   "status": "auth_required",
+   "tools": 0,
+   "latency_ms": 127
   }
  },
  "glama-connector/kgb2pqc4ha": {
@@ -45804,6 +46800,12 @@
    "discovered": true,
    "tools_listed": false,
    "call_verified": false
+  },
+  "tools_listed_count": 0,
+  "last_probe": {
+   "status": "auth_required",
+   "tools": 0,
+   "latency_ms": 164
   }
  },
  "glama-connector/osgwq19d7e": {
@@ -45849,8 +46851,14 @@
   "runtime_verified": false,
   "verification": {
    "discovered": true,
-   "tools_listed": false,
+   "tools_listed": true,
    "call_verified": false
+  },
+  "tools_listed_count": 23,
+  "last_probe": {
+   "status": "ok",
+   "tools": 23,
+   "latency_ms": 1719
   }
  },
  "glama-connector/hulszfnx43": {
@@ -45899,8 +46907,14 @@
   "runtime_verified": false,
   "verification": {
    "discovered": true,
-   "tools_listed": false,
+   "tools_listed": true,
    "call_verified": false
+  },
+  "tools_listed_count": 73,
+  "last_probe": {
+   "status": "ok",
+   "tools": 73,
+   "latency_ms": 2452
   }
  },
  "glama-connector/ae7m5kffy3": {
@@ -45997,8 +47011,14 @@
   "runtime_verified": false,
   "verification": {
    "discovered": true,
-   "tools_listed": false,
+   "tools_listed": true,
    "call_verified": false
+  },
+  "tools_listed_count": 33,
+  "last_probe": {
+   "status": "ok",
+   "tools": 33,
+   "latency_ms": 1224
   }
  },
  "glama-connector/uux5bz8itt": {
@@ -46046,8 +47066,14 @@
   "runtime_verified": false,
   "verification": {
    "discovered": true,
-   "tools_listed": false,
+   "tools_listed": true,
    "call_verified": false
+  },
+  "tools_listed_count": 4,
+  "last_probe": {
+   "status": "ok",
+   "tools": 4,
+   "latency_ms": 1239
   }
  },
  "glama-connector/vrvzwil9p5": {
@@ -46095,6 +47121,12 @@
    "discovered": true,
    "tools_listed": false,
    "call_verified": false
+  },
+  "tools_listed_count": 0,
+  "last_probe": {
+   "status": "auth_required",
+   "tools": 0,
+   "latency_ms": 172
   }
  },
  "glama-connector/z8fp6x6kpa": {
@@ -46139,8 +47171,14 @@
   "runtime_verified": false,
   "verification": {
    "discovered": true,
-   "tools_listed": false,
+   "tools_listed": true,
    "call_verified": false
+  },
+  "tools_listed_count": 6,
+  "last_probe": {
+   "status": "ok",
+   "tools": 6,
+   "latency_ms": 2281
   }
  },
  "glama-connector/s7evyyrl8w": {
@@ -46287,8 +47325,14 @@
   "runtime_verified": false,
   "verification": {
    "discovered": true,
-   "tools_listed": false,
+   "tools_listed": true,
    "call_verified": false
+  },
+  "tools_listed_count": 4,
+  "last_probe": {
+   "status": "ok",
+   "tools": 4,
+   "latency_ms": 1826
   }
  },
  "glama-connector/ypkmiw5wkq": {
@@ -46389,8 +47433,14 @@
   "runtime_verified": false,
   "verification": {
    "discovered": true,
-   "tools_listed": false,
+   "tools_listed": true,
    "call_verified": false
+  },
+  "tools_listed_count": 75,
+  "last_probe": {
+   "status": "ok",
+   "tools": 75,
+   "latency_ms": 1706
   }
  },
  "glama-connector/iktuw6v1vj": {
@@ -46584,8 +47634,14 @@
   "runtime_verified": false,
   "verification": {
    "discovered": true,
-   "tools_listed": false,
+   "tools_listed": true,
    "call_verified": false
+  },
+  "tools_listed_count": 12,
+  "last_probe": {
+   "status": "ok",
+   "tools": 12,
+   "latency_ms": 2042
   }
  },
  "glama-connector/phuj7xiah5": {
@@ -46787,8 +47843,14 @@
   "runtime_verified": false,
   "verification": {
    "discovered": true,
-   "tools_listed": false,
+   "tools_listed": true,
    "call_verified": false
+  },
+  "tools_listed_count": 7,
+  "last_probe": {
+   "status": "ok",
+   "tools": 7,
+   "latency_ms": 969
   }
  },
  "glama-connector/yms2x5w34c": {
@@ -48043,8 +49105,14 @@
   "runtime_verified": false,
   "verification": {
    "discovered": true,
-   "tools_listed": false,
+   "tools_listed": true,
    "call_verified": false
+  },
+  "tools_listed_count": 12,
+  "last_probe": {
+   "status": "ok",
+   "tools": 12,
+   "latency_ms": 794
   }
  },
  "glama-connector/u4sdhi3imd": {
@@ -48092,6 +49160,12 @@
    "discovered": true,
    "tools_listed": false,
    "call_verified": false
+  },
+  "tools_listed_count": 0,
+  "last_probe": {
+   "status": "auth_required",
+   "tools": 0,
+   "latency_ms": 153
   }
  },
  "glama-connector/n9p8696a5k": {
@@ -48137,8 +49211,14 @@
   "runtime_verified": false,
   "verification": {
    "discovered": true,
-   "tools_listed": false,
+   "tools_listed": true,
    "call_verified": false
+  },
+  "tools_listed_count": 2,
+  "last_probe": {
+   "status": "ok",
+   "tools": 2,
+   "latency_ms": 1837
   }
  },
  "glama-connector/y7lpccb2xu": {
@@ -48185,6 +49265,12 @@
    "discovered": true,
    "tools_listed": false,
    "call_verified": false
+  },
+  "tools_listed_count": 0,
+  "last_probe": {
+   "status": "auth_required",
+   "tools": 0,
+   "latency_ms": 122
   }
  },
  "glama-connector/w3vp4s4ola": {
@@ -48233,6 +49319,12 @@
    "discovered": true,
    "tools_listed": false,
    "call_verified": false
+  },
+  "tools_listed_count": 0,
+  "last_probe": {
+   "status": "auth_required",
+   "tools": 0,
+   "latency_ms": 232
   }
  },
  "glama-connector/cqg9607iry": {
@@ -48331,6 +49423,12 @@
    "discovered": true,
    "tools_listed": false,
    "call_verified": false
+  },
+  "tools_listed_count": 0,
+  "last_probe": {
+   "status": "protocol_error",
+   "tools": 0,
+   "latency_ms": 877
   }
  },
  "glama-connector/i3jok23do3": {
@@ -48377,6 +49475,12 @@
    "discovered": true,
    "tools_listed": false,
    "call_verified": false
+  },
+  "tools_listed_count": 0,
+  "last_probe": {
+   "status": "auth_required",
+   "tools": 0,
+   "latency_ms": 103
   }
  },
  "glama-connector/fk1d1dkcfl": {
@@ -48425,6 +49529,12 @@
    "discovered": true,
    "tools_listed": false,
    "call_verified": false
+  },
+  "tools_listed_count": 0,
+  "last_probe": {
+   "status": "auth_required",
+   "tools": 0,
+   "latency_ms": 282
   }
  },
  "glama-connector/mce46we2ob": {
@@ -48474,6 +49584,12 @@
    "discovered": true,
    "tools_listed": false,
    "call_verified": false
+  },
+  "tools_listed_count": 0,
+  "last_probe": {
+   "status": "auth_required",
+   "tools": 0,
+   "latency_ms": 275
   }
  },
  "glama-connector/g7fwh3e1f8": {
@@ -48521,8 +49637,14 @@
   "runtime_verified": false,
   "verification": {
    "discovered": true,
-   "tools_listed": false,
+   "tools_listed": true,
    "call_verified": false
+  },
+  "tools_listed_count": 18,
+  "last_probe": {
+   "status": "ok",
+   "tools": 18,
+   "latency_ms": 1245
   }
  },
  "glama-connector/lyq21e8tc8": {
@@ -48568,8 +49690,14 @@
   "runtime_verified": false,
   "verification": {
    "discovered": true,
-   "tools_listed": false,
+   "tools_listed": true,
    "call_verified": false
+  },
+  "tools_listed_count": 60,
+  "last_probe": {
+   "status": "ok",
+   "tools": 60,
+   "latency_ms": 2117
   }
  },
  "glama-connector/mv6kg7nrzr": {
@@ -48619,6 +49747,12 @@
    "discovered": true,
    "tools_listed": false,
    "call_verified": false
+  },
+  "tools_listed_count": 0,
+  "last_probe": {
+   "status": "auth_required",
+   "tools": 0,
+   "latency_ms": 341
   }
  },
  "glama-connector/fn8xcartwe": {
@@ -48666,6 +49800,12 @@
    "discovered": true,
    "tools_listed": false,
    "call_verified": false
+  },
+  "tools_listed_count": 0,
+  "last_probe": {
+   "status": "auth_required",
+   "tools": 0,
+   "latency_ms": 467
   }
  },
  "glama-connector/fxoxgyuot7": {
@@ -48713,8 +49853,14 @@
   "runtime_verified": false,
   "verification": {
    "discovered": true,
-   "tools_listed": false,
+   "tools_listed": true,
    "call_verified": false
+  },
+  "tools_listed_count": 7,
+  "last_probe": {
+   "status": "ok",
+   "tools": 7,
+   "latency_ms": 5592
   }
  },
  "glama-connector/qdyruptjes": {
@@ -48968,8 +50114,14 @@
   "runtime_verified": false,
   "verification": {
    "discovered": true,
-   "tools_listed": false,
+   "tools_listed": true,
    "call_verified": false
+  },
+  "tools_listed_count": 40,
+  "last_probe": {
+   "status": "ok",
+   "tools": 40,
+   "latency_ms": 720
   }
  },
  "glama-connector/v7qsd3ri3v": {
@@ -49167,6 +50319,12 @@
    "discovered": true,
    "tools_listed": false,
    "call_verified": false
+  },
+  "tools_listed_count": 0,
+  "last_probe": {
+   "status": "auth_required",
+   "tools": 0,
+   "latency_ms": 111
   }
  },
  "glama-connector/j9iclvsugj": {
@@ -49358,6 +50516,12 @@
    "discovered": true,
    "tools_listed": false,
    "call_verified": false
+  },
+  "tools_listed_count": 0,
+  "last_probe": {
+   "status": "auth_required",
+   "tools": 0,
+   "latency_ms": 143
   }
  },
  "glama-connector/ky3bsif9gh": {
@@ -49405,6 +50569,12 @@
    "discovered": true,
    "tools_listed": false,
    "call_verified": false
+  },
+  "tools_listed_count": 0,
+  "last_probe": {
+   "status": "auth_required",
+   "tools": 0,
+   "latency_ms": 266
   }
  },
  "glama-connector/zhq5p5cayo": {
@@ -49505,8 +50675,14 @@
   "runtime_verified": false,
   "verification": {
    "discovered": true,
-   "tools_listed": false,
+   "tools_listed": true,
    "call_verified": false
+  },
+  "tools_listed_count": 4,
+  "last_probe": {
+   "status": "ok",
+   "tools": 4,
+   "latency_ms": 2210
   }
  },
  "glama-connector/mtw5ulrofj": {
@@ -49600,8 +50776,14 @@
   "runtime_verified": false,
   "verification": {
    "discovered": true,
-   "tools_listed": false,
+   "tools_listed": true,
    "call_verified": false
+  },
+  "tools_listed_count": 84,
+  "last_probe": {
+   "status": "ok",
+   "tools": 84,
+   "latency_ms": 1694
   }
  },
  "glama-connector/wr2li2sb0c": {
@@ -49848,6 +51030,12 @@
    "discovered": true,
    "tools_listed": false,
    "call_verified": false
+  },
+  "tools_listed_count": 0,
+  "last_probe": {
+   "status": "auth_required",
+   "tools": 0,
+   "latency_ms": 129
   }
  },
  "glama-connector/vjri0ayvc1": {
@@ -49941,8 +51129,14 @@
   "runtime_verified": false,
   "verification": {
    "discovered": true,
-   "tools_listed": false,
+   "tools_listed": true,
    "call_verified": false
+  },
+  "tools_listed_count": 7,
+  "last_probe": {
+   "status": "ok",
+   "tools": 7,
+   "latency_ms": 1289
   }
  },
  "glama-connector/di6xts9k3t": {

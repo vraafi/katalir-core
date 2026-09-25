@@ -131,11 +131,15 @@ def probe(url: str, timeout: int) -> tuple[str, str, int]:
 
 
 
-def pick(registry: dict, limit: int) -> list[dict]:
+def pick(registry: dict, limit: int, skip_probed: bool = False) -> list[dict]:
     out = []
     for rec in registry.values():
-        if isinstance(rec, dict) and rec.get("no_auth"):
-            out.append(rec)
+        if not isinstance(rec, dict) or not rec.get("no_auth"):
+            continue
+        # re-running the batch must not re-probe what we already measured
+        if skip_probed and rec.get("last_probe"):
+            continue
+        out.append(rec)
     out.sort(key=lambda r: (not r.get("healthy"), -(r.get("quality_score") or 0), str(r.get("name"))))
     return out[:limit]
 
@@ -149,6 +153,7 @@ def main() -> int:
     ap.add_argument("--out", default="glama-connector-verify.json")
     ap.add_argument("--write-back", action="store_true", help="store tools_listed into the registry")
     ap.add_argument("--merge-from", default="", help="apply an existing report to the registry without probing")
+    ap.add_argument("--skip-probed", action="store_true", help="only probe connectors with no recorded probe")
     args = ap.parse_args()
 
     registry = json.loads(pathlib.Path(args.registry).read_text(encoding="utf-8"))
@@ -170,7 +175,7 @@ def main() -> int:
         return 0
 
     registry = json.loads(pathlib.Path(args.registry).read_text(encoding="utf-8"))
-    candidates = pick(registry, args.limit)
+    candidates = pick(registry, args.limit, args.skip_probed)
     print(f"CANDIDATES={len(candidates)} of {sum(1 for r in registry.values() if isinstance(r, dict) and r.get('no_auth'))} no_auth")
 
     records = []

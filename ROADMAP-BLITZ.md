@@ -11,65 +11,59 @@ whose output is in the repo. Phase-based, no deadline, auto-continue.
 | **Unique integrations (deduped)** | **22.789** | `mcp_dedup.py` → `dedup_report.json` |
 | Unique % | 79,5 % (5.875 collapsed) | same |
 | Groups present in >1 source | 1.610 | same |
-| **Unique runtime-verified** | **27** call-verified / **1.781** tools-listed | `dedup_report.json`, `glama-connector-verify.json` |
-| tools_listed (unique) | 1.781 | `dedup_report.json` |
+| **Unique call-verified** | **27** | 25 (dedup) + Groq + Gemini |
+| **Unique tools-listed** | **1.781** | `dedup_report.json` |
 | discovered only | 21.008 | `dedup_report.json` |
 | Generated OpenAPI tools | 884 registered (889 generated) | `openapi_tools_manifest.json` |
 
-**The honest gap:** the target in the blitz brief is 2.000 unique *verified*.
-Reality is **27**. The gap is not a sourcing problem - 22.789 unique integrations
-are already in the catalogue - it is a *verification* problem.
+**The honest gap:** the blitz target is 2.000 unique *verified*. Reality is **27**
+call-verified / 1.781 tools-listed. The gap is a *verification* problem, not a
+sourcing problem: 22.789 unique integrations are already in the catalogue.
 
-## PHASE 1 — Dedup + Foundation
+## FASE 1 — Batch Verify  ← current
+- [x] F1.1 Nango key → **BLOCKED-USER** (key present, API returns 401 both header forms)
+- [!] F1.2 Nango provider templates → blocked by F1.1
+- [!] F1.3 Metorial tools → **BLOCKED-USER** (key valid, project has 0 providers connected)
+- [x] F1.4 Batch verify candidates — batch 1: 420 probed → **236 ok** / 2.313 tools;
+      batch 2: 199 remaining in progress
+- [ ] F1.5 metrics · [ ] F1.6 commit
 
-- [x] **P1.1 Dedup engine** — `mcp_dedup.py`, 28.664 → 22.789 unique (79,5 %).
-      Provenance preserved per entry; anti-inflation tests in `tests/test_dedup.py`.
-- [x] **P1.2 OpenAPI → MCP generator** — `scripts/openapi_to_mcp.py`, 6 public specs,
-      **884 tools registered** in one FastMCP process, 1 call-verified
-      (`petstore_getpetbyid` → HTTP 200, `{id:1, name:'Dogs'}`).
-- [x] **P1.3 AI tools** — Groq + Gemini wired and **call-verified**:
-      `qwen/qwen3.8-27b` → "KATALIR_OK" (571 ms), `gemini-2.5-flash` → "KATALIR_OK" (1.773 ms).
-      Models are discovered at runtime because the hardcoded ones had rotted.
-- [x] **P1.4 Verify the existing pool** — 420 Glama no-auth connectors probed read-only
-      (`initialize` + `tools/list`): **236 tools_listed / 2.313 tools**, 175 auth_required,
-      4 protocol_error, 5 unreachable, 0 ssrf_blocked. Unique tools-listed
-      1.576 → **1.781**. Unique call-verified stays **27** — correctly, because
-      listing a tool is not calling it.
+## FASE 2 — Sync All Sources
+- [ ] F2.1 sync the 884 OpenAPI tools (dedup first) · [ ] F2.2 source tags
+- [ ] F2.3 marketplace 8+ source tabs · [ ] F2.4 commit
 
-## PHASE 3 (started early, independent of P2)
+## FASE 3 — Multi-Protocol Executor (MCP + OpenAPI + GraphQL + JS)
+- [ ] F3.1 OpenAPI import · [ ] F3.2 GraphQL import · [ ] F3.3 JS sandbox
+- [ ] F3.4 MCP remote import · [ ] F3.5 test each · [ ] F3.6 commit
 
-- [x] **P3.1 Community platform — DEPLOYED to production 2026-09-26.** Project
-      `qmukkphwaajzbqjrcvaz`, region `ap-southeast-1`. 2 tables created, RLS enabled
-      on both (`relrowsecurity = true`), 4 policies, 2 triggers. Live trigger tests:
-      earnings on a **pending** integration → rejected; on an **approved** one → accepted;
-      un-approving an integration that already has earnings → rejected. Verified
-      `community_integrations` = 0 rows before and after the test (cleaned up).
-      Connection note: the direct host `db.<ref>.supabase.co` is **IPv6-only**, so the
-      pooler `aws-0-ap-southeast-1.pooler.supabase.com` with user `postgres.<ref>` is
-      the working path from an IPv4 network.
-- [ ] P3.2 Community UI · [ ] P3.3 multi-protocol Executor · [ ] P3.4 batch test 100
+## FASE 4 — Marketplace UI v2
+- [ ] F4.1 dedup toggle · [ ] F4.2 source badges · [ ] F4.3 runtime status tiers
+- [ ] F4.4 advanced search/filter · [ ] F4.5 screenshot · [ ] F4.6 commit
 
-## PHASE 2 — Unique Sources (SEA + Dev + Creator)
+## FASE 5 — Marketing + Launch Prep
+- [ ] F5.1 landing claim · [ ] F5.2 pricing/docs · [ ] F5.3 Product Hunt kit
+- [ ] F5.4 playbook final · [ ] F5.5 commit · [ ] F5.6 report "ready for launch"
 
-- [ ] P2.1 SEA local · [ ] P2.2 Modern dev · [ ] P2.3 Creator economy · [ ] P2.4 batch test 100
-      **Blocked on evidence:** Midtrans returns 503, HuggingFace 401, and most SEA vendors
-      publish no OpenAPI spec. Without a spec or a key, these can only be catalogue entries.
+## FASE 6 — Product Hunt Launch ⭐ USER ACTION
+- [ ] F6.1–F6.4 submit, announce, respond · [ ] F6.5 metrics snapshot
 
-## PHASE 3 — Community + Multi-Protocol
+## FASE 7 — Community Outreach
+- [ ] F7.1 outreach · [ ] F7.2 tutorial · [ ] F7.3 bounty · [ ] F7.4 dashboard · [ ] F7.5 first 10 reviewed
 
-- [ ] P3.1 schema · [ ] P3.2 UI · [ ] P3.3 multi-protocol Executor · [ ] P3.4 batch test 100
+## FASE 8 — Regional + Vertical Expansion
+- [ ] F8.1 SEA (VN/TH/PH/MY) · [ ] F8.2 healthcare · [ ] F8.3 logistics
+- [ ] F8.4 education · [ ] F8.5 sync + test + commit
 
-## PHASE 4 — Polish + Launch-Ready
+## FASE 9 — Parity Push
+- [ ] F9.1 audit n8n nodes → gap map · [ ] F9.2 generate missing via OpenAPI
+- [ ] F9.3 community bounty · [ ] F9.4 batch verify + commit
+- [ ] F9.5 update claim · [ ] F9.6 THE END
 
-- [ ] P4.1 Marketplace UI v2 · [ ] P4.2 Product Hunt · [ ] P4.3 final verify
-
-## PHASE 5 — Scale to Parity
-
-- [ ] P5.1 regional · [ ] P5.2 verticals · [ ] P5.3 n8n parity audit ·
-      [ ] P5.4 community growth · [ ] P5.5 final marketing
+## Already done (earlier phases, kept for continuity)
+- [x] Dedup engine · [x] OpenAPI generator · [x] AI tools (Groq + Gemini call-verified)
+- [x] P3.1 Community platform **deployed**: 2 tables, RLS on, 2 triggers, live-tested
 
 ## Blocked on the user
-
 1. **Nango Cloud key** — a key exists in `.env` but the API rejects it
    (`GET /api/v1/providers` → 401 with both `Bearer` and `Secret-Key`).
    Action: create a secret key at https://app.nango.dev/settings and set `NANGO_API_KEY`.
