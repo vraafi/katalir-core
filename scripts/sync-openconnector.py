@@ -1,4 +1,4 @@
-﻿"""Sync the OpenConnector catalogue into a Katalir registry file.
+"""Sync the OpenConnector catalogue into a Katalir registry file.
 
 Read-only against OpenConnector. Never prints credentials.
 
