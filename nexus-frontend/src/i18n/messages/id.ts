@@ -83,6 +83,9 @@ export const id = {
     newChatBusyDesc: "Yakin pindah ke chat baru? Reply tetap diproses dan muncul di riwayat.",
     newChatBusyQueue: " ({n} pesan antrean ikut dibatalkan)",
     stayHere: "Tetap di sini",
+    exportChat: "Ekspor chat",
+    exportChatJson: "Ekspor JSON",
+    exportChatMarkdown: "Ekspor Markdown",
     queue: {
       title: "Antrean ({n})",
       open: "Buka antrean",

@@ -80,6 +80,9 @@ export const en = {
     newChatBusyDesc: "Switch to a new chat anyway? Replies keep processing and appear in history.",
     newChatBusyQueue: " ({n} queued messages will also be cancelled)",
     stayHere: "Stay here",
+    exportChat: "Export chat",
+    exportChatJson: "Export JSON",
+    exportChatMarkdown: "Export Markdown",
     queue: {
       title: "Queue ({n})",
       open: "Open queue",

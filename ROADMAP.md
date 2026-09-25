@@ -31,8 +31,11 @@
 - [x] Agent: production redirect/config documentation prepared.
 
 ### FASE P2.5 — Prioritized Features
-- [ ] Select and implement three evidence-backed features.
+- [x] Feature 1 — export chat owner-scoped: JSON and Markdown from the authenticated session; `data-testid=chat-export-actions`.
+- [ ] Feature 2 — analytics dashboard from quota and execution logs.
+- [ ] Feature 3 — workflow templates with validated React Flow graphs and install flow.
 - [ ] Test, screenshot, and document each.
+- [x] Composition research — 10 MCP components remain behind allowlisted adapters; metadata-only entries are never treated as executable.
 
 ## Agent Rules
 - Search-first; no-surrender loop; test before DONE.

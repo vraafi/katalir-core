@@ -48,3 +48,9 @@
 
 
 
+
+## FASE P2.5 — Prioritized Features
+- [x] Feature 1: export chat JSON/Markdown, owner-scoped through existing session messages endpoint; tsc passes.
+- [ ] Feature 2: analytics dashboard from quota and execution logs.
+- [ ] Feature 3: workflow templates with validated React Flow graph install.
+

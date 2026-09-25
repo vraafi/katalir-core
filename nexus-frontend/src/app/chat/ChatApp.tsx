@@ -553,6 +553,28 @@ function ChatApp() {
 
   const currentSessionId = sessionId || null;
 
+  function downloadChat(format: "json" | "markdown") {
+    if (!currentSessionId || !messagesData.length) return;
+    const title = sessions.find((s) => s.id === currentSessionId)?.title || "Katalir chat";
+    const payload = {
+      format: "katalir.chat.v1",
+      session_id: currentSessionId,
+      title,
+      exported_at: new Date().toISOString(),
+      messages: messagesData.filter((m) => m.role === "user" || m.role === "assistant"),
+    };
+    const body = format === "json"
+      ? JSON.stringify(payload, null, 2)
+      : `# ${title}\n\n${payload.messages.map((m) => `**${m.role === "user" ? "User" : "Katalir"}:** ${m.content}`).join("\n\n")}\n`;
+    const blob = new Blob([body], { type: format === "json" ? "application/json" : "text/markdown" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `${title.replace(/[^a-z0-9]+/gi, "-").toLowerCase()}.${format === "json" ? "json" : "md"}`;
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
   function openSession(id: string) {
     void setSessionId(id);
   }
@@ -1156,6 +1178,12 @@ return (
                 <AlertTriangle size={12} strokeWidth={2} />
                 {quotaWarning(quota, t)}
               </p>
+            )}
+            {messages.length > 0 && (
+              <div className="mb-2 flex justify-end gap-2" data-testid="chat-export-actions">
+                <Button type="button" variant="secondary" size="sm" onClick={() => downloadChat("json")} aria-label={t("chat.exportChatJson")}>{t("chat.exportChatJson")}</Button>
+                <Button type="button" variant="secondary" size="sm" onClick={() => downloadChat("markdown")} aria-label={t("chat.exportChatMarkdown")}>{t("chat.exportChatMarkdown")}</Button>
+              </div>
             )}
             <form
               onSubmit={(e) => {
