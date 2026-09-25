@@ -13,10 +13,10 @@ const TIERS = [
   {
     id: "plus",
     name: "Plus",
-    price: "Rp 5.000.000",
+    price: "$299",
     period: "/ tahun",
     cta: "Upgrade ke Plus",
-    ctaHref: "/",
+    ctaHref: "/billing",
     popular: true,
     features: [
       "Gemma 4 — 500 request / hari",
