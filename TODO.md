@@ -12,7 +12,7 @@
 - [x] C2.21: DONE — authenticated servers=200/39 tools; call=200/datetime; unauthenticated health=401 proves auth gate and new deployment.
 - [x] C2.22: DONE — VPS/named tunnel documented in `docs/architecture/mcp-gateway-vps.md`; deploy/rollback/runbook added.
 - [x] C3: MCP SDK client refactor
-- [ ] C7: Registry → gateway coverage test
+- [x] C7: Registry → gateway coverage test — `/mcp/registry/coverage` distinguishes metadata-only vs executable; 4548 total catalog metadata, executable transport=0 because ToolSDK entries are metadata-only.
 - [ ] C8: Production verify
 
 ## FASE D — Multi-Tenant
