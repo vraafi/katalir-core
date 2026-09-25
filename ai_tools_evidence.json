@@ -1,0 +1,51 @@
+{
+  "recorded": "2026-09-26",
+  "note": "Only tools actually executed against a live provider API appear here.",
+  "tools": [
+    {
+      "tool": "groq_chat",
+      "provider": "groq",
+      "source": "ai-tools",
+      "verification": {
+        "discovered": true,
+        "tools_listed": true,
+        "call_verified": true
+      },
+      "evidence": {
+        "model": "qwen/qwen3.8-27b",
+        "status": 200,
+        "answer": "KATALIR_OK",
+        "latency_ms": 571,
+        "note": "model discovered at runtime; hardcoded llama-3.3-70b-versatile no longer exists on Groq"
+      }
+    },
+    {
+      "tool": "gemini_generate",
+      "provider": "google-gemini",
+      "source": "ai-tools",
+      "verification": {
+        "discovered": true,
+        "tools_listed": true,
+        "call_verified": true
+      },
+      "evidence": {
+        "model": "gemini-2.5-flash",
+        "status": 200,
+        "answer": "KATALIR_OK",
+        "latency_ms": 1773,
+        "keys_tried_pool": 13,
+        "note": "gemini-2.0-flash was retired; model now discovered from the live catalogue"
+      }
+    }
+  ],
+  "not_integrated": [
+    {
+      "provider": "nango-cloud",
+      "reason": "NANGO_API_KEY present (36 chars) but rejected: GET /api/v1/providers -> HTTP 401 with Bearer and Secret-Key"
+    },
+    {
+      "provider": "metorial",
+      "reason": "METORIAL_API_KEY valid (metorial_sk_ prefix, /integration-providers -> 200) but the account has 0 providers connected; needs dashboard connection"
+    }
+  ]
+}

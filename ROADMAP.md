@@ -122,7 +122,6 @@
 - 28.532 entri katalog, baru **45 runtime-verified**. Defisit nyata ada di
   *verifikasi*, bukan di jumlah katalog — bukan di integrasi platform ke-5.
 
+
 ## Agent Rules
-- Search-first; no-surrender loop; test before DONE.
-- Commit per sub-task; update this roadmap each task.
 - Never enable payments, publish OAuth, or submit Slack Directory without user action.
