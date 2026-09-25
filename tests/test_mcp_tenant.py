@@ -37,3 +37,9 @@ def test_workflow_mcp_surface_is_owner_scoped(monkeypatch):
     assert metadata.status_code == 422
 
 
+def test_manifest_validator_rejects_metadata_only():
+    import mcp_registry
+    assert mcp_registry.validate_executable_manifest({"id": "x", "install_config": {"transport": "metadata-only", "package": "x"}})["status"] == "rejected"
+    assert mcp_registry.validate_executable_manifest({"id": "x", "install_config": {"transport": "stdio", "package": "x"}})["status"] == "valid"
+
+

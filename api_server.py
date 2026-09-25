@@ -1347,9 +1347,14 @@ def mcp_install(req: MCPInstanceRequest, authorization: str | None = Header(None
         raise HTTPException(422, "mcp_id wajib")
     if not req.confirmed:
         raise HTTPException(409, "Instalasi memerlukan konfirmasi eksplisit")
-    if req.mcp_id.strip() not in _EXECUTABLE_MCP_IDS:
+    if not req.mcp_id.strip() in _EXECUTABLE_MCP_IDS:
         raise HTTPException(422, "Server metadata-only belum tervalidasi untuk instalasi")
-    row = {"mcp_id": req.mcp_id.strip(), "config": req.config, "status": "active"}
+    import mcp_registry
+    req_item = {"id": req.mcp_id, "install_config": {"transport": "stdio", "package": req.mcp_id}}
+    verified = mcp_registry.validate_executable_manifest(req_item)
+    if verified["status"] != "valid":
+        raise HTTPException(422, f"Manifest ditolak: {', '.join(verified['errors'])}")
+    row = {"mcp_id": req.mcp_id.strip(), "config": req.config, "status": "active", "manifest": verified}
     _MCP_INSTANCES.setdefault(user_id, {})[row["mcp_id"]] = row
     return {"instance": row}
 

@@ -6,6 +6,24 @@ from typing import Any
 import httpx
 SOURCE_URL='https://raw.githubusercontent.com/ToolSDK-AI/toolsdk-mcp-registry/main/indexes/packages-list.json'
 CACHE_PATH=Path(__file__).with_name('mcp_registry_cache.json'); _CACHE={}; _LOCK=threading.RLock()
+_ALLOWED_TRANSPORTS={'stdio','http','sse'}
+
+
+def validate_executable_manifest(item: dict[str, Any]) -> dict[str, Any]:
+    """Validate a manifest before any install/runtime claim.
+
+    This intentionally does not execute packages. It returns a signed-by-
+    content (not cryptographic) record suitable for review and hashing.
+    """
+    config=item.get('install_config') if isinstance(item.get('install_config'),dict) else {}
+    transport=str(config.get('transport') or '').lower()
+    package=str(config.get('package') or '').strip()
+    errors=[]
+    if transport not in _ALLOWED_TRANSPORTS: errors.append('transport_not_allowed')
+    if not package: errors.append('package_missing')
+    if not item.get('id'): errors.append('id_missing')
+    return {'id':item.get('id'),'status':'valid' if not errors else 'rejected','transport':transport,'package':package,'errors':errors}
+
 def _normalize(i,item):
  tools=item.get('tools') if isinstance(item.get('tools'),dict) else {}
  return {'id':i,'name':i.rsplit('/',1)[-1],'category':str(item.get('category') or 'other'),'description':str(item.get('description') or f'MCP server {i}'),'repo_url':str(item.get('repo') or item.get('repository') or ''),'install_config':{'transport':'metadata-only','package':i},'tenant_scope':'user','validated':bool(item.get('validated')),'tools':[{'name':str(n),'description':str((v or {}).get('description') or '')} for n,v in tools.items()]}

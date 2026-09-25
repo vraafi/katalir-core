@@ -40,6 +40,7 @@
 - [x] Production deploy — production domain routes respond 200; gateway named tunnel and Railway E2E previously verified.
 - [x] 8-route screenshots — fresh production captures in `nexus-frontend/test-results/domain_*.png`, including `domain_settings.png` (BODY=1344, errors=[]).
 - [x] Final documentation — `docs/architecture/leapfrog-research.md` and `docs/architecture/mcp-gateway-vps.md`; composition boundaries and rollback documented.
+- [x] Executable manifest validator — rejects metadata-only/non-allowlisted packages; targeted tests 5 passed.
 
 
 
