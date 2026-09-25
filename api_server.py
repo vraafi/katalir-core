@@ -1407,6 +1407,12 @@ def mcp_registry(page: int = 1, limit: int = 50, search: str = "", category: str
     try:
         return catalog.list_servers(page=page, limit=limit, search=search, category=category)
     except ValueError as exc:
+@app.get("/mcp/registry/coverage")
+def mcp_registry_coverage():
+    import mcp_registry as catalog
+    return catalog.coverage()
+
+
         raise HTTPException(400, str(exc))
 
 

@@ -33,6 +33,17 @@ def get_server(server_id):
  if not x:raise KeyError(server_id)
  return x
 
+def executable_servers():
+    """Return only registry entries with an explicit executable transport.
+
+    ToolSDK metadata is currently metadata-only; do not treat it as runnable.
+    """
+    return [x for x in load_cached().values() if x.get('install_config', {}).get('transport') in {'stdio','http','sse'}]
+
+def coverage():
+    items = list(load_cached().values())
+    return {'total': len(items), 'executable': len(executable_servers()), 'metadata_only': len(items) - len(executable_servers())}
+
 def recommend_servers(query: str, limit: int = 5):
     """Return catalog matches for the AI integration picker; metadata only."""
     q=(query or '').strip()
