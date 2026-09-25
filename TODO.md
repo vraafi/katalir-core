@@ -21,7 +21,8 @@
 - [x] Schema `user_mcp_instances` — SQL migration with per-user RLS created.
 - [x] Endpoint `/mcp/install`, `/mcp/uninstall`, `/mcp/my-instances` — auth-gated; Supabase persistence path implemented with in-memory fallback.
 - [x] Tenant isolation test — user A install/list/uninstall cannot affect user B.
-- [x] Supabase persistence implementation — service-role CRUD paths use `user_mcp_instances`; test keeps isolated in-memory fallback.
+- [x] PostgREST schema reload — `NOTIFY pgrst, 'reload schema'`; REST `user_mcp_instances?limit=1` = 200, body `[]`.
+- [!] Production round-trip — service-role table/RLS is ready, but `test-jwt.txt` is absent, so authenticated install→Railway restart→list could not be exercised without user login token.
 
 ## FASE E — AI Integration Picker
 - [x] System prompt registry search — MCP picker rule added; no invented servers.

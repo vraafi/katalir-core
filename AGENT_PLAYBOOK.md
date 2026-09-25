@@ -84,3 +84,5 @@ BLOCKED hanya valid untuk: user action (login/approve/bayar), keputusan keamanan
 - JANGAN minta JWT ke user kecuali benar-benar perlu test endpoint baru.
 - Do not delete `test-jwt.txt` after a completed authenticated E2E; leave it gitignored for reuse, but never commit or print it.
 - Health check = 401 tanpa JWT, 200 dengan JWT. Keduanya = "OK".
+- Setelah `CREATE TABLE` via direct DB, PostgREST cache bisa stale: jalankan `NOTIFY pgrst, 'reload schema';` lalu verifikasi `GET /rest/v1/<table>?limit=1` = 200.
+- Persistence production wajib diuji: install → restart backend → list. Kalau hilang, masih fallback in-memory atau JWT tidak owner yang benar.
