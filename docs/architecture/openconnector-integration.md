@@ -105,8 +105,80 @@ Remediation executed, in order:
 Never run `cat`/`tail` on files that may hold credentials. Inspect with a masked grep, and rotate
 any secret that ever reaches a transcript, a log file, or a commit.
 
+## Phase C — registry sync + batch runtime test
+
+### Scripts
+
+- `scripts/sync-openconnector.py` — reads `GET /api/actions` (admin token), writes
+  `openconnector_actions.json` (1.554 service entries) + `openconnector-sync-report.json`.
+  Stdlib only, so it runs on the VPS next to the container.
+- `scripts/batch-test-openconnector.py` — real `tools/call` through the gateway.
+  Stdlib only, writes `batch-test-openconnector.json`.
+
+### Honest numbers from the sync
+
+| Metric | Value |
+| --- | --- |
+| Services | 1.554 |
+| Actions | 18.010 (all ids unique) |
+| Operation types | 12.051 read / 4.013 write / 1.946 destructive |
+| `execution.locallyExecutable` | 18.010 |
+| **`execution.noAuthRunnable`** | **170** (across 24 services) |
+| Auth types | api_key 13.780, oauth2 2.918, custom_credential 2.731, no_auth 170 |
+| Locally executable **and** runnable with no input | 19 |
+
+`locallyExecutable` being true for all 18.010 is *not* a runtime claim: it only means
+OpenConnector ships an executor for the action. The action still needs a connected
+account unless `noAuthRunnable` is true.
+
+### Batch test result (gateway → meta-tool → real upstream API)
+
+Selection was deliberately narrow: `read` + `noAuthRunnable` + empty input schema,
+sequential, 1.5 s delay, no writes of any kind. That yields 19 candidates, not 50 —
+widening it would have meant inventing arguments or touching credentialed APIs.
+
+| Status | Count | Example |
+| --- | --- | --- |
+| `ok` (really executed) | **11** | `clinicaltrials_gov.get_api_version`, `crossref.list_works`, `dealnews.list_latest_deals`, `indiegogo.list_active_crowdfunding_projects`, `ossinsight.list_collections` |
+| `auth_required` | 4 | `fundzwatch.*` — provider is flagged no_auth but the API key is still needed |
+| `invalid_input` | 3 | `crossref.list_resources`, `ossinsight.list_hot_collections` — empty input rejected upstream |
+| `no_connection` | 1 | `npm.get_current_user` — needs an npm token connection |
+
+So: 11 actions across 5 services are genuinely `call_verified`. The other 8 failures
+are real, informative results, not test noise — they prove the error path, the auth
+detection and the schema validation all work end to end.
+
+### Registry integration
+
+`mcp_registry.py` merges `openconnector_actions.json` under `openconnector/<service>`.
+Entries use `transport: mcp-meta-layer`, so `executable_servers()` does **not** treat
+them as runnable just because they exist. `coverage()` now reports
+`openconnector_services`, `openconnector_actions` and `openconnector_actions_call_verified`
+separately from the Composio numbers.
+
+Current `coverage()`:
+
+```json
+{
+  "total": 7532, "executable": 25, "metadata_only": 7507,
+  "composio_toolkits": 1562, "official_remote": 0,
+  "openconnector_services": 1554,
+  "openconnector_actions": 18010,
+  "openconnector_actions_call_verified": 11
+}
+```
+
+Idempotency was verified by running the sync twice and comparing md5: identical, and
+`DIFF_SERVICES 0`. Previously earned `call_verified` flags survive every re-run.
+
+## Safe claim, final wording
+
+> 18.010 OpenConnector actions discovered across 1.554 providers, reached through a
+> 5-tool MCP meta-layer on our gateway. 11 actions are call-verified end to end today.
+
 ## Not done yet
 
-- Registry sync of the 18.010 actions (`scripts/sync-openconnector.py`) — pending.
-- Batch runtime test of 50 credential-free actions — pending.
+- Nango: no verified deployment / `NANGO_URL` yet.
+- Glama: licence and API-key/attribution terms still unconfirmed.
 - Public surface for OpenConnector: still loopback-only, intentionally.
+- Screenshot of the federated tool list: not captured yet.

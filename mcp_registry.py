@@ -5,7 +5,7 @@ from pathlib import Path
 from typing import Any
 import httpx
 SOURCE_URL='https://raw.githubusercontent.com/ToolSDK-AI/toolsdk-mcp-registry/main/indexes/packages-list.json'
-CACHE_PATH=Path(__file__).with_name('mcp_registry_cache.json'); COMPOSIO_PATH=Path(__file__).with_name('composio_toolkits.json'); _CACHE={}; _LOCK=threading.RLock(); _COMPOSIO_LOADED=False
+CACHE_PATH=Path(__file__).with_name('mcp_registry_cache.json'); COMPOSIO_PATH=Path(__file__).with_name('composio_toolkits.json'); OPENCONNECTOR_PATH=Path(__file__).with_name('openconnector_actions.json'); _CACHE={}; _LOCK=threading.RLock(); _COMPOSIO_LOADED=False; _OC_LOADED=False
 _ALLOWED_TRANSPORTS={'stdio','http','sse'}
 
 
@@ -28,7 +28,7 @@ def _normalize(i,item):
  tools=item.get('tools') if isinstance(item.get('tools'),dict) else {}
  return {'id':i,'name':i.rsplit('/',1)[-1],'category':str(item.get('category') or 'other'),'description':str(item.get('description') or f'MCP server {i}'),'repo_url':str(item.get('repo') or item.get('repository') or ''),'install_config':{'transport':'metadata-only','package':i},'tenant_scope':'user','validated':bool(item.get('validated')),'tools':[{'name':str(n),'description':str((v or {}).get('description') or '')} for n,v in tools.items()]}
 def load_cached():
- global _COMPOSIO_LOADED
+ global _COMPOSIO_LOADED, _OC_LOADED
  with _LOCK:
   if not _CACHE and CACHE_PATH.exists():
    try:_CACHE.update({str(k):_normalize(str(k),v or {}) for k,v in json.loads(CACHE_PATH.read_text(encoding='utf-8')).items() if isinstance(v,dict)})
@@ -38,6 +38,13 @@ def load_cached():
     rows=json.loads(COMPOSIO_PATH.read_text(encoding='utf-8'))
     if isinstance(rows,dict): _CACHE.update({str(k):v for k,v in rows.items() if isinstance(v,dict)})
     _COMPOSIO_LOADED=True
+   except (OSError,ValueError,TypeError): pass
+  if not _OC_LOADED and OPENCONNECTOR_PATH.exists():
+   try:
+    rows=json.loads(OPENCONNECTOR_PATH.read_text(encoding='utf-8'))
+    if isinstance(rows,dict):
+     _CACHE.update({f'openconnector/{k}':v for k,v in rows.items() if isinstance(v,dict)})
+    _OC_LOADED=True
    except (OSError,ValueError,TypeError): pass
   return _CACHE
 def sync_from_public(*,timeout=30):
@@ -90,11 +97,24 @@ def executable_candidates():
             out.append({'id': key, 'install_method': method, 'package': cfg['package']})
     return out
 
+def openconnector_coverage():
+ """Honest numbers for the OpenConnector catalogue.
+
+ ``actions`` counts catalogue rows, ``meta_tools`` is what an MCP client can
+ actually see, and ``actions_call_verified`` counts actions proved by a real
+ ``tools/call``.
+ """
+ items=[x for x in load_cached().values() if isinstance(x,dict) and x.get('source')=='openconnector']
+ return {'services':len(items),'actions':sum(int(x.get('tools_count') or 0) for x in items),'meta_tools':5,
+         'actions_call_verified':sum(1 for x in items for t in (x.get('tools') or []) if isinstance(t,dict) and t.get('call_verified')),
+         'services_call_verified':sum(1 for x in items if (x.get('verification') or {}).get('call_verified'))}
+
 def coverage():
     items = [x for x in load_cached().values() if isinstance(x, dict) and x.get('id')]
     composio = [x for x in items if x.get('source') == 'composio']
     official = [x for x in items if x.get('source') == 'official-mcp-registry']
-    return {'total': len(items), 'executable': len(executable_servers()), 'metadata_only': len(items) - len(executable_servers()), 'composio_toolkits': len(composio), 'official_remote': len(official)}
+    oc = openconnector_coverage()
+    return {'total': len(items), 'executable': len(executable_servers()), 'metadata_only': len(items) - len(executable_servers()), 'composio_toolkits': len(composio), 'official_remote': len(official), 'openconnector_services': oc['services'], 'openconnector_actions': oc['actions'], 'openconnector_actions_call_verified': oc['actions_call_verified']}
 
 def recommend_servers(query: str, limit: int = 5):
     """Return catalog matches for the AI integration picker; metadata only."""

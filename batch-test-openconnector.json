@@ -1,0 +1,198 @@
+{
+  "gateway_url": "http://127.0.0.1:3001/mcp",
+  "tool": "openconnector_execute_action",
+  "selection": "read-only + noAuthRunnable + empty input schema",
+  "attempted": 19,
+  "counts": {
+    "auth_required": 4,
+    "invalid_input": 3,
+    "no_connection": 1,
+    "ok": 11
+  },
+  "call_verified_actions": [
+    "clinicaltrials_gov.get_api_version",
+    "clinicaltrials_gov.get_registry_size_statistics",
+    "clinicaltrials_gov.list_enums",
+    "clinicaltrials_gov.list_search_areas",
+    "crossref.list_works",
+    "dealnews.list_blog_posts",
+    "dealnews.list_editors_choice_deals",
+    "dealnews.list_latest_deals",
+    "dealnews.list_popular_deals",
+    "indiegogo.list_active_crowdfunding_projects",
+    "ossinsight.list_collections"
+  ],
+  "records": [
+    {
+      "action_id": "clinicaltrials_gov.get_api_version",
+      "service": "clinicaltrials_gov",
+      "name": "get_api_version",
+      "description": "Get the current ClinicalTrials.gov API version and daily data refresh timestamp.",
+      "status": "ok",
+      "reason": "executed",
+      "latency_ms": 388
+    },
+    {
+      "action_id": "clinicaltrials_gov.get_registry_size_statistics",
+      "service": "clinicaltrials_gov",
+      "name": "get_registry_size_statistics",
+      "description": "Get ClinicalTrials.gov registry counts and the distribution of study JSON record sizes.",
+      "status": "ok",
+      "reason": "executed",
+      "latency_ms": 69
+    },
+    {
+      "action_id": "clinicaltrials_gov.list_enums",
+      "service": "clinicaltrials_gov",
+      "name": "list_enums",
+      "description": "List official ClinicalTrials.gov enumeration types, values, legacy values, and field usages.",
+      "status": "ok",
+      "reason": "executed",
+      "latency_ms": 134
+    },
+    {
+      "action_id": "clinicaltrials_gov.list_search_areas",
+      "service": "clinicaltrials_gov",
+      "name": "list_search_areas",
+      "description": "List the official ClinicalTrials.gov search documents, areas, parameters, and indexed pieces.",
+      "status": "ok",
+      "reason": "executed",
+      "latency_ms": 86
+    },
+    {
+      "action_id": "crossref.list_resources",
+      "service": "crossref",
+      "name": "list_resources",
+      "description": "List or search Crossref journals, members, funders, work types, or licenses.",
+      "status": "invalid_input",
+      "reason": "Action input does not match the action schema.",
+      "latency_ms": 39
+    },
+    {
+      "action_id": "crossref.list_scoped_works",
+      "service": "crossref",
+      "name": "list_scoped_works",
+      "description": "List works associated with one Crossref journal, member, funder, DOI prefix, or work type.",
+      "status": "invalid_input",
+      "reason": "Action input does not match the action schema.",
+      "latency_ms": 23
+    },
+    {
+      "action_id": "crossref.list_works",
+      "service": "crossref",
+      "name": "list_works",
+      "description": "Search, filter, sort, sample, facet, or page through works registered with Crossref.",
+      "status": "ok",
+      "reason": "executed",
+      "latency_ms": 1536
+    },
+    {
+      "action_id": "dealnews.list_blog_posts",
+      "service": "dealnews",
+      "name": "list_blog_posts",
+      "description": "Get blog posts from the official DealNews RSS feed. Keep the returned content and referral-coded links unchanged, attribute public displays to DealNews, and do ",
+      "status": "ok",
+      "reason": "executed",
+      "latency_ms": 409
+    },
+    {
+      "action_id": "dealnews.list_editors_choice_deals",
+      "service": "dealnews",
+      "name": "list_editors_choice_deals",
+      "description": "Get Editors' Choice deals from the official DealNews RSS feed. Keep the returned content and referral-coded links unchanged, attribute public displays to DealNe",
+      "status": "ok",
+      "reason": "executed",
+      "latency_ms": 258
+    },
+    {
+      "action_id": "dealnews.list_latest_deals",
+      "service": "dealnews",
+      "name": "list_latest_deals",
+      "description": "Get the most recent deals from the official DealNews RSS feed. Keep the returned content and referral-coded links unchanged, attribute public displays to DealNe",
+      "status": "ok",
+      "reason": "executed",
+      "latency_ms": 221
+    },
+    {
+      "action_id": "dealnews.list_popular_deals",
+      "service": "dealnews",
+      "name": "list_popular_deals",
+      "description": "Get the most popular deals from the official DealNews RSS feed. Keep the returned content and referral-coded links unchanged, attribute public displays to DealN",
+      "status": "ok",
+      "reason": "executed",
+      "latency_ms": 219
+    },
+    {
+      "action_id": "fundzwatch.get_market_brief",
+      "service": "fundzwatch",
+      "name": "get_market_brief",
+      "description": "Get the current AI-generated strategic intelligence brief. Requires an API key.",
+      "status": "auth_required",
+      "reason": "Configure a FundzWatch API key for this action.",
+      "latency_ms": 44
+    },
+    {
+      "action_id": "fundzwatch.get_market_pulse",
+      "service": "fundzwatch",
+      "name": "get_market_pulse",
+      "description": "Get aggregate FundzWatch market activity. Requires an API key.",
+      "status": "auth_required",
+      "reason": "Configure a FundzWatch API key for this action.",
+      "latency_ms": 18
+    },
+    {
+      "action_id": "fundzwatch.get_usage",
+      "service": "fundzwatch",
+      "name": "get_usage",
+      "description": "Get the connected API key's tier, counters, and limits.",
+      "status": "auth_required",
+      "reason": "Configure a FundzWatch API key for this action.",
+      "latency_ms": 25
+    },
+    {
+      "action_id": "fundzwatch.get_watchlist",
+      "service": "fundzwatch",
+      "name": "get_watchlist",
+      "description": "List companies tracked by the connected account.",
+      "status": "auth_required",
+      "reason": "Configure a FundzWatch API key for this action.",
+      "latency_ms": 32
+    },
+    {
+      "action_id": "indiegogo.list_active_crowdfunding_projects",
+      "service": "indiegogo",
+      "name": "list_active_crowdfunding_projects",
+      "description": "List active Indiegogo crowdfunding projects ordered by campaign start date.",
+      "status": "ok",
+      "reason": "executed",
+      "latency_ms": 1115
+    },
+    {
+      "action_id": "npm.get_current_user",
+      "service": "npm",
+      "name": "get_current_user",
+      "description": "Get the npm username associated with the connected access token.",
+      "status": "no_connection",
+      "reason": "get_current_user requires an npm access token connection",
+      "latency_ms": 43
+    },
+    {
+      "action_id": "ossinsight.list_collections",
+      "service": "ossinsight",
+      "name": "list_collections",
+      "description": "List all OSS Insight repository collections.",
+      "status": "ok",
+      "reason": "executed",
+      "latency_ms": 574
+    },
+    {
+      "action_id": "ossinsight.list_hot_collections",
+      "service": "ossinsight",
+      "name": "list_hot_collections",
+      "description": "List hot OSS Insight collections with representative repositories.",
+      "status": "invalid_input",
+      "reason": "ossinsight returned invalid result code",
+      "latency_ms": 96
+    }
+  ]
+}

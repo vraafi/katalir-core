@@ -1,0 +1,24 @@
+{
+  "actions_total": 18010,
+  "services_total": 1554,
+  "credential_free_actions": 13840,
+  "credential_free_and_no_input": 1466,
+  "no_auth_runnable_actions": 170,
+  "no_auth_runnable_and_no_input": 19,
+  "no_auth_runnable_services": 24,
+  "locally_executable_actions": 18010,
+  "auth_type_histogram": {
+    "api_key": 13780,
+    "oauth2": 2918,
+    "custom_credential": 2731,
+    "no_auth": 170
+  },
+  "operation_types": {
+    "read": 12051,
+    "write": 4013,
+    "destructive": 1946
+  },
+  "duplicate_ids_dropped": 0,
+  "actions_call_verified": 11,
+  "services_call_verified": 5
+}

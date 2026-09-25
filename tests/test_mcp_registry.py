@@ -12,6 +12,31 @@ def test_catalog_pagination_search_dan_detail():
     assert mcp_registry.get_server(item["id"])["id"] == item["id"]
 
 
+def test_openconnector_entries_termuat_dengan_status_terpisah():
+    """Catalogue entries must be reachable and must not over-claim verification."""
+    mcp_registry.load_cached()
+    coverage = mcp_registry.openconnector_coverage()
+    assert coverage["services"] >= 1000
+    assert coverage["actions"] >= 10000
+    # the catalogue exposes 5 meta-tools, not one MCP tool per action
+    assert coverage["meta_tools"] == 5
+    # call_verified can never exceed the catalogue
+    assert 0 < coverage["actions_call_verified"] <= coverage["actions"]
+
+
+def test_openconnector_tidak_ditandai_executable_hanya_karena_metadata():
+    """A discovered action must not become 'executable' without a real call."""
+    mcp_registry.load_cached()
+    page = mcp_registry.list_servers(search="crossref", limit=5)
+    assert page["items"], "openconnector entries must be searchable"
+    entry = mcp_registry.get_server(page["items"][0]["id"])
+    assert entry["source"] == "openconnector"
+    assert entry["install_config"]["transport"] == "mcp-meta-layer"
+    unverified = [t for t in entry["tools"] if not t["call_verified"]]
+    if unverified:
+        assert entry["install_config"]["transport"] not in {"stdio", "http", "sse"}
+
+
 def test_catalog_menolak_pagination_tidak_aman():
     import pytest
     with pytest.raises(ValueError):
