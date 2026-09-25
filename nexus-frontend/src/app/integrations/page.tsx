@@ -37,7 +37,7 @@ const TABS = [
   { key: "", label: "All", note: "Gabungan semua sumber di katalog." },
   { key: "native", label: "Native MCP", note: "Provider yang benar-benar berjalan di produksi — dihitung dari kode, bukan klaim marketing." },
   { key: "openconnector", label: "OpenConnector", note: "18.010 actions dijangkau lewat 5 meta-tool MCP (list_apps, list_connections, search_actions, get_action_guide, execute_action)." },
-  { key: "composio", label: "Composio", note: "Toolkit Composio.OAuth dikunci per user, jadi sebagian besar butuh koneksi akun lebih dulu." },
+  { key: "composio", label: "Composio", note: "Toolkit Composio. OAuth dikunci per user, jadi sebagian besar butuh koneksi akun lebih dulu." },
   { key: "glama", label: "Glama", note: "Server direktori + konektor MCP remote. 28 konektor terverifikasi live lewat initialize + tools/list." },
   { key: "toolsdk", label: "ToolSDK", note: "Katalog metadata saja — tidak ada verifikasi runtime untuk entri ini." },
 ] as const;
