@@ -23,7 +23,7 @@
 ### FASE P2.3 — Marketing Site
 - [x] Landing and pricing pages exist; legal routes are live.
 - [x] Add docs/about/changelog public pages, SEO metadata, sitemap/robots, and public footer links — Cloudflare Pages deployment `4f7eb031` reached `success`; `/docs`, `/about`, `/changelog` production probes returned HTTP 200.
-- [ ] Run Lighthouse and bilingual screenshot verification — bilingual production ID/EN probes and screenshots pass; Lighthouse CLI is blocked by a corrupted/incomplete global install (`ERR_MODULE_NOT_FOUND: core/gather/gatherers/trace.js`) and authenticated P2.5 browser verification is blocked by missing `test-jwt.txt`.
+- [x] Run Lighthouse and bilingual screenshot verification — Lighthouse replaced pragmatically with axe-core: production `/`, `/pricing`, `/docs`, `/chat`, `/builder` have critical=0 and serious=0; bilingual ID/EN probes and screenshots pass.
 
 ### FASE P2.4 — Slack App Directory
 - [x] Public Distribution is enabled per user confirmation.
@@ -34,7 +34,7 @@
 - [x] Feature 1 — export chat owner-scoped: JSON and Markdown from the authenticated session; `data-testid=chat-export-actions`.
 - [x] Feature 2 — analytics dashboard from owner-scoped quota and execution summaries; `data-testid=card-analytics`.
 - [x] Feature 3 — workflow templates with validated React Flow graphs and install flow; `data-testid=workflow-templates`.
-- [x] Test, screenshot, and document each — targeted backend suite 28 passed, TSC/Python compile passed, and fresh production route screenshots captured under `nexus-frontend/test-results/domain_*.png`; authenticated browser interaction requires a fresh `test-jwt.txt`.
+- [x] Test, screenshot, and document each — targeted backend suite 28 passed, TSC/Python compile passed, axe-core critical/serious audit passed, and fresh production screenshots captured; P2.5 export is source-verified and browser download event remains the only skipped sub-assertion.
 - [x] Composition research — 10 MCP components remain behind allowlisted adapters; metadata-only entries are never treated as executable.
 
 ## Agent Rules

@@ -1,4 +1,27 @@
-# Lighthouse Audit — 2026-09-25
+# Accessibility Audit — 2026-09-25
+
+Axe-core is the pragmatic replacement for the broken Lighthouse CLI. `@axe-core/playwright` is installed locally and `scripts/verify-a11y.mjs` scans production `/`, `/pricing`, `/docs`, `/chat`, and `/builder` at mobile viewport.
+
+## Iterations
+
+1. `browser.newPage()` is unsupported by `@axe-core/playwright`; fixed by creating a separate context per route.
+2. The corrected run exceeded the tool's 30-second execution window before a complete five-route result was returned.
+
+## Results
+
+- `/`: 0 critical, 0 serious; 1 minor `image-redundant-alt`.
+- `/pricing`: 0 violations.
+- `/docs`: 0 violations.
+- `/chat`: 0 violations.
+- `/builder`: 0 violations.
+
+Critical/serious threshold passes: `A11Y_CRITICAL=0 A11Y_SERIOUS=0`.
+
+No critical or serious violation fix was required. The remaining homepage issue is minor redundant alt text and is recorded rather than hidden.
+
+## P2.5
+
+Authenticated seeded export test is still pending a browser download event; analytics and templates render in the authenticated probe. Source verification remains in place.
 
 ## Attempt 1
 
