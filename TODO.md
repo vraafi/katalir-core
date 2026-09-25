@@ -4,6 +4,7 @@
 - Level 3 E2E: lulus; production live di `katalir.de5.net`.
 - UI/UX Overhaul: FASE 0-6 selesai.
 - MCP Federation: FASE C selesai; gateway VPS/named tunnel hidup, production E2E health=401 (auth), servers=39, call=datetime.
+- Composition research: 10 komponen MCP dipilih dengan boundary adapter/license; registry metadata tidak boleh dieksekusi otomatis.
 
 ## FASE C — MCP Gateway
 - [x] C1: Research agentgateway + registry
@@ -13,7 +14,8 @@
 - [x] C2.22: DONE — VPS/named tunnel documented in `docs/architecture/mcp-gateway-vps.md`; deploy/rollback/runbook added.
 - [x] C3: MCP SDK client refactor
 - [x] C7: Registry → gateway coverage test — `/mcp/registry/coverage` distinguishes metadata-only vs executable; 4548 total catalog metadata, executable transport=0 because ToolSDK entries are metadata-only.
-- [ ] C8: Production verify
+- [x] C8: Production verify — authenticated servers=200/39, call=200/datetime, unauth health=401 expected; named gateway stable.
+- [x] Composition research — 10 components documented in `docs/architecture/leapfrog-research.md`; execution remains allowlisted.
 
 ## FASE D — Multi-Tenant
 - [x] Schema `user_mcp_instances` — SQL migration with per-user RLS created.
