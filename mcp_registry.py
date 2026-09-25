@@ -58,6 +58,16 @@ def executable_servers():
     """
     return [x for x in load_cached().values() if x.get('install_config', {}).get('transport') in {'stdio','http','sse'}]
 
+def executable_candidates():
+    """Filter entries with enough runtime evidence for a batch test."""
+    out = []
+    for key, item in load_cached().items():
+        cfg = item.get('install_config') or {}
+        method = cfg.get('install_method') or cfg.get('method')
+        if method in {'npm', 'python', 'docker'} and cfg.get('package') and item.get('tools') and not cfg.get('requires_credentials'):
+            out.append({'id': key, 'install_method': method, 'package': cfg['package']})
+    return out
+
 def coverage():
     items = list(load_cached().values())
     return {'total': len(items), 'executable': len(executable_servers()), 'metadata_only': len(items) - len(executable_servers())}

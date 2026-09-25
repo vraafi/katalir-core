@@ -99,6 +99,17 @@ BLOCKED hanya valid untuk: user action (login/approve/bayar), keputusan keamanan
 - Slack Directory submit memerlukan user submit form dan review eksternal.
 - Marketing/site work dapat dilakukan otonom; fitur P2.5 harus dipilih berdasarkan evidence.
 
-## User Action Template
+## Gotcha: Marketing Claim ≠ Runtime Reality
+- "500+ integrations" = metadata available.
+- "X verified executable" = tested + working.
+- JANGAN klaim "500+ working" tanpa batch test.
+- Batch test: filter executable kandidat → install di gateway → test MCP initialize + list_tools.
+- Success rate realistis: 10-30% dari metadata.
+- Update marketing copy dengan angka nyata + qualifier.
+
+## Gotcha: ToolSDK package-list tidak membawa install method
+- 4.548 metadata lokal saat ini hanya memiliki `install_config.transport=metadata-only`, bukan `install_method` npm/python/docker.
+- Filter batch yang jujur dapat menghasilkan 0 kandidat; itu bukan error filter, tetapi bukti schema metadata tidak cukup untuk instalasi.
+- Jangan mengarang transport atau menjalankan package registry hanya dari nama/id. Tambahkan manifest runtime terpisah dengan digest, method, image/package, permissions, dan health proof.
 `USER ACTION: <aksi> di <tempat> (<estimasi waktu>)`
 

@@ -29,7 +29,7 @@ Accessed 25 September 2026. This is a composition contract, not a code dump: Kat
 
 ## Implemented Katalir composition
 
-- `mcp_registry.py`: normalized metadata catalog plus coverage/recommendation API.
+- `mcp_registry.py`: normalized metadata catalog plus coverage/recommendation API; `executable_candidates()` is the honest batch-test filter and currently returns zero for ToolSDK metadata lacking runtime manifests.
 - `mcp_gateway/client.py`: MCP Streamable HTTP SDK client and raw initialize health probe.
 - `mcp_gateway/policy.py`: transport allowlist and SSRF guard.
 - `api_server.py`: authenticated gateway proxy, tenant install lifecycle, recommendations, coverage.

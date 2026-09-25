@@ -19,3 +19,5 @@ MCP Gateway health uses a raw initialize probe with a five-second timeout. Produ
 
 ## Known tenant boundary
 Metadata registry is catalog-only. Runtime instance isolation is implemented in the API with a per-user in-memory store and the Supabase migration `schema/user_mcp_instances.sql`; apply the migration before relying on cross-process persistence.
+- Batch evidence 2026-09-25: 4,548 metadata inspected; executable candidates = 0 because ToolSDK package-list has no `install_method` runtime manifest. No batch install was attempted. Runtime verified baseline remains 5 targets / 39 tools.
+

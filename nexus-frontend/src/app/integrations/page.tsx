@@ -9,7 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { apiFetch } from "@/lib/api";
 
-type Server = { id: string; name: string; category: string; description: string; tools?: { name: string }[]; install_config?: { transport?: string } };
+type Server = { id: string; name: string; category: string; description: string; tools?: { name: string }[]; install_config?: { transport?: string; package?: string } };
 
 export default function IntegrationsPage() {
   const [search, setSearch] = useState("");
@@ -59,7 +59,7 @@ export default function IntegrationsPage() {
       </div>
       {!items.length && !error && <div className="rounded-xl border border-dashed border-border p-8 text-center text-sm text-fg-muted">Belum ada hasil. Coba kata kunci lain.</div>}
       <Link href="/my-integrations" className="text-sm text-primary hover:underline">Kelola integrasi saya →</Link>
-      <p className="text-xs text-fg-subtle">Total katalog: {total}. Metadata belum tentu berarti server runtime tervalidasi.</p>
+      <p className="text-xs text-fg-subtle">4.548 metadata katalog · 5 runtime target terverifikasi · 39 tools. Metadata belum berarti server executable; batch test memerlukan manifest runtime.</p>
     </div>
   </SimplePage>;
 }
