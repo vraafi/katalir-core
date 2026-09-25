@@ -18,6 +18,6 @@ Accessed 25 September 2026. Official source: https://api.slack.com/start/distrib
 - Verified redirect URI in Slack OAuth settings.
 - Test install in a clean workspace and capture the result.
 
-## User action
+- Slack official distribution guidance (accessed 2026-09-25) is dashboard/form-based; no documented API for submitting the App Directory application or submitting external review was found. Keep the public-distribution config and screenshots ready for the user submission.
 
 Submit the App Directory form in Slack and complete any review requests. Typical review is several business days; the timeline is controlled by Slack and cannot be enabled by application code.

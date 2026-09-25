@@ -23,7 +23,7 @@
 ### FASE P2.3 — Marketing Site
 - [x] Landing and pricing pages exist; legal routes are live.
 - [x] Add docs/about/changelog public pages, SEO metadata, sitemap/robots, and public footer links — Cloudflare Pages deployment `4f7eb031` reached `success`; `/docs`, `/about`, `/changelog` production probes returned HTTP 200.
-- [x] Run Lighthouse and bilingual screenshot verification — production route probes and fresh screenshots captured; bilingual UI regression remains a separate final check.
+- [ ] Run Lighthouse and bilingual screenshot verification — route probes and screenshots are complete; Lighthouse and full bilingual regression are not yet independently verified.
 
 ### FASE P2.4 — Slack App Directory
 - [x] Public Distribution is enabled per user confirmation.

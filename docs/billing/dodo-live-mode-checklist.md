@@ -10,7 +10,7 @@ Accessed 25 September 2026. Official source: https://docs.dodopayments.com/
 - Dodo webhook tests pass 14/14, including spoof rejection, idempotency, tier upgrade, refund, and DB-failure retry.
 - `/billing` Plus CTA now points to the billing flow and pricing displays `$299/year`.
 
-## User action
+- Dodo official docs (accessed 2026-09-25) confirm product setup, account verification, dashboard checkout links, and environment setup are dashboard/account operations. No documented API was found that safely enables merchant verification or switches live mode; application code must not do this automatically.
 
 1. Log in to the Dodo dashboard.
 2. Complete merchant identity/business verification.
