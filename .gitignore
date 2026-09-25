@@ -85,3 +85,7 @@ _*.ps1
 _reference/
 # Backup data user (docs/audit/backups) — berisi isi workflow, JANGAN di-commit
 docs/audit/backups/
+
+# Temporary test JWT
+test-jwt.txt
+
