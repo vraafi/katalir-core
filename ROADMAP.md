@@ -39,7 +39,7 @@
 
 ## Katalir v2 — 7-Repo Composition (target: 1,000+ runtime integrations)
 - [x] Phase 1 research — 7 repos evaluated in `docs/architecture/katalir-v2-composition.md`; licenses and integration boundaries recorded.
-- [!] Phase 2 Composio runtime sync — blocked: `COMPOSIO_API_KEY` missing in `.env`. USER ACTION: create a Composio API key at composio.dev and add `COMPOSIO_API_KEY` to `.env`.
+- [!] Phase 2 Composio runtime sync — blocked: `COMPOSIO_API_KEY` is present but the Composio API returns HTTP 401 for `GET https://backend.composio.dev/api/v3.1/toolkits` and v3 `GET /toolkits`. USER ACTION: regenerate a valid project API key at dashboard.composio.dev and update `COMPOSIO_API_KEY` in `.env`.
 - [ ] Phase 3 LangGraph — deferred until shadow-run comparison with `execution_engine.py` exists.
 - [ ] Phase 4 agentgateway Composio backend — depends on Phase 2.
 - [x] Phase 5 NL→workflow — existing validated `generate_workflow_json` + `workflow_spec.py` covers the LoomFlow pattern; no new dependency added.

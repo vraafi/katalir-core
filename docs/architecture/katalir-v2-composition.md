@@ -42,7 +42,17 @@ The "1000+ integrations" target is therefore **not yet achieved** and must not b
 ## Phase status (25 September 2026)
 
 - Phase 1 research: complete (this document).
-- Phase 2 Composio: blocked on `COMPOSIO_API_KEY`; SDK/source work not started to avoid a fake integration.
+## Composio key verification (25 September 2026)
+
+`COMPOSIO_API_KEY` is present in `.env`, but live non-destructive verification failed:
+
+- `GET https://backend.composio.dev/api/v3.1/toolkits?limit=5` → HTTP 401
+- `GET https://backend.composio.dev/api/v3/toolkits?limit=1` → HTTP 401
+- `GET https://backend.composio.dev/api/v3.1/toolkits/categories` → HTTP 401
+
+The current key length is only 23 characters. No toolkit sync, tool listing, or tool call was attempted, and no Composio backend was added to agentgateway. The SDK was not installed because a valid key is required before any runtime claim can be tested.
+
+Next action: regenerate the project API key in the Composio dashboard and update `COMPOSIO_API_KEY`.
 - Phase 3 LangGraph: evaluated as optional adapter; production engine deliberately not replaced without shadow-run evidence.
 - Phase 4 agentgateway: existing verified runtime kept; Composio backend cannot be configured without Composio credentials.
 - Phase 5 NL→workflow: Katalir already has a validated `generate_workflow_json` tool and `workflow_spec.py`; LoomFlow is a pattern reference, not a required dependency.
