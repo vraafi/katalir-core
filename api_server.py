@@ -1483,6 +1483,86 @@ def mcp_native():
     return {"items": items, "total": len(items), "source": "native"}
 
 
+class CommunitySubmission(BaseModel):
+    name: str
+    source_url: str
+    description: str = ""
+    manifest: dict
+
+
+def _community_unavailable() -> HTTPException:
+    """The community tables are not deployed yet.
+
+    Failing closed keeps the marketplace honest: a browse endpoint that
+    silently returns an empty list would look like "no community integrations
+    exist" rather than "the feature is off", which is exactly the kind of quiet
+    dishonesty this project keeps trying to avoid.
+    """
+    return HTTPException(503, "community tables not deployed; apply docs/architecture/community-platform.sql")
+
+
+@app.post("/community/submit")
+def community_submit(req: CommunitySubmission, authorization: str | None = Header(None)):
+    """Submit an integration manifest for review. Pending is not approved."""
+    user = security.get_current_user(authorization)
+    if not req.name.strip() or not req.source_url.strip():
+        raise HTTPException(400, "name and source_url are required")
+    if not isinstance(req.manifest, dict) or not req.manifest.get("tools"):
+        raise HTTPException(400, "manifest must be an object containing a 'tools' list")
+    import database as db
+
+    developer_id = user.get("id") or user.get("user_id") or user.get("email")
+    try:
+        row_id = db.submit_community_integration(
+            developer_id=developer_id,
+            name=req.name.strip(),
+            source_url=req.source_url.strip(),
+            description=req.description.strip()[:1000],
+            manifest=req.manifest,
+        )
+    except Exception as exc:  # noqa: BLE001
+        raise _community_unavailable() from exc
+    return {"status": "pending", "id": row_id, "note": "pending review; not verified"}
+
+
+@app.get("/community/browse")
+def community_browse(limit: int = 25):
+    """Approved submissions only - never pending or rejected ones."""
+    import database as db
+
+    try:
+        rows = db.list_community_integrations(status="approved", limit=min(max(limit, 1), 100))
+    except Exception as exc:  # noqa: BLE001
+        raise _community_unavailable() from exc
+    return {"items": rows, "total": len(rows), "status_filter": "approved"}
+
+
+@app.get("/community/review")
+def community_review(authorization: str | None = Header(None)):
+    """Queue of pending submissions for moderation."""
+    security.get_current_user(authorization)
+    import database as db
+
+    try:
+        rows = db.list_pending_community_integrations(limit=50)
+    except Exception as exc:  # noqa: BLE001
+        raise _community_unavailable() from exc
+    return {"items": rows, "total": len(rows)}
+
+
+@app.get("/community/my-earnings")
+def community_my_earnings(authorization: str | None = Header(None)):
+    user = security.get_current_user(authorization)
+    import database as db
+
+    developer_id = user.get("id") or user.get("user_id") or user.get("email")
+    try:
+        rows = db.list_community_earnings(developer_id)
+    except Exception as exc:  # noqa: BLE001
+        raise _community_unavailable() from exc
+    return {"items": rows, "total_usd": sum(float(r.get("amount_usd") or 0) for r in rows)}
+
+
 @app.get("/mcp/registry/sources")
 def mcp_registry_sources():
     """Per-source counts plus the Glama credit the UI must render.

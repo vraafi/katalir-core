@@ -593,6 +593,70 @@ def delete_integration(email, provider_name):
     _LINT.pop((email, provider_name), None)
 
 
+
+
+# ---------------------------------------------------------------------------
+# Community contribution platform
+# ---------------------------------------------------------------------------
+# Submissions are untrusted until executed, so the status column gates every
+# read path and nothing here defaults to "working". The API layer maps a missing
+# table to 503 rather than an empty list, so "not deployed" can never be
+# mistaken for "nothing exists yet".
+
+
+def _community_client():
+    return _get_write_client()
+
+
+def submit_community_integration(developer_id, name, source_url, description, manifest):
+    """Insert a submission with status=pending. Returns the created row id."""
+    client = _community_client()
+    res = (
+        client.table("community_integrations")
+        .insert(
+            {
+                "developer_id": developer_id,
+                "name": name,
+                "source_url": source_url,
+                "description": description or "",
+                "manifest": manifest,
+                "status": "pending",
+            }
+        )
+        .execute()
+    )
+    rows = getattr(res, "data", None) or []
+    return rows[0].get("id") if rows else None
+
+
+def list_community_integrations(status="approved", limit=25):
+    """List submissions filtered by moderation status (approved for public reads)."""
+    client = _community_client()
+    query = client.table("community_integrations").select(
+        "id,name,source_url,description,tested_at,install_count,status"
+    )
+    if status:
+        query = query.eq("status", status)
+    res = query.order("install_count", desc=True).limit(limit).execute()
+    return getattr(res, "data", None) or []
+
+
+def list_pending_community_integrations(limit=50):
+    return list_community_integrations(status="pending", limit=limit)
+
+
+def list_community_earnings(developer_id, limit=24):
+    client = _community_client()
+    res = (
+        client.table("community_earnings")
+        .select("integration_id,amount_usd,period_start,period_end,paid_at")
+        .eq("developer_id", developer_id)
+        .order("period_start", desc=True)
+        .limit(limit)
+        .execute()
+    )
+    return getattr(res, "data", None) or []
+
 # ---- ZERO-KNOWLEDGE VAULT (user_vault) ----
 def vault_save(email: str, provider: str, encrypted_key: str) -> bool:
     """Upsert ciphertext key tauluun user_vault (PK: email+provider)."""
