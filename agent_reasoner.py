@@ -232,7 +232,7 @@ async def run_agent(
             ),
         }
 
-    locked_prompt = f"{system_prompt}\n\n{LANGUAGE_LOCK}"
+    locked_prompt = f"{system_prompt}\n\n{LANGUAGE_LOCK}\n\nMCP_PICKER_RULE: Jika pengguna menyebut kebutuhan integrasi eksternal, gunakan registry metadata untuk menyaring 3-5 kandidat MCP yang paling relevan. Jangan mengarang server. Nyatakan kandidat sebagai rekomendasi dan minta konfirmasi sebelum instalasi."
     user_context = (
         user_input.get("context")
         if isinstance(user_input, dict)

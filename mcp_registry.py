@@ -32,3 +32,9 @@ def get_server(server_id):
  x=load_cached().get(server_id)
  if not x:raise KeyError(server_id)
  return x
+
+def recommend_servers(query: str, limit: int = 5):
+    """Return catalog matches for the AI integration picker; metadata only."""
+    q=(query or '').strip()
+    result=list_servers(page=1,limit=min(max(int(limit),1),20),search=q)
+    return result['items']
