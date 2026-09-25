@@ -50,9 +50,12 @@ The "1000+ integrations" target is therefore **not yet achieved** and must not b
 - `GET https://backend.composio.dev/api/v3/toolkits?limit=1` → HTTP 401
 - `GET https://backend.composio.dev/api/v3.1/toolkits/categories` → HTTP 401
 
-The current key length is only 23 characters. No toolkit sync, tool listing, or tool call was attempted, and no Composio backend was added to agentgateway. The SDK was not installed because a valid key is required before any runtime claim can be tested.
+The key present in `.env` is the workspace **Consumer API Key** shown at `dashboard.composio.dev/.../connect/settings/sessions` (format `ck_...`, header `x-consumer-api-key`). It authenticates MCP clients for the user's own account. Katalir needs the separate **Project API Key** (header `x-api-key`) for backend toolkit/tool APIs. Verification with the consumer key:
 
-Next action: regenerate the project API key in the Composio dashboard and update `COMPOSIO_API_KEY`.
+- `GET /api/v3.1/toolkits` + `x-api-key` → 401
+- `GET /api/v3.1/toolkits` + `x-consumer-api-key` → 401
+
+Correct next action: create a project key at `dashboard.composio.dev/~/project/settings/api-keys` and put it in `COMPOSIO_API_KEY`. The consumer key can later be used for an MCP client path (`x-consumer-api-key`), not for the backend toolkit sync.
 - Phase 3 LangGraph: evaluated as optional adapter; production engine deliberately not replaced without shadow-run evidence.
 - Phase 4 agentgateway: existing verified runtime kept; Composio backend cannot be configured without Composio credentials.
 - Phase 5 NL→workflow: Katalir already has a validated `generate_workflow_json` tool and `workflow_spec.py`; LoomFlow is a pattern reference, not a required dependency.
