@@ -10,17 +10,15 @@
 - [x] C2.1-C2.15: VPS + 5/5 server + 39 tools + call
 - [x] C2.16: Named tunnel dibuat; CNAME manual selesai
 - [x] C2.21: DONE — authenticated servers=200/39 tools; call=200/datetime; unauthenticated health=401 proves auth gate and new deployment.
-- [x] C2.21: DONE — authenticated servers=200/39 tools; call=200/datetime; unauthenticated health=401 proves auth gate and new deployment.
 - [x] C2.22: DONE — VPS/named tunnel documented in `docs/architecture/mcp-gateway-vps.md`; deploy/rollback/runbook added.
-- [ ] C2.22: Dokumentasi final VPS/named tunnel
 - [x] C3: MCP SDK client refactor
 - [ ] C7: Registry → gateway coverage test
 - [ ] C8: Production verify
 
 ## FASE D — Multi-Tenant
-- [ ] Schema `user_mcp_instances`
-- [ ] Endpoint `/mcp/install`, `/mcp/uninstall`
-- [ ] Tenant isolation test
+- [x] Schema `user_mcp_instances` — SQL migration with per-user RLS created.
+- [x] Endpoint `/mcp/install`, `/mcp/uninstall`, `/mcp/my-instances` — auth-gated.
+- [x] Tenant isolation test — user A install/list/uninstall cannot affect user B.
 
 ## FASE E — AI Integration Picker
 - [ ] System prompt registry search
