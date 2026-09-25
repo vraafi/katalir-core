@@ -218,6 +218,24 @@ kredensial, `CLOSED` = sudah dieksekusi dan diverifikasi.
 
 
 - **Status:** CLOSED
+
+---
+
+## 2026-09-25 — Tab "Native" di UI sebenarnya berisi katalog ToolSDK
+
+- **Status:** OPEN (menunggu keputusan user)
+- **Keluhan:** Spesifikasi meminta tab `All / Native / OpenConnector / Composio / Glama`.
+  Tab "Native" diimplementasikan sebagai bucket sumber `toolsdk`, yaitu
+  **4.416 entri metadata ToolSDK** — bukan 5 target MCP native yang benar-benar
+  berjalan (those are agentgateway targets, tracked separately).
+- **Dampak:**User bisa membaca "Native" dan mengira 4.416 entri itu sudah
+  bisa dijalankan. Padahal semuanya `transport: metadata-only`.
+- **Mengapa tidak langsung saya ubah:** nama tab itu berasal dari spesifikasi
+  eksplisit, jadi mengganti label adalah keputusan produk, bukan perbaikan bug.
+- **Opsi:** (a) ganti label jadi "ToolSDK", (b) ganti jadi "Native (metadata)",
+  (c) buat tab Native khusus berisi 5 target native yang menjalankan, dan pindahkan
+  ToolSDK ke tab sendiri. Opsi (c) paling jujur tapi menambah satu tab.
+
 - **Keluhan:** Sync pertama melaporkan `CREDENTIAL_FREE=13840` dari heuristik
   `requiredScopes == [] and providerPermissions == []`. Angka itu **menipu**:
   13.840 action itu tetap butuh API key atau OAuth. Kalau dipakai untuk klaim
