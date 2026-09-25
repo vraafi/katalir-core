@@ -26,9 +26,9 @@
 - [ ] Auto-config flow — requires explicit install confirmation and credential/config UX.
 
 ## FASE F — Marketplace UI
-- [ ] `/integrations`
-- [ ] `/integrations/[slug]`
-- [ ] `/my-integrations`
+- [x] `/integrations` — searchable/paginated registry UI; metadata/runtime boundary shown.
+- [x] `/integrations/[slug]` — detail with tools, transport, install confirmation.
+- [x] `/my-integrations` — list/uninstall tenant instances.
 
 ## FASE G — Expose Katalir as MCP Server
 - [ ] Workflow → MCP tool
