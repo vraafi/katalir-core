@@ -9,7 +9,7 @@
 - [x] C1: Research agentgateway + registry
 - [x] C2.1-C2.15: VPS + 5/5 server + 39 tools + call
 - [x] C2.16: Named tunnel dibuat; CNAME manual selesai
-- [!] C2.21: PARTIAL E2E — Railway production returns `/mcp/gateway/health=500`, but authenticated `/mcp/gateway/servers=200` with 39 tools and `/mcp/gateway/call=200` with datetime result. Health handler still needs isolated fix; JWT fixture `test-jwt.txt.txt` was deleted after test.
+- [!] C2.21: PARTIAL — raw health probe implemented and pushed in `27ce413`; Railway now returns 401 for unauthenticated health (expected auth gate), while authenticated servers=39 and call=datetime were previously verified. Authenticated health re-test pending fresh `test-jwt.txt`.
 - [ ] C2.22: Dokumentasi final VPS/named tunnel
 - [x] C3: MCP SDK client refactor
 - [ ] C7: Registry → gateway coverage test
