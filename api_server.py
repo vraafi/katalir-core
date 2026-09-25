@@ -1323,8 +1323,10 @@ def list_models(authorization: str | None = Header(None)):
 class MCPInstanceRequest(BaseModel):
     mcp_id: str
     config: dict[str, Any] = Field(default_factory=dict)
+    confirmed: bool = False
 
 _MCP_INSTANCES: dict[str, dict[str, dict[str, Any]]] = {}
+_EXECUTABLE_MCP_IDS = {"everything", "fetch", "memory", "filesystem", "time"}
 
 def _mcp_key(authorization: str | None) -> str:
     user = security.get_current_user(authorization)
@@ -1343,6 +1345,10 @@ def mcp_install(req: MCPInstanceRequest, authorization: str | None = Header(None
     user_id = _mcp_key(authorization)
     if not req.mcp_id.strip():
         raise HTTPException(422, "mcp_id wajib")
+    if not req.confirmed:
+        raise HTTPException(409, "Instalasi memerlukan konfirmasi eksplisit")
+    if req.mcp_id.strip() not in _EXECUTABLE_MCP_IDS:
+        raise HTTPException(422, "Server metadata-only belum tervalidasi untuk instalasi")
     row = {"mcp_id": req.mcp_id.strip(), "config": req.config, "status": "active"}
     _MCP_INSTANCES.setdefault(user_id, {})[row["mcp_id"]] = row
     return {"instance": row}

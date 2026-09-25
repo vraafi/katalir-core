@@ -25,7 +25,7 @@
 ## FASE E — AI Integration Picker
 - [x] System prompt registry search — MCP picker rule added; no invented servers.
 - [x] Rekomendasi MCP di chat — `/mcp/recommendations?q=...&limit=5` backed by registry metadata.
-- [ ] Auto-config flow — requires explicit install confirmation and credential/config UX.
+- [x] Auto-config flow — explicit confirmation, allowlisted executable IDs, metadata-only install rejected (409/422), tenant install lifecycle tested.
 
 ## FASE F — Marketplace UI
 - [x] `/integrations` — searchable/paginated registry UI; metadata/runtime boundary shown.

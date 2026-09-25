@@ -17,6 +17,20 @@ export default function IntegrationsPage() {
   const [total, setTotal] = useState(0);
   const [status, setStatus] = useState<string>("Memuat registry…");
   const [error, setError] = useState<string | null>(null);
+  const [installing, setInstalling] = useState<string | null>(null);
+
+  async function install(item: Server) {
+    const runtimeReady = item.install_config?.transport === "stdio" || item.install_config?.transport === "http" || item.install_config?.transport === "sse" || ["everything", "fetch", "memory", "filesystem", "time"].includes(item.id);
+    if (!runtimeReady) { setError(`${item.name} masih metadata-only dan belum bisa dipasang otomatis.`); return; }
+    if (!window.confirm(`Pasang ${item.name}? Anda dapat mengaturnya setelah dipasang.`)) return;
+    setInstalling(item.id); setError(null);
+    try {
+      const r = await apiFetch("/mcp/install", { method: "POST", body: JSON.stringify({ mcp_id: item.id, config: {}, confirmed: true }), timeoutMs: 8000 });
+      if (!r.ok) throw new Error(`HTTP ${r.status}`);
+      setStatus(`${item.name} dipasang. Buka Integrasi saya untuk kelola.`);
+    } catch { setError(`Pemasangan ${item.name} gagal. Coba lagi.`); }
+    finally { setInstalling(null); }
+  }
 
   async function load(q = "") {
     setStatus("Memuat registry…"); setError(null);
@@ -40,7 +54,7 @@ export default function IntegrationsPage() {
       <div className="grid gap-3 sm:grid-cols-2">
         {items.map(item => <Card key={item.id} data-testid="integration-card">
           <CardHeader><CardTitle className="truncate">{item.name}</CardTitle><CardDescription>{item.category} · {item.tools?.length ?? 0} tools</CardDescription></CardHeader>
-          <CardContent className="flex flex-col gap-3"><p className="line-clamp-2 text-sm text-fg-muted">{item.description}</p><div className="flex gap-2"><Button size="sm" onClick={() => alert(`Pemasangan ${item.name} membutuhkan konfirmasi dan konfigurasi.`)} data-testid="integration-install"><Plus size={14}/> Pasang</Button><Button size="sm" variant="ghost" onClick={() => window.location.href = `/integrations/${encodeURIComponent(item.id)}`}><ExternalLink size={14}/> Detail</Button></div></CardContent>
+          <CardContent className="flex flex-col gap-3"><p className="line-clamp-2 text-sm text-fg-muted">{item.description}</p><div className="flex gap-2"><Button size="sm" onClick={() => install(item)} loading={installing === item.id} data-testid="integration-install"><Plus size={14}/> Pasang</Button><Button size="sm" variant="ghost" onClick={() => window.location.href = `/integrations/${encodeURIComponent(item.id)}`}><ExternalLink size={14}/> Detail</Button></div></CardContent>
         </Card>)}
       </div>
       {!items.length && !error && <div className="rounded-xl border border-dashed border-border p-8 text-center text-sm text-fg-muted">Belum ada hasil. Coba kata kunci lain.</div>}
