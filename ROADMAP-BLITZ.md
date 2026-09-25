@@ -38,11 +38,15 @@ are already in the catalogue - it is a *verification* problem.
 
 ## PHASE 3 (started early, independent of P2)
 
-- [x] **P3.1 Community platform code** — `docs/architecture/community-platform.sql`
-      + `POST /community/submit`, `GET /community/browse|review|my-earnings`, 5 tests.
-      Endpoints return 503 when the tables are absent so "not deployed" can never
-      read as "nothing exists". **DDL not applied to production** — creating tables
-      in the live project is a bigger step than adding columns.
+- [x] **P3.1 Community platform — DEPLOYED to production 2026-09-26.** Project
+      `qmukkphwaajzbqjrcvaz`, region `ap-southeast-1`. 2 tables created, RLS enabled
+      on both (`relrowsecurity = true`), 4 policies, 2 triggers. Live trigger tests:
+      earnings on a **pending** integration → rejected; on an **approved** one → accepted;
+      un-approving an integration that already has earnings → rejected. Verified
+      `community_integrations` = 0 rows before and after the test (cleaned up).
+      Connection note: the direct host `db.<ref>.supabase.co` is **IPv6-only**, so the
+      pooler `aws-0-ap-southeast-1.pooler.supabase.com` with user `postgres.<ref>` is
+      the working path from an IPv4 network.
 - [ ] P3.2 Community UI · [ ] P3.3 multi-protocol Executor · [ ] P3.4 batch test 100
 
 ## PHASE 2 — Unique Sources (SEA + Dev + Creator)

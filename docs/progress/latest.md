@@ -1,4 +1,4 @@
-﻿# Progress Katalir — Latest
+# Progress Katalir — Latest
 
 ## Phase 1.4 — Verify the existing pool [DONE 2026-09-26]
 - 420 Glama no-auth connectors probed read-only, sequential, 0.5s delay
@@ -20,6 +20,35 @@
 ## Phase 3.1 — Community platform [CODE DONE, DDL NOT APPLIED]
 - schema + 4 endpoints + 5 tests committed (de2d876)
 - production Supabase tables NOT created: that is a bigger step than adding columns
+
+## Phase 3.1 — Community platform [DEPLOYED 2026-09-26]
+
+Bug yang ditemukan user review dan sudah diperbaiki:
+- `alter table community_integrations add constraint ... foreign key (id) references community_integrations (id)`
+  adalah **no-op** — `id` sudah primary key, jadi constraint-nya mustahil dilanggar
+  dan tidak menegakkan apa pun soal `status`. Diganti trigger `check_integration_approved()`.
+- Ditambahkan `check_status_change_with_earnings()` karena trigger saja bisa dilewati:
+  approve -> catat earnings -> ubah status jadi 'rejected'.
+- RLS **tidak pernah diaktifkan** di versi pertama, padahal verifikasi mengharapkan
+  `relrowsecurity = true`. Sekarang RLS aktif di kedua tabel + 4 policy:
+  hanya `approved` yang bisa dibaca publik, developer hanya menulis barisnya sendiri,
+  dan tidak ada policy insert untuk earnings (hanya service role).
+
+Hasil apply ke produksi (`qmukkphwaajzbqjrcvaz`, region `ap-southeast-1`):
+```
+tables=2  rls_integrations=True  rls_earnings=True  policies=4
+triggers=[community_earnings_approved_check, community_integrations_status_guard]
+old_self_fk_still_present=False
+integrations_count=0  earnings_count=0
+```
+Uji trigger nyata (lalu dibersihkan, 0 baris sebelum & sesudah):
+1. earnings untuk integrasi **pending** -> ERROR "Cannot record earnings for non-approved integration" ✅
+2. earnings untuk integrasi **approved** -> OK ✅
+3. un-approve integrasi yang sudah punya earnings -> ERROR ✅
+4. `GET /community/browse` -> **200** `{"items":[],"total":0}` (sebelumnya 503) ✅
+
+Catatan koneksi: `db.<ref>.supabase.co` hanya punya **IPv6**, jadi dari jaringan IPv4
+harus lewat pooler `aws-0-ap-southeast-1.pooler.supabase.com` user `postgres.<ref>`.
 
 ## Blockers (need the user)
 1. `USER ACTION: create a valid secret key at https://app.nango.dev/settings and set NANGO_API_KEY`
