@@ -1447,6 +1447,42 @@ def mcp_registry(page: int = 1, limit: int = 50, search: str = "", category: str
         raise HTTPException(400, str(exc))
 
 
+@app.get("/mcp/native")
+def mcp_native():
+    """The natively executable providers, derived from provider_registry.
+
+    The count is computed from code, never hardcoded in the UI, so the
+    "Native" marketplace tab can never drift from what actually runs.
+
+    ``credential`` is empty only for providers that execute without any user
+    secret; that is what separates the Ready badge from Auth required.
+    """
+    import provider_registry as pr
+    items = []
+    for spec in pr.PROVIDERS.values():
+        items.append(
+            {
+                "id": f"native/{spec.name}",
+                "name": spec.name,
+                "summary": spec.summary,
+                "credential": spec.credential,
+                "needs_credential": bool(spec.credential),
+                "source": "native",
+                # Only providers that need no user secret are "Ready"; the rest
+                # run natively but are Auth required until the user connects.
+                "runtime_verified": not spec.credential,
+                "verification": {
+                    "discovered": True,
+                    "tools_listed": True,
+                    # executed in-process, but only called end to end with a
+                    # real credential, so it is not claimed as call_verified
+                    "call_verified": False,
+                },
+            }
+        )
+    return {"items": items, "total": len(items), "source": "native"}
+
+
 @app.get("/mcp/registry/sources")
 def mcp_registry_sources():
     """Per-source counts plus the Glama credit the UI must render.
@@ -1456,8 +1492,9 @@ def mcp_registry_sources():
     rather than letting the frontend invent one.
     """
     import mcp_registry as catalog
+    import provider_registry as pr
     return {
-        "sources": catalog.source_counts(),
+        "sources": {**catalog.source_counts(), "native": len(pr.PROVIDERS)},
         "coverage": catalog.coverage(),
         "attribution": {
             "glama": {

@@ -26,13 +26,20 @@ function badgeFor(item: Server): { label: string; cls: string; testid: string } 
   return { label: "Catalog", cls: "bg-fg-muted/15 text-fg-muted", testid: "badge-catalog" };
 }
 
-const SOURCE_LABEL: Record<string, string> = { glama: "Glama", "glama-connector": "Glama", composio: "Composio", openconnector: "OpenConnector", toolsdk: "Native" };
+const SOURCE_LABEL: Record<string, string> = { native: "Native MCP", glama: "Glama", "glama-connector": "Glama", composio: "Composio", openconnector: "OpenConnector", toolsdk: "ToolSDK" };
+
+/**
+ * Tabs are driven by real sources. "Native" is NOT the ToolSDK catalogue: it is
+ * the set of providers that actually execute in-process, counted by the backend
+ * from provider_registry, so the number can never drift from reality.
+ */
 const TABS = [
-  { key: "", label: "All" },
-  { key: "toolsdk", label: "Native" },
-  { key: "openconnector", label: "OpenConnector" },
-  { key: "composio", label: "Composio" },
-  { key: "glama", label: "Glama" },
+  { key: "", label: "All", note: "Gabungan semua sumber di katalog." },
+  { key: "native", label: "Native MCP", note: "Provider yang benar-benar berjalan di produksi — dihitung dari kode, bukan klaim marketing." },
+  { key: "openconnector", label: "OpenConnector", note: "18.010 actions dijangkau lewat 5 meta-tool MCP (list_apps, list_connections, search_actions, get_action_guide, execute_action)." },
+  { key: "composio", label: "Composio", note: "Toolkit Composio.OAuth dikunci per user, jadi sebagian besar butuh koneksi akun lebih dulu." },
+  { key: "glama", label: "Glama", note: "Server direktori + konektor MCP remote. 28 konektor terverifikasi live lewat initialize + tools/list." },
+  { key: "toolsdk", label: "ToolSDK", note: "Katalog metadata saja — tidak ada verifikasi runtime untuk entri ini." },
 ] as const;
 
 export default function IntegrationsPage() {
@@ -54,6 +61,8 @@ export default function IntegrationsPage() {
       setStatus(`${item.name} dibuka di Glama. Pasang langsung dari sana.`);
       return;
     }
+    // Native providers are already wired into the runtime; "Pasang" would be a lie.
+    if (item.source === "native") { setStatus(`${item.name} sudah aktif di runtime Katalir.`); return; }
     if (!runtimeReady) { setError(`${item.name} masih metadata-only dan belum bisa dipasang otomatis.`); return; }
     if (!window.confirm(`Pasang ${item.name}? Anda dapat mengaturnya setelah dipasang.`)) return;
     setInstalling(item.id); setError(null);
@@ -68,13 +77,29 @@ export default function IntegrationsPage() {
   async function load(q = "", source = tab) {
     setStatus("Memuat registry…"); setError(null);
     try {
-      const qs = new URLSearchParams({ limit: "50", search: q });
-      if (source) qs.set("source", source);
-      const r = await apiFetch(`/mcp/registry?${qs.toString()}`, { timeoutMs: 15000 });
-      if (!r.ok) throw new Error(`HTTP ${r.status}`);
-      const d = await r.json();
-      setItems(d.items ?? []); setTotal(d.total ?? 0); setStatus(`${d.items?.length ?? 0} dari ${d.total ?? 0} integrasi`);
-      if (d.sources) setSources(d.sources as Sources);
+      if (source === "native") {
+        const r = await apiFetch("/mcp/native", { timeoutMs: 15000 });
+        if (!r.ok) throw new Error(`HTTP ${r.status}`);
+        const d = await r.json();
+        const mapped: Server[] = (d.items ?? []).map((n: { id: string; name: string; summary: string; needs_credential: boolean; verification?: Server["verification"]; source: string }) => ({
+          id: n.id, name: n.name, category: "native", description: n.summary,
+          source: n.source, tools: [], tools_count: 1, no_auth: !n.needs_credential,
+          verification: n.verification, runtime_verified: !n.needs_credential,
+          install_config: { transport: "native" },
+        }));
+        setItems(mapped); setTotal(d.total ?? mapped.length);
+        setStatus(`${d.total ?? mapped.length} provider native berjalan`);
+      } else {
+        const qs = new URLSearchParams({ limit: "50", search: q });
+        if (source) qs.set("source", source);
+        const r = await apiFetch(`/mcp/registry?${qs.toString()}`, { timeoutMs: 15000 });
+        if (!r.ok) throw new Error(`HTTP ${r.status}`);
+        const d = await r.json();
+        setItems(d.items ?? []); setTotal(d.total ?? 0);
+        setStatus(`${d.items?.length ?? 0} dari ${d.total ?? 0} integrasi`);
+      }
+      const sr = await apiFetch("/mcp/registry/sources", { timeoutMs: 15000 });
+      if (sr.ok) setSources(((await sr.json()).sources ?? {}) as Sources);
     } catch { setError("Registry tidak dapat dimuat. Coba lagi."); setStatus("Gagal memuat registry"); }
   }
   useEffect(() => { void load("", ""); }, []);
@@ -97,6 +122,9 @@ export default function IntegrationsPage() {
           </button>;
         })}
       </div>
+      {TABS.filter(t => t.key === tab).map(t => (
+        <p key={t.key || "all"} className="rounded-lg border border-border bg-fg-muted/5 p-3 text-xs text-fg-muted" data-testid="tab-note">{t.note}</p>
+      ))}
       <p role="status" aria-live="polite" className="text-sm text-fg-muted">{status}</p>
       {error && <div role="alert" className="rounded-lg border border-danger/40 bg-danger/10 p-3 text-sm text-danger">{error}</div>}
       <div className="grid gap-3 sm:grid-cols-2">
@@ -114,7 +142,7 @@ export default function IntegrationsPage() {
       {!items.length && !error && <div className="rounded-xl border border-dashed border-border p-8 text-center text-sm text-fg-muted">Belum ada hasil. Coba kata kunci lain.</div>}
       <Link href="/my-integrations" className="text-sm text-primary hover:underline">Kelola integrasi saya →</Link>
       <div className="rounded-lg border border-border bg-fg-muted/5 p-3 text-xs text-fg-muted" data-testid="meta-layer-note">
-        <p><strong>18.010 actions OpenConnector</strong> dijangkau lewat 5 meta-tool MCP (list_apps, list_connections, search_actions, get_action_guide, execute_action) — bukan 18.010 tool terpisah.</p>
+        <p><strong>5 meta-tool OpenConnector</strong> menjangkau 18.010 actions — bukan 18.010 tool terpisah.</p>
         <p className="mt-1">{total.toLocaleString("id-ID")} entri katalog · 11 action OpenConnector call-verified · 28 konektor Glama terverifikasi runtime. Badge hanya menandai apa yang benar-benar diuji.</p>
       </div>
       {/* Kredit Glama: WAJIB di setiap halaman yang menampilkan data Glama

@@ -85,6 +85,15 @@
 ### Nango
 - [!] BLOCKED — RAM VPS (2,4 GB total, 931 MB free) tidak cukup untuk Postgres + Nango + Redis tanpa mematikan produksi. Butuh box 4 GB.
 
+## Native tab fix (Opsi 3) — selesai 2026-09-26
+- [x] Tab `/integrations` jadi **6**: All · Native MCP · OpenConnector · Composio · Glama · ToolSDK.
+- [x] Tab "Native" tidak lagi berisi katalog ToolSDK. Sekarang menampilkan provider yang benar-benar dieksekusi in-process, **dihitung server dari `provider_registry.PROVIDERS`** lewat `GET /mcp/native` — angkanya tidak pernah di-hardcode di UI.
+- [x] Angka aktual: **7 provider native** (telegram, slack, http, gmail, google_sheets, whatsapp, google_calendar), bukan 5. Hanya `http` yang tanpa kredensial → badge Ready; 6 sisanya Auth required. Angka 5 di spesifikasi tidak dipakai karena bertentangan dengan kode.
+- [x] Info card per tab (`data-testid="tab-note"`) menjelaskan apa arti tiap sumber.
+- [x] Badge 3 tingkat dipertahankan: Ready / Auth required / Catalog.
+- [x] Regression test: `tests/test_glama_registry.py` 7 passed — termasuk assert bahwa `/mcp/native` mengikuti `provider_registry` dan `runtime_verified` hanya true bila tidak butuh kredensial. Test ini langsung menangkap bug hardcode `runtime_verified: True` di endpoint.
+- [x] TSC EXIT=0, build EXIT=0, pytest 211 passed.
+
 ## Agent Rules
 - Search-first; no-surrender loop; test before DONE.
 - Commit per sub-task; update this roadmap each task.

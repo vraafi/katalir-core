@@ -223,64 +223,31 @@ kredensial, `CLOSED` = sudah dieksekusi dan diverifikasi.
 
 ## 2026-09-25 — Tab "Native" di UI sebenarnya berisi katalog ToolSDK
 
-- **Status:** OPEN (menunggu keputusan user)
-- **Keluhan:** Spesifikasi meminta tab `All / Native / OpenConnector / Composio / Glama`.
-  Tab "Native" diimplementasikan sebagai bucket sumber `toolsdk`, yaitu
-  **4.416 entri metadata ToolSDK** — bukan 5 target MCP native yang benar-benar
-  berjalan (those are agentgateway targets, tracked separately).
-- **Dampak:**User bisa membaca "Native" dan mengira 4.416 entri itu sudah
-  bisa dijalankan. Padahal semuanya `transport: metadata-only`.
-- **Mengapa tidak langsung saya ubah:** nama tab itu berasal dari spesifikasi
-  eksplisit, jadi mengganti label adalah keputusan produk, bukan perbaikan bug.
-- **Opsi:** (a) ganti label jadi "ToolSDK", (b) ganti jadi "Native (metadata)",
-  (c) buat tab Native khusus berisi 5 target native yang menjalankan, dan pindahkan
-  ToolSDK ke tab sendiri. Opsi (c) paling jujur tapi menambah satu tab.
-
-- **Keluhan:** Sync pertama melaporkan `CREDENTIAL_FREE=13840` dari heuristik
-  `requiredScopes == [] and providerPermissions == []`. Angka itu **menipu**:
-  13.840 action itu tetap butuh API key atau OAuth. Kalau dipakai untuk klaim
-  "13.840 no-credential integrations", itu sama dengan memalsukan bukti.
-- **Akar masalah:** OpenConnector punya field `execution` yang sudah menyatakan
-  kebenaran (`noAuthRunnable`, `requiredAuthTypes`, `locallyExecutable`, `catalogOnly`).
-  Heuristik homemade mengabaikannya.
-- **Angka sebenarnya setelah membaca `execution`:**
-  - `noAuthRunnable: true` → **170 action** (24 service)
-  - dari 170 itu, yang input schema-nya kosong → **19 action**
-  - `locallyExecutable: true` → 18.010, tapi itu bukan klaim runtime.
+- **Status:** CLOSED (Opsi 3 dipilih user, selesai 2026-09-26)
+- **Keluhan:** Tab "Native" diimplementasikan sebagai bucket sumber `toolsdk`, yaitu
+  **4.416 entri metadata ToolSDK** — bukan provider MCP native yang benar-benar
+  berjalan. User bisa mengira 4.416 entri itu sudah bisa dijalankan.
+- **Keputusan user:** Opsi 3 — pisahkan tab Native (yang berjalan) dari tab
+  ToolSDK (metadata katalog).
 - **Solusi yang dieksekusi:**
-  1. Skrip sync memakai `execution.noAuthRunnable` sebagai penentu, bukan tebakan.
-  2. `credential_free()` tetap ada tapi didokumentasikan eksplisit sebagai
-     "tidak ada scope", bukan "tanpa kredensial".
-  3. Batch test memakai kriteria `read + noAuthRunnable + no input` → 19 kandidat.
-- **Pelajaran:** kalau sumber data punya verdict sendiri, pakai verdict itu.
-  Heuristik hanya untuk hal yang benar-benar tidak dijawab sumber.
-
----
-
-## 2026-09-25 — Batch test 50 action tidak bisa jadi 50
-
-- **Status:** CLOSED (dibatasi, bukan gagal)
-- **Keluhan:** Rencana awal "uji 50 action no-credential" tidak bisa pursuit 50.
-- **Fakta:** hanya 19 action yang memenuhi `read + noAuthRunnable + input kosong`.
-  Memaksakan 50 berarti salah satu dari: mengarang argumen, memanggil API bertulis,
-  atau memakai kredensial milik orang lain. Ketiganya tidak dilakukan.
-- **Solusi:** jalankan 19 yang aman, hasilnya 11 `ok` / 4 `auth_required` /
-  3 `invalid_input` / 1 `no_connection` — semuanya hasil nyata, bukan noise.
-- **Pelajaran:** angka target yang tidak bisa dicapai dengan cara aman harus
-  diturunkan dan dijelaskan, bukan dipaksakan.
-
----
-
-## 2026-09-25 — Penulisan skrip terpotong (SyntaxError/NameError)
-
-- **Status:** CLOSED
-- **Keluhan:** Menulis `scripts/sync-openconnector.py` lewat beberapa operasi insert
-  menghasilkan file tidak valid: `SyntaxError` → `IndentationError` → `NameError:
-  credential_free is not defined`. Penyebabnya sisa blok lama di ekor file yang tidak
-  terhapus saat truncation.
-- **Dampak:** SESA pada skrip, tidak menyentuh produksi.
-- **Solusi:** `py_compile` dijadikan gerbang sebelum setiap upload ke VPS,
-  `credential_free()` dipulihkan, file dipangkas bersih, lalu idempotensi diuji:
-  dua kali sync menghasilkan md5 identik dan `DIFF_SERVICES 0`.
-- **Pelajaran:** kompilasi lokal dulu sebelum kirim ke server, dan selisih hash
-  dicari sampai habis, bukan dianggap kebetulan.
+  1. Endpoint baru `GET /mcp/native` mengembalikan `provider_registry.PROVIDERS`
+     apa adanya, lengkap dengan `needs_credential`. **Angka diturunkan dari kode**,
+     tidak pernah di-hardcode di UI — itu akar masalahnya.
+  2. `/integrations` sekarang 6 tab: All · Native MCP · OpenConnector · Composio ·
+     Glama · ToolSDK, masing-masing dengan info card (`tab-note`).
+  3. `GET /mcp/registry/sources` menambah key `native` agar count di UI sama
+     dengan kenyataan.
+  4. Regression test mengunci kontrak ini: `/mcp/native` harus sama dengan
+     `provider_registry`, dan `runtime_verified` hanya true bila provider tidak
+     butuh kredensial.
+- **Temuan sampingan (penting):** spesifikasi menyebut "Native MCP (5)", tapi kode
+  berisi **7** provider native: telegram, slack, http, gmail, google_sheets,
+  whatsapp, google_calendar. Angka 5 **tidak dipakai** karena bertentangan dengan
+  kode; hanya `http` yang benar-benar tanpa kredensial. Menyebut "5" akan menjadi
+  klaim palsu yang persis sama dengan masalah yang sedang diperbaiki.
+- **Bug yang tertangkap saat menulis test:** endpoint awalnya memakai
+  `runtime_verified: True` hardcode untuk semua provider, sehingga 6 dari 7
+  provider mendapat badge Ready padahal butuh kredensial. Assertion
+  `runtime_verified is (not needs_credential)` langsung menangkapnya.
+- **Pelajaran:** angka di spesifikasi tetap perlu diadu dengan kode. Kalau
+  berbeda, kodenya yang benar — dan selisihnya dicatat, bukan dihilangkan.

@@ -61,6 +61,43 @@ def test_konektor_hanya_tools_listed_bukan_call_verified():
         assert rec["verification"].get("call_verified") is not True
 
 
+def test_endpoint_native_diturunkan_dari_kode():
+    """The Native tab must reflect provider_registry, never a hardcoded number.
+
+    A hardcoded count is exactly how the "Native" tab came to mean the ToolSDK
+    catalogue; deriving it here keeps the UI honest by construction.
+    """
+    import provider_registry as pr
+    from fastapi.testclient import TestClient
+
+    import api_server
+
+    client = TestClient(api_server.app)
+    r = client.get("/mcp/native")
+    assert r.status_code == 200
+    body = r.json()
+    assert body["total"] == len(pr.PROVIDERS)
+    assert body["total"] >= 5
+    names = {i["name"] for i in body["items"]}
+    assert names == set(pr.PROVIDERS)
+    for item in body["items"]:
+        assert item["source"] == "native"
+        assert "call_verified" in item["verification"]
+    # only providers that need no secret may claim runtime_verified
+    for item in body["items"]:
+        assert item["runtime_verified"] is (not item["needs_credential"])
+
+
+def test_endpoint_sources_menyertakan_native():
+    from fastapi.testclient import TestClient
+
+    import api_server
+    import provider_registry as pr
+
+    body = TestClient(api_server.app).get("/mcp/registry/sources").json()
+    assert body["sources"]["native"] == len(pr.PROVIDERS)
+    assert body["attribution"]["glama"]["required"] is True
+
 def test_ssrf_guard_menolak_url_non_publik():
     import importlib.util
 
