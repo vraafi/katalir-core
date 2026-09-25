@@ -951,6 +951,31 @@ def update_execution_status(execution_id: str, status: str):
         _L_EXEC[execution_id]["status"] = status
 
 
+def execution_analytics(user_id: str, limit: int = 100) -> dict:
+    """Owner-scoped execution summary for the authenticated dashboard."""
+    if not is_configured():
+        return {"total": 0, "completed": 0, "error": 0, "pending": 0, "steps": 0, "recent": []}
+    try:
+        c = _get_write_client()
+        workflows = c.table("workflows").select("id").eq("user_id", user_id).execute().data or []
+        ids = [str(w.get("id")) for w in workflows if w.get("id")]
+        if not ids:
+            return {"total": 0, "completed": 0, "error": 0, "pending": 0, "steps": 0, "recent": []}
+        ex = c.table("executions").select("id,workflow_id,status,created_at").in_("workflow_id", ids).order("created_at", desc=True).limit(limit).execute().data or []
+        counts = {"completed": 0, "error": 0, "pending": 0}
+        for row in ex:
+            status = str(row.get("status") or "pending").lower()
+            if status in counts: counts[status] += 1
+        step_count = 0
+        for row in ex:
+            logs = c.table("execution_logs").select("id", count="exact").eq("execution_id", row.get("id")).execute()
+            step_count += int(getattr(logs, "count", 0) or 0)
+        return {"total": len(ex), **counts, "steps": step_count, "recent": ex[:10]}
+    except Exception as exc:
+        print(f"[database] execution_analytics gagal ({type(exc).__name__})")
+        return {"total": 0, "completed": 0, "error": 0, "pending": 0, "steps": 0, "recent": []}
+
+
 def get_execution(execution_id: str):
     """Obtiene el estado y logs de una ejecucion.
 

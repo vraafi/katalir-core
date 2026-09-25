@@ -1276,6 +1276,13 @@ def get_quota(authorization: str | None = Header(None)):
     return {"status": "success", "email": email, **st}
 
 
+@app.get("/analytics")
+def get_analytics(authorization: str | None = Header(None)):
+    """Authenticated, owner-scoped usage and workflow execution summary."""
+    user = security.get_current_user(authorization)
+    return {"status": "success", "quota": db.quota_status(user["email"], db.effective_tier((db.get_or_create_user(user["email"], "", auth_id=user.get("id")) or {}).get("tier", "free"))), "executions": db.execution_analytics(user["id"])}
+
+
 # ---------------------------------------------------------------------------
 # ENDPOINT 1b: GET /models  (daftar model + flag locked per tier user)
 # ---------------------------------------------------------------------------

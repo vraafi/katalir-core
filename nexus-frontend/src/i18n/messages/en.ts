@@ -272,6 +272,12 @@ export const en = {
     supportPriority: "Priority email",
     currentPlan: "Current plan",
     choosePlan: "Choose plan",
+    analytics: "Analytics",
+    analyticsDesc: "A summary of your usage and workflow executions.",
+    requests: "Requests today",
+    executions: "Executions",
+    completed: "Completed",
+    errors: "Errors",
   },
   help: {
     title: "Help",

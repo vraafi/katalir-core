@@ -163,6 +163,7 @@ function BillingContent() {
   return (
     <>
       <UsageCard />
+      <AnalyticsCard />
 
       <Card>
         <CardHeader>
@@ -287,6 +288,15 @@ function BillingContent() {
 }
 
 /** Route /billing: SimplePage (provider) + konten. */
+function AnalyticsCard() {
+  const { t } = useI18n();
+  const [data, setData] = useState<{ quota?: QuotaPayload; executions?: { total?: number; completed?: number; error?: number; pending?: number; steps?: number } } | null>(null);
+  useEffect(() => { let alive = true; void (async () => { const { data: session } = await supabase.auth.getSession(); if (!alive || !session.session?.access_token) return; const r = await apiFetch("/analytics", { timeoutMs: 20000 }); if (alive && r.ok) setData(await r.json()); })(); return () => { alive = false; }; }, []);
+  if (!data) return null;
+  const q = data.quota; const e = data.executions || {};
+  return <Card data-testid="card-analytics"><CardHeader><CardTitle>{t("billing.analytics")}</CardTitle><CardDescription>{t("billing.analyticsDesc")}</CardDescription></CardHeader><CardContent><div className="grid grid-cols-2 gap-3 sm:grid-cols-4"><div><p className="text-footnote text-fg-muted">{t("billing.requests")}</p><p className="text-title2 font-semibold">{q?.used_total ?? 0}</p></div><div><p className="text-footnote text-fg-muted">{t("billing.executions")}</p><p className="text-title2 font-semibold">{e.total ?? 0}</p></div><div><p className="text-footnote text-fg-muted">{t("billing.completed")}</p><p className="text-title2 font-semibold text-emerald-600">{e.completed ?? 0}</p></div><div><p className="text-footnote text-fg-muted">{t("billing.errors")}</p><p className="text-title2 font-semibold text-red-600">{e.error ?? 0}</p></div></div></CardContent></Card>;
+}
+
 export default function BillingPage() {
   return (
     <SimplePage title="billing.title" subtitle="billing.subtitle" maxW="max-w-3xl">

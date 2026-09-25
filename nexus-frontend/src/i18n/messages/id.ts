@@ -277,6 +277,12 @@ export const id = {
     supportPriority: "Prioritas email",
     currentPlan: "Paket aktif",
     choosePlan: "Pilih paket",
+    analytics: "Analytics",
+    analyticsDesc: "Ringkasan pemakaian dan eksekusi workflow Anda.",
+    requests: "Request hari ini",
+    executions: "Eksekusi",
+    completed: "Selesai",
+    errors: "Error",
   },
   help: {
     title: "Bantuan",
