@@ -33,8 +33,8 @@
 - [x] `/my-integrations` — list/uninstall tenant instances.
 
 ## FASE G — Expose Katalir as MCP Server
-- [ ] Workflow → MCP tool
-- [ ] External MCP client test
+- [x] Workflow → MCP tool — owner-scoped `GET /mcp/server/tools` + `POST /mcp/server/call`; execution delegated to existing workflow engine.
+- [ ] External MCP client test — protocol adapter/client test against Katalir server surface.
 
 ## FASE H — Final Verify
 - [ ] Production deploy

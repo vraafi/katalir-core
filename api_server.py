@@ -1837,6 +1837,37 @@ def get_workflows(authorization: str | None = Header(None)):
     return {"status": "success", "workflows": rows}
 
 
+class MCPWorkflowCall(BaseModel):
+    tool: str
+    arguments: dict[str, Any] = Field(default_factory=dict)
+
+def _mcp_workflow_tool_name(name: str, workflow_id: str) -> str:
+    slug = "-".join(str(name or workflow_id).lower().split()).replace("/", "-")
+    return f"katalir_workflow__{slug or workflow_id}"[:64]
+
+def _mcp_workflow_tools(user_id: str) -> list[dict[str, Any]]:
+    rows = db.list_workflows(user_id) or []
+    return [{"name": _mcp_workflow_tool_name(r.get("name"), str(r.get("id"))), "workflow_id": str(r.get("id")), "description": str(r.get("description") or f"Run Katalir workflow {r.get('name') or r.get('id')}") } for r in rows]
+
+@app.get("/mcp/server/tools")
+def mcp_server_tools(authorization: str | None = Header(None)):
+    """List workflow tools exposed by Katalir; owner scoped."""
+    user = security.get_current_user(authorization)
+    return {"tools": _mcp_workflow_tools(str(user["id"]))}
+
+@app.post("/mcp/server/call", status_code=202)
+def mcp_server_call(req: MCPWorkflowCall, authorization: str | None = Header(None)):
+    """Execute one owner workflow through the MCP-compatible surface."""
+    user = security.get_current_user(authorization)
+    row = next((r for r in (db.list_workflows(str(user["id"])) or []) if _mcp_workflow_tool_name(r.get("name"), str(r.get("id"))) == req.tool), None)
+    if row is None:
+        raise HTTPException(404, "Workflow tool tidak ditemukan")
+    detail = db.get_workflow(str(row["id"]), str(user["id"]))
+    if not detail:
+        raise HTTPException(404, "Workflow tidak ditemukan")
+    execution_id = engine.launch_execution(str(row["id"]), detail.get("flow_data") or {}, owner_email=str(user.get("email") or ""))
+    return {"execution_id": execution_id, "workflow_id": str(row["id"]), "status": "pending"}
+
 # ---------------------------------------------------------------------------
 # ENDPOINTS: POST /workflows/{id}/execute + GET /executions/{id}
 #   Execution Engine — instan, non-blocking, devuelve {execution_id, status: pending}
