@@ -1,0 +1,3 @@
+User-agent: *
+Allow: /
+Sitemap: https://katalir.de5.net/sitemap.xml

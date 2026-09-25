@@ -15,9 +15,19 @@ const sans = Inter({ subsets: ["latin"], variable: "--font-sans", display: "swap
 const mono = JetBrains_Mono({ subsets: ["latin"], variable: "--font-mono", display: "swap", preload: false });
 
 export const metadata: Metadata = {
-  title: "Katalir — SaaS AI",
+  title: { default: "Katalir — SaaS AI", template: "%s — Katalir" },
   description: "Katalir: Autonomous AI Agent untuk bisnis Anda.",
+  metadataBase: new URL("https://katalir.de5.net"),
   applicationName: "Katalir",
+  openGraph: {
+    type: "website",
+    url: "https://katalir.de5.net",
+    title: "Katalir — SaaS AI",
+    description: "Bangun AI agent dari satu kalimat.",
+    siteName: "Katalir",
+    images: ["/logo-v2.png"],
+  },
+  twitter: { card: "summary", title: "Katalir — SaaS AI", description: "Bangun AI agent dari satu kalimat.", images: ["/logo-v2.png"] },
   // FASE 6 (PWA): manifest + ikon 192/512. Ikon PNG dibuat dari `src/app/icon.svg`
   // dengan headless Chrome (tanpa menambah dependensi image tooling).
   manifest: "/manifest.json",
