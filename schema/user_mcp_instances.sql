@@ -10,5 +10,6 @@ create table if not exists public.user_mcp_instances (
   unique(user_id, mcp_id)
 );
 alter table public.user_mcp_instances enable row level security;
+drop policy if exists "users manage own mcp instances" on public.user_mcp_instances;
 create policy "users manage own mcp instances" on public.user_mcp_instances
   for all using (auth.uid() = user_id) with check (auth.uid() = user_id);

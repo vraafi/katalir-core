@@ -1333,6 +1333,9 @@ def _mcp_key(authorization: str | None) -> str:
     return str(user.get("id") or user.get("email") or "unknown")
 
 def _mcp_rows(user_id: str):
+    if db.is_configured():
+        res = db._get_write_client().table("user_mcp_instances").select("mcp_id,config,status,created_at,updated_at").eq("user_id", user_id).execute()
+        return list(res.data or [])
     return list(_MCP_INSTANCES.get(user_id, {}).values())
 
 @app.get("/mcp/my-instances")
@@ -1355,15 +1358,31 @@ def mcp_install(req: MCPInstanceRequest, authorization: str | None = Header(None
     if verified["status"] != "valid":
         raise HTTPException(422, f"Manifest ditolak: {', '.join(verified['errors'])}")
     row = {"mcp_id": req.mcp_id.strip(), "config": req.config, "status": "active", "manifest": verified}
-    _MCP_INSTANCES.setdefault(user_id, {})[row["mcp_id"]] = row
+    if db.is_configured():
+        client = db._get_write_client()
+        payload = {"user_id": user_id, "mcp_id": row["mcp_id"], "config": req.config, "status": "active", "updated_at": db._now()}
+        existing = client.table("user_mcp_instances").select("id").eq("user_id", user_id).eq("mcp_id", row["mcp_id"]).limit(1).execute()
+        if existing.data:
+            client.table("user_mcp_instances").update(payload).eq("id", existing.data[0]["id"]).execute()
+        else:
+            client.table("user_mcp_instances").insert(payload).execute()
+    else:
+        _MCP_INSTANCES.setdefault(user_id, {})[row["mcp_id"]] = row
     return {"instance": row}
 
 @app.delete("/mcp/uninstall/{mcp_id}")
 def mcp_uninstall(mcp_id: str, authorization: str | None = Header(None)):
     user_id = _mcp_key(authorization)
-    removed = _MCP_INSTANCES.get(user_id, {}).pop(mcp_id, None)
-    if not removed:
-        raise HTTPException(404, "Instance tidak ditemukan")
+    if db.is_configured():
+        client = db._get_write_client()
+        existing = client.table("user_mcp_instances").select("id").eq("user_id", user_id).eq("mcp_id", mcp_id).limit(1).execute()
+        if not existing.data:
+            raise HTTPException(404, "Instance tidak ditemukan")
+        client.table("user_mcp_instances").delete().eq("id", existing.data[0]["id"]).execute()
+    else:
+        removed = _MCP_INSTANCES.get(user_id, {}).pop(mcp_id, None)
+        if not removed:
+            raise HTTPException(404, "Instance tidak ditemukan")
     return {"removed": mcp_id}
 
 # ---------------------------------------------------------------------------

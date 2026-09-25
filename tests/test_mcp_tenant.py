@@ -5,6 +5,7 @@ client = TestClient(api_server.app)
 
 def test_tenant_isolation(monkeypatch):
     api_server._MCP_INSTANCES.clear()
+    monkeypatch.setattr(api_server.db, "is_configured", lambda: False)
     users = {"Bearer a": {"id": "user-a", "email": "a@example.com"}, "Bearer b": {"id": "user-b", "email": "b@example.com"}}
     monkeypatch.setattr(api_server.security, "get_current_user", lambda auth: users[auth])
     r = client.post("/mcp/install", json={"mcp_id": "time", "config": {"tz": "Asia/Jakarta"}, "confirmed": True}, headers={"Authorization": "Bearer a"})
@@ -17,6 +18,7 @@ def test_tenant_isolation(monkeypatch):
 
 def test_workflow_mcp_surface_is_owner_scoped(monkeypatch):
     api_server._MCP_INSTANCES.clear()
+    monkeypatch.setattr(api_server.db, "is_configured", lambda: False)
     rows = [{"id": "wf-1", "name": "Daily Telegram", "description": "Kirim laporan"}]
     monkeypatch.setattr(api_server.security, "get_current_user", lambda auth: {"id": "user-a" if auth == "Bearer a" else "user-b", "email": "a@example.com" if auth == "Bearer a" else "b@example.com"})
     monkeypatch.setattr(api_server.db, "list_workflows", lambda uid: rows if uid == "user-a" else [])
