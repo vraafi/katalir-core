@@ -21,7 +21,7 @@ mcp==1.26.0
 ddgs==9.0.1
 
 # Models & validasi
-pydantic==2.10.4
+pydantic==2.11.4
 
 # BaaS - Supabase (Auth + Postgres DB untuk akun/langganan/chat)
 supabase==2.15.0
