@@ -11,9 +11,9 @@ whose output is in the repo. Phase-based, no deadline, auto-continue.
 | **Unique integrations (deduped)** | **22.789** | `mcp_dedup.py` → `dedup_report.json` |
 | Unique % | 79,5 % (5.875 collapsed) | same |
 | Groups present in >1 source | 1.610 | same |
-| **Unique runtime-verified** | **27** | 25 (dedup) + 2 (AI tools, this file) |
-| tools_listed (unique) | 1.576 | `dedup_report.json` |
-| discovered only | 21.213 | `dedup_report.json` |
+| **Unique runtime-verified** | **27** call-verified / **1.781** tools-listed | `dedup_report.json`, `glama-connector-verify.json` |
+| tools_listed (unique) | 1.781 | `dedup_report.json` |
+| discovered only | 21.008 | `dedup_report.json` |
 | Generated OpenAPI tools | 884 registered (889 generated) | `openapi_tools_manifest.json` |
 
 **The honest gap:** the target in the blitz brief is 2.000 unique *verified*.
@@ -30,9 +30,20 @@ are already in the catalogue - it is a *verification* problem.
 - [x] **P1.3 AI tools** — Groq + Gemini wired and **call-verified**:
       `qwen/qwen3.8-27b` → "KATALIR_OK" (571 ms), `gemini-2.5-flash` → "KATALIR_OK" (1.773 ms).
       Models are discovered at runtime because the hardcoded ones had rotted.
-- [ ] **P1.4 Verify the existing pool** — 170 OpenConnector `noAuthRunnable` actions and
-      1.000 Glama connectors are unverified candidates. This is the single largest
-      honest lever on the number that matters.
+- [x] **P1.4 Verify the existing pool** — 420 Glama no-auth connectors probed read-only
+      (`initialize` + `tools/list`): **236 tools_listed / 2.313 tools**, 175 auth_required,
+      4 protocol_error, 5 unreachable, 0 ssrf_blocked. Unique tools-listed
+      1.576 → **1.781**. Unique call-verified stays **27** — correctly, because
+      listing a tool is not calling it.
+
+## PHASE 3 (started early, independent of P2)
+
+- [x] **P3.1 Community platform code** — `docs/architecture/community-platform.sql`
+      + `POST /community/submit`, `GET /community/browse|review|my-earnings`, 5 tests.
+      Endpoints return 503 when the tables are absent so "not deployed" can never
+      read as "nothing exists". **DDL not applied to production** — creating tables
+      in the live project is a bigger step than adding columns.
+- [ ] P3.2 Community UI · [ ] P3.3 multi-protocol Executor · [ ] P3.4 batch test 100
 
 ## PHASE 2 — Unique Sources (SEA + Dev + Creator)
 

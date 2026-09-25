@@ -1,24 +1,28 @@
-﻿## Phase 1.3 — AI Tools [DONE 2026-09-26]
+﻿# Progress Katalir — Latest
 
-- Groq `groq_chat` -> HTTP 200, model `qwen/qwen3.8-27b`, answered "KATALIR_OK" (571 ms)
-- Gemini `gemini_generate` -> HTTP 200, model `gemini-2.5-flash`, answered "KATALIR_OK" (1.773 ms)
-- 2 new **unique call-verified** integrations: 25 -> 27
-- Both models are now discovered from the live catalogue at runtime. The hardcoded
-  `llama-3.3-70b-versatile` no longer exists on Groq, and `gemini-2.0-flash` has
-  been retired by Google - both failures were found by actually calling.
-- Evidence: `ai_tools_evidence.json`; tests: `tests/test_ai_tools.py` (4 passed)
+## Phase 1.4 — Verify the existing pool [DONE 2026-09-26]
+- 420 Glama no-auth connectors probed read-only, sequential, 0.5s delay
+- **236 tools_listed (2.313 tools)** · 175 auth_required · 4 protocol_error · 5 unreachable · 0 ssrf_blocked
+- Registry merged; unique tools-listed 1.576 -> **1.781**
+- unique call-verified unchanged at 27, correctly: listing is not calling
+
+## Phase 1.3 — AI Tools [DONE 2026-09-26]
+- Groq `qwen/qwen3.8-27b` -> "KATALIR_OK" (571 ms)
+- Gemini `gemini-2.5-flash` -> "KATALIR_OK" (1.773 ms)
+- Hardcoded model ids had both rotted (Groq llama removed, Gemini 2.0-flash retired)
 
 ## Phase 1.2 — OpenAPI Generator [DONE 2026-09-26]
-- 6 public specs, 889 tools generated, **884 registered** in one FastMCP process
-- 1 call-verified: `petstore_getpetbyid(petid=1)` -> HTTP 200 `{id:1, name:'Dogs'}`
-- Kubernetes 220 tools recorded as listed-but-not-callable (its swagger declares no server)
+- 6 public specs, 889 generated, **884 registered**, 1 call-verified
 
 ## Phase 1.1 — Dedup [DONE 2026-09-26]
-- 28.664 -> **22.789 unique** (79,5%, 5.875 collapsed, 1.610 multi-source groups)
-- unique_verified 25, tools_listed 1.576, discovered_only 21.213
+- 28.664 -> **22.789 unique** (79,5%)
 
-## Blockers
-- Nango Cloud: key present in `.env` but rejected by the API (401, both auth headers)
-- Metorial: key valid, but the project has 0 providers connected (needs dashboard)
+## Phase 3.1 — Community platform [CODE DONE, DDL NOT APPLIED]
+- schema + 4 endpoints + 5 tests committed (de2d876)
+- production Supabase tables NOT created: that is a bigger step than adding columns
 
-Next: Phase 1.4 — verify the 1.159 unverified candidates we already have.
+## Blockers (need the user)
+1. `USER ACTION: create a valid secret key at https://app.nango.dev/settings and set NANGO_API_KEY`
+   (the current key is rejected: GET /api/v1/providers -> 401)
+2. `USER ACTION: connect providers in the Metorial dashboard` (key is valid, project has 0 providers)
+3. `USER ACTION: approve applying docs/architecture/community-platform.sql to production Supabase`

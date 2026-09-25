@@ -1,42 +1,250 @@
 {
   "scope": "no-auth Glama connectors, initialize + tools/list only (no tools/call)",
-  "attempted": 60,
+  "attempted": 420,
   "counts": {
-    "auth_required": 30,
-    "ok": 28,
-    "protocol_error": 1,
-    "unreachable": 1
+    "auth_required": 175,
+    "ok": 236,
+    "protocol_error": 4,
+    "unreachable": 5
   },
-  "tools_listed_total": 177,
+  "tools_listed_total": 2313,
   "tools_listed_connectors": [
+    "glama-connector/a4fno0podt",
+    "glama-connector/ab8qepx1sb",
+    "glama-connector/aerj2438rk",
+    "glama-connector/afpldzc3di",
+    "glama-connector/afvxep6cvf",
+    "glama-connector/ap4ewng04y",
+    "glama-connector/ap891sgd1e",
     "glama-connector/apfogh6kse",
+    "glama-connector/apq0dhv9t9",
+    "glama-connector/azgi847v29",
+    "glama-connector/b3m8rac8fc",
+    "glama-connector/b782cuelgb",
     "glama-connector/bav681szv5",
+    "glama-connector/bhbo60r1ty",
+    "glama-connector/bnj313cqvy",
+    "glama-connector/brb3r3cvbo",
     "glama-connector/bs1j1j76vc",
+    "glama-connector/bt3vp5qhjl",
+    "glama-connector/by47afd2ho",
+    "glama-connector/byu0mhgfjc",
+    "glama-connector/c0cf6hdgfx",
+    "glama-connector/c0imxqohpo",
+    "glama-connector/c1hj863j48",
+    "glama-connector/c37dg41qnh",
+    "glama-connector/c8wrwj0p0j",
+    "glama-connector/cabzrtcljj",
+    "glama-connector/cbq49xv47u",
+    "glama-connector/cjw5mho1vg",
+    "glama-connector/ckkm2jsyxu",
+    "glama-connector/cmguj7k60t",
+    "glama-connector/cpdnlztiz1",
+    "glama-connector/cqwpgkktd9",
     "glama-connector/cwjr90h5na",
+    "glama-connector/cy9qxv3opr",
+    "glama-connector/cylzg52hbw",
+    "glama-connector/dal2nm4yh0",
+    "glama-connector/desxmm65x3",
+    "glama-connector/dgvpyqieec",
+    "glama-connector/di1lzil3l7",
     "glama-connector/dmj0lwpnx3",
+    "glama-connector/dothap243c",
+    "glama-connector/dplgqz1rbp",
     "glama-connector/dq51dqn1ym",
+    "glama-connector/dqr087orbp",
+    "glama-connector/drhuv33m5q",
+    "glama-connector/e3re5f6pno",
+    "glama-connector/e52f4vl9hg",
+    "glama-connector/e642hfq4on",
+    "glama-connector/e6xu9w1gdn",
+    "glama-connector/ed5viox8aj",
+    "glama-connector/efovwmtxv4",
+    "glama-connector/efzrjcx4sm",
+    "glama-connector/emuij7a8xx",
+    "glama-connector/eu279krskl",
+    "glama-connector/exi0z3hk0l",
+    "glama-connector/ezqvq2vc24",
+    "glama-connector/f1zhlzgm6j",
+    "glama-connector/f3t4zmdixg",
+    "glama-connector/fa4od94f3d",
+    "glama-connector/feh5j15f69",
+    "glama-connector/fg086rqvd4",
+    "glama-connector/fmlcaov8gr",
     "glama-connector/fn28qtfj7n",
+    "glama-connector/fxbni2109k",
+    "glama-connector/g02c0omdit",
+    "glama-connector/gfptfgqqrf",
+    "glama-connector/gxwsuh94i7",
     "glama-connector/h16mxab1rm",
+    "glama-connector/h64own4fs0",
+    "glama-connector/hev9yw3nbm",
+    "glama-connector/hky82v4kgm",
+    "glama-connector/htcusjau4d",
+    "glama-connector/hu2vasnu9b",
+    "glama-connector/hx9ovlnojt",
+    "glama-connector/hxtb1e0xpp",
+    "glama-connector/hxvhvokpsm",
+    "glama-connector/i1q6bbh18u",
+    "glama-connector/i4no9x5crb",
     "glama-connector/ig0kd7y3ij",
+    "glama-connector/imgglzpg2u",
+    "glama-connector/ixsqiwzgyg",
+    "glama-connector/izs7ukgch2",
+    "glama-connector/j3t7rifg85",
+    "glama-connector/j50wyqxi3j",
+    "glama-connector/j6s1wl6k9y",
+    "glama-connector/j9iclvsugj",
+    "glama-connector/jh44acy3g2",
+    "glama-connector/jngen7k6lv",
+    "glama-connector/jp3cad5gss",
+    "glama-connector/jpxblyljgr",
+    "glama-connector/ju8xacc119",
+    "glama-connector/jzmq0zzmh0",
     "glama-connector/k1kt01zoo2",
+    "glama-connector/k49z5de2ox",
+    "glama-connector/k72x3urt5u",
+    "glama-connector/k89cxkuw6l",
+    "glama-connector/k8pfpwdsgm",
+    "glama-connector/kf8k3bjr4j",
+    "glama-connector/khbb3mokag",
+    "glama-connector/km890hrd24",
+    "glama-connector/kr8kozncfy",
+    "glama-connector/kv9cxswqj5",
+    "glama-connector/kvzyzvv1io",
     "glama-connector/l305mxcvbx",
     "glama-connector/l56221tsyf",
+    "glama-connector/l6s7h4mx7s",
+    "glama-connector/lb450imn6s",
+    "glama-connector/ld0fgar1fn",
+    "glama-connector/livra590kz",
+    "glama-connector/llvbom59df",
     "glama-connector/ln7m9ux9mq",
+    "glama-connector/lo1qnyoohy",
+    "glama-connector/loqv68f461",
+    "glama-connector/lrxfntvfrj",
+    "glama-connector/lx3kk0mqqq",
+    "glama-connector/m463mh2orz",
+    "glama-connector/m70o7579bv",
+    "glama-connector/macgnzfv38",
+    "glama-connector/mea8veo2pw",
+    "glama-connector/mibiiu0tnu",
+    "glama-connector/mn7dwjjjzl",
+    "glama-connector/mqc09cf8db",
+    "glama-connector/mxccg8rlof",
     "glama-connector/mywgepohoj",
+    "glama-connector/mznrc2m2zv",
+    "glama-connector/nb4myqxesx",
+    "glama-connector/ne7rldxijk",
     "glama-connector/nhcz49aowv",
+    "glama-connector/nnsscgy4j7",
+    "glama-connector/nxxkp7szu7",
+    "glama-connector/o3jdy7xktw",
+    "glama-connector/o3vl605bpk",
+    "glama-connector/o4w4bj5t5s",
     "glama-connector/o5bn0vqx8k",
+    "glama-connector/obfr2w3w5k",
+    "glama-connector/oe1pog6da7",
+    "glama-connector/okv7ovxwly",
+    "glama-connector/om4hh9kk9f",
+    "glama-connector/ovyhtwwlax",
+    "glama-connector/p4w1grt8ye",
+    "glama-connector/pcugjsivq1",
+    "glama-connector/pfapbdvyqu",
+    "glama-connector/phsp4blthx",
+    "glama-connector/phuj7xiah5",
+    "glama-connector/pltq4d6ouq",
+    "glama-connector/popuomh625",
+    "glama-connector/pugeg720ie",
     "glama-connector/pzl8degiht",
+    "glama-connector/q40u3whxle",
+    "glama-connector/q9p2ia5aqe",
+    "glama-connector/q9vppsfxgz",
+    "glama-connector/qflskwpwv9",
+    "glama-connector/qjhf8r5888",
+    "glama-connector/qynq8kw4uy",
+    "glama-connector/r0dlcwip6k",
+    "glama-connector/r1nv9z100b",
+    "glama-connector/r6gqapv64j",
+    "glama-connector/r8r64lfff8",
+    "glama-connector/raplg0cf2y",
+    "glama-connector/rdbpth0qcb",
+    "glama-connector/rf1qmyowxa",
+    "glama-connector/rn45ujyaxr",
+    "glama-connector/rzpz3q5jc1",
+    "glama-connector/s7evyyrl8w",
+    "glama-connector/s86n2u6g3u",
+    "glama-connector/skc2fp03y0",
+    "glama-connector/sr90gb9q50",
+    "glama-connector/sv0cwmravu",
+    "glama-connector/sxq0ve5no2",
+    "glama-connector/t3oiwbmdi7",
+    "glama-connector/t6eb4fkdm9",
+    "glama-connector/t9m509m4qr",
+    "glama-connector/tettwv1v02",
+    "glama-connector/tnhl4v766i",
     "glama-connector/toydaelahi",
+    "glama-connector/tpk65i736o",
     "glama-connector/ty6g3iusmd",
+    "glama-connector/u3o12xu22i",
     "glama-connector/u9dem2iz76",
+    "glama-connector/uk06ahyqyd",
     "glama-connector/un6cbgh2qa",
+    "glama-connector/unnau27d4u",
+    "glama-connector/unuse5rxd2",
+    "glama-connector/ursfz98y2u",
+    "glama-connector/uyzrg1sywx",
     "glama-connector/v9jcwc6vve",
+    "glama-connector/vgq7agk6iq",
+    "glama-connector/vm2rlzsxub",
     "glama-connector/vms96gpyc5",
     "glama-connector/vnj0icwily",
+    "glama-connector/vuiixys0x0",
+    "glama-connector/vvnupzg5jr",
+    "glama-connector/w0tiidkx19",
+    "glama-connector/waywlmf61k",
+    "glama-connector/wi012ncj38",
+    "glama-connector/wlm5bhze36",
+    "glama-connector/wm8aj52j8u",
+    "glama-connector/wnl8ragaxo",
+    "glama-connector/wp5yh4c8fq",
+    "glama-connector/wq9ur2a3gx",
+    "glama-connector/wykkauqm4z",
+    "glama-connector/x6dp02glbt",
+    "glama-connector/x8b6ygd7ak",
+    "glama-connector/x92enr8l2b",
+    "glama-connector/x93zktrkfn",
+    "glama-connector/xjlpzkjby4",
     "glama-connector/xq3sxr1e1c",
+    "glama-connector/xsf5f38yqo",
+    "glama-connector/xtsk9mb1tc",
+    "glama-connector/xunroz6a9u",
+    "glama-connector/xw986i310d",
+    "glama-connector/y06vecqudi",
+    "glama-connector/y3tiv3e7va",
+    "glama-connector/y78d6fl6vw",
+    "glama-connector/ybdtgpyl9c",
+    "glama-connector/yhc33jah4b",
+    "glama-connector/yhcd731wg2",
     "glama-connector/yku23d0a5f",
+    "glama-connector/yms2x5w34c",
+    "glama-connector/yssyoz7t73",
+    "glama-connector/ytc8359tki",
     "glama-connector/ytiaxlviaj",
-    "glama-connector/zplylskvx5"
+    "glama-connector/yycpidzhxt",
+    "glama-connector/z3cb0y9lxt",
+    "glama-connector/zcgnmyohwk",
+    "glama-connector/zcr4dileif",
+    "glama-connector/zhq5p5cayo",
+    "glama-connector/zj2bvof4lw",
+    "glama-connector/zk86d0w5ug",
+    "glama-connector/zo8fzsd2mr",
+    "glama-connector/zoh0x0d9yg",
+    "glama-connector/zplylskvx5",
+    "glama-connector/zrlzylrn87",
+    "glama-connector/zs6c8jdl1p",
+    "glama-connector/zw5fevfvol",
+    "glama-connector/zz1aez3uv2"
   ],
   "records": [
     {
@@ -48,7 +256,7 @@
       "status": "auth_required",
       "reason": "HTTP 403",
       "tools_listed": 0,
-      "latency_ms": 393
+      "latency_ms": 147
     },
     {
       "id": "glama-connector/r9ftc7exwm",
@@ -59,7 +267,7 @@
       "status": "auth_required",
       "reason": "HTTP 403",
       "tools_listed": 0,
-      "latency_ms": 87
+      "latency_ms": 77
     },
     {
       "id": "glama-connector/dmj0lwpnx3",
@@ -70,7 +278,7 @@
       "status": "ok",
       "reason": "tools listed",
       "tools_listed": 5,
-      "latency_ms": 2196
+      "latency_ms": 1703
     },
     {
       "id": "glama-connector/un6cbgh2qa",
@@ -81,7 +289,7 @@
       "status": "ok",
       "reason": "tools listed",
       "tools_listed": 5,
-      "latency_ms": 1620
+      "latency_ms": 1597
     },
     {
       "id": "glama-connector/yguw3zp99i",
@@ -92,7 +300,7 @@
       "status": "auth_required",
       "reason": "HTTP 403",
       "tools_listed": 0,
-      "latency_ms": 3250
+      "latency_ms": 211
     },
     {
       "id": "glama-connector/h16mxab1rm",
@@ -103,7 +311,7 @@
       "status": "ok",
       "reason": "tools listed",
       "tools_listed": 4,
-      "latency_ms": 1496
+      "latency_ms": 1115
     },
     {
       "id": "glama-connector/vms96gpyc5",
@@ -114,7 +322,7 @@
       "status": "ok",
       "reason": "tools listed",
       "tools_listed": 4,
-      "latency_ms": 1762
+      "latency_ms": 1752
     },
     {
       "id": "glama-connector/cwjr90h5na",
@@ -125,7 +333,7 @@
       "status": "ok",
       "reason": "tools listed",
       "tools_listed": 7,
-      "latency_ms": 1672
+      "latency_ms": 1315
     },
     {
       "id": "glama-connector/o5bn0vqx8k",
@@ -136,7 +344,7 @@
       "status": "ok",
       "reason": "tools listed",
       "tools_listed": 5,
-      "latency_ms": 1325
+      "latency_ms": 1079
     },
     {
       "id": "glama-connector/xq3sxr1e1c",
@@ -147,7 +355,7 @@
       "status": "ok",
       "reason": "tools listed",
       "tools_listed": 5,
-      "latency_ms": 1640
+      "latency_ms": 1716
     },
     {
       "id": "glama-connector/m97x48qun1",
@@ -158,7 +366,7 @@
       "status": "auth_required",
       "reason": "HTTP 403",
       "tools_listed": 0,
-      "latency_ms": 147
+      "latency_ms": 99
     },
     {
       "id": "glama-connector/xq3gkhhmmi",
@@ -169,7 +377,7 @@
       "status": "auth_required",
       "reason": "HTTP 403",
       "tools_listed": 0,
-      "latency_ms": 271
+      "latency_ms": 111
     },
     {
       "id": "glama-connector/ig0kd7y3ij",
@@ -180,7 +388,7 @@
       "status": "ok",
       "reason": "tools listed",
       "tools_listed": 3,
-      "latency_ms": 2376
+      "latency_ms": 2235
     },
     {
       "id": "glama-connector/apfogh6kse",
@@ -191,7 +399,7 @@
       "status": "ok",
       "reason": "tools listed",
       "tools_listed": 7,
-      "latency_ms": 1512
+      "latency_ms": 1279
     },
     {
       "id": "glama-connector/dk7b62u928",
@@ -202,7 +410,7 @@
       "status": "auth_required",
       "reason": "HTTP 403",
       "tools_listed": 0,
-      "latency_ms": 208
+      "latency_ms": 112
     },
     {
       "id": "glama-connector/gncvbw7fo2",
@@ -213,7 +421,7 @@
       "status": "auth_required",
       "reason": "HTTP 403",
       "tools_listed": 0,
-      "latency_ms": 319
+      "latency_ms": 300
     },
     {
       "id": "glama-connector/vnj0icwily",
@@ -224,7 +432,7 @@
       "status": "ok",
       "reason": "tools listed",
       "tools_listed": 13,
-      "latency_ms": 1930
+      "latency_ms": 662
     },
     {
       "id": "glama-connector/jyqdt4jsoy",
@@ -235,7 +443,7 @@
       "status": "auth_required",
       "reason": "HTTP 403",
       "tools_listed": 0,
-      "latency_ms": 719
+      "latency_ms": 133
     },
     {
       "id": "glama-connector/k1kt01zoo2",
@@ -246,7 +454,7 @@
       "status": "ok",
       "reason": "tools listed",
       "tools_listed": 4,
-      "latency_ms": 611
+      "latency_ms": 571
     },
     {
       "id": "glama-connector/j4mcllucbs",
@@ -257,7 +465,7 @@
       "status": "auth_required",
       "reason": "HTTP 403",
       "tools_listed": 0,
-      "latency_ms": 294
+      "latency_ms": 271
     },
     {
       "id": "glama-connector/v9jcwc6vve",
@@ -268,7 +476,7 @@
       "status": "ok",
       "reason": "tools listed",
       "tools_listed": 8,
-      "latency_ms": 1834
+      "latency_ms": 1966
     },
     {
       "id": "glama-connector/ln7m9ux9mq",
@@ -279,7 +487,7 @@
       "status": "ok",
       "reason": "tools listed",
       "tools_listed": 7,
-      "latency_ms": 828
+      "latency_ms": 993
     },
     {
       "id": "glama-connector/yku23d0a5f",
@@ -290,7 +498,7 @@
       "status": "ok",
       "reason": "tools listed",
       "tools_listed": 5,
-      "latency_ms": 4772
+      "latency_ms": 2128
     },
     {
       "id": "glama-connector/nhcz49aowv",
@@ -301,7 +509,7 @@
       "status": "ok",
       "reason": "tools listed",
       "tools_listed": 4,
-      "latency_ms": 2951
+      "latency_ms": 1040
     },
     {
       "id": "glama-connector/bs1j1j76vc",
@@ -312,7 +520,7 @@
       "status": "ok",
       "reason": "tools listed",
       "tools_listed": 15,
-      "latency_ms": 685
+      "latency_ms": 600
     },
     {
       "id": "glama-connector/hddud4cgad",
@@ -323,7 +531,7 @@
       "status": "auth_required",
       "reason": "HTTP 403",
       "tools_listed": 0,
-      "latency_ms": 171
+      "latency_ms": 97
     },
     {
       "id": "glama-connector/qnxf39cw2p",
@@ -334,7 +542,7 @@
       "status": "auth_required",
       "reason": "HTTP 403",
       "tools_listed": 0,
-      "latency_ms": 340
+      "latency_ms": 138
     },
     {
       "id": "glama-connector/oll2h14zrh",
@@ -345,7 +553,7 @@
       "status": "auth_required",
       "reason": "HTTP 403",
       "tools_listed": 0,
-      "latency_ms": 192
+      "latency_ms": 175
     },
     {
       "id": "glama-connector/z6nxrfbphg",
@@ -356,7 +564,7 @@
       "status": "auth_required",
       "reason": "HTTP 403",
       "tools_listed": 0,
-      "latency_ms": 150
+      "latency_ms": 1326
     },
     {
       "id": "glama-connector/mrtcg9ug6t",
@@ -367,7 +575,7 @@
       "status": "auth_required",
       "reason": "HTTP 403",
       "tools_listed": 0,
-      "latency_ms": 159
+      "latency_ms": 120
     },
     {
       "id": "glama-connector/ed47asufs2",
@@ -378,7 +586,7 @@
       "status": "auth_required",
       "reason": "HTTP 403",
       "tools_listed": 0,
-      "latency_ms": 253
+      "latency_ms": 260
     },
     {
       "id": "glama-connector/ohg9z5k8ud",
@@ -389,7 +597,7 @@
       "status": "auth_required",
       "reason": "HTTP 403",
       "tools_listed": 0,
-      "latency_ms": 1912
+      "latency_ms": 327
     },
     {
       "id": "glama-connector/dovjsfb01b",
@@ -400,7 +608,7 @@
       "status": "auth_required",
       "reason": "HTTP 403",
       "tools_listed": 0,
-      "latency_ms": 156
+      "latency_ms": 122
     },
     {
       "id": "glama-connector/zplylskvx5",
@@ -411,7 +619,7 @@
       "status": "ok",
       "reason": "tools listed",
       "tools_listed": 8,
-      "latency_ms": 1956
+      "latency_ms": 1987
     },
     {
       "id": "glama-connector/ftvuxrzhyi",
@@ -422,7 +630,7 @@
       "status": "auth_required",
       "reason": "HTTP 403",
       "tools_listed": 0,
-      "latency_ms": 171
+      "latency_ms": 302
     },
     {
       "id": "glama-connector/n74ubtss26",
@@ -433,7 +641,7 @@
       "status": "auth_required",
       "reason": "HTTP 403",
       "tools_listed": 0,
-      "latency_ms": 134
+      "latency_ms": 358
     },
     {
       "id": "glama-connector/g3mugvr4is",
@@ -444,7 +652,7 @@
       "status": "auth_required",
       "reason": "HTTP 403",
       "tools_listed": 0,
-      "latency_ms": 152
+      "latency_ms": 473
     },
     {
       "id": "glama-connector/ty6g3iusmd",
@@ -455,7 +663,7 @@
       "status": "ok",
       "reason": "tools listed",
       "tools_listed": 8,
-      "latency_ms": 3426
+      "latency_ms": 3520
     },
     {
       "id": "glama-connector/bav681szv5",
@@ -466,7 +674,7 @@
       "status": "ok",
       "reason": "tools listed",
       "tools_listed": 5,
-      "latency_ms": 6867
+      "latency_ms": 2526
     },
     {
       "id": "glama-connector/mokofyepug",
@@ -477,7 +685,7 @@
       "status": "auth_required",
       "reason": "HTTP 403",
       "tools_listed": 0,
-      "latency_ms": 165
+      "latency_ms": 766
     },
     {
       "id": "glama-connector/l305mxcvbx",
@@ -488,7 +696,7 @@
       "status": "ok",
       "reason": "tools listed",
       "tools_listed": 7,
-      "latency_ms": 1044
+      "latency_ms": 3221
     },
     {
       "id": "glama-connector/l56221tsyf",
@@ -499,7 +707,7 @@
       "status": "ok",
       "reason": "tools listed",
       "tools_listed": 6,
-      "latency_ms": 758
+      "latency_ms": 746
     },
     {
       "id": "glama-connector/u9dem2iz76",
@@ -510,7 +718,7 @@
       "status": "ok",
       "reason": "tools listed",
       "tools_listed": 2,
-      "latency_ms": 1247
+      "latency_ms": 557
     },
     {
       "id": "glama-connector/v9xdvv4z3n",
@@ -521,7 +729,7 @@
       "status": "protocol_error",
       "reason": "HTTP 400",
       "tools_listed": 0,
-      "latency_ms": 2266
+      "latency_ms": 1221
     },
     {
       "id": "glama-connector/whif3c1gh3",
@@ -532,7 +740,7 @@
       "status": "auth_required",
       "reason": "HTTP 403",
       "tools_listed": 0,
-      "latency_ms": 5001
+      "latency_ms": 109
     },
     {
       "id": "glama-connector/vxflvkvb8u",
@@ -543,7 +751,7 @@
       "status": "auth_required",
       "reason": "HTTP 403",
       "tools_listed": 0,
-      "latency_ms": 2193
+      "latency_ms": 343
     },
     {
       "id": "glama-connector/z8egs7to5y",
@@ -554,7 +762,7 @@
       "status": "auth_required",
       "reason": "HTTP 403",
       "tools_listed": 0,
-      "latency_ms": 171
+      "latency_ms": 104
     },
     {
       "id": "glama-connector/toydaelahi",
@@ -565,7 +773,7 @@
       "status": "ok",
       "reason": "tools listed",
       "tools_listed": 5,
-      "latency_ms": 1179
+      "latency_ms": 1147
     },
     {
       "id": "glama-connector/ytiaxlviaj",
@@ -576,7 +784,7 @@
       "status": "ok",
       "reason": "tools listed",
       "tools_listed": 5,
-      "latency_ms": 1773
+      "latency_ms": 1579
     },
     {
       "id": "glama-connector/nq8eklswyu",
@@ -587,7 +795,7 @@
       "status": "auth_required",
       "reason": "HTTP 403",
       "tools_listed": 0,
-      "latency_ms": 218
+      "latency_ms": 148
     },
     {
       "id": "glama-connector/mywgepohoj",
@@ -598,7 +806,7 @@
       "status": "ok",
       "reason": "tools listed",
       "tools_listed": 8,
-      "latency_ms": 1053
+      "latency_ms": 1094
     },
     {
       "id": "glama-connector/pzl8degiht",
@@ -609,7 +817,7 @@
       "status": "ok",
       "reason": "tools listed",
       "tools_listed": 10,
-      "latency_ms": 3545
+      "latency_ms": 3096
     },
     {
       "id": "glama-connector/osdxvw98bb",
@@ -620,7 +828,7 @@
       "status": "auth_required",
       "reason": "HTTP 403",
       "tools_listed": 0,
-      "latency_ms": 159
+      "latency_ms": 1324
     },
     {
       "id": "glama-connector/vuwvjljhp9",
@@ -631,7 +839,7 @@
       "status": "auth_required",
       "reason": "HTTP 403",
       "tools_listed": 0,
-      "latency_ms": 207
+      "latency_ms": 331
     },
     {
       "id": "glama-connector/qdymrnacfr",
@@ -642,7 +850,7 @@
       "status": "unreachable",
       "reason": "URLError",
       "tools_listed": 0,
-      "latency_ms": 40090
+      "latency_ms": 30105
     },
     {
       "id": "glama-connector/hv7as3fqa1",
@@ -653,7 +861,7 @@
       "status": "auth_required",
       "reason": "HTTP 403",
       "tools_listed": 0,
-      "latency_ms": 3084
+      "latency_ms": 636
     },
     {
       "id": "glama-connector/dq51dqn1ym",
@@ -664,7 +872,7 @@
       "status": "ok",
       "reason": "tools listed",
       "tools_listed": 6,
-      "latency_ms": 1677
+      "latency_ms": 2601
     },
     {
       "id": "glama-connector/lrxednhbg2",
@@ -675,7 +883,7 @@
       "status": "auth_required",
       "reason": "HTTP 403",
       "tools_listed": 0,
-      "latency_ms": 149
+      "latency_ms": 150
     },
     {
       "id": "glama-connector/wiuhm61h1d",
@@ -686,7 +894,7 @@
       "status": "auth_required",
       "reason": "HTTP 403",
       "tools_listed": 0,
-      "latency_ms": 93
+      "latency_ms": 71
     },
     {
       "id": "glama-connector/fn28qtfj7n",
@@ -697,7 +905,3967 @@
       "status": "ok",
       "reason": "tools listed",
       "tools_listed": 6,
-      "latency_ms": 282
+      "latency_ms": 221
+    },
+    {
+      "id": "glama-connector/efzrjcx4sm",
+      "name": "Cloud World Model",
+      "namespace": "ai.cloudworldmodel",
+      "endpoint_url": "https://www.cloudworldmodel.ai/mcp",
+      "source_url": "https://glama.ai/mcp/connectors/ai.cloudworldmodel/cloud-world-model",
+      "status": "ok",
+      "reason": "tools listed",
+      "tools_listed": 9,
+      "latency_ms": 991
+    },
+    {
+      "id": "glama-connector/zcr4dileif",
+      "name": "Data Compliance Classifier MCP",
+      "namespace": "io.github.OjasKord",
+      "endpoint_url": "https://data-compliance-mcp-production.up.railway.app",
+      "source_url": "https://glama.ai/mcp/connectors/io.github.OjasKord/data-compliance-mcp",
+      "status": "ok",
+      "reason": "tools listed",
+      "tools_listed": 3,
+      "latency_ms": 577
+    },
+    {
+      "id": "glama-connector/pf88qoenh3",
+      "name": "Ebook File Check",
+      "namespace": "com.powmcp",
+      "endpoint_url": "https://powmcp.com/epub-check/mcp",
+      "source_url": "https://glama.ai/mcp/connectors/com.powmcp/epub-check",
+      "status": "auth_required",
+      "reason": "HTTP 403",
+      "tools_listed": 0,
+      "latency_ms": 200
+    },
+    {
+      "id": "glama-connector/b6700xf7zp",
+      "name": "Elecz Electricity Price Signal",
+      "namespace": "com.elecz",
+      "endpoint_url": "https://elecz.com/mcp",
+      "source_url": "https://glama.ai/mcp/connectors/com.elecz/elecz",
+      "status": "auth_required",
+      "reason": "HTTP 403",
+      "tools_listed": 0,
+      "latency_ms": 174
+    },
+    {
+      "id": "glama-connector/pcugjsivq1",
+      "name": "Enclave402",
+      "namespace": "com.enclave402",
+      "endpoint_url": "https://enclave402.com/mcp",
+      "source_url": "https://glama.ai/mcp/connectors/com.enclave402/enclave402",
+      "status": "ok",
+      "reason": "tools listed",
+      "tools_listed": 12,
+      "latency_ms": 1937
+    },
+    {
+      "id": "glama-connector/r8r64lfff8",
+      "name": "Energy Podcast Digest",
+      "namespace": "io.energypod",
+      "endpoint_url": "https://energypod.io/mcp",
+      "source_url": "https://glama.ai/mcp/connectors/io.energypod/energypod",
+      "status": "ok",
+      "reason": "tools listed",
+      "tools_listed": 5,
+      "latency_ms": 2012
+    },
+    {
+      "id": "glama-connector/xe1tnn274k",
+      "name": "FilmRightsProof",
+      "namespace": "com.filmrightsproof",
+      "endpoint_url": "https://filmrightsproof.com/mcp",
+      "source_url": "https://glama.ai/mcp/connectors/com.filmrightsproof/filmrightsproof",
+      "status": "auth_required",
+      "reason": "HTTP 403",
+      "tools_listed": 0,
+      "latency_ms": 285
+    },
+    {
+      "id": "glama-connector/y78d6fl6vw",
+      "name": "Follow On Tours",
+      "namespace": "com.followontours",
+      "endpoint_url": "https://www.followontours.com/api/mcp",
+      "source_url": "https://glama.ai/mcp/connectors/com.followontours/follow-on-tours",
+      "status": "ok",
+      "reason": "tools listed",
+      "tools_listed": 6,
+      "latency_ms": 1316
+    },
+    {
+      "id": "glama-connector/vl5gb2o31f",
+      "name": "Fractera",
+      "namespace": "ai.fractera",
+      "endpoint_url": "https://www.fractera.ai/api/mcp",
+      "source_url": "https://glama.ai/mcp/connectors/ai.fractera/fractera",
+      "status": "auth_required",
+      "reason": "HTTP 403",
+      "tools_listed": 0,
+      "latency_ms": 146
+    },
+    {
+      "id": "glama-connector/t9m509m4qr",
+      "name": "Hispanic Legacy",
+      "namespace": "com.hispanic-legacy",
+      "endpoint_url": "https://hispanic-legacy.com/mcp?via=manifest",
+      "source_url": "https://glama.ai/mcp/connectors/com.hispanic-legacy/hispanic-legacy",
+      "status": "ok",
+      "reason": "tools listed",
+      "tools_listed": 9,
+      "latency_ms": 3291
+    },
+    {
+      "id": "glama-connector/rawa8q8j0u",
+      "name": "Libgen MCP",
+      "namespace": "io.github.jmrplens",
+      "endpoint_url": "https://mcp.jmrp.io/libgen",
+      "source_url": "https://glama.ai/mcp/connectors/io.github.jmrplens/libgen-mcp",
+      "status": "auth_required",
+      "reason": "HTTP 403",
+      "tools_listed": 0,
+      "latency_ms": 164
+    },
+    {
+      "id": "glama-connector/ed5viox8aj",
+      "name": "Local Model Suitability MCP",
+      "namespace": "io.github.OjasKord",
+      "endpoint_url": "https://local-model-suitability-mcp-production.up.railway.app",
+      "source_url": "https://glama.ai/mcp/connectors/io.github.OjasKord/local-model-suitability-mcp",
+      "status": "ok",
+      "reason": "tools listed",
+      "tools_listed": 1,
+      "latency_ms": 929
+    },
+    {
+      "id": "glama-connector/tkxjwz2q54",
+      "name": "MisakaNet",
+      "namespace": "org.misakanet",
+      "endpoint_url": "https://misakanet.org/mcp",
+      "source_url": "https://glama.ai/mcp/connectors/org.misakanet/misaka-net",
+      "status": "auth_required",
+      "reason": "HTTP 403",
+      "tools_listed": 0,
+      "latency_ms": 361
+    },
+    {
+      "id": "glama-connector/zk86d0w5ug",
+      "name": "Razi Document Tools",
+      "namespace": "io.github.razikallayi",
+      "endpoint_url": "https://www.razi.pro/api/mcp/documents",
+      "source_url": "https://glama.ai/mcp/connectors/io.github.razikallayi/razi-documents",
+      "status": "ok",
+      "reason": "tools listed",
+      "tools_listed": 6,
+      "latency_ms": 753
+    },
+    {
+      "id": "glama-connector/lrxfntvfrj",
+      "name": "RegEvidenceHub Taxi",
+      "namespace": "io.github.ChanghuLiu",
+      "endpoint_url": "https://taxi.regevidencehub.com/ai/mcp",
+      "source_url": "https://glama.ai/mcp/connectors/io.github.ChanghuLiu/uk-taxi-phv-regulatory-decision-layer",
+      "status": "ok",
+      "reason": "tools listed",
+      "tools_listed": 5,
+      "latency_ms": 609
+    },
+    {
+      "id": "glama-connector/m463mh2orz",
+      "name": "Relay Agents",
+      "namespace": "life.zae.relay",
+      "endpoint_url": "https://relay.zae.life/api/mcp",
+      "source_url": "https://glama.ai/mcp/connectors/life.zae.relay/relay-agents",
+      "status": "ok",
+      "reason": "tools listed",
+      "tools_listed": 6,
+      "latency_ms": 3315
+    },
+    {
+      "id": "glama-connector/mibiiu0tnu",
+      "name": "RoxyAPI Docs MCP Server (keyless, for coding agents)",
+      "namespace": "com.roxyapi",
+      "endpoint_url": "https://roxyapi.com/mcp/docs",
+      "source_url": "https://glama.ai/mcp/connectors/com.roxyapi/docs",
+      "status": "ok",
+      "reason": "tools listed",
+      "tools_listed": 1,
+      "latency_ms": 802
+    },
+    {
+      "id": "glama-connector/gqhrl6hx8u",
+      "name": "SSL Certificate Check",
+      "namespace": "com.powmcp",
+      "endpoint_url": "https://powmcp.com/ssl-certificate-check/mcp",
+      "source_url": "https://glama.ai/mcp/connectors/com.powmcp/ssl-certificate-check",
+      "status": "auth_required",
+      "reason": "HTTP 403",
+      "tools_listed": 0,
+      "latency_ms": 149
+    },
+    {
+      "id": "glama-connector/j81orh5l61",
+      "name": "SimFuse eSIM Storefront",
+      "namespace": "app.simfuse.api",
+      "endpoint_url": "https://api.simfuse.app/agentic/mcp",
+      "source_url": "https://glama.ai/mcp/connectors/app.simfuse.api/sim-fuse-e-sim-storefront",
+      "status": "unreachable",
+      "reason": "URLError",
+      "tools_listed": 0,
+      "latency_ms": 45064
+    },
+    {
+      "id": "glama-connector/hx9ovlnojt",
+      "name": "Stimulsoft Documentation MCP Server",
+      "namespace": "com.stimulsoft.devs",
+      "endpoint_url": "https://devs.stimulsoft.com/mcp-docs",
+      "source_url": "https://glama.ai/mcp/connectors/com.stimulsoft.devs/stimulsoft-documentation-mcp-server",
+      "status": "ok",
+      "reason": "tools listed",
+      "tools_listed": 2,
+      "latency_ms": 2391
+    },
+    {
+      "id": "glama-connector/vc3i618210",
+      "name": "Tesouro em Foco",
+      "namespace": "com.tesouroemfoco.mcp",
+      "endpoint_url": "https://mcp.tesouroemfoco.com/mcp",
+      "source_url": "https://glama.ai/mcp/connectors/com.tesouroemfoco.mcp/tesouro-em-foco",
+      "status": "auth_required",
+      "reason": "HTTP 403",
+      "tools_listed": 0,
+      "latency_ms": 294
+    },
+    {
+      "id": "glama-connector/l6s7h4mx7s",
+      "name": "Titan Frameworks (LangChain, LlamaIndex, Ollama, XRPL)",
+      "namespace": "io.github.bebopp187-stack",
+      "endpoint_url": "https://titan-frameworks-production.up.railway.app/mcp",
+      "source_url": "https://glama.ai/mcp/connectors/io.github.bebopp187-stack/titan-frameworks",
+      "status": "ok",
+      "reason": "tools listed",
+      "tools_listed": 10,
+      "latency_ms": 546
+    },
+    {
+      "id": "glama-connector/wnl8ragaxo",
+      "name": "UI Verify",
+      "namespace": "ai.uiverify",
+      "endpoint_url": "https://uiverify.ai/api/mcp",
+      "source_url": "https://glama.ai/mcp/connectors/ai.uiverify/ui-verify",
+      "status": "ok",
+      "reason": "tools listed",
+      "tools_listed": 14,
+      "latency_ms": 1762
+    },
+    {
+      "id": "glama-connector/x93zktrkfn",
+      "name": "URL Safety Validator MCP",
+      "namespace": "io.github.OjasKord",
+      "endpoint_url": "https://url-safety-validator-mcp-production.up.railway.app",
+      "source_url": "https://glama.ai/mcp/connectors/io.github.OjasKord/url-safety-validator-mcp",
+      "status": "ok",
+      "reason": "tools listed",
+      "tools_listed": 1,
+      "latency_ms": 615
+    },
+    {
+      "id": "glama-connector/livra590kz",
+      "name": "VAT Validator MCP",
+      "namespace": "io.github.OjasKord",
+      "endpoint_url": "https://vat-validator-mcp-production.up.railway.app",
+      "source_url": "https://glama.ai/mcp/connectors/io.github.OjasKord/vat-validator-mcp",
+      "status": "ok",
+      "reason": "tools listed",
+      "tools_listed": 2,
+      "latency_ms": 787
+    },
+    {
+      "id": "glama-connector/d7tesmws47",
+      "name": "Vascue Public Knowledge Search",
+      "namespace": "io.vascue",
+      "endpoint_url": "https://www.vascue.io/mcp/search",
+      "source_url": "https://glama.ai/mcp/connectors/io.vascue/vascue-public-knowledge-search",
+      "status": "auth_required",
+      "reason": "HTTP 403",
+      "tools_listed": 0,
+      "latency_ms": 180
+    },
+    {
+      "id": "glama-connector/zcgnmyohwk",
+      "name": "ZEAM Prism MCP",
+      "namespace": "com.zeamprism",
+      "endpoint_url": "https://mcp.zeamprism.com/mcp",
+      "source_url": "https://glama.ai/mcp/connectors/com.zeamprism/prism-mcp",
+      "status": "ok",
+      "reason": "tools listed",
+      "tools_listed": 11,
+      "latency_ms": 1716
+    },
+    {
+      "id": "glama-connector/yjeiqz5vde",
+      "name": "catalog",
+      "namespace": "ua.com.mfoxa",
+      "endpoint_url": "https://mfoxa.com.ua/api/mcp",
+      "source_url": "https://glama.ai/mcp/connectors/ua.com.mfoxa/catalog",
+      "status": "auth_required",
+      "reason": "HTTP 403",
+      "tools_listed": 0,
+      "latency_ms": 198
+    },
+    {
+      "id": "glama-connector/o8beysa0kz",
+      "name": "contract-compass",
+      "namespace": "app.sallim",
+      "endpoint_url": "https://contract.sallim.app/mcp?via=official",
+      "source_url": "https://glama.ai/mcp/connectors/app.sallim/contract-compass",
+      "status": "auth_required",
+      "reason": "HTTP 403",
+      "tools_listed": 0,
+      "latency_ms": 119
+    },
+    {
+      "id": "glama-connector/wpb16xmpom",
+      "name": "ionic-framework-mcp",
+      "namespace": "io.capawesome",
+      "endpoint_url": "https://ionic-framework-mcp.capawesome.io/mcp",
+      "source_url": "https://glama.ai/mcp/connectors/io.capawesome/ionic-framework-mcp",
+      "status": "auth_required",
+      "reason": "HTTP 403",
+      "tools_listed": 0,
+      "latency_ms": 110
+    },
+    {
+      "id": "glama-connector/v7qsd3ri3v",
+      "name": "is-it-down",
+      "namespace": "ai.kaiv",
+      "endpoint_url": "https://api.kaiv.ai/api/bridge/mcp/is-it-down-a0a9031c",
+      "source_url": "https://glama.ai/mcp/connectors/ai.kaiv/is-it-down",
+      "status": "auth_required",
+      "reason": "HTTP 403",
+      "tools_listed": 0,
+      "latency_ms": 161
+    },
+    {
+      "id": "glama-connector/ttso7kd0kr",
+      "name": "mcp",
+      "namespace": "io.capawesome",
+      "endpoint_url": "https://mcp.capawesome.io/mcp",
+      "source_url": "https://glama.ai/mcp/connectors/io.capawesome/mcp",
+      "status": "auth_required",
+      "reason": "HTTP 403",
+      "tools_listed": 0,
+      "latency_ms": 190
+    },
+    {
+      "id": "glama-connector/x92enr8l2b",
+      "name": "my quant doesn’t speak english — editorial discovery",
+      "namespace": "io.github.beepboop2025",
+      "endpoint_url": "https://myquantdoesntspeakenglish.com/mcp",
+      "source_url": "https://glama.ai/mcp/connectors/io.github.beepboop2025/myquant-editorial",
+      "status": "ok",
+      "reason": "tools listed",
+      "tools_listed": 5,
+      "latency_ms": 1666
+    },
+    {
+      "id": "glama-connector/am6otbua4o",
+      "name": "profitability-market",
+      "namespace": "io.finance-tools.market",
+      "endpoint_url": "https://market.finance-tools.io/mcp",
+      "source_url": "https://glama.ai/mcp/connectors/io.finance-tools.market/profitability-market",
+      "status": "auth_required",
+      "reason": "HTTP 403",
+      "tools_listed": 0,
+      "latency_ms": 148
+    },
+    {
+      "id": "glama-connector/mxccg8rlof",
+      "name": "rnv-color-mcp",
+      "namespace": "space.hf.rnvizion-rnv-color-mcp",
+      "endpoint_url": "https://rnvizion-rnv-color-mcp.hf.space/mcp",
+      "source_url": "https://glama.ai/mcp/connectors/space.hf.rnvizion-rnv-color-mcp/rnv-color-mcp",
+      "status": "ok",
+      "reason": "tools listed",
+      "tools_listed": 10,
+      "latency_ms": 1988
+    },
+    {
+      "id": "glama-connector/ztzhrmqfgw",
+      "name": "tvm-fund",
+      "namespace": "io.finance-tools.tvm",
+      "endpoint_url": "https://tvm.finance-tools.io/mcp",
+      "source_url": "https://glama.ai/mcp/connectors/io.finance-tools.tvm/tvm-fund",
+      "status": "auth_required",
+      "reason": "HTTP 403",
+      "tools_listed": 0,
+      "latency_ms": 385
+    },
+    {
+      "id": "glama-connector/brb3r3cvbo",
+      "name": "Agent Reliability",
+      "namespace": "dev.agentreliability",
+      "endpoint_url": "https://agentreliability.dev/mcp?via=manifest",
+      "source_url": "https://glama.ai/mcp/connectors/dev.agentreliability/agent-reliability",
+      "status": "ok",
+      "reason": "tools listed",
+      "tools_listed": 9,
+      "latency_ms": 1427
+    },
+    {
+      "id": "glama-connector/nb4myqxesx",
+      "name": "AlexCredit - Kazakhstan Microfinance Catalog",
+      "namespace": "kz.alexcredit",
+      "endpoint_url": "https://alexcredit.kz/api/mcp",
+      "source_url": "https://glama.ai/mcp/connectors/kz.alexcredit/alex-credit-kazakhstan-microfinance-catalog",
+      "status": "ok",
+      "reason": "tools listed",
+      "tools_listed": 7,
+      "latency_ms": 2609
+    },
+    {
+      "id": "glama-connector/vuiixys0x0",
+      "name": "AnyAPI",
+      "namespace": "com.getanyapi.api",
+      "endpoint_url": "https://api.getanyapi.com/mcp",
+      "source_url": "https://glama.ai/mcp/connectors/com.getanyapi.api/any-api",
+      "status": "ok",
+      "reason": "tools listed",
+      "tools_listed": 10,
+      "latency_ms": 1902
+    },
+    {
+      "id": "glama-connector/azgi847v29",
+      "name": "Aspicio",
+      "namespace": "io.github.frontsail-ai",
+      "endpoint_url": "https://aspicio-api.frontsail.app/mcp",
+      "source_url": "https://glama.ai/mcp/connectors/io.github.frontsail-ai/aspicio",
+      "status": "ok",
+      "reason": "tools listed",
+      "tools_listed": 8,
+      "latency_ms": 1453
+    },
+    {
+      "id": "glama-connector/q9p2ia5aqe",
+      "name": "CallMeter",
+      "namespace": "dev.callmeter.api",
+      "endpoint_url": "https://api.callmeter.dev/mcp",
+      "source_url": "https://glama.ai/mcp/connectors/dev.callmeter.api/call-meter",
+      "status": "ok",
+      "reason": "tools listed",
+      "tools_listed": 10,
+      "latency_ms": 1544
+    },
+    {
+      "id": "glama-connector/zz8e7rr2e6",
+      "name": "Caption File Check",
+      "namespace": "com.powmcp",
+      "endpoint_url": "https://powmcp.com/caption-file-check/mcp",
+      "source_url": "https://glama.ai/mcp/connectors/com.powmcp/caption-file-check",
+      "status": "auth_required",
+      "reason": "HTTP 403",
+      "tools_listed": 0,
+      "latency_ms": 312
+    },
+    {
+      "id": "glama-connector/udlm29u9zo",
+      "name": "Corrobtye",
+      "namespace": "com.corrobyte",
+      "endpoint_url": "https://corrobyte.com/mcp",
+      "source_url": "https://glama.ai/mcp/connectors/com.corrobyte/corrobtye",
+      "status": "auth_required",
+      "reason": "HTTP 403",
+      "tools_listed": 0,
+      "latency_ms": 298
+    },
+    {
+      "id": "glama-connector/ypkmiw5wkq",
+      "name": "Cortex",
+      "namespace": "io.github.FilippoPilo",
+      "endpoint_url": "https://skynetlab-cortex-saas-mcp.cortex-320.workers.dev/mcp",
+      "source_url": "https://glama.ai/mcp/connectors/io.github.FilippoPilo/cortex",
+      "status": "auth_required",
+      "reason": "HTTP 403",
+      "tools_listed": 0,
+      "latency_ms": 370
+    },
+    {
+      "id": "glama-connector/zs6c8jdl1p",
+      "name": "Court Delta",
+      "namespace": "com.courtdelta",
+      "endpoint_url": "https://mcp.courtdelta.com/mcp",
+      "source_url": "https://glama.ai/mcp/connectors/com.courtdelta/court-delta",
+      "status": "ok",
+      "reason": "tools listed",
+      "tools_listed": 23,
+      "latency_ms": 1379
+    },
+    {
+      "id": "glama-connector/phuj7xiah5",
+      "name": "Document Integrity Validator",
+      "namespace": "io.github.OjasKord",
+      "endpoint_url": "https://document-integrity-validator-mcp-production.up.railway.app/mcp",
+      "source_url": "https://glama.ai/mcp/connectors/io.github.OjasKord/document-integrity-validator-mcp",
+      "status": "ok",
+      "reason": "tools listed",
+      "tools_listed": 2,
+      "latency_ms": 811
+    },
+    {
+      "id": "glama-connector/yo9es1uejo",
+      "name": "FacilityProof",
+      "namespace": "com.davisvillelabs",
+      "endpoint_url": "https://facilityproof.davisvillelabs.com/mcp",
+      "source_url": "https://glama.ai/mcp/connectors/com.davisvillelabs/facilityproof",
+      "status": "auth_required",
+      "reason": "HTTP 403",
+      "tools_listed": 0,
+      "latency_ms": 94
+    },
+    {
+      "id": "glama-connector/rzpz3q5jc1",
+      "name": "Football Atlas",
+      "namespace": "app.futbolatlas",
+      "endpoint_url": "https://futbolatlas.app/mcp?via=manifest",
+      "source_url": "https://glama.ai/mcp/connectors/app.futbolatlas/futbol-atlas",
+      "status": "ok",
+      "reason": "tools listed",
+      "tools_listed": 9,
+      "latency_ms": 2742
+    },
+    {
+      "id": "glama-connector/dkj7ozc45a",
+      "name": "Forge Magery",
+      "namespace": "ai.magery.forge",
+      "endpoint_url": "https://forge.magery.ai/mcp",
+      "source_url": "https://glama.ai/mcp/connectors/ai.magery.forge/forge-magery",
+      "status": "auth_required",
+      "reason": "HTTP 403",
+      "tools_listed": 0,
+      "latency_ms": 113
+    },
+    {
+      "id": "glama-connector/j3t7rifg85",
+      "name": "GoodSign",
+      "namespace": "io.goodsign",
+      "endpoint_url": "https://goodsign.io/mcp",
+      "source_url": "https://glama.ai/mcp/connectors/io.goodsign/goodsign",
+      "status": "ok",
+      "reason": "tools listed",
+      "tools_listed": 10,
+      "latency_ms": 2349
+    },
+    {
+      "id": "glama-connector/jzmq0zzmh0",
+      "name": "Hire Filipino Virtual Assistants: Armasourcing",
+      "namespace": "com.armasourcing.chatgpt",
+      "endpoint_url": "https://chatgpt.armasourcing.com/mcp",
+      "source_url": "https://glama.ai/mcp/connectors/com.armasourcing.chatgpt/hire-filipino-virtual-assistants-armasourcing",
+      "status": "ok",
+      "reason": "tools listed",
+      "tools_listed": 5,
+      "latency_ms": 383
+    },
+    {
+      "id": "glama-connector/kgukqf1ubl",
+      "name": "Honeydew AI Documentation",
+      "namespace": "ai.honeydew",
+      "endpoint_url": "https://honeydew.ai/docs/mcp",
+      "source_url": "https://glama.ai/mcp/connectors/ai.honeydew/honeydew-ai-documentation",
+      "status": "auth_required",
+      "reason": "HTTP 403",
+      "tools_listed": 0,
+      "latency_ms": 370
+    },
+    {
+      "id": "glama-connector/imgglzpg2u",
+      "name": "InterAI Risk Oracle",
+      "namespace": "io.github.InterAILabs",
+      "endpoint_url": "https://api.interailabs.dev/mcp",
+      "source_url": "https://glama.ai/mcp/connectors/io.github.InterAILabs/ai-risk-oracle",
+      "status": "ok",
+      "reason": "tools listed",
+      "tools_listed": 9,
+      "latency_ms": 3082
+    },
+    {
+      "id": "glama-connector/wchsjg4anz",
+      "name": "Knowledge for Agents",
+      "namespace": "com.knowledgeforagents",
+      "endpoint_url": "https://knowledgeforagents.com/mcp",
+      "source_url": "https://glama.ai/mcp/connectors/com.knowledgeforagents/knowledge-for-agents",
+      "status": "auth_required",
+      "reason": "HTTP 403",
+      "tools_listed": 0,
+      "latency_ms": 113
+    },
+    {
+      "id": "glama-connector/dplgqz1rbp",
+      "name": "MentionedOn Discovery Evidence Tools",
+      "namespace": "com.mentioned-on",
+      "endpoint_url": "https://mentioned-on.com/mcp",
+      "source_url": "https://glama.ai/mcp/connectors/com.mentioned-on/ai-discovery-readiness",
+      "status": "ok",
+      "reason": "tools listed",
+      "tools_listed": 3,
+      "latency_ms": 845
+    },
+    {
+      "id": "glama-connector/e6wjnk4ayq",
+      "name": "MetaLend",
+      "namespace": "io.github.rabeles11",
+      "endpoint_url": "https://mcp.metalend.tech/mcp",
+      "source_url": "https://glama.ai/mcp/connectors/io.github.rabeles11/metalend",
+      "status": "auth_required",
+      "reason": "HTTP 403",
+      "tools_listed": 0,
+      "latency_ms": 98
+    },
+    {
+      "id": "glama-connector/i5kk0ur7ec",
+      "name": "Nimo",
+      "namespace": "com.heynimo.api",
+      "endpoint_url": "https://api.heynimo.com/try-mcp?source=glama",
+      "source_url": "https://glama.ai/mcp/connectors/com.heynimo.api/nimo",
+      "status": "auth_required",
+      "reason": "HTTP 403",
+      "tools_listed": 0,
+      "latency_ms": 294
+    },
+    {
+      "id": "glama-connector/wlct81ko73",
+      "name": "Papaya Pay Any Bill (USA)",
+      "namespace": "com.papayapay.consumer-production.mcp-agent",
+      "endpoint_url": "https://mcp-agent.consumer-production.papayapay.com/payagent/mcp/",
+      "source_url": "https://glama.ai/mcp/connectors/com.papayapay.consumer-production.mcp-agent/papaya-bill-pay",
+      "status": "auth_required",
+      "reason": "HTTP 403",
+      "tools_listed": 0,
+      "latency_ms": 861
+    },
+    {
+      "id": "glama-connector/om4hh9kk9f",
+      "name": "Razi Dev Utilities",
+      "namespace": "io.github.razikallayi",
+      "endpoint_url": "https://www.razi.pro/api/mcp/dev",
+      "source_url": "https://glama.ai/mcp/connectors/io.github.razikallayi/razi-dev",
+      "status": "ok",
+      "reason": "tools listed",
+      "tools_listed": 5,
+      "latency_ms": 739
+    },
+    {
+      "id": "glama-connector/ma6ackjejf",
+      "name": "RealWorldAPIs",
+      "namespace": "com.realworldapis",
+      "endpoint_url": "https://realworldapis-api.realworldapis.workers.dev/mcp",
+      "source_url": "https://glama.ai/mcp/connectors/com.realworldapis/realworldapis",
+      "status": "auth_required",
+      "reason": "HTTP 403",
+      "tools_listed": 0,
+      "latency_ms": 240
+    },
+    {
+      "id": "glama-connector/h64own4fs0",
+      "name": "SendCheck — EVM address verification (x402)",
+      "namespace": "org.pennyforge.api",
+      "endpoint_url": "https://api.pennyforge.org/mcp",
+      "source_url": "https://glama.ai/mcp/connectors/org.pennyforge.api/sendcheck",
+      "status": "ok",
+      "reason": "tools listed",
+      "tools_listed": 3,
+      "latency_ms": 627
+    },
+    {
+      "id": "glama-connector/yhcd731wg2",
+      "name": "Sovereign AI Blog",
+      "namespace": "org.sovgrid.mcp",
+      "endpoint_url": "https://mcp.sovgrid.org/self-hosted-ai",
+      "source_url": "https://glama.ai/mcp/connectors/org.sovgrid.mcp/sovereign-ai-blog",
+      "status": "ok",
+      "reason": "tools listed",
+      "tools_listed": 5,
+      "latency_ms": 7175
+    },
+    {
+      "id": "glama-connector/iyfr7ezjwh",
+      "name": "Steledger",
+      "namespace": "com.steledger",
+      "endpoint_url": "https://api.steledger.com/mcp",
+      "source_url": "https://glama.ai/mcp/connectors/com.steledger/gateway",
+      "status": "auth_required",
+      "reason": "HTTP 403",
+      "tools_listed": 0,
+      "latency_ms": 383
+    },
+    {
+      "id": "glama-connector/fg086rqvd4",
+      "name": "Uphealth Signal",
+      "namespace": "us.uphealth.mcp",
+      "endpoint_url": "https://mcp.uphealth.us/mcp",
+      "source_url": "https://glama.ai/mcp/connectors/us.uphealth.mcp/uphealth-signal",
+      "status": "ok",
+      "reason": "tools listed",
+      "tools_listed": 5,
+      "latency_ms": 1475
+    },
+    {
+      "id": "glama-connector/wr2li2sb0c",
+      "name": "Usero",
+      "namespace": "io.usero",
+      "endpoint_url": "https://usero.io/mcp",
+      "source_url": "https://glama.ai/mcp/connectors/io.usero/usero",
+      "status": "auth_required",
+      "reason": "HTTP 403",
+      "tools_listed": 0,
+      "latency_ms": 171
+    },
+    {
+      "id": "glama-connector/v05orj9xkp",
+      "name": "WP Update Radar",
+      "namespace": "xyz.utilityhouse.updates",
+      "endpoint_url": "https://updates.utilityhouse.xyz/mcp/registry",
+      "source_url": "https://glama.ai/mcp/connectors/xyz.utilityhouse.updates/wp-update-radar",
+      "status": "auth_required",
+      "reason": "HTTP 403",
+      "tools_listed": 0,
+      "latency_ms": 116
+    },
+    {
+      "id": "glama-connector/x285vikq08",
+      "name": "Web Data Forms",
+      "namespace": "com.webdataforms.mcp",
+      "endpoint_url": "https://mcp.webdataforms.com",
+      "source_url": "https://glama.ai/mcp/connectors/com.webdataforms.mcp/web-data-forms",
+      "status": "auth_required",
+      "reason": "HTTP 403",
+      "tools_listed": 0,
+      "latency_ms": 264
+    },
+    {
+      "id": "glama-connector/ow6dnf9kmg",
+      "name": "capacitor-mcp",
+      "namespace": "io.capawesome",
+      "endpoint_url": "https://capacitor-mcp.capawesome.io/mcp",
+      "source_url": "https://glama.ai/mcp/connectors/io.capawesome/capacitor-mcp",
+      "status": "auth_required",
+      "reason": "HTTP 403",
+      "tools_listed": 0,
+      "latency_ms": 228
+    },
+    {
+      "id": "glama-connector/hj7yahyoy7",
+      "name": "efficiency",
+      "namespace": "io.finance-tools.efficiency",
+      "endpoint_url": "https://efficiency.finance-tools.io/mcp",
+      "source_url": "https://glama.ai/mcp/connectors/io.finance-tools.efficiency/efficiency",
+      "status": "auth_required",
+      "reason": "HTTP 403",
+      "tools_listed": 0,
+      "latency_ms": 492
+    },
+    {
+      "id": "glama-connector/rkr05hkfai",
+      "name": "gvrn-incorporation",
+      "namespace": "ai.gvrn.core-api",
+      "endpoint_url": "https://core-api.gvrn.ai/incorporation-mcp",
+      "source_url": "https://glama.ai/mcp/connectors/ai.gvrn.core-api/gvrn-incorporation",
+      "status": "auth_required",
+      "reason": "HTTP 403",
+      "tools_listed": 0,
+      "latency_ms": 241
+    },
+    {
+      "id": "glama-connector/d19107v3f9",
+      "name": "metalend",
+      "namespace": "tech.metalend.mcp",
+      "endpoint_url": "https://mcp.metalend.tech/mcp",
+      "source_url": "https://glama.ai/mcp/connectors/tech.metalend.mcp/metalend",
+      "status": "auth_required",
+      "reason": "HTTP 403",
+      "tools_listed": 0,
+      "latency_ms": 250
+    },
+    {
+      "id": "glama-connector/kr8kozncfy",
+      "name": "pSEO Engine",
+      "namespace": "net.quantumcx",
+      "endpoint_url": "https://pseo.quantumcx.net/api/agent/mcp",
+      "source_url": "https://glama.ai/mcp/connectors/net.quantumcx/pseo-engine",
+      "status": "ok",
+      "reason": "tools listed",
+      "tools_listed": 10,
+      "latency_ms": 2438
+    },
+    {
+      "id": "glama-connector/fzireh89av",
+      "name": "3dCMS",
+      "namespace": "info.3dcms",
+      "endpoint_url": "https://3dcms.info/mcp",
+      "source_url": "https://glama.ai/mcp/connectors/info.3dcms/mcp",
+      "status": "auth_required",
+      "reason": "HTTP 403",
+      "tools_listed": 0,
+      "latency_ms": 95
+    },
+    {
+      "id": "glama-connector/a4fno0podt",
+      "name": "402 Dispatcher",
+      "namespace": "com.402dispatcher",
+      "endpoint_url": "https://402dispatcher.com/mcp",
+      "source_url": "https://glama.ai/mcp/connectors/com.402dispatcher/402-dispatcher",
+      "status": "ok",
+      "reason": "tools listed",
+      "tools_listed": 10,
+      "latency_ms": 649
+    },
+    {
+      "id": "glama-connector/gfptfgqqrf",
+      "name": "AI Design Blueprint",
+      "namespace": "com.aidesignblueprint",
+      "endpoint_url": "https://aidesignblueprint.com/mcp",
+      "source_url": "https://glama.ai/mcp/connectors/com.aidesignblueprint/blueprint",
+      "status": "ok",
+      "reason": "tools listed",
+      "tools_listed": 29,
+      "latency_ms": 2150
+    },
+    {
+      "id": "glama-connector/ne7rldxijk",
+      "name": "AI Tool Directory",
+      "namespace": "ai.tooldirectory",
+      "endpoint_url": "https://tooldirectory.ai/api/mcp",
+      "source_url": "https://glama.ai/mcp/connectors/ai.tooldirectory/ai-tool-directory",
+      "status": "ok",
+      "reason": "tools listed",
+      "tools_listed": 6,
+      "latency_ms": 814
+    },
+    {
+      "id": "glama-connector/dc1r8fia2c",
+      "name": "ARBITER",
+      "namespace": "fyi.grip",
+      "endpoint_url": "https://api.grip.fyi/mcp",
+      "source_url": "https://glama.ai/mcp/connectors/fyi.grip/arbiter",
+      "status": "auth_required",
+      "reason": "HTTP 403",
+      "tools_listed": 0,
+      "latency_ms": 100
+    },
+    {
+      "id": "glama-connector/b782cuelgb",
+      "name": "AbaPay",
+      "namespace": "io.github.investorphem",
+      "endpoint_url": "https://agents.abapays.com/api/mcp",
+      "source_url": "https://glama.ai/mcp/connectors/io.github.investorphem/abapay",
+      "status": "ok",
+      "reason": "tools listed",
+      "tools_listed": 10,
+      "latency_ms": 3028
+    },
+    {
+      "id": "glama-connector/qo02e46cvh",
+      "name": "Agent Data Pro",
+      "namespace": "com.agentdatapro",
+      "endpoint_url": "https://agentdatapro.com/mcp",
+      "source_url": "https://glama.ai/mcp/connectors/com.agentdatapro/agent-data-pro",
+      "status": "auth_required",
+      "reason": "HTTP 403",
+      "tools_listed": 0,
+      "latency_ms": 771
+    },
+    {
+      "id": "glama-connector/kf8k3bjr4j",
+      "name": "AgentMD",
+      "namespace": "io.github.djrobson5",
+      "endpoint_url": "https://www.getagentmd.com/api/mcp",
+      "source_url": "https://glama.ai/mcp/connectors/io.github.djrobson5/agentmd",
+      "status": "ok",
+      "reason": "tools listed",
+      "tools_listed": 2,
+      "latency_ms": 1226
+    },
+    {
+      "id": "glama-connector/txy7ox0438",
+      "name": "Auspice BaZi — Four Pillars Chart",
+      "namespace": "com.auspiceoracle",
+      "endpoint_url": "https://auspiceoracle.com/mcp/bazi",
+      "source_url": "https://glama.ai/mcp/connectors/com.auspiceoracle/auspice-ba-zi-four-pillars-chart",
+      "status": "auth_required",
+      "reason": "HTTP 403",
+      "tools_listed": 0,
+      "latency_ms": 300
+    },
+    {
+      "id": "glama-connector/efovwmtxv4",
+      "name": "Automaton Colony",
+      "namespace": "xyz.automatoncolony",
+      "endpoint_url": "https://automatoncolony.xyz/mcp",
+      "source_url": "https://glama.ai/mcp/connectors/xyz.automatoncolony/automaton-colony",
+      "status": "ok",
+      "reason": "tools listed",
+      "tools_listed": 6,
+      "latency_ms": 1351
+    },
+    {
+      "id": "glama-connector/q40u3whxle",
+      "name": "BGPT Scientific Data",
+      "namespace": "pro.bgpt",
+      "endpoint_url": "https://bgpt.pro/mcp/stream",
+      "source_url": "https://glama.ai/mcp/connectors/pro.bgpt/bgpt-scientific-data",
+      "status": "ok",
+      "reason": "tools listed",
+      "tools_listed": 2,
+      "latency_ms": 899
+    },
+    {
+      "id": "glama-connector/xcp59xw222",
+      "name": "BRS Signals",
+      "namespace": "com.brs-signals",
+      "endpoint_url": "https://brs-signals.com/mcp",
+      "source_url": "https://glama.ai/mcp/connectors/com.brs-signals/brs-signals",
+      "status": "auth_required",
+      "reason": "HTTP 403",
+      "tools_listed": 0,
+      "latency_ms": 277
+    },
+    {
+      "id": "glama-connector/jh44acy3g2",
+      "name": "BrinkerAdvisor Rates",
+      "namespace": "com.brinkeradvisor.mcp",
+      "endpoint_url": "https://mcp.brinkeradvisor.com/mcp",
+      "source_url": "https://glama.ai/mcp/connectors/com.brinkeradvisor.mcp/brinker-advisor-rates",
+      "status": "ok",
+      "reason": "tools listed",
+      "tools_listed": 4,
+      "latency_ms": 4138
+    },
+    {
+      "id": "glama-connector/unuse5rxd2",
+      "name": "Bristlecone Logic Utilities",
+      "namespace": "com.bristleconelogic.api",
+      "endpoint_url": "https://api.bristleconelogic.com/mcp",
+      "source_url": "https://glama.ai/mcp/connectors/com.bristleconelogic.api/bristlecone-logic-utilities",
+      "status": "ok",
+      "reason": "tools listed",
+      "tools_listed": 6,
+      "latency_ms": 2022
+    },
+    {
+      "id": "glama-connector/hky82v4kgm",
+      "name": "COTAL (cotal.ai)",
+      "namespace": "ai.cotal",
+      "endpoint_url": "https://cotal.ai/mcp",
+      "source_url": "https://glama.ai/mcp/connectors/ai.cotal/cotal-cotalai",
+      "status": "ok",
+      "reason": "tools listed",
+      "tools_listed": 8,
+      "latency_ms": 932
+    },
+    {
+      "id": "glama-connector/sdkewv6oub",
+      "name": "California Bitcoin",
+      "namespace": "org.californiabitcoin",
+      "endpoint_url": "https://californiabitcoin.org/mcp?source=official-mcp-registry",
+      "source_url": "https://glama.ai/mcp/connectors/org.californiabitcoin/agent-commerce",
+      "status": "auth_required",
+      "reason": "HTTP 403",
+      "tools_listed": 0,
+      "latency_ms": 118
+    },
+    {
+      "id": "glama-connector/phsp4blthx",
+      "name": "CometChat Docs",
+      "namespace": "io.github.cometchat",
+      "endpoint_url": "https://mcp.cometchat.com/mcp",
+      "source_url": "https://glama.ai/mcp/connectors/io.github.cometchat/docs-mcp",
+      "status": "ok",
+      "reason": "tools listed",
+      "tools_listed": 4,
+      "latency_ms": 1197
+    },
+    {
+      "id": "glama-connector/h6v3tn3cj9",
+      "name": "DocBin",
+      "namespace": "app.docbin.mcp",
+      "endpoint_url": "https://mcp.docbin.app/mcp",
+      "source_url": "https://glama.ai/mcp/connectors/app.docbin.mcp/doc-bin",
+      "status": "auth_required",
+      "reason": "HTTP 403",
+      "tools_listed": 0,
+      "latency_ms": 123
+    },
+    {
+      "id": "glama-connector/y06vecqudi",
+      "name": "Dreamfare",
+      "namespace": "app.dreamfare",
+      "endpoint_url": "https://api.dreamfare.app/mcp",
+      "source_url": "https://glama.ai/mcp/connectors/app.dreamfare/mcp",
+      "status": "ok",
+      "reason": "tools listed",
+      "tools_listed": 21,
+      "latency_ms": 1496
+    },
+    {
+      "id": "glama-connector/w0tiidkx19",
+      "name": "Enhanciar — company brain",
+      "namespace": "in.enhanciar",
+      "endpoint_url": "https://enhanciar.in/enhanciar/mcp/",
+      "source_url": "https://glama.ai/mcp/connectors/in.enhanciar/enhanciar",
+      "status": "ok",
+      "reason": "tools listed",
+      "tools_listed": 12,
+      "latency_ms": 517
+    },
+    {
+      "id": "glama-connector/kt9h00zfyz",
+      "name": "FX Context",
+      "namespace": "com.coco-pier",
+      "endpoint_url": "https://fx.coco-pier.com/mcp",
+      "source_url": "https://glama.ai/mcp/connectors/com.coco-pier/fx-context",
+      "status": "auth_required",
+      "reason": "HTTP 403",
+      "tools_listed": 0,
+      "latency_ms": 161
+    },
+    {
+      "id": "glama-connector/g4jpw2cppg",
+      "name": "Factrail",
+      "namespace": "io.github.baronsigma",
+      "endpoint_url": "https://mcp.factrail.online/mcp",
+      "source_url": "https://glama.ai/mcp/connectors/io.github.baronsigma/factrail",
+      "status": "auth_required",
+      "reason": "HTTP 403",
+      "tools_listed": 0,
+      "latency_ms": 148
+    },
+    {
+      "id": "glama-connector/o3jdy7xktw",
+      "name": "Feng Shui MCP Server by RoxyAPI",
+      "namespace": "com.roxyapi",
+      "endpoint_url": "https://roxyapi.com/mcp/feng-shui",
+      "source_url": "https://glama.ai/mcp/connectors/com.roxyapi/feng-shui",
+      "status": "ok",
+      "reason": "tools listed",
+      "tools_listed": 11,
+      "latency_ms": 1155
+    },
+    {
+      "id": "glama-connector/m6zfmxlgdf",
+      "name": "FiledProof",
+      "namespace": "com.davisvillelabs.filedproof",
+      "endpoint_url": "https://filedproof.davisvillelabs.com/mcp",
+      "source_url": "https://glama.ai/mcp/connectors/com.davisvillelabs.filedproof/filedproof",
+      "status": "auth_required",
+      "reason": "HTTP 403",
+      "tools_listed": 0,
+      "latency_ms": 337
+    },
+    {
+      "id": "glama-connector/lb450imn6s",
+      "name": "FlexYield — blockchain RPC gateway",
+      "namespace": "io.flexyield",
+      "endpoint_url": "https://flexyield.io/mcp",
+      "source_url": "https://glama.ai/mcp/connectors/io.flexyield/flex-yield-blockchain-rpc-gateway",
+      "status": "ok",
+      "reason": "tools listed",
+      "tools_listed": 35,
+      "latency_ms": 1356
+    },
+    {
+      "id": "glama-connector/afpldzc3di",
+      "name": "Fonteum — Healthcare Provider Data (Hosted)",
+      "namespace": "com.fonteum.mcp",
+      "endpoint_url": "https://mcp.fonteum.com/api/mcp",
+      "source_url": "https://glama.ai/mcp/connectors/com.fonteum.mcp/fonteum-healthcare-provider-data-hosted",
+      "status": "ok",
+      "reason": "tools listed",
+      "tools_listed": 9,
+      "latency_ms": 1581
+    },
+    {
+      "id": "glama-connector/xunroz6a9u",
+      "name": "Freelance Clearing",
+      "namespace": "com.freelanceclearing",
+      "endpoint_url": "https://freelanceclearing.com/api/mcp",
+      "source_url": "https://glama.ai/mcp/connectors/com.freelanceclearing/marketplace",
+      "status": "ok",
+      "reason": "tools listed",
+      "tools_listed": 23,
+      "latency_ms": 3517
+    },
+    {
+      "id": "glama-connector/c1hj863j48",
+      "name": "FreightUtils MCP Server",
+      "namespace": "io.github.SoapyRED",
+      "endpoint_url": "https://www.freightutils.com/api/mcp",
+      "source_url": "https://glama.ai/mcp/connectors/io.github.SoapyRED/freightutils",
+      "status": "ok",
+      "reason": "tools listed",
+      "tools_listed": 25,
+      "latency_ms": 4481
+    },
+    {
+      "id": "glama-connector/cpdnlztiz1",
+      "name": "GOV.UK",
+      "namespace": "dev.fly.govuk-mcp",
+      "endpoint_url": "https://govuk-mcp.fly.dev/mcp",
+      "source_url": "https://glama.ai/mcp/connectors/dev.fly.govuk-mcp/govuk-mcp",
+      "status": "ok",
+      "reason": "tools listed",
+      "tools_listed": 7,
+      "latency_ms": 1472
+    },
+    {
+      "id": "glama-connector/m70o7579bv",
+      "name": "HALLUX",
+      "namespace": "dev.blvkware",
+      "endpoint_url": "https://api.blvkware.dev/hallux/mcp",
+      "source_url": "https://glama.ai/mcp/connectors/dev.blvkware/hallux",
+      "status": "ok",
+      "reason": "tools listed",
+      "tools_listed": 4,
+      "latency_ms": 2682
+    },
+    {
+      "id": "glama-connector/vvwg5bdqlw",
+      "name": "HORIZON SHIELD YAKUMO (verified contractor directory)",
+      "namespace": "io.github.ogasurfproject-jpg",
+      "endpoint_url": "https://hearing.horizonshield.dev/mcp",
+      "source_url": "https://glama.ai/mcp/connectors/io.github.ogasurfproject-jpg/hs-hearing",
+      "status": "auth_required",
+      "reason": "HTTP 403",
+      "tools_listed": 0,
+      "latency_ms": 164
+    },
+    {
+      "id": "glama-connector/frk4km5lxz",
+      "name": "HORIZON SHIELD: construction and renovation estimate auditor",
+      "namespace": "io.github.ogasurfproject-jpg",
+      "endpoint_url": "https://mcp.horizonshield.dev",
+      "source_url": "https://glama.ai/mcp/connectors/io.github.ogasurfproject-jpg/horizon-shield",
+      "status": "auth_required",
+      "reason": "HTTP 403",
+      "tools_listed": 0,
+      "latency_ms": 144
+    },
+    {
+      "id": "glama-connector/drhuv33m5q",
+      "name": "HTML Email Playbook",
+      "namespace": "io.github.OsamaHassouna",
+      "endpoint_url": "https://docs.osamahassouna.com/api/mcp",
+      "source_url": "https://glama.ai/mcp/connectors/io.github.OsamaHassouna/email-playbook-mcp",
+      "status": "ok",
+      "reason": "tools listed",
+      "tools_listed": 4,
+      "latency_ms": 933
+    },
+    {
+      "id": "glama-connector/bhbo60r1ty",
+      "name": "InsideOut (Riley)",
+      "namespace": "com.luthersystems.app",
+      "endpoint_url": "https://app.luthersystems.com/v1/insideout-mcp",
+      "source_url": "https://glama.ai/mcp/connectors/com.luthersystems.app/inside-out-riley",
+      "status": "ok",
+      "reason": "tools listed",
+      "tools_listed": 24,
+      "latency_ms": 2366
+    },
+    {
+      "id": "glama-connector/vblgcph8jy",
+      "name": "Jobs Base",
+      "namespace": "io.jobsbase",
+      "endpoint_url": "https://jobsbase.io/mcp",
+      "source_url": "https://glama.ai/mcp/connectors/io.jobsbase/jobs-base",
+      "status": "auth_required",
+      "reason": "HTTP 403",
+      "tools_listed": 0,
+      "latency_ms": 125
+    },
+    {
+      "id": "glama-connector/yhc33jah4b",
+      "name": "Just Domain",
+      "namespace": "ai.justdomain",
+      "endpoint_url": "https://mcp.justdomain.ai/",
+      "source_url": "https://glama.ai/mcp/connectors/ai.justdomain/just-domain",
+      "status": "ok",
+      "reason": "tools listed",
+      "tools_listed": 2,
+      "latency_ms": 618
+    },
+    {
+      "id": "glama-connector/unnau27d4u",
+      "name": "Langfuse Docs",
+      "namespace": "com.langfuse",
+      "endpoint_url": "https://langfuse.com/api/mcp",
+      "source_url": "https://glama.ai/mcp/connectors/com.langfuse/langfuse-docs",
+      "status": "ok",
+      "reason": "tools listed",
+      "tools_listed": 4,
+      "latency_ms": 254
+    },
+    {
+      "id": "glama-connector/h4hot45rg7",
+      "name": "Line9",
+      "namespace": "ai.line9",
+      "endpoint_url": "https://mcp.line9.ai/mcp",
+      "source_url": "https://glama.ai/mcp/connectors/ai.line9/diagrams",
+      "status": "auth_required",
+      "reason": "HTTP 403",
+      "tools_listed": 0,
+      "latency_ms": 102
+    },
+    {
+      "id": "glama-connector/xtsk9mb1tc",
+      "name": "ListingGood MCP",
+      "namespace": "io.github.ryanyang828",
+      "endpoint_url": "https://listinggood.com/mcp",
+      "source_url": "https://glama.ai/mcp/connectors/io.github.ryanyang828/listinggood",
+      "status": "ok",
+      "reason": "tools listed",
+      "tools_listed": 8,
+      "latency_ms": 707
+    },
+    {
+      "id": "glama-connector/z5lc5xtjwk",
+      "name": "LocalPro",
+      "namespace": "dev.localpro.mcp",
+      "endpoint_url": "https://mcp.localpro.dev/mcp",
+      "source_url": "https://glama.ai/mcp/connectors/dev.localpro.mcp/local-pro",
+      "status": "auth_required",
+      "reason": "HTTP 403",
+      "tools_listed": 0,
+      "latency_ms": 115
+    },
+    {
+      "id": "glama-connector/df0fbf23l5",
+      "name": "Machine Presence Inspector",
+      "namespace": "dev.onthestacks",
+      "endpoint_url": "https://mcp.onthestacks.dev/mcp",
+      "source_url": "https://glama.ai/mcp/connectors/dev.onthestacks/machine-presence-inspector",
+      "status": "auth_required",
+      "reason": "HTTP 403",
+      "tools_listed": 0,
+      "latency_ms": 128
+    },
+    {
+      "id": "glama-connector/aua7i6d4i2",
+      "name": "Movahedi Privacy API",
+      "namespace": "ca.movahedi",
+      "endpoint_url": "https://movahedi.ca/mcp",
+      "source_url": "https://glama.ai/mcp/connectors/ca.movahedi/movahedi-privacy-api",
+      "status": "auth_required",
+      "reason": "HTTP 403",
+      "tools_listed": 0,
+      "latency_ms": 104
+    },
+    {
+      "id": "glama-connector/t6ev2hczha",
+      "name": "Moxie Docs",
+      "namespace": "com.moxiedocs",
+      "endpoint_url": "https://moxiedocs.com/api/mcp",
+      "source_url": "https://glama.ai/mcp/connectors/com.moxiedocs/moxie-docs",
+      "status": "auth_required",
+      "reason": "HTTP 403",
+      "tools_listed": 0,
+      "latency_ms": 206
+    },
+    {
+      "id": "glama-connector/x6dp02glbt",
+      "name": "Multi-Carrier Shipping API — powered by Secureship",
+      "namespace": "ca.secureship",
+      "endpoint_url": "https://secureship.ca/ship/api/mcp",
+      "source_url": "https://glama.ai/mcp/connectors/ca.secureship/multi-carrier-shipping-api-powered-by-secureship",
+      "status": "ok",
+      "reason": "tools listed",
+      "tools_listed": 4,
+      "latency_ms": 2234
+    },
+    {
+      "id": "glama-connector/tettwv1v02",
+      "name": "OrchestKit Docs MCP",
+      "namespace": "io.github.yonatangross",
+      "endpoint_url": "https://orchestkit.yonyon.ai/api/mcp",
+      "source_url": "https://glama.ai/mcp/connectors/io.github.yonatangross/orchestkit",
+      "status": "ok",
+      "reason": "tools listed",
+      "tools_listed": 2,
+      "latency_ms": 6658
+    },
+    {
+      "id": "glama-connector/k89cxkuw6l",
+      "name": "PG1 Sovereign Threat Intelligence",
+      "namespace": "io.github.Project-Gifted1",
+      "endpoint_url": "https://pg1-ai-agent.vercel.app/api/mcp",
+      "source_url": "https://glama.ai/mcp/connectors/io.github.Project-Gifted1/pg1-threat-intel",
+      "status": "ok",
+      "reason": "tools listed",
+      "tools_listed": 10,
+      "latency_ms": 1408
+    },
+    {
+      "id": "glama-connector/okv7ovxwly",
+      "name": "Pronto",
+      "namespace": "stream.pronto.api",
+      "endpoint_url": "https://api.pronto.stream/api/mcp",
+      "source_url": "https://glama.ai/mcp/connectors/stream.pronto.api/pronto",
+      "status": "ok",
+      "reason": "tools listed",
+      "tools_listed": 15,
+      "latency_ms": 1320
+    },
+    {
+      "id": "glama-connector/ab8qepx1sb",
+      "name": "Push Realm",
+      "namespace": "com.pushrealm.api",
+      "endpoint_url": "https://api.pushrealm.com/mcp",
+      "source_url": "https://glama.ai/mcp/connectors/com.pushrealm.api/push-realm",
+      "status": "ok",
+      "reason": "tools listed",
+      "tools_listed": 11,
+      "latency_ms": 609
+    },
+    {
+      "id": "glama-connector/ocghgw9unf",
+      "name": "Quiet Menders",
+      "namespace": "dev.workers.brianbooms.quiet-menders-mcp",
+      "endpoint_url": "https://quiet-menders-mcp.brianbooms.workers.dev/mcp",
+      "source_url": "https://glama.ai/mcp/connectors/dev.workers.brianbooms.quiet-menders-mcp/quiet-menders",
+      "status": "auth_required",
+      "reason": "HTTP 403",
+      "tools_listed": 0,
+      "latency_ms": 144
+    },
+    {
+      "id": "glama-connector/ytc8359tki",
+      "name": "RPCS-1 Agent Tuner & Translation Bridge",
+      "namespace": "io.github.travisbergen2",
+      "endpoint_url": "https://rpcs1.dev/mcp",
+      "source_url": "https://glama.ai/mcp/connectors/io.github.travisbergen2/rpcs1-agent-tuner",
+      "status": "ok",
+      "reason": "tools listed",
+      "tools_listed": 9,
+      "latency_ms": 1041
+    },
+    {
+      "id": "glama-connector/cbq49xv47u",
+      "name": "Razi Media Tools",
+      "namespace": "io.github.razikallayi",
+      "endpoint_url": "https://www.razi.pro/api/mcp/media",
+      "source_url": "https://glama.ai/mcp/connectors/io.github.razikallayi/razi-media",
+      "status": "ok",
+      "reason": "tools listed",
+      "tools_listed": 4,
+      "latency_ms": 779
+    },
+    {
+      "id": "glama-connector/by47afd2ho",
+      "name": "Realask - verified answers from the physical world",
+      "namespace": "io.github.danelas",
+      "endpoint_url": "https://realask.net/mcp",
+      "source_url": "https://glama.ai/mcp/connectors/io.github.danelas/realask",
+      "status": "ok",
+      "reason": "tools listed",
+      "tools_listed": 5,
+      "latency_ms": 1363
+    },
+    {
+      "id": "glama-connector/feh5j15f69",
+      "name": "RegEvidenceHub Waste",
+      "namespace": "io.github.ChanghuLiu",
+      "endpoint_url": "https://waste.regevidencehub.com/ai/mcp",
+      "source_url": "https://glama.ai/mcp/connectors/io.github.ChanghuLiu/uk-waste-rule-mcp",
+      "status": "ok",
+      "reason": "tools listed",
+      "tools_listed": 7,
+      "latency_ms": 770
+    },
+    {
+      "id": "glama-connector/kv9cxswqj5",
+      "name": "RegSentry Website Tracking Inspector",
+      "namespace": "com.regsentry",
+      "endpoint_url": "https://regsentry.com/mcp",
+      "source_url": "https://glama.ai/mcp/connectors/com.regsentry/tracking-inspector",
+      "status": "ok",
+      "reason": "tools listed",
+      "tools_listed": 3,
+      "latency_ms": 909
+    },
+    {
+      "id": "glama-connector/hu2vasnu9b",
+      "name": "Sector Pulse",
+      "namespace": "io.github.christianhonap7-sys",
+      "endpoint_url": "https://sector-pulse.app/api/mcp",
+      "source_url": "https://glama.ai/mcp/connectors/io.github.christianhonap7-sys/sector-pulse",
+      "status": "ok",
+      "reason": "tools listed",
+      "tools_listed": 3,
+      "latency_ms": 1024
+    },
+    {
+      "id": "glama-connector/desxmm65x3",
+      "name": "SeenRelay",
+      "namespace": "io.github.ovladon",
+      "endpoint_url": "https://seenrelay.com/mcp",
+      "source_url": "https://glama.ai/mcp/connectors/io.github.ovladon/seenrelay",
+      "status": "ok",
+      "reason": "tools listed",
+      "tools_listed": 2,
+      "latency_ms": 927
+    },
+    {
+      "id": "glama-connector/kvzyzvv1io",
+      "name": "Seiche — world-markets evidence terminal",
+      "namespace": "io.github.beepboop2025",
+      "endpoint_url": "https://api.seiche.info/mcp",
+      "source_url": "https://glama.ai/mcp/connectors/io.github.beepboop2025/seiche",
+      "status": "ok",
+      "reason": "tools listed",
+      "tools_listed": 14,
+      "latency_ms": 1636
+    },
+    {
+      "id": "glama-connector/t6eb4fkdm9",
+      "name": "Senaro Personal Finance",
+      "namespace": "ai.senaro",
+      "endpoint_url": "https://mcp.senaro.ai/mcp",
+      "source_url": "https://glama.ai/mcp/connectors/ai.senaro/personal-finance",
+      "status": "ok",
+      "reason": "tools listed",
+      "tools_listed": 18,
+      "latency_ms": 2541
+    },
+    {
+      "id": "glama-connector/byu0mhgfjc",
+      "name": "SoluCortex",
+      "namespace": "io.github.soluai-spa",
+      "endpoint_url": "https://mcp.solucortex.ai/mcp",
+      "source_url": "https://glama.ai/mcp/connectors/io.github.soluai-spa/solucortex-mcp",
+      "status": "ok",
+      "reason": "tools listed",
+      "tools_listed": 6,
+      "latency_ms": 1125
+    },
+    {
+      "id": "glama-connector/wlm5bhze36",
+      "name": "SoundBreak",
+      "namespace": "ai.soundbreak.mcp",
+      "endpoint_url": "https://mcp.soundbreak.ai/generic/mcp",
+      "source_url": "https://glama.ai/mcp/connectors/ai.soundbreak.mcp/sound-break",
+      "status": "ok",
+      "reason": "tools listed",
+      "tools_listed": 6,
+      "latency_ms": 1682
+    },
+    {
+      "id": "glama-connector/xjlpzkjby4",
+      "name": "StockLens",
+      "namespace": "com.stocklens",
+      "endpoint_url": "https://mcp.stocklens.com/mcp",
+      "source_url": "https://glama.ai/mcp/connectors/com.stocklens/stocklens",
+      "status": "ok",
+      "reason": "tools listed",
+      "tools_listed": 8,
+      "latency_ms": 1812
+    },
+    {
+      "id": "glama-connector/b3m8rac8fc",
+      "name": "Stocklake — AI Stock Intelligence",
+      "namespace": "dev.stocklake.api",
+      "endpoint_url": "https://api.stocklake.dev/mcp",
+      "source_url": "https://glama.ai/mcp/connectors/dev.stocklake.api/stocklake-ai-stock-intelligence",
+      "status": "ok",
+      "reason": "tools listed",
+      "tools_listed": 19,
+      "latency_ms": 1628
+    },
+    {
+      "id": "glama-connector/r1nv9z100b",
+      "name": "Strale - 290+ API capabilities for AI agents",
+      "namespace": "io.github.strale-io",
+      "endpoint_url": "https://api.strale.io/mcp",
+      "source_url": "https://glama.ai/mcp/connectors/io.github.strale-io/strale",
+      "status": "ok",
+      "reason": "tools listed",
+      "tools_listed": 9,
+      "latency_ms": 810
+    },
+    {
+      "id": "glama-connector/pltq4d6ouq",
+      "name": "TracePass",
+      "namespace": "eu.tracepass",
+      "endpoint_url": "https://ai.tracepass.eu/mcp",
+      "source_url": "https://glama.ai/mcp/connectors/eu.tracepass/tracepass",
+      "status": "ok",
+      "reason": "tools listed",
+      "tools_listed": 6,
+      "latency_ms": 2729
+    },
+    {
+      "id": "glama-connector/jpxblyljgr",
+      "name": "TrueFixR + AtlasCast",
+      "namespace": "io.github.truefixr",
+      "endpoint_url": "https://mcp.atlasunited.io/mcp",
+      "source_url": "https://glama.ai/mcp/connectors/io.github.truefixr/atlascast-truefixr",
+      "status": "ok",
+      "reason": "tools listed",
+      "tools_listed": 4,
+      "latency_ms": 2656
+    },
+    {
+      "id": "glama-connector/e6xu9w1gdn",
+      "name": "UK Legal Research",
+      "namespace": "io.github.paulieb89",
+      "endpoint_url": "https://uk-legal-mcp.fly.dev/mcp",
+      "source_url": "https://glama.ai/mcp/connectors/io.github.paulieb89/uk-legal-mcp",
+      "status": "ok",
+      "reason": "tools listed",
+      "tools_listed": 35,
+      "latency_ms": 3160
+    },
+    {
+      "id": "glama-connector/e52f4vl9hg",
+      "name": "Vastu Shastra MCP Server by RoxyAPI",
+      "namespace": "com.roxyapi",
+      "endpoint_url": "https://roxyapi.com/mcp/vastu",
+      "source_url": "https://glama.ai/mcp/connectors/com.roxyapi/vastu",
+      "status": "ok",
+      "reason": "tools listed",
+      "tools_listed": 10,
+      "latency_ms": 3040
+    },
+    {
+      "id": "glama-connector/ps4ka5tmfi",
+      "name": "Verify-api",
+      "namespace": "id.my.drain54.verify",
+      "endpoint_url": "https://verify.drain54.my.id",
+      "source_url": "https://glama.ai/mcp/connectors/id.my.drain54.verify/verify-api",
+      "status": "auth_required",
+      "reason": "HTTP 403",
+      "tools_listed": 0,
+      "latency_ms": 119
+    },
+    {
+      "id": "glama-connector/jngen7k6lv",
+      "name": "Wraps",
+      "namespace": "dev.wraps",
+      "endpoint_url": "https://wraps.dev/mcp",
+      "source_url": "https://glama.ai/mcp/connectors/dev.wraps/docs",
+      "status": "ok",
+      "reason": "tools listed",
+      "tools_listed": 4,
+      "latency_ms": 916
+    },
+    {
+      "id": "glama-connector/uarxq6vlp3",
+      "name": "agent-data-pro",
+      "namespace": "io.github.OrionSmithers",
+      "endpoint_url": "https://agentdatapro.com/mcp",
+      "source_url": "https://glama.ai/mcp/connectors/io.github.OrionSmithers/agent-data-pro",
+      "status": "auth_required",
+      "reason": "HTTP 403",
+      "tools_listed": 0,
+      "latency_ms": 103
+    },
+    {
+      "id": "glama-connector/llvbom59df",
+      "name": "authority.md",
+      "namespace": "md.authority",
+      "endpoint_url": "https://authority.md/api/mcp",
+      "source_url": "https://glama.ai/mcp/connectors/md.authority/authoritymd",
+      "status": "ok",
+      "reason": "tools listed",
+      "tools_listed": 4,
+      "latency_ms": 1108
+    },
+    {
+      "id": "glama-connector/tn2p7r2zhg",
+      "name": "betterimage.io",
+      "namespace": "io.betterimage",
+      "endpoint_url": "https://betterimage.io/mcp",
+      "source_url": "https://glama.ai/mcp/connectors/io.betterimage/betterimage",
+      "status": "auth_required",
+      "reason": "HTTP 403",
+      "tools_listed": 0,
+      "latency_ms": 113
+    },
+    {
+      "id": "glama-connector/x8b6ygd7ak",
+      "name": "dns-doctor",
+      "namespace": "dev.dnsdoctor",
+      "endpoint_url": "https://dnsdoctor.dev/mcp",
+      "source_url": "https://glama.ai/mcp/connectors/dev.dnsdoctor/dns-doctor",
+      "status": "ok",
+      "reason": "tools listed",
+      "tools_listed": 20,
+      "latency_ms": 2025
+    },
+    {
+      "id": "glama-connector/xsf5f38yqo",
+      "name": "failecho",
+      "namespace": "com.failecho",
+      "endpoint_url": "https://failecho.com/mcp",
+      "source_url": "https://glama.ai/mcp/connectors/com.failecho/failecho",
+      "status": "ok",
+      "reason": "tools listed",
+      "tools_listed": 4,
+      "latency_ms": 905
+    },
+    {
+      "id": "glama-connector/km890hrd24",
+      "name": "finn-tannlege",
+      "namespace": "com.finn-tannlege",
+      "endpoint_url": "https://finn-tannlege.com/mcp",
+      "source_url": "https://glama.ai/mcp/connectors/com.finn-tannlege/finn-tannlege",
+      "status": "ok",
+      "reason": "tools listed",
+      "tools_listed": 5,
+      "latency_ms": 714
+    },
+    {
+      "id": "glama-connector/rn45ujyaxr",
+      "name": "geometry",
+      "namespace": "app.geometry.mcp",
+      "endpoint_url": "https://mcp.geometry.app/mcp",
+      "source_url": "https://glama.ai/mcp/connectors/app.geometry.mcp/geometry",
+      "status": "ok",
+      "reason": "tools listed",
+      "tools_listed": 8,
+      "latency_ms": 2004
+    },
+    {
+      "id": "glama-connector/wafvlbcb9z",
+      "name": "hpsilab-mcp",
+      "namespace": "com.hpsilab",
+      "endpoint_url": "https://hpsilab.com/mcp",
+      "source_url": "https://glama.ai/mcp/connectors/com.hpsilab/hpsilab-mcp",
+      "status": "auth_required",
+      "reason": "HTTP 403",
+      "tools_listed": 0,
+      "latency_ms": 198
+    },
+    {
+      "id": "glama-connector/k49z5de2ox",
+      "name": "htmlkin",
+      "namespace": "ru.htmlkin",
+      "endpoint_url": "https://htmlkin.ru/mcp",
+      "source_url": "https://glama.ai/mcp/connectors/ru.htmlkin/htmlkin",
+      "status": "ok",
+      "reason": "tools listed",
+      "tools_listed": 4,
+      "latency_ms": 1807
+    },
+    {
+      "id": "glama-connector/owccho47ls",
+      "name": "korea-stay",
+      "namespace": "app.sallim",
+      "endpoint_url": "https://stay.sallim.app/mcp?via=official",
+      "source_url": "https://glama.ai/mcp/connectors/app.sallim/korea-stay",
+      "status": "auth_required",
+      "reason": "HTTP 403",
+      "tools_listed": 0,
+      "latency_ms": 325
+    },
+    {
+      "id": "glama-connector/yycpidzhxt",
+      "name": "leafwright",
+      "namespace": "co.leafwright",
+      "endpoint_url": "https://leafwright.co/mcp",
+      "source_url": "https://glama.ai/mcp/connectors/co.leafwright/leafwright",
+      "status": "ok",
+      "reason": "tools listed",
+      "tools_listed": 3,
+      "latency_ms": 854
+    },
+    {
+      "id": "glama-connector/j9iclvsugj",
+      "name": "makespdf",
+      "namespace": "com.makespdf",
+      "endpoint_url": "https://makespdf.com/api/v1/mcp",
+      "source_url": "https://glama.ai/mcp/connectors/com.makespdf/makespdf",
+      "status": "ok",
+      "reason": "tools listed",
+      "tools_listed": 10,
+      "latency_ms": 5734
+    },
+    {
+      "id": "glama-connector/zz1aez3uv2",
+      "name": "nohumans.directory",
+      "namespace": "directory.nohumans",
+      "endpoint_url": "https://api.nohumans.directory/mcp",
+      "source_url": "https://glama.ai/mcp/connectors/directory.nohumans/registry",
+      "status": "ok",
+      "reason": "tools listed",
+      "tools_listed": 4,
+      "latency_ms": 1102
+    },
+    {
+      "id": "glama-connector/ybdtgpyl9c",
+      "name": "savvly",
+      "namespace": "com.savvly",
+      "endpoint_url": "https://api.savvly.com/mcp",
+      "source_url": "https://glama.ai/mcp/connectors/com.savvly/savvly",
+      "status": "ok",
+      "reason": "tools listed",
+      "tools_listed": 8,
+      "latency_ms": 2001
+    },
+    {
+      "id": "glama-connector/y3tiv3e7va",
+      "name": "spendtron",
+      "namespace": "io.github.swantron",
+      "endpoint_url": "https://spendtron.com/mcp",
+      "source_url": "https://glama.ai/mcp/connectors/io.github.swantron/spendtron",
+      "status": "ok",
+      "reason": "tools listed",
+      "tools_listed": 1,
+      "latency_ms": 925
+    },
+    {
+      "id": "glama-connector/eosxazl1hk",
+      "name": "zRev AI",
+      "namespace": "ai.zrev",
+      "endpoint_url": "https://go.zrev.ai/mcp",
+      "source_url": "https://glama.ai/mcp/connectors/ai.zrev/zrev",
+      "status": "auth_required",
+      "reason": "HTTP 403",
+      "tools_listed": 0,
+      "latency_ms": 370
+    },
+    {
+      "id": "glama-connector/fa4od94f3d",
+      "name": "AANet",
+      "namespace": "space.aanet",
+      "endpoint_url": "https://aanet.space/mcp",
+      "source_url": "https://glama.ai/mcp/connectors/space.aanet/aanet",
+      "status": "ok",
+      "reason": "tools listed",
+      "tools_listed": 26,
+      "latency_ms": 2225
+    },
+    {
+      "id": "glama-connector/lo1qnyoohy",
+      "name": "AI Tools Directory",
+      "namespace": "top.toolboxes",
+      "endpoint_url": "https://ai-tools-mcp.toolboxes.top/mcp",
+      "source_url": "https://glama.ai/mcp/connectors/top.toolboxes/ai-tools-directory",
+      "status": "ok",
+      "reason": "tools listed",
+      "tools_listed": 5,
+      "latency_ms": 447
+    },
+    {
+      "id": "glama-connector/bnj313cqvy",
+      "name": "AMZScout Skill + MCP",
+      "namespace": "io.github.amzscout-corp",
+      "endpoint_url": "https://chatbot.amzscout.net/mcp",
+      "source_url": "https://glama.ai/mcp/connectors/io.github.amzscout-corp/amzscout-skill-mcp",
+      "status": "ok",
+      "reason": "tools listed",
+      "tools_listed": 13,
+      "latency_ms": 1840
+    },
+    {
+      "id": "glama-connector/dwblr2vy4e",
+      "name": "AetherWave Studio",
+      "namespace": "com.aetherwavestudio.mcp",
+      "endpoint_url": "https://mcp.aetherwavestudio.com/mcp",
+      "source_url": "https://glama.ai/mcp/connectors/com.aetherwavestudio.mcp/aether-wave-studio",
+      "status": "auth_required",
+      "reason": "HTTP 403",
+      "tools_listed": 0,
+      "latency_ms": 181
+    },
+    {
+      "id": "glama-connector/qqok02l816",
+      "name": "Agent Evidence API",
+      "namespace": "io.github.Thx93",
+      "endpoint_url": "https://agent-evidence-api.thx93.workers.dev/mcp",
+      "source_url": "https://glama.ai/mcp/connectors/io.github.Thx93/agent-evidence-api",
+      "status": "auth_required",
+      "reason": "HTTP 403",
+      "tools_listed": 0,
+      "latency_ms": 136
+    },
+    {
+      "id": "glama-connector/fniv8aucfq",
+      "name": "AppSkyline",
+      "namespace": "com.appskyline.mcp",
+      "endpoint_url": "https://mcp.appskyline.com/mcp",
+      "source_url": "https://glama.ai/mcp/connectors/com.appskyline.mcp/app-skyline",
+      "status": "auth_required",
+      "reason": "HTTP 403",
+      "tools_listed": 0,
+      "latency_ms": 222
+    },
+    {
+      "id": "glama-connector/wokfs8q8zw",
+      "name": "Ashton & Forge Agency Directory",
+      "namespace": "com.ashtonforge",
+      "endpoint_url": "https://ashtonforge.com/mcp/directory",
+      "source_url": "https://glama.ai/mcp/connectors/com.ashtonforge/ashton-and-forge-agency-directory",
+      "status": "auth_required",
+      "reason": "HTTP 403",
+      "tools_listed": 0,
+      "latency_ms": 157
+    },
+    {
+      "id": "glama-connector/xuosakkx7r",
+      "name": "AskMia.app travel eSIM AI agent",
+      "namespace": "app.askmia.mcp",
+      "endpoint_url": "https://mcp.askmia.app",
+      "source_url": "https://glama.ai/mcp/connectors/app.askmia.mcp/ask-miaapp-travel-e-sim-ai-agent",
+      "status": "auth_required",
+      "reason": "HTTP 403",
+      "tools_listed": 0,
+      "latency_ms": 140
+    },
+    {
+      "id": "glama-connector/mlaf7y9z3w",
+      "name": "Assinafy MCP Server",
+      "namespace": "br.com.assinafy.mcp",
+      "endpoint_url": "https://mcp.assinafy.com.br/mcp",
+      "source_url": "https://glama.ai/mcp/connectors/br.com.assinafy.mcp/assinafy-mcp-server",
+      "status": "auth_required",
+      "reason": "HTTP 403",
+      "tools_listed": 0,
+      "latency_ms": 284
+    },
+    {
+      "id": "glama-connector/tnhl4v766i",
+      "name": "Astrology Forecast MCP Server by RoxyAPI",
+      "namespace": "com.roxyapi",
+      "endpoint_url": "https://roxyapi.com/mcp/forecast",
+      "source_url": "https://glama.ai/mcp/connectors/com.roxyapi/forecast",
+      "status": "ok",
+      "reason": "tools listed",
+      "tools_listed": 5,
+      "latency_ms": 1179
+    },
+    {
+      "id": "glama-connector/ofn02muwx3",
+      "name": "CEF Radar",
+      "namespace": "com.cefradar",
+      "endpoint_url": "https://cefradar.com/mcp",
+      "source_url": "https://glama.ai/mcp/connectors/com.cefradar/cefradar",
+      "status": "auth_required",
+      "reason": "HTTP 403",
+      "tools_listed": 0,
+      "latency_ms": 160
+    },
+    {
+      "id": "glama-connector/znm7febrhg",
+      "name": "CLIPCLIPER",
+      "namespace": "com.clipcliper",
+      "endpoint_url": "https://clipcliper.com/mcp",
+      "source_url": "https://glama.ai/mcp/connectors/com.clipcliper/clipcliper",
+      "status": "auth_required",
+      "reason": "HTTP 403",
+      "tools_listed": 0,
+      "latency_ms": 162
+    },
+    {
+      "id": "glama-connector/fxbni2109k",
+      "name": "Clearance Adjudications Search Engine",
+      "namespace": "com.clearancesearchengine",
+      "endpoint_url": "https://www.clearancesearchengine.com/api/mcp",
+      "source_url": "https://glama.ai/mcp/connectors/com.clearancesearchengine/clearance-adjudications-search-engine",
+      "status": "ok",
+      "reason": "tools listed",
+      "tools_listed": 7,
+      "latency_ms": 848
+    },
+    {
+      "id": "glama-connector/nxxkp7szu7",
+      "name": "Demand Discovery AI",
+      "namespace": "ai.demanddiscovery.mcp",
+      "endpoint_url": "https://mcp.demanddiscovery.ai/api/mcp",
+      "source_url": "https://glama.ai/mcp/connectors/ai.demanddiscovery.mcp/demand-discovery-ai",
+      "status": "ok",
+      "reason": "tools listed",
+      "tools_listed": 10,
+      "latency_ms": 782
+    },
+    {
+      "id": "glama-connector/qynq8kw4uy",
+      "name": "Docket Nexus",
+      "namespace": "com.docketnexus",
+      "endpoint_url": "https://mcp.docketnexus.com/mcp",
+      "source_url": "https://glama.ai/mcp/connectors/com.docketnexus/docketnexus",
+      "status": "ok",
+      "reason": "tools listed",
+      "tools_listed": 6,
+      "latency_ms": 874
+    },
+    {
+      "id": "glama-connector/dqr087orbp",
+      "name": "Foresee",
+      "namespace": "io.github.Foresee-Tech",
+      "endpoint_url": "https://agents.go-foresee.com/mcp",
+      "source_url": "https://glama.ai/mcp/connectors/io.github.Foresee-Tech/foresee",
+      "status": "ok",
+      "reason": "tools listed",
+      "tools_listed": 2,
+      "latency_ms": 1150
+    },
+    {
+      "id": "glama-connector/qceqv06vlq",
+      "name": "Gateway Agent Tip Jar",
+      "namespace": "com.gatewayinformationgroup",
+      "endpoint_url": "https://gateway-wallet-payments.jerryrnapier.workers.dev/agent-tools",
+      "source_url": "https://glama.ai/mcp/connectors/com.gatewayinformationgroup/agent-tip-jar",
+      "status": "auth_required",
+      "reason": "HTTP 403",
+      "tools_listed": 0,
+      "latency_ms": 298
+    },
+    {
+      "id": "glama-connector/emuij7a8xx",
+      "name": "Guitar Practice Routine App — Chord Charts",
+      "namespace": "io.github.slshults",
+      "endpoint_url": "https://mcp.guitarpracticeroutine.com/mcp",
+      "source_url": "https://glama.ai/mcp/connectors/io.github.slshults/gpra-chord-charts",
+      "status": "ok",
+      "reason": "tools listed",
+      "tools_listed": 3,
+      "latency_ms": 2130
+    },
+    {
+      "id": "glama-connector/natotamhuw",
+      "name": "HOTLIKESHOP",
+      "namespace": "io.github.tuanone123",
+      "endpoint_url": "https://hotlikeshop.com/api/mcp",
+      "source_url": "https://glama.ai/mcp/connectors/io.github.tuanone123/hotlikeshop-mcp",
+      "status": "auth_required",
+      "reason": "HTTP 403",
+      "tools_listed": 0,
+      "latency_ms": 275
+    },
+    {
+      "id": "glama-connector/e3re5f6pno",
+      "name": "MCP Toplist MCP",
+      "namespace": "com.mcptoplist",
+      "endpoint_url": "https://mcptoplist.com/mcp",
+      "source_url": "https://glama.ai/mcp/connectors/com.mcptoplist/mcp-toplist-mcp",
+      "status": "ok",
+      "reason": "tools listed",
+      "tools_listed": 2,
+      "latency_ms": 4305
+    },
+    {
+      "id": "glama-connector/c37dg41qnh",
+      "name": "NYCfoodie",
+      "namespace": "app.railway.up.nycfoodie-production",
+      "endpoint_url": "https://nycfoodie-production.up.railway.app/mcp",
+      "source_url": "https://glama.ai/mcp/connectors/app.railway.up.nycfoodie-production/nycfoodie",
+      "status": "ok",
+      "reason": "tools listed",
+      "tools_listed": 8,
+      "latency_ms": 594
+    },
+    {
+      "id": "glama-connector/ap4ewng04y",
+      "name": "Narracore Screenplay Formatter",
+      "namespace": "cn.narracore",
+      "endpoint_url": "https://mcp.narracore.app/mcp",
+      "source_url": "https://glama.ai/mcp/connectors/cn.narracore/screenplay-formatter",
+      "status": "ok",
+      "reason": "tools listed",
+      "tools_listed": 14,
+      "latency_ms": 1033
+    },
+    {
+      "id": "glama-connector/xqboh4m5yp",
+      "name": "NewTqnia MCP – Technology News & Research",
+      "namespace": "com.newtqnia",
+      "endpoint_url": "https://newtqnia.com/mcp",
+      "source_url": "https://glama.ai/mcp/connectors/com.newtqnia/new-tqnia-mcp-technology-news-and-research",
+      "status": "auth_required",
+      "reason": "HTTP 403",
+      "tools_listed": 0,
+      "latency_ms": 139
+    },
+    {
+      "id": "glama-connector/griyvox27g",
+      "name": "Onchain Diary Mcp Server",
+      "namespace": "com.theonchaindiary",
+      "endpoint_url": "https://theonchaindiary.com/api/mcp",
+      "source_url": "https://glama.ai/mcp/connectors/com.theonchaindiary/onchain-diary-mcp-server",
+      "status": "auth_required",
+      "reason": "HTTP 403",
+      "tools_listed": 0,
+      "latency_ms": 133
+    },
+    {
+      "id": "glama-connector/zrlzylrn87",
+      "name": "Pinch",
+      "namespace": "com.pinch-app",
+      "endpoint_url": "https://pinch-app.com/api/mcp",
+      "source_url": "https://glama.ai/mcp/connectors/com.pinch-app/pinch",
+      "status": "ok",
+      "reason": "tools listed",
+      "tools_listed": 10,
+      "latency_ms": 2044
+    },
+    {
+      "id": "glama-connector/wi012ncj38",
+      "name": "Razi Tools",
+      "namespace": "io.github.razikallayi",
+      "endpoint_url": "https://www.razi.pro/api/mcp",
+      "source_url": "https://glama.ai/mcp/connectors/io.github.razikallayi/razi-tools",
+      "status": "ok",
+      "reason": "tools listed",
+      "tools_listed": 28,
+      "latency_ms": 817
+    },
+    {
+      "id": "glama-connector/o3vl605bpk",
+      "name": "RightAIChoice",
+      "namespace": "com.rightaichoice",
+      "endpoint_url": "https://rightaichoice.com/api/mcp",
+      "source_url": "https://glama.ai/mcp/connectors/com.rightaichoice/right-aichoice",
+      "status": "ok",
+      "reason": "tools listed",
+      "tools_listed": 10,
+      "latency_ms": 890
+    },
+    {
+      "id": "glama-connector/bea4v79q7c",
+      "name": "SRIFT",
+      "namespace": "app.srift",
+      "endpoint_url": "https://srift.app/mcp",
+      "source_url": "https://glama.ai/mcp/connectors/app.srift/srift",
+      "status": "auth_required",
+      "reason": "HTTP 403",
+      "tools_listed": 0,
+      "latency_ms": 383
+    },
+    {
+      "id": "glama-connector/t2cgn4zdlq",
+      "name": "Sausage Web",
+      "namespace": "com.professorsausages.x402",
+      "endpoint_url": "https://x402.professorsausages.com/mcp/web",
+      "source_url": "https://glama.ai/mcp/connectors/com.professorsausages.x402/sausage-web",
+      "status": "auth_required",
+      "reason": "HTTP 403",
+      "tools_listed": 0,
+      "latency_ms": 139
+    },
+    {
+      "id": "glama-connector/znz3covq4y",
+      "name": "SealsCrafter 印章",
+      "namespace": "io.github.delicious28",
+      "endpoint_url": "https://www.sealscrafter.com/mcp",
+      "source_url": "https://glama.ai/mcp/connectors/io.github.delicious28/sealmaker-mcp",
+      "status": "auth_required",
+      "reason": "HTTP 403",
+      "tools_listed": 0,
+      "latency_ms": 361
+    },
+    {
+      "id": "glama-connector/zth8um98ae",
+      "name": "Site Passport",
+      "namespace": "org.sitepassport",
+      "endpoint_url": "https://sitepassport.org/.well-known/mcp.json",
+      "source_url": "https://glama.ai/mcp/connectors/org.sitepassport/check-wordpress-agent-readiness",
+      "status": "auth_required",
+      "reason": "HTTP 403",
+      "tools_listed": 0,
+      "latency_ms": 133
+    },
+    {
+      "id": "glama-connector/gy08asij3k",
+      "name": "Spin or Flip",
+      "namespace": "com.spinorflip",
+      "endpoint_url": "https://spinorflip.com/mcp",
+      "source_url": "https://glama.ai/mcp/connectors/com.spinorflip/spin-or-flip",
+      "status": "protocol_error",
+      "reason": "HTTP 307",
+      "tools_listed": 0,
+      "latency_ms": 437
+    },
+    {
+      "id": "glama-connector/qjhf8r5888",
+      "name": "Teppek",
+      "namespace": "com.teppek.mcp",
+      "endpoint_url": "https://mcp.teppek.com/mcp",
+      "source_url": "https://glama.ai/mcp/connectors/com.teppek.mcp/teppek",
+      "status": "ok",
+      "reason": "tools listed",
+      "tools_listed": 17,
+      "latency_ms": 2018
+    },
+    {
+      "id": "glama-connector/hxtb1e0xpp",
+      "name": "TooHardBasket.ai",
+      "namespace": "ai.toohardbasket",
+      "endpoint_url": "https://toohardbasket.ai/mcp",
+      "source_url": "https://glama.ai/mcp/connectors/ai.toohardbasket/market",
+      "status": "ok",
+      "reason": "tools listed",
+      "tools_listed": 19,
+      "latency_ms": 2500
+    },
+    {
+      "id": "glama-connector/uyzrg1sywx",
+      "name": "Tripuck",
+      "namespace": "com.tripuck.mcp",
+      "endpoint_url": "https://mcp.tripuck.com/mcp",
+      "source_url": "https://glama.ai/mcp/connectors/com.tripuck.mcp/tripuck",
+      "status": "ok",
+      "reason": "tools listed",
+      "tools_listed": 7,
+      "latency_ms": 1578
+    },
+    {
+      "id": "glama-connector/q9jf42t7ho",
+      "name": "Urantia Papers",
+      "namespace": "dev.urantia",
+      "endpoint_url": "https://api.urantia.dev/mcp",
+      "source_url": "https://glama.ai/mcp/connectors/dev.urantia/urantia-papers",
+      "status": "auth_required",
+      "reason": "HTTP 403",
+      "tools_listed": 0,
+      "latency_ms": 181
+    },
+    {
+      "id": "glama-connector/yssyoz7t73",
+      "name": "Vaaya",
+      "namespace": "ai.vaaya",
+      "endpoint_url": "https://vaaya.ai/mcp",
+      "source_url": "https://glama.ai/mcp/connectors/ai.vaaya/mcp",
+      "status": "ok",
+      "reason": "tools listed",
+      "tools_listed": 13,
+      "latency_ms": 1309
+    },
+    {
+      "id": "glama-connector/lltw4vvj2n",
+      "name": "Web Validator by DigestSEO",
+      "namespace": "io.github.AKzar1el",
+      "endpoint_url": "https://web-validator-mcp.digestseo.com/mcp",
+      "source_url": "https://glama.ai/mcp/connectors/io.github.AKzar1el/mcp-web-validator",
+      "status": "auth_required",
+      "reason": "HTTP 403",
+      "tools_listed": 0,
+      "latency_ms": 151
+    },
+    {
+      "id": "glama-connector/o948g8qku5",
+      "name": "Wesalna Islamic MCP",
+      "namespace": "com.wesalna",
+      "endpoint_url": "https://wesalna.com/mcp",
+      "source_url": "https://glama.ai/mcp/connectors/com.wesalna/wesalna-islamic-mcp",
+      "status": "auth_required",
+      "reason": "HTTP 403",
+      "tools_listed": 0,
+      "latency_ms": 305
+    },
+    {
+      "id": "glama-connector/zhq5p5cayo",
+      "name": "Zetesis Scientific Due Diligence",
+      "namespace": "io.github.reutavidan",
+      "endpoint_url": "https://api.zetesis.science/mcp",
+      "source_url": "https://glama.ai/mcp/connectors/io.github.reutavidan/zetesis",
+      "status": "ok",
+      "reason": "tools listed",
+      "tools_listed": 4,
+      "latency_ms": 1272
+    },
+    {
+      "id": "glama-connector/pfapbdvyqu",
+      "name": "alphapipeline",
+      "namespace": "io.github.parkyucheol-del",
+      "endpoint_url": "https://alphapipeline-eu.onrender.com/mcp",
+      "source_url": "https://glama.ai/mcp/connectors/io.github.parkyucheol-del/alphapipeline",
+      "status": "ok",
+      "reason": "tools listed",
+      "tools_listed": 14,
+      "latency_ms": 951
+    },
+    {
+      "id": "glama-connector/mea8veo2pw",
+      "name": "eudr",
+      "namespace": "io.github.Vortx-AI",
+      "endpoint_url": "https://eudr.dev/mcp",
+      "source_url": "https://glama.ai/mcp/connectors/io.github.Vortx-AI/eudr",
+      "status": "ok",
+      "reason": "tools listed",
+      "tools_listed": 18,
+      "latency_ms": 1476
+    },
+    {
+      "id": "glama-connector/upnd2fmgt2",
+      "name": "fetcher sh",
+      "namespace": "sh.fetcher.mcp",
+      "endpoint_url": "https://mcp.fetcher.sh/mcp",
+      "source_url": "https://glama.ai/mcp/connectors/sh.fetcher.mcp/fetcher-sh",
+      "status": "auth_required",
+      "reason": "HTTP 403",
+      "tools_listed": 0,
+      "latency_ms": 141
+    },
+    {
+      "id": "glama-connector/rd22knpmtm",
+      "name": "form fill-mcp",
+      "namespace": "ai.plenitudo.formfill",
+      "endpoint_url": "https://formfill.plenitudo.ai/mcp",
+      "source_url": "https://glama.ai/mcp/connectors/ai.plenitudo.formfill/form-fill-mcp",
+      "status": "auth_required",
+      "reason": "HTTP 403",
+      "tools_listed": 0,
+      "latency_ms": 176
+    },
+    {
+      "id": "glama-connector/jev7fvi8rt",
+      "name": "otwarteAPI",
+      "namespace": "pl.otwarteapi",
+      "endpoint_url": "https://otwarteapi.pl/mcp",
+      "source_url": "https://glama.ai/mcp/connectors/pl.otwarteapi/otwarte-api",
+      "status": "auth_required",
+      "reason": "HTTP 403",
+      "tools_listed": 0,
+      "latency_ms": 140
+    },
+    {
+      "id": "glama-connector/n4onydjwpc",
+      "name": "otwarteAPI.pl",
+      "namespace": "io.github.bartosz-kuc",
+      "endpoint_url": "https://otwarteapi.pl/mcp",
+      "source_url": "https://glama.ai/mcp/connectors/io.github.bartosz-kuc/otwarteapi",
+      "status": "auth_required",
+      "reason": "HTTP 403",
+      "tools_listed": 0,
+      "latency_ms": 92
+    },
+    {
+      "id": "glama-connector/yms2x5w34c",
+      "name": "trendflow",
+      "namespace": "dev.mory",
+      "endpoint_url": "https://trendflow.mory.dev/mcp",
+      "source_url": "https://glama.ai/mcp/connectors/dev.mory/trendflow",
+      "status": "ok",
+      "reason": "tools listed",
+      "tools_listed": 8,
+      "latency_ms": 869
+    },
+    {
+      "id": "glama-connector/loqv68f461",
+      "name": "wwhois.ru domain tools",
+      "namespace": "ru.wwhois",
+      "endpoint_url": "https://wwhois.ru/backend/mcp",
+      "source_url": "https://glama.ai/mcp/connectors/ru.wwhois/whois-mcp",
+      "status": "ok",
+      "reason": "tools listed",
+      "tools_listed": 3,
+      "latency_ms": 1447
+    },
+    {
+      "id": "glama-connector/ehey4485i7",
+      "name": "AQL PropertyCheck - Gold Coast property data",
+      "namespace": "ai.alphaquantlabs",
+      "endpoint_url": "https://agents.alphaquantlabs.ai/v1/mcp",
+      "source_url": "https://glama.ai/mcp/connectors/ai.alphaquantlabs/propertycheck",
+      "status": "auth_required",
+      "reason": "HTTP 403",
+      "tools_listed": 0,
+      "latency_ms": 109
+    },
+    {
+      "id": "glama-connector/uk06ahyqyd",
+      "name": "Aave",
+      "namespace": "com.aave.mcp",
+      "endpoint_url": "https://mcp.aave.com",
+      "source_url": "https://glama.ai/mcp/connectors/com.aave.mcp/aave",
+      "status": "ok",
+      "reason": "tools listed",
+      "tools_listed": 53,
+      "latency_ms": 510
+    },
+    {
+      "id": "glama-connector/ubyqewjk36",
+      "name": "Afriset Fintech",
+      "namespace": "com.afriset.mcp",
+      "endpoint_url": "https://mcp.afriset.com/mcp",
+      "source_url": "https://glama.ai/mcp/connectors/com.afriset.mcp/afriset-fintech",
+      "status": "auth_required",
+      "reason": "HTTP 403",
+      "tools_listed": 0,
+      "latency_ms": 392
+    },
+    {
+      "id": "glama-connector/macgnzfv38",
+      "name": "Agent402.Tools: pay-per-call web tools",
+      "namespace": "io.github.MikeyPetrillo",
+      "endpoint_url": "https://agent402.tools/mcp",
+      "source_url": "https://glama.ai/mcp/connectors/io.github.MikeyPetrillo/agent402",
+      "status": "ok",
+      "reason": "tools listed",
+      "tools_listed": 15,
+      "latency_ms": 971
+    },
+    {
+      "id": "glama-connector/jffjy24jn8",
+      "name": "AgentReady Woo",
+      "namespace": "xyz.utilityhouse",
+      "endpoint_url": "https://app.utilityhouse.xyz/mcp",
+      "source_url": "https://glama.ai/mcp/connectors/xyz.utilityhouse/agentready-woo",
+      "status": "auth_required",
+      "reason": "HTTP 403",
+      "tools_listed": 0,
+      "latency_ms": 119
+    },
+    {
+      "id": "glama-connector/ydvafbk7l9",
+      "name": "AlgoVault — Crypto Quant Trade Calls",
+      "namespace": "io.github.AlgoVaultFi",
+      "endpoint_url": "https://api.algovault.com/mcp",
+      "source_url": "https://glama.ai/mcp/connectors/io.github.AlgoVaultFi/crypto-quant-signal-mcp",
+      "status": "auth_required",
+      "reason": "HTTP 403",
+      "tools_listed": 0,
+      "latency_ms": 178
+    },
+    {
+      "id": "glama-connector/ckkm2jsyxu",
+      "name": "Appendix",
+      "namespace": "com.appendix.mcp",
+      "endpoint_url": "https://mcp.appendix.com/mcp",
+      "source_url": "https://glama.ai/mcp/connectors/com.appendix.mcp/appendix",
+      "status": "ok",
+      "reason": "tools listed",
+      "tools_listed": 3,
+      "latency_ms": 1539
+    },
+    {
+      "id": "glama-connector/hdajuydva7",
+      "name": "AstraVerify Domain Trust Check",
+      "namespace": "com.astraverify",
+      "endpoint_url": "https://astraverify.com/mcp",
+      "source_url": "https://glama.ai/mcp/connectors/com.astraverify/domain-trust",
+      "status": "auth_required",
+      "reason": "HTTP 403",
+      "tools_listed": 0,
+      "latency_ms": 170
+    },
+    {
+      "id": "glama-connector/i4no9x5crb",
+      "name": "Bandago Van Rentals",
+      "namespace": "com.bandago",
+      "endpoint_url": "https://bandago.com/mcp",
+      "source_url": "https://glama.ai/mcp/connectors/com.bandago/bandago-van-rentals",
+      "status": "ok",
+      "reason": "tools listed",
+      "tools_listed": 7,
+      "latency_ms": 1719
+    },
+    {
+      "id": "glama-connector/r0dlcwip6k",
+      "name": "Biorhythm MCP Server by RoxyAPI",
+      "namespace": "com.roxyapi",
+      "endpoint_url": "https://roxyapi.com/mcp/biorhythm",
+      "source_url": "https://glama.ai/mcp/connectors/com.roxyapi/biorhythm",
+      "status": "ok",
+      "reason": "tools listed",
+      "tools_listed": 6,
+      "latency_ms": 1166
+    },
+    {
+      "id": "glama-connector/zoh0x0d9yg",
+      "name": "Bramvia",
+      "namespace": "net.bramvia",
+      "endpoint_url": "https://bramvia.net/mcp",
+      "source_url": "https://glama.ai/mcp/connectors/net.bramvia/bramvia",
+      "status": "ok",
+      "reason": "tools listed",
+      "tools_listed": 10,
+      "latency_ms": 2567
+    },
+    {
+      "id": "glama-connector/cy9qxv3opr",
+      "name": "CN Evidence — China Supplier Due Diligence",
+      "namespace": "dev.workers.mikeyang7789.cn-evidence-mcp-public",
+      "endpoint_url": "https://mcp.cnevidence.com/mcp?cn_source=glama",
+      "source_url": "https://glama.ai/mcp/connectors/dev.workers.mikeyang7789.cn-evidence-mcp-public/cn-evidence-china-supplier-due-diligence",
+      "status": "ok",
+      "reason": "tools listed",
+      "tools_listed": 3,
+      "latency_ms": 675
+    },
+    {
+      "id": "glama-connector/inkpwarn0b",
+      "name": "Cambridge China Bridge — China sourcing",
+      "namespace": "uk.co.camchinabridge",
+      "endpoint_url": "https://camchinabridge.co.uk/mcp",
+      "source_url": "https://glama.ai/mcp/connectors/uk.co.camchinabridge/sourcing",
+      "status": "auth_required",
+      "reason": "HTTP 403",
+      "tools_listed": 0,
+      "latency_ms": 222
+    },
+    {
+      "id": "glama-connector/ezqvq2vc24",
+      "name": "DataPulse",
+      "namespace": "io.github.r3dz4r",
+      "endpoint_url": "https://mcp.data-pulse.my/mcp",
+      "source_url": "https://glama.ai/mcp/connectors/io.github.r3dz4r/datapulse-my",
+      "status": "ok",
+      "reason": "tools listed",
+      "tools_listed": 19,
+      "latency_ms": 1451
+    },
+    {
+      "id": "glama-connector/zw5fevfvol",
+      "name": "DilutionLens",
+      "namespace": "com.dilutionlens",
+      "endpoint_url": "https://dilutionlens.com/mcp",
+      "source_url": "https://glama.ai/mcp/connectors/com.dilutionlens/dilution-lens",
+      "status": "ok",
+      "reason": "tools listed",
+      "tools_listed": 6,
+      "latency_ms": 1509
+    },
+    {
+      "id": "glama-connector/k8pfpwdsgm",
+      "name": "FactorWeave",
+      "namespace": "com.factorweave",
+      "endpoint_url": "https://factorweave.com/api/mcp",
+      "source_url": "https://glama.ai/mcp/connectors/com.factorweave/factor-weave",
+      "status": "ok",
+      "reason": "tools listed",
+      "tools_listed": 14,
+      "latency_ms": 1927
+    },
+    {
+      "id": "glama-connector/rf1qmyowxa",
+      "name": "Fi-Plan",
+      "namespace": "in.fi-plan",
+      "endpoint_url": "https://www.fi-plan.in/mcp",
+      "source_url": "https://glama.ai/mcp/connectors/in.fi-plan/fi-plan",
+      "status": "ok",
+      "reason": "tools listed",
+      "tools_listed": 4,
+      "latency_ms": 1036
+    },
+    {
+      "id": "glama-connector/lpe673iggj",
+      "name": "FindWeedNY",
+      "namespace": "com.findweedny.mcp",
+      "endpoint_url": "https://mcp.findweedny.com/mcp",
+      "source_url": "https://glama.ai/mcp/connectors/com.findweedny.mcp/find-weed-ny",
+      "status": "auth_required",
+      "reason": "HTTP 403",
+      "tools_listed": 0,
+      "latency_ms": 212
+    },
+    {
+      "id": "glama-connector/c8wrwj0p0j",
+      "name": "Fondouk (PrestaShop demo store)",
+      "namespace": "dev.fondouk.demo",
+      "endpoint_url": "https://demo.fondouk.dev/fondouk/ucp/mcp",
+      "source_url": "https://glama.ai/mcp/connectors/dev.fondouk.demo/fondouk-presta-shop-demo-store",
+      "status": "ok",
+      "reason": "tools listed",
+      "tools_listed": 3,
+      "latency_ms": 1416
+    },
+    {
+      "id": "glama-connector/wp5yh4c8fq",
+      "name": "GLINTBASE MCP",
+      "namespace": "dev.glintbase.scan",
+      "endpoint_url": "https://scan.glintbase.dev/api/mcp",
+      "source_url": "https://glama.ai/mcp/connectors/dev.glintbase.scan/glintbase-mcp",
+      "status": "ok",
+      "reason": "tools listed",
+      "tools_listed": 5,
+      "latency_ms": 1539
+    },
+    {
+      "id": "glama-connector/cylzg52hbw",
+      "name": "GPU Cost Estimator - Enverge.ai",
+      "namespace": "ai.enverge",
+      "endpoint_url": "https://enverge.ai/mcp",
+      "source_url": "https://glama.ai/mcp/connectors/ai.enverge/gpu-cost-estimator-envergeai",
+      "status": "ok",
+      "reason": "tools listed",
+      "tools_listed": 2,
+      "latency_ms": 778
+    },
+    {
+      "id": "glama-connector/r43g8we796",
+      "name": "GigSoul x402",
+      "namespace": "com.gigsoul.api",
+      "endpoint_url": "https://api.gigsoul.com/mcp",
+      "source_url": "https://glama.ai/mcp/connectors/com.gigsoul.api/gig-soul-x402",
+      "status": "auth_required",
+      "reason": "HTTP 403",
+      "tools_listed": 0,
+      "latency_ms": 220
+    },
+    {
+      "id": "glama-connector/ursfz98y2u",
+      "name": "GridPulse Energy",
+      "namespace": "network.gridpulse.api",
+      "endpoint_url": "https://api.gridpulse.network/mcp",
+      "source_url": "https://glama.ai/mcp/connectors/network.gridpulse.api/grid-pulse-energy",
+      "status": "ok",
+      "reason": "tools listed",
+      "tools_listed": 15,
+      "latency_ms": 826
+    },
+    {
+      "id": "glama-connector/xre2rxrxlc",
+      "name": "HOTLIKESHOP MCP",
+      "namespace": "com.hotlikeshop",
+      "endpoint_url": "https://hotlikeshop.com/api/mcp",
+      "source_url": "https://glama.ai/mcp/connectors/com.hotlikeshop/hotlikeshop-mcp",
+      "status": "auth_required",
+      "reason": "HTTP 403",
+      "tools_listed": 0,
+      "latency_ms": 112
+    },
+    {
+      "id": "glama-connector/tpk65i736o",
+      "name": "Hands for Agents",
+      "namespace": "com.handsforagents",
+      "endpoint_url": "https://mcp.handsforagents.com/mcp",
+      "source_url": "https://glama.ai/mcp/connectors/com.handsforagents/hands-for-agents",
+      "status": "ok",
+      "reason": "tools listed",
+      "tools_listed": 5,
+      "latency_ms": 2754
+    },
+    {
+      "id": "glama-connector/eqivio5k2f",
+      "name": "HelpMyAgent",
+      "namespace": "io.github.helpmyagent",
+      "endpoint_url": "https://api.helpmyagent.com/mcp",
+      "source_url": "https://glama.ai/mcp/connectors/io.github.helpmyagent/helpmyagent",
+      "status": "auth_required",
+      "reason": "HTTP 403",
+      "tools_listed": 0,
+      "latency_ms": 295
+    },
+    {
+      "id": "glama-connector/vgq7agk6iq",
+      "name": "Hit The Road Rentals",
+      "namespace": "rentals.hittheroad",
+      "endpoint_url": "https://hittheroad.rentals/mcp",
+      "source_url": "https://glama.ai/mcp/connectors/rentals.hittheroad/hit-the-road-rentals",
+      "status": "ok",
+      "reason": "tools listed",
+      "tools_listed": 2,
+      "latency_ms": 227
+    },
+    {
+      "id": "glama-connector/sku8h6n3n0",
+      "name": "JIDEC: Bitcoin-anchored public verification ledger (NENRIN)",
+      "namespace": "io.github.ogasurfproject-jpg",
+      "endpoint_url": "https://jidec.horizonshield.dev/mcp",
+      "source_url": "https://glama.ai/mcp/connectors/io.github.ogasurfproject-jpg/jidec",
+      "status": "auth_required",
+      "reason": "HTTP 403",
+      "tools_listed": 0,
+      "latency_ms": 114
+    },
+    {
+      "id": "glama-connector/qflskwpwv9",
+      "name": "Kabbalah MCP Server by RoxyAPI",
+      "namespace": "com.roxyapi",
+      "endpoint_url": "https://roxyapi.com/mcp/kabbalah",
+      "source_url": "https://glama.ai/mcp/connectors/com.roxyapi/kabbalah",
+      "status": "ok",
+      "reason": "tools listed",
+      "tools_listed": 12,
+      "latency_ms": 1179
+    },
+    {
+      "id": "glama-connector/rdbpth0qcb",
+      "name": "Klarix Intelligence Engine",
+      "namespace": "ai.klarix.mcp",
+      "endpoint_url": "https://mcp.klarix.ai/mcp",
+      "source_url": "https://glama.ai/mcp/connectors/ai.klarix.mcp/klarix-intelligence-engine",
+      "status": "ok",
+      "reason": "tools listed",
+      "tools_listed": 15,
+      "latency_ms": 1082
+    },
+    {
+      "id": "glama-connector/hev9yw3nbm",
+      "name": "Landhaus Apartments Prägant",
+      "namespace": "net.praegant",
+      "endpoint_url": "https://mcp.praegant.net/mcp",
+      "source_url": "https://glama.ai/mcp/connectors/net.praegant/landhaus",
+      "status": "ok",
+      "reason": "tools listed",
+      "tools_listed": 10,
+      "latency_ms": 1234
+    },
+    {
+      "id": "glama-connector/i1q6bbh18u",
+      "name": "Le Carré de Sable | The Sandbox",
+      "namespace": "com.milotche.agent",
+      "endpoint_url": "https://agent.milotche.com/mcp",
+      "source_url": "https://glama.ai/mcp/connectors/com.milotche.agent/le-carre-de-sable",
+      "status": "ok",
+      "reason": "tools listed",
+      "tools_listed": 7,
+      "latency_ms": 1386
+    },
+    {
+      "id": "glama-connector/wq9ur2a3gx",
+      "name": "Lots of Sounds",
+      "namespace": "com.lotsofsounds.api",
+      "endpoint_url": "https://api.lotsofsounds.com/mcp",
+      "source_url": "https://glama.ai/mcp/connectors/com.lotsofsounds.api/lots-of-sounds",
+      "status": "ok",
+      "reason": "tools listed",
+      "tools_listed": 4,
+      "latency_ms": 2309
+    },
+    {
+      "id": "glama-connector/obfr2w3w5k",
+      "name": "MEV Intelligence",
+      "namespace": "io.advalorem.mev",
+      "endpoint_url": "https://mev.advalorem.io",
+      "source_url": "https://glama.ai/mcp/connectors/io.advalorem.mev/mev-intelligence",
+      "status": "ok",
+      "reason": "tools listed",
+      "tools_listed": 10,
+      "latency_ms": 1598
+    },
+    {
+      "id": "glama-connector/zj2bvof4lw",
+      "name": "Obolus",
+      "namespace": "io.github.sanzation",
+      "endpoint_url": "https://www.obolusfinanz.de/api/mcp/public",
+      "source_url": "https://glama.ai/mcp/connectors/io.github.sanzation/obolus",
+      "status": "ok",
+      "reason": "tools listed",
+      "tools_listed": 2,
+      "latency_ms": 2065
+    },
+    {
+      "id": "glama-connector/b25f95tue1",
+      "name": "Oxaide — Singapore company research for AI agents",
+      "namespace": "io.github.leewenjie",
+      "endpoint_url": "https://oxaide.com/mcp",
+      "source_url": "https://glama.ai/mcp/connectors/io.github.leewenjie/oxaide",
+      "status": "unreachable",
+      "reason": "URLError",
+      "tools_listed": 0,
+      "latency_ms": 30265
+    },
+    {
+      "id": "glama-connector/sr90gb9q50",
+      "name": "ParaSure",
+      "namespace": "xyz.parasure",
+      "endpoint_url": "https://parasure.xyz/mcp",
+      "source_url": "https://glama.ai/mcp/connectors/xyz.parasure/para-sure",
+      "status": "ok",
+      "reason": "tools listed",
+      "tools_listed": 6,
+      "latency_ms": 805
+    },
+    {
+      "id": "glama-connector/o5kjxvqcdp",
+      "name": "Pillr",
+      "namespace": "fr.pillr",
+      "endpoint_url": "https://pillr.fr/api/mcp",
+      "source_url": "https://glama.ai/mcp/connectors/fr.pillr/pillr",
+      "status": "auth_required",
+      "reason": "HTTP 403",
+      "tools_listed": 0,
+      "latency_ms": 1647
+    },
+    {
+      "id": "glama-connector/r6gqapv64j",
+      "name": "PreReason",
+      "namespace": "com.prereason",
+      "endpoint_url": "https://api.prereason.com/api/mcp",
+      "source_url": "https://glama.ai/mcp/connectors/com.prereason/mcp",
+      "status": "ok",
+      "reason": "tools listed",
+      "tools_listed": 7,
+      "latency_ms": 1177
+    },
+    {
+      "id": "glama-connector/popuomh625",
+      "name": "PropelAuth Integration MCP Server",
+      "namespace": "com.propelauth.mcp",
+      "endpoint_url": "https://mcp.propelauth.com/mcp",
+      "source_url": "https://glama.ai/mcp/connectors/com.propelauth.mcp/propel-auth-integration-mcp-server",
+      "status": "ok",
+      "reason": "tools listed",
+      "tools_listed": 11,
+      "latency_ms": 1524
+    },
+    {
+      "id": "glama-connector/raplg0cf2y",
+      "name": "Rattlesnakes By Mail: AI Crawler Field Guide",
+      "namespace": "com.rattlesnakesbymail",
+      "endpoint_url": "https://rattlesnakesbymail.com/mcp",
+      "source_url": "https://glama.ai/mcp/connectors/com.rattlesnakesbymail/rattlesnakesbymail",
+      "status": "ok",
+      "reason": "tools listed",
+      "tools_listed": 5,
+      "latency_ms": 1529
+    },
+    {
+      "id": "glama-connector/rjx3wen0fh",
+      "name": "Realurls",
+      "namespace": "org.realurls.api",
+      "endpoint_url": "https://api.realurls.org/mcp",
+      "source_url": "https://glama.ai/mcp/connectors/org.realurls.api/realurls",
+      "status": "auth_required",
+      "reason": "HTTP 403",
+      "tools_listed": 0,
+      "latency_ms": 129
+    },
+    {
+      "id": "glama-connector/sv0cwmravu",
+      "name": "Recall Kitchen",
+      "namespace": "com.recallkitchen.app",
+      "endpoint_url": "https://app.recallkitchen.com/mcp",
+      "source_url": "https://glama.ai/mcp/connectors/com.recallkitchen.app/recall-kitchen",
+      "status": "ok",
+      "reason": "tools listed",
+      "tools_listed": 19,
+      "latency_ms": 1847
+    },
+    {
+      "id": "glama-connector/p4w1grt8ye",
+      "name": "Redeal",
+      "namespace": "dev.redeal.api",
+      "endpoint_url": "https://api.redeal.dev/mcp",
+      "source_url": "https://glama.ai/mcp/connectors/dev.redeal.api/redeal",
+      "status": "ok",
+      "reason": "tools listed",
+      "tools_listed": 12,
+      "latency_ms": 1689
+    },
+    {
+      "id": "glama-connector/mznrc2m2zv",
+      "name": "Relendi — Commercial Real Estate Loan Tools",
+      "namespace": "com.relendi",
+      "endpoint_url": "https://relendi.com/api/mcp/public",
+      "source_url": "https://glama.ai/mcp/connectors/com.relendi/relendi-commercial-real-estate-loan-tools",
+      "status": "ok",
+      "reason": "tools listed",
+      "tools_listed": 11,
+      "latency_ms": 1350
+    },
+    {
+      "id": "glama-connector/ferawqm6jf",
+      "name": "RoboParts 机器人零部件兼容性",
+      "namespace": "cc.roboparts",
+      "endpoint_url": "https://roboparts.cc/mcp",
+      "source_url": "https://glama.ai/mcp/connectors/cc.roboparts/roboparts",
+      "status": "auth_required",
+      "reason": "HTTP 403",
+      "tools_listed": 0,
+      "latency_ms": 240
+    },
+    {
+      "id": "glama-connector/x230f4vge2",
+      "name": "Rozbij Bank - Polish bank offers",
+      "namespace": "pl.rozbijbank.mcp",
+      "endpoint_url": "https://mcp.rozbijbank.pl",
+      "source_url": "https://glama.ai/mcp/connectors/pl.rozbijbank.mcp/rozbij-bank-polish-bank-offers",
+      "status": "auth_required",
+      "reason": "HTTP 403",
+      "tools_listed": 0,
+      "latency_ms": 121
+    },
+    {
+      "id": "glama-connector/l470fdsfj4",
+      "name": "SafeDep",
+      "namespace": "io.safedep.mcp",
+      "endpoint_url": "https://mcp.safedep.io/model-context-protocol/threats/v1/mcp",
+      "source_url": "https://glama.ai/mcp/connectors/io.safedep.mcp/safe-dep",
+      "status": "auth_required",
+      "reason": "HTTP 403",
+      "tools_listed": 0,
+      "latency_ms": 147
+    },
+    {
+      "id": "glama-connector/bt3vp5qhjl",
+      "name": "Sato Hub: Onchain Agents",
+      "namespace": "ai.satohub",
+      "endpoint_url": "https://satohub.ai/api/mcp",
+      "source_url": "https://glama.ai/mcp/connectors/ai.satohub/onchain-agents",
+      "status": "ok",
+      "reason": "tools listed",
+      "tools_listed": 35,
+      "latency_ms": 1184
+    },
+    {
+      "id": "glama-connector/ad1biacemb",
+      "name": "Sausage Finance",
+      "namespace": "com.professorsausages.x402",
+      "endpoint_url": "https://x402.professorsausages.com/mcp/finance",
+      "source_url": "https://glama.ai/mcp/connectors/com.professorsausages.x402/sausage-finance",
+      "status": "auth_required",
+      "reason": "HTTP 403",
+      "tools_listed": 0,
+      "latency_ms": 99
+    },
+    {
+      "id": "glama-connector/rp6dymmet5",
+      "name": "Sausage Onchain",
+      "namespace": "com.professorsausages.x402",
+      "endpoint_url": "https://x402.professorsausages.com/mcp/onchain",
+      "source_url": "https://glama.ai/mcp/connectors/com.professorsausages.x402/sausage-onchain",
+      "status": "auth_required",
+      "reason": "HTTP 403",
+      "tools_listed": 0,
+      "latency_ms": 156
+    },
+    {
+      "id": "glama-connector/e00p6n2da4",
+      "name": "Sausage Trust",
+      "namespace": "com.professorsausages.x402",
+      "endpoint_url": "https://x402.professorsausages.com/mcp/trust",
+      "source_url": "https://glama.ai/mcp/connectors/com.professorsausages.x402/sausage-trust",
+      "status": "auth_required",
+      "reason": "HTTP 403",
+      "tools_listed": 0,
+      "latency_ms": 96
+    },
+    {
+      "id": "glama-connector/o47l9rlgp7",
+      "name": "Sentinel Aleph",
+      "namespace": "com.ribqa",
+      "endpoint_url": "https://ribqa.com/api/v1/mcp",
+      "source_url": "https://glama.ai/mcp/connectors/com.ribqa/sentinel-aleph",
+      "status": "auth_required",
+      "reason": "HTTP 403",
+      "tools_listed": 0,
+      "latency_ms": 344
+    },
+    {
+      "id": "glama-connector/o4w4bj5t5s",
+      "name": "Senzing",
+      "namespace": "com.senzing",
+      "endpoint_url": "https://mcp.senzing.com/mcp",
+      "source_url": "https://glama.ai/mcp/connectors/com.senzing/mcp",
+      "status": "ok",
+      "reason": "tools listed",
+      "tools_listed": 13,
+      "latency_ms": 10778
+    },
+    {
+      "id": "glama-connector/rdh7j4oeis",
+      "name": "Signed Investors",
+      "namespace": "com.signed.mcp",
+      "endpoint_url": "https://mcp.signed.com/investors",
+      "source_url": "https://glama.ai/mcp/connectors/com.signed.mcp/signed-investors",
+      "status": "auth_required",
+      "reason": "HTTP 403",
+      "tools_listed": 0,
+      "latency_ms": 206
+    },
+    {
+      "id": "glama-connector/k72x3urt5u",
+      "name": "Supovia",
+      "namespace": "com.supovia.mcp",
+      "endpoint_url": "https://mcp.supovia.com/mcp",
+      "source_url": "https://glama.ai/mcp/connectors/com.supovia.mcp/supovia",
+      "status": "ok",
+      "reason": "tools listed",
+      "tools_listed": 14,
+      "latency_ms": 2726
+    },
+    {
+      "id": "glama-connector/tk83bweq6u",
+      "name": "TokenBank — tokenized real-world assets",
+      "namespace": "world.tokenbank",
+      "endpoint_url": "https://mcp.tokenbank.world",
+      "source_url": "https://glama.ai/mcp/connectors/world.tokenbank/tokenbank",
+      "status": "auth_required",
+      "reason": "HTTP 403",
+      "tools_listed": 0,
+      "latency_ms": 472
+    },
+    {
+      "id": "glama-connector/u3o12xu22i",
+      "name": "UK Due Diligence",
+      "namespace": "io.github.paulieb89",
+      "endpoint_url": "https://uk-due-diligence-mcp.fly.dev/mcp",
+      "source_url": "https://glama.ai/mcp/connectors/io.github.paulieb89/uk-due-diligence-mcp",
+      "status": "ok",
+      "reason": "tools listed",
+      "tools_listed": 18,
+      "latency_ms": 1218
+    },
+    {
+      "id": "glama-connector/ld0fgar1fn",
+      "name": "bitcoin-stratigraphy",
+      "namespace": "app.replit.bitcoin-stratigraphy-dashboard--charlesstrogish",
+      "endpoint_url": "https://bitcoin-stratigraphy-dashboard.replit.app/mcp",
+      "source_url": "https://glama.ai/mcp/connectors/app.replit.bitcoin-stratigraphy-dashboard--charlesstrogish/bitcoin-stratigraphy",
+      "status": "ok",
+      "reason": "tools listed",
+      "tools_listed": 10,
+      "latency_ms": 2061
+    },
+    {
+      "id": "glama-connector/cmguj7k60t",
+      "name": "chomptron",
+      "namespace": "io.github.swantron",
+      "endpoint_url": "https://chomptron.com/mcp",
+      "source_url": "https://glama.ai/mcp/connectors/io.github.swantron/chomptron",
+      "status": "ok",
+      "reason": "tools listed",
+      "tools_listed": 1,
+      "latency_ms": 787
+    },
+    {
+      "id": "glama-connector/cabzrtcljj",
+      "name": "discava – Business Directory for AI",
+      "namespace": "ai.discava",
+      "endpoint_url": "https://discava.ai/api/mcp",
+      "source_url": "https://glama.ai/mcp/connectors/ai.discava/discava-business-directory-for-ai",
+      "status": "ok",
+      "reason": "tools listed",
+      "tools_listed": 8,
+      "latency_ms": 685
+    },
+    {
+      "id": "glama-connector/aerj2438rk",
+      "name": "flopsindex-mcp",
+      "namespace": "com.flopsindex.app",
+      "endpoint_url": "https://app.flopsindex.com/mcp",
+      "source_url": "https://glama.ai/mcp/connectors/com.flopsindex.app/flopsindex-mcp",
+      "status": "ok",
+      "reason": "tools listed",
+      "tools_listed": 5,
+      "latency_ms": 1316
+    },
+    {
+      "id": "glama-connector/pes9twxeo2",
+      "name": "french-rental-compliance",
+      "namespace": "com.adminlanding",
+      "endpoint_url": "https://api.adminlanding.com/mcp",
+      "source_url": "https://glama.ai/mcp/connectors/com.adminlanding/french-rental-compliance",
+      "status": "auth_required",
+      "reason": "HTTP 403",
+      "tools_listed": 0,
+      "latency_ms": 273
+    },
+    {
+      "id": "glama-connector/ycibr1wnoj",
+      "name": "gateplex",
+      "namespace": "ai.gateplex",
+      "endpoint_url": "https://gateplex.ai/mcp",
+      "source_url": "https://glama.ai/mcp/connectors/ai.gateplex/gateplex",
+      "status": "auth_required",
+      "reason": "HTTP 403",
+      "tools_listed": 0,
+      "latency_ms": 268
+    },
+    {
+      "id": "glama-connector/djl3593hfz",
+      "name": "horizon-shield",
+      "namespace": "dev.horizonshield",
+      "endpoint_url": "https://mcp.horizonshield.dev/mcp",
+      "source_url": "https://glama.ai/mcp/connectors/dev.horizonshield/horizon-shield",
+      "status": "auth_required",
+      "reason": "HTTP 403",
+      "tools_listed": 0,
+      "latency_ms": 90
+    },
+    {
+      "id": "glama-connector/d113mh8xl5",
+      "name": "icme-preflight-mcp",
+      "namespace": "io.icme.api",
+      "endpoint_url": "https://api.icme.io/mcp",
+      "source_url": "https://glama.ai/mcp/connectors/io.icme.api/icme-preflight-mcp",
+      "status": "auth_required",
+      "reason": "HTTP 403",
+      "tools_listed": 0,
+      "latency_ms": 135
+    },
+    {
+      "id": "glama-connector/xw986i310d",
+      "name": "iposignal",
+      "namespace": "xyz.iposignal",
+      "endpoint_url": "https://iposignal.xyz/api/mcp",
+      "source_url": "https://glama.ai/mcp/connectors/xyz.iposignal/iposignal",
+      "status": "ok",
+      "reason": "tools listed",
+      "tools_listed": 8,
+      "latency_ms": 1184
+    },
+    {
+      "id": "glama-connector/ucncl2mmru",
+      "name": "knowngood",
+      "namespace": "sh.knowngood",
+      "endpoint_url": "https://knowngood.sh/mcp",
+      "source_url": "https://glama.ai/mcp/connectors/sh.knowngood/knowngood",
+      "status": "auth_required",
+      "reason": "HTTP 403",
+      "tools_listed": 0,
+      "latency_ms": 190
+    },
+    {
+      "id": "glama-connector/afvxep6cvf",
+      "name": "mcp-fashion",
+      "namespace": "com.polopan.mcp-server",
+      "endpoint_url": "https://mcp-server.polopan.com/mcp",
+      "source_url": "https://glama.ai/mcp/connectors/com.polopan.mcp-server/mcp-fashion",
+      "status": "ok",
+      "reason": "tools listed",
+      "tools_listed": 10,
+      "latency_ms": 1598
+    },
+    {
+      "id": "glama-connector/il5v4iih4i",
+      "name": "psgc-mcp",
+      "namespace": "ph.godmode.psgc",
+      "endpoint_url": "https://psgc.godmode.ph/mcp",
+      "source_url": "https://glama.ai/mcp/connectors/ph.godmode.psgc/psgc-mcp",
+      "status": "auth_required",
+      "reason": "HTTP 403",
+      "tools_listed": 0,
+      "latency_ms": 385
+    },
+    {
+      "id": "glama-connector/d5jbw133mm",
+      "name": "quantakrypto pqc-tools (hosted)",
+      "namespace": "com.quantakrypto.mcp",
+      "endpoint_url": "https://mcp.quantakrypto.com/mcp",
+      "source_url": "https://glama.ai/mcp/connectors/com.quantakrypto.mcp/quantakrypto-pqc-tools-hosted",
+      "status": "auth_required",
+      "reason": "HTTP 403",
+      "tools_listed": 0,
+      "latency_ms": 231
+    },
+    {
+      "id": "glama-connector/e642hfq4on",
+      "name": "registry-mcp — national company registries",
+      "namespace": "io.github.foretak",
+      "endpoint_url": "https://api.foretak.dev/mcp",
+      "source_url": "https://glama.ai/mcp/connectors/io.github.foretak/registry-mcp",
+      "status": "ok",
+      "reason": "tools listed",
+      "tools_listed": 7,
+      "latency_ms": 721
+    },
+    {
+      "id": "glama-connector/yycntr8sl9",
+      "name": "Abstraxn",
+      "namespace": "com.abstraxn.mcp",
+      "endpoint_url": "https://mcp.abstraxn.com/mcp",
+      "source_url": "https://glama.ai/mcp/connectors/com.abstraxn.mcp/abstraxn",
+      "status": "auth_required",
+      "reason": "HTTP 403",
+      "tools_listed": 0,
+      "latency_ms": 146
+    },
+    {
+      "id": "glama-connector/lr75aevpve",
+      "name": "AgileHero",
+      "namespace": "io.agilehero",
+      "endpoint_url": "https://mcp.agilehero.io/mcp",
+      "source_url": "https://glama.ai/mcp/connectors/io.agilehero/agilehero",
+      "status": "auth_required",
+      "reason": "HTTP 403",
+      "tools_listed": 0,
+      "latency_ms": 143
+    },
+    {
+      "id": "glama-connector/s86n2u6g3u",
+      "name": "AssetFare",
+      "namespace": "io.github.odaiin",
+      "endpoint_url": "https://api.assetfare.dev/mcp",
+      "source_url": "https://glama.ai/mcp/connectors/io.github.odaiin/assetfare",
+      "status": "ok",
+      "reason": "tools listed",
+      "tools_listed": 9,
+      "latency_ms": 972
+    },
+    {
+      "id": "glama-connector/nnsscgy4j7",
+      "name": "Ayurveda MCP Server by RoxyAPI",
+      "namespace": "com.roxyapi",
+      "endpoint_url": "https://roxyapi.com/mcp/ayurveda",
+      "source_url": "https://glama.ai/mcp/connectors/com.roxyapi/ayurveda",
+      "status": "ok",
+      "reason": "tools listed",
+      "tools_listed": 8,
+      "latency_ms": 1166
+    },
+    {
+      "id": "glama-connector/uc994h4kz2",
+      "name": "Bankrolled.ai Agent Hub",
+      "namespace": "ai.bankrolled",
+      "endpoint_url": "https://bankrolled.ai/mcp",
+      "source_url": "https://glama.ai/mcp/connectors/ai.bankrolled/bankrolledai-agent-hub",
+      "status": "auth_required",
+      "reason": "HTTP 403",
+      "tools_listed": 0,
+      "latency_ms": 117
+    },
+    {
+      "id": "glama-connector/zo8fzsd2mr",
+      "name": "Bankstatemently",
+      "namespace": "io.github.bankstatemently",
+      "endpoint_url": "https://api.bankstatemently.com/mcp",
+      "source_url": "https://glama.ai/mcp/connectors/io.github.bankstatemently/bankstatemently-mcp",
+      "status": "ok",
+      "reason": "tools listed",
+      "tools_listed": 16,
+      "latency_ms": 397
+    },
+    {
+      "id": "glama-connector/izs7ukgch2",
+      "name": "Blocksize Agentic Market Intelligence",
+      "namespace": "info.blocksize.mcp",
+      "endpoint_url": "https://mcp.blocksize.info/mcp/server/",
+      "source_url": "https://glama.ai/mcp/connectors/info.blocksize.mcp/agentic-payments",
+      "status": "ok",
+      "reason": "tools listed",
+      "tools_listed": 9,
+      "latency_ms": 2528
+    },
+    {
+      "id": "glama-connector/dothap243c",
+      "name": "Blumen Komander München",
+      "namespace": "io.github.Severin2k",
+      "endpoint_url": "https://mcp.blumen-verschicken.online/mcp",
+      "source_url": "https://glama.ai/mcp/connectors/io.github.Severin2k/blumen-komander-mcp",
+      "status": "ok",
+      "reason": "tools listed",
+      "tools_listed": 11,
+      "latency_ms": 1578
+    },
+    {
+      "id": "glama-connector/eu279krskl",
+      "name": "Chinese Astrology MCP Server by RoxyAPI",
+      "namespace": "com.roxyapi",
+      "endpoint_url": "https://roxyapi.com/mcp/chinese-astrology",
+      "source_url": "https://glama.ai/mcp/connectors/com.roxyapi/chinese-astrology",
+      "status": "ok",
+      "reason": "tools listed",
+      "tools_listed": 16,
+      "latency_ms": 610
+    },
+    {
+      "id": "glama-connector/zjoc5l31qj",
+      "name": "CleanPage",
+      "namespace": "io.github.IO31-WEB",
+      "endpoint_url": "https://cleanpage-mcp.cleanpage-mcp.workers.dev/mcp",
+      "source_url": "https://glama.ai/mcp/connectors/io.github.IO31-WEB/cleanpage",
+      "status": "auth_required",
+      "reason": "HTTP 403",
+      "tools_listed": 0,
+      "latency_ms": 138
+    },
+    {
+      "id": "glama-connector/nmr1h2qj1j",
+      "name": "DATASUS SIH/SUS — Brazil Hospital Admissions (AIH) MCP",
+      "namespace": "io.github.SidneyBissoli",
+      "endpoint_url": "https://sih.sidneybissoli.com/mcp",
+      "source_url": "https://glama.ai/mcp/connectors/io.github.SidneyBissoli/sih-br-mcp",
+      "status": "auth_required",
+      "reason": "HTTP 403",
+      "tools_listed": 0,
+      "latency_ms": 311
+    },
+    {
+      "id": "glama-connector/ag7t4xrhl7",
+      "name": "Debitura",
+      "namespace": "com.debitura.mcp",
+      "endpoint_url": "https://mcp.debitura.com/mcp",
+      "source_url": "https://glama.ai/mcp/connectors/com.debitura.mcp/debitura",
+      "status": "auth_required",
+      "reason": "HTTP 403",
+      "tools_listed": 0,
+      "latency_ms": 105
+    },
+    {
+      "id": "glama-connector/xmbot5cl8n",
+      "name": "EPST",
+      "namespace": "cc.epst",
+      "endpoint_url": "https://epst.cc/mcp",
+      "source_url": "https://glama.ai/mcp/connectors/cc.epst/epst",
+      "status": "auth_required",
+      "reason": "HTTP 403",
+      "tools_listed": 0,
+      "latency_ms": 261
+    },
+    {
+      "id": "glama-connector/dblvy5tc0g",
+      "name": "Eagle Virtual USDT & USDC Blacklist Tracker",
+      "namespace": "com.eaglevirtual",
+      "endpoint_url": "https://mcp.eaglevirtual.com/mcp",
+      "source_url": "https://glama.ai/mcp/connectors/com.eaglevirtual/stablecoin-freeze-tracker",
+      "status": "auth_required",
+      "reason": "HTTP 403",
+      "tools_listed": 0,
+      "latency_ms": 137
+    },
+    {
+      "id": "glama-connector/glpmqqjdo2",
+      "name": "Fast.io",
+      "namespace": "io.fast.mcp",
+      "endpoint_url": "https://mcp.fast.io/mcp",
+      "source_url": "https://glama.ai/mcp/connectors/io.fast.mcp/fastio",
+      "status": "auth_required",
+      "reason": "HTTP 403",
+      "tools_listed": 0,
+      "latency_ms": 375
+    },
+    {
+      "id": "glama-connector/vp3a08f961",
+      "name": "Folklore Clinical Variant Interpretation MCP",
+      "namespace": "io.github.helena-bioinformatics",
+      "endpoint_url": "https://api.helena.bio/folklore/v1/mcp",
+      "source_url": "https://glama.ai/mcp/connectors/io.github.helena-bioinformatics/folklore",
+      "status": "unreachable",
+      "reason": "URLError",
+      "tools_listed": 0,
+      "latency_ms": 15309
+    },
+    {
+      "id": "glama-connector/zdvfto6doj",
+      "name": "FreshProof",
+      "namespace": "io.github.ricksporto",
+      "endpoint_url": "https://freshproof.ricardobessellp-11d.workers.dev/mcp",
+      "source_url": "https://glama.ai/mcp/connectors/io.github.ricksporto/freshproof",
+      "status": "auth_required",
+      "reason": "HTTP 403",
+      "tools_listed": 0,
+      "latency_ms": 217
+    },
+    {
+      "id": "glama-connector/j50wyqxi3j",
+      "name": "GoodLeads",
+      "namespace": "club.goodleads",
+      "endpoint_url": "https://mcp.goodleads.club/mcp",
+      "source_url": "https://glama.ai/mcp/connectors/club.goodleads/new-business-owner-contacts",
+      "status": "ok",
+      "reason": "tools listed",
+      "tools_listed": 13,
+      "latency_ms": 3535
+    },
+    {
+      "id": "glama-connector/wm8aj52j8u",
+      "name": "HoneyLabs",
+      "namespace": "net.honeylabs",
+      "endpoint_url": "https://mcp.honeylabs.net/mcp",
+      "source_url": "https://glama.ai/mcp/connectors/net.honeylabs/mcp",
+      "status": "ok",
+      "reason": "tools listed",
+      "tools_listed": 10,
+      "latency_ms": 1748
+    },
+    {
+      "id": "glama-connector/htcusjau4d",
+      "name": "Human Design MCP Server by RoxyAPI",
+      "namespace": "com.roxyapi",
+      "endpoint_url": "https://roxyapi.com/mcp/human-design",
+      "source_url": "https://glama.ai/mcp/connectors/com.roxyapi/human-design",
+      "status": "ok",
+      "reason": "tools listed",
+      "tools_listed": 12,
+      "latency_ms": 675
+    },
+    {
+      "id": "glama-connector/t55zr7zgpm",
+      "name": "IBGE Brasil MCP",
+      "namespace": "io.github.SidneyBissoli",
+      "endpoint_url": "https://ibge.sidneybissoli.com/mcp",
+      "source_url": "https://glama.ai/mcp/connectors/io.github.SidneyBissoli/ibge-br-mcp",
+      "status": "auth_required",
+      "reason": "HTTP 403",
+      "tools_listed": 0,
+      "latency_ms": 197
+    },
+    {
+      "id": "glama-connector/st5d0s9vrf",
+      "name": "Insurers Global",
+      "namespace": "global.insurers",
+      "endpoint_url": "https://insurers.global/mcp",
+      "source_url": "https://glama.ai/mcp/connectors/global.insurers/directory",
+      "status": "auth_required",
+      "reason": "HTTP 403",
+      "tools_listed": 0,
+      "latency_ms": 196
+    },
+    {
+      "id": "glama-connector/oe1pog6da7",
+      "name": "Kashif — Website Audit",
+      "namespace": "net.bottletech.kashif",
+      "endpoint_url": "https://kashif.bottletech.net/mcp",
+      "source_url": "https://glama.ai/mcp/connectors/net.bottletech.kashif/kashif-website-audit",
+      "status": "ok",
+      "reason": "tools listed",
+      "tools_listed": 1,
+      "latency_ms": 1126
+    },
+    {
+      "id": "glama-connector/ju8xacc119",
+      "name": "Keenable Web Search",
+      "namespace": "ai.keenable.api",
+      "endpoint_url": "https://api.keenable.ai/mcp?keenable_title=glama",
+      "source_url": "https://glama.ai/mcp/connectors/ai.keenable.api/keenable-web-search",
+      "status": "ok",
+      "reason": "tools listed",
+      "tools_listed": 2,
+      "latency_ms": 670
+    },
+    {
+      "id": "glama-connector/nk685kxw0j",
+      "name": "LTS MCP Server",
+      "namespace": "ph.godmode.lts",
+      "endpoint_url": "https://lts.godmode.ph/mcp",
+      "source_url": "https://glama.ai/mcp/connectors/ph.godmode.lts/lts-mcp-server",
+      "status": "auth_required",
+      "reason": "HTTP 403",
+      "tools_listed": 0,
+      "latency_ms": 121
+    },
+    {
+      "id": "glama-connector/cjw5mho1vg",
+      "name": "Labelixa",
+      "namespace": "com.labelixa",
+      "endpoint_url": "https://api.labelixa.com/mcp",
+      "source_url": "https://glama.ai/mcp/connectors/com.labelixa/zpl",
+      "status": "ok",
+      "reason": "tools listed",
+      "tools_listed": 21,
+      "latency_ms": 815
+    },
+    {
+      "id": "glama-connector/c0cf6hdgfx",
+      "name": "LastPing",
+      "namespace": "dev.lastping",
+      "endpoint_url": "https://mcp.lastping.dev",
+      "source_url": "https://glama.ai/mcp/connectors/dev.lastping/lastping",
+      "status": "ok",
+      "reason": "tools listed",
+      "tools_listed": 39,
+      "latency_ms": 1960
+    },
+    {
+      "id": "glama-connector/uukdniu9uu",
+      "name": "LaunchOn.it",
+      "namespace": "it.launchon",
+      "endpoint_url": "https://launchon.it/api/mcp",
+      "source_url": "https://glama.ai/mcp/connectors/it.launchon/launch-onit",
+      "status": "auth_required",
+      "reason": "HTTP 403",
+      "tools_listed": 0,
+      "latency_ms": 135
+    },
+    {
+      "id": "glama-connector/dal2nm4yh0",
+      "name": "Ludo AI Game Assets",
+      "namespace": "ai.ludo",
+      "endpoint_url": "https://mcp.ludo.ai/mcp",
+      "source_url": "https://glama.ai/mcp/connectors/ai.ludo/game-assets",
+      "status": "ok",
+      "reason": "tools listed",
+      "tools_listed": 35,
+      "latency_ms": 1511
+    },
+    {
+      "id": "glama-connector/s2pme4l48q",
+      "name": "MYOPL Pickleball",
+      "namespace": "net.myopl.pickleball",
+      "endpoint_url": "https://pickleball.myopl.net/api/v1/public/mcp",
+      "source_url": "https://glama.ai/mcp/connectors/net.myopl.pickleball/myopl-pickleball",
+      "status": "protocol_error",
+      "reason": "HTTP 400",
+      "tools_listed": 0,
+      "latency_ms": 922
+    },
+    {
+      "id": "glama-connector/d1n30fa1na",
+      "name": "MindDory Brain",
+      "namespace": "com.minddory",
+      "endpoint_url": "https://api.minddory.com/v1/brain/mcp",
+      "source_url": "https://glama.ai/mcp/connectors/com.minddory/brain",
+      "status": "unreachable",
+      "reason": "URLError",
+      "tools_listed": 0,
+      "latency_ms": 30148
+    },
+    {
+      "id": "glama-connector/f3t4zmdixg",
+      "name": "NaN Mesh",
+      "namespace": "ai.nanmesh.api",
+      "endpoint_url": "https://api.nanmesh.ai/mcp/",
+      "source_url": "https://glama.ai/mcp/connectors/ai.nanmesh.api/na-n-mesh",
+      "status": "ok",
+      "reason": "tools listed",
+      "tools_listed": 13,
+      "latency_ms": 842
+    },
+    {
+      "id": "glama-connector/ec6ey8waga",
+      "name": "Notipo",
+      "namespace": "io.github.kfuras",
+      "endpoint_url": "https://app.notipo.com/api/mcp",
+      "source_url": "https://glama.ai/mcp/connectors/io.github.kfuras/notipo",
+      "status": "auth_required",
+      "reason": "HTTP 403",
+      "tools_listed": 0,
+      "latency_ms": 209
+    },
+    {
+      "id": "glama-connector/apq0dhv9t9",
+      "name": "Numerology MCP Server by RoxyAPI",
+      "namespace": "com.roxyapi",
+      "endpoint_url": "https://roxyapi.com/mcp/numerology",
+      "source_url": "https://glama.ai/mcp/connectors/com.roxyapi/numerology",
+      "status": "ok",
+      "reason": "tools listed",
+      "tools_listed": 20,
+      "latency_ms": 610
+    },
+    {
+      "id": "glama-connector/dhdzb71git",
+      "name": "OnChain Music",
+      "namespace": "com.onchainmusic",
+      "endpoint_url": "https://onchainmusic.com/api/mcp",
+      "source_url": "https://glama.ai/mcp/connectors/com.onchainmusic/on-chain-music",
+      "status": "auth_required",
+      "reason": "HTTP 403",
+      "tools_listed": 0,
+      "latency_ms": 202
+    },
+    {
+      "id": "glama-connector/pugeg720ie",
+      "name": "PREFLIGHT — URL Routing for AI Agents",
+      "namespace": "io.github.GSterlingPress",
+      "endpoint_url": "https://preflight-api-production-01a2.up.railway.app/mcp",
+      "source_url": "https://glama.ai/mcp/connectors/io.github.GSterlingPress/preflight",
+      "status": "ok",
+      "reason": "tools listed",
+      "tools_listed": 2,
+      "latency_ms": 940
+    },
+    {
+      "id": "glama-connector/ovyhtwwlax",
+      "name": "Parlel",
+      "namespace": "com.parlel.api",
+      "endpoint_url": "https://api.parlel.com/mcp",
+      "source_url": "https://glama.ai/mcp/connectors/com.parlel.api/parlel",
+      "status": "ok",
+      "reason": "tools listed",
+      "tools_listed": 8,
+      "latency_ms": 1563
+    },
+    {
+      "id": "glama-connector/q9vppsfxgz",
+      "name": "PlanExe",
+      "namespace": "io.github.PlanExeOrg",
+      "endpoint_url": "https://mcp.planexe.org/mcp",
+      "source_url": "https://glama.ai/mcp/connectors/io.github.PlanExeOrg/planexe",
+      "status": "ok",
+      "reason": "tools listed",
+      "tools_listed": 11,
+      "latency_ms": 654
+    },
+    {
+      "id": "glama-connector/um30g18azf",
+      "name": "Planner (proof-of-done)",
+      "namespace": "com.monopoly-gold.planner",
+      "endpoint_url": "https://planner.monopoly-gold.com/_mcp",
+      "source_url": "https://glama.ai/mcp/connectors/com.monopoly-gold.planner/planner-proof-of-done",
+      "status": "auth_required",
+      "reason": "HTTP 403",
+      "tools_listed": 0,
+      "latency_ms": 125
+    },
+    {
+      "id": "glama-connector/dgvpyqieec",
+      "name": "PromptFrenzy",
+      "namespace": "com.promptfrenzy",
+      "endpoint_url": "https://www.promptfrenzy.com/api/mcp",
+      "source_url": "https://glama.ai/mcp/connectors/com.promptfrenzy/promptfrenzy",
+      "status": "ok",
+      "reason": "tools listed",
+      "tools_listed": 5,
+      "latency_ms": 911
+    },
+    {
+      "id": "glama-connector/o5un515v3d",
+      "name": "PubFi MCP",
+      "namespace": "ai.pubfi.mcp",
+      "endpoint_url": "https://mcp.pubfi.ai",
+      "source_url": "https://glama.ai/mcp/connectors/ai.pubfi.mcp/pub-fi-mcp",
+      "status": "protocol_error",
+      "reason": "HTTP 400",
+      "tools_listed": 0,
+      "latency_ms": 620
+    },
+    {
+      "id": "glama-connector/vm2rlzsxub",
+      "name": "RegEvidenceHub Premises",
+      "namespace": "io.github.ChanghuLiu",
+      "endpoint_url": "https://premises.regevidencehub.com/ai/mcp",
+      "source_url": "https://glama.ai/mcp/connectors/io.github.ChanghuLiu/uk-premises-licence-mcp",
+      "status": "ok",
+      "reason": "tools listed",
+      "tools_listed": 4,
+      "latency_ms": 1016
+    },
+    {
+      "id": "glama-connector/exi0z3hk0l",
+      "name": "RegEvidenceHub Sponsor",
+      "namespace": "io.github.ChanghuLiu",
+      "endpoint_url": "https://works.regevidencehub.com/ai/mcp",
+      "source_url": "https://glama.ai/mcp/connectors/io.github.ChanghuLiu/england-works-watch",
+      "status": "ok",
+      "reason": "tools listed",
+      "tools_listed": 4,
+      "latency_ms": 550
+    },
+    {
+      "id": "glama-connector/khbb3mokag",
+      "name": "Riddle Quiz Maker",
+      "namespace": "com.riddle",
+      "endpoint_url": "https://www.riddle.com/creator/api/v3/mcp",
+      "source_url": "https://glama.ai/mcp/connectors/com.riddle/riddle-quiz-maker",
+      "status": "ok",
+      "reason": "tools listed",
+      "tools_listed": 38,
+      "latency_ms": 1601
+    },
+    {
+      "id": "glama-connector/g02c0omdit",
+      "name": "Santismm Knowledge — Harness Engineering, Agentic AI & Governance",
+      "namespace": "com.santismm",
+      "endpoint_url": "https://santismm.com/mcp",
+      "source_url": "https://glama.ai/mcp/connectors/com.santismm/knowledge",
+      "status": "ok",
+      "reason": "tools listed",
+      "tools_listed": 30,
+      "latency_ms": 1502
+    },
+    {
+      "id": "glama-connector/sosv0t2ujl",
+      "name": "The 402 Wall",
+      "namespace": "xyz.404humans",
+      "endpoint_url": "https://404humans.xyz/mcp",
+      "source_url": "https://glama.ai/mcp/connectors/xyz.404humans/the-402-wall",
+      "status": "auth_required",
+      "reason": "HTTP 403",
+      "tools_listed": 0,
+      "latency_ms": 109
+    },
+    {
+      "id": "glama-connector/ncb7y46xhx",
+      "name": "The Dose Guy",
+      "namespace": "com.thedoseguy",
+      "endpoint_url": "https://thedoseguy.com/api/mcp",
+      "source_url": "https://glama.ai/mcp/connectors/com.thedoseguy/the-dose-guy",
+      "status": "auth_required",
+      "reason": "HTTP 403",
+      "tools_listed": 0,
+      "latency_ms": 279
+    },
+    {
+      "id": "glama-connector/fasjc7czjm",
+      "name": "Theyond",
+      "namespace": "com.theyond",
+      "endpoint_url": "https://theyond.com/mcp",
+      "source_url": "https://glama.ai/mcp/connectors/com.theyond/theyond",
+      "status": "auth_required",
+      "reason": "HTTP 403",
+      "tools_listed": 0,
+      "latency_ms": 128
+    },
+    {
+      "id": "glama-connector/skc2fp03y0",
+      "name": "Tomorrow Central: Cloud Cost Sentinel",
+      "namespace": "com.tomorrowcentral",
+      "endpoint_url": "https://api.tomorrowcentral.com/mcp",
+      "source_url": "https://glama.ai/mcp/connectors/com.tomorrowcentral/aws-cloud-cost-sentinel",
+      "status": "ok",
+      "reason": "tools listed",
+      "tools_listed": 20,
+      "latency_ms": 753
+    },
+    {
+      "id": "glama-connector/sxq0ve5no2",
+      "name": "ToolForte",
+      "namespace": "com.toolforte",
+      "endpoint_url": "https://toolforte.com/api/mcp",
+      "source_url": "https://glama.ai/mcp/connectors/com.toolforte/tool-forte",
+      "status": "ok",
+      "reason": "tools listed",
+      "tools_listed": 14,
+      "latency_ms": 1240
+    },
+    {
+      "id": "glama-connector/xe6h6j3kal",
+      "name": "TraderSpy",
+      "namespace": "app.traderspy",
+      "endpoint_url": "https://mcp.traderspy.app/mcp",
+      "source_url": "https://glama.ai/mcp/connectors/app.traderspy/traderspy",
+      "status": "auth_required",
+      "reason": "HTTP 403",
+      "tools_listed": 0,
+      "latency_ms": 15142
+    },
+    {
+      "id": "glama-connector/rpv2tk1ht7",
+      "name": "UnRemind.me Submit",
+      "namespace": "me.unremind",
+      "endpoint_url": "https://unremind.me/mcp/submit?src=glama-submit",
+      "source_url": "https://glama.ai/mcp/connectors/me.unremind/un-remindme-submit",
+      "status": "auth_required",
+      "reason": "HTTP 403",
+      "tools_listed": 0,
+      "latency_ms": 1098
+    },
+    {
+      "id": "glama-connector/f1zhlzgm6j",
+      "name": "Vedar — Kamchatka travel",
+      "namespace": "ru.vedarai",
+      "endpoint_url": "https://vedarai.ru/api/mcp",
+      "source_url": "https://glama.ai/mcp/connectors/ru.vedarai/mcp",
+      "status": "ok",
+      "reason": "tools listed",
+      "tools_listed": 14,
+      "latency_ms": 1975
+    },
+    {
+      "id": "glama-connector/ap891sgd1e",
+      "name": "WagerX Crypto Casinos",
+      "namespace": "io.wagerx",
+      "endpoint_url": "https://wagerx.io/mcp",
+      "source_url": "https://glama.ai/mcp/connectors/io.wagerx/wager-x-crypto-casinos",
+      "status": "ok",
+      "reason": "tools listed",
+      "tools_listed": 12,
+      "latency_ms": 5473
+    },
+    {
+      "id": "glama-connector/sgo0oqfzu5",
+      "name": "What Led To",
+      "namespace": "com.whatledto",
+      "endpoint_url": "https://whatledto.com/mcp",
+      "source_url": "https://glama.ai/mcp/connectors/com.whatledto/what-led-to",
+      "status": "auth_required",
+      "reason": "HTTP 403",
+      "tools_listed": 0,
+      "latency_ms": 225
+    },
+    {
+      "id": "glama-connector/z3cb0y9lxt",
+      "name": "WhichTrim vehicle records",
+      "namespace": "com.whichtrim",
+      "endpoint_url": "https://whichtrim.com/portal/mcp",
+      "source_url": "https://glama.ai/mcp/connectors/com.whichtrim/vehicle-records",
+      "status": "ok",
+      "reason": "tools listed",
+      "tools_listed": 7,
+      "latency_ms": 2108
+    },
+    {
+      "id": "glama-connector/hxvhvokpsm",
+      "name": "ZenithEye Agent Commons",
+      "namespace": "net.zenitheye",
+      "endpoint_url": "https://agents.zenitheye.net/mcp",
+      "source_url": "https://glama.ai/mcp/connectors/net.zenitheye/agent-commons",
+      "status": "ok",
+      "reason": "tools listed",
+      "tools_listed": 17,
+      "latency_ms": 1144
+    },
+    {
+      "id": "glama-connector/mqc09cf8db",
+      "name": "ai.confess.online",
+      "namespace": "online.confess",
+      "endpoint_url": "https://ai.confess.online/api/mcp",
+      "source_url": "https://glama.ai/mcp/connectors/online.confess/machines",
+      "status": "ok",
+      "reason": "tools listed",
+      "tools_listed": 8,
+      "latency_ms": 1865
+    },
+    {
+      "id": "glama-connector/nyo240i5yp",
+      "name": "aieph",
+      "namespace": "dev.aieph",
+      "endpoint_url": "https://aieph.dev/mcp",
+      "source_url": "https://glama.ai/mcp/connectors/dev.aieph/aieph",
+      "status": "auth_required",
+      "reason": "HTTP 403",
+      "tools_listed": 0,
+      "latency_ms": 128
+    },
+    {
+      "id": "glama-connector/ovs4qn1h1v",
+      "name": "api",
+      "namespace": "com.greencalculus",
+      "endpoint_url": "https://mcp.greencalculus.com",
+      "source_url": "https://glama.ai/mcp/connectors/com.greencalculus/api",
+      "status": "auth_required",
+      "reason": "HTTP 403",
+      "tools_listed": 0,
+      "latency_ms": 235
+    },
+    {
+      "id": "glama-connector/gxwsuh94i7",
+      "name": "hypernatt-terminal",
+      "namespace": "com.hypernatt",
+      "endpoint_url": "https://hypernatt.com/mcp/protocol",
+      "source_url": "https://glama.ai/mcp/connectors/com.hypernatt/hypernatt-terminal",
+      "status": "ok",
+      "reason": "tools listed",
+      "tools_listed": 4,
+      "latency_ms": 1674
+    },
+    {
+      "id": "glama-connector/wykkauqm4z",
+      "name": "livetennisapi-mcp",
+      "namespace": "io.github.livetennisapi",
+      "endpoint_url": "https://mcp.livetennisapi.com/mcp",
+      "source_url": "https://glama.ai/mcp/connectors/io.github.livetennisapi/livetennisapi-mcp",
+      "status": "ok",
+      "reason": "tools listed",
+      "tools_listed": 24,
+      "latency_ms": 2303
+    },
+    {
+      "id": "glama-connector/s7evyyrl8w",
+      "name": "loophole-tape",
+      "namespace": "io.github.gosadu",
+      "endpoint_url": "https://api.loopholetape.com/mcp",
+      "source_url": "https://glama.ai/mcp/connectors/io.github.gosadu/loophole-tape",
+      "status": "ok",
+      "reason": "tools listed",
+      "tools_listed": 31,
+      "latency_ms": 3893
+    },
+    {
+      "id": "glama-connector/fmlcaov8gr",
+      "name": "marketinque — launch plan & backlink index",
+      "namespace": "com.marketinque",
+      "endpoint_url": "https://marketinque.com/mcp",
+      "source_url": "https://glama.ai/mcp/connectors/com.marketinque/launch-plan",
+      "status": "ok",
+      "reason": "tools listed",
+      "tools_listed": 8,
+      "latency_ms": 1196
+    },
+    {
+      "id": "glama-connector/qdhl1dojnn",
+      "name": "quantakrypto pqc-tools",
+      "namespace": "io.github.quantakrypto",
+      "endpoint_url": "https://mcp.quantakrypto.com/mcp",
+      "source_url": "https://glama.ai/mcp/connectors/io.github.quantakrypto/pqc-tools",
+      "status": "auth_required",
+      "reason": "HTTP 403",
+      "tools_listed": 0,
+      "latency_ms": 209
+    },
+    {
+      "id": "glama-connector/t3oiwbmdi7",
+      "name": "raumnebenan",
+      "namespace": "de.raumnebenan",
+      "endpoint_url": "https://www.raumnebenan.de/mcp",
+      "source_url": "https://glama.ai/mcp/connectors/de.raumnebenan/raumnebenan",
+      "status": "ok",
+      "reason": "tools listed",
+      "tools_listed": 8,
+      "latency_ms": 1486
+    },
+    {
+      "id": "glama-connector/yfgz3gtc3s",
+      "name": "squirrelscan",
+      "namespace": "com.squirrelscan",
+      "endpoint_url": "https://mcp.squirrelscan.com/mcp",
+      "source_url": "https://glama.ai/mcp/connectors/com.squirrelscan/squirrelscan",
+      "status": "auth_required",
+      "reason": "HTTP 403",
+      "tools_listed": 0,
+      "latency_ms": 297
+    },
+    {
+      "id": "glama-connector/zi02rqrpbs",
+      "name": "tilwhen date engine",
+      "namespace": "com.tilwhen",
+      "endpoint_url": "https://mcp.tilwhen.com/mcp",
+      "source_url": "https://glama.ai/mcp/connectors/com.tilwhen/tilwhen",
+      "status": "auth_required",
+      "reason": "HTTP 403",
+      "tools_listed": 0,
+      "latency_ms": 560
+    },
+    {
+      "id": "glama-connector/mn7dwjjjzl",
+      "name": "x402-data-gateway",
+      "namespace": "io.github.epistemedeus",
+      "endpoint_url": "https://agents.samedaydesk.com/mcp",
+      "source_url": "https://glama.ai/mcp/connectors/io.github.epistemedeus/x402-data-gateway",
+      "status": "ok",
+      "reason": "tools listed",
+      "tools_listed": 25,
+      "latency_ms": 1046
+    },
+    {
+      "id": "glama-connector/ixsqiwzgyg",
+      "name": "AgentStackHub",
+      "namespace": "dev.agentstackhub",
+      "endpoint_url": "https://agentstackhub.dev/mcp/",
+      "source_url": "https://glama.ai/mcp/connectors/dev.agentstackhub/agent-stack-hub",
+      "status": "ok",
+      "reason": "tools listed",
+      "tools_listed": 5,
+      "latency_ms": 1671
+    },
+    {
+      "id": "glama-connector/vvnupzg5jr",
+      "name": "Angel Numbers MCP Server by RoxyAPI",
+      "namespace": "com.roxyapi",
+      "endpoint_url": "https://roxyapi.com/mcp/angel-numbers",
+      "source_url": "https://glama.ai/mcp/connectors/com.roxyapi/angel-numbers",
+      "status": "ok",
+      "reason": "tools listed",
+      "tools_listed": 4,
+      "latency_ms": 580
+    },
+    {
+      "id": "glama-connector/di1lzil3l7",
+      "name": "Art and Song Ecards",
+      "namespace": "com.artandsongcards",
+      "endpoint_url": "https://artandsongcards.com/api/mcp",
+      "source_url": "https://glama.ai/mcp/connectors/com.artandsongcards/art-and-song-ecards",
+      "status": "ok",
+      "reason": "tools listed",
+      "tools_listed": 6,
+      "latency_ms": 1855
+    },
+    {
+      "id": "glama-connector/j3tffclid9",
+      "name": "AutoID",
+      "namespace": "ro.autoid.mcp",
+      "endpoint_url": "https://mcp.autoid.ro/mcp",
+      "source_url": "https://glama.ai/mcp/connectors/ro.autoid.mcp/auto-id",
+      "status": "auth_required",
+      "reason": "HTTP 403",
+      "tools_listed": 0,
+      "latency_ms": 106
+    },
+    {
+      "id": "glama-connector/lx3kk0mqqq",
+      "name": "A股数据 API (A-Share Data API)",
+      "namespace": "com.ashareapi",
+      "endpoint_url": "https://api.ashareapi.com/mcp",
+      "source_url": "https://glama.ai/mcp/connectors/com.ashareapi/ashare-data-api",
+      "status": "ok",
+      "reason": "tools listed",
+      "tools_listed": 24,
+      "latency_ms": 1116
+    },
+    {
+      "id": "glama-connector/j6s1wl6k9y",
+      "name": "BrunoSan Intelligence Concierge",
+      "namespace": "de.brunosan",
+      "endpoint_url": "https://brunosan.de/mcp",
+      "source_url": "https://glama.ai/mcp/connectors/de.brunosan/intelligence",
+      "status": "ok",
+      "reason": "tools listed",
+      "tools_listed": 9,
+      "latency_ms": 1719
+    },
+    {
+      "id": "glama-connector/cqwpgkktd9",
+      "name": "CPFHub.io",
+      "namespace": "io.cpfhub.api",
+      "endpoint_url": "https://api.cpfhub.io/mcp",
+      "source_url": "https://glama.ai/mcp/connectors/io.cpfhub.api/cpfhubio",
+      "status": "ok",
+      "reason": "tools listed",
+      "tools_listed": 2,
+      "latency_ms": 1494
+    },
+    {
+      "id": "glama-connector/jp3cad5gss",
+      "name": "Chapa",
+      "namespace": "com.thecreativetoken.chapa",
+      "endpoint_url": "https://chapa.thecreativetoken.com/api/mcp",
+      "source_url": "https://glama.ai/mcp/connectors/com.thecreativetoken.chapa/chapa",
+      "status": "ok",
+      "reason": "tools listed",
+      "tools_listed": 9,
+      "latency_ms": 1220
+    },
+    {
+      "id": "glama-connector/oq77odfzsh",
+      "name": "CivicDataForge Government Evidence",
+      "namespace": "dev.pages.civicdataforge",
+      "endpoint_url": "https://civicdataforge.pages.dev/mcp",
+      "source_url": "https://glama.ai/mcp/connectors/dev.pages.civicdataforge/civic-data-forge-government-evidence",
+      "status": "auth_required",
+      "reason": "HTTP 403",
+      "tools_listed": 0,
+      "latency_ms": 147
+    },
+    {
+      "id": "glama-connector/hihoo8qj6v",
+      "name": "ColdState Knowledge Search",
+      "namespace": "ai.coldstate.cold-api",
+      "endpoint_url": "https://cold-api.coldstate.ai/mcp/",
+      "source_url": "https://glama.ai/mcp/connectors/ai.coldstate.cold-api/cold-state-knowledge-search",
+      "status": "auth_required",
+      "reason": "HTTP 403",
+      "tools_listed": 0,
+      "latency_ms": 208
+    },
+    {
+      "id": "glama-connector/c0imxqohpo",
+      "name": "Cromanion",
+      "namespace": "com.cromanion",
+      "endpoint_url": "https://cromanion.com/api/mcp",
+      "source_url": "https://glama.ai/mcp/connectors/com.cromanion/cromanion",
+      "status": "ok",
+      "reason": "tools listed",
+      "tools_listed": 26,
+      "latency_ms": 1718
+    },
+    {
+      "id": "glama-connector/waywlmf61k",
+      "name": "Custom Blinds Shop",
+      "namespace": "za.co.customblinds.shop",
+      "endpoint_url": "https://shop.customblinds.co.za/mcp",
+      "source_url": "https://glama.ai/mcp/connectors/za.co.customblinds.shop/custom-blinds-shop",
+      "status": "ok",
+      "reason": "tools listed",
+      "tools_listed": 26,
+      "latency_ms": 1575
+    },
+    {
+      "id": "glama-connector/jqu75c5429",
+      "name": "Dados Abertos Senado BR MCP",
+      "namespace": "io.github.SidneyBissoli",
+      "endpoint_url": "https://senado.sidneybissoli.com/mcp",
+      "source_url": "https://glama.ai/mcp/connectors/io.github.SidneyBissoli/senado-br-mcp-cloudflare",
+      "status": "auth_required",
+      "reason": "HTTP 403",
+      "tools_listed": 0,
+      "latency_ms": 110
+    },
+    {
+      "id": "glama-connector/lnvfkuld15",
+      "name": "Flaut.Travel",
+      "namespace": "travel.flaut",
+      "endpoint_url": "https://flaut.travel/mcp",
+      "source_url": "https://glama.ai/mcp/connectors/travel.flaut/flauttravel",
+      "status": "auth_required",
+      "reason": "HTTP 403",
+      "tools_listed": 0,
+      "latency_ms": 91
     }
   ]
 }
