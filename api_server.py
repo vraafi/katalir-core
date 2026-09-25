@@ -1320,12 +1320,6 @@ def list_models(authorization: str | None = Header(None)):
 # ---------------------------------------------------------------------------
 # MCP federated catalog (metadata discovery; execution is intentionally separate)
 # ---------------------------------------------------------------------------
-@app.get("/_debug_env")
-async def _debug_env():
-    import os
-    keys = ["AGENTGATEWAY_URL", "OAUTH_REDIRECT_BASE", "APP_UI_URL", "GOOGLE_CLIENT_ID", "SLACK_CLIENT_ID"]
-    return {k: ("SET" if os.environ.get(k) else "EMPTY") for k in keys}
-
 @app.get("/mcp/gateway/health")
 def mcp_gateway_health(authorization: str | None = Header(None)):
     from mcp_gateway.client import GatewayClient
