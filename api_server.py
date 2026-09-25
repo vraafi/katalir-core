@@ -1387,6 +1387,11 @@ def mcp_gateway_call(req: GatewayCallRequest, authorization: str | None = Header
     if not req.tool:
         raise HTTPException(422, "tool wajib")
     try:
+        return GatewayClient().call_tool_sync(req.tool, req.arguments)
+    except Exception as exc:  # noqa: BLE001
+        raise HTTPException(503, f"Gateway call gagal: {type(exc).__name__}")
+
+
 @app.get("/mcp/recommendations")
 def mcp_recommendations(q: str, limit: int = 5):
     import mcp_registry as catalog
@@ -1394,11 +1399,6 @@ def mcp_recommendations(q: str, limit: int = 5):
         return {"items": catalog.recommend_servers(q, limit), "source": "toolsdk-mcp-registry"}
     except ValueError as exc:
         raise HTTPException(400, str(exc))
-
-
-        return GatewayClient().call_tool_sync(req.tool, req.arguments)
-    except Exception as exc:  # noqa: BLE001
-        raise HTTPException(503, f"Gateway call gagal: {type(exc).__name__}")
 
 
 @app.get("/mcp/registry")
