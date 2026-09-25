@@ -33,7 +33,7 @@
 ### FASE P2.5 — Prioritized Features
 - [x] Feature 1 — export chat owner-scoped: JSON and Markdown from the authenticated session; `data-testid=chat-export-actions`.
 - [x] Feature 2 — analytics dashboard from owner-scoped quota and execution summaries; `data-testid=card-analytics`.
-- [ ] Feature 3 — workflow templates with validated React Flow graphs and install flow.
+- [x] Feature 3 — workflow templates with validated React Flow graphs and install flow; `data-testid=workflow-templates`.
 - [ ] Test, screenshot, and document each.
 - [x] Composition research — 10 MCP components remain behind allowlisted adapters; metadata-only entries are never treated as executable.
 

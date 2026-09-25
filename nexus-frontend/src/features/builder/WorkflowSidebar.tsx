@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Check, Pencil, Plus, Trash2, Workflow, X, Zap } from "lucide-react";
+import { Check, Pencil, Plus, Trash2, Workflow, X, Zap, LayoutTemplate } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { StaggerList, StaggerItem } from "@/components/motion";
 import { useI18n } from "@/i18n/context";
@@ -21,6 +21,8 @@ export function WorkflowSidebar({
   onNew,
   onRename,
   onDelete,
+  templates,
+  onTemplate,
 }: {
   workflows: WorkflowListItem[];
   activeId: string | null;
@@ -28,6 +30,8 @@ export function WorkflowSidebar({
   onNew: () => void;
   onRename: (id: string, name: string) => void;
   onDelete: (id: string) => void;
+  templates: import("./workflow-templates").WorkflowTemplate[];
+  onTemplate: (template: import("./workflow-templates").WorkflowTemplate) => void;
 }) {
   // FASE 5: aside ini SEBELUMNYA tanpa nama, sehingga di /builder ada dua
   // landmark "complementary" tanpa nama (bareng sidebar Shell) -> axe
@@ -55,6 +59,9 @@ export function WorkflowSidebar({
   return (
     <aside aria-label={t("builder.workflowListLabel")} className="flex w-60 flex-col gap-4 border-r border-gray-700 bg-zinc-900 p-3">
       <div className="text-[11px] font-bold uppercase tracking-wide text-zinc-400">Alur Kerja</div>
+      <div className="flex flex-wrap gap-1.5" data-testid="workflow-templates">
+        {templates.map((template) => <button key={template.id} type="button" onClick={() => onTemplate(template)} className="rounded border border-zinc-700 px-2 py-1 text-[11px] text-zinc-300 hover:border-cyan-500 hover:text-cyan-300"><LayoutTemplate size={11} className="mr-1 inline" />{template.name}</button>)}
+      </div>
       <Button variant="secondary" size="sm" onClick={onNew} className="w-full justify-center">
         <Plus size={14} strokeWidth={1.75} /> Alur Baru
       </Button>

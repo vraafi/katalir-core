@@ -14,6 +14,7 @@ import { Terminal } from "./Terminal";
 import { WorkflowSidebar } from "./WorkflowSidebar";
 import { useCanvasStore } from "./store/canvas-store";
 import { demoWorkflow } from "./demo-workflow";
+import { workflowTemplates, type WorkflowTemplate } from "./workflow-templates";
 import { deriveNodeStatuses } from "./node-status";
 import { HydrationReady } from "@/i18n/HydrationReady";
 import { useI18n } from "@/i18n/context";
@@ -131,10 +132,15 @@ export function BuilderInner() {
   }, [demoParam, replaceWork]);
 
   /** CTA empty state: muat contoh workflow siap pakai. */
-  function loadExample() {
+  const loadExample = () => {
     const d = demoWorkflow();
     replaceWork(d.nodes, d.edges);
-  }
+  };
+
+  const loadTemplate = (template: WorkflowTemplate) => {
+    replaceWork(template.nodes, template.edges);
+  };
+
 
   // Laad workflow die in URL staat (?w=) wanneer data klaar is — NIET in render.
   useEffect(() => {
@@ -284,6 +290,8 @@ export function BuilderInner() {
         onNew={() => selectWorkflow(null)}
         onRename={(id, name) => void renameWorkflow(id, name)}
         onDelete={(id) => void deleteWorkflow(id)}
+        templates={workflowTemplates}
+        onTemplate={loadTemplate}
       />
       <Palette onAddNode={addNode} onClear={() => setNodes([])} />
       <Canvas
