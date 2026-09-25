@@ -37,6 +37,15 @@
 - [x] Test, screenshot, and document each — targeted backend suite 28 passed, TSC/Python compile passed, axe-core critical/serious audit passed, and fresh production screenshots captured; P2.5 export is source-verified and browser download event remains the only skipped sub-assertion.
 - [x] Composition research — 10 MCP components remain behind allowlisted adapters; metadata-only entries are never treated as executable.
 
+## Katalir v2 — 7-Repo Composition (target: 1,000+ runtime integrations)
+- [x] Phase 1 research — 7 repos evaluated in `docs/architecture/katalir-v2-composition.md`; licenses and integration boundaries recorded.
+- [!] Phase 2 Composio runtime sync — blocked: `COMPOSIO_API_KEY` missing in `.env`. USER ACTION: create a Composio API key at composio.dev and add `COMPOSIO_API_KEY` to `.env`.
+- [ ] Phase 3 LangGraph — deferred until shadow-run comparison with `execution_engine.py` exists.
+- [ ] Phase 4 agentgateway Composio backend — depends on Phase 2.
+- [x] Phase 5 NL→workflow — existing validated `generate_workflow_json` + `workflow_spec.py` covers the LoomFlow pattern; no new dependency added.
+- [ ] Phase 6 E2E — depends on Phase 2/4.
+- Marketing rule: do not claim "1,000+ working integrations" until sampled Composio toolkits pass `list_tools` and `call_tool`; current honest baseline is 5 runtime targets / 39 tools.
+
 ## Agent Rules
 - Search-first; no-surrender loop; test before DONE.
 - Commit per sub-task; update this roadmap each task.

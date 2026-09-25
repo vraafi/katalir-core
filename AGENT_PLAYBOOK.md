@@ -107,7 +107,12 @@ BLOCKED hanya valid untuk: user action (login/approve/bayar), keputusan keamanan
 - Success rate realistis: 10-30% dari metadata.
 - Update marketing copy dengan angka nyata + qualifier.
 
-## Gotcha: ToolSDK package-list tidak membawa install method
+## Gotcha: Katalir v2 composition
+- Target runtime 1.000+ integrasi TIDAK otomatis tercapai dari metadata. Composio adalah jalur tercepat, tetapi membutuhkan `COMPOSIO_API_KEY` di `.env`.
+- Jangan ganti `execution_engine.py` dengan LangGraph hanya karena lebih populer; engine existing harus dibandingkan lewat shadow-run dan regression test.
+- Mastra `ee/` directories memakai enterprise license: jangan copy source atau mengklaim Apache-2.0 untuk bagian itu.
+- Kestra dan n8n hanya pattern reference; jangan embed JVM/Node runtime besar tanpa alasan operasional.
+- Lihat `docs/architecture/katalir-v2-composition.md` untuk keputusan per repo.
 - 4.548 metadata lokal saat ini hanya memiliki `install_config.transport=metadata-only`, bukan `install_method` npm/python/docker.
 - Filter batch yang jujur dapat menghasilkan 0 kandidat; itu bukan error filter, tetapi bukti schema metadata tidak cukup untuk instalasi.
 - Jangan mengarang transport atau menjalankan package registry hanya dari nama/id. Tambahkan manifest runtime terpisah dengan digest, method, image/package, permissions, dan health proof.
