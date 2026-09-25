@@ -46,6 +46,37 @@
 - [ ] Phase 6 E2E — depends on Phase 2/4. Phase 2 runtime is verified; agentgateway Composio backend + full chat→workflow→execute E2E still pending.
 - Marketing rule: do not claim "1,000+ working integrations" until sampled Composio toolkits pass `list_tools` and `call_tool`; current honest claim is 1,562 Composio toolkits discoverable, 20 runtime-verified (`list_tools`), 5 MCP native targets / 39 tools.
 
+## Fase D-H — Marketplace Multi-Source + Atribusi Glama (2026-09-25)
+
+### FASE D — Glama Sync
+- [x] `GLAMA_API_KEY` terverifikasi: `GET /v1/servers` → HTTP 200, rate limit 100/s, pagination cursor.
+- [x] `scripts/sync-glama.py` — 20.000 servers + 1.000 connectors tersinkron, retry 525/non-JSON.
+- [x] Temuan: `/v1/servers` tidak mengembalikan daftar tool; `/v1/connectors` yang punya endpoint nyata.
+- [x] `scripts/batch-verify-glama-connectors.py` — 60 konektor no-auth di-probe `initialize` + `tools/list` → **28 ok (177 tools)**, 30 ternyata butuh auth, 1 protocol error, 1 unreachable. SSRF-guarded, read-only.
+- [x] Registry jadi **28.532 entri** (glama 20.000, glama-connector 1.000, toolsdk 4.416, composio 1.562, openconnector 1.554).
+
+### FASE E — Marketplace UI + Atribusi
+- [x] Tab sumber (All / Native / OpenConnector / Composio / Glama) dengan count per sumber.
+- [x] Badge tiga tingkat: Ready (`call_verified`), Auth required (`tools_listed`), Catalog (`discovered`).
+- [x] Kredit Glama di `/integrations`, `/`, `/docs`, `/pricing`; tiap kartu Glama tertaut ke `source_url` **tanpa** `rel="nofollow"`.
+- [x] `GET /mcp/registry/sources` mengirim teks kredit dari server agar frontend tidak mengarang sendiri.
+- [x] `tests/test_glama_registry.py` 5 passed (atribusi + tidak-over-klaim + SSRF guard).
+
+### FASE F — Marketing
+- [x] Klaim diganti ke bahasa "reachable" + qualifier di ID & EN.
+- [x] Angka di UI = angka di badge (11 call-verified, 28 tools-listed, 20 list-verified).
+
+### FASE G — Docs
+- [x] `AGENT_PLAYBOOK.md`: gotcha atribusi Glama, retry 525, meta-layer, RAM registry, build Next.js.
+- [x] `docs/architecture/glama-integration.md`, `docs/distribution/glama-attribution.md`.
+- [x] `docs/feedback/blockers-and-complaints.md` — 5 entri baru.
+
+### FASE H — Production verify
+- [x] `tsc --noEmit` EXIT=0; `next build` BUILD_EXIT=0.
+
+### Nango
+- [!] BLOCKED — RAM VPS (2,4 GB total, 931 MB free) tidak cukup untuk Postgres + Nango + Redis tanpa mematikan produksi. Butuh box 4 GB.
+
 ## Agent Rules
 - Search-first; no-surrender loop; test before DONE.
 - Commit per sub-task; update this roadmap each task.

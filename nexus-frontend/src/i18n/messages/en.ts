@@ -127,7 +127,11 @@ export const en = {
     feature2Title: "Get a workflow",
     feature2Desc: "The draft appears on the canvas, ready to run or adjust.",
     feature3Title: "Connect your tools",
-    feature3Desc: "Telegram, Gmail, Sheets, Slack and HTTP — connect once, reuse forever.",
+    feature3Desc:
+      "28,500+ catalog entries from OpenConnector, Composio and Glama. Badges show what was actually tested — not merely listed.",
+    integrationsNote:
+      "5 OpenConnector meta-tools reach 18,010 actions · 11 actions call-verified · 28 Glama connectors runtime-verified.",
+    glamaCredit: "Catalog includes data from",
     footer: "Katalir — autonomous AI agent for your business.",
   },
   userMenu: {

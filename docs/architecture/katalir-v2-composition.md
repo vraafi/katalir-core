@@ -25,12 +25,17 @@ Date: 25 September 2026. This is a composition contract, not a source dump. Targ
 
 ## Runtime claim target
 
-Current verified baseline:
+Current verified baseline (updated 2026-09-25):
 
-- 5 MCP runtime targets
-- 39 executable tools
-- 4,548 metadata catalog entries
-- 0 automated registry batch candidates because ToolSDK lacks `install_method`
+- 5 MCP runtime targets, 39 executable tools (agentgateway, unchanged)
+- **28,532 catalogue entries across 5 sources**: Glama 20.000 servers,
+  Glama 1.000 remote connectors, ToolSDK 4.416, Composio 1.562, OpenConnector 1.554
+- OpenConnector: 18.010 actions behind **5 MCP meta-tools**, 11 actions `call_verified`
+- Glama connectors: 60 probed read-only, 28 proven `tools_listed` (177 tools)
+- Composio: 20 toolkits `list_tools`-verified, 1 real `call_tool`
+
+Catalogue size and runtime coverage are deliberately reported as separate numbers.
+A meta-layer is how 18.010 actions are reached, not 18.010 MCP tools.
 
 The "1000+ integrations" target is therefore **not yet achieved** and must not be marketed as working. The fastest legitimate path is Composio: its toolkit catalog plus hosted auth/MCP surface can raise the runtime count, but only after:
 

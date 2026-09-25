@@ -52,6 +52,9 @@ function Landing() {
           <p className="mt-4 max-w-xl text-callout leading-relaxed text-fg-muted">
             {t("landing.subtitle")}
           </p>
+          <p className="mt-3 max-w-xl text-footnote leading-relaxed text-fg-subtle" data-testid="landing-integrations-note">
+            {t("landing.integrationsNote")}
+          </p>
 
           <div className="mt-7 flex flex-wrap items-center gap-3">
             <Link
@@ -94,10 +97,18 @@ function Landing() {
 
         <footer className="flex flex-wrap items-center justify-between gap-2 border-t border-border/60 px-5 py-4 text-footnote text-fg-muted sm:px-8">
           <span>{t("landing.footer")}</span>
-          <Link href="/help" className="inline-flex items-center gap-1.5 hover:text-fg">
-            <BookOpen size={13} strokeWidth={1.75} aria-hidden />
-            {t("landing.ctaSecondary")}
-          </Link>
+          <div className="flex flex-wrap items-center gap-4">
+            {/* Kredit Glama WAJIB (API Data License). Link TIDAK boleh memakai
+                rel nofollow/sponsored/ugc. Jangan dihapus. */}
+            <span data-testid="landing-glama-credit">
+              {t("landing.glamaCredit")}{" "}
+              <a href="https://glama.ai/mcp/servers" target="_blank" rel="noopener noreferrer" className="hover:text-fg">Glama</a>
+            </span>
+            <Link href="/help" className="inline-flex items-center gap-1.5 hover:text-fg">
+              <BookOpen size={13} strokeWidth={1.75} aria-hidden />
+              {t("landing.ctaSecondary")}
+            </Link>
+          </div>
         </footer>
       </div>
     </>

@@ -1,4 +1,4 @@
-﻿# Agent Playbook — Katalir
+# Agent Playbook — Katalir
 
 ## ⚠️ NO-SURRENDER PROTOCOL (WAJIB — BERLAKU SETIAP SESI)
 
@@ -98,6 +98,43 @@ BLOCKED hanya valid untuk: user action (login/approve/bayar), keputusan keamanan
 - Dodo live mode/verifikasi memerlukan login dan keputusan akun merchant.
 - Slack Directory submit memerlukan user submit form dan review eksternal.
 - Marketing/site work dapat dilakukan otonom; fitur P2.5 harus dipilih berdasarkan evidence.
+
+## Gotcha: Glama Attribution (WAJIB — lisensi, bukan preferensi)
+- Glama = **API Data License**, bukan public domain. Halaman `/mcp/reference` Glama mengatakannya eksplisit.
+- Setiap halaman yang menampilkan data Glama WAJIB:
+  1. Credit "Glama" yang tertaut ke `https://glama.ai`, **tanpa** `rel="nofollow"/"sponsored"/"ugc"`.
+  2. Tiap listing → link ke `source_url` yang dikembalikan API Glama.
+- Link listing Glama berbentuk `https://glama.ai/mcp/servers/{id}` — **bukan** `{namespace}/{slug}`.
+- Atribusi bisa dibebaskan via lisensi komersial; percakapan itu belum terjadi.
+- Test `tests/test_glama_registry.py` gagal kalau field `source`/`source_url`/`attribution_required` hilang. Jangan dihapus.
+- Detail: `docs/distribution/glama-attribution.md`.
+
+## Gotcha: Glama API tidak stabil — wajib retry
+- `glama.ai` sesekali balas **HTTP 525** (SSL handshake gagal di edge Cloudflare) dan sesekali balas **HTML, bukan JSON**, untuk request yang sehat. Keduanya transient.
+- `scripts/sync-glama.py` sudah retry 5xx/525 + non-JSON dengan exponential backoff. Skrip Glama baru WAJIB punya retry yang sama.
+- `GET /v1/servers` **tidak mengembalikan daftar tool** (`tools` selalu `[]`, termasuk di endpoint detail). `GET /v1/tools` bukan endpoint — dia 302 ke dokumentasi.
+- `GET /v1/connectors` yang berguna: endpoint MCP remote sungguhan + `toolCount` + `authType`. Tapi **dibatasi 1.000 unik** per pen walkersan, walau difilter.
+- Label `auth:none` dari Glama **tidak bisa dipercaya**: 30 dari 60 konektor berlabel itu tetap meminta kredensial saat di-probe.
+
+## Gotcha: Meta-Layer ≠ N tools
+- OpenConnector: **5 meta-tool** menjangkau **18.010 actions**. Bukan 18.010 tool MCP.
+- Marketing hanya boleh memakai kata "reachable", tidak boleh "executable".
+- Glama: 20.000 entri = katalog. Yang terverifikasi runtime = 28 konektor (tools/list).
+- Bedakan tiga status: `discovered` (ada di katalog) → `tools_listed` (bisa di-list) → `call_verified` (pernah benar-benar dieksekusi).
+
+## Gotcha: Registry besar = RAM produksi
+- `glama_servers.json` mentah ±18 MB; memuatnya utuh ke RAM ≈ 200 MB peak. Selalu simpan proyeksi slim (`_slim_glama`) yang menyimpan `source_url` + `attribution_required` — hasilnya ±56 MB retensi.
+- Ukur dengan `tracemalloc` sebelum menambah sumber katalog baru.
+
+## Aturan: Blocker → docs/feedback/blockers-and-complaints.md
+- Kalau stuck, JANGAN berhenti tanpa jejak.
+- Tulis entri: keluhan, dampak, akar, status (`OPEN`/`BLOCKED`/`CLOSED`), solusi.
+- Lanjut ke task berikutnya yang tidak blocked.
+- Jangan tunggu user approve untuk lanjut task lain.
+
+## Gotcha: Build Next.js di sesi ini
+- `Start-Process cmd -NoNewWindow` **mati** kalau perintah tool timeout, sehingga buildNext menggantung tanpa error. Pakai `-WindowStyle Hidden` (detached) + tulis `EXIT=%ERRORLEVEL%` ke file, lalu polling file itu.
+- Selalu cek proses node yang ada: proses lama bisa orphan dari sesi sebelumnya dan bukan build yang sedang jalan.
 
 ## Gotcha: Marketing Claim ≠ Runtime Reality
 - "500+ integrations" = metadata available.

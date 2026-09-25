@@ -100,7 +100,7 @@ kredensial, `CLOSED` = sudah dieksekusi dan diverifikasi.
 
 ## 2026-09-25 — Glama: kontradiksi lisensi & akses
 
-- **Status:** CLOSED (ketentuan terverifikasi; sync masih butuh API key)
+- **Status:** CLOSED (API key tersedia; sync + atribusi selesai)
 - **Keluhan:** Prompt menyebut Glama "public/free", sementara riset sebelumnya
   menemukan Glama mewajibkan API key, attribution, dan tunduk pada API Data License.
 - **Hasil verifikasi (dokumentasi resmi Glama, dibaca langsung):**
@@ -120,8 +120,11 @@ kredensial, `CLOSED` = sudah dieksekusi dan diverifikasi.
   dua hal berbeda; sekarang tidak ada ambiguitas.
 - **Syarat sebelum sync:** (1) `GLAMA_API_KEY` tersedia, (2) UI integrations
   menampilkan kredit Glama, (3) tiap kartu integrasi Glama tertaut ke listing resminya.
-- **Status sync:** BELUM — terkunci di syarat (1). Tidak ada data Glama yang
-  disalin ke cache produksi sebelum ketiganya terpenuhi.
+- **Status sync:** SELESAI 2026-09-25. `GLAMA_API_KEY` dipakai, 20.000 server + 1.000
+  konektor tersinkron, dan atribusi + backlink sudah dirender di `/integrations`,
+  `/`, `/docs`, `/pricing` tanpa `rel="nofollow"`. Lihat
+  `docs/architecture/glama-integration.md` dan
+  `docs/distribution/glama-attribution.md`.
 
 ---
 
@@ -136,7 +139,83 @@ kredensial, `CLOSED` = sudah dieksekusi dan diverifikasi.
 
 ---
 
-## 2026-09-25 — Heuristik "credential free" menyesatkan
+## 2026-09-25 — Glama API intermittent: HTTP 525 dan balasan HTML
+
+- **Status:** CLOSED
+- **Keluhan:** Probe pertama ke `glama.ai` timeout, lalu HTTP **525** (SSL handshake
+  gagal di edge Cloudflare) padahal TCP connect cuma 67 ms dan Composio normal (401).
+  Sempat terlihat seperti jaringan diblokir.
+- **Akar masalah:** Glama (via Cloudflare) memang sesekali tidak stabil.
+  Konfirmasi: setelah ~2 menit, request yang sama balas 200/401 normal.
+- **Solusi:** `scripts/sync-glama.py` retry 5xx/525 **dan** balasan non-JSON dengan
+  exponential backoff (`Retry-After` diprioritaskan). Sync 20.000+1.000 entry
+  selesai dengan 222 request + 18 transient retry, nol kegagalan.
+- **Pelajaran:** timeout sesaat dari satu vendor bukan bukti blockade. Isolasi dulu
+  (TCP vs TLS vs HTTP vs JSON) sebelum menyimpulkan.
+
+---
+
+## 2026-09-25 — Asumsi "20.000 Glama server" meleset di dua tempat
+
+- **Status:** CLOSED
+- **Keluhan:** Rencana awal mengklaim 91.014 server + 843.355 tools bisa di-sync.
+  Kenyataannya tidak bisa, dan mengarangnya berarti memalsukan data.
+- **Temuan aktual (2026-09-25, API resmi):**
+  1. `/v1/servers` **tidak mengembalikan daftar tool** — field `tools` selalu kosong,
+     bahkan di endpoint detail (25/25 sampel). `/v1/tools` bukan endpoint; dia
+     302 ke halaman dokumentasi. Jadi **843.355 tools tidak bisa diambil** lewat
+     API ini, dan tidak diklaim.
+  2. `/v1/connectors` **dibatasi 1.000 entry unik**, bahkan kalau difilter
+     `?auth=none` atau `?status=healthy` (diverifikasi dua kali).
+  3. Response tidak punya field `total`, jadi ukuran direktori tidak boleh
+    diasumsikan dari skrip.
+- **Solusi:** sinkron 20.000 server + 1.000 konektor, laporkan hanya angka yang
+  benar-benar terambil, dan simpan angka direktori sebagai referensi dari facets.
+- **Pelajaran:** klaim harus berasal dari payload yang kita baca sendiri, bukan
+  dari angka yang diharapkan.
+
+---
+
+## 2026-09-25 — Label `auth:none` dari Glama tidak bisa dipercaya
+
+- **Status:** CLOSED
+- **Keluhan:** 619 konektor ditandai `auth:none`, jadi terlihat aman untuk diuji.
+- **Hasil nyata:** dari 60 yang di-probe, **30 (50%) tetap meminta kredensial**
+  (401/403). Hanya 28 yang benar-benar bisa `initialize` + `tools/list`.
+- **Dampak kalau tidak dicek:** klaim "619 no-auth connector terverifikasi" akan
+  salah setengah.
+- **Solusi:** `verification.tools_listed` per konektor disimpan dari hasil probe,
+  bukan dari label Glama. Badge "Auth required" muncul justru dari bukti runtime.
+- **Pelajaran:** metadata vendor adalah petunjuk, bukan janji. Ukur ulang.
+
+---
+
+## 2026-09-25 — Build Next.js menggantung karena proses-nya dibunuh
+
+- **Status:** CLOSED
+- **Keluhan:** `next build` terlihat macet di "Creating an optimized production
+  build" selama belasan menit, tanpa error.
+- **Akar masalah:** build dijalankan lewat `Start-Process cmd -NoNewWindow`; saat
+  perintah tool timeout, proses anaknya ikut dibunuh. Yang tersisa di Task Manager
+  ternyata proses `node` **orphan dari sesi 7,5 jam sebelumnya**, bukan build saya.
+- **Solusi:** jalankan detached (`-WindowStyle Hidden`), tulis `EXIT=%ERRORLEVEL%`
+  ke file, lalu polling file tersebut. Build selesai normal, `BUILD_EXIT=0`.
+- **Pelajaran:** sebelum menyimpulkan build hang, cek `StartTime` proses — proses
+  lama yang masih hidup bukan bukti build sedang jalan.
+
+---
+
+## 2026-09-25 — RAM produksi: katalog Glama mentah, hampir OOM
+
+- **Status:** CLOSED
+- **Keluhan:** `glama_servers.json` versi pertama 23,4 MB dan memuatnya utuh ke
+  registry memberi **183 MB peak** — berisiko OOM di container Railway.
+- **Akar masalah:** saya menyimpan field yang tidak pernah dipakai UI (`auth_schemes`,
+  `thumbnail_url`, `install_config`, `quality_score`) plus JSON ber-indentasi.
+- **Solusi:** simpan proyeksi slim (16 field, separator rapat, deskripsi 200
+  karakter) → file 13,2 MB, peak 143 MB, retensi 56 MB.
+- **Pelajaran:** ukur `tracemalloc` sebelum dan sesudah menambah sumber katalog.
+
 
 - **Status:** CLOSED
 - **Keluhan:** Sync pertama melaporkan `CREDENTIAL_FREE=13840` dari heuristik

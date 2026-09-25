@@ -130,7 +130,11 @@ export const id = {
     feature2Title: "Dapatkan workflow",
     feature2Desc: "Draf muncul di kanvas, siap dijalankan atau diubah.",
     feature3Title: "Hubungkan alat Anda",
-    feature3Desc: "Telegram, Gmail, Sheets, Slack, dan HTTP — sekali hubungkan, bisa dipakai terus.",
+    feature3Desc:
+      "28.500+ entri katalog dari OpenConnector, Composio, dan Glama. Badge menunjukkan apa yang benar-benar teruji — bukan sekadar terdaftar.",
+    integrationsNote:
+      "5 meta-tool OpenConnector menjangkau 18.010 actions · 11 action call-verified · 28 konektor Glama terverifikasi runtime.",
+    glamaCredit: "Katalog termasuk data dari",
     footer: "Katalir — agen AI otonom untuk bisnis Anda.",
   },
   userMenu: {
