@@ -221,7 +221,52 @@ kredensial, `CLOSED` = sudah dieksekusi dan diverifikasi.
 
 ---
 
-## 2026-09-25 — Tab "Native" di UI sebenarnya berisi katalog ToolSDK
+## 2026-09-26 — Fase I (Activepieces/Metorial/velane/Executor): STOP sebelum deploy
+
+- **Status:** BLOCKED (keras) — kontradiksi spesifikasi vs realitas + blocker RAM
+- **Kenapa berhenti:** riset repo (semua dibaca langsung, 2026-09-26) menunjukkan
+  4 dari 5 premis Fase I salah. Menerapkannya apa adanya akan (a) OOM-mematikan
+  produksi, dan (b) Gelembungkan angka katalog dengan entri duplikat — persis
+  kebohongan yang selama ini kita talangi.
+- **Bukti per repo:**
+
+| Asumsi prompt | Aktual (sumber) | Dampak |
+| --- | --- | --- |
+| Activepieces: 764 pieces | Tagline repo: "~400 MCP servers". Endpoint `/api/v1/pieces` **tidak ada** di compose/dokumentasi yang diperiksa. | Angka 764 tidak terverifikasi |
+| Activepieces: "Docker Compose" | `docker-compose.yml` (main) mendefinisikan `app` + `worker` dengan **`deploy.replicas: 5`** + `postgres` (pgvector) + `redis` → **8 container** | 8 container di box 2 vCPU / 1,75 GB tersedia = pasti OOM |
+| velane: 800+ OAuth integrasi sendiri | Diagram arsitekturnya sendiritertulis: **"OAuth Proxy (800+ providers via Nango)"** | 800 = katalog Nango. Sync velane + Nango = **double count** |
+| velane: AGPL-3.0 | AGPL-3.0 **+ COMMERCIAL-LICENSE** (komersial butuh lisensi) | Batasan lisensi tambahan |
+| velane: deploy via Docker Compose | Butuh Postgres + Redis + **ClickHouse** + control plane (Go) + executor pool (Bun + Python) | ClickHouse sendirinya ~2 GB+ RAM |
+| Executor: `shuv1337/executor`, 1 container Docker | Itu **fork 0-star** dari `UsefulSoftwareCo/executor`; README: "Development happens in this private repository" | Repo yang dirujuk bukan yang otoritatif; tidak ada image Docker 1-container |
+| Executor: self-host Docker | Docs menyebut `bun run server` / `bun run executor serve`, app jalan di **workerd** (Cloudflare Workers runtime) | Mekanisme deploy tidak seperti asumsi |
+| Metorial: 600+ verified tools, serverless MCP | Situs resmi: "**142 tools across 18 integrations**" (demo), klaim marketing "1,000 integrations". Produk = enterprise agentic infra (SSO/SAML, Protoguard, tracing) | Angka 600+ tidak terverifikasi |
+| Nango Cloud free: 10 connections + **100k runs** | Pricing resmi: Free $0 = **10 connections, 10 jam/bulan compute, 10 GB/bulan transfer**. Bukan run-count. | 100k runs = angka salah |
+
+- **Blocker infrastruktur (diukur langsung):**
+  ```
+  CPU  : 2 vCPU
+  RAM  : 2468 MB total · 1752 MB available · swap 1279 MB
+  Disk : 32 GB free
+  Jalan: open-connector, free-llm-gateway (produksi)
+  ```
+  Aktifpieces saja butuh 8 container. Menambah velane (ClickHouse) dan Executor
+  akan mengambil alih RAM produksi — berulang kali keputusan yang sama sudah
+  menolak Nango self-host, dan alasannya belum berubah.
+- **Temuan paling penting:** 800 "integrasi" velane **adalah katalog Nango**.
+  Menyalin keduanya ke registry akan menggandakan entri yang sama dan membuat
+  klaim "40.000+ catalog" menjadi angka yang dipompa, bukan hasil kerja.
+- **Opsi (pilih satu):**
+  1. **Naikkan kapasitas VPS ke ≥8 GB**, lalu deploy hanya **Activepieces** (satu
+     platform, nilai nyata) dan **Nango Cloud** (butuh signup user). Abaikan
+     velane & Executor sampai repo-nya matang. *(rekomendasi)*
+  2. **Tetap di box sekarang**: tidak ada yang di-deploy. Fokuskan energi pada
+     menaikkan angka **runtime-verified** dari katalog yang sudah ada — kita punya
+     28.532 entri tapi baru 45 terverifikasi; di situ sebenarnya gap-nya.
+- **User action dibutuhkan (bisa dilakukan paralel):** signup Nango Cloud di
+  https://app.nango.dev → simpan `NANGO_API_KEY` ke `.env`. Saya tidak bisa
+  mendaftar akun atas nama Anda.
+
+
 
 - **Status:** CLOSED (Opsi 3 dipilih user, selesai 2026-09-26)
 - **Keluhan:** Tab "Native" diimplementasikan sebagai bucket sumber `toolsdk`, yaitu

@@ -94,6 +94,34 @@
 - [x] Regression test: `tests/test_glama_registry.py` 7 passed — termasuk assert bahwa `/mcp/native` mengikuti `provider_registry` dan `runtime_verified` hanya true bila tidak butuh kredensial. Test ini langsung menangkap bug hardcode `runtime_verified: True` di endpoint.
 - [x] TSC EXIT=0, build EXIT=0, pytest 211 passed.
 
+## Fase I — Activepieces / Metorial / velane / Executor (2026-09-26)
+
+### Hasil riset: STOP sebelum deploy
+- [!] **BLOCKED** — 4 dari 5 premis Fase I tidak cocok dengan realitas. Detail,
+  sumber, dan opsi ada di `docs/feedback/blockers-and-complaints.md`.
+
+| Target di prompt | Aktual terverifikasi |
+| --- | --- |
+| Activepieces 764 pieces | Tagline "~400 MCP servers"; endpoint `/api/v1/pieces` tidak ada |
+| Activepieces "Docker Compose" | compose = app + **worker `replicas: 5`** + postgres + redis = **8 container** |
+| velane 800+ integrasi sendiri | Diagram arsitektur: "800+ providers **via Nango**" → double count |
+| velane AGPL-3.0 | AGPL-3.0 **+ COMMERCIAL-LICENSE** |
+| Executor 1 container Docker | `shuv1337/executor` = **fork 0-star**; otoritatif `UsefulSoftwareCo/executor`; runtime `bun`/`workerd` |
+| Metorial 600+ verified tools | Situs resmi: "142 tools across 18 integrations"; produk enterprise (SSO/SAML) |
+| Nango free 10 conn + 100k runs | Pricing resmi: Free = **10 connections, 10 jam/bulan compute, 10 GB/bulan** |
+
+- **Blocker infrastruktur terukur:** 2 vCPU · 2468 MB RAM · **1752 MB available** ·
+  32 GB disk, sementara `open-connector` + `free-llm-gateway` masih produksi.
+  Activepieces (8 container) + velane (Postgres+Redis+**ClickHouse**) tidak muat.
+- **Keputusan:** tidak ada yang di-deploy. Deploy di sini akan OOM-mematikan
+  produksi, dan sync velane+Nango akan menggandakan entri yang sama.
+- [ ] **User action:** signup Nango Cloud di https://app.nango.dev → simpan
+  `NANGO_API_KEY` ke `.env`. Nango Cloud bisa dipakai **tanpa** menambah RAM VPS.
+
+### Gap sebenarnya
+- 28.532 entri katalog, baru **45 runtime-verified**. Defisit nyata ada di
+  *verifikasi*, bukan di jumlah katalog — bukan di integrasi platform ke-5.
+
 ## Agent Rules
 - Search-first; no-surrender loop; test before DONE.
 - Commit per sub-task; update this roadmap each task.
