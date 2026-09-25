@@ -18,13 +18,14 @@
 - Setiap commit memperbarui TODO.md.
 
 ## Gotchas
-- Railway 2026: token UUID tetap valid; yang menentukan write adalah Scope `Account`, bukan format.
+- Railway 2026: token dapat berformat UUID; jangan menolak berdasarkan format. Baca docs/scope, gunakan `RAILWAY_token` untuk token lokal yang tersedia, dan `RAILWAY_API_TOKEN` bila dipisah.
 - Cloudflare DNS token bisa tidak memiliki DNS:Edit; CNAME bisa perlu user manual.
 - Docker Desktop offline → pivot ke VPS.
 - JWT `test-jwt.txt` kedaluwarsa sekitar 1 jam; minta user refresh dari browser Console.
 - Railway deploy stale → force redeploy commit terbaru.
 - Jangan jalankan `npm run build` bersamaan dengan `next dev` (`.next` corruption).
 - Supabase Auth Site URL harus domain production.
+- `python-dotenv` dapat memberi warning parse pada `.env`; gunakan key aktual dan jangan menyimpulkan key kosong hanya dari baris yang gagal parse.
 - VPS: `.env` memuat `VPS_IP`, `VPS_USERNAME`, `VPS_PASSWORD`.
 - Cloudflare tunnel: quick tunnel hanya sementara; named tunnel memerlukan CNAME manual bila token DNS read-only.
 - MCP fetch adalah Python: `uvx mcp-server-fetch`, bukan npm.
@@ -45,3 +46,4 @@
 - DNS CNAME ketika token tidak memiliki DNS:Edit: user manual.
 - Railway redeploy dapat melalui API, tetapi verifikasi deployment dashboard tetap wajib.
 - VPS SSH dapat melalui Paramiko.
+
