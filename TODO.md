@@ -37,9 +37,9 @@
 - [x] External MCP client test — official `mcp.server.fastmcp.FastMCP` stdio adapter added at `mcp_gateway/katalir_server.py`; import/compile PASS. Live owner call still requires a fresh user JWT.
 
 ## FASE H — Final Verify
-- [ ] Production deploy
-- [ ] 8-route screenshots
-- [ ] Final documentation
+- [x] Production deploy — production domain routes respond 200; gateway named tunnel and Railway E2E previously verified.
+- [x] 8-route screenshots — fresh production captures in `nexus-frontend/test-results/domain_*.png`, including `domain_settings.png` (BODY=1344, errors=[]).
+- [x] Final documentation — `docs/architecture/leapfrog-research.md` and `docs/architecture/mcp-gateway-vps.md`; composition boundaries and rollback documented.
 
 
 
