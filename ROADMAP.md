@@ -73,6 +73,14 @@
 
 ### FASE H — Production verify
 - [x] `tsc --noEmit` EXIT=0; `next build` BUILD_EXIT=0.
+- [x] Railway deploy `a4ea79f6` SUCCESS (otomatis setelah push `2d802cd`).
+- [x] `GET /mcp/registry?limit=1` → **200, total 28.532**, sources `{glama: 20000, toolsdk: 4416, composio: 1562, openconnector: 1554, glama-connector: 1000}`.
+- [x] `GET /mcp/registry/sources` → 200, mengembalikan `attribution.glama` (`required: true`, href `https://glama.ai/mcp/servers`).
+- [x] `GET /mcp/registry?source=glama` → 21.000 entri, tiap item `attribution_required: true` + `source_url` Glama.
+- [x] `/`, `/docs`, `/pricing` produksi memuat copy baru + kredit Glama di HTML statis.
+- [x] `/integrations` produksi: komponen tab + `glama-attribution` + `meta-layer-note` + `attribution-link` ("View on Glama") ada di bundle JS ter-deploy. HTML statisnya kosong karena halaman ini client-rendered (SimplePage + Suspense `fallback={null}`), jadi verifikasi DOM harus lewat browser, bukan curl.
+- [x] Backend tetap sehat setelah memuat registry 28k (tidak OOM).
+- [x] Screenshot produksi (Chromium, 2026-09-26): `docs/evidence/shot-integrations-desktop.png`, `shot-integrations-mobile.png`, `shot-landing-desktop.png`, `shot-pricing-desktop.png`. Assert otomatis pada `/integrations`: **tabs=5, attribution=1, cards=50, badRel=0, pageError=0** (desktop + mobile).
 
 ### Nango
 - [!] BLOCKED — RAM VPS (2,4 GB total, 931 MB free) tidak cukup untuk Postgres + Nango + Redis tanpa mematikan produksi. Butuh box 4 GB.
