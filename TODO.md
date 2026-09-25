@@ -9,7 +9,7 @@
 - [x] C1: Research agentgateway + registry
 - [x] C2.1-C2.15: VPS + 5/5 server + 39 tools + call
 - [x] C2.16: Named tunnel dibuat; CNAME manual selesai
-- [!] C2.21: BLOCKED — Railway `/mcp/gateway/*` masih 500; deploy debug 404 dan commit terbaru belum terkonfirmasi aktif. User action: cek Railway Deployments untuk `main`, redeploy commit terbaru, lalu ulangi endpoint.
+- [!] C2.21: BLOCKED — Railway `/health` = 200 tetapi `/mcp/gateway/*` = 500 setelah force redeploy; endpoint debug tidak lagi ada. User action: buka Railway Deployments/log service `web`, pastikan commit `8e8a50d` aktif, lalu salin traceback 500 (tanpa secret).
 - [ ] C2.22: Dokumentasi final VPS/named tunnel
 - [x] C3: MCP SDK client refactor
 - [ ] C7: Registry → gateway coverage test
@@ -38,3 +38,4 @@
 - [ ] Production deploy
 - [ ] 8-route screenshots
 - [ ] Final documentation
+
