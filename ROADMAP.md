@@ -42,9 +42,9 @@
 - [x] Phase 2 Composio runtime sync — verified: 1,562 toolkits synced, 20/20 target toolkits passed `list_tools`, one real no-auth `call_tool` succeeded; only those 20 carry `runtime_verified`/Ready badge.
 - [ ] Phase 3 LangGraph — deferred until shadow-run comparison with `execution_engine.py` exists.
 - [ ] Phase 4 agentgateway Composio backend — depends on Phase 2.
-- [x] Phase 5 NL→workflow — existing validated `generate_workflow_json` + `workflow_spec.py` covers the LoomFlow pattern; no new dependency added.
-- [ ] Phase 6 E2E — depends on Phase 2/4.
-- Marketing rule: do not claim "1,000+ working integrations" until sampled Composio toolkits pass `list_tools` and `call_tool`; current honest baseline is 5 runtime targets / 39 tools.
+- [x] Phase 5 NL→workflow — existing validated `generate_workflow_json` + `workflow_spec.py` covers the LoomFlow pattern; evidence: `tests/test_discovery_agent.py` + `tests/test_workflow_api.py` = 16 passed.
+- [ ] Phase 6 E2E — depends on Phase 2/4. Phase 2 runtime is verified; agentgateway Composio backend + full chat→workflow→execute E2E still pending.
+- Marketing rule: do not claim "1,000+ working integrations" until sampled Composio toolkits pass `list_tools` and `call_tool`; current honest claim is 1,562 Composio toolkits discoverable, 20 runtime-verified (`list_tools`), 5 MCP native targets / 39 tools.
 
 ## Agent Rules
 - Search-first; no-surrender loop; test before DONE.
