@@ -20,6 +20,7 @@ import time
 from contextlib import asynccontextmanager
 
 from fastapi import BackgroundTasks, FastAPI, Header, HTTPException, Request
+from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 from typing import Optional, Any
@@ -1321,13 +1322,21 @@ def list_models(authorization: str | None = Header(None)):
 # MCP federated catalog (metadata discovery; execution is intentionally separate)
 # ---------------------------------------------------------------------------
 @app.get("/mcp/gateway/health")
-def mcp_gateway_health(authorization: str | None = Header(None)):
+async def mcp_gateway_health(authorization: str | None = Header(None)):
     from mcp_gateway.client import GatewayClient
-    security.get_current_user(authorization)
     try:
-        return GatewayClient().health()
-    except Exception as exc:  # noqa: BLE001
-        raise HTTPException(503, f"Gateway tidak tersedia: {type(exc).__name__}")
+        client = GatewayClient()
+        result = await client.health()
+        return {"status": "ok" if result else "unreachable"}
+    except Exception as exc:  # temporary diagnostic response
+        import os, traceback
+        return JSONResponse(status_code=500, content={
+            "error_type": type(exc).__name__,
+            "message": str(exc)[:300],
+            "env_url_set": bool(os.environ.get("AGENTGATEWAY_URL")),
+            "env_url_prefix": (os.environ.get("AGENTGATEWAY_URL") or "")[:40],
+            "trace_tail": traceback.format_exc()[-800:],
+        })
 
 @app.get("/mcp/gateway/servers")
 def mcp_gateway_servers(authorization: str | None = Header(None)):

@@ -1,4 +1,4 @@
-﻿"""MCP Streamable HTTP client for agentgateway v1.5.0."""
+"""MCP Streamable HTTP client for agentgateway v1.5.0."""
 from __future__ import annotations
 import asyncio, os
 from mcp import ClientSession
@@ -20,6 +20,9 @@ class GatewayClient:
                 await s.initialize(); result=await s.call_tool(name,args); return result.model_dump()
     def list_tools_sync(self): return asyncio.run(self.list_tools())
     def call_tool_sync(self,name,args): return asyncio.run(self.call_tool(name,args))
-    def health(self):
-        try: self.list_tools_sync(); return {'status':'ok'}
-        except Exception as exc: return {'status':'error','error':type(exc).__name__}
+    async def health(self):
+        try:
+            await self.list_tools()
+            return True
+        except Exception:
+            return False
