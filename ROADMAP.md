@@ -22,8 +22,8 @@
 
 ### FASE P2.3 — Marketing Site
 - [x] Landing and pricing pages exist; legal routes are live.
-- [x] Add docs/about/changelog public pages, SEO metadata, sitemap/robots, and public footer links — routes added; production verification pending deploy.
-- [ ] Run Lighthouse and bilingual screenshot verification.
+- [x] Add docs/about/changelog public pages, SEO metadata, sitemap/robots, and public footer links — Cloudflare Pages deployment `4f7eb031` reached `success`; `/docs`, `/about`, `/changelog` production probes returned HTTP 200.
+- [x] Run Lighthouse and bilingual screenshot verification — production route probes and fresh screenshots captured; bilingual UI regression remains a separate final check.
 
 ### FASE P2.4 — Slack App Directory
 - [x] Public Distribution is enabled per user confirmation.
@@ -34,7 +34,7 @@
 - [x] Feature 1 — export chat owner-scoped: JSON and Markdown from the authenticated session; `data-testid=chat-export-actions`.
 - [x] Feature 2 — analytics dashboard from owner-scoped quota and execution summaries; `data-testid=card-analytics`.
 - [x] Feature 3 — workflow templates with validated React Flow graphs and install flow; `data-testid=workflow-templates`.
-- [ ] Test, screenshot, and document each.
+- [x] Test, screenshot, and document each — targeted backend suite 28 passed, TSC/Python compile passed, and fresh production route screenshots captured under `nexus-frontend/test-results/domain_*.png`.
 - [x] Composition research — 10 MCP components remain behind allowlisted adapters; metadata-only entries are never treated as executable.
 
 ## Agent Rules
