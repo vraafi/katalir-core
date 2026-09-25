@@ -1320,48 +1320,6 @@ def list_models(authorization: str | None = Header(None)):
 # ---------------------------------------------------------------------------
 # MCP federated catalog (metadata discovery; execution is intentionally separate)
 # ---------------------------------------------------------------------------
-@app.get("/mcp/gateway/debug")
-async def mcp_gateway_debug():
-    import os, socket, sys
-    import httpx
-    url = (os.environ.get("AGENTGATEWAY_URL") or "").rstrip("/")
-    info = {
-        "agentgateway_url_set": bool(url),
-        "agentgateway_url_prefix": (url[:40] + "...") if url else None,
-        "python_version": sys.version,
-    }
-    if not url:
-        return info
-    host = url.replace("https://", "").replace("http://", "").split("/")[0]
-    try:
-        with socket.create_connection((host, 443), timeout=5):
-            info["tcp_443"] = "ok"
-    except Exception as exc:
-        info["tcp_443"] = f"fail: {type(exc).__name__}: {exc}"
-        return info
-    async with httpx.AsyncClient(timeout=10, follow_redirects=False) as client:
-        try:
-            r = await client.get(url + "/")
-            info["https_root"] = {"status": r.status_code, "len": len(r.text)}
-        except Exception as exc:
-            info["https_root"] = f"fail: {type(exc).__name__}: {exc}"
-        try:
-            r = await client.post(url + "/mcp", json={"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-03-26","capabilities":{},"clientInfo":{"name":"diag","version":"1"}}}, headers={"Content-Type":"application/json","Accept":"application/json, text/event-stream"})
-            info["mcp_post"] = {"status": r.status_code, "len": len(r.text), "preview": r.text[:200]}
-        except Exception as exc:
-            info["mcp_post"] = f"fail: {type(exc).__name__}: {exc}"
-    try:
-        from mcp import ClientSession
-        from mcp.client.streamable_http import streamablehttp_client
-        async with streamablehttp_client(url + "/mcp") as (read, write, _):
-            async with ClientSession(read, write) as session:
-                await session.initialize()
-                result = await session.list_tools()
-                info["mcp_sdk"] = {"tools": len(result.tools)}
-    except Exception as exc:
-        info["mcp_sdk"] = f"fail: {type(exc).__name__}: {exc}"
-    return info
-
 @app.get("/mcp/gateway/health")
 def mcp_gateway_health(authorization: str | None = Header(None)):
     from mcp_gateway.client import GatewayClient
