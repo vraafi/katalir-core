@@ -8,6 +8,10 @@ import { Button } from "@/components/ui/button";
 import { apiFetch } from "@/lib/api";
 
 type Server = { id: string; name: string; category: string; description: string; tools?: { name: string; description?: string }[]; install_config?: { transport?: string; package?: string } };
+
+/** Static export needs explicit dynamic routes; runtime registry data is still loaded client-side. */
+export function generateStaticParams() { return []; }
+
 export default function IntegrationDetailPage() {
   const params = useParams<{ slug: string }>(); const router = useRouter();
   const [item, setItem] = useState<Server | null>(null); const [error, setError] = useState(false);
@@ -18,3 +22,4 @@ export default function IntegrationDetailPage() {
     <Card><CardHeader><CardTitle>{item.name}</CardTitle><CardDescription>{item.description}</CardDescription></CardHeader><CardContent className="flex flex-col gap-4"><p className="text-sm text-fg-muted">Transport metadata: {item.install_config?.transport ?? "unknown"}</p><ul className="list-disc pl-5 text-sm">{item.tools?.map(t => <li key={t.name}>{t.name}</li>)}</ul><div className="flex gap-2"><Button onClick={() => window.alert("Pemasangan membutuhkan konfirmasi pengguna.")}>Pasang integrasi</Button><Button variant="ghost" onClick={() => router.push("/integrations")}>Kembali</Button></div></CardContent></Card>
   </SimplePage>;
 }
+
