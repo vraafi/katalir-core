@@ -25,9 +25,13 @@ def test_openconnector_entries_termuat_dengan_status_terpisah():
 
 
 def test_openconnector_tidak_ditandai_executable_hanya_karena_metadata():
-    """A discovered action must not become 'executable' without a real call."""
+    """A discovered action must not become 'executable' without a real call.
+
+    The source is pinned explicitly: the catalogue now also holds ~20k Glama
+    entries, so positional assumptions about search results are not stable.
+    """
     mcp_registry.load_cached()
-    page = mcp_registry.list_servers(search="crossref", limit=5)
+    page = mcp_registry.list_servers(source="openconnector", search="crossref", limit=5)
     assert page["items"], "openconnector entries must be searchable"
     entry = mcp_registry.get_server(page["items"][0]["id"])
     assert entry["source"] == "openconnector"

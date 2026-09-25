@@ -1439,12 +1439,35 @@ def mcp_recommendations(q: str, limit: int = 5):
 
 
 @app.get("/mcp/registry")
-def mcp_registry(page: int = 1, limit: int = 50, search: str = "", category: str = ""):
+def mcp_registry(page: int = 1, limit: int = 50, search: str = "", category: str = "", source: str = ""):
     import mcp_registry as catalog
     try:
-        return catalog.list_servers(page=page, limit=limit, search=search, category=category)
+        return catalog.list_servers(page=page, limit=limit, search=search, category=category, source=source)
     except ValueError as exc:
         raise HTTPException(400, str(exc))
+
+
+@app.get("/mcp/registry/sources")
+def mcp_registry_sources():
+    """Per-source counts plus the Glama credit the UI must render.
+
+    Glama's API Data License requires a visible "Powered by Glama" credit on
+    every page that shows its data, so the API ships the exact link and label
+    rather than letting the frontend invent one.
+    """
+    import mcp_registry as catalog
+    return {
+        "sources": catalog.source_counts(),
+        "coverage": catalog.coverage(),
+        "attribution": {
+            "glama": {
+                "required": True,
+                "label": "MCP data from Glama",
+                "href": "https://glama.ai/mcp/servers",
+                "note": "Listing data is licensed under the Glama API Data License; attribution and a link back to each listing are required.",
+            }
+        },
+    }
 
 
 @app.get("/mcp/registry/coverage")
