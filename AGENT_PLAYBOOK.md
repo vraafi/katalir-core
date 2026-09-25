@@ -9,6 +9,7 @@
 6. Update TODO.md: `[x]` kalau selesai, `[!]` kalau blocked + alasan.
 7. Commit dan push setiap task.
 8. Kalau task berikutnya tidak blocked, lanjutkan.
+- **C2.21 done:** authenticated servers=200/39, call=200/datetime, unauthenticated health=401 is expected auth behavior. Do not request another JWT for this check.
 9. Kalau blocked, lapor satu baris: `BLOCKED: <alasan>. User action: <satu baris>.`
 
 ## Aturan Otonom
@@ -47,3 +48,19 @@
 - Railway redeploy dapat melalui API, tetapi verifikasi deployment dashboard tetap wajib.
 - VPS SSH dapat melalui Paramiko.
 
+## Gotcha: Jangan Verifikasi Deploy via Railway GraphQL
+- Railway GraphQL deployments query 2026 sering return kosong (schema berubah).
+- JANGAN block karena GraphQL kosong.
+- VERIFIKASI DEPLOY = CECK ENDPOINT BEHAVIOR:
+  - 500 → kode lama (belum deploy)
+  - 401 → kode baru load, butuh JWT (deploy sukses)
+  - 200 → deploy + auth OK
+- 500 → 401 = deploy berhasil.
+
+## Aturan Anti-Siklus JWT
+- test-jwt.txt = JANGAN dihapus setelah test. Biarkan expired sendiri.
+- Kalau 401 muncul di endpoint yang butuh auth = PERILAKU BENAR.
+- JANGAN block task karena endpoint return 401.
+- JANGAN minta JWT ke user kecuali benar-benar perlu test endpoint baru.
+- Do not delete `test-jwt.txt` after a completed authenticated E2E; leave it gitignored for reuse, but never commit or print it.
+- Health check = 401 tanpa JWT, 200 dengan JWT. Keduanya = "OK".

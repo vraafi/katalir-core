@@ -3,13 +3,15 @@
 ## Status Sekarang
 - Level 3 E2E: lulus; production live di `katalir.de5.net`.
 - UI/UX Overhaul: FASE 0-6 selesai.
-- MCP Federation: FASE C, gateway VPS dan named tunnel hidup; Railway backend E2E masih blocked.
+- MCP Federation: FASE C selesai; gateway VPS/named tunnel hidup, production E2E health=401 (auth), servers=39, call=datetime.
 
 ## FASE C — MCP Gateway
 - [x] C1: Research agentgateway + registry
 - [x] C2.1-C2.15: VPS + 5/5 server + 39 tools + call
 - [x] C2.16: Named tunnel dibuat; CNAME manual selesai
-- [!] C2.21: PARTIAL — raw health probe implemented and pushed in `27ce413`; Railway now returns 401 for unauthenticated health (expected auth gate), while authenticated servers=39 and call=datetime were previously verified. Authenticated health re-test pending fresh `test-jwt.txt`.
+- [x] C2.21: DONE — authenticated servers=200/39 tools; call=200/datetime; unauthenticated health=401 proves auth gate and new deployment.
+- [x] C2.21: DONE — authenticated servers=200/39 tools; call=200/datetime; unauthenticated health=401 proves auth gate and new deployment.
+- [x] C2.22: DONE — VPS/named tunnel documented in `docs/architecture/mcp-gateway-vps.md`; deploy/rollback/runbook added.
 - [ ] C2.22: Dokumentasi final VPS/named tunnel
 - [x] C3: MCP SDK client refactor
 - [ ] C7: Registry → gateway coverage test

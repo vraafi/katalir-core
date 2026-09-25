@@ -1318,7 +1318,43 @@ def list_models(authorization: str | None = Header(None)):
 # ---------------------------------------------------------------------------
 # ENDPOINT 2: POST /integrations
 # ---------------------------------------------------------------------------
-# MCP federated catalog (metadata discovery; execution is intentionally separate)
+
+
+class MCPInstanceRequest(BaseModel):
+    mcp_id: str
+    config: dict[str, Any] = Field(default_factory=dict)
+
+_MCP_INSTANCES: dict[str, dict[str, dict[str, Any]]] = {}
+
+def _mcp_key(authorization: str | None) -> str:
+    user = security.get_current_user(authorization)
+    return str(user.get("id") or user.get("email") or "unknown")
+
+def _mcp_rows(user_id: str):
+    return list(_MCP_INSTANCES.get(user_id, {}).values())
+
+@app.get("/mcp/my-instances")
+def mcp_my_instances(authorization: str | None = Header(None)):
+    user_id = _mcp_key(authorization)
+    return {"instances": _mcp_rows(user_id)}
+
+@app.post("/mcp/install")
+def mcp_install(req: MCPInstanceRequest, authorization: str | None = Header(None)):
+    user_id = _mcp_key(authorization)
+    if not req.mcp_id.strip():
+        raise HTTPException(422, "mcp_id wajib")
+    row = {"mcp_id": req.mcp_id.strip(), "config": req.config, "status": "active"}
+    _MCP_INSTANCES.setdefault(user_id, {})[row["mcp_id"]] = row
+    return {"instance": row}
+
+@app.delete("/mcp/uninstall/{mcp_id}")
+def mcp_uninstall(mcp_id: str, authorization: str | None = Header(None)):
+    user_id = _mcp_key(authorization)
+    removed = _MCP_INSTANCES.get(user_id, {}).pop(mcp_id, None)
+    if not removed:
+        raise HTTPException(404, "Instance tidak ditemukan")
+    return {"removed": mcp_id}
+
 # ---------------------------------------------------------------------------
 @app.get("/mcp/gateway/health")
 async def mcp_gateway_health(authorization: str | None = Header(None)):
