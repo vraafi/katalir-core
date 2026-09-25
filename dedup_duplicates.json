@@ -1,0 +1,616 @@
+[
+  {
+    "name": "gitlab",
+    "canonical_key": "gitlab",
+    "sources": [
+      "composio",
+      "glama",
+      "glama-connector",
+      "openconnector",
+      "toolsdk"
+    ],
+    "collapsed_ids": [
+      "composio:gitlab",
+      "glama-connector:glama-connector/nh0ll4wwmc",
+      "glama:glama/hku22wirl5",
+      "glama:glama/palivzimca",
+      "openconnector:gitlab",
+      "toolsdk:@dubuqingfeng/gitlab-mcp-server",
+      "toolsdk:@harshmaur/gitlab-mcp",
+      "toolsdk:@modelcontextprotocol/server-gitlab",
+      "toolsdk:@yoda-digital/mcp-gitlab-server",
+      "toolsdk:@yoda.digital/gitlab-mcp-server",
+      "toolsdk:@zereight/mcp-gitlab",
+      "toolsdk:gitlab",
+      "toolsdk:gitlab-mcp-server"
+    ]
+  },
+  {
+    "name": "Airtable",
+    "canonical_key": "airtable",
+    "sources": [
+      "composio",
+      "glama",
+      "openconnector",
+      "toolsdk"
+    ],
+    "collapsed_ids": [
+      "composio:airtable",
+      "glama:glama/rivp2vbf74",
+      "openconnector:airtable",
+      "toolsdk:@domdomegg/airtable-mcp-server",
+      "toolsdk:airtable",
+      "toolsdk:airtable-mcp-server"
+    ]
+  },
+  {
+    "name": "Asana",
+    "canonical_key": "asana",
+    "sources": [
+      "composio",
+      "glama",
+      "openconnector",
+      "toolsdk"
+    ],
+    "collapsed_ids": [
+      "composio:asana",
+      "glama:glama/god6zult3t",
+      "glama:glama/hgidrpcrnt",
+      "openconnector:asana",
+      "toolsdk:@cristip73/mcp-server-asana",
+      "toolsdk:@roychri/mcp-server-asana",
+      "toolsdk:asana-mcp-server"
+    ]
+  },
+  {
+    "name": "Discord",
+    "canonical_key": "discord",
+    "sources": [
+      "composio",
+      "glama",
+      "openconnector",
+      "toolsdk"
+    ],
+    "collapsed_ids": [
+      "composio:discord",
+      "glama:glama/bvxdn369xc",
+      "glama:glama/fbkvv3ngkz",
+      "glama:glama/lntbditm9f",
+      "glama:glama/lr04oyd7vk",
+      "glama:glama/mjocfnaeoy",
+      "glama:glama/r4eg5mz7ru",
+      "glama:glama/ro4wuhr8hk",
+      "glama:glama/t8gqff7byq",
+      "glama:glama/tccveq0hxf",
+      "glama:glama/vniecpd1c3",
+      "glama:glama/vzwni7nrxb",
+      "glama:glama/xtf6e1yjfp",
+      "glama:glama/xv0x1exclw",
+      "glama:glama/ygbn064923",
+      "glama:glama/ylj7hnm6xt",
+      "glama:glama/yvr72v9mil",
+      "openconnector:discord",
+      "toolsdk:@jar285/mcp-discord",
+      "toolsdk:discord",
+      "toolsdk:discord-mcp",
+      "toolsdk:discord-mcp-server"
+    ]
+  },
+  {
+    "name": "Dropbox",
+    "canonical_key": "dropbox",
+    "sources": [
+      "composio",
+      "glama",
+      "openconnector",
+      "toolsdk"
+    ],
+    "collapsed_ids": [
+      "composio:dropbox",
+      "glama:glama/fuvy58fd8f",
+      "glama:glama/iwsda9bg3w",
+      "openconnector:dropbox",
+      "toolsdk:dropbox"
+    ]
+  },
+  {
+    "name": "GitHub",
+    "canonical_key": "github",
+    "sources": [
+      "composio",
+      "glama",
+      "openconnector",
+      "toolsdk"
+    ],
+    "collapsed_ids": [
+      "composio:github",
+      "composio:github_mcp",
+      "glama:glama/aegj08hreg",
+      "glama:glama/azaecc0ga1",
+      "glama:glama/b6xkuwkq1v",
+      "glama:glama/c6uj70bs2h",
+      "glama:glama/dr4ryxvy1f",
+      "glama:glama/e9arhxty7a",
+      "glama:glama/eyte9i3qh7",
+      "glama:glama/fb0cvhc98q",
+      "glama:glama/fp1t9d55dl",
+      "glama:glama/ft4ufdgm2u",
+      "glama:glama/g32iu8reur",
+      "glama:glama/g91q7uln0v",
+      "glama:glama/ghiqg6li5s",
+      "glama:glama/iagapy8bgo",
+      "glama:glama/j5rrv7a5gb",
+      "glama:glama/lljqcwxbrg",
+      "glama:glama/lmq7si85jo",
+      "glama:glama/myav24ekx9",
+      "glama:glama/pjpvwf8xpm",
+      "glama:glama/qy9lh4ui8i",
+      "glama:glama/sjz3n3bfc6",
+      "glama:glama/swjqxxakie",
+      "glama:glama/tip050ap9n",
+      "glama:glama/v4itx09hot",
+      "glama:glama/vz0xtbnimr",
+      "glama:glama/wmby9fy3sd",
+      "glama:glama/wn9fqpuq40",
+      "glama:glama/y7v44v6bz2",
+      "glama:glama/z094kqis8o",
+      "glama:glama/z8p89dfwkb",
+      "openconnector:github",
+      "toolsdk:@missionsquad/mcp-github",
+      "toolsdk:@modelcontextprotocol/server-github",
+      "toolsdk:github",
+      "toolsdk:github-mcp",
+      "toolsdk:github-mcp-server"
+    ]
+  },
+  {
+    "name": "Gmail",
+    "canonical_key": "gmail",
+    "sources": [
+      "composio",
+      "glama",
+      "openconnector",
+      "toolsdk"
+    ],
+    "collapsed_ids": [
+      "composio:gmail",
+      "glama:glama/cwv7vzvbj5",
+      "glama:glama/d7j049rig3",
+      "glama:glama/dzirjbnn4o",
+      "glama:glama/en0tkauvih",
+      "glama:glama/fiuelyo2ce",
+      "glama:glama/frbi5h2qru",
+      "glama:glama/h7nmruwtm9",
+      "glama:glama/h8pu22kx71",
+      "glama:glama/ha57t94sug",
+      "glama:glama/hj167tg20k",
+      "glama:glama/jdig1yhegn",
+      "glama:glama/m7th8uhpfw",
+      "glama:glama/m7v8xg66jn",
+      "glama:glama/mbup6naudm",
+      "glama:glama/q77zllmk08",
+      "glama:glama/r11d9qw6m2",
+      "glama:glama/r3tvbgnsvr",
+      "glama:glama/r4h2ntxj4y",
+      "glama:glama/shk9lwxuep",
+      "glama:glama/thj18h8yfl",
+      "glama:glama/uugtjfbkp9",
+      "glama:glama/vam2iwa1p0",
+      "glama:glama/wtkfz37j7w",
+      "glama:glama/xq5m40m8ml",
+      "openconnector:gmail",
+      "toolsdk:@shinzolabs/gmail-mcp",
+      "toolsdk:gmail",
+      "toolsdk:gmail-mcp"
+    ]
+  },
+  {
+    "name": "HubSpot",
+    "canonical_key": "hubspot",
+    "sources": [
+      "composio",
+      "glama",
+      "openconnector",
+      "toolsdk"
+    ],
+    "collapsed_ids": [
+      "composio:hubspot",
+      "glama:glama/cmgxjgas7b",
+      "glama:glama/sy7rh1xoyt",
+      "glama:glama/vtf7ev1ouv",
+      "openconnector:hubspot",
+      "toolsdk:@NaorAIdeas/hubspot-mcp-server",
+      "toolsdk:@lkm1developer/hubspot-mcp-server",
+      "toolsdk:@shinzolabs/hubspot-mcp",
+      "toolsdk:hubspot"
+    ]
+  },
+  {
+    "name": "Linear",
+    "canonical_key": "linear",
+    "sources": [
+      "composio",
+      "glama",
+      "openconnector",
+      "toolsdk"
+    ],
+    "collapsed_ids": [
+      "composio:linear",
+      "composio:linear_mcp",
+      "glama:glama/lyef06abte",
+      "glama:glama/snhvru5ot4",
+      "glama:glama/zq4j0yqj9w",
+      "openconnector:linear",
+      "toolsdk:@tacticlaunch/mcp-linear",
+      "toolsdk:linear",
+      "toolsdk:linear-mcp-server",
+      "toolsdk:mcp-linear"
+    ]
+  },
+  {
+    "name": "LinkedIn",
+    "canonical_key": "linkedin",
+    "sources": [
+      "composio",
+      "glama",
+      "openconnector",
+      "toolsdk"
+    ],
+    "collapsed_ids": [
+      "composio:linkedin",
+      "glama:glama/d8retkvwpe",
+      "glama:glama/eawidk2bjv",
+      "glama:glama/g23o8aqq7d",
+      "glama:glama/gdc60tceza",
+      "glama:glama/h3zlwtyxsb",
+      "glama:glama/h5kh24mswj",
+      "glama:glama/ha5yhjl5ku",
+      "glama:glama/j2biu2wp0e",
+      "glama:glama/jfakpg5coa",
+      "glama:glama/khv2qkix5g",
+      "glama:glama/l9w08trq4g",
+      "glama:glama/m109shzevj",
+      "glama:glama/obsq8tm4go",
+      "glama:glama/oq3d3t8n7s",
+      "glama:glama/q6k08tk0fj",
+      "glama:glama/q7gb9my2ct",
+      "glama:glama/r2fq5ygbpd",
+      "glama:glama/sf3qpr5dmv",
+      "glama:glama/w16iqyvfle",
+      "glama:glama/xa2ztyflmq",
+      "glama:glama/xqfbvslqhs",
+      "glama:glama/ymk38qfjsh",
+      "glama:glama/z1y05xll3i",
+      "openconnector:linkedin",
+      "toolsdk:@Dishant27/linkedin-mcp-server",
+      "toolsdk:linkedin",
+      "toolsdk:linkedin-mcp"
+    ]
+  },
+  {
+    "name": "Notion",
+    "canonical_key": "notion",
+    "sources": [
+      "composio",
+      "glama",
+      "openconnector",
+      "toolsdk"
+    ],
+    "collapsed_ids": [
+      "composio:notion",
+      "composio:notion_mcp",
+      "glama:glama/gzbldb02p1",
+      "glama:glama/tpofcxtkws",
+      "openconnector:notion",
+      "toolsdk:@makenotion/notion-mcp-server",
+      "toolsdk:@notionhq/notion-mcp-server",
+      "toolsdk:@orbit-logistics/notion-mcp-server",
+      "toolsdk:@ramidecodes/mcp-server-notion",
+      "toolsdk:@suekou/mcp-notion-server",
+      "toolsdk:notion",
+      "toolsdk:notion-mcp-server"
+    ]
+  },
+  {
+    "name": "Slack",
+    "canonical_key": "slack",
+    "sources": [
+      "composio",
+      "glama",
+      "openconnector",
+      "toolsdk"
+    ],
+    "collapsed_ids": [
+      "composio:slack",
+      "glama:glama/wbtice40kd",
+      "openconnector:slack",
+      "toolsdk:@modelcontextprotocol/server-slack",
+      "toolsdk:slack",
+      "toolsdk:slack-mcp-server"
+    ]
+  },
+  {
+    "name": "Stripe",
+    "canonical_key": "stripe",
+    "sources": [
+      "composio",
+      "glama",
+      "openconnector",
+      "toolsdk"
+    ],
+    "collapsed_ids": [
+      "composio:stripe",
+      "composio:stripe_mcp",
+      "glama:glama/apxfob1qni",
+      "glama:glama/ntdm2awg0l",
+      "glama:glama/vpe1m71bz8",
+      "openconnector:stripe",
+      "toolsdk:stripe"
+    ]
+  },
+  {
+    "name": "Telegram",
+    "canonical_key": "telegram",
+    "sources": [
+      "composio",
+      "glama",
+      "openconnector",
+      "toolsdk"
+    ],
+    "collapsed_ids": [
+      "composio:telegram",
+      "glama:glama/a7xnmzwgdx",
+      "glama:glama/a890hphjnj",
+      "glama:glama/ba6zcoml0e",
+      "glama:glama/bgivetiu0x",
+      "glama:glama/cg2isvm1vk",
+      "glama:glama/egpekbvdni",
+      "glama:glama/hm3usxzr1f",
+      "glama:glama/ij50c8megz",
+      "glama:glama/l2y76kxru2",
+      "glama:glama/n9so2jb0v7",
+      "glama:glama/rssi51n9ll",
+      "glama:glama/rw0avw4azr",
+      "glama:glama/ryiw4e3gm4",
+      "glama:glama/ug23q4phc3",
+      "glama:glama/uwxwxz1fbz",
+      "glama:glama/wrrw3ps0l7",
+      "glama:glama/wxekz0ejmr",
+      "glama:glama/xtfj25qllq",
+      "glama:glama/yawpg4zd9w",
+      "openconnector:telegram",
+      "toolsdk:@chaindead/telegram-mcp",
+      "toolsdk:@jeroensmink98/telegram-mcp",
+      "toolsdk:mcp-telegram",
+      "toolsdk:telegram",
+      "toolsdk:telegram-mcp-server"
+    ]
+  },
+  {
+    "name": "Trello",
+    "canonical_key": "trello",
+    "sources": [
+      "composio",
+      "glama",
+      "openconnector",
+      "toolsdk"
+    ],
+    "collapsed_ids": [
+      "composio:trello",
+      "glama:glama/g8dn26hdpw",
+      "glama:glama/hhudjliogn",
+      "glama:glama/hzrdhre164",
+      "glama:glama/m1g3iuk0mm",
+      "glama:glama/v48yz4i4if",
+      "glama:glama/vnbu3eq1ac",
+      "openconnector:trello",
+      "toolsdk:@delorenj/mcp-server-trello",
+      "toolsdk:@v4lheru/trello-mcp-server",
+      "toolsdk:trello",
+      "toolsdk:trello-mcp-server"
+    ]
+  },
+  {
+    "name": "WhatsApp",
+    "canonical_key": "whatsapp",
+    "sources": [
+      "composio",
+      "glama",
+      "openconnector",
+      "toolsdk"
+    ],
+    "collapsed_ids": [
+      "composio:whatsapp",
+      "glama:glama/cb82av2yt9",
+      "glama:glama/ci34u8l63u",
+      "glama:glama/gou5czlxng",
+      "glama:glama/i1nhftip3u",
+      "glama:glama/iziaxej8vf",
+      "glama:glama/kglt6qllgn",
+      "glama:glama/m42ch95ifm",
+      "glama:glama/of51jjz57z",
+      "glama:glama/p1kscq7w0f",
+      "glama:glama/s4sbtvyct8",
+      "glama:glama/uacl43xe7z",
+      "glama:glama/x39p2w8vje",
+      "glama:glama/xljlqpzjw2",
+      "openconnector:whatsapp",
+      "toolsdk:whatsapp"
+    ]
+  },
+  {
+    "name": "bing_webmaster",
+    "canonical_key": "bing webmaster",
+    "sources": [
+      "composio",
+      "glama",
+      "openconnector",
+      "toolsdk"
+    ],
+    "collapsed_ids": [
+      "composio:bing_webmaster_tools",
+      "glama:glama/dt8rq7g1eq",
+      "glama:glama/kkvm6j3kdm",
+      "glama:glama/pidx9w0h6s",
+      "openconnector:bing_webmaster",
+      "toolsdk:bing-webmaster-tools"
+    ]
+  },
+  {
+    "name": "bitbucket",
+    "canonical_key": "bitbucket",
+    "sources": [
+      "composio",
+      "glama",
+      "openconnector",
+      "toolsdk"
+    ],
+    "collapsed_ids": [
+      "composio:bitbucket",
+      "glama:glama/g8183kt9ln",
+      "glama:glama/ijt09o5b99",
+      "glama:glama/l3s2y1lzpq",
+      "glama:glama/n98qx5gfby",
+      "glama:glama/uc47kbwor2",
+      "glama:glama/uvq5qemkha",
+      "glama:glama/uw98vp7x3l",
+      "glama:glama/vftj4pcz1z",
+      "glama:glama/vgz5dr3f0b",
+      "openconnector:bitbucket",
+      "toolsdk:@atlassian-dc-mcp/bitbucket",
+      "toolsdk:@nexus2520/bitbucket-mcp-server",
+      "toolsdk:bitbucket",
+      "toolsdk:bitbucket-mcp-server"
+    ]
+  },
+  {
+    "name": "clickhouse",
+    "canonical_key": "clickhouse",
+    "sources": [
+      "composio",
+      "glama",
+      "openconnector",
+      "toolsdk"
+    ],
+    "collapsed_ids": [
+      "composio:clickhouse",
+      "composio:clickhouse_mcp",
+      "glama:glama/nwev2ygkde",
+      "openconnector:clickhouse",
+      "toolsdk:clickhouse",
+      "toolsdk:clickhouse-mcp-server"
+    ]
+  },
+  {
+    "name": "clicksend",
+    "canonical_key": "clicksend",
+    "sources": [
+      "composio",
+      "glama",
+      "openconnector",
+      "toolsdk"
+    ],
+    "collapsed_ids": [
+      "composio:clicksend",
+      "glama:glama/zmcszvexgf",
+      "openconnector:clicksend",
+      "toolsdk:clicksend"
+    ]
+  },
+  {
+    "name": "clickup",
+    "canonical_key": "clickup",
+    "sources": [
+      "composio",
+      "glama",
+      "openconnector",
+      "toolsdk"
+    ],
+    "collapsed_ids": [
+      "composio:clickup",
+      "composio:clickup_mcp",
+      "glama:glama/diidv4euw3",
+      "openconnector:clickup",
+      "openconnector:clickup_mcp",
+      "toolsdk:@taazkareem/clickup-mcp-server",
+      "toolsdk:clickup",
+      "toolsdk:clickup-mcp-server",
+      "toolsdk:mcp-clickup"
+    ]
+  },
+  {
+    "name": "clockify",
+    "canonical_key": "clockify",
+    "sources": [
+      "composio",
+      "glama",
+      "openconnector",
+      "toolsdk"
+    ],
+    "collapsed_ids": [
+      "composio:clockify",
+      "glama:glama/hp3gxkdyd6",
+      "glama:glama/p929a5m4fz",
+      "openconnector:clockify",
+      "toolsdk:clockify"
+    ]
+  },
+  {
+    "name": "cloudflare_mcp",
+    "canonical_key": "cloudflare",
+    "sources": [
+      "composio",
+      "glama",
+      "openconnector",
+      "toolsdk"
+    ],
+    "collapsed_ids": [
+      "composio:cloudflare",
+      "composio:cloudflare_mcp",
+      "glama:glama/evp5knxomb",
+      "glama:glama/t67ff0pr5x",
+      "glama:glama/th8fle3kyr",
+      "glama:glama/wofhg7o5qt",
+      "openconnector:cloudflare_mcp",
+      "toolsdk:@cloudflare/mcp-server-cloudflare",
+      "toolsdk:@gutmutcode/mcp-server-cloudflare",
+      "toolsdk:cloudflare-api"
+    ]
+  },
+  {
+    "name": "coinmarketcap",
+    "canonical_key": "coinmarketcap",
+    "sources": [
+      "composio",
+      "glama",
+      "openconnector",
+      "toolsdk"
+    ],
+    "collapsed_ids": [
+      "composio:coinmarketcap",
+      "glama:glama/jw8vtulbcx",
+      "openconnector:coinmarketcap",
+      "toolsdk:coinmarketcap"
+    ]
+  },
+  {
+    "name": "confluence",
+    "canonical_key": "confluence",
+    "sources": [
+      "composio",
+      "glama",
+      "openconnector",
+      "toolsdk"
+    ],
+    "collapsed_ids": [
+      "composio:confluence",
+      "glama:glama/qzds79wszl",
+      "glama:glama/sa2ao06iga",
+      "openconnector:confluence",
+      "toolsdk:@atlassian-dc-mcp/confluence",
+      "toolsdk:@zereight/mcp-confluence",
+      "toolsdk:confluence",
+      "toolsdk:mcp-confluence"
+    ]
+  }
+]

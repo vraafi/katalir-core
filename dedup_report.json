@@ -1,0 +1,17 @@
+{
+  "before": 28664,
+  "after": 22789,
+  "collapsed": 5875,
+  "unique_percent": 79.5,
+  "multi_source_groups": 1610,
+  "unique_verified": 25,
+  "tools_listed": 1576,
+  "discovered_only": 21213,
+  "by_source_membership": {
+    "glama": 16786,
+    "toolsdk": 3976,
+    "openconnector": 1549,
+    "composio": 1518,
+    "glama-connector": 982
+  }
+}

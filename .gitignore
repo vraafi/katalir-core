@@ -16,6 +16,11 @@ nexus-frontend/_e2e_storage*.json
 nexus-frontend/test-results/
 nexus-frontend/playwright-report/
 
+# ===== Generated analysis output (regenerable, huge) =====
+# `python mcp_dedup.py` rebuilds these in seconds; committing a 29 MB file that
+# is pure output would bloat the repo without adding information.
+dedup_canonical.json
+
 # ===== Python =====
 __pycache__/
 *.py[cod]
