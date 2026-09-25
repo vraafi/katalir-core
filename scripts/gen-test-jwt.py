@@ -14,6 +14,6 @@ with httpx.Client(timeout=30) as c:
     r.raise_for_status(); session = r.json()
 pathlib.Path("test-jwt.txt").write_text(session["access_token"], encoding="utf-8")
 pathlib.Path(".agent-test-user-id").write_text(user_id, encoding="utf-8")
-pathlib.Path(".agent-test-session.json").write_text(json.dumps({"user_id": user_id, "email": email, "access_token": session["access_token"], "refresh_token": session.get("refresh_token", "")}), encoding="utf-8")
+pathlib.Path(".agent-test-session.json").write_text(json.dumps({"user_id": user_id, "email": email, "url": url, "access_token": session["access_token"], "refresh_token": session.get("refresh_token", "")}), encoding="utf-8")
 print(f"USER_CREATED={user_id}")
 print(f"JWT_SAVED=yes LENGTH={len(session['access_token'])}")

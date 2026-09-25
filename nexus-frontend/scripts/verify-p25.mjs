@@ -1,8 +1,9 @@
 import { chromium } from "playwright";
 import { readFileSync, mkdirSync } from "node:fs";
-const jwt = readFileSync("../test-jwt.txt", "utf8").trim();
-const ref = new URL(process.env.SUPABASE_URL || "https://placeholder.supabase.co").hostname.split(".")[0];
+const session = JSON.parse(readFileSync("../.agent-test-session.json", "utf8"));
+const ref = new URL(session.url || "https://placeholder.supabase.co").hostname.split(".")[0];
 const key = `sb-${ref}-auth-token`;
+const jwt = session.access_token;
 mkdirSync("test-results/p25", { recursive: true });
 const b = await chromium.launch();
 const ctx = await b.newContext({ acceptDownloads: true });
