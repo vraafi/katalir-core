@@ -4,7 +4,8 @@ Accessed 25 September 2026. Official source: https://support.google.com/cloud/an
 
 ## Agent-verified
 
-- Production callback: `https://web-production-dc90b.up.railway.app/oauth/google/callback`
+- Production OAuth callback: `https://web-production-dc90b.up.railway.app/oauth/google/callback`
+- User confirmed Google Auth Platform app was published on 25 September 2026.
 - Frontend origin: `https://katalir.de5.net`
 - Google credentials are present in backend environment (values not printed).
 - Supabase Site URL and redirect allow-list are the production domain per prior configuration.

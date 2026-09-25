@@ -5,13 +5,13 @@
 - Production live: https://katalir.de5.net
 - MCP Federation: 500+ metadata, 39 tools executable, multi-tenant, AI picker
 - Legal pages: /privacy, /terms
-- OAuth: Google (Testing mode), Slack (Public Distribution ON)
+- OAuth: Google (Published by user, 2026-09-25), Slack (Public Distribution ON)
 - Billing: Dodo (test mode)
 
 ## Phase 2 — Go Public + Revenue
 
 ### FASE P2.1 — Publish Google OAuth
-- [ ] User: click Publish app di Google Auth Platform.
+- [x] User: Google OAuth app published on 2026-09-25.
 - [x] Agent: verify production OAuth config and write checklist.
 - [x] Checklist written at `docs/deploy/google-oauth-publish-checklist.md`; production callback verified in code/config.
 
