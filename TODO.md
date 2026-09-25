@@ -9,7 +9,7 @@
 - [x] C1: Research agentgateway + registry
 - [x] C2.1-C2.15: VPS + 5/5 server + 39 tools + call
 - [x] C2.16: Named tunnel dibuat; CNAME manual selesai
-- [!] C2.21: BUILD FIXED, DEPLOYMENT NOT YET CONFIRMED — Railway diagnosis 4193d397 showed pydantic==2.10.4 conflicted with mcp==1.26.0; requirements now pins pydantic==2.11.4 in commit 397b00b. Deployment polling could not retrieve a new deployment record; user action: verify latest deployment status in Railway dashboard, then re-run health/MCP.
+- [!] C2.21: BLOCKED after 10 Railway polls — redeploy API returned true but GraphQL deployment list stayed empty; Railway dashboard/build log required to confirm commit 397b00b/2ebe45d promotion.
 - [ ] C2.22: Dokumentasi final VPS/named tunnel
 - [x] C3: MCP SDK client refactor
 - [ ] C7: Registry → gateway coverage test
@@ -38,6 +38,7 @@
 - [ ] Production deploy
 - [ ] 8-route screenshots
 - [ ] Final documentation
+
 
 
 
