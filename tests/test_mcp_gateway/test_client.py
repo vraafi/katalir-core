@@ -1,4 +1,4 @@
-﻿from mcp_gateway.client import GatewayClient
+from mcp_gateway.client import GatewayClient
 import pytest
 
 def test_client_requires_url(monkeypatch):

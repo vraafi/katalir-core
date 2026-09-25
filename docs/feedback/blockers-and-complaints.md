@@ -67,26 +67,61 @@ kredensial, `CLOSED` = sudah dieksekusi dan diverifikasi.
 
 ---
 
-## 2026-09-25 — Nango belum punya deployment terverifikasi
+## 2026-09-25 — Nango belum bisa dideploy: VPS kekurangan RAM
 
-- **Status:** BLOCKED
-- **Keluhan:** Tidak ada `NANGO_URL` yang terverifikasi, jadi belum bisa jadi batch test.
-- **Dampak:** Nango belum bisa masuk ke pipeline runtime verification.
-- **Yang dibutuhkan:** URL Nango yang sudah dideploy + instance ID/key.
-- **Rencana begitu ada:** verifikasi `GET /api/v1/config` → health → `list_connections` →
-  sync provider metadata dengan status `discovered` dulu.
+- **Status:** BLOCKED (sumber daya, bukan riset)
+- **Keluhan:** Tidak ada `NANGO_URL` yang terverifikasi, jadi Nango belum bisa
+  masuk ke pipeline runtime verification.
+- **Penelusuran dilakukan (bukan berhenti di "tidak ada info"):**
+  - NangoHQ/nango `docker-compose.yaml` memuat `nango-db` (postgres:16.0-alpine),
+    `nango-server` (image `nangohq/nango-server`), `nango-redis` (redis:7.2.4),
+    plus elasticsearch opsional untuk logs
+  - Env wajib antara lain: `NANGO_ENCRYPTION_KEY`, `NANGO_DB_*`,
+    `RECORDS_DATABASE_URL`, `NANGO_SERVER_URL`, `NANGO_PUBLIC_SERVER_URL`
+  - Docs Self-Managed: free self-hosting hanya **Auth + Proxy**; fitur lain butuh
+    Enterprise Self-Managed. Jalur produksi yang didukung adalah Helm/Kubernetes
+    dengan managed image
+- **Blocker nyata — hasil pengukuran VPS:**
+  - 2 vCPU, RAM total **2.468 MB**, tersedia **931 MB**
+  - Disk 43 GB, terpakai 24% (bukan masalah)
+  - Container produksi yang harus tetap hidup: `open-connector`, `free-llm-gateway`
+  - Postgres + Nango + Redis butuh ±1–1,5 GB RAM
+- **Keputusan:** Nango **tidak** dideploy di VPS ini. Mematikan gateway produksi
+  demi integrasi yang belum terbukti bukan kemajuan.
+- **Syarat untuk membuka blocker:** VM terpisah minimal 4 GB RAM (atau VPS 4 GB
+  baru), lalu: jalankan compose → `GET /api/v1/config` → health → `list_connections`
+  → sync metadata dengan status `discovered`.
+- **Catatan arsitektur:** Nango bernilai sebagai lapisan **OAuth/connection**, bukan
+  sumber tool. MCP-nya adalah management MCP (baca config/integrasi), jadi
+  federasinya ke agentgateway tidak menambah tool pengguna. Prioritasnya di bawah
+  OpenConnector untuk target "10.000+ runtime-verified".
 
 ---
 
 ## 2026-09-25 — Glama: kontradiksi lisensi & akses
 
-- **Status:** BLOCKED
-- **Keluhan:** Prompt menyebut Glama "public/free", tetapi riset sebelumnya menemukan
-  Glama mewajibkan API key, attribution, dan tunduk pada API Data License.
-- **Dampak:** Risiko sync 1.000+ tool dari sumber yang lisensinya belum jelas.
-- **Syarat sebelum sync:** konfirmasi条款 — apakah catalogue boleh disalin & didistribusikan
-  ulang di produk kita, dan apakah atribusi wajib ditampilkan di UI.
-- **Rencana:** search dokumentasi Glama 2026, catat temuan di sini, baru putuskan sync atau tolak.
+- **Status:** CLOSED (ketentuan terverifikasi; sync masih butuh API key)
+- **Keluhan:** Prompt menyebut Glama "public/free", sementara riset sebelumnya
+  menemukan Glama mewajibkan API key, attribution, dan tunduk pada API Data License.
+- **Hasil verifikasi (dokumentasi resmi Glama, dibaca langsung):**
+  - Base URL: `https://glama.ai/api/mcp`
+  - Endpoint: `GET /v1/servers`, `GET /v1/servers/{namespace}/{slug}`, `GET /v1/connectors`
+  - Autentikasi: **wajib** `Authorization: Bearer <GLAMA_API_KEY>` untuk semua endpoint baca
+  - Rate limit: 100 request/detik per IP, paginasi cursor (`first`/`after`), maks 100 per halaman
+  - Header IETF RateLimit tersedia untuk pacing
+  - **Lisensi: API Data License — data ini berlisensi, bukan public domain**
+  - **Atribusi wajib** pada setiap halaman yang menampilkan data API: tautan ke
+    `https://glama.ai` tanpa `rel="nofollow"/"sponsored"/"ugc"`
+  - **Setiap listing wajib tertaut** ke halaman resminya di Glama, berdampingan
+    dengan tautan lain (bukan menggantikannya)
+  - Atribusi bisa **dibebaskan** lewat lisensi komersial
+- **Kesimpulan:** Glama bukan "public domain", tapi **API publik berlisensi dengan
+  syarat atribusi**. Kontradiksi tadi muncul karena dua sumber berbeda menyebut
+  dua hal berbeda; sekarang tidak ada ambiguitas.
+- **Syarat sebelum sync:** (1) `GLAMA_API_KEY` tersedia, (2) UI integrations
+  menampilkan kredit Glama, (3) tiap kartu integrasi Glama tertaut ke listing resminya.
+- **Status sync:** BELUM — terkunci di syarat (1). Tidak ada data Glama yang
+  disalin ke cache produksi sebelum ketiganya terpenuhi.
 
 ---
 

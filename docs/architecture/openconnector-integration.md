@@ -178,7 +178,11 @@ Idempotency was verified by running the sync twice and comparing md5: identical,
 
 ## Not done yet
 
-- Nango: no verified deployment / `NANGO_URL` yet.
-- Glama: licence and API-key/attribution terms still unconfirmed.
+- Nango: blocked by VPS capacity (2,4 GB RAM total, 931 MB free) — needs a
+  separate 4 GB box. Findings and measured numbers are in
+  `docs/feedback/blockers-and-complaints.md`.
+- Glama: terms now confirmed (API key + mandatory attribution + per-listing link
+  under the API Data License). Sync still blocked on having a `GLAMA_API_KEY` and
+  on the integrations UI carrying the credit + backlink.
 - Public surface for OpenConnector: still loopback-only, intentionally.
 - Screenshot of the federated tool list: not captured yet.
