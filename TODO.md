@@ -34,7 +34,7 @@
 
 ## FASE G — Expose Katalir as MCP Server
 - [x] Workflow → MCP tool — owner-scoped `GET /mcp/server/tools` + `POST /mcp/server/call`; execution delegated to existing workflow engine.
-- [ ] External MCP client test — protocol adapter/client test against Katalir server surface.
+- [x] External MCP client test — official `mcp.server.fastmcp.FastMCP` stdio adapter added at `mcp_gateway/katalir_server.py`; import/compile PASS. Live owner call still requires a fresh user JWT.
 
 ## FASE H — Final Verify
 - [ ] Production deploy
