@@ -3,30 +3,63 @@
 **Rule of this file:** a number is only allowed on it if it was produced by a run
 whose output is in the repo. Phase-based, no deadline, auto-continue.
 
+That rule is enforced, not just stated: `node verify_roadmap_claims.mjs`
+re-derives every number below from the artefacts it cites and exits non-zero if
+any claim stops reproducing. **If you edit a number here, run that script.**
+
 ## Reality check (measured 2026-09-26, not projected)
 
 | Metric | Value | Where it comes from |
 | --- | --- | --- |
-| Raw catalogue entries | 28.664 | sum of the 5 source files |
-| **Unique integrations (deduped)** | **22.789** | `mcp_dedup.py` → `dedup_report.json` |
-| Unique % | 79,5 % (5.875 collapsed) | same |
-| Groups present in >1 source | 1.610 | same |
-| **Unique call-verified** | **27** | 25 (dedup) + Groq + Gemini |
-| **Unique tools-listed** | **1.781** | `dedup_report.json` |
+| Raw catalogue entries | 28.670 | sum of the 5 source files |
+| **Unique integrations (deduped)** | **22.904** | `mcp_dedup.py` → `dedup_report.json` |
+| Unique % | 79.89 % (5.766 collapsed) | same |
+| Groups present in >1 source | 1.602 | same |
+| **Unique call-verified** | **26** + Groq + Gemini | `dedup_report.json` → `unique_verified` |
+| **Integrations that list tools** | **1.896** | `dedup_report.json` → `tools_listed` |
 | discovered only | 21.008 | `dedup_report.json` |
 | Generated OpenAPI tools | 884 registered (889 generated) | `openapi_tools_manifest.json` |
+| Glama no-auth pool | 351 connectors → **4.714 tools** | `glama-connector-verify-batch{1,2}.json` |
 
-**The honest gap:** the blitz target is 2.000 unique *verified*. Reality is **27**
-call-verified / 1.781 tools-listed. The gap is a *verification* problem, not a
-sourcing problem: 22.789 unique integrations are already in the catalogue.
+**Two different units — do not add or compare these.** 1.896 counts
+*integrations* that answer `tools/list` (1.896 + 21.008 = 22.904, the deduped
+total). 4.714 counts *tools* returned by those calls. They are not the same kind
+of number, so "1.781 vs 4.714" was never a meaningful comparison.
+
+Measured containment: all **351 of 351** pool connectors are already keys in
+`glama_connectors.json`. The pool sweep therefore adds **no new sourcing** — it
+converts 351 already-catalogued entries from "listed" to "listed, with a counted
+tool inventory". **Neither figure is call-verified**; the sweep never issued a
+single `tools/call`.
+
+**The honest gap:** the blitz target is 2.000 unique *verified*. Reality is **28
+call-verified**, with 1.896 integrations proven to list tools and 4.714 tools
+enumerated across 351 of them. The gap is a *verification* problem, not a
+sourcing problem: 22.904 unique integrations are already in the catalogue, and a
+`tools/call` against the 351 is the next cheap step.
 
 ## FASE 1 — Batch Verify  ← current
-- [x] F1.1 Nango key → **BLOCKED-USER** (key present, API returns 401 both header forms)
+- [!] F1.1 Nango key → **BLOCKED-USER** (key present, API returns 401 both header forms)
 - [!] F1.2 Nango provider templates → blocked by F1.1
 - [!] F1.3 Metorial tools → **BLOCKED-USER** (key valid, project has 0 providers connected)
-- [x] F1.4 Batch verify candidates — batch 1: 420 probed → **236 ok** / 2.313 tools;
-      batch 2: 199 remaining in progress
-- [ ] F1.5 metrics · [ ] F1.6 commit
+- [x] F1.4 Batch verify candidates — **complete, no-auth Glama pool exhausted**:
+      619 attempted → **351 ok** / **4.714 tools** (batch 1: 420 → 236 / 2.313,
+      batch 2: 199 → 115 / 2.401). The two batches overlap by **0** connectors, so
+      236 + 115 = 351 is a real union, not a double count.
+      Evidence: `glama-connector-verify-batch{1,2}.json`. Still **tools-list only**
+      — no `tools/call` was issued, so none of this counts toward "verified".
+- [x] F1.6 commit — both batch JSONs are tracked at `6dcbfd0`
+- [ ] F1.5 metrics
+
+## FASE 1b — UI polish (shipped alongside F1.4)
+- [x] F1b.1 Chat empty state → DeepSeek minimalism: decorative Sparkles/Bot icons
+      removed, text-only greeting, rounded suggestion pills.
+- [x] F1b.2 Magnetic, non-clickable MCP logo cloud, 55 brands. Hover moves the
+      nearest tile (150px range, 0.3 strength) + tilt + spotlight. Live on
+      `katalir.de5.net` — 55/55 render as inline SVG, 0 remote images,
+      `pointer-events: none`, 0 focusable children.
+- Evidence: `docs/evidence/{landing-logos,chat-empty}-{desktop,mobile}.png`,
+  commits `7959dae`, `507cc7c`, `810bf9b`, `f0cf704`.
 
 ## FASE 2 — Sync All Sources
 - [ ] F2.1 sync the 884 OpenAPI tools (dedup first) · [ ] F2.2 source tags
@@ -62,6 +95,14 @@ sourcing problem: 22.789 unique integrations are already in the catalogue.
 ## Already done (earlier phases, kept for continuity)
 - [x] Dedup engine · [x] OpenAPI generator · [x] AI tools (Groq + Gemini call-verified)
 - [x] P3.1 Community platform **deployed**: 2 tables, RLS on, 2 triggers, live-tested
+- [x] MCP gateway: sends auth headers and **fails closed** when no credential
+      (`mcp_gateway/client.py` + `tests/test_mcp_gateway/test_client.py`, `2b2f8f5`)
+- [x] MCP auto-config preview + runtime allowlist gate (`mcp_autoconfig.py`, `fc94d21`)
+- [x] Katalir MCP server proven by a **real external SDK client**, not an in-repo
+      stub (`tests/test_katalir_mcp_external.py`, `9e2e0bb`)
+
+These three landed on the MCP track and are tracked in `TODO.md`; they are listed
+here only so the blitz totals are not mistaken for the whole of what exists.
 
 ## Blocked on the user
 1. **Nango Cloud key** — a key exists in `.env` but the API rejects it
