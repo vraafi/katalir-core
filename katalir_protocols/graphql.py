@@ -1,4 +1,4 @@
-﻿"""F3.2 — GraphQL introspection schema → MCP tool descriptors.
+"""F3.2 — GraphQL introspection schema → MCP tool descriptors.
 
 A GraphQL schema is a better description of an API than an OpenAPI document: one
 endpoint, the type system gives real argument types, and introspection returns

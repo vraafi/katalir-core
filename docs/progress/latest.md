@@ -1,32 +1,39 @@
 ﻿# Progress Katalir — Latest
 
 ## Status
-- Current Fase: 1/9
-- Last completed: **F1.4 batch verify** — 2026-09-26 — (this commit)
-- Metrics: call_verified=27, tools_listed=1.895, catalog_unique=22.789, revenue=$0
-- Next: F1.5/F1.6 done in this commit -> **Fase 2 (sync all sources)**
+- Current Fase: 3/9 selesai, berikutnya F4
+- Last completed: **F3 Multi-Protocol Executor** — 2026-09-26
+- Metrics: call_verified=229, tools_listed=1.896, catalog_unique=23.474, revenue=$0
+- Next: F4 (Marketplace UI v2 polish)
 
-## Fase 1.4 — Batch verify [DONE 2026-09-26]
-Two batches, read-only, sequential 0.5s, SSRF-guarded, never `tools/call`:
-- batch 1: 420 probed -> 236 ok (2.313 tools)
-- batch 2: 199 probed -> 115 ok (2.401 tools)
-- **Total: all 619 no-auth connectors probed -> 351 ok, 4.714 tools listed**
-- 251 auth_required · 8 protocol_error · 9 unreachable · 0 ssrf_blocked
-- Unique tools-listed 1.781 -> **1.895**; call-verified stays 27 (correctly)
-- Added `--skip-probed` so re-runs never re-probe what was already measured
+## Fase 3 — Multi-Protocol Executor [DONE 2026-09-26]
+Empat protokol, satu kontrak, satu choke point untuk SSRF.
+- F3.1 OpenAPI `katalir_protocols/openapi.py` — operation tanpa `parameters[]` untuk `{id}` ditolak
+- F3.2 GraphQL `katalir_protocols/graphql.py` — live introspection → **35 tools**
+- F3.3 JS sandbox `katalir_protocols/jsandbox.py` — **sandbox tidak punya network sendiri**
+- F3.4 MCP remote `katalir_protocols/mcp_remote.py` — live, **7/12 server, 36 tools**
+- F3.5 `tests/test_katalir_protocols.py` **50 passing** + `scripts/f3_evidence.py`
 
-## Fase 1.1 — resolved 2026-09-26 (our test was wrong, not the key)
-- Nango: **200 OK**, 1.024 providers. Correct call is `GET https://api.nango.dev/providers`
-  with `Authorization: Bearer <key>`. The 401 recorded before came from hitting
-  `/api/v1/providers`, a route Nango does not have. The key was valid all along.
-- `/integrations` -> 200, 1 integration: `github-getting-started` (created 2026-09-25).
-- `/provider-templates` returns **HTML**, not JSON — Connect UI docs, not an API.
-- Metorial: key valid, `/integration-providers` -> 200 but **0 providers** connected
+Bukti terukur (`f3_protocol_evidence.json`): `TOOLS_LISTED=960`, `CALL_VERIFIED=1`,
+`FALSE_CALL_VERIFIED=0`, `SSRF_ESCAPES_BLOCKED=5/5`.
 
-## Earlier, still current
-- P3.1 Community platform **live in production**: 2 tables, RLS on both, 2 triggers,
-  trigger tests passed, rows cleaned up (28135c0)
+**Kenapa hanya 1 call_verified.** OpenAPI/GraphQL/MCP-remote semuanya menghasilkan
+*deskripsi*, bukan eksekusi — jadi `tools_listed` dan tetap di sana. Hanya sandbox JS
+yang benar-benar menjalankan, jadi itu satu-satunya jalur yang boleh `call_verified`.
+Angka `false_call_verified=0` diassert supaya tidak ada klaim "verified" yang tak
+pernah dieksekusi.
 
-## Blockers (need the user)
+## Keputusan desain F3.3 (penting)
+Sandbox JS tidak diberi `fetch` milik Node. `fetch`-nya emit request lewat stdio,
+lalu **Python** yang applying guard. Kalau sandbox punya network sendiri, guard
+SSRF ada di dua bahasa — dan dua guard adalah dua hal yang bisa lupa di-update.
+Redirect di F3.4 juga di-resolve manual + guard diulang tiap hop, karena
+`follow_redirects=True` membiarkan URL publik yang lolos lalu menjawab 302 ke
+169.254.169.254 tanpa dicek.
 
-2. `USER ACTION: connect providers in the Metorial dashboard` (key valid, 0 providers)
+## Catatan jujur
+- F3.3 adalah **process sandbox, bukan security boundary** terhadap penyerang
+  gigih. Ini tertulis di docstring module. Multi-tenant yang benar-benar hostil
+  butuh container/seccomp.
+- F3.4 **tidak pernah memanggil tool** saat import. Import tidak boleh bisa
+  mengubah data pihak ketiga sebagai efek samping.

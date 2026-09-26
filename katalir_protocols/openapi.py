@@ -1,4 +1,4 @@
-﻿"""F3.1 — OpenAPI document → MCP tool descriptors.
+"""F3.1 — OpenAPI document → MCP tool descriptors.
 
 `scripts/openapi_to_mcp.py` already generates a *runnable server*; this module is
 the import path that feeds the registry instead, so an OpenAPI-described API can

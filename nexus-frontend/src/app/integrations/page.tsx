@@ -210,8 +210,13 @@ export default function IntegrationsPage() {
       ))}
       <p role="status" aria-live="polite" className="text-sm text-fg-muted">{status}</p>
       {error && <div role="alert" className="rounded-lg border border-danger/40 bg-danger/10 p-3 text-sm text-danger">{error}</div>}
-      <div className="grid gap-3 sm:grid-cols-2">
-        {items.map(item => { const b = badgeFor(item); return <Card key={item.id} data-testid="integration-card">
+      {/* `min-w-0` on the grid: a grid item defaults to min-width:auto, so the
+          `truncate` title below (white-space:nowrap) would otherwise set the
+          track's minimum width and push the whole grid past the viewport —
+          measured 12px of horizontal scroll at 390px wide. min-w-0 lets the
+          item shrink so truncate actually does its job. */}
+      <div className="grid min-w-0 gap-3 sm:grid-cols-2">
+        {items.map(item => { const b = badgeFor(item); return <Card key={item.id} data-testid="integration-card" className="min-w-0">
           <CardHeader><CardTitle className="truncate">{item.name} <span className={`ml-1 rounded-full px-2 py-0.5 text-[10px] font-semibold ${b.cls}`} data-testid={b.testid}>{b.label}</span></CardTitle><CardDescription>{item.category} · {item.tools?.length ?? item.tools_count ?? 0} tools · {SOURCE_LABEL[item.source ?? "toolsdk"] ?? item.source}</CardDescription></CardHeader>
           <CardContent className="flex flex-col gap-3">
             <p className="line-clamp-2 text-sm text-fg-muted">{item.description}</p>

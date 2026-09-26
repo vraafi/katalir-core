@@ -59,6 +59,10 @@ export default defineConfig({
     // "Glama". Di sini karena butuh backend :8000 yang hidup, dan harness
     // build-produksi tidak selesai di mesin ini (lihat catatan di kepala file).
     "marketplace-tabs.spec.ts",
+    // F3.5: bukti visual multi-protocol. Hanya menghasilkan screenshot + cek
+    // bahwa 10 tab, toggle, dan 4 tier benar-benar ter-render. Di harness dev
+    // karena butuh backend :8000 hidup seperti spec di atasnya.
+    "marketplace-f3-evidence.spec.ts",
   ],
   testIgnore: ["**/_probes/**"],
   timeout: 90000,

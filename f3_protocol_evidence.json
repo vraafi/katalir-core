@@ -1,0 +1,50 @@
+{
+ "generated_by": "scripts/f3_evidence.py",
+ "ssrf": {
+  "attempted": 5,
+  "blocked": 5,
+  "reasons": {
+   "http://127.0.0.1:8000/mcp": "scheme_not_https:http",
+   "https://169.254.169.254/latest/meta-data/": "non_public_host:169.254.169.254",
+   "file:///c:/Windows/win.ini": "scheme_not_https:file",
+   "https://10.0.0.1/": "non_public_host:10.0.0.1",
+   "http://example.com/": "scheme_not_https:http"
+  }
+ },
+ "openapi": {
+  "tools": 889,
+  "apis": 6,
+  "skipped": 0,
+  "call_verified": 0,
+  "live_parse_tools": 1,
+  "live_parse_executable": true
+ },
+ "graphql": {
+  "tools": 35,
+  "call_verified": 0,
+  "source": "countries.trevorblades.com",
+  "executable": true
+ },
+ "js": {
+  "compute_ok": true,
+  "compute_value": 42,
+  "compute_call_verified": true,
+  "egress_blocked": true,
+  "infinite_loop_contained": true,
+  "elapsed_total_s": 5.82
+ },
+ "mcp_remote": {
+  "servers": 12,
+  "imported": 7,
+  "tools": 36,
+  "call_verified": 0
+ },
+ "summary": {
+  "protocols": 4,
+  "tools_listed": 960,
+  "call_verified": 1,
+  "false_call_verified": 0,
+  "ssrf_escapes_blocked": 5,
+  "failures": []
+ }
+}

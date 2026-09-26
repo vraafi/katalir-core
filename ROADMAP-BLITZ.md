@@ -116,8 +116,31 @@ call-verified without a user's credential.
       - 7/7 Playwright green, `tsc` clean. · [x] F2.4 commit
 
 ## FASE 3 — Multi-Protocol Executor (MCP + OpenAPI + GraphQL + JS)
-- [ ] F3.1 OpenAPI import · [ ] F3.2 GraphQL import · [ ] F3.3 JS sandbox
-- [ ] F3.4 MCP remote import · [ ] F3.5 test each · [ ] F3.6 commit
+- [x] F3.1 OpenAPI import — `katalir_protocols/openapi.py`. Parses paths[]/operations
+      into the same tool-descriptor shape the other protocols use. Refuses an
+      operation whose `{id}` has no matching `parameters[]` (imports clean, 404s on
+      first call), refuses deprecated ops, refuses a non-public `servers[0].url`.
+- [x] F3.2 GraphQL import — `katalir_protocols/graphql.py`. Live introspection of
+      countries.trevorblades.com → 35 tools. Walks every object type rather than
+      only the root queryType, so nested fields are reachable.
+- [x] F3.3 JS sandbox — `katalir_protocols/jsandbox.py` + `js_runner.js`. The
+      sandbox has **no network of its own**: its `fetch` emits a request over stdio
+      and Python applies the guard. Giving it node's fetch would put the SSRF check
+      in a second language, and a second guard is a second thing to forget to update.
+- [x] F3.4 MCP remote import — `katalir_protocols/mcp_remote.py`. Real `initialize`
+      + `tools/list` over streamable HTTP. **Never calls a tool during an import** —
+      importing an entry must not be able to mutate a third party's data.
+- [x] F3.5 test each — `tests/test_katalir_protocols.py`, **50 passing**;
+      `scripts/f3_evidence.py` writes one evidence file and exits non-zero on
+      regression. Measured: 4 protocols, **960 tools listed**, 5/5 SSRF escapes
+      blocked, **0 false call_verified**.
+- [x] F3.6 commit
+
+**The one number that must never move is `false_call_verified` = 0.** OpenAPI,
+GraphQL and remote MCP all produce *descriptions*, so they are `tools_listed` and
+stay there. Only the JS sandbox actually executes, so it is the single path that
+can honestly be `call_verified`. The evidence script asserts this, because
+"verified" that was never executed is the failure this project keeps undoing.
 
 ## FASE 4 — Marketplace UI v2
 - [ ] F4.1 dedup toggle · [ ] F4.2 source badges · [ ] F4.3 runtime status tiers

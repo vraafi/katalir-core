@@ -48,17 +48,39 @@ def test_filter_source_memisahkan_glama_dan_lainnya():
     assert all(i["source"] == "composio" for i in composio_only["items"])
 
 
-def test_konektor_hanya_tools_listed_bukan_call_verified():
-    """The batch verifier only calls initialize + tools/list.
+def test_konektor_hanya_call_verified_bila_ada_bukti():
+    """A connector may be call_verified only when the call is actually recorded.
 
-    It must therefore never set call_verified, or the marketing claim would
-    outrun the evidence.
+    The original version of this test asserted that *nothing* in the registry is
+    call_verified, back when the batch verifier only did initialize + tools/list.
+    That became wrong the moment F1.7 ran a real tools/call, and the fix was not
+    to delete the assertion: the underlying concern is that the marketing claim
+    must not outrun the evidence, and that concern is still true.
+
+    So the rule is now the stronger one. call_verified is allowed, but only
+    alongside the tool that was called and how. A bare `call_verified: true`
+    with nothing behind it is exactly the inflated claim this test exists to
+    catch, and it is now rejected rather than merely un-asserted.
     """
     data = _load(CONNECTORS)
     probed = [r for r in data.values() if r.get("verification", {}).get("tools_listed")]
     assert probed, "expected at least one runtime-verified connector"
     for rec in probed:
-        assert rec["verification"].get("call_verified") is not True
+        v = rec.get("verification", {})
+        if v.get("call_verified") is not True:
+            continue
+        # A claim with nothing behind it is the failure mode being guarded.
+        assert v.get("call_verified_tool"), f"{rec.get('id')} claims call_verified with no tool"
+        assert v.get("call_verified_method"), f"{rec.get('id')} claims call_verified with no method"
+
+
+def test_call_verified_must_be_subset_of_tools_listed():
+    """You cannot have called a tool on a server whose tools were never listed."""
+    data = _load(CONNECTORS)
+    for rec in data.values():
+        v = rec.get("verification", {})
+        if v.get("call_verified") is True:
+            assert v.get("tools_listed") is True, rec.get("id")
 
 
 def test_endpoint_native_diturunkan_dari_kode():
