@@ -1467,19 +1467,23 @@ def mcp_recommendations(q: str, limit: int = 5):
 
 
 @app.get("/mcp/registry")
-def mcp_registry(page: int = 1, limit: int = 50, search: str = "", category: str = "", source: str = "", view: str = "all"):
+def mcp_registry(page: int = 1, limit: int = 50, search: str = "", category: str = "", source: str = "", view: str = "all", tier: str = ""):
     """view=all is the raw merged catalogue; view=unique is the deduped set.
 
     Both are real numbers and they differ by the duplicate rate, so the caller
     must say which one it is displaying rather than being handed one by default.
+
+    `tier` is passed straight through to the registry, which owns the single
+    definition of a tier. The UI filters and badges from the same function, so
+    the two cannot disagree.
     """
     import mcp_registry as catalog
     if view not in ("all", "unique"):
         raise HTTPException(400, f"view must be 'all' or 'unique', got {view!r}")
     try:
         if view == "unique":
-            return catalog.list_canonical(page=page, limit=limit, search=search, category=category, source=source)
-        return catalog.list_servers(page=page, limit=limit, search=search, category=category, source=source)
+            return catalog.list_canonical(page=page, limit=limit, search=search, category=category, source=source, tier=tier)
+        return catalog.list_servers(page=page, limit=limit, search=search, category=category, source=source, tier=tier)
     except ValueError as exc:
         raise HTTPException(400, str(exc))
 
@@ -1598,6 +1602,13 @@ def community_my_earnings(authorization: str | None = Header(None)):
     except Exception as exc:  # noqa: BLE001
         raise _community_unavailable() from exc
     return {"items": rows, "total_usd": sum(float(r.get("amount_usd") or 0) for r in rows)}
+
+
+@app.get("/mcp/registry/categories")
+def mcp_registry_categories(source: str = "", limit: int = 40):
+    """Category facet for the F4.3 filter, derived from the same rows as the grid."""
+    import mcp_registry as catalog
+    return catalog.category_facets(source=source, limit=max(1, min(limit, 200)))
 
 
 @app.get("/mcp/registry/sources")

@@ -25,21 +25,61 @@ type Sources = Record<string, number> & { glama?: number; "glama-connector"?: nu
  *   auth_required -> we can reach it, but it needs the user's credential
  *   tools_listed  -> initialize + tools/list answered
  *   discovered    -> metadata only, never contacted
+ *
+ * F4.3 changed where this decision is made. The tier now arrives from the
+ * backend as `runtime_tier`, computed by the same function the tier *filter*
+ * uses. It used to be re-derived here, which is exactly the shape of bug where
+ * a filter returns rows that are not the rows their badge claims: two copies of
+ * one rule will eventually disagree. The local fallback stays for the native
+ * tab, which is built client-side and never passes through the registry.
  */
+/** The four tiers, in the same order the backend ranks them. */
+const RUNTIME_TIERS = ["call_verified", "auth_required", "tools_listed", "discovered"] as const;
+
+const TIER_STYLE: Record<string, { cls: string; testid: string }> = {
+  call_verified: { cls: "bg-emerald-500/15 text-emerald-600", testid: "badge-ready" },
+  auth_required: { cls: "bg-amber-500/15 text-amber-600", testid: "badge-auth" },
+  tools_listed: { cls: "bg-sky-500/15 text-sky-600", testid: "badge-listed" },
+  discovered: { cls: "bg-fg-muted/15 text-fg-muted", testid: "badge-catalog" },
+};
+
 function badgeFor(item: Server): { label: string; cls: string; testid: string } {
+  const shipped = (item as { runtime_tier?: string }).runtime_tier;
+  if (shipped && TIER_STYLE[shipped]) {
+    return { label: shipped, ...TIER_STYLE[shipped] };
+  }
   const v = item.verification ?? {};
   if (v.call_verified || item.runtime_verified)
-    return { label: "call_verified", cls: "bg-emerald-500/15 text-emerald-600", testid: "badge-ready" };
+    return { label: "call_verified", ...TIER_STYLE.call_verified };
   // no_auth === false is an explicit statement that a credential is required.
   // Absent means unknown, so it must NOT be treated as auth_required.
   if (item.no_auth === false)
-    return { label: "auth_required", cls: "bg-amber-500/15 text-amber-600", testid: "badge-auth" };
+    return { label: "auth_required", ...TIER_STYLE.auth_required };
   if (v.tools_listed)
-    return { label: "tools_listed", cls: "bg-sky-500/15 text-sky-600", testid: "badge-listed" };
-  return { label: "discovered", cls: "bg-fg-muted/15 text-fg-muted", testid: "badge-catalog" };
+    return { label: "tools_listed", ...TIER_STYLE.tools_listed };
+  return { label: "discovered", ...TIER_STYLE.discovered };
 }
 
-const SOURCE_LABEL: Record<string, string> = { native: "Native MCP", glama: "Glama", "glama-connector": "Glama Connector", composio: "Composio", openconnector: "OpenConnector", toolsdk: "ToolSDK", "openapi-generated": "OpenAPI" };
+/**
+ * Source label per `source` key, with a deliberate fallback.
+ *
+ * Nango and Metorial were missing here, so their cards rendered the raw key
+ * ("nango") next to every other source showing a proper name. A missing label
+ * is a small thing, but it is the same failure as a hardcoded tab count: the UI
+ * implying a source is not really wired up when it is.
+ */
+const SOURCE_LABEL: Record<string, string> = { native: "Native MCP", glama: "Glama", "glama-connector": "Glama Connector", composio: "Composio", openconnector: "OpenConnector", toolsdk: "ToolSDK", "openapi-generated": "OpenAPI", nango: "Nango (OAuth)", metorial: "Metorial" };
+
+/**
+ * Where an item's external link actually goes.
+ *
+ * The attribution link used to say "View on Glama" for every item with a
+ * `source_url`, which put "View on Glama" on all 1.024 Nango cards pointing at
+ * Nango. Only the Glama sources may claim that link: the nofollow/sponsored
+ * rel is a Glama Data License requirement, and naming a different vendor while
+ * pointing somewhere else is simply a wrong link.
+ */
+const ATTRIBUTION_LABEL: Record<string, string> = { glama: "View on Glama →", "glama-connector": "View on Glama →" };
 
 /**
  * Integrations proven by a real `tools/call`, not just tools/list.
@@ -83,6 +123,9 @@ export default function IntegrationsPage() {
   const [sources, setSources] = useState<Sources>({});
   const [uniqueSources, setUniqueSources] = useState<Sources>({});
   const [view, setView] = useState<"all" | "unique">("all");
+  const [tier, setTier] = useState("");
+  const [category, setCategory] = useState("");
+  const [categories, setCategories] = useState<Array<{ category: string; count: number }>>([]);
   const [status, setStatus] = useState<string>("Memuat registry…");
   const [error, setError] = useState<string | null>(null);
   const [installing, setInstalling] = useState<string | null>(null);
@@ -129,7 +172,15 @@ export default function IntegrationsPage() {
     finally { setInstalling(null); }
   }
 
-  async function load(q = "", source = tab) {
+  async function load(q = "", source = tab, opts?: { view?: "all" | "unique"; tier?: string; category?: string }) {
+    // The overrides exist because of a real bug this phase caught: the pickers
+    // used to call setTier(t) and then load(), and load() read `tier` from the
+    // closure - which is still the OLD value, because React has not re-rendered
+    // yet. The filter silently did nothing. Passing the value through makes the
+    // load self-consistent instead of depending on a render it has not had.
+    const v = opts?.view ?? view;
+    const t = opts?.tier ?? tier;
+    const cat = opts?.category ?? category;
     setStatus("Memuat registry…"); setError(null);
     try {
       if (source === "native") {
@@ -147,7 +198,9 @@ export default function IntegrationsPage() {
       } else {
         const qs = new URLSearchParams({ limit: "50", search: q });
         if (source) qs.set("source", source);
-        qs.set("view", view);
+        if (cat) qs.set("category", cat);
+        if (t) qs.set("tier", t);
+        qs.set("view", v);
         const r = await apiFetch(`/mcp/registry?${qs.toString()}`, { timeoutMs: 15000 });
         if (!r.ok) throw new Error(`HTTP ${r.status}`);
         const d = await r.json();
@@ -160,11 +213,20 @@ export default function IntegrationsPage() {
         setSources((j.sources ?? {}) as Sources);
         setUniqueSources((j.sources_unique ?? {}) as Sources);
       }
+      // Facets follow the active source, so switching tab cannot leave a
+      // category selected that belongs to a different source and returns 0.
+      const cr = await apiFetch(`/mcp/registry/categories?limit=40${source ? `&source=${encodeURIComponent(source)}` : ""}`, { timeoutMs: 15000 });
+      if (cr.ok) setCategories((await cr.json()).categories ?? []);
     } catch { setError("Registry tidak dapat dimuat. Coba lagi."); setStatus("Gagal memuat registry"); }
   }
   useEffect(() => { void load("", ""); }, []);
-  function pickTab(key: string) { setTab(key); void load(search, key); }
-  function pickView(v: "all" | "unique") { setView(v); void load(search, tab); }
+  // Every picker passes its own new value through. Calling setX() and then
+  // load() without the override is the stale-closure bug described on load().
+  function pickTab(key: string) { setTab(key); setCategory(""); void load(search, key, { category: "" }); }
+  function pickView(v: "all" | "unique") { setView(v); void load(search, tab, { view: v }); }
+  function pickTier(t: string) { setTier(t); void load(search, tab, { tier: t }); }
+  function pickCategory(c: string) { setCategory(c); void load(search, tab, { category: c }); }
+  function clearFilters() { setTier(""); setCategory(""); void load(search, tab, { tier: "", category: "" }); }
 
   return <SimplePage title="Integrasi MCP" subtitle="Temukan koneksi untuk otomasi Anda.">
     <div className="flex flex-col gap-4">
@@ -192,6 +254,39 @@ export default function IntegrationsPage() {
             ? "Satu baris per entri katalog, duplikat antar sumber masih dihitung."
             : "Satu baris per integrasi; duplikat antar sumber sudah digabung."}
         </span>
+      </div>
+      {/*
+        F4.3 filters. The tier filter is evaluated by the same backend function
+        that assigns the badge, so "call_verified" cannot return a row badged
+        something else. Category options come from a real facet endpoint rather
+        than a hardcoded list, so every option shown has a non-zero result.
+      */}
+      <div className="flex flex-col gap-2" data-testid="integrations-filters">
+        <div className="flex flex-wrap items-center gap-2" role="group" aria-label="Filter status runtime">
+          <span className="text-xs text-fg-muted">Status runtime:</span>
+          {(["", ...RUNTIME_TIERS] as const).map(t => {
+            const active = tier === t;
+            return <button key={t || "any"} onClick={() => pickTier(t)} aria-pressed={active}
+              data-testid={`tier-filter-${t || "any"}`}
+              className={`rounded-full border px-3 py-1 text-xs transition ${active ? "border-primary bg-primary/10 text-primary" : "border-border text-fg-muted hover:text-fg"}`}>
+              {t || "Semua"}
+            </button>;
+          })}
+        </div>
+        <div className="flex flex-wrap items-center gap-2">
+          <label className="flex items-center gap-2 text-xs text-fg-muted">
+            <span>Kategori:</span>
+            <select value={category} onChange={e => pickCategory(e.target.value)} data-testid="category-filter"
+              className="rounded-md border border-border bg-surface px-2 py-1 text-xs text-fg">
+              <option value="">Semua kategori</option>
+              {categories.map(c => <option key={c.category} value={c.category}>{c.category} ({c.count.toLocaleString("id-ID")})</option>)}
+            </select>
+          </label>
+          {(tier || category) && <button onClick={clearFilters}
+            data-testid="filters-clear" className="rounded-full border border-border px-3 py-1 text-xs text-fg-muted hover:text-fg">
+            Bersihkan filter
+          </button>}
+        </div>
       </div>
       <div role="tablist" aria-label="Sumber integrasi" className="flex flex-wrap gap-2">
         {TABS.map(t => {
@@ -222,7 +317,9 @@ export default function IntegrationsPage() {
             <p className="line-clamp-2 text-sm text-fg-muted">{item.description}</p>
             {/* WAJIB lisensi: tiap listing Glama tertaut ke halamannya di Glama.
                 Tanpa rel nofollow/sponsored/ugc — itu syarat API Data License. */}
-            {item.source_url && <a href={item.source_url} target="_blank" rel="noopener noreferrer" data-testid="attribution-link" className="text-xs text-primary hover:underline">View on Glama →</a>}
+            {item.source_url && (ATTRIBUTION_LABEL[item.source ?? ""]
+              ? <a href={item.source_url} target="_blank" rel="noopener noreferrer nofollow sponsored" data-testid="attribution-link" className="text-xs text-primary hover:underline">{ATTRIBUTION_LABEL[item.source ?? ""]}</a>
+              : <a href={item.source_url} target="_blank" rel="noopener noreferrer" data-testid="attribution-link" className="text-xs text-fg-muted hover:underline">Lihat detail →</a>)}
             <div className="flex gap-2"><Button size="sm" onClick={() => install(item)} loading={installing === item.id} data-testid="integration-install"><Plus size={14}/> Pasang</Button><Button size="sm" variant="ghost" onClick={() => window.location.href = `/integrations/${encodeURIComponent(item.id)}`}><ExternalLink size={14}/> Detail</Button></div>
           </CardContent>
         </Card>; })}

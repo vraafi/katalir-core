@@ -119,7 +119,7 @@ def source_counts():
  return dict(sorted(out.items(),key=lambda kv:-kv[1]))
 
 CANONICAL_PATH=Path(__file__).with_name('dedup_canonical.json')
-def list_canonical(*,page=1,limit=50,search='',category='',source=''):
+def list_canonical(*,page=1,limit=50,search='',category='',source='',tier=''):
  '''Dedup-aware listing: one row per canonical integration, not per source row.
 
  The two views differ by the duplicate rate (~22%), so a marketplace that shows
@@ -142,8 +142,12 @@ def list_canonical(*,page=1,limit=50,search='',category='',source=''):
   # so a duplicate present in both glama and composio shows in both tabs - these
   # per-source counts are membership, not disjoint sets.
   rows=[r for r in rows if wanted&{str(s).casefold() for s in (r.get('sources') or [])}]
+ rows=_apply_tier(rows,tier)
  total=len(rows);start=(page-1)*limit;page_rows=rows[start:start+limit]
- for r in page_rows:r['member_count']=len(r.get('member_ids') or []) or 1
+ for r in page_rows:
+  r['member_count']=len(r.get('member_ids') or []) or 1
+  # Same reason as list_servers: the tier is computed once, here, and shipped.
+  r['runtime_tier']=runtime_tier(r)
  return {'items':page_rows,'page':page,'limit':limit,'total':total,'view':'unique','source':'dedup-canonical','raw_total':len(load_cached())}
 def source_counts_unique():
  '''Per-source counts over the canonical set (membership, not disjoint).'''
@@ -155,17 +159,85 @@ def source_counts_unique():
   for s in (r.get('sources') or []):out[str(s)]=out.get(str(s),0)+1
  return out
 
-def list_servers(*,page=1,limit=50,search='',category='',source=''):
+def runtime_tier(item: dict) -> str:
+    """The one definition of a runtime tier, shared by the badge and the filter.
+
+    F4.3 added a tier *filter*, and a filter that does not agree with the badge
+    is worse than no filter: the user clicks "call_verified", sees N rows, and
+    N rows are not the ones badged call_verified. So the classification lives
+    here, the API ships the result on every item, and the UI renders it instead
+    of recomputing it.
+
+    The order is the whole point, and the two edge cases are deliberate:
+
+    * ``no_auth is False`` is an explicit statement that a credential is needed.
+    * ``no_auth`` *absent* means unknown, and unknown is NOT auth_required -
+      promoting it would invent a claim nobody made.
+
+    Collapsing any two of these is how a marketplace ends up claiming it has
+    thousands of working integrations.
+    """
+    v = item.get('verification') if isinstance(item.get('verification'), dict) else {}
+    if v.get('call_verified') or item.get('runtime_verified'):
+        return 'call_verified'
+    if item.get('no_auth') is False:
+        return 'auth_required'
+    if v.get('tools_listed'):
+        return 'tools_listed'
+    return 'discovered'
+
+
+RUNTIME_TIERS = ('call_verified', 'auth_required', 'tools_listed', 'discovered')
+
+
+def _apply_tier(items: list, tier: str) -> list:
+    wanted = {t.strip() for t in str(tier or '').split(',') if t.strip()}
+    if not wanted:
+        return items
+    bad = wanted - set(RUNTIME_TIERS)
+    if bad:
+        raise ValueError(f'unknown runtime tier: {sorted(bad)}')
+    return [x for x in items if runtime_tier(x) in wanted]
+
+
+def category_facets(*, source: str = "", limit: int = 40) -> dict:
+    """Top categories with counts, for the F4.3 filter.
+
+    Derived from the same rows the grid is built from, so a category shown in
+    the dropdown always has a non-zero result. Hardcoding a list of "likely
+    categories" would be the same mistake as a hardcoded tab: it would offer
+    options that return nothing and hide real ones that return thousands.
+    """
+    items = load_cached().values()
+    if source:
+        wanted = {s.strip().casefold() for s in source.split(',') if s.strip()}
+        items = [x for x in items if str(x.get('source') or 'toolsdk').casefold() in wanted]
+    counts: dict = {}
+    for x in items:
+        c = str(x.get('category') or '').strip()
+        if c:
+            counts[c] = counts.get(c, 0) + 1
+    ordered = sorted(counts.items(), key=lambda kv: (-kv[1], kv[0]))
+    return {"total_categories": len(ordered), "categories": [{"category": c, "count": n} for c, n in ordered[:limit]]}
+
+
+def list_servers(*,page=1,limit=50,search='',category='',source='',tier=''):
  if page<1 or not 1<=limit<=100:raise ValueError('invalid pagination')
  items=list(load_cached().values());needle=search.casefold().strip()
- if needle:items=[x for x in items if needle in (x['id']+' '+x['name']+' '+x['description']).casefold()]
- if category:items=[x for x in items if x['category'].casefold()==category.casefold()]
+ # `.get`, not `[...]`: 3.112 rows in the catalogue carry no `category` key at
+ # all, and this raised KeyError the moment F4.3 first sent a category. A latent
+ # bug that sat unreachable precisely because nothing exercised the parameter.
+ if needle:items=[x for x in items if needle in (str(x.get('id') or '')+' '+str(x.get('name') or '')+' '+str(x.get('description') or '')).casefold()]
+ if category:items=[x for x in items if str(x.get('category') or '').casefold()==category.casefold()]
  if source:
   wanted={s.strip().casefold() for s in source.split(',') if s.strip()}
   # Each source is now its own tab, so this must filter on exactly what was
   # asked for. It used to fold glama-connector into glama, which made the "Glama"
   # tab report 20.000 while the grid underneath it held 21.000 rows.
   items=[x for x in items if str(x.get('source') or 'toolsdk').casefold() in wanted]
+ items=_apply_tier(items,tier)
+ # Ship the computed tier so the UI never has to re-derive it and drift.
+ for x in items:x['runtime_tier']=runtime_tier(x)
  items.sort(key=lambda x:x['id']);total=len(items);start=(page-1)*limit
  return {'items':items[start:start+limit],'page':page,'limit':limit,'total':total,'source':'toolsdk-mcp-registry','sources':source_counts()}
 def get_server(server_id):

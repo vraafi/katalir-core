@@ -63,6 +63,9 @@ export default defineConfig({
     // bahwa 10 tab, toggle, dan 4 tier benar-benar ter-render. Di harness dev
     // karena butuh backend :8000 hidup seperti spec di atasnya.
     "marketplace-f3-evidence.spec.ts",
+    // F4.3: filter kategori + status runtime. Butuh backend :8000 hidup
+    // (meny recount via /mcp/registry) seperti spec di atasnya.
+    "marketplace-f4-filters.spec.ts",
   ],
   testIgnore: ["**/_probes/**"],
   timeout: 90000,

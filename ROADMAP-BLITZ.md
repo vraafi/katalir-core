@@ -143,8 +143,36 @@ can honestly be `call_verified`. The evidence script asserts this, because
 "verified" that was never executed is the failure this project keeps undoing.
 
 ## FASE 4 — Marketplace UI v2
-- [ ] F4.1 dedup toggle · [ ] F4.2 source badges · [ ] F4.3 runtime status tiers
-- [ ] F4.4 advanced search/filter · [ ] F4.5 screenshot · [ ] F4.6 commit
+- [x] F4.1 dedup toggle — done di F2.3, diverifikasi ulang.
+- [x] F4.2 search across all sources — done di F2.3 (server-side `search`).
+- [x] F4.3 filter kategori + status runtime — **baru, ini kerja utama F4.**
+      - `runtime_tier()` di `mcp_registry.py` jadi **satu-satunya** definisi tier.
+        Badge dan filter memakai fungsi yang sama, jadi keduanya tidak bisa
+        berbeda pendapat. Di UI sebelumnya badge dihitung ulang sendiri; dua
+        salinan satu aturan pasti akan menyimpang.
+      - `?tier=` di kedua view (all/unique). Tier **partisi katalog**:
+        226 + 12.866 + 1.532 + 14.934 = **29.558**, tanpa celah atau dobel.
+      - `?tier=bogus` → **400**, bukan hasil kosong senyap.
+      - Facet kategori dari `/mcp/registry/categories` (200 kategori nyata,
+        bukan daftar hardcode yang menawarkan opsi kosong).
+- [x] F4.4 screenshot 8+ tab desktop + mobile — 10 file di `f3-shots/`
+      (6 tab + All/Unique + Nango + mobile 390px).
+- [x] F4.5 a11y — 0 control tanpa nama, 0 field tanpa label, semua tab punya
+      `aria-selected`.
+- [x] F4.6 commit
+
+**Tiga bug nyata yang tertangkap F4:**
+1. `list_servers` memakai `x['category']` → **KeyError** di 3.112 baris yang tidak
+   punya key itu. Tidak pernah muncul karena tidak ada yang pernah mengirim
+   parameter `category`. Bug laten yang justru tidak terjangkau.
+2. `pickTier` memanggil `setTier(t)` lalu `load()`, dan `load()` membaca `tier`
+   dari closure — **masih nilai lama**, karena React belum re-render. Filter
+   diam-diam tidak melakukan apa-apa. Semua picker kini meneruskan nilainya.
+3. Semua kartu ber-`source_url` menampilkan "View on Glama" yang di-hardcode,
+   jadi **1.024 kartu Nango** menunjuk ke Nango sambil mengklaim sebagai listing
+   Glama. Link yang salah menyebut vendor lebih buruk daripada tanpa link.
+   Sekarang hanya sumber Glama yang memakai label itu, dan `rel=nofollow
+   sponsored` (syarat Glama Data License) ikut dipertahankan di sana.
 
 ## FASE 5 — Marketing + Launch Prep
 - [ ] F5.1 landing claim · [ ] F5.2 pricing/docs · [ ] F5.3 Product Hunt kit

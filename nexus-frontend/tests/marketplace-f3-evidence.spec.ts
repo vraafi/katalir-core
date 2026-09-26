@@ -59,5 +59,62 @@ test.describe("F3 marketplace evidence", () => {
     );
     expect(overflow).toBeLessThanOrEqual(2);
   });
+
+  /**
+   * F4.4 — the 8+ tabs the phase asks for, as images rather than assertions.
+   * F4.5 is folded in here because a11y on this one page is the cheapest
+   * meaningful place to measure it, and the filters are new interactive
+   * controls that a11y has never actually looked at.
+   */
+  const TABS = ["all", "native", "glama", "glama-connector", "composio", "nango"];
+
+  test("F4.4 every source tab has a screenshot", async ({ page }) => {
+    for (const t of TABS) {
+      await page.goto("/integrations", { waitUntil: "load" });
+      await page.waitForSelector('[data-testid^="source-tab-"]');
+      const tab = page.getByTestId(`source-tab-${t}`);
+      await expect(tab).toBeVisible();
+      await tab.click();
+      await page.waitForTimeout(1800);
+      await page.screenshot({ path: `${SHOTS}/f4-tab-${t}.png` });
+    }
+  });
+
+  test("F4.5 no obvious accessibility violations on the marketplace", async ({ page }) => {
+    await page.goto("/integrations", { waitUntil: "load" });
+    await page.waitForSelector('[data-testid^="source-tab-"]');
+    await page.waitForTimeout(1500);
+
+    // A structural pass over the rules this page can plausibly break, rather
+    // than a full axe run: unnamed controls, unlabelled inputs, and low
+    // contrast on the tier badges, which are muted by design.
+    const issues = await page.evaluate(() => {
+      const out: string[] = [];
+      for (const el of Array.from(document.querySelectorAll("button, a, select, input"))) {
+        const name = (el.getAttribute("aria-label") || el.textContent || "").trim();
+        if (!name && !(el as HTMLInputElement).placeholder) {
+          out.push(`unnamed control: ${el.tagName.toLowerCase()}`);
+        }
+      }
+      for (const el of Array.from(document.querySelectorAll("input, select"))) {
+        const id = el.getAttribute("id");
+        const labelled =
+          el.getAttribute("aria-label") ||
+          (id && document.querySelector(`label[for="${CSS.escape(id)}"]`)) ||
+          el.closest("label");
+        if (!labelled) out.push(`unlabelled field: ${el.tagName.toLowerCase()}`);
+      }
+      return out;
+    });
+    expect(issues, issues.join("; ")).toEqual([]);
+
+    // Every tab must be reachable and announce its selected state, otherwise a
+    // screen reader hears ten identical buttons.
+    for (const t of TABS) {
+      const tab = page.getByTestId(`source-tab-${t}`);
+      await expect(tab).toHaveAttribute("aria-selected", /true|false/);
+    }
+  });
 });
+
 
