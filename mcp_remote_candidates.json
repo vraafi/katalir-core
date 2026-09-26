@@ -1,0 +1,557 @@
+[
+ {
+  "id": "ac.inference.sh/mcp",
+  "name": "inference.sh",
+  "description": "Run 150+ AI apps \u2014 image, video, audio, LLMs, 3D and more. Browse, execute, stream results.",
+  "repo_url": "",
+  "install_config": {
+   "transport": "streamable-http",
+   "package": "https://sh.inference.ac",
+   "install_method": "remote"
+  },
+  "tenant_scope": "user",
+  "validated": true,
+  "tools": [],
+  "source": "official-mcp-registry"
+ },
+ {
+  "id": "ac.inference.sh/mcp",
+  "name": "inference.sh",
+  "description": "Run 150+ AI apps \u2014 image, video, audio, LLMs, 3D and more. Browse, execute, stream results.",
+  "repo_url": "",
+  "install_config": {
+   "transport": "streamable-http",
+   "package": "https://sh.inference.ac",
+   "install_method": "remote"
+  },
+  "tenant_scope": "user",
+  "validated": true,
+  "tools": [],
+  "source": "official-mcp-registry"
+ },
+ {
+  "id": "ac.inference.sh/mcp",
+  "name": "inference.sh",
+  "description": "run any ai model. compose agents, stack knowledge, connect tools. one api, pay per run.",
+  "repo_url": "",
+  "install_config": {
+   "transport": "streamable-http",
+   "package": "https://sh.inference.ac",
+   "install_method": "remote"
+  },
+  "tenant_scope": "user",
+  "validated": true,
+  "tools": [],
+  "source": "official-mcp-registry"
+ },
+ {
+  "id": "ac.inference.sh/mcp",
+  "name": "inference.sh",
+  "description": "run any ai model. compose agents, stack knowledge, connect tools. one api, pay per run.",
+  "repo_url": "",
+  "install_config": {
+   "transport": "streamable-http",
+   "package": "https://api.inference.sh/mcp",
+   "install_method": "remote"
+  },
+  "tenant_scope": "user",
+  "validated": true,
+  "tools": [],
+  "source": "official-mcp-registry"
+ },
+ {
+  "id": "ac.snag/snag",
+  "name": "ac.snag/snag",
+  "description": "Gives your coding agent the captured console, network, replay and screenshot evidence for a bug.",
+  "repo_url": "",
+  "install_config": {
+   "transport": "streamable-http",
+   "package": "https://mcp.snag.ac/mcp",
+   "install_method": "remote"
+  },
+  "tenant_scope": "user",
+  "validated": true,
+  "tools": [],
+  "source": "official-mcp-registry"
+ },
+ {
+  "id": "ac.tandem/docs-mcp",
+  "name": "ac.tandem/docs-mcp",
+  "description": "Remote MCP server for Tandem docs, install guides, SDKs, workflows, and agent setup help.",
+  "repo_url": "https://github.com/frumu-ai/tandem",
+  "install_config": {
+   "transport": "streamable-http",
+   "package": "https://tandem.ac/mcp",
+   "install_method": "remote"
+  },
+  "tenant_scope": "user",
+  "validated": true,
+  "tools": [],
+  "source": "official-mcp-registry"
+ },
+ {
+  "id": "ac.tandem/docs-mcp",
+  "name": "ac.tandem/docs-mcp",
+  "description": "Remote MCP server for Tandem docs, install guides, SDKs, workflows, and agent setup help.",
+  "repo_url": "https://github.com/frumu-ai/tandem",
+  "install_config": {
+   "transport": "streamable-http",
+   "package": "https://tandem.ac/mcp",
+   "install_method": "remote"
+  },
+  "tenant_scope": "user",
+  "validated": true,
+  "tools": [],
+  "source": "official-mcp-registry"
+ },
+ {
+  "id": "ac.tandem/docs-mcp",
+  "name": "ac.tandem/docs-mcp",
+  "description": "Remote MCP server for Tandem docs, install guides, SDKs, workflows, and agent setup help.",
+  "repo_url": "https://github.com/frumu-ai/tandem",
+  "install_config": {
+   "transport": "streamable-http",
+   "package": "https://tandem.ac/mcp",
+   "install_method": "remote"
+  },
+  "tenant_scope": "user",
+  "validated": true,
+  "tools": [],
+  "source": "official-mcp-registry"
+ },
+ {
+  "id": "ad.inside/inside-ads",
+  "name": "Inside Ads",
+  "description": "Telegram ad exchange: estimate reach and cost with no account, then create and run campaigns.",
+  "repo_url": "",
+  "install_config": {
+   "transport": "streamable-http",
+   "package": "https://app.inside.ad/api/mcp",
+   "install_method": "remote"
+  },
+  "tenant_scope": "user",
+  "validated": true,
+  "tools": [],
+  "source": "official-mcp-registry"
+ },
+ {
+  "id": "ae.propick/propick",
+  "name": "Propick Integration MCP",
+  "description": "Manage your real-estate stock on Propick (Dubai): bulk listing sync, lookups and run reports.",
+  "repo_url": "",
+  "install_config": {
+   "transport": "streamable-http",
+   "package": "https://propick.ae/mcp",
+   "install_method": "remote"
+  },
+  "tenant_scope": "user",
+  "validated": true,
+  "tools": [],
+  "source": "official-mcp-registry"
+ },
+ {
+  "id": "ag.hood/name-service",
+  "name": "hood. \u2014 .hood name service",
+  "description": "Resolve .hood names on Robinhood Chain \u2014 forward/reverse, text records, availability & pricing.",
+  "repo_url": "",
+  "install_config": {
+   "transport": "streamable-http",
+   "package": "https://www.hood.ag/api/mcp",
+   "install_method": "remote"
+  },
+  "tenant_scope": "user",
+  "validated": true,
+  "tools": [],
+  "source": "official-mcp-registry"
+ },
+ {
+  "id": "agency.goji/goji",
+  "name": "agency.goji/goji",
+  "description": "AEO, SEO, web and brand answers from a Melbourne agency's published glossary, guides and pricing.",
+  "repo_url": "https://github.com/goji-agency/website",
+  "install_config": {
+   "transport": "streamable-http",
+   "package": "https://mcp.goji.agency/mcp",
+   "install_method": "remote"
+  },
+  "tenant_scope": "user",
+  "validated": true,
+  "tools": [],
+  "source": "official-mcp-registry"
+ },
+ {
+  "id": "agency.goji/goji",
+  "name": "agency.goji/goji",
+  "description": "Answers on AEO, SEO, web and brand from GOJI's published material. Melbourne, Australia.",
+  "repo_url": "https://github.com/goji-agency/goji-mcp",
+  "install_config": {
+   "transport": "streamable-http",
+   "package": "https://mcp.goji.agency/mcp",
+   "install_method": "remote"
+  },
+  "tenant_scope": "user",
+  "validated": true,
+  "tools": [],
+  "source": "official-mcp-registry"
+ },
+ {
+  "id": "agency.lona/trading",
+  "name": "agency.lona/trading",
+  "description": "AI-powered trading strategy development: backtesting, market data, and portfolio analysis",
+  "repo_url": "https://github.com/mindsightventures/lona",
+  "install_config": {
+   "transport": "streamable-http",
+   "package": "https://mcp.lona.agency/mcp",
+   "install_method": "remote"
+  },
+  "tenant_scope": "user",
+  "validated": true,
+  "tools": [],
+  "source": "official-mcp-registry"
+ },
+ {
+  "id": "agency.ottobot/business-contact-finder",
+  "name": "Business Contact Finder",
+  "description": "Check how to contact a business website, and whether that contact path actually works.",
+  "repo_url": "https://github.com/modelcontextprotocol/registry",
+  "install_config": {
+   "transport": "streamable-http",
+   "package": "https://business-contact-finder-mcp.ottobot2025.workers.dev/mcp",
+   "install_method": "remote"
+  },
+  "tenant_scope": "user",
+  "validated": true,
+  "tools": [],
+  "source": "official-mcp-registry"
+ },
+ {
+  "id": "agency.ottobot/contractor-license-changes",
+  "name": "Contractor Licence Changes",
+  "description": "Did this contractor's licence change? Observed lapses and reinstatements, not a snapshot.",
+  "repo_url": "https://github.com/modelcontextprotocol/registry",
+  "install_config": {
+   "transport": "streamable-http",
+   "package": "https://license-changes-mcp.ottobot2025.workers.dev/mcp",
+   "install_method": "remote"
+  },
+  "tenant_scope": "user",
+  "validated": true,
+  "tools": [],
+  "source": "official-mcp-registry"
+ },
+ {
+  "id": "agency.ottobot/contractor-license-changes",
+  "name": "Contractor Licence Changes",
+  "description": "Did this contractor's licence change? Observed lapses and reinstatements, not a snapshot.",
+  "repo_url": "https://github.com/modelcontextprotocol/registry",
+  "install_config": {
+   "transport": "streamable-http",
+   "package": "https://license-changes-mcp.ottobot2025.workers.dev/mcp",
+   "install_method": "remote"
+  },
+  "tenant_scope": "user",
+  "validated": true,
+  "tools": [],
+  "source": "official-mcp-registry"
+ },
+ {
+  "id": "agency.ottobot/licensed-house-painters",
+  "name": "Licensed House Painters",
+  "description": "Find licensed house painters in 11 US states, with dated licence status from state boards.",
+  "repo_url": "https://github.com/modelcontextprotocol/registry",
+  "install_config": {
+   "transport": "streamable-http",
+   "package": "https://house-painters-mcp.ottobot2025.workers.dev/mcp",
+   "install_method": "remote"
+  },
+  "tenant_scope": "user",
+  "validated": true,
+  "tools": [],
+  "source": "official-mcp-registry"
+ },
+ {
+  "id": "agency.ottobot/licensed-house-painters",
+  "name": "Licensed House Painters",
+  "description": "Find licensed house painters in 11 US states, with dated license status from state boards.",
+  "repo_url": "https://github.com/modelcontextprotocol/registry",
+  "install_config": {
+   "transport": "streamable-http",
+   "package": "https://house-painters-mcp.ottobot2025.workers.dev/mcp",
+   "install_method": "remote"
+  },
+  "tenant_scope": "user",
+  "validated": true,
+  "tools": [],
+  "source": "official-mcp-registry"
+ },
+ {
+  "id": "agency.thebureauoflostcontext/bureau-public",
+  "name": "Bureau public reader",
+  "description": "Bureau-operated public read-only MCP service for public Context Packets and Cases.",
+  "repo_url": "",
+  "install_config": {
+   "transport": "streamable-http",
+   "package": "https://thebureauoflostcontext.agency/mcp",
+   "install_method": "remote"
+  },
+  "tenant_scope": "user",
+  "validated": true,
+  "tools": [],
+  "source": "official-mcp-registry"
+ },
+ {
+  "id": "ai.1325/mcp",
+  "name": "1325.AI",
+  "description": "Verified directory of 44,000+ Black-owned U.S. businesses. Search, maps, loyalty rewards.",
+  "repo_url": "https://github.com/1325ai/1325ai",
+  "install_config": {
+   "transport": "streamable-http",
+   "package": "https://agoclnqfyinwjxdmjnns.supabase.co/functions/v1/mcp",
+   "install_method": "remote"
+  },
+  "tenant_scope": "user",
+  "validated": true,
+  "tools": [],
+  "source": "official-mcp-registry"
+ },
+ {
+  "id": "ai.1325/mcp",
+  "name": "1325.AI",
+  "description": "Verified directory of 47,000+ Black-owned U.S. businesses. Search, profiles, maps, rewards.",
+  "repo_url": "https://github.com/1325ai/1325ai",
+  "install_config": {
+   "transport": "streamable-http",
+   "package": "https://agoclnqfyinwjxdmjnns.supabase.co/functions/v1/mcp",
+   "install_method": "remote"
+  },
+  "tenant_scope": "user",
+  "validated": true,
+  "tools": [],
+  "source": "official-mcp-registry"
+ },
+ {
+  "id": "ai.aard/aard",
+  "name": "Aard",
+  "description": "Official statistics from 170+ publishers, resolved from natural language with provenance.",
+  "repo_url": "",
+  "install_config": {
+   "transport": "streamable-http",
+   "package": "https://api.aard.ai/mcp",
+   "install_method": "remote"
+  },
+  "tenant_scope": "user",
+  "validated": true,
+  "tools": [],
+  "source": "official-mcp-registry"
+ },
+ {
+  "id": "ai.aarna/atars-mcp",
+  "name": "aTars MCP",
+  "description": "Crypto market signals, technical indicators, and sentiment analysis for AI agents.",
+  "repo_url": "",
+  "install_config": {
+   "transport": "streamable-http",
+   "package": "https://mcp.aarna.ai/mcp",
+   "install_method": "remote"
+  },
+  "tenant_scope": "user",
+  "validated": true,
+  "tools": [],
+  "source": "official-mcp-registry"
+ },
+ {
+  "id": "ai.abmeter/abmeter",
+  "name": "ABMeter",
+  "description": "Feature flagging and A/B testing platform with AI-first experimentation workflows.",
+  "repo_url": "https://github.com/abmeter/abmeter",
+  "install_config": {
+   "transport": "streamable-http",
+   "package": "https://mcp.abmeter.ai",
+   "install_method": "remote"
+  },
+  "tenant_scope": "user",
+  "validated": true,
+  "tools": [],
+  "source": "official-mcp-registry"
+ },
+ {
+  "id": "ai.abmeter/abmeter",
+  "name": "ABMeter",
+  "description": "Run A/B experiments through your AI assistant. SDKs for Ruby, Python, JS, Node, React Native, Go.",
+  "repo_url": "https://github.com/abmeter/abmeter",
+  "install_config": {
+   "transport": "streamable-http",
+   "package": "https://mcp.abmeter.ai",
+   "install_method": "remote"
+  },
+  "tenant_scope": "user",
+  "validated": true,
+  "tools": [],
+  "source": "official-mcp-registry"
+ },
+ {
+  "id": "ai.actwise/ideation",
+  "name": "ai.actwise/ideation",
+  "description": "Actwise Ideation helps founders benchmark startup and product ideas before they build.",
+  "repo_url": "",
+  "install_config": {
+   "transport": "streamable-http",
+   "package": "https://actwise.ai/ideation/mcp/v1",
+   "install_method": "remote"
+  },
+  "tenant_scope": "user",
+  "validated": true,
+  "tools": [],
+  "source": "official-mcp-registry"
+ },
+ {
+  "id": "ai.adadvisor/mcp-server",
+  "name": "AdAdvisor MCP Server",
+  "description": "Query Meta Ads performance data \u2014 accounts, campaigns, ad sets, ads, metrics & settings.",
+  "repo_url": "",
+  "install_config": {
+   "transport": "streamable-http",
+   "package": "https://api.adadvisor.ai/mcp",
+   "install_method": "remote"
+  },
+  "tenant_scope": "user",
+  "validated": true,
+  "tools": [],
+  "source": "official-mcp-registry"
+ },
+ {
+  "id": "ai.adadvisor/mcp-server",
+  "name": "AdAdvisor MCP Server",
+  "description": "Query Meta Ads performance data \u2014 accounts, campaigns, ad sets, ads, metrics & settings.",
+  "repo_url": "",
+  "install_config": {
+   "transport": "streamable-http",
+   "package": "https://api.adadvisor.ai/mcp",
+   "install_method": "remote"
+  },
+  "tenant_scope": "user",
+  "validated": true,
+  "tools": [],
+  "source": "official-mcp-registry"
+ },
+ {
+  "id": "ai.adako/ads",
+  "name": "Adako \u2014 careful ad ops for AI agents",
+  "description": "Google, Meta, ChatGPT, TikTok and LinkedIn Ads for AI agents. Every write needs your approval.",
+  "repo_url": "https://github.com/ruslan2027/adako-mcp",
+  "install_config": {
+   "transport": "streamable-http",
+   "package": "https://adako.ai/mcp",
+   "install_method": "remote"
+  },
+  "tenant_scope": "user",
+  "validated": true,
+  "tools": [],
+  "source": "official-mcp-registry"
+ },
+ {
+  "id": "ai.adako/ads",
+  "name": "Adako: ad ops for AI assistants",
+  "description": "Google, Meta, ChatGPT, TikTok and LinkedIn Ads for AI assistants. Every change needs your approval.",
+  "repo_url": "https://github.com/ruslan2027/adako-mcp",
+  "install_config": {
+   "transport": "streamable-http",
+   "package": "https://adako.ai/mcp",
+   "install_method": "remote"
+  },
+  "tenant_scope": "user",
+  "validated": true,
+  "tools": [],
+  "source": "official-mcp-registry"
+ },
+ {
+  "id": "ai.adako/ads",
+  "name": "Adako: ad ops for AI assistants",
+  "description": "Google, Meta, ChatGPT, TikTok and LinkedIn Ads for AI assistants. Every change needs your approval.",
+  "repo_url": "https://github.com/ruslan2027/adako-mcp",
+  "install_config": {
+   "transport": "streamable-http",
+   "package": "https://adako.ai/mcp",
+   "install_method": "remote"
+  },
+  "tenant_scope": "user",
+  "validated": true,
+  "tools": [],
+  "source": "official-mcp-registry"
+ },
+ {
+  "id": "ai.adako/ads",
+  "name": "Adako: ad ops for AI assistants",
+  "description": "Google, Meta, ChatGPT, TikTok and LinkedIn Ads for AI assistants. Every change needs your approval.",
+  "repo_url": "https://github.com/ruslan2027/adako-mcp",
+  "install_config": {
+   "transport": "streamable-http",
+   "package": "https://adako.ai/mcp",
+   "install_method": "remote"
+  },
+  "tenant_scope": "user",
+  "validated": true,
+  "tools": [],
+  "source": "official-mcp-registry"
+ },
+ {
+  "id": "ai.adoraads/beauty",
+  "name": "ai.adoraads/beauty",
+  "description": "AI-native beauty ads, sponsored product discovery, and brand recommendations.",
+  "repo_url": "https://github.com/DIGIBIZ360-COM/adoraads",
+  "install_config": {
+   "transport": "streamable-http",
+   "package": "https://mcp.adoraads.ai/beauty",
+   "install_method": "remote"
+  },
+  "tenant_scope": "user",
+  "validated": true,
+  "tools": [],
+  "source": "official-mcp-registry"
+ },
+ {
+  "id": "ai.adoraads/beauty",
+  "name": "ai.adoraads/beauty",
+  "description": "AI-native beauty ads, sponsored product discovery, and brand recommendations.",
+  "repo_url": "https://github.com/DIGIBIZ360-COM/adoraads",
+  "install_config": {
+   "transport": "streamable-http",
+   "package": "https://mcp.adoraads.ai/beauty",
+   "install_method": "remote"
+  },
+  "tenant_scope": "user",
+  "validated": true,
+  "tools": [],
+  "source": "official-mcp-registry"
+ },
+ {
+  "id": "ai.adplane/google-ads",
+  "name": "ai.adplane/google-ads",
+  "description": "Google Ads reporting and campaign management. Everything it creates starts paused.",
+  "repo_url": "",
+  "install_config": {
+   "transport": "streamable-http",
+   "package": "https://mcp.adplane.ai",
+   "install_method": "remote"
+  },
+  "tenant_scope": "user",
+  "validated": true,
+  "tools": [],
+  "source": "official-mcp-registry"
+ },
+ {
+  "id": "ai.adplane/google-ads",
+  "name": "ai.adplane/google-ads",
+  "description": "Google Ads reporting and campaign management. Everything it creates starts paused.",
+  "repo_url": "",
+  "install_config": {
+   "transport": "streamable-http",
+   "package": "https://mcp.adplane.ai",
+   "install_method": "remote"
+  },
+  "tenant_scope": "user",
+  "validated": true,
+  "tools": [],
+  "source": "official-mcp-registry"
+ }
+]

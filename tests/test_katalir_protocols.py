@@ -17,11 +17,13 @@ import pytest
 
 from katalir_protocols.graphql import parse_schema
 from katalir_protocols.jsandbox import run_js
+from katalir_protocols.mcp_remote import import_remote
 from katalir_protocols.openapi import parse_spec
 from katalir_protocols.ssrf import is_public_url, require_public_url, SsrfError
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 CACHED_SCHEMA = ROOT / "graphql_schema_countries.json"
+CACHED_REMOTE = ROOT / "mcp_remote_results.json"
 
 BLOCKED_URLS = [
     "http://example.com/x",              # plaintext downgrade
@@ -124,6 +126,74 @@ def test_graphql_refuses_private_endpoint(countries_schema):
     r = parse_schema(countries_schema, endpoint="https://127.0.0.1:8080/graphql")
     assert r["executable"] is False
     assert r["endpoint"] == ""
+
+
+
+# --- refusals (offline, must never need network) ---------------------------
+
+@pytest.fixture(scope="module")
+def live():
+    if not CACHED_REMOTE.exists():
+        pytest.skip("no cached mcp_remote_results.json")
+    return json.loads(CACHED_REMOTE.read_text(encoding="utf-8"))
+
+
+@pytest.mark.parametrize("entry,why", [
+    ({}, "url_missing"),
+    ({"id": "x", "url": ""}, "url_missing"),
+    ({"id": "x", "url": "https://api.github.com", "transport": "carrier-pigeon"}, "transport_not_supported"),
+    ({"id": "x", "url": "http://127.0.0.1:8000/mcp"}, "ssrf_blocked"),
+    ({"id": "x", "url": "https://169.254.169.254/mcp"}, "ssrf_blocked"),
+    ({"id": "x", "url": "http://api.github.com/mcp"}, "ssrf_blocked"),
+])
+def test_remote_import_refuses(entry, why):
+    r = import_remote(entry, timeout=5)
+    assert r["ok"] is False
+    assert why in r["error"], r["error"]
+    assert r["tools_count"] == 0
+    assert r["verification"] == {"discovered": True, "tools_listed": False, "call_verified": False}
+
+
+def test_remote_reads_url_from_install_config():
+    """The official registry puts the endpoint in install_config.package."""
+    r = import_remote(
+        {"id": "ac.x/mcp", "install_config": {"transport": "streamable-http", "package": "https://127.0.0.1/mcp"}},
+        timeout=5,
+    )
+    assert "ssrf_blocked" in r["error"], r["error"]
+
+
+# --- live results (replay of a real registry sweep) -----------------------
+
+
+def test_live_sweep_actually_listed_tools(live):
+    """A sweep that only ever produced errors would still 'pass' a naive test."""
+    ok = [r for r in live if r["ok"]]
+    assert ok, "no remote server imported successfully"
+    assert sum(r["tools_count"] for r in ok) > 0
+
+
+def test_live_imports_never_claim_call_verified(live):
+    """tools/list succeeding is not tools/call succeeding."""
+    for r in live:
+        assert r["verification"]["call_verified"] is False, r["id"]
+        if r["ok"]:
+            assert r["verification"]["tools_listed"] is True, r["id"]
+
+
+def test_live_failures_carry_a_reason(live):
+    for r in live:
+        if not r["ok"]:
+            assert r["error"], r["id"]
+
+
+def test_live_redirect_was_resolved(live):
+    """sh.inference.ac 301s to api.inference.sh; a stale URL would re-301 forever."""
+    inf = [r for r in live if r["id"] == "ac.inference.sh/mcp"]
+    if not inf:
+        pytest.skip("entry not in this sweep")
+    assert inf[0].get("redirected") is True
+    assert "301" not in inf[0]["error"]
 
 
 # --- JS sandbox ------------------------------------------------------------

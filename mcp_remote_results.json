@@ -1,0 +1,382 @@
+[
+ {
+  "id": "ac.inference.sh/mcp",
+  "protocol": "mcp",
+  "transport": "streamable-http",
+  "url": "https://api.inference.sh/mcp",
+  "tools": [],
+  "tools_count": 0,
+  "ok": false,
+  "error": "initialize_failed:http_401",
+  "requires_auth": false,
+  "verification": {
+   "discovered": true,
+   "tools_listed": false,
+   "call_verified": false
+  },
+  "redirected": true
+ },
+ {
+  "id": "ac.snag/snag",
+  "protocol": "mcp",
+  "transport": "streamable-http",
+  "url": "https://mcp.snag.ac/mcp",
+  "tools": [],
+  "tools_count": 0,
+  "ok": false,
+  "error": "initialize_failed:http_401",
+  "requires_auth": false,
+  "verification": {
+   "discovered": true,
+   "tools_listed": false,
+   "call_verified": false
+  }
+ },
+ {
+  "id": "ac.tandem/docs-mcp",
+  "protocol": "mcp",
+  "transport": "streamable-http",
+  "url": "https://tandem.ac/mcp",
+  "tools": [
+   {
+    "name": "search_docs",
+    "description": "Search the published Tandem docs index for relevant pages."
+   },
+   {
+    "name": "get_doc",
+    "description": "Fetch and normalize a published Tandem docs page by path or URL."
+   },
+   {
+    "name": "get_start_path",
+    "description": "Recommend the best Tandem docs starting path for a desktop user, server admin, or developer."
+   },
+   {
+    "name": "recommend_next_docs",
+    "description": "Recommend the next Tandem docs to read after a current page, optionally biased toward a goal."
+   },
+   {
+    "name": "answer_how_to",
+    "description": "Answer how to install or use Tandem, build workflows, or use the SDKs by synthesizing relevant published docs."
+   },
+   {
+    "name": "get_tandem_guide",
+    "description": "Return a structured Tandem learning guide for install-engine, python-sdk, typescript-sdk, build-workflows, or headless-deploy."
+   },
+   {
+    "name": "warmup_docs_cache",
+    "description": "Refresh the docs index and preload the most important Tandem docs pages into cache."
+   },
+   {
+    "name": "get_docs_cache_status",
+    "description": "Inspect the current docs cache state for index sources and warmed pages."
+   },
+   {
+    "name": "refresh_docs_index",
+    "description": "Force-refresh docs indexes and report whether data came from the network, cache, or stale fallback."
+   },
+   {
+    "name": "refresh_doc_page",
+    "description": "Force-refresh a docs page and report whether content came from the network, cache, or stale fallback."
+   },
+   {
+    "name": "invalidate_docs_cache",
+    "description": "Invalidate docs cache entries for index data, all pages, or a specific page path."
+   },
+   {
+    "name": "compare_docs_index_refresh",
+    "description": "Force-refresh the docs indexes and return before/after hashes so content changes can be proven."
+   },
+   {
+    "name": "compare_doc_page_refresh",
+    "description": "Force-refresh a docs page and return before/after hashes so page content changes can be proven."
+   }
+  ],
+  "tools_count": 13,
+  "ok": true,
+  "error": "",
+  "requires_auth": false,
+  "verification": {
+   "discovered": true,
+   "tools_listed": true,
+   "call_verified": false
+  },
+  "server_info": {
+   "name": "ac.tandem/docs-mcp",
+   "title": "Tandem Docs MCP",
+   "version": "0.3.2"
+  },
+  "protocol_version": "2025-06-18"
+ },
+ {
+  "id": "ad.inside/inside-ads",
+  "protocol": "mcp",
+  "transport": "streamable-http",
+  "url": "https://app.inside.ad/api/mcp",
+  "tools": [
+   {
+    "name": "estimate_campaign",
+    "description": "Estimate reach, clicks and cost of advertising a product to Telegram audiences \u2014 no account or authorization required. Call this FIRST, before asking the user to connect an account: it tells you whether inside.ad has relevant inventory for this product and what a given budget would buy. Describe the product yourself (you know it better than any crawler); the URL alone is a weak signal."
+   },
+   {
+    "name": "create_campaign_draft",
+    "description": "Build a ready-to-launch ad campaign for a product WITHOUT the user having an account yet. Parses the landing page, generates ad creatives, and returns a single checkout link. Give that link to the user: they sign in there, the campaign moves to their account, they pay, and it starts. Use this after estimate_campaign, once the user agreed to advertise. Do NOT ask them to register first."
+   },
+   {
+    "name": "get_draft_status",
+    "description": "Check what happened to a campaign draft you created with create_campaign_draft: whether the user opened the link, signed in and paid. Poll this instead of asking the user to report back."
+   }
+  ],
+  "tools_count": 3,
+  "ok": true,
+  "error": "",
+  "requires_auth": false,
+  "verification": {
+   "discovered": true,
+   "tools_listed": true,
+   "call_verified": false
+  },
+  "server_info": {
+   "name": "inside-ads",
+   "version": "1.0.0"
+  },
+  "protocol_version": "2025-06-18"
+ },
+ {
+  "id": "ae.propick/propick",
+  "protocol": "mcp",
+  "transport": "streamable-http",
+  "url": "https://propick.ae/mcp",
+  "tools": [],
+  "tools_count": 0,
+  "ok": false,
+  "error": "initialize_failed:http_401",
+  "requires_auth": false,
+  "verification": {
+   "discovered": true,
+   "tools_listed": false,
+   "call_verified": false
+  }
+ },
+ {
+  "id": "ag.hood/name-service",
+  "protocol": "mcp",
+  "transport": "streamable-http",
+  "url": "https://www.hood.ag/api/mcp",
+  "tools": [
+   {
+    "name": "resolve_name",
+    "description": "Forward-resolve a .hood name to the address it points to. Returns null if unset."
+   },
+   {
+    "name": "reverse_resolve",
+    "description": "Reverse-resolve an address to its primary .hood name. `verified` is true only when the name's forward record points back to the address."
+   },
+   {
+    "name": "resolve_text",
+    "description": "Read a text record (e.g. \"avatar\", \"url\", \"com.twitter\") set on a .hood name."
+   },
+   {
+    "name": "check_availability",
+    "description": "Check whether a .hood name is available to register, and its yearly price."
+   },
+   {
+    "name": "name_info",
+    "description": "Full snapshot of a .hood name: resolved address, NFT owner, expiry, and availability."
+   }
+  ],
+  "tools_count": 5,
+  "ok": true,
+  "error": "",
+  "requires_auth": false,
+  "verification": {
+   "discovered": true,
+   "tools_listed": true,
+   "call_verified": false
+  },
+  "server_info": {
+   "name": "hood",
+   "version": "0.1.0"
+  },
+  "protocol_version": "2025-06-18"
+ },
+ {
+  "id": "agency.goji/goji",
+  "protocol": "mcp",
+  "transport": "streamable-http",
+  "url": "https://mcp.goji.agency/mcp",
+  "tools": [
+   {
+    "name": "goji_search",
+    "description": "Search GOJI's published material \u2014 the plain-English glossary, the AI-visibility guide \"Be the Answer\", insight articles and long-form guides. Use this first when you don't already know which GOJI page answers the question. Returns titles, summaries and URLs to cite."
+   },
+   {
+    "name": "goji_explain_term",
+    "description": "Explain a marketing, SEO, AEO, web or branding term the way GOJI defines it \u2014 in plain English, with why it matters, how it works and what to do about it. Covers every term in GOJI's plain-English glossary. Accepts an acronym or the full name (\"AEO\" or \"answer engine optimisation\")."
+   },
+   {
+    "name": "goji_browse_glossary",
+    "description": "List GOJI's plain-English glossary \u2014 every term, across AI Visibility, Websites, Measurement, AI Builds and Brand. Filter by category to get each short definition as well as the name."
+   },
+   {
+    "name": "goji_get_service",
+    "description": "The four things GOJI does \u2014 Search + AI Visibility (SEO and AEO), Websites, AI Builds, and Brand \u2014 what each one covers, and the questions clients ask about it. Omit the slug for all of them."
+   },
+   {
+    "name": "goji_answer_faq",
+    "description": "Search the questions GOJI has already answered publicly \u2014 pricing, timelines, engagement models, what AEO is, how long results take, whether guarantees are possible. Every published answer across the home page, the pricing page, the service pages, the specialism and location pages, and the insight articles. Best tool for \"how much\", \"how long\" and \"do we need\" questions."
+   },
+   {
+    "name": "goji_guide_contents",
+    "description": "The table of contents for \"Be the Answer\", GOJI's guide to AI visibility \u2014 how answer engines choose sources, how to audit your brand in ChatGPT, and what to do about it. Use goji_read_guide_chapter to read one."
+   },
+   {
+    "name": "goji_read_guide_chapter",
+    "description": "Read one full chapter of GOJI's AI-visibility guide, by number or slug. Use goji_guide_contents first if you do not know which chapter you want."
+   },
+   {
+    "name": "goji_read_guide",
+    "description": "Read one of GOJI's practical long-form guides. Includes published Australian pricing: \"How much does a website cost in Australia?\" and \"What does branding cost?\". Also covers AEO, headless CMS, engagement models, first AI builds and website relaunches. Omit the slug to list them."
+   },
+   {
+    "name": "goji_start_enquiry",
+    "description": "Send a real enquiry to GOJI's studio inbox in Melbourne. Only call this after the person has explicitly asked to be put in touch AND has given you their email address. Do not call it speculatively, and do not invent any detail \u2014 if you are missing the name, email or what they need, ask them first. Confirm the email address back to them before sending."
+   }
+  ],
+  "tools_count": 9,
+  "ok": true,
+  "error": "",
+  "requires_auth": false,
+  "verification": {
+   "discovered": true,
+   "tools_listed": true,
+   "call_verified": false
+  },
+  "server_info": {
+   "name": "goji",
+   "version": "1.0.1"
+  },
+  "protocol_version": "2025-06-18"
+ },
+ {
+  "id": "agency.lona/trading",
+  "protocol": "mcp",
+  "transport": "streamable-http",
+  "url": "https://mcp.lona.agency/mcp",
+  "tools": [],
+  "tools_count": 0,
+  "ok": false,
+  "error": "initialize_failed:http_401",
+  "requires_auth": false,
+  "verification": {
+   "discovered": true,
+   "tools_listed": false,
+   "call_verified": false
+  }
+ },
+ {
+  "id": "agency.ottobot/business-contact-finder",
+  "protocol": "mcp",
+  "transport": "streamable-http",
+  "url": "https://business-contact-finder-mcp.ottobot2025.workers.dev/mcp",
+  "tools": [
+   {
+    "name": "check_contact_path",
+    "description": "Given a business website URL, report how a human is meant to make contact and whether that path is actually reachable. Returns a verdict of 'reachable' or 'inconclusive', the forms found with their resolved handler URLs, and any published phone or email. Never submits anything. Answers 'inconclusive' rather than guessing when a site is client-rendered, bot-protected or parked -- about 64% of real "
+   }
+  ],
+  "tools_count": 1,
+  "ok": true,
+  "error": "",
+  "requires_auth": false,
+  "verification": {
+   "discovered": true,
+   "tools_listed": true,
+   "call_verified": false
+  },
+  "server_info": {
+   "name": "business-contact-finder",
+   "version": "0.2.0"
+  },
+  "protocol_version": "2025-06-18"
+ },
+ {
+  "id": "agency.ottobot/contractor-license-changes",
+  "protocol": "mcp",
+  "transport": "streamable-http",
+  "url": "https://license-changes-mcp.ottobot2025.workers.dev/mcp",
+  "tools": [
+   {
+    "name": "check_license_history",
+    "description": "Has this contractor's licence changed? Returns every status transition observed in the state board's own published file since 2026-07-17 -- suspensions, expirations, reinstatements and first appearance -- with the date each was seen. This is change over time, not a current-status lookup: use it after a snapshot check, to find out whether the licence you are about to rely on lapsed and came back. D"
+   },
+   {
+    "name": "recent_license_changes",
+    "description": "What changed lately across a state: licences that lapsed, were reinstated, or appeared for the first time, newest first, optionally narrowed to one trade. Answers the monitoring question a single lookup cannot -- which contractors lost standing this month, or who is newly licensed in this trade. Read-only."
+   }
+  ],
+  "tools_count": 2,
+  "ok": true,
+  "error": "",
+  "requires_auth": false,
+  "verification": {
+   "discovered": true,
+   "tools_listed": true,
+   "call_verified": false
+  },
+  "server_info": {
+   "name": "license-changes",
+   "version": "0.1.3"
+  },
+  "protocol_version": "2025-06-18"
+ },
+ {
+  "id": "agency.ottobot/licensed-house-painters",
+  "protocol": "mcp",
+  "transport": "streamable-http",
+  "url": "https://house-painters-mcp.ottobot2025.workers.dev/mcp",
+  "tools": [
+   {
+    "name": "search_painters",
+    "description": "Find licensed house painters and painting contractors in a US city (AZ, CA, CT, DE, FL, IA, NV, NY, OR, VA, WA), from state licensing-board records. Each result has the license number and its status with the date it was read from the board's own file, the phone number and website the board lists, and the board's lookup page for re-checking before hiring. Active licenses are listed first. Not a rat"
+   },
+   {
+    "name": "get_painter",
+    "description": "Full record for one painter returned by search_painters, by its painter_id: business name, address, phone, website, license number and dated license status, and the state board's lookup page. Read-only."
+   },
+   {
+    "name": "request_estimate",
+    "description": "Record a homeowner's request for a painting estimate, with their contact details. Only call this after the homeowner has seen what will be shared and agreed to share it, and set homeowner_confirmed to true to say so. The request is stored and the reply lists licensed painters the homeowner can contact directly. This is an early service: no painter is assigned automatically and a reply is not guara"
+   }
+  ],
+  "tools_count": 3,
+  "ok": true,
+  "error": "",
+  "requires_auth": false,
+  "verification": {
+   "discovered": true,
+   "tools_listed": true,
+   "call_verified": false
+  },
+  "server_info": {
+   "name": "house-painters",
+   "version": "0.1.1"
+  },
+  "protocol_version": "2025-06-18"
+ },
+ {
+  "id": "agency.thebureauoflostcontext/bureau-public",
+  "protocol": "mcp",
+  "transport": "streamable-http",
+  "url": "https://thebureauoflostcontext.agency/mcp",
+  "tools": [],
+  "tools_count": 0,
+  "ok": false,
+  "error": "initialize_failed:http_400",
+  "requires_auth": false,
+  "verification": {
+   "discovered": true,
+   "tools_listed": false,
+   "call_verified": false
+  }
+ }
+]
