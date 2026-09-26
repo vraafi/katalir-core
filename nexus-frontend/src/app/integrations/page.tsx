@@ -29,6 +29,17 @@ function badgeFor(item: Server): { label: string; cls: string; testid: string } 
 const SOURCE_LABEL: Record<string, string> = { native: "Native MCP", glama: "Glama", "glama-connector": "Glama Connector", composio: "Composio", openconnector: "OpenConnector", toolsdk: "ToolSDK", "openapi-generated": "OpenAPI" };
 
 /**
+ * Integrations proven by a real `tools/call`, not just tools/list.
+ *
+ * 351 no-auth Glama connectors were called with one read-only tool each; 203
+ * returned a real result. Those 203 are 201 distinct integrations: one connector
+ * is a directory rather than an integration, and two share a name and collapse in
+ * dedup. Source: `glama-connector-call-batch1.json`, re-derived by
+ * `scripts/audit_call_safety.py`.
+ */
+const GLAMA_CALL_VERIFIED = 201;
+
+/**
  * Tabs are driven by real sources. "Native" is NOT the ToolSDK catalogue: it is
  * the set of providers that actually execute in-process, counted by the backend
  * from provider_registry, so the number can never drift from reality.
@@ -170,7 +181,7 @@ export default function IntegrationsPage() {
       <Link href="/my-integrations" className="text-sm text-primary hover:underline">Kelola integrasi saya →</Link>
       <div className="rounded-lg border border-border bg-fg-muted/5 p-3 text-xs text-fg-muted" data-testid="meta-layer-note">
         <p><strong>5 meta-tool OpenConnector</strong> menjangkau 18.010 actions — bukan 18.010 tool terpisah.</p>
-        <p className="mt-1">{total.toLocaleString("id-ID")} entri katalog · 11 action OpenConnector call-verified · 28 konektor Glama terverifikasi runtime. Badge hanya menandai apa yang benar-benar diuji.</p>
+        <p className="mt-1">{total.toLocaleString("id-ID")} entri katalog · 11 action OpenConnector call-verified · {GLAMA_CALL_VERIFIED} integrasi Glama call-verified (dari 351 konektor no-auth diuji). Badge hanya menandai apa yang benar-benar diuji.</p>
       </div>
       {/* Kredit Glama: WAJIB di setiap halaman yang menampilkan data Glama
           (API Data License). Jangan dihapus, jangan ditambah rel nofollow. */}

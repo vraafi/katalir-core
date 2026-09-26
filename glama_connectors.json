@@ -698,7 +698,9 @@
   "verification": {
    "discovered": true,
    "tools_listed": true,
-   "call_verified": false
+   "call_verified": true,
+   "call_verified_tool": "get_arbitrage_spreads",
+   "call_verified_method": "one read-only tools/call, synthetic args"
   },
   "tools_listed_count": 5,
   "last_probe": {
@@ -953,7 +955,9 @@
   "verification": {
    "discovered": true,
    "tools_listed": true,
-   "call_verified": false
+   "call_verified": true,
+   "call_verified_tool": "list_defaults",
+   "call_verified_method": "one read-only tools/call, synthetic args"
   },
   "tools_listed_count": 18,
   "last_probe": {
@@ -1204,7 +1208,9 @@
   "verification": {
    "discovered": true,
    "tools_listed": true,
-   "call_verified": false
+   "call_verified": true,
+   "call_verified_tool": "get_weather_data",
+   "call_verified_method": "one read-only tools/call, synthetic args"
   },
   "tools_listed_count": 4,
   "last_probe": {
@@ -1259,7 +1265,9 @@
   "verification": {
    "discovered": true,
    "tools_listed": true,
-   "call_verified": false
+   "call_verified": true,
+   "call_verified_tool": "check_tool_failure",
+   "call_verified_method": "one read-only tools/call, synthetic args"
   },
   "tools_listed_count": 4,
   "last_probe": {
@@ -1311,7 +1319,9 @@
   "verification": {
    "discovered": true,
    "tools_listed": true,
-   "call_verified": false
+   "call_verified": true,
+   "call_verified_tool": "global_search",
+   "call_verified_method": "one read-only tools/call, synthetic args"
   },
   "tools_listed_count": 5,
   "last_probe": {
@@ -1457,7 +1467,9 @@
   "verification": {
    "discovered": true,
    "tools_listed": true,
-   "call_verified": false
+   "call_verified": true,
+   "call_verified_tool": "b2a_get_key",
+   "call_verified_method": "one read-only tools/call, synthetic args"
   },
   "tools_listed_count": 6,
   "last_probe": {
@@ -1562,7 +1574,9 @@
   "verification": {
    "discovered": true,
    "tools_listed": true,
-   "call_verified": false
+   "call_verified": true,
+   "call_verified_tool": "list_events",
+   "call_verified_method": "one read-only tools/call, synthetic args"
   },
   "tools_listed_count": 6,
   "last_probe": {
@@ -1820,7 +1834,9 @@
   "verification": {
    "discovered": true,
    "tools_listed": true,
-   "call_verified": false
+   "call_verified": true,
+   "call_verified_tool": "orchestkit_docs_search",
+   "call_verified_method": "one read-only tools/call, synthetic args"
   },
   "tools_listed_count": 2,
   "last_probe": {
@@ -1922,7 +1938,8 @@
   "verification": {
    "discovered": true,
    "tools_listed": true,
-   "call_verified": false
+   "call_verified": false,
+   "call_validation_error": true
   },
   "tools_listed_count": 10,
   "last_probe": {
@@ -2024,7 +2041,9 @@
   "verification": {
    "discovered": true,
    "tools_listed": true,
-   "call_verified": false
+   "call_verified": true,
+   "call_verified_tool": "search_docs",
+   "call_verified_method": "one read-only tools/call, synthetic args"
   },
   "tools_listed_count": 1,
   "last_probe": {
@@ -2478,7 +2497,9 @@
   "verification": {
    "discovered": true,
    "tools_listed": true,
-   "call_verified": false
+   "call_verified": true,
+   "call_verified_tool": "notes_read",
+   "call_verified_method": "one read-only tools/call, synthetic args"
   },
   "tools_listed_count": 11,
   "last_probe": {
@@ -2581,7 +2602,9 @@
   "verification": {
    "discovered": true,
    "tools_listed": true,
-   "call_verified": false
+   "call_verified": true,
+   "call_verified_tool": "list_capabilities",
+   "call_verified_method": "one read-only tools/call, synthetic args"
   },
   "tools_listed_count": 5,
   "last_probe": {
@@ -2635,7 +2658,9 @@
   "verification": {
    "discovered": true,
    "tools_listed": true,
-   "call_verified": false
+   "call_verified": true,
+   "call_verified_tool": "waste_service_info",
+   "call_verified_method": "one read-only tools/call, synthetic args"
   },
   "tools_listed_count": 7,
   "last_probe": {
@@ -2688,7 +2713,9 @@
   "verification": {
    "discovered": true,
    "tools_listed": true,
-   "call_verified": false
+   "call_verified": true,
+   "call_verified_tool": "strale_ping",
+   "call_verified_method": "one read-only tools/call, synthetic args"
   },
   "tools_listed_count": 9,
   "last_probe": {
@@ -3438,7 +3465,9 @@
   "verification": {
    "discovered": true,
    "tools_listed": true,
-   "call_verified": false
+   "call_verified": true,
+   "call_verified_tool": "taxi_phv_info",
+   "call_verified_method": "one read-only tools/call, synthetic args"
   },
   "tools_listed_count": 5,
   "last_probe": {
@@ -3589,7 +3618,9 @@
   "verification": {
    "discovered": true,
    "tools_listed": true,
-   "call_verified": false
+   "call_verified": true,
+   "call_verified_tool": "list_cometchat_bundles",
+   "call_verified_method": "one read-only tools/call, synthetic args"
   },
   "tools_listed_count": 4,
   "last_probe": {
@@ -3737,7 +3768,9 @@
   "verification": {
    "discovered": true,
    "tools_listed": true,
-   "call_verified": false
+   "call_verified": true,
+   "call_verified_tool": "get_popular_icons",
+   "call_verified_method": "one read-only tools/call, synthetic args"
   },
   "tools_listed_count": 8,
   "last_probe": {
@@ -3792,7 +3825,9 @@
   "verification": {
    "discovered": true,
    "tools_listed": true,
-   "call_verified": false
+   "call_verified": true,
+   "call_verified_tool": "sponsor_change_checker_info",
+   "call_verified_method": "one read-only tools/call, synthetic args"
   },
   "tools_listed_count": 4,
   "last_probe": {
@@ -4148,7 +4183,8 @@
   "verification": {
    "discovered": true,
    "tools_listed": true,
-   "call_verified": false
+   "call_verified": false,
+   "call_validation_error": true
   },
   "tools_listed_count": 4,
   "last_probe": {
@@ -4407,7 +4443,9 @@
   "verification": {
    "discovered": true,
    "tools_listed": true,
-   "call_verified": false
+   "call_verified": true,
+   "call_verified_tool": "find_stale",
+   "call_verified_method": "one read-only tools/call, synthetic args"
   },
   "tools_listed_count": 19,
   "last_probe": {
@@ -4616,7 +4654,9 @@
   "verification": {
    "discovered": true,
    "tools_listed": true,
-   "call_verified": false
+   "call_verified": true,
+   "call_verified_tool": "describe_capabilities",
+   "call_verified_method": "one read-only tools/call, synthetic args"
   },
   "tools_listed_count": 10,
   "last_probe": {
@@ -5200,7 +5240,9 @@
   "verification": {
    "discovered": true,
    "tools_listed": true,
-   "call_verified": false
+   "call_verified": true,
+   "call_verified_tool": "research_network",
+   "call_verified_method": "one read-only tools/call, synthetic args"
   },
   "tools_listed_count": 14,
   "last_probe": {
@@ -5849,7 +5891,9 @@
   "verification": {
    "discovered": true,
    "tools_listed": true,
-   "call_verified": false
+   "call_verified": true,
+   "call_verified_tool": "principles.list",
+   "call_verified_method": "one read-only tools/call, synthetic args"
   },
   "tools_listed_count": 29,
   "last_probe": {
@@ -6064,7 +6108,9 @@
   "verification": {
    "discovered": true,
    "tools_listed": true,
-   "call_verified": false
+   "call_verified": true,
+   "call_verified_tool": "find_examples",
+   "call_verified_method": "one read-only tools/call, synthetic args"
   },
   "tools_listed_count": 13,
   "last_probe": {
@@ -6460,7 +6506,8 @@
   "verification": {
    "discovered": true,
    "tools_listed": true,
-   "call_verified": false
+   "call_verified": false,
+   "call_validation_error": true
   },
   "tools_listed_count": 2,
   "last_probe": {
@@ -6609,7 +6656,8 @@
   "verification": {
    "discovered": true,
    "tools_listed": true,
-   "call_verified": false
+   "call_verified": false,
+   "call_validation_error": true
   },
   "tools_listed_count": 3,
   "last_probe": {
@@ -6817,7 +6865,9 @@
   "verification": {
    "discovered": true,
    "tools_listed": true,
-   "call_verified": false
+   "call_verified": true,
+   "call_verified_tool": "list_relays",
+   "call_verified_method": "one read-only tools/call, synthetic args"
   },
   "tools_listed_count": 6,
   "last_probe": {
@@ -7028,7 +7078,9 @@
   "verification": {
    "discovered": true,
    "tools_listed": true,
-   "call_verified": false
+   "call_verified": true,
+   "call_verified_tool": "list_instruments",
+   "call_verified_method": "one read-only tools/call, synthetic args"
   },
   "tools_listed_count": 9,
   "last_probe": {
@@ -7791,7 +7843,9 @@
   "verification": {
    "discovered": true,
    "tools_listed": true,
-   "call_verified": false
+   "call_verified": true,
+   "call_verified_tool": "get_remediation_playbook",
+   "call_verified_method": "one read-only tools/call, synthetic args"
   },
   "tools_listed_count": 3,
   "last_probe": {
@@ -8251,7 +8305,9 @@
   "verification": {
    "discovered": true,
    "tools_listed": true,
-   "call_verified": false
+   "call_verified": true,
+   "call_verified_tool": "get_about",
+   "call_verified_method": "one read-only tools/call, synthetic args"
   },
   "tools_listed_count": 6,
   "last_probe": {
@@ -8502,7 +8558,9 @@
   "verification": {
    "discovered": true,
    "tools_listed": true,
-   "call_verified": false
+   "call_verified": true,
+   "call_verified_tool": "template_list",
+   "call_verified_method": "one read-only tools/call, synthetic args"
   },
   "tools_listed_count": 21,
   "last_probe": {
@@ -8664,7 +8722,9 @@
   "verification": {
    "discovered": true,
    "tools_listed": true,
-   "call_verified": false
+   "call_verified": true,
+   "call_verified_tool": "glintbase_get_score",
+   "call_verified_method": "one read-only tools/call, synthetic args"
   },
   "tools_listed_count": 5,
   "last_probe": {
@@ -8772,7 +8832,9 @@
   "verification": {
    "discovered": true,
    "tools_listed": true,
-   "call_verified": false
+   "call_verified": true,
+   "call_verified_tool": "hallux_check_command",
+   "call_verified_method": "one read-only tools/call, synthetic args"
   },
   "tools_listed_count": 4,
   "last_probe": {
@@ -8920,7 +8982,9 @@
   "verification": {
    "discovered": true,
    "tools_listed": true,
-   "call_verified": false
+   "call_verified": true,
+   "call_verified_tool": "get_compliance_report",
+   "call_verified_method": "one read-only tools/call, synthetic args"
   },
   "tools_listed_count": 4,
   "last_probe": {
@@ -9563,7 +9627,9 @@
   "verification": {
    "discovered": true,
    "tools_listed": true,
-   "call_verified": false
+   "call_verified": true,
+   "call_verified_tool": "getLangfuseOverview",
+   "call_verified_method": "one read-only tools/call, synthetic args"
   },
   "tools_listed_count": 4,
   "last_probe": {
@@ -10327,7 +10393,9 @@
   "verification": {
    "discovered": true,
    "tools_listed": true,
-   "call_verified": false
+   "call_verified": true,
+   "call_verified_tool": "get_visibility_index",
+   "call_verified_method": "one read-only tools/call, synthetic args"
   },
   "tools_listed_count": 5,
   "last_probe": {
@@ -10379,7 +10447,9 @@
   "verification": {
    "discovered": true,
    "tools_listed": true,
-   "call_verified": false
+   "call_verified": true,
+   "call_verified_tool": "get_visibility_index",
+   "call_verified_method": "one read-only tools/call, synthetic args"
   },
   "tools_listed_count": 5,
   "last_probe": {
@@ -10588,7 +10658,9 @@
   "verification": {
    "discovered": true,
    "tools_listed": true,
-   "call_verified": false
+   "call_verified": true,
+   "call_verified_tool": "list_terms",
+   "call_verified_method": "one read-only tools/call, synthetic args"
   },
   "tools_listed_count": 7,
   "last_probe": {
@@ -10795,7 +10867,9 @@
   "verification": {
    "discovered": true,
    "tools_listed": true,
-   "call_verified": false
+   "call_verified": true,
+   "call_verified_tool": "list_briefings",
+   "call_verified_method": "one read-only tools/call, synthetic args"
   },
   "tools_listed_count": 7,
   "last_probe": {
@@ -10957,7 +11031,9 @@
   "verification": {
    "discovered": true,
    "tools_listed": true,
-   "call_verified": false
+   "call_verified": true,
+   "call_verified_tool": "get_apartment_details",
+   "call_verified_method": "one read-only tools/call, synthetic args"
   },
   "tools_listed_count": 10,
   "last_probe": {
@@ -11478,7 +11554,9 @@
   "verification": {
    "discovered": true,
    "tools_listed": true,
-   "call_verified": false
+   "call_verified": true,
+   "call_verified_tool": "get_chord_chart_by_name",
+   "call_verified_method": "one read-only tools/call, synthetic args"
   },
   "tools_listed_count": 3,
   "last_probe": {
@@ -11533,7 +11611,9 @@
   "verification": {
    "discovered": true,
    "tools_listed": true,
-   "call_verified": false
+   "call_verified": true,
+   "call_verified_tool": "appagg_search_apps",
+   "call_verified_method": "one read-only tools/call, synthetic args"
   },
   "tools_listed_count": 2,
   "last_probe": {
@@ -11850,7 +11930,9 @@
   "verification": {
    "discovered": true,
    "tools_listed": true,
-   "call_verified": false
+   "call_verified": true,
+   "call_verified_tool": "premises_plugin_info",
+   "call_verified_method": "one read-only tools/call, synthetic args"
   },
   "tools_listed_count": 4,
   "last_probe": {
@@ -11956,7 +12038,9 @@
   "verification": {
    "discovered": true,
    "tools_listed": true,
-   "call_verified": false
+   "call_verified": true,
+   "call_verified_tool": "check_citations",
+   "call_verified_method": "one read-only tools/call, synthetic args"
   },
   "tools_listed_count": 5,
   "last_probe": {
@@ -12161,7 +12245,9 @@
   "verification": {
    "discovered": true,
    "tools_listed": true,
-   "call_verified": false
+   "call_verified": true,
+   "call_verified_tool": "list_artists",
+   "call_verified_method": "one read-only tools/call, synthetic args"
   },
   "tools_listed_count": 6,
   "last_probe": {
@@ -12658,7 +12744,9 @@
   "verification": {
    "discovered": true,
    "tools_listed": true,
-   "call_verified": false
+   "call_verified": true,
+   "call_verified_tool": "get_certified_letter_status",
+   "call_verified_method": "one read-only tools/call, synthetic args"
   },
   "tools_listed_count": 3,
   "last_probe": {
@@ -13028,7 +13116,9 @@
   "verification": {
    "discovered": true,
    "tools_listed": true,
-   "call_verified": false
+   "call_verified": true,
+   "call_verified_tool": "list_components",
+   "call_verified_method": "one read-only tools/call, synthetic args"
   },
   "tools_listed_count": 8,
   "last_probe": {
@@ -13177,7 +13267,9 @@
   "verification": {
    "discovered": true,
    "tools_listed": true,
-   "call_verified": false
+   "call_verified": true,
+   "call_verified_tool": "account_list",
+   "call_verified_method": "one read-only tools/call, synthetic args"
   },
   "tools_listed_count": 40,
   "last_probe": {
@@ -13331,7 +13423,9 @@
   "verification": {
    "discovered": true,
    "tools_listed": true,
-   "call_verified": false
+   "call_verified": true,
+   "call_verified_tool": "get_sectors",
+   "call_verified_method": "one read-only tools/call, synthetic args"
   },
   "tools_listed_count": 3,
   "last_probe": {
@@ -13487,7 +13581,9 @@
   "verification": {
    "discovered": true,
    "tools_listed": true,
-   "call_verified": false
+   "call_verified": true,
+   "call_verified_tool": "ashare_market_overview",
+   "call_verified_method": "one read-only tools/call, synthetic args"
   },
   "tools_listed_count": 24,
   "last_probe": {
@@ -13788,7 +13884,9 @@
   "verification": {
    "discovered": true,
    "tools_listed": true,
-   "call_verified": false
+   "call_verified": true,
+   "call_verified_tool": "research_network",
+   "call_verified_method": "one read-only tools/call, synthetic args"
   },
   "tools_listed_count": 22,
   "last_probe": {
@@ -13997,7 +14095,9 @@
   "verification": {
    "discovered": true,
    "tools_listed": true,
-   "call_verified": false
+   "call_verified": true,
+   "call_verified_tool": "list_categories",
+   "call_verified_method": "one read-only tools/call, synthetic args"
   },
   "tools_listed_count": 4,
   "last_probe": {
@@ -14192,7 +14292,9 @@
   "verification": {
    "discovered": true,
    "tools_listed": true,
-   "call_verified": false
+   "call_verified": true,
+   "call_verified_tool": "list_categories",
+   "call_verified_method": "one read-only tools/call, synthetic args"
   },
   "tools_listed_count": 4,
   "last_probe": {
@@ -14347,7 +14449,9 @@
   "verification": {
    "discovered": true,
    "tools_listed": true,
-   "call_verified": false
+   "call_verified": true,
+   "call_verified_tool": "get_plan",
+   "call_verified_method": "one read-only tools/call, synthetic args"
   },
   "tools_listed_count": 8,
   "last_probe": {
@@ -14606,7 +14710,9 @@
   "verification": {
    "discovered": true,
    "tools_listed": true,
-   "call_verified": false
+   "call_verified": true,
+   "call_verified_tool": "commons_search",
+   "call_verified_method": "one read-only tools/call, synthetic args"
   },
   "tools_listed_count": 17,
   "last_probe": {
@@ -15111,7 +15217,9 @@
   "verification": {
    "discovered": true,
    "tools_listed": true,
-   "call_verified": false
+   "call_verified": true,
+   "call_verified_tool": "get_top_situations",
+   "call_verified_method": "one read-only tools/call, synthetic args"
   },
   "tools_listed_count": 4,
   "last_probe": {
@@ -15271,7 +15379,9 @@
   "verification": {
    "discovered": true,
    "tools_listed": true,
-   "call_verified": false
+   "call_verified": true,
+   "call_verified_tool": "get_hiring_process",
+   "call_verified_method": "one read-only tools/call, synthetic args"
   },
   "tools_listed_count": 5,
   "last_probe": {
@@ -15626,7 +15736,9 @@
   "verification": {
    "discovered": true,
    "tools_listed": true,
-   "call_verified": false
+   "call_verified": true,
+   "call_verified_tool": "browse_jobs",
+   "call_verified_method": "one read-only tools/call, synthetic args"
   },
   "tools_listed_count": 23,
   "last_probe": {
@@ -15998,7 +16110,9 @@
   "verification": {
    "discovered": true,
    "tools_listed": true,
-   "call_verified": false
+   "call_verified": true,
+   "call_verified_tool": "list_supported_frameworks",
+   "call_verified_method": "one read-only tools/call, synthetic args"
   },
   "tools_listed_count": 10,
   "last_probe": {
@@ -16498,7 +16612,9 @@
   "verification": {
    "discovered": true,
    "tools_listed": true,
-   "call_verified": false
+   "call_verified": true,
+   "call_verified_tool": "resolve_china_company",
+   "call_verified_method": "one read-only tools/call, synthetic args"
   },
   "tools_listed_count": 3,
   "last_probe": {
@@ -16600,7 +16716,9 @@
   "verification": {
    "discovered": true,
    "tools_listed": true,
-   "call_verified": false
+   "call_verified": true,
+   "call_verified_tool": "list_services",
+   "call_verified_method": "one read-only tools/call, synthetic args"
   },
   "tools_listed_count": 5,
   "last_probe": {
@@ -17098,7 +17216,9 @@
   "verification": {
    "discovered": true,
    "tools_listed": true,
-   "call_verified": false
+   "call_verified": true,
+   "call_verified_tool": "search_facilities",
+   "call_verified_method": "one read-only tools/call, synthetic args"
   },
   "tools_listed_count": 92,
   "last_probe": {
@@ -17259,7 +17379,9 @@
   "verification": {
    "discovered": true,
    "tools_listed": true,
-   "call_verified": false
+   "call_verified": true,
+   "call_verified_tool": "search_tools",
+   "call_verified_method": "one read-only tools/call, synthetic args"
   },
   "tools_listed_count": 5,
   "last_probe": {
@@ -17519,7 +17641,9 @@
   "verification": {
    "discovered": true,
    "tools_listed": true,
-   "call_verified": false
+   "call_verified": true,
+   "call_verified_tool": "get_live_matches",
+   "call_verified_method": "one read-only tools/call, synthetic args"
   },
   "tools_listed_count": 24,
   "last_probe": {
@@ -17617,7 +17741,8 @@
   "verification": {
    "discovered": true,
    "tools_listed": true,
-   "call_verified": false
+   "call_verified": false,
+   "call_validation_error": true
   },
   "tools_listed_count": 4,
   "last_probe": {
@@ -17720,7 +17845,9 @@
   "verification": {
    "discovered": true,
    "tools_listed": true,
-   "call_verified": false
+   "call_verified": true,
+   "call_verified_tool": "get_key",
+   "call_verified_method": "one read-only tools/call, synthetic args"
   },
   "tools_listed_count": 35,
   "last_probe": {
@@ -18085,7 +18212,9 @@
   "verification": {
    "discovered": true,
    "tools_listed": true,
-   "call_verified": false
+   "call_verified": true,
+   "call_verified_tool": "scenario.list",
+   "call_verified_method": "one read-only tools/call, synthetic args"
   },
   "tools_listed_count": 9,
   "last_probe": {
@@ -18140,7 +18269,9 @@
   "verification": {
    "discovered": true,
    "tools_listed": true,
-   "call_verified": false
+   "call_verified": true,
+   "call_verified_tool": "list_palettes",
+   "call_verified_method": "one read-only tools/call, synthetic args"
   },
   "tools_listed_count": 10,
   "last_probe": {
@@ -18352,7 +18483,9 @@
   "verification": {
    "discovered": true,
    "tools_listed": true,
-   "call_verified": false
+   "call_verified": true,
+   "call_verified_tool": "get_earnings_calendar",
+   "call_verified_method": "one read-only tools/call, synthetic args"
   },
   "tools_listed_count": 19,
   "last_probe": {
@@ -18455,7 +18588,9 @@
   "verification": {
    "discovered": true,
    "tools_listed": true,
-   "call_verified": false
+   "call_verified": true,
+   "call_verified_tool": "sti_get_platforms",
+   "call_verified_method": "one read-only tools/call, synthetic args"
   },
   "tools_listed_count": 2,
   "last_probe": {
@@ -18565,7 +18700,9 @@
   "verification": {
    "discovered": true,
    "tools_listed": true,
-   "call_verified": false
+   "call_verified": true,
+   "call_verified_tool": "GetAuthInfo",
+   "call_verified_method": "one read-only tools/call, synthetic args"
   },
   "tools_listed_count": 4,
   "last_probe": {
@@ -18668,7 +18805,9 @@
   "verification": {
    "discovered": true,
    "tools_listed": true,
-   "call_verified": false
+   "call_verified": true,
+   "call_verified_tool": "get_company",
+   "call_verified_method": "one read-only tools/call, synthetic args"
   },
   "tools_listed_count": 6,
   "last_probe": {
@@ -19171,7 +19310,8 @@
   "verification": {
    "discovered": true,
    "tools_listed": true,
-   "call_verified": false
+   "call_verified": false,
+   "call_validation_error": true
   },
   "tools_listed_count": 2,
   "last_probe": {
@@ -19678,7 +19818,9 @@
   "verification": {
    "discovered": true,
    "tools_listed": true,
-   "call_verified": false
+   "call_verified": true,
+   "call_verified_tool": "find_paid_service",
+   "call_verified_method": "one read-only tools/call, synthetic args"
   },
   "tools_listed_count": 4,
   "last_probe": {
@@ -19883,7 +20025,9 @@
   "verification": {
    "discovered": true,
    "tools_listed": true,
-   "call_verified": false
+   "call_verified": true,
+   "call_verified_tool": "get_film_contract",
+   "call_verified_method": "one read-only tools/call, synthetic args"
   },
   "tools_listed_count": 14,
   "last_probe": {
@@ -20445,7 +20589,9 @@
   "verification": {
    "discovered": true,
    "tools_listed": true,
-   "call_verified": false
+   "call_verified": true,
+   "call_verified_tool": "get_commune_by_code",
+   "call_verified_method": "one read-only tools/call, synthetic args"
   },
   "tools_listed_count": 37,
   "last_probe": {
@@ -20499,7 +20645,9 @@
   "verification": {
    "discovered": true,
    "tools_listed": true,
-   "call_verified": false
+   "call_verified": true,
+   "call_verified_tool": "ai_readiness_check",
+   "call_verified_method": "one read-only tools/call, synthetic args"
   },
   "tools_listed_count": 8,
   "last_probe": {
@@ -20653,7 +20801,9 @@
   "verification": {
    "discovered": true,
    "tools_listed": true,
-   "call_verified": false
+   "call_verified": true,
+   "call_verified_tool": "search_ai_tools",
+   "call_verified_method": "one read-only tools/call, synthetic args"
   },
   "tools_listed_count": 5,
   "last_probe": {
@@ -20860,7 +21010,9 @@
   "verification": {
    "discovered": true,
    "tools_listed": true,
-   "call_verified": false
+   "call_verified": true,
+   "call_verified_tool": "list_mfo",
+   "call_verified_method": "one read-only tools/call, synthetic args"
   },
   "tools_listed_count": 7,
   "last_probe": {
@@ -21438,7 +21590,9 @@
   "verification": {
    "discovered": true,
    "tools_listed": true,
-   "call_verified": false
+   "call_verified": true,
+   "call_verified_tool": "search_blog",
+   "call_verified_method": "one read-only tools/call, synthetic args"
   },
   "tools_listed_count": 5,
   "last_probe": {
@@ -21492,7 +21646,8 @@
   "verification": {
    "discovered": true,
    "tools_listed": true,
-   "call_verified": false
+   "call_verified": false,
+   "call_validation_error": true
   },
   "tools_listed_count": 7,
   "last_probe": {
@@ -21600,7 +21755,9 @@
   "verification": {
    "discovered": true,
    "tools_listed": true,
-   "call_verified": false
+   "call_verified": true,
+   "call_verified_tool": "get_pricing",
+   "call_verified_method": "one read-only tools/call, synthetic args"
   },
   "tools_listed_count": 16,
   "last_probe": {
@@ -21760,7 +21917,9 @@
   "verification": {
    "discovered": true,
    "tools_listed": true,
-   "call_verified": false
+   "call_verified": true,
+   "call_verified_tool": "find_nearby_pharmacies",
+   "call_verified_method": "one read-only tools/call, synthetic args"
   },
   "tools_listed_count": 15,
   "last_probe": {
@@ -21918,7 +22077,9 @@
   "verification": {
    "discovered": true,
    "tools_listed": true,
-   "call_verified": false
+   "call_verified": true,
+   "call_verified_tool": "list_palettes",
+   "call_verified_method": "one read-only tools/call, synthetic args"
   },
   "tools_listed_count": 10,
   "last_probe": {
@@ -22167,7 +22328,8 @@
   "verification": {
    "discovered": true,
    "tools_listed": true,
-   "call_verified": false
+   "call_verified": false,
+   "call_validation_error": true
   },
   "tools_listed_count": 3,
   "last_probe": {
@@ -22321,7 +22483,9 @@
   "verification": {
    "discovered": true,
    "tools_listed": true,
-   "call_verified": false
+   "call_verified": true,
+   "call_verified_tool": "continental_get_rules",
+   "call_verified_method": "one read-only tools/call, synthetic args"
   },
   "tools_listed_count": 45,
   "last_probe": {
@@ -22568,7 +22732,9 @@
   "verification": {
    "discovered": true,
    "tools_listed": true,
-   "call_verified": false
+   "call_verified": true,
+   "call_verified_tool": "search",
+   "call_verified_method": "one read-only tools/call, synthetic args"
   },
   "tools_listed_count": 4,
   "last_probe": {
@@ -23070,7 +23236,9 @@
   "verification": {
    "discovered": true,
    "tools_listed": true,
-   "call_verified": false
+   "call_verified": true,
+   "call_verified_tool": "validateApiKeyEndpoint",
+   "call_verified_method": "one read-only tools/call, synthetic args"
   },
   "tools_listed_count": 35,
   "last_probe": {
@@ -23124,7 +23292,9 @@
   "verification": {
    "discovered": true,
    "tools_listed": true,
-   "call_verified": false
+   "call_verified": true,
+   "call_verified_tool": "oracle.get_pricing",
+   "call_verified_method": "one read-only tools/call, synthetic args"
   },
   "tools_listed_count": 9,
   "last_probe": {
@@ -23176,7 +23346,9 @@
   "verification": {
    "discovered": true,
    "tools_listed": true,
-   "call_verified": false
+   "call_verified": true,
+   "call_verified_tool": "list-skus",
+   "call_verified_method": "one read-only tools/call, synthetic args"
   },
   "tools_listed_count": 2,
   "last_probe": {
@@ -23330,7 +23502,9 @@
   "verification": {
    "discovered": true,
    "tools_listed": true,
-   "call_verified": false
+   "call_verified": true,
+   "call_verified_tool": "cotal_overview",
+   "call_verified_method": "one read-only tools/call, synthetic args"
   },
   "tools_listed_count": 8,
   "last_probe": {
@@ -23546,7 +23720,9 @@
   "verification": {
    "discovered": true,
    "tools_listed": true,
-   "call_verified": false
+   "call_verified": true,
+   "call_verified_tool": "validate_schema",
+   "call_verified_method": "one read-only tools/call, synthetic args"
   },
   "tools_listed_count": 6,
   "last_probe": {
@@ -23597,7 +23773,8 @@
   "verification": {
    "discovered": true,
    "tools_listed": true,
-   "call_verified": false
+   "call_verified": false,
+   "call_validation_error": true
   },
   "tools_listed_count": 8,
   "last_probe": {
@@ -23698,7 +23875,9 @@
   "verification": {
    "discovered": true,
    "tools_listed": true,
-   "call_verified": false
+   "call_verified": true,
+   "call_verified_tool": "get_billing_profile",
+   "call_verified_method": "one read-only tools/call, synthetic args"
   },
   "tools_listed_count": 15,
   "last_probe": {
@@ -23751,7 +23930,9 @@
   "verification": {
    "discovered": true,
    "tools_listed": true,
-   "call_verified": false
+   "call_verified": true,
+   "call_verified_tool": "list_tools",
+   "call_verified_method": "one read-only tools/call, synthetic args"
   },
   "tools_listed_count": 6,
   "last_probe": {
@@ -23857,7 +24038,9 @@
   "verification": {
    "discovered": true,
    "tools_listed": true,
-   "call_verified": false
+   "call_verified": true,
+   "call_verified_tool": "search_solutions",
+   "call_verified_method": "one read-only tools/call, synthetic args"
   },
   "tools_listed_count": 11,
   "last_probe": {
@@ -23909,7 +24092,9 @@
   "verification": {
    "discovered": true,
    "tools_listed": true,
-   "call_verified": false
+   "call_verified": true,
+   "call_verified_tool": "tannlege_search",
+   "call_verified_method": "one read-only tools/call, synthetic args"
   },
   "tools_listed_count": 5,
   "last_probe": {
@@ -23962,7 +24147,9 @@
   "verification": {
    "discovered": true,
    "tools_listed": true,
-   "call_verified": false
+   "call_verified": true,
+   "call_verified_tool": "list_carriers",
+   "call_verified_method": "one read-only tools/call, synthetic args"
   },
   "tools_listed_count": 6,
   "last_probe": {
@@ -24174,7 +24361,9 @@
   "verification": {
    "discovered": true,
    "tools_listed": true,
-   "call_verified": false
+   "call_verified": true,
+   "call_verified_tool": "govuk_list_organisations",
+   "call_verified_method": "one read-only tools/call, synthetic args"
   },
   "tools_listed_count": 7,
   "last_probe": {
@@ -24484,7 +24673,9 @@
   "verification": {
    "discovered": true,
    "tools_listed": true,
-   "call_verified": false
+   "call_verified": true,
+   "call_verified_tool": "search_papers",
+   "call_verified_method": "one read-only tools/call, synthetic args"
   },
   "tools_listed_count": 2,
   "last_probe": {
@@ -24536,7 +24727,9 @@
   "verification": {
    "discovered": true,
    "tools_listed": true,
-   "call_verified": false
+   "call_verified": true,
+   "call_verified_tool": "list_locations",
+   "call_verified_method": "one read-only tools/call, synthetic args"
   },
   "tools_listed_count": 7,
   "last_probe": {
@@ -24892,7 +25085,9 @@
   "verification": {
    "discovered": true,
    "tools_listed": true,
-   "call_verified": false
+   "call_verified": true,
+   "call_verified_tool": "list_categories",
+   "call_verified_method": "one read-only tools/call, synthetic args"
   },
   "tools_listed_count": 8,
   "last_probe": {
@@ -24999,7 +25194,9 @@
   "verification": {
    "discovered": true,
    "tools_listed": true,
-   "call_verified": false
+   "call_verified": true,
+   "call_verified_tool": "browse_samples",
+   "call_verified_method": "one read-only tools/call, synthetic args"
   },
   "tools_listed_count": 4,
   "last_probe": {
@@ -25052,7 +25249,9 @@
   "verification": {
    "discovered": true,
    "tools_listed": true,
-   "call_verified": false
+   "call_verified": true,
+   "call_verified_tool": "find_agents",
+   "call_verified_method": "one read-only tools/call, synthetic args"
   },
   "tools_listed_count": 17,
   "last_probe": {
@@ -25575,7 +25774,9 @@
   "verification": {
    "discovered": true,
    "tools_listed": true,
-   "call_verified": false
+   "call_verified": true,
+   "call_verified_tool": "search_vehicles",
+   "call_verified_method": "one read-only tools/call, synthetic args"
   },
   "tools_listed_count": 7,
   "last_probe": {
@@ -25677,7 +25878,9 @@
   "verification": {
    "discovered": true,
    "tools_listed": true,
-   "call_verified": false
+   "call_verified": true,
+   "call_verified_tool": "get_top_ranked",
+   "call_verified_method": "one read-only tools/call, synthetic args"
   },
   "tools_listed_count": 10,
   "last_probe": {
@@ -25732,7 +25935,9 @@
   "verification": {
    "discovered": true,
    "tools_listed": true,
-   "call_verified": false
+   "call_verified": true,
+   "call_verified_tool": "cqc_plugin_info",
+   "call_verified_method": "one read-only tools/call, synthetic args"
   },
   "tools_listed_count": 4,
   "last_probe": {
@@ -25996,7 +26201,9 @@
   "verification": {
    "discovered": true,
    "tools_listed": true,
-   "call_verified": false
+   "call_verified": true,
+   "call_verified_tool": "overview",
+   "call_verified_method": "one read-only tools/call, synthetic args"
   },
   "tools_listed_count": 6,
   "last_probe": {
@@ -27213,7 +27420,9 @@
   "verification": {
    "discovered": true,
    "tools_listed": true,
-   "call_verified": false
+   "call_verified": true,
+   "call_verified_tool": "check_tool_status",
+   "call_verified_method": "one read-only tools/call, synthetic args"
   },
   "tools_listed_count": 10,
   "last_probe": {
@@ -27265,7 +27474,9 @@
   "verification": {
    "discovered": true,
    "tools_listed": true,
-   "call_verified": false
+   "call_verified": true,
+   "call_verified_tool": "get_specials",
+   "call_verified_method": "one read-only tools/call, synthetic args"
   },
   "tools_listed_count": 10,
   "last_probe": {
@@ -27575,7 +27786,9 @@
   "verification": {
    "discovered": true,
    "tools_listed": true,
-   "call_verified": false
+   "call_verified": true,
+   "call_verified_tool": "search_cases",
+   "call_verified_method": "one read-only tools/call, synthetic args"
   },
   "tools_listed_count": 7,
   "last_probe": {
@@ -27727,7 +27940,9 @@
   "verification": {
    "discovered": true,
    "tools_listed": true,
-   "call_verified": false
+   "call_verified": true,
+   "call_verified_tool": "search_servers",
+   "call_verified_method": "one read-only tools/call, synthetic args"
   },
   "tools_listed_count": 2,
   "last_probe": {
@@ -27831,7 +28046,9 @@
   "verification": {
    "discovered": true,
    "tools_listed": true,
-   "call_verified": false
+   "call_verified": true,
+   "call_verified_tool": "get_validation_framework",
+   "call_verified_method": "one read-only tools/call, synthetic args"
   },
   "tools_listed_count": 10,
   "last_probe": {
@@ -27884,7 +28101,9 @@
   "verification": {
    "discovered": true,
    "tools_listed": true,
-   "call_verified": false
+   "call_verified": true,
+   "call_verified_tool": "list_articles",
+   "call_verified_method": "one read-only tools/call, synthetic args"
   },
   "tools_listed_count": 8,
   "last_probe": {
@@ -28253,7 +28472,9 @@
   "verification": {
    "discovered": true,
    "tools_listed": true,
-   "call_verified": false
+   "call_verified": true,
+   "call_verified_tool": "list_digests",
+   "call_verified_method": "one read-only tools/call, synthetic args"
   },
   "tools_listed_count": 5,
   "last_probe": {
@@ -28458,7 +28679,9 @@
   "verification": {
    "discovered": true,
    "tools_listed": true,
-   "call_verified": false
+   "call_verified": true,
+   "call_verified_tool": "search_agents",
+   "call_verified_method": "one read-only tools/call, synthetic args"
   },
   "tools_listed_count": 45,
   "last_probe": {
@@ -28809,7 +29032,9 @@
   "verification": {
    "discovered": true,
    "tools_listed": true,
-   "call_verified": false
+   "call_verified": true,
+   "call_verified_tool": "list_changes",
+   "call_verified_method": "one read-only tools/call, synthetic args"
   },
   "tools_listed_count": 5,
   "last_probe": {
@@ -29061,7 +29286,9 @@
   "verification": {
    "discovered": true,
    "tools_listed": true,
-   "call_verified": false
+   "call_verified": true,
+   "call_verified_tool": "document_describe",
+   "call_verified_method": "one read-only tools/call, synthetic args"
   },
   "tools_listed_count": 21,
   "last_probe": {
@@ -29210,7 +29437,9 @@
   "verification": {
    "discovered": true,
    "tools_listed": true,
-   "call_verified": false
+   "call_verified": true,
+   "call_verified_tool": "about_micah_boswell",
+   "call_verified_method": "one read-only tools/call, synthetic args"
   },
   "tools_listed_count": 9,
   "last_probe": {
@@ -29463,7 +29692,9 @@
   "verification": {
    "discovered": true,
    "tools_listed": true,
-   "call_verified": false
+   "call_verified": true,
+   "call_verified_tool": "describe_service",
+   "call_verified_method": "one read-only tools/call, synthetic args"
   },
   "tools_listed_count": 13,
   "last_probe": {
@@ -29913,7 +30144,9 @@
   "verification": {
    "discovered": true,
    "tools_listed": true,
-   "call_verified": false
+   "call_verified": true,
+   "call_verified_tool": "search_european_dockets",
+   "call_verified_method": "one read-only tools/call, synthetic args"
   },
   "tools_listed_count": 4,
   "last_probe": {
@@ -29966,7 +30199,9 @@
   "verification": {
    "discovered": true,
    "tools_listed": true,
-   "call_verified": false
+   "call_verified": true,
+   "call_verified_tool": "list_docs",
+   "call_verified_method": "one read-only tools/call, synthetic args"
   },
   "tools_listed_count": 4,
   "last_probe": {
@@ -30273,7 +30508,9 @@
   "verification": {
    "discovered": true,
    "tools_listed": true,
-   "call_verified": false
+   "call_verified": true,
+   "call_verified_tool": "market_browse",
+   "call_verified_method": "one read-only tools/call, synthetic args"
   },
   "tools_listed_count": 19,
   "last_probe": {
@@ -30376,7 +30613,9 @@
   "verification": {
    "discovered": true,
    "tools_listed": true,
-   "call_verified": false
+   "call_verified": true,
+   "call_verified_tool": "check_compliance_deadlines",
+   "call_verified_method": "one read-only tools/call, synthetic args"
   },
   "tools_listed_count": 10,
   "last_probe": {
@@ -30788,7 +31027,9 @@
   "verification": {
    "discovered": true,
    "tools_listed": true,
-   "call_verified": false
+   "call_verified": true,
+   "call_verified_tool": "list_algorithms",
+   "call_verified_method": "one read-only tools/call, synthetic args"
   },
   "tools_listed_count": 12,
   "last_probe": {
@@ -31205,7 +31446,9 @@
   "verification": {
    "discovered": true,
    "tools_listed": true,
-   "call_verified": false
+   "call_verified": true,
+   "call_verified_tool": "search_catalog",
+   "call_verified_method": "one read-only tools/call, synthetic args"
   },
   "tools_listed_count": 3,
   "last_probe": {
@@ -31419,7 +31662,8 @@
   "verification": {
    "discovered": true,
    "tools_listed": true,
-   "call_verified": false
+   "call_verified": false,
+   "call_validation_error": true
   },
   "tools_listed_count": 14,
   "last_probe": {
@@ -31471,7 +31715,9 @@
   "verification": {
    "discovered": true,
    "tools_listed": true,
-   "call_verified": false
+   "call_verified": true,
+   "call_verified_tool": "list_conditions",
+   "call_verified_method": "one read-only tools/call, synthetic args"
   },
   "tools_listed_count": 3,
   "last_probe": {
@@ -31576,7 +31822,9 @@
   "verification": {
    "discovered": true,
    "tools_listed": true,
-   "call_verified": false
+   "call_verified": true,
+   "call_verified_tool": "list_indices",
+   "call_verified_method": "one read-only tools/call, synthetic args"
   },
   "tools_listed_count": 5,
   "last_probe": {
@@ -31628,7 +31876,9 @@
   "verification": {
    "discovered": true,
    "tools_listed": true,
-   "call_verified": false
+   "call_verified": true,
+   "call_verified_tool": "get_gb_market",
+   "call_verified_method": "one read-only tools/call, synthetic args"
   },
   "tools_listed_count": 15,
   "last_probe": {
@@ -31733,7 +31983,9 @@
   "verification": {
    "discovered": true,
    "tools_listed": true,
-   "call_verified": false
+   "call_verified": true,
+   "call_verified_tool": "list_locations",
+   "call_verified_method": "one read-only tools/call, synthetic args"
   },
   "tools_listed_count": 2,
   "last_probe": {
@@ -31895,7 +32147,9 @@
   "verification": {
    "discovered": true,
    "tools_listed": true,
-   "call_verified": false
+   "call_verified": true,
+   "call_verified_tool": "list_categories",
+   "call_verified_method": "one read-only tools/call, synthetic args"
   },
   "tools_listed_count": 8,
   "last_probe": {
@@ -33076,7 +33330,9 @@
   "verification": {
    "discovered": true,
    "tools_listed": true,
-   "call_verified": false
+   "call_verified": true,
+   "call_verified_tool": "get_visibility_index",
+   "call_verified_method": "one read-only tools/call, synthetic args"
   },
   "tools_listed_count": 5,
   "last_probe": {
@@ -33129,7 +33385,9 @@
   "verification": {
    "discovered": true,
    "tools_listed": true,
-   "call_verified": false
+   "call_verified": true,
+   "call_verified_tool": "get_visibility_index",
+   "call_verified_method": "one read-only tools/call, synthetic args"
   },
   "tools_listed_count": 5,
   "last_probe": {
@@ -33282,7 +33540,9 @@
   "verification": {
    "discovered": true,
    "tools_listed": true,
-   "call_verified": false
+   "call_verified": true,
+   "call_verified_tool": "get_registry_stats",
+   "call_verified_method": "one read-only tools/call, synthetic args"
   },
   "tools_listed_count": 6,
   "last_probe": {
@@ -33888,7 +34148,9 @@
   "verification": {
    "discovered": true,
    "tools_listed": true,
-   "call_verified": false
+   "call_verified": true,
+   "call_verified_tool": "votes_search_divisions",
+   "call_verified_method": "one read-only tools/call, synthetic args"
   },
   "tools_listed_count": 35,
   "last_probe": {
@@ -34244,7 +34506,9 @@
   "verification": {
    "discovered": true,
    "tools_listed": true,
-   "call_verified": false
+   "call_verified": true,
+   "call_verified_tool": "search_jobs",
+   "call_verified_method": "one read-only tools/call, synthetic args"
   },
   "tools_listed_count": 8,
   "last_probe": {
@@ -34556,7 +34820,9 @@
   "verification": {
    "discovered": true,
    "tools_listed": true,
-   "call_verified": false
+   "call_verified": true,
+   "call_verified_tool": "list_capabilities",
+   "call_verified_method": "one read-only tools/call, synthetic args"
   },
   "tools_listed_count": 41,
   "last_probe": {
@@ -35244,7 +35510,9 @@
   "verification": {
    "discovered": true,
    "tools_listed": true,
-   "call_verified": false
+   "call_verified": true,
+   "call_verified_tool": "search_web_pages",
+   "call_verified_method": "one read-only tools/call, synthetic args"
   },
   "tools_listed_count": 2,
   "last_probe": {
@@ -35346,7 +35614,9 @@
   "verification": {
    "discovered": true,
    "tools_listed": true,
-   "call_verified": false
+   "call_verified": true,
+   "call_verified_tool": "get_database_schema",
+   "call_verified_method": "one read-only tools/call, synthetic args"
   },
   "tools_listed_count": 2,
   "last_probe": {
@@ -35399,7 +35669,9 @@
   "verification": {
    "discovered": true,
    "tools_listed": true,
-   "call_verified": false
+   "call_verified": true,
+   "call_verified_tool": "get_agent_manifest",
+   "call_verified_method": "one read-only tools/call, synthetic args"
   },
   "tools_listed_count": 4,
   "last_probe": {
@@ -35503,7 +35775,8 @@
   "verification": {
    "discovered": true,
    "tools_listed": true,
-   "call_verified": false
+   "call_verified": false,
+   "call_validation_error": true
   },
   "tools_listed_count": 28,
   "last_probe": {
@@ -35809,7 +36082,9 @@
   "verification": {
    "discovered": true,
    "tools_listed": true,
-   "call_verified": false
+   "call_verified": true,
+   "call_verified_tool": "list_catalogue",
+   "call_verified_method": "one read-only tools/call, synthetic args"
   },
   "tools_listed_count": 14,
   "last_probe": {
@@ -36107,7 +36382,9 @@
   "verification": {
    "discovered": true,
    "tools_listed": true,
-   "call_verified": false
+   "call_verified": true,
+   "call_verified_tool": "list_roles",
+   "call_verified_method": "one read-only tools/call, synthetic args"
   },
   "tools_listed_count": 8,
   "last_probe": {
@@ -36300,7 +36577,9 @@
   "verification": {
    "discovered": true,
    "tools_listed": true,
-   "call_verified": false
+   "call_verified": true,
+   "call_verified_tool": "quesen.validate",
+   "call_verified_method": "one read-only tools/call, synthetic args"
   },
   "tools_listed_count": 5,
   "last_probe": {
@@ -37144,7 +37423,9 @@
   "verification": {
    "discovered": true,
    "tools_listed": true,
-   "call_verified": false
+   "call_verified": true,
+   "call_verified_tool": "search_cre_knowledge",
+   "call_verified_method": "one read-only tools/call, synthetic args"
   },
   "tools_listed_count": 11,
   "last_probe": {
@@ -37443,7 +37724,9 @@
   "verification": {
    "discovered": true,
    "tools_listed": true,
-   "call_verified": false
+   "call_verified": true,
+   "call_verified_tool": "crm_note_checklist",
+   "call_verified_method": "one read-only tools/call, synthetic args"
   },
   "tools_listed_count": 18,
   "last_probe": {
@@ -37642,7 +37925,9 @@
   "verification": {
    "discovered": true,
    "tools_listed": true,
-   "call_verified": false
+   "call_verified": true,
+   "call_verified_tool": "search_proxy_docs",
+   "call_verified_method": "one read-only tools/call, synthetic args"
   },
   "tools_listed_count": 4,
   "last_probe": {
@@ -37957,7 +38242,9 @@
   "verification": {
    "discovered": true,
    "tools_listed": true,
-   "call_verified": false
+   "call_verified": true,
+   "call_verified_tool": "get_site_capabilities",
+   "call_verified_method": "one read-only tools/call, synthetic args"
   },
   "tools_listed_count": 9,
   "last_probe": {
@@ -38214,7 +38501,9 @@
   "verification": {
    "discovered": true,
    "tools_listed": true,
-   "call_verified": false
+   "call_verified": true,
+   "call_verified_tool": "browse_cards",
+   "call_verified_method": "one read-only tools/call, synthetic args"
   },
   "tools_listed_count": 6,
   "last_probe": {
@@ -38321,7 +38610,9 @@
   "verification": {
    "discovered": true,
    "tools_listed": true,
-   "call_verified": false
+   "call_verified": true,
+   "call_verified_tool": "check_pricing",
+   "call_verified_method": "one read-only tools/call, synthetic args"
   },
   "tools_listed_count": 26,
   "last_probe": {
@@ -38480,7 +38771,9 @@
   "verification": {
    "discovered": true,
    "tools_listed": true,
-   "call_verified": false
+   "call_verified": true,
+   "call_verified_tool": "search_products",
+   "call_verified_method": "one read-only tools/call, synthetic args"
   },
   "tools_listed_count": 26,
   "last_probe": {
@@ -38905,7 +39198,9 @@
   "verification": {
    "discovered": true,
    "tools_listed": true,
-   "call_verified": false
+   "call_verified": true,
+   "call_verified_tool": "lookup_court_case",
+   "call_verified_method": "one read-only tools/call, synthetic args"
   },
   "tools_listed_count": 23,
   "last_probe": {
@@ -39108,7 +39403,9 @@
   "verification": {
    "discovered": true,
    "tools_listed": true,
-   "call_verified": false
+   "call_verified": true,
+   "call_verified_tool": "ag_capabilities",
+   "call_verified_method": "one read-only tools/call, synthetic args"
   },
   "tools_listed_count": 44,
   "last_probe": {
@@ -39162,7 +39459,9 @@
   "verification": {
    "discovered": true,
    "tools_listed": true,
-   "call_verified": false
+   "call_verified": true,
+   "call_verified_tool": "get_savvly_product_info",
+   "call_verified_method": "one read-only tools/call, synthetic args"
   },
   "tools_listed_count": 8,
   "last_probe": {
@@ -39263,7 +39562,9 @@
   "verification": {
    "discovered": true,
    "tools_listed": true,
-   "call_verified": false
+   "call_verified": true,
+   "call_verified_tool": "get_sources",
+   "call_verified_method": "one read-only tools/call, synthetic args"
   },
   "tools_listed_count": 9,
   "last_probe": {
@@ -39520,7 +39821,9 @@
   "verification": {
    "discovered": true,
    "tools_listed": true,
-   "call_verified": false
+   "call_verified": true,
+   "call_verified_tool": "proveit_verified_check",
+   "call_verified_method": "one read-only tools/call, synthetic args"
   },
   "tools_listed_count": 16,
   "last_probe": {
@@ -39620,7 +39923,9 @@
   "verification": {
    "discovered": true,
    "tools_listed": true,
-   "call_verified": false
+   "call_verified": true,
+   "call_verified_tool": "search_prompts",
+   "call_verified_method": "one read-only tools/call, synthetic args"
   },
   "tools_listed_count": 5,
   "last_probe": {
@@ -39673,7 +39978,9 @@
   "verification": {
    "discovered": true,
    "tools_listed": true,
-   "call_verified": false
+   "call_verified": true,
+   "call_verified_tool": "get_agentic_stats",
+   "call_verified_method": "one read-only tools/call, synthetic args"
   },
   "tools_listed_count": 12,
   "last_probe": {
@@ -39925,7 +40232,9 @@
   "verification": {
    "discovered": true,
    "tools_listed": true,
-   "call_verified": false
+   "call_verified": true,
+   "call_verified_tool": "search_jobs",
+   "call_verified_method": "one read-only tools/call, synthetic args"
   },
   "tools_listed_count": 3,
   "last_probe": {
@@ -39979,7 +40288,9 @@
   "verification": {
    "discovered": true,
    "tools_listed": true,
-   "call_verified": false
+   "call_verified": true,
+   "call_verified_tool": "get_my_profile",
+   "call_verified_method": "one read-only tools/call, synthetic args"
   },
   "tools_listed_count": 20,
   "last_probe": {
@@ -40031,7 +40342,9 @@
   "verification": {
    "discovered": true,
    "tools_listed": true,
-   "call_verified": false
+   "call_verified": true,
+   "call_verified_tool": "get_tours",
+   "call_verified_method": "one read-only tools/call, synthetic args"
   },
   "tools_listed_count": 14,
   "last_probe": {
@@ -40500,7 +40813,9 @@
   "verification": {
    "discovered": true,
    "tools_listed": true,
-   "call_verified": false
+   "call_verified": true,
+   "call_verified_tool": "haidaa_status",
+   "call_verified_method": "one read-only tools/call, synthetic args"
   },
   "tools_listed_count": 8,
   "last_probe": {
@@ -40609,7 +40924,8 @@
   "verification": {
    "discovered": true,
    "tools_listed": true,
-   "call_verified": false
+   "call_verified": false,
+   "call_validation_error": true
   },
   "tools_listed_count": 12,
   "last_probe": {
@@ -40714,7 +41030,9 @@
   "verification": {
    "discovered": true,
    "tools_listed": true,
-   "call_verified": false
+   "call_verified": true,
+   "call_verified_tool": "get_session_status",
+   "call_verified_method": "one read-only tools/call, synthetic args"
   },
   "tools_listed_count": 3,
   "last_probe": {
@@ -40820,7 +41138,9 @@
   "verification": {
    "discovered": true,
    "tools_listed": true,
-   "call_verified": false
+   "call_verified": true,
+   "call_verified_tool": "find_buyer_threads",
+   "call_verified_method": "one read-only tools/call, synthetic args"
   },
   "tools_listed_count": 7,
   "last_probe": {
@@ -40970,7 +41290,9 @@
   "verification": {
    "discovered": true,
    "tools_listed": true,
-   "call_verified": false
+   "call_verified": true,
+   "call_verified_tool": "text_echo",
+   "call_verified_method": "one read-only tools/call, synthetic args"
   },
   "tools_listed_count": 2,
   "last_probe": {
@@ -41181,7 +41503,9 @@
   "verification": {
    "discovered": true,
    "tools_listed": true,
-   "call_verified": false
+   "call_verified": true,
+   "call_verified_tool": "x711_get_latest_gas_station",
+   "call_verified_method": "one read-only tools/call, synthetic args"
   },
   "tools_listed_count": 47,
   "last_probe": {
@@ -41845,7 +42169,9 @@
   "verification": {
    "discovered": true,
    "tools_listed": true,
-   "call_verified": false
+   "call_verified": true,
+   "call_verified_tool": "get_sources",
+   "call_verified_method": "one read-only tools/call, synthetic args"
   },
   "tools_listed_count": 9,
   "last_probe": {
@@ -42266,7 +42592,9 @@
   "verification": {
    "discovered": true,
    "tools_listed": true,
-   "call_verified": false
+   "call_verified": true,
+   "call_verified_tool": "get_sources",
+   "call_verified_method": "one read-only tools/call, synthetic args"
   },
   "tools_listed_count": 9,
   "last_probe": {
@@ -42319,7 +42647,9 @@
   "verification": {
    "discovered": true,
    "tools_listed": true,
-   "call_verified": false
+   "call_verified": true,
+   "call_verified_tool": "get_component_specs",
+   "call_verified_method": "one read-only tools/call, synthetic args"
   },
   "tools_listed_count": 13,
   "last_probe": {
@@ -42826,7 +43156,9 @@
   "verification": {
    "discovered": true,
    "tools_listed": true,
-   "call_verified": false
+   "call_verified": true,
+   "call_verified_tool": "onchain_agent_search_resources",
+   "call_verified_method": "one read-only tools/call, synthetic args"
   },
   "tools_listed_count": 35,
   "last_probe": {
@@ -43029,7 +43361,9 @@
   "verification": {
    "discovered": true,
    "tools_listed": true,
-   "call_verified": false
+   "call_verified": true,
+   "call_verified_tool": "search_listings",
+   "call_verified_method": "one read-only tools/call, synthetic args"
   },
   "tools_listed_count": 17,
   "last_probe": {
@@ -43382,7 +43716,9 @@
   "verification": {
    "discovered": true,
    "tools_listed": true,
-   "call_verified": false
+   "call_verified": true,
+   "call_verified_tool": "get_aipp_capabilities",
+   "call_verified_method": "one read-only tools/call, synthetic args"
   },
   "tools_listed_count": 3,
   "last_probe": {
@@ -43433,7 +43769,9 @@
   "verification": {
    "discovered": true,
    "tools_listed": true,
-   "call_verified": false
+   "call_verified": true,
+   "call_verified_tool": "list_services",
+   "call_verified_method": "one read-only tools/call, synthetic args"
   },
   "tools_listed_count": 9,
   "last_probe": {
@@ -43485,7 +43823,9 @@
   "verification": {
    "discovered": true,
    "tools_listed": true,
-   "call_verified": false
+   "call_verified": true,
+   "call_verified_tool": "get_relationship_assessment",
+   "call_verified_method": "one read-only tools/call, synthetic args"
   },
   "tools_listed_count": 6,
   "last_probe": {
@@ -43538,7 +43878,9 @@
   "verification": {
    "discovered": true,
    "tools_listed": true,
-   "call_verified": false
+   "call_verified": true,
+   "call_verified_tool": "search_docs",
+   "call_verified_method": "one read-only tools/call, synthetic args"
   },
   "tools_listed_count": 8,
   "last_probe": {
@@ -43646,7 +43988,9 @@
   "verification": {
    "discovered": true,
    "tools_listed": true,
-   "call_verified": false
+   "call_verified": true,
+   "call_verified_tool": "get_now_playing",
+   "call_verified_method": "one read-only tools/call, synthetic args"
   },
   "tools_listed_count": 46,
   "last_probe": {
@@ -43700,7 +44044,9 @@
   "verification": {
    "discovered": true,
    "tools_listed": true,
-   "call_verified": false
+   "call_verified": true,
+   "call_verified_tool": "get_block_height",
+   "call_verified_method": "one read-only tools/call, synthetic args"
   },
   "tools_listed_count": 33,
   "last_probe": {
@@ -43754,7 +44100,9 @@
   "verification": {
    "discovered": true,
    "tools_listed": true,
-   "call_verified": false
+   "call_verified": true,
+   "call_verified_tool": "get_cart_handoff_candidates",
+   "call_verified_method": "one read-only tools/call, synthetic args"
   },
   "tools_listed_count": 15,
   "last_probe": {
@@ -43853,7 +44201,9 @@
   "verification": {
    "discovered": true,
    "tools_listed": true,
-   "call_verified": false
+   "call_verified": true,
+   "call_verified_tool": "orbuc_btc_health",
+   "call_verified_method": "one read-only tools/call, synthetic args"
   },
   "tools_listed_count": 12,
   "last_probe": {
@@ -44206,7 +44556,9 @@
   "verification": {
    "discovered": true,
    "tools_listed": true,
-   "call_verified": false
+   "call_verified": true,
+   "call_verified_tool": "get_api_stats",
+   "call_verified_method": "one read-only tools/call, synthetic args"
   },
   "tools_listed_count": 10,
   "last_probe": {
@@ -44261,7 +44613,9 @@
   "verification": {
    "discovered": true,
    "tools_listed": true,
-   "call_verified": false
+   "call_verified": true,
+   "call_verified_tool": "list_intelligence_domains",
+   "call_verified_method": "one read-only tools/call, synthetic args"
   },
   "tools_listed_count": 9,
   "last_probe": {
@@ -44316,7 +44670,9 @@
   "verification": {
    "discovered": true,
    "tools_listed": true,
-   "call_verified": false
+   "call_verified": true,
+   "call_verified_tool": "check_url",
+   "call_verified_method": "one read-only tools/call, synthetic args"
   },
   "tools_listed_count": 1,
   "last_probe": {
@@ -44370,7 +44726,9 @@
   "verification": {
    "discovered": true,
    "tools_listed": true,
-   "call_verified": false
+   "call_verified": true,
+   "call_verified_tool": "check_local_viability",
+   "call_verified_method": "one read-only tools/call, synthetic args"
   },
   "tools_listed_count": 1,
   "last_probe": {
@@ -44425,7 +44783,9 @@
   "verification": {
    "discovered": true,
    "tools_listed": true,
-   "call_verified": false
+   "call_verified": true,
+   "call_verified_tool": "validate_data_safety",
+   "call_verified_method": "one read-only tools/call, synthetic args"
   },
   "tools_listed_count": 3,
   "last_probe": {
@@ -44480,7 +44840,9 @@
   "verification": {
    "discovered": true,
    "tools_listed": true,
-   "call_verified": false
+   "call_verified": true,
+   "call_verified_tool": "get_vat_rates",
+   "call_verified_method": "one read-only tools/call, synthetic args"
   },
   "tools_listed_count": 2,
   "last_probe": {
@@ -44532,7 +44894,9 @@
   "verification": {
    "discovered": true,
    "tools_listed": true,
-   "call_verified": false
+   "call_verified": true,
+   "call_verified_tool": "preflight_check",
+   "call_verified_method": "one read-only tools/call, synthetic args"
   },
   "tools_listed_count": 2,
   "last_probe": {
@@ -44584,7 +44948,9 @@
   "verification": {
    "discovered": true,
    "tools_listed": true,
-   "call_verified": false
+   "call_verified": true,
+   "call_verified_tool": "get_information_standard",
+   "call_verified_method": "one read-only tools/call, synthetic args"
   },
   "tools_listed_count": 21,
   "last_probe": {
@@ -44638,7 +45004,9 @@
   "verification": {
    "discovered": true,
    "tools_listed": true,
-   "call_verified": false
+   "call_verified": true,
+   "call_verified_tool": "get_contract_awards",
+   "call_verified_method": "one read-only tools/call, synthetic args"
   },
   "tools_listed_count": 3,
   "last_probe": {
@@ -44694,7 +45062,9 @@
   "verification": {
    "discovered": true,
    "tools_listed": true,
-   "call_verified": false
+   "call_verified": true,
+   "call_verified_tool": "get_overview",
+   "call_verified_method": "one read-only tools/call, synthetic args"
   },
   "tools_listed_count": 30,
   "last_probe": {
@@ -44854,7 +45224,9 @@
   "verification": {
    "discovered": true,
    "tools_listed": true,
-   "call_verified": false
+   "call_verified": true,
+   "call_verified_tool": "netfluid__account",
+   "call_verified_method": "one read-only tools/call, synthetic args"
   },
   "tools_listed_count": 142,
   "last_probe": {
@@ -45009,7 +45381,9 @@
   "verification": {
    "discovered": true,
    "tools_listed": true,
-   "call_verified": false
+   "call_verified": true,
+   "call_verified_tool": "get_public_documentation_overview",
+   "call_verified_method": "one read-only tools/call, synthetic args"
   },
   "tools_listed_count": 2,
   "last_probe": {
@@ -45355,7 +45729,9 @@
   "verification": {
    "discovered": true,
    "tools_listed": true,
-   "call_verified": false
+   "call_verified": true,
+   "call_verified_tool": "get_track_record_ten",
+   "call_verified_method": "one read-only tools/call, synthetic args"
   },
   "tools_listed_count": 4,
   "last_probe": {
@@ -45510,7 +45886,9 @@
   "verification": {
    "discovered": true,
    "tools_listed": true,
-   "call_verified": false
+   "call_verified": true,
+   "call_verified_tool": "browse_leads",
+   "call_verified_method": "one read-only tools/call, synthetic args"
   },
   "tools_listed_count": 13,
   "last_probe": {
@@ -46018,7 +46396,8 @@
   "verification": {
    "discovered": true,
    "tools_listed": true,
-   "call_verified": false
+   "call_verified": false,
+   "call_validation_error": true
   },
   "tools_listed_count": 15,
   "last_probe": {
@@ -46173,7 +46552,9 @@
   "verification": {
    "discovered": true,
    "tools_listed": true,
-   "call_verified": false
+   "call_verified": true,
+   "call_verified_tool": "get_catchup",
+   "call_verified_method": "one read-only tools/call, synthetic args"
   },
   "tools_listed_count": 9,
   "last_probe": {
@@ -46226,7 +46607,9 @@
   "verification": {
    "discovered": true,
    "tools_listed": true,
-   "call_verified": false
+   "call_verified": true,
+   "call_verified_tool": "connect_get_price",
+   "call_verified_method": "one read-only tools/call, synthetic args"
   },
   "tools_listed_count": 14,
   "last_probe": {
@@ -46428,7 +46811,9 @@
   "verification": {
    "discovered": true,
    "tools_listed": true,
-   "call_verified": false
+   "call_verified": true,
+   "call_verified_tool": "health_check",
+   "call_verified_method": "one read-only tools/call, synthetic args"
   },
   "tools_listed_count": 24,
   "last_probe": {
@@ -46695,7 +47080,9 @@
   "verification": {
    "discovered": true,
    "tools_listed": true,
-   "call_verified": false
+   "call_verified": true,
+   "call_verified_tool": "fuse_get_gas_price",
+   "call_verified_method": "one read-only tools/call, synthetic args"
   },
   "tools_listed_count": 50,
   "last_probe": {
@@ -46908,7 +47295,9 @@
   "verification": {
    "discovered": true,
    "tools_listed": true,
-   "call_verified": false
+   "call_verified": true,
+   "call_verified_tool": "get_vix_state",
+   "call_verified_method": "one read-only tools/call, synthetic args"
   },
   "tools_listed_count": 73,
   "last_probe": {
@@ -47012,7 +47401,9 @@
   "verification": {
    "discovered": true,
    "tools_listed": true,
-   "call_verified": false
+   "call_verified": true,
+   "call_verified_tool": "get_action_signals",
+   "call_verified_method": "one read-only tools/call, synthetic args"
   },
   "tools_listed_count": 33,
   "last_probe": {
@@ -47067,7 +47458,9 @@
   "verification": {
    "discovered": true,
    "tools_listed": true,
-   "call_verified": false
+   "call_verified": true,
+   "call_verified_tool": "search_activities",
+   "call_verified_method": "one read-only tools/call, synthetic args"
   },
   "tools_listed_count": 4,
   "last_probe": {
@@ -47172,7 +47565,9 @@
   "verification": {
    "discovered": true,
    "tools_listed": true,
-   "call_verified": false
+   "call_verified": true,
+   "call_verified_tool": "weir_search",
+   "call_verified_method": "one read-only tools/call, synthetic args"
   },
   "tools_listed_count": 6,
   "last_probe": {
@@ -47226,7 +47621,9 @@
   "verification": {
    "discovered": true,
    "tools_listed": true,
-   "call_verified": false
+   "call_verified": true,
+   "call_verified_tool": "health",
+   "call_verified_method": "one read-only tools/call, synthetic args"
   },
   "tools_listed_count": 31,
   "last_probe": {
@@ -47434,7 +47831,9 @@
   "verification": {
    "discovered": true,
    "tools_listed": true,
-   "call_verified": false
+   "call_verified": true,
+   "call_verified_tool": "validate_ap2_mcp_policy",
+   "call_verified_method": "one read-only tools/call, synthetic args"
   },
   "tools_listed_count": 75,
   "last_probe": {
@@ -47635,7 +48034,9 @@
   "verification": {
    "discovered": true,
    "tools_listed": true,
-   "call_verified": false
+   "call_verified": true,
+   "call_verified_tool": "get_agent_leaderboard",
+   "call_verified_method": "one read-only tools/call, synthetic args"
   },
   "tools_listed_count": 12,
   "last_probe": {
@@ -47844,7 +48245,9 @@
   "verification": {
    "discovered": true,
    "tools_listed": true,
-   "call_verified": false
+   "call_verified": true,
+   "call_verified_tool": "read_webpage",
+   "call_verified_method": "one read-only tools/call, synthetic args"
   },
   "tools_listed_count": 7,
   "last_probe": {
@@ -47897,7 +48300,9 @@
   "verification": {
    "discovered": true,
    "tools_listed": true,
-   "call_verified": false
+   "call_verified": true,
+   "call_verified_tool": "list_regions",
+   "call_verified_method": "one read-only tools/call, synthetic args"
   },
   "tools_listed_count": 8,
   "last_probe": {
@@ -48154,7 +48559,8 @@
   "verification": {
    "discovered": true,
    "tools_listed": true,
-   "call_verified": false
+   "call_verified": false,
+   "call_validation_error": true
   },
   "tools_listed_count": 18,
   "last_probe": {
@@ -48455,7 +48861,9 @@
   "verification": {
    "discovered": true,
    "tools_listed": true,
-   "call_verified": false
+   "call_verified": true,
+   "call_verified_tool": "get_verification_status",
+   "call_verified_method": "one read-only tools/call, synthetic args"
   },
   "tools_listed_count": 5,
   "last_probe": {
@@ -48507,7 +48915,9 @@
   "verification": {
    "discovered": true,
    "tools_listed": true,
-   "call_verified": false
+   "call_verified": true,
+   "call_verified_tool": "search_flowers",
+   "call_verified_method": "one read-only tools/call, synthetic args"
   },
   "tools_listed_count": 11,
   "last_probe": {
@@ -49004,7 +49414,9 @@
   "verification": {
    "discovered": true,
    "tools_listed": true,
-   "call_verified": false
+   "call_verified": true,
+   "call_verified_tool": "list_countries",
+   "call_verified_method": "one read-only tools/call, synthetic args"
   },
   "tools_listed_count": 7,
   "last_probe": {
@@ -49106,7 +49518,9 @@
   "verification": {
    "discovered": true,
    "tools_listed": true,
-   "call_verified": false
+   "call_verified": true,
+   "call_verified_tool": "get_congress_trades",
+   "call_verified_method": "one read-only tools/call, synthetic args"
   },
   "tools_listed_count": 12,
   "last_probe": {
@@ -49691,7 +50105,9 @@
   "verification": {
    "discovered": true,
    "tools_listed": true,
-   "call_verified": false
+   "call_verified": true,
+   "call_verified_tool": "show_suggestions",
+   "call_verified_method": "one read-only tools/call, synthetic args"
   },
   "tools_listed_count": 60,
   "last_probe": {
@@ -50676,7 +51092,9 @@
   "verification": {
    "discovered": true,
    "tools_listed": true,
-   "call_verified": false
+   "call_verified": true,
+   "call_verified_tool": "get_smart_account_info",
+   "call_verified_method": "one read-only tools/call, synthetic args"
   },
   "tools_listed_count": 4,
   "last_probe": {
@@ -50777,7 +51195,9 @@
   "verification": {
    "discovered": true,
    "tools_listed": true,
-   "call_verified": false
+   "call_verified": true,
+   "call_verified_tool": "agentbit.company_research",
+   "call_verified_method": "one read-only tools/call, synthetic args"
   },
   "tools_listed_count": 84,
   "last_probe": {

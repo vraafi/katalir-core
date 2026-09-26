@@ -15,7 +15,7 @@ any claim stops reproducing. **If you edit a number here, run that script.**
 | **Unique integrations (deduped)** | **22.904** | `mcp_dedup.py` → `dedup_report.json` |
 | Unique % | 79.89 % (5.766 collapsed) | same |
 | Groups present in >1 source | 1.602 | same |
-| **Unique call-verified** | **26** + Groq + Gemini | `dedup_report.json` → `unique_verified` |
+| **Unique call-verified** | **227** + Groq + Gemini = **229** | `dedup_report.json` → `unique_verified` |
 | **Integrations that list tools** | **1.896** | `dedup_report.json` → `tools_listed` |
 | discovered only | 21.008 | `dedup_report.json` |
 | Generated OpenAPI tools | 884 registered (889 generated) | `openapi_tools_manifest.json` |
@@ -32,13 +32,30 @@ converts 351 already-catalogued entries from "listed" to "listed, with a counted
 tool inventory". **Neither figure is call-verified**; the sweep never issued a
 single `tools/call`.
 
-**The honest gap:** the blitz target is 2.000 unique *verified*. Reality is **28
-call-verified**, with 1.896 integrations proven to list tools and 4.714 tools
-enumerated across 351 of them. The gap is a *verification* problem, not a
-sourcing problem: 22.904 unique integrations are already in the catalogue, and a
-`tools/call` against the 351 is the next cheap step.
+**The honest gap:** the blitz target is 2.000 unique *verified*. Reality is **229
+call-verified** (227 from the catalogue + Groq + Gemini), up from 28. The gap is
+still a *verification* problem, not a sourcing problem: 22.904 unique integrations
+are in the catalogue, and only the ones with a working no-auth endpoint can be
+call-verified without a user's credential.
 
 ## FASE 1 — Batch Verify  ← current
+- [x] F1.5 metrics — `dedup_report.json` regenerated after the call phase
+- [x] F1.6 commit — batch + call artefacts tracked
+- [x] **F1.7 tools/call phase** — 351 no-auth Glama connectors attempted, one
+      read-only `tools/call` each → **203 call_verified** (107 failed, 14 rejected
+      our synthetic args, 26 had no read-only tool, 1 would not re-initialize).
+      `unique_verified` **26 → 227**; with Groq + Gemini that is **229 verified**.
+      Reconciled exactly: 203 connectors − 1 (`AI Tools Directory` is a directory,
+      not an integration) − 1 (two connectors share the name `rnv-color-mcp`)
+      = 201 new canonical rows, and 26 + 201 = 227.
+      Evidence: `glama-connector-call-batch1.json`, `scripts/audit_call_safety.py`.
+      Safety: only no-auth endpoints, SSRF-guarded, sequential, and a tool is
+      callable only if its name matches a read-verb allowlist and no mutating
+      verb. The audit re-derives that independently from the recorded tool names:
+      **0 mutating, 0 outside the allowlist, 188 distinct tools.**
+      An argument-rejection response is recorded as `call_validation_error` and
+      is **not** counted as verified — "the endpoint answered" is not "the
+      integration works".
 - [x] F1.1 Nango key → **WORKS**. `GET https://api.nango.dev/providers` → **200**,
       **1.024** provider. The earlier "401" was our own bug: we called
       `/api/v1/providers`, which is not a Nango route. Auth is
@@ -53,10 +70,8 @@ sourcing problem: 22.904 unique integrations are already in the catalogue, and a
       619 attempted → **351 ok** / **4.714 tools** (batch 1: 420 → 236 / 2.313,
       batch 2: 199 → 115 / 2.401). The two batches overlap by **0** connectors, so
       236 + 115 = 351 is a real union, not a double count.
-      Evidence: `glama-connector-verify-batch{1,2}.json`. Still **tools-list only**
-      — no `tools/call` was issued, so none of this counts toward "verified".
-- [x] F1.6 commit — both batch JSONs are tracked at `6dcbfd0`
-- [ ] F1.5 metrics
+      Evidence: `glama-connector-verify-batch{1,2}.json` at `6dcbfd0`. That phase
+      was **tools-list only**; `tools/call` came later as F1.7 below.
 
 ## FASE 1b — UI polish (shipped alongside F1.4)
 - [x] F1b.1 Chat empty state → DeepSeek minimalism: decorative Sparkles/Bot icons
@@ -70,7 +85,13 @@ sourcing problem: 22.904 unique integrations are already in the catalogue, and a
 
 ## FASE 2 — Sync All Sources
 - [ ] F2.1 sync the 884 OpenAPI tools (dedup first) · [ ] F2.2 source tags
-- [ ] F2.3 marketplace 8+ source tabs · [ ] F2.4 commit
+- [x] F2.3 marketplace 8+ source tabs — **8 tabs, one per real `source`**, verified
+      against a live backend: 28.533 / 7 / 20.000 / 1.000 / 1.554 / 1.558 / 4.415 / 6.
+      `glama` and `glama-connector` were merged under one "Glama" label, which hid
+      the only source we can verify at runtime and made the count match neither tab;
+      `openapi-generated` had no tab at all. `tests/marketplace-tabs.spec.ts` asserts
+      each count is non-zero, because a missing key renders "(0)" and looks
+      identical to a genuinely empty source. · [ ] F2.4 commit
 
 ## FASE 3 — Multi-Protocol Executor (MCP + OpenAPI + GraphQL + JS)
 - [ ] F3.1 OpenAPI import · [ ] F3.2 GraphQL import · [ ] F3.3 JS sandbox

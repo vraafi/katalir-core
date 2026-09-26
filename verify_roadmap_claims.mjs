@@ -17,6 +17,7 @@ const dot = (n) => n.toLocaleString("de-DE"); // 22904 -> "22.904", the file's s
 const dedup = read("dedup_report.json");
 const b1 = read("glama-connector-verify-batch1.json");
 const b2 = read("glama-connector-verify-batch2.json");
+const call = read("glama-connector-call-batch1.json");
 const glamaCatalog = read("glama_connectors.json");
 
 const pool = [...b1.tools_listed_connectors, ...b2.tools_listed_connectors];
@@ -29,7 +30,16 @@ const claims = [
   ["unique %", "79.89", (100 - (dedup.collapsed / dedup.before) * 100).toFixed(2)],
   ["collapsed", "5.766", dot(dedup.collapsed)],
   ["groups in >1 source", "1.602", dot(dedup.multi_source_groups)],
-  ["unique call-verified", "26", String(dedup.unique_verified)],
+  ["unique call-verified", "227", String(dedup.unique_verified)],
+  // F1.7 tools/call phase
+  ["call phase attempted", "351", String(call.attempted)],
+  ["call_verified connectors", "203", String(call.call_verified_total)],
+  ["call_validation_error (not verified)", "14", String(call.counts.call_validation_error ?? 0)],
+  ["call_failed", "107", String(call.counts.call_failed ?? 0)],
+  ["no_readonly_tool", "26", String(call.counts.no_readonly_tool ?? 0)],
+  ["new canonical rows from calls", "201", String(dedup.unique_verified - 26)],
+  ["203 - 1 directory - 1 name collision", "201", String(call.call_verified_total - 2)],
+  ["26 + 201 = unique_verified", "227", String(26 + (call.call_verified_total - 2))],
   ["integrations that list tools", "1.896", dot(dedup.tools_listed)],
   ["discovered only", "21.008", dot(dedup.discovered_only)],
   // F1.4

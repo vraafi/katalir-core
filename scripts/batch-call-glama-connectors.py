@@ -278,6 +278,7 @@ def main() -> int:
     ap.add_argument("--timeout", type=int, default=30)
     ap.add_argument("--delay", type=float, default=0.7)
     ap.add_argument("--resume", action="store_true", help="skip ids already in --out")
+    ap.add_argument("--write-back", action="store_true", help="set verification.call_verified in --registry")
     args = ap.parse_args()
 
     proven: dict[str, dict] = {}
@@ -364,6 +365,28 @@ def main() -> int:
     print("COUNTS=", json.dumps(dict(sorted(counts.items()))))
     print("CALL_VERIFIED_TOTAL=", sum(1 for r in records if r["status"] == "call_verified"))
     print("OUT=", args.out)
+
+    if args.write_back:
+        # Only a real result counts. call_validation_error and call_failed leave
+        # call_verified False/absent so the registry can never overstate itself.
+        applied = 0
+        for r in records:
+            rec = registry.get(r["id"])
+            if not isinstance(rec, dict):
+                continue
+            ver = rec.setdefault("verification", {})
+            ver["call_verified"] = r["status"] == "call_verified"
+            if r["status"] == "call_verified":
+                ver["call_verified_tool"] = r.get("tool")
+                ver["call_verified_method"] = "one read-only tools/call, synthetic args"
+            elif r["status"] == "call_validation_error":
+                ver["call_validation_error"] = True
+        pathlib.Path(args.registry).write_text(
+            json.dumps(registry, indent=1, ensure_ascii=False), encoding="utf-8"
+        )
+        marked = sum(1 for r in records if r["status"] == "call_verified")
+        print(f"WROTE_BACK {args.registry}: call_verified set on {marked} connectors")
+        _ = applied
     return 0
 
 
