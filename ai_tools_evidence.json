@@ -41,7 +41,8 @@
   "not_integrated": [
     {
       "provider": "nango-cloud",
-      "reason": "NANGO_API_KEY present (36 chars) but rejected: GET /api/v1/providers -> HTTP 401 with Bearer and Secret-Key"
+      "reason": "RESOLVED 2026-09-26: not integrated for capability reasons, not auth. NANGO_API_KEY is valid - GET https://api.nango.dev/providers -> 200 with 1024 providers, 1 integration configured (github-getting-started). The previously recorded 401 was our own bug: we called /api/v1/providers, which is not a Nango route. Still not integrated because Nango is an OAuth/connection layer, not a tools catalogue, so it is not a dedup source.",
+      "status": "key_valid_not_a_tools_source"
     },
     {
       "provider": "metorial",

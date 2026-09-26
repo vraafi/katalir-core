@@ -115,8 +115,11 @@
   Activepieces (8 container) + velane (Postgres+Redis+**ClickHouse**) tidak muat.
 - **Keputusan:** tidak ada yang di-deploy. Deploy di sini akan OOM-mematikan
   produksi, dan sync velane+Nango akan menggandakan entri yang sama.
-- [ ] **User action:** signup Nango Cloud di https://app.nango.dev → simpan
-  `NANGO_API_KEY` ke `.env`. Nango Cloud bisa dipakai **tanpa** menambah RAM VPS.
+- [x] ~~**User action:** signup Nango Cloud~~ → **done, key works.**
+  `GET https://api.nango.dev/providers` → 200, 1.024 provider, 1 integrasi
+  (`github-getting-started`) aktif. Nango Cloud dipakai **tanpa** menambah RAM VPS,
+  sesuai rencana awal. Catatan: bukan sumber tools untuk dedup, jadi tidak menambah
+  angka katalog.
 
 ### Gap sebenarnya
 - 28.532 entri katalog, baru **45 runtime-verified**. Defisit nyata ada di

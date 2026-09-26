@@ -39,8 +39,15 @@ sourcing problem: 22.904 unique integrations are already in the catalogue, and a
 `tools/call` against the 351 is the next cheap step.
 
 ## FASE 1 — Batch Verify  ← current
-- [!] F1.1 Nango key → **BLOCKED-USER** (key present, API returns 401 both header forms)
-- [!] F1.2 Nango provider templates → blocked by F1.1
+- [x] F1.1 Nango key → **WORKS**. `GET https://api.nango.dev/providers` → **200**,
+      **1.024** provider. The earlier "401" was our own bug: we called
+      `/api/v1/providers`, which is not a Nango route. Auth is
+      `Authorization: Bearer <Environment API key>`; the endpoint has no `/api/v1`
+      prefix. Evidence: `nango_providers_evidence.json`.
+- [x] F1.2 Nango provider templates → 1 integration configured
+      (`github-getting-started`, provider `github`, created 2026-09-25) via
+      `GET /integrations`. Note `/provider-templates` returns **HTML**, not JSON —
+      it is the Connect UI docs page, not an API. Use `/integrations` instead.
 - [!] F1.3 Metorial tools → **BLOCKED-USER** (key valid, project has 0 providers connected)
 - [x] F1.4 Batch verify candidates — **complete, no-auth Glama pool exhausted**:
       619 attempted → **351 ok** / **4.714 tools** (batch 1: 420 → 236 / 2.313,
@@ -105,9 +112,10 @@ These three landed on the MCP track and are tracked in `TODO.md`; they are liste
 here only so the blitz totals are not mistaken for the whole of what exists.
 
 ## Blocked on the user
-1. **Nango Cloud key** — a key exists in `.env` but the API rejects it
-   (`GET /api/v1/providers` → 401 with both `Bearer` and `Secret-Key`).
-   Action: create a secret key at https://app.nango.dev/settings and set `NANGO_API_KEY`.
+1. ~~**Nango Cloud key**~~ → **NOT BLOCKED, false alarm.** The key works; the
+   401 we recorded came from calling `/api/v1/providers`, a route that does not
+   exist. The real call is `GET https://api.nango.dev/providers` with
+   `Authorization: Bearer <key>` → 200, 1.024 providers. Corrected 2026-09-26.
 2. **Metorial providers** — the key is valid, but the project has **0 providers
    connected**. Action: connect providers in the Metorial dashboard, then re-sync.
 

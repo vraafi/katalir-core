@@ -15,8 +15,12 @@ Two batches, read-only, sequential 0.5s, SSRF-guarded, never `tools/call`:
 - Unique tools-listed 1.781 -> **1.895**; call-verified stays 27 (correctly)
 - Added `--skip-probed` so re-runs never re-probe what was already measured
 
-## Fase 1.1 / 1.3 — re-checked, still blocked
-- Nango: key unchanged (36 chars), `GET /api/v1/providers` -> **401** both header forms
+## Fase 1.1 — resolved 2026-09-26 (our test was wrong, not the key)
+- Nango: **200 OK**, 1.024 providers. Correct call is `GET https://api.nango.dev/providers`
+  with `Authorization: Bearer <key>`. The 401 recorded before came from hitting
+  `/api/v1/providers`, a route Nango does not have. The key was valid all along.
+- `/integrations` -> 200, 1 integration: `github-getting-started` (created 2026-09-25).
+- `/provider-templates` returns **HTML**, not JSON — Connect UI docs, not an API.
 - Metorial: key valid, `/integration-providers` -> 200 but **0 providers** connected
 
 ## Earlier, still current
@@ -24,5 +28,5 @@ Two batches, read-only, sequential 0.5s, SSRF-guarded, never `tools/call`:
   trigger tests passed, rows cleaned up (28135c0)
 
 ## Blockers (need the user)
-1. `USER ACTION: create a valid secret key at https://app.nango.dev/settings and set NANGO_API_KEY`
+
 2. `USER ACTION: connect providers in the Metorial dashboard` (key valid, 0 providers)
