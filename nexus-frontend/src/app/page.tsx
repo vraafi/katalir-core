@@ -49,31 +49,47 @@ function Landing() {
 
         <main>
         {/*
-          HERO — the 55-brand cloud is a BACKGROUND layer, not a strip below the
-          CTA. The earlier version put a 10-logo strip under the button and left
-          the full cloud below the fold, which read as two different components at
-          two different sizes. One size everywhere is the fix.
+          HERO — full-viewport, edge to edge, with the 55-brand cloud as a
+          BACKGROUND field rather than a strip or a section of its own.
 
-          Readability is not left to chance: the layer is faded to 0.2, the copy
-          sits in a z-10 wrapper with a backdrop blur, and the text block is
-          capped in width so a logo never runs under a full line of words. The
-          blur is the load-bearing part - at 0.2 the logos are subtle enough that
-          the text stays AA without it, and with it they can be missed entirely.
+          Two things this had to get right, and both are arithmetic rather than
+          taste:
+
+          1. "No whitespace at the bottom" and "24px logos" pull in opposite
+             directions. 55 tiles that small make only ~3 rows on a 1440x900
+             screen. Left to size itself the grid would stack those 3 rows at
+             the top and leave two thirds of the viewport empty — which is
+             exactly the complaint. So the rows are stretched to divide the full
+             height (`gridAutoRows: 1fr`) and the logos centre inside each one.
+             The field then covers the viewport edge to edge. Be aware of what
+             that costs: 24px marks spread over 900px read as a constellation,
+             not a dense cloud. That is the unavoidable consequence of 55 logos
+             at this size, not a bug to be tuned out later.
+
+          2. Readability is carried by the COPY, never by dimming the logos. The
+             logos render sharp at 0.7 with no blur and no filter, and the text
+             sits on a near-opaque card. The earlier version faded the logos to
+             0.2 to make text legible, which is what made them look muddy; this
+             inverts the trade so the logos stay crisp and the card does the
+             work.
         */}
-        <section className="relative isolate overflow-hidden" data-testid="hero-section">
+        <section
+          className="relative isolate min-h-[100svh] overflow-hidden"
+          data-testid="hero-section"
+        >
           <div
             className="pointer-events-none absolute inset-0 -z-10"
             data-testid="hero-logo-layer"
           >
-            <MagneticLogoCloud gap={80} size={48} radius={180} strength={0.4} opacity={0.2} />
+            <MagneticLogoCloud gap={40} size={24} radius={250} strength={1.5} opacity={0.7} />
           </div>
 
           <div
             id="main-content"
             tabIndex={-1}
-            className="relative z-10 mx-auto flex w-full max-w-3xl flex-1 flex-col justify-center px-5 py-8 sm:px-8"
+            className="relative z-10 mx-auto flex min-h-[100svh] w-full max-w-3xl flex-col justify-center px-5 py-8 sm:px-8"
           >
-            <div className="w-full rounded-2xl bg-bg/70 px-5 py-6 backdrop-blur-sm sm:px-7">
+            <div className="w-full rounded-2xl bg-bg/90 px-6 py-8 backdrop-blur-md sm:px-9 sm:py-10">
               <h1 className="text-title1 font-bold leading-tight tracking-tight sm:text-title1">
                 {t("landing.title")}
               </h1>

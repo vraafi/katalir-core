@@ -82,11 +82,11 @@ function renderLogo(logo: McpLogo, size: number) {
  */
 export function MagneticLogoCloud({
   logos = mcpLogos,
-  gap = 80,
-  size = 48,
-  radius = 180,
-  strength = 0.4,
-  opacity = 0.2,
+  gap = 40,
+  size = 24,
+  radius = 250,
+  strength = 1.5,
+  opacity = 0.7,
   className = "",
 }: {
   logos?: McpLogo[];
@@ -151,7 +151,14 @@ export function MagneticLogoCloud({
             if (dist < radius) {
               // Falls to zero at the edge of the radius, so the outer ring
               // barely moves and the inner tiles commit.
-              const f = (1 - dist / radius) * strength;
+              //
+              // The clamp is not cosmetic. At strength 1.5 the raw force exceeds
+              // 1.0 for anything closer than ~83px, which means a tile 25px from
+              // the cursor would be told to travel 33.8px - straight past it and
+              // out the other side. A dozen tiles doing that at once reads as a
+              // vibration, not a shoal. Capping the force at 1 lets a tile travel
+              // AT MOST the distance to the cursor: it converges, and it stops.
+              const f = Math.min(1, (1 - dist / radius) * strength);
               tile.tx = dx * f;
               tile.ty = dy * f;
             } else {
@@ -162,9 +169,12 @@ export function MagneticLogoCloud({
             tile.tx = 0;
             tile.ty = 0;
           }
-          // Exponential lerp. The factor is frame-rate independent, so the
-          // motion looks the same on a 60Hz and a 144Hz display.
-          const k = 1 - Math.pow(0.001, 1 / 60);
+          // Exponential lerp, frame-rate independent so a 60Hz and a 144Hz
+          // display settle identically. The 1/50 constant is a little snappier
+          // than the 1/60 used previously: with tiles now travelling ~90px
+          // instead of ~18px, the old curve left them visibly lagging behind the
+          // cursor, which is what "sluggish" looks like in motion.
+          const k = 1 - Math.pow(0.001, 1 / 50);
           tile.x += (tile.tx - tile.x) * k;
           tile.y += (tile.ty - tile.y) * k;
           if (Math.abs(tile.tx - tile.x) > 0.05 || Math.abs(tile.ty - tile.y) > 0.05) {
@@ -195,7 +205,12 @@ export function MagneticLogoCloud({
       aria-hidden="true"
       className={`grid h-full w-full place-items-center ${className}`}
       style={{
-        gridTemplateColumns: `repeat(auto-fill, minmax(${gap}px, 1fr))`,
+        gridTemplateColumns: `repeat(auto-fit, minmax(${size}px, 1fr))`,
+        // Rows divide the full height instead of hugging the 24px tiles. Without
+        // this, 55 small logos stack into ~3 short rows at the top and the bottom
+        // two thirds of the hero is empty - the exact "white space" complaint.
+        // The tile keeps its fixed size and simply centres inside its row.
+        gridAutoRows: "1fr",
         gap: `${gap}px`,
         padding: `${gap}px`,
         opacity,

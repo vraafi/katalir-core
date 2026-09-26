@@ -73,39 +73,69 @@ test.describe("F6 landing logo cloud", () => {
     expect(sizes.length).toBe(55);
     // Displacement from the magnet is a translation, so width is unaffected -
     // but read width rather than transform to prove the magnet is not resizing.
-    for (const w of sizes) expect(Math.abs(w - 48)).toBeLessThanOrEqual(1);
+    for (const w of sizes) expect(Math.abs(w - 24)).toBeLessThanOrEqual(1);
   });
 
-  test("logos are spread out, not packed shoulder to shoulder", async ({ page }) => {
+  test("the field spans the hero, with no empty band at top or bottom", async ({ page }) => {
     await page.setViewportSize({ width: 1440, height: 900 });
     await page.goto("/", { waitUntil: "domcontentloaded", timeout: 90_000 });
     await page.waitForSelector('[data-testid="mcp-logo"]');
     await page.waitForTimeout(1000);
 
-    // The brief asked for 80px of breathing room; the old strip ran at 20-30px,
-    // which is what made the magnetic effect look like nothing at all.
-    const gap = await page
+    const hero = (await page.getByTestId("hero-section").boundingBox())!;
+
+    // 55 tiles at 24px make only ~3 rows, so a self-sizing grid would stack them
+    // at the top and leave the lower two thirds blank. The rows are stretched to
+    // divide the height instead, so the field SPANS the hero.
+    //
+    // The assertion is on the vertical span rather than on a gap to the edge,
+    // because a 24px logo centred in a 273px row always leaves a margin no
+    // matter how the grid is configured. Measuring "distance to the bottom"
+    // would therefore be asserting something geometrically impossible.
+    const bounds = await page
       .getByTestId("mcp-logo")
       .evaluateAll((els) => {
-        const rs = els
-          .map((el) => el.getBoundingClientRect())
-          .sort((a, b) => a.top - b.top || a.left - b.left);
-        let min = Infinity;
-        for (let i = 0; i < rs.length; i++) {
-          for (let j = i + 1; j < rs.length; j++) {
-            const dx = Math.abs(rs[i].left - rs[j].left);
-            const dy = Math.abs(rs[i].top - rs[j].top);
-            if (dx < 1 || dy < 1) continue; // not in the same row/column
-            const d = dx < dy ? dx : dy;
-            if (d < min) min = d;
-          }
-        }
-        return min;
+        const rs = els.map((el) => el.getBoundingClientRect());
+        return {
+          top: Math.min(...rs.map((r) => r.top)),
+          bottom: Math.max(...rs.map((r) => r.bottom)),
+        };
       });
-    expect(gap, "logos are packed too tightly for the magnetic effect to read").toBeGreaterThan(60);
+
+    const span = bounds.bottom - bounds.top;
+    expect(hero.height, "hero is not full viewport").toBeGreaterThanOrEqual(880);
+
+    // 0.6, not 0.9, and the reason is arithmetic worth keeping in mind. With
+    // gap 40 the grid makes 3 rows across 900px, so each row is 273px tall and a
+    // 24px mark centred inside it leaves ~136px empty above and below. The marks
+    // therefore span ~570-600px however the grid is tuned. A denser field needs
+    // either more logos or a wider min column (both change the brief's numbers),
+    // so this asserts that the field SPANS the hero rather than that it fills it.
+    // It still catches the real regression: drop gridAutoRows and the span
+    // collapses to ~150px, well under this line.
+    expect(
+      span / hero.height,
+      `logos only span ${Math.round(span)}px of a ${Math.round(hero.height)}px hero`,
+    ).toBeGreaterThan(0.6);
+    expect(bounds.top - hero.y, "large empty band above the field").toBeLessThanOrEqual(200);
+    expect(hero.y + hero.height - bounds.bottom, "large empty band below the field").toBeLessThanOrEqual(200);
   });
 
-  test("the layer is faded, so the headline stays readable", async ({ page }) => {
+  test("declared grid gap is 40px", async ({ page }) => {
+    await page.goto("/", { waitUntil: "domcontentloaded", timeout: 90_000 });
+    await page.waitForSelector('[data-testid="mcp-logo"]');
+    await page.waitForTimeout(800);
+
+    // Assert the declared value rather than measured centre-to-centre distance.
+    // With rows stretched to 1fr the real spacing is far larger than the gap,
+    // so a distance-based check would pass for the wrong reason.
+    const gap = await page
+      .getByTestId("magnetic-logo-cloud")
+      .evaluate((el) => getComputedStyle(el).gap);
+    expect(gap).toBe("40px");
+  });
+
+  test("logos render sharp: full-ish opacity, and no blur filter", async ({ page }) => {
     await page.goto("/", { waitUntil: "domcontentloaded", timeout: 90_000 });
     await page.waitForSelector('[data-testid="mcp-logo"]');
     await page.waitForTimeout(1000);
@@ -116,8 +146,39 @@ test.describe("F6 landing logo cloud", () => {
     const opacity = await page
       .getByTestId("magnetic-logo-cloud")
       .evaluate((el) => Number(getComputedStyle(el).opacity));
-    expect(opacity, "logos are too strong to read the hero over").toBeLessThanOrEqual(0.25);
-    expect(opacity, "logos are invisible, which is not a background either").toBeGreaterThan(0.1);
+    expect(opacity, "logos are too faint to read as sharp").toBeGreaterThanOrEqual(0.6);
+    expect(opacity, "logos are so strong they fight the copy").toBeLessThanOrEqual(0.8);
+
+    // The complaint was "buram". A blur is the specific cause, and it is
+    // assertable directly on every tile and every svg.
+    const blurry = await page
+      .getByTestId("mcp-logo")
+      .evaluateAll((els) =>
+      els
+        .flatMap((t) => [t, ...Array.from(t.querySelectorAll("svg"))])
+        .map((el) => {
+          const cs = getComputedStyle(el);
+          return { brand: el.getAttribute("data-brand") ?? "svg", filter: cs.filter, bmi: cs.backdropFilter };
+        })
+        .filter((r) => r.filter !== "none" || r.bmi !== "none"),
+    );
+    expect(blurry, `blur applied to logos: ${JSON.stringify(blurry)}`).toEqual([]);
+  });
+
+  test("the text sits on its own opaque card, not on faded logos", async ({ page }) => {
+    await page.goto("/", { waitUntil: "domcontentloaded", timeout: 90_000 });
+    await page.waitForSelector('[data-testid="mcp-logo"]');
+    await page.waitForTimeout(800);
+
+    // Legibility is carried by the card, not by dimming the field. If this
+    // drops below ~0.8 the logos have to be faded again to compensate, which is
+    // the design the brief explicitly rejected.
+    const bg = await page.evaluate(() => {
+      const card = document.querySelector("#main-content > div") as HTMLElement;
+      return getComputedStyle(card).backgroundColor;
+    });
+    const alpha = Number(bg.match(/rgba?\([^)]*?,\s*([\d.]+)\s*\)/)?.[1] ?? "1");
+    expect(alpha, `card background too transparent: ${bg}`).toBeGreaterThanOrEqual(0.8);
   });
 
   test("logos are brand coloured, not monochrome", async ({ page }) => {
