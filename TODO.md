@@ -14,7 +14,8 @@
 - [x] C2.22: DONE — VPS/named tunnel documented in `docs/architecture/mcp-gateway-vps.md`; deploy/rollback/runbook added.
 - [x] C3: MCP SDK client refactor
 - [x] C7: Registry → gateway coverage test — `/mcp/registry/coverage` distinguishes metadata-only vs executable; 4548 total catalog metadata, executable transport=0 because ToolSDK entries are metadata-only.
-- [x] C8: Production verify — authenticated servers=200/39, call=200/datetime, unauth health=401 expected; named gateway stable.
+- [x] C8: Production verify — re-probed 2026-09-26 against `web-production-dc90b.up.railway.app`: `/health`=200 (`persistence=supabase`), `/mcp/registry`=200, `/mcp/registry/coverage`=200 (total 28533, executable 23, metadata_only 28510), `/mcp/recommendations`=200, `/mcp/my-instances`=401, `/mcp/server/tools`=401, `/mcp/auto-config/preview`=401, `/mcp/install`=401. Auth gate on tenant routes holds.
+- [ ] SECURITY — gateway is PUBLIC: naked unauthenticated POST to `https://gateway.katalir.de5.net/mcp` returns initialize=200, tools/list=200 with 57 tool names. Earlier notes claimed "unauth health=401 proves auth gate"; that is NOT true for the current deployment. Must be locked down (Cloudflare Access / service token + `GatewayClient` auth header) before DONE.
 - [x] Composition research — 10 components documented in `docs/architecture/leapfrog-research.md`; execution remains allowlisted.
 
 ## FASE D — Multi-Tenant
