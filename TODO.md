@@ -5,6 +5,7 @@
 - UI/UX Overhaul: FASE 0-6 selesai.
 - MCP Federation: FASE C selesai; gateway VPS/named tunnel hidup, production E2E health=401 (auth), servers=39, call=datetime.
 - Composition research: 10 komponen MCP dipilih dengan boundary adapter/license; registry metadata tidak boleh dieksekusi otomatis.
+- `.env` hygiene: bersih dan ter-audit (`node scripts/env_audit.mjs`, 92 keys, 0 parse hazard, no BOM). Non-conforming line yang tersisa sudah di-comment, bukan dihapus.
 
 ## FASE C — MCP Gateway
 - [x] C1: Research agentgateway + registry
