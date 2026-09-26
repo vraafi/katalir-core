@@ -36,7 +36,7 @@
 
 ## FASE G — Expose Katalir as MCP Server
 - [x] Workflow → MCP tool — owner-scoped `GET /mcp/server/tools` + `POST /mcp/server/call`; execution delegated to existing workflow engine.
-- [x] External MCP client test — official `mcp.server.fastmcp.FastMCP` stdio adapter added at `mcp_gateway/katalir_server.py`; import/compile PASS. Live owner call still requires a fresh user JWT.
+- [x] External MCP client test — REAL official `mcp` SDK client (stdio transport, separate process) drives `mcp_gateway/katalir_server.py`: `initialize` → `tools/list` = `['list_workflows','run_workflow']` → `tools/call` returns `execution_id=exec-123`. Test: `tests/test_katalir_mcp_external.py`.
 
 ## FASE H — Final Verify
 - [x] Production deploy — production domain routes respond 200; gateway named tunnel and Railway E2E previously verified.
