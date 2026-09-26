@@ -1335,6 +1335,28 @@ class MCPInstanceRequest(BaseModel):
 _MCP_INSTANCES: dict[str, dict[str, dict[str, Any]]] = {}
 _EXECUTABLE_MCP_IDS = {"everything", "fetch", "memory", "filesystem", "time"}
 
+
+class AutoConfigPreviewRequest(BaseModel):
+    """Preview = rencana tanpa efek samping (FASE E auto-config).
+
+    Install yang sebenarnya tetap `POST /mcp/install` dan WAJIB mengirim
+    `confirmed=true`; preview hanya supaya UI bisa menampilkan konfigurasi
+    yang kurang sebelum pengguna menekan tombol konfirmasi.
+    """
+    mcp_id: str
+    config: dict[str, Any] = Field(default_factory=dict)
+
+
+@app.post("/mcp/auto-config/preview")
+def mcp_auto_config_preview(req: AutoConfigPreviewRequest, authorization: str | None = Header(None)):
+    import mcp_autoconfig as ac
+    _mcp_key(authorization)
+    try:
+        p = ac.plan(req.mcp_id, req.config)
+    except ac.AutoConfigError as exc:
+        raise HTTPException(400, str(exc))
+    return {"plan": p.to_dict(), "requires_confirmation": True, "install_endpoint": "/mcp/install"}
+
 def _mcp_key(authorization: str | None) -> str:
     user = security.get_current_user(authorization)
     return str(user.get("id") or user.get("email") or "unknown")
@@ -1357,14 +1379,20 @@ def mcp_install(req: MCPInstanceRequest, authorization: str | None = Header(None
         raise HTTPException(422, "mcp_id wajib")
     if not req.confirmed:
         raise HTTPException(409, "Instalasi memerlukan konfirmasi eksplisit")
-    if not req.mcp_id.strip() in _EXECUTABLE_MCP_IDS:
-        raise HTTPException(422, "Server metadata-only belum tervalidasi untuk instalasi")
+    # allowlist runtime: entri katalog metadata-only tidak pernah bisa di-install
+    import mcp_autoconfig as ac
+    try:
+        p = ac.plan(req.mcp_id, req.config)
+    except ac.AutoConfigError as exc:
+        raise HTTPException(422, str(exc))
     import mcp_registry
     req_item = {"id": req.mcp_id, "install_config": {"transport": "stdio", "package": req.mcp_id}}
     verified = mcp_registry.validate_executable_manifest(req_item)
     if verified["status"] != "valid":
         raise HTTPException(422, f"Manifest ditolak: {', '.join(verified['errors'])}")
-    row = {"mcp_id": req.mcp_id.strip(), "config": req.config, "status": "active", "manifest": verified}
+    row = {"mcp_id": p.mcp_id, "config": req.config, "status": "active" if not p.missing_config else "needs_config",
+           "runtime": p.runtime, "transport": p.transport, "package": p.package, "manifest": verified,
+           "missing_config": p.missing_config, "warnings": p.warnings}
     if db.is_configured():
         client = db._get_write_client()
         payload = {"user_id": user_id, "mcp_id": row["mcp_id"], "config": req.config, "status": "active", "updated_at": db._now()}

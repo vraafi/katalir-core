@@ -53,7 +53,6 @@ export default function IntegrationsPage() {
   const [installing, setInstalling] = useState<string | null>(null);
 
   async function install(item: Server) {
-    const runtimeReady = item.install_config?.transport === "stdio" || item.install_config?.transport === "http" || item.install_config?.transport === "sse" || ["everything", "fetch", "memory", "filesystem", "time"].includes(item.id);
     // Glama = endpoint milik pihak ketiga. Satu-satunya jalan yang jujur adalah
     // arahkan user ke listing resminya, bukan mengklaim kita bisa memasangnya.
     if (item.source === "glama" || item.source === "glama-connector") {
@@ -63,13 +62,34 @@ export default function IntegrationsPage() {
     }
     // Native providers are already wired into the runtime; "Pasang" would be a lie.
     if (item.source === "native") { setStatus(`${item.name} sudah aktif di runtime Katalir.`); return; }
-    if (!runtimeReady) { setError(`${item.name} masih metadata-only dan belum bisa dipasang otomatis.`); return; }
-    if (!window.confirm(`Pasang ${item.name}? Anda dapat mengaturnya setelah dipasang.`)) return;
+    // Konfigurasi runtime ditentukan BACKEND (mcp_autoconfig), bukan tebakan UI:
+    // preview menolak entri katalog metadata-only sebelum confirm dialog muncul.
     setInstalling(item.id); setError(null);
+    let plan: { runtime: string; transport: string; package: string; missing_config: string[] } | null = null;
+    try {
+      const pv = await apiFetch("/mcp/auto-config/preview", { method: "POST", body: JSON.stringify({ mcp_id: item.id, config: {} }), timeoutMs: 8000 });
+      if (!pv.ok) {
+        const e = await pv.json().catch(() => null);
+        throw new Error(typeof e?.detail === "string" ? e.detail : `${item.name} belum punya runtime tervalidasi.`);
+      }
+      plan = (await pv.json()).plan;
+    } catch (err) {
+      setError(err instanceof Error ? err.message : `Pemasangan ${item.name} gagal. Coba lagi.`);
+      setInstalling(null);
+      return;
+    }
+    const ok = plan!;
+    if (!window.confirm(
+      `Pasang ${item.name}?\n\nRuntime: ${ok.runtime} · ${ok.transport} · ${ok.package}` +
+      (ok.missing_config.length ? `\n\nKonfigurasi belum lengkap: ${ok.missing_config.join(", ")}` : "")
+    )) { setInstalling(null); return; }
     try {
       const r = await apiFetch("/mcp/install", { method: "POST", body: JSON.stringify({ mcp_id: item.id, config: {}, confirmed: true }), timeoutMs: 8000 });
       if (!r.ok) throw new Error(`HTTP ${r.status}`);
-      setStatus(`${item.name} dipasang. Buka Integrasi saya untuk kelola.`);
+      const inst = (await r.json()).instance;
+      setStatus(inst?.status === "needs_config"
+        ? `${item.name} terpasang tetapi butuh konfigurasi. Buka Integrasi saya.`
+        : `${item.name} dipasang. Buka Integrasi saya untuk kelola.`);
     } catch { setError(`Pemasangan ${item.name} gagal. Coba lagi.`); }
     finally { setInstalling(null); }
   }
