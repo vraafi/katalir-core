@@ -1,0 +1,657 @@
+{
+ "protocol": "graphql",
+ "query_type": "Query",
+ "has_mutation": false,
+ "endpoint": "https://countries.trevorblades.com/",
+ "endpoint_status": "public_https",
+ "tools": [
+  {
+   "name": "continent_code",
+   "protocol": "graphql",
+   "type_name": "Continent",
+   "field": "code",
+   "return_type": "ID!",
+   "summary": "Continent.code",
+   "description": "",
+   "args": [],
+   "deprecated": false,
+   "requires_auth": true,
+   "verification": {
+    "discovered": true,
+    "tools_listed": true,
+    "call_verified": false
+   }
+  },
+  {
+   "name": "continent_countries",
+   "protocol": "graphql",
+   "type_name": "Continent",
+   "field": "countries",
+   "return_type": "[Country!]!",
+   "summary": "Continent.countries",
+   "description": "",
+   "args": [],
+   "deprecated": false,
+   "requires_auth": true,
+   "verification": {
+    "discovered": true,
+    "tools_listed": true,
+    "call_verified": false
+   }
+  },
+  {
+   "name": "continent_name",
+   "protocol": "graphql",
+   "type_name": "Continent",
+   "field": "name",
+   "return_type": "String!",
+   "summary": "Continent.name",
+   "description": "",
+   "args": [],
+   "deprecated": false,
+   "requires_auth": true,
+   "verification": {
+    "discovered": true,
+    "tools_listed": true,
+    "call_verified": false
+   }
+  },
+  {
+   "name": "country_awsregion",
+   "protocol": "graphql",
+   "type_name": "Country",
+   "field": "awsRegion",
+   "return_type": "String!",
+   "summary": "Country.awsRegion",
+   "description": "",
+   "args": [],
+   "deprecated": false,
+   "requires_auth": true,
+   "verification": {
+    "discovered": true,
+    "tools_listed": true,
+    "call_verified": false
+   }
+  },
+  {
+   "name": "country_capital",
+   "protocol": "graphql",
+   "type_name": "Country",
+   "field": "capital",
+   "return_type": "String",
+   "summary": "Country.capital",
+   "description": "",
+   "args": [],
+   "deprecated": false,
+   "requires_auth": true,
+   "verification": {
+    "discovered": true,
+    "tools_listed": true,
+    "call_verified": false
+   }
+  },
+  {
+   "name": "country_code",
+   "protocol": "graphql",
+   "type_name": "Country",
+   "field": "code",
+   "return_type": "ID!",
+   "summary": "Country.code",
+   "description": "",
+   "args": [],
+   "deprecated": false,
+   "requires_auth": true,
+   "verification": {
+    "discovered": true,
+    "tools_listed": true,
+    "call_verified": false
+   }
+  },
+  {
+   "name": "country_continent",
+   "protocol": "graphql",
+   "type_name": "Country",
+   "field": "continent",
+   "return_type": "Continent!",
+   "summary": "Country.continent",
+   "description": "",
+   "args": [],
+   "deprecated": false,
+   "requires_auth": true,
+   "verification": {
+    "discovered": true,
+    "tools_listed": true,
+    "call_verified": false
+   }
+  },
+  {
+   "name": "country_currencies",
+   "protocol": "graphql",
+   "type_name": "Country",
+   "field": "currencies",
+   "return_type": "[String!]!",
+   "summary": "Country.currencies",
+   "description": "",
+   "args": [],
+   "deprecated": false,
+   "requires_auth": true,
+   "verification": {
+    "discovered": true,
+    "tools_listed": true,
+    "call_verified": false
+   }
+  },
+  {
+   "name": "country_currency",
+   "protocol": "graphql",
+   "type_name": "Country",
+   "field": "currency",
+   "return_type": "String",
+   "summary": "Country.currency",
+   "description": "",
+   "args": [],
+   "deprecated": false,
+   "requires_auth": true,
+   "verification": {
+    "discovered": true,
+    "tools_listed": true,
+    "call_verified": false
+   }
+  },
+  {
+   "name": "country_emoji",
+   "protocol": "graphql",
+   "type_name": "Country",
+   "field": "emoji",
+   "return_type": "String!",
+   "summary": "Country.emoji",
+   "description": "",
+   "args": [],
+   "deprecated": false,
+   "requires_auth": true,
+   "verification": {
+    "discovered": true,
+    "tools_listed": true,
+    "call_verified": false
+   }
+  },
+  {
+   "name": "country_emojiu",
+   "protocol": "graphql",
+   "type_name": "Country",
+   "field": "emojiU",
+   "return_type": "String!",
+   "summary": "Country.emojiU",
+   "description": "",
+   "args": [],
+   "deprecated": false,
+   "requires_auth": true,
+   "verification": {
+    "discovered": true,
+    "tools_listed": true,
+    "call_verified": false
+   }
+  },
+  {
+   "name": "country_languages",
+   "protocol": "graphql",
+   "type_name": "Country",
+   "field": "languages",
+   "return_type": "[Language!]!",
+   "summary": "Country.languages",
+   "description": "",
+   "args": [],
+   "deprecated": false,
+   "requires_auth": true,
+   "verification": {
+    "discovered": true,
+    "tools_listed": true,
+    "call_verified": false
+   }
+  },
+  {
+   "name": "country_name",
+   "protocol": "graphql",
+   "type_name": "Country",
+   "field": "name",
+   "return_type": "String!",
+   "summary": "Country.name",
+   "description": "",
+   "args": [
+    {
+     "name": "lang",
+     "type": "String",
+     "required": false,
+     "description": ""
+    }
+   ],
+   "deprecated": false,
+   "requires_auth": true,
+   "verification": {
+    "discovered": true,
+    "tools_listed": true,
+    "call_verified": false
+   }
+  },
+  {
+   "name": "country_native",
+   "protocol": "graphql",
+   "type_name": "Country",
+   "field": "native",
+   "return_type": "String!",
+   "summary": "Country.native",
+   "description": "",
+   "args": [],
+   "deprecated": false,
+   "requires_auth": true,
+   "verification": {
+    "discovered": true,
+    "tools_listed": true,
+    "call_verified": false
+   }
+  },
+  {
+   "name": "country_phone",
+   "protocol": "graphql",
+   "type_name": "Country",
+   "field": "phone",
+   "return_type": "String!",
+   "summary": "Country.phone",
+   "description": "",
+   "args": [],
+   "deprecated": false,
+   "requires_auth": true,
+   "verification": {
+    "discovered": true,
+    "tools_listed": true,
+    "call_verified": false
+   }
+  },
+  {
+   "name": "country_phones",
+   "protocol": "graphql",
+   "type_name": "Country",
+   "field": "phones",
+   "return_type": "[String!]!",
+   "summary": "Country.phones",
+   "description": "",
+   "args": [],
+   "deprecated": false,
+   "requires_auth": true,
+   "verification": {
+    "discovered": true,
+    "tools_listed": true,
+    "call_verified": false
+   }
+  },
+  {
+   "name": "country_states",
+   "protocol": "graphql",
+   "type_name": "Country",
+   "field": "states",
+   "return_type": "[State!]!",
+   "summary": "Country.states",
+   "description": "",
+   "args": [],
+   "deprecated": false,
+   "requires_auth": true,
+   "verification": {
+    "discovered": true,
+    "tools_listed": true,
+    "call_verified": false
+   }
+  },
+  {
+   "name": "country_subdivisions",
+   "protocol": "graphql",
+   "type_name": "Country",
+   "field": "subdivisions",
+   "return_type": "[Subdivision!]!",
+   "summary": "Country.subdivisions",
+   "description": "",
+   "args": [],
+   "deprecated": false,
+   "requires_auth": true,
+   "verification": {
+    "discovered": true,
+    "tools_listed": true,
+    "call_verified": false
+   }
+  },
+  {
+   "name": "language_code",
+   "protocol": "graphql",
+   "type_name": "Language",
+   "field": "code",
+   "return_type": "ID!",
+   "summary": "Language.code",
+   "description": "",
+   "args": [],
+   "deprecated": false,
+   "requires_auth": true,
+   "verification": {
+    "discovered": true,
+    "tools_listed": true,
+    "call_verified": false
+   }
+  },
+  {
+   "name": "language_countries",
+   "protocol": "graphql",
+   "type_name": "Language",
+   "field": "countries",
+   "return_type": "[Country!]!",
+   "summary": "Language.countries",
+   "description": "",
+   "args": [],
+   "deprecated": false,
+   "requires_auth": true,
+   "verification": {
+    "discovered": true,
+    "tools_listed": true,
+    "call_verified": false
+   }
+  },
+  {
+   "name": "language_name",
+   "protocol": "graphql",
+   "type_name": "Language",
+   "field": "name",
+   "return_type": "String!",
+   "summary": "Language.name",
+   "description": "",
+   "args": [],
+   "deprecated": false,
+   "requires_auth": true,
+   "verification": {
+    "discovered": true,
+    "tools_listed": true,
+    "call_verified": false
+   }
+  },
+  {
+   "name": "language_native",
+   "protocol": "graphql",
+   "type_name": "Language",
+   "field": "native",
+   "return_type": "String!",
+   "summary": "Language.native",
+   "description": "",
+   "args": [],
+   "deprecated": false,
+   "requires_auth": true,
+   "verification": {
+    "discovered": true,
+    "tools_listed": true,
+    "call_verified": false
+   }
+  },
+  {
+   "name": "language_rtl",
+   "protocol": "graphql",
+   "type_name": "Language",
+   "field": "rtl",
+   "return_type": "Boolean!",
+   "summary": "Language.rtl",
+   "description": "",
+   "args": [],
+   "deprecated": false,
+   "requires_auth": true,
+   "verification": {
+    "discovered": true,
+    "tools_listed": true,
+    "call_verified": false
+   }
+  },
+  {
+   "name": "query_continent",
+   "protocol": "graphql",
+   "type_name": "Query",
+   "field": "continent",
+   "return_type": "Continent",
+   "summary": "Query.continent",
+   "description": "",
+   "args": [
+    {
+     "name": "code",
+     "type": "ID!",
+     "required": true,
+     "description": ""
+    }
+   ],
+   "deprecated": false,
+   "requires_auth": true,
+   "verification": {
+    "discovered": true,
+    "tools_listed": true,
+    "call_verified": false
+   }
+  },
+  {
+   "name": "query_continents",
+   "protocol": "graphql",
+   "type_name": "Query",
+   "field": "continents",
+   "return_type": "[Continent!]!",
+   "summary": "Query.continents",
+   "description": "",
+   "args": [
+    {
+     "name": "filter",
+     "type": "ContinentFilterInput",
+     "required": false,
+     "description": ""
+    }
+   ],
+   "deprecated": false,
+   "requires_auth": true,
+   "verification": {
+    "discovered": true,
+    "tools_listed": true,
+    "call_verified": false
+   }
+  },
+  {
+   "name": "query_countries",
+   "protocol": "graphql",
+   "type_name": "Query",
+   "field": "countries",
+   "return_type": "[Country!]!",
+   "summary": "Query.countries",
+   "description": "",
+   "args": [
+    {
+     "name": "filter",
+     "type": "CountryFilterInput",
+     "required": false,
+     "description": ""
+    }
+   ],
+   "deprecated": false,
+   "requires_auth": true,
+   "verification": {
+    "discovered": true,
+    "tools_listed": true,
+    "call_verified": false
+   }
+  },
+  {
+   "name": "query_country",
+   "protocol": "graphql",
+   "type_name": "Query",
+   "field": "country",
+   "return_type": "Country",
+   "summary": "Query.country",
+   "description": "",
+   "args": [
+    {
+     "name": "code",
+     "type": "ID!",
+     "required": true,
+     "description": ""
+    }
+   ],
+   "deprecated": false,
+   "requires_auth": true,
+   "verification": {
+    "discovered": true,
+    "tools_listed": true,
+    "call_verified": false
+   }
+  },
+  {
+   "name": "query_language",
+   "protocol": "graphql",
+   "type_name": "Query",
+   "field": "language",
+   "return_type": "Language",
+   "summary": "Query.language",
+   "description": "",
+   "args": [
+    {
+     "name": "code",
+     "type": "ID!",
+     "required": true,
+     "description": ""
+    }
+   ],
+   "deprecated": false,
+   "requires_auth": true,
+   "verification": {
+    "discovered": true,
+    "tools_listed": true,
+    "call_verified": false
+   }
+  },
+  {
+   "name": "query_languages",
+   "protocol": "graphql",
+   "type_name": "Query",
+   "field": "languages",
+   "return_type": "[Language!]!",
+   "summary": "Query.languages",
+   "description": "",
+   "args": [
+    {
+     "name": "filter",
+     "type": "LanguageFilterInput",
+     "required": false,
+     "description": ""
+    }
+   ],
+   "deprecated": false,
+   "requires_auth": true,
+   "verification": {
+    "discovered": true,
+    "tools_listed": true,
+    "call_verified": false
+   }
+  },
+  {
+   "name": "state_code",
+   "protocol": "graphql",
+   "type_name": "State",
+   "field": "code",
+   "return_type": "String",
+   "summary": "State.code",
+   "description": "",
+   "args": [],
+   "deprecated": false,
+   "requires_auth": true,
+   "verification": {
+    "discovered": true,
+    "tools_listed": true,
+    "call_verified": false
+   }
+  },
+  {
+   "name": "state_country",
+   "protocol": "graphql",
+   "type_name": "State",
+   "field": "country",
+   "return_type": "Country!",
+   "summary": "State.country",
+   "description": "",
+   "args": [],
+   "deprecated": false,
+   "requires_auth": true,
+   "verification": {
+    "discovered": true,
+    "tools_listed": true,
+    "call_verified": false
+   }
+  },
+  {
+   "name": "state_name",
+   "protocol": "graphql",
+   "type_name": "State",
+   "field": "name",
+   "return_type": "String!",
+   "summary": "State.name",
+   "description": "",
+   "args": [],
+   "deprecated": false,
+   "requires_auth": true,
+   "verification": {
+    "discovered": true,
+    "tools_listed": true,
+    "call_verified": false
+   }
+  },
+  {
+   "name": "subdivision_code",
+   "protocol": "graphql",
+   "type_name": "Subdivision",
+   "field": "code",
+   "return_type": "ID!",
+   "summary": "Subdivision.code",
+   "description": "",
+   "args": [],
+   "deprecated": false,
+   "requires_auth": true,
+   "verification": {
+    "discovered": true,
+    "tools_listed": true,
+    "call_verified": false
+   }
+  },
+  {
+   "name": "subdivision_emoji",
+   "protocol": "graphql",
+   "type_name": "Subdivision",
+   "field": "emoji",
+   "return_type": "String",
+   "summary": "Subdivision.emoji",
+   "description": "",
+   "args": [],
+   "deprecated": false,
+   "requires_auth": true,
+   "verification": {
+    "discovered": true,
+    "tools_listed": true,
+    "call_verified": false
+   }
+  },
+  {
+   "name": "subdivision_name",
+   "protocol": "graphql",
+   "type_name": "Subdivision",
+   "field": "name",
+   "return_type": "String!",
+   "summary": "Subdivision.name",
+   "description": "",
+   "args": [],
+   "deprecated": false,
+   "requires_auth": true,
+   "verification": {
+    "discovered": true,
+    "tools_listed": true,
+    "call_verified": false
+   }
+  }
+ ],
+ "tools_count": 35,
+ "skipped": [],
+ "skipped_count": 0,
+ "executable": true
+}
