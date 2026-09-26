@@ -1467,9 +1467,18 @@ def mcp_recommendations(q: str, limit: int = 5):
 
 
 @app.get("/mcp/registry")
-def mcp_registry(page: int = 1, limit: int = 50, search: str = "", category: str = "", source: str = ""):
+def mcp_registry(page: int = 1, limit: int = 50, search: str = "", category: str = "", source: str = "", view: str = "all"):
+    """view=all is the raw merged catalogue; view=unique is the deduped set.
+
+    Both are real numbers and they differ by the duplicate rate, so the caller
+    must say which one it is displaying rather than being handed one by default.
+    """
     import mcp_registry as catalog
+    if view not in ("all", "unique"):
+        raise HTTPException(400, f"view must be 'all' or 'unique', got {view!r}")
     try:
+        if view == "unique":
+            return catalog.list_canonical(page=page, limit=limit, search=search, category=category, source=source)
         return catalog.list_servers(page=page, limit=limit, search=search, category=category, source=source)
     except ValueError as exc:
         raise HTTPException(400, str(exc))
@@ -1603,6 +1612,7 @@ def mcp_registry_sources():
     import provider_registry as pr
     return {
         "sources": {**catalog.source_counts(), "native": len(pr.PROVIDERS)},
+        "sources_unique": catalog.source_counts_unique(),
         "coverage": catalog.coverage(),
         "attribution": {
             "glama": {

@@ -30,6 +30,14 @@ REGISTRY_FILES = {
     "glama": "glama_servers.json",
     "glama-connector": "glama_connectors.json",
     "openapi-generated": "openapi_apis.json",
+    # Neither of these is a tools catalogue, and they must not be counted as
+    # one. Nango is an OAuth/connection layer (1.024 providers, zero tools) and
+    # Metorial is a managed MCP platform. Most of their entries legitimately
+    # duplicate Composio/Glama/OpenConnector, so letting them collapse here is the
+    # correct outcome - counting them separately is exactly the inflation this
+    # module exists to prevent. `kind` records which of the two a tab represents.
+    "nango": "nango_providers.json",
+    "metorial": "metorial_integrations.json",
 }
 
 # Generator/branding words that carry no identity information.

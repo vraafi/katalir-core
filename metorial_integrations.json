@@ -1,0 +1,18 @@
+{
+ "metorial:GitHub": {
+  "id": "metorial:inp_0mui33wr9cVxaZQR85Kv7t",
+  "name": "GitHub",
+  "description": "Metorial integration provider, status=active. Managed MCP integration platform; the agent's own credential.",
+  "category": "mcp-managed",
+  "source": "metorial",
+  "auth_mode": "managed",
+  "tools_count": 0,
+  "verification": {
+   "discovered": true,
+   "tools_listed": false,
+   "call_verified": false
+  },
+  "kind": "managed_mcp",
+  "metorial_status": "active"
+ }
+}

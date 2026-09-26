@@ -1,18 +1,20 @@
 {
-  "before": 28670,
-  "after": 22904,
-  "collapsed": 5766,
-  "unique_percent": 79.89,
-  "multi_source_groups": 1602,
+  "before": 29695,
+  "after": 23474,
+  "collapsed": 6221,
+  "unique_percent": 79.05,
+  "multi_source_groups": 1797,
   "unique_verified": 227,
   "tools_listed": 1896,
-  "discovered_only": 21008,
+  "discovered_only": 21578,
   "by_source_membership": {
     "glama": 16874,
     "toolsdk": 3990,
     "openconnector": 1549,
     "composio": 1519,
+    "nango": 1004,
     "glama-connector": 982,
-    "openapi-generated": 6
+    "openapi-generated": 6,
+    "metorial": 1
   }
 }

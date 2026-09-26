@@ -9,21 +9,34 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { apiFetch } from "@/lib/api";
 
-type Server = { id: string; name: string; category: string; description: string; tools?: { name: string }[]; tools_count?: number; install_config?: { transport?: string; package?: string }; source?: string; source_url?: string; attribution_required?: boolean; no_auth?: boolean; runtime_verified?: boolean; verification?: { discovered?: boolean; tools_listed?: boolean; call_verified?: boolean } };
+type Server = { id: string; name: string; category: string; description: string; tools?: { name: string }[]; tools_count?: number; install_config?: { transport?: string; package?: string }; source?: string; source_url?: string; attribution_required?: boolean; no_auth?: boolean; auth_type?: string; kind?: string; runtime_verified?: boolean; verification?: { discovered?: boolean; tools_listed?: boolean; call_verified?: boolean } };
 
 type Sources = Record<string, number> & { glama?: number; "glama-connector"?: number; composio?: number; openconnector?: number };
 
 /**
- * Badge status. Sengaja tiga tingkat, karena "ada di katalog" != "bisa dipakai":
- *   call_verified  -> hijau  (tools/call nyata berhasil)
- *   tools_listed   -> kuning (terdaftar & butuh kredensial)
- *   discovered     -> abu   (metadata saja)
+ * Runtime status badge, four tiers, strictly ordered.
+ *
+ * The order is the whole point: "listed" is not "usable", and a source that
+ * needs a credential is a different state from one that was never run at all.
+ * Collapsing any two of these is how a marketplace ends up claiming it has
+ * thousands of working integrations.
+ *
+ *   call_verified -> a real tools/call returned a result
+ *   auth_required -> we can reach it, but it needs the user's credential
+ *   tools_listed  -> initialize + tools/list answered
+ *   discovered    -> metadata only, never contacted
  */
 function badgeFor(item: Server): { label: string; cls: string; testid: string } {
   const v = item.verification ?? {};
-  if (v.call_verified || item.runtime_verified) return { label: "Ready", cls: "bg-emerald-500/15 text-emerald-600", testid: "badge-ready" };
-  if (v.tools_listed) return { label: "Auth required", cls: "bg-amber-500/15 text-amber-600", testid: "badge-auth" };
-  return { label: "Catalog", cls: "bg-fg-muted/15 text-fg-muted", testid: "badge-catalog" };
+  if (v.call_verified || item.runtime_verified)
+    return { label: "call_verified", cls: "bg-emerald-500/15 text-emerald-600", testid: "badge-ready" };
+  // no_auth === false is an explicit statement that a credential is required.
+  // Absent means unknown, so it must NOT be treated as auth_required.
+  if (item.no_auth === false)
+    return { label: "auth_required", cls: "bg-amber-500/15 text-amber-600", testid: "badge-auth" };
+  if (v.tools_listed)
+    return { label: "tools_listed", cls: "bg-sky-500/15 text-sky-600", testid: "badge-listed" };
+  return { label: "discovered", cls: "bg-fg-muted/15 text-fg-muted", testid: "badge-catalog" };
 }
 
 const SOURCE_LABEL: Record<string, string> = { native: "Native MCP", glama: "Glama", "glama-connector": "Glama Connector", composio: "Composio", openconnector: "OpenConnector", toolsdk: "ToolSDK", "openapi-generated": "OpenAPI" };
@@ -53,11 +66,13 @@ const TABS = [
   { key: "", label: "All", note: "Gabungan semua sumber di katalog." },
   { key: "native", label: "Native MCP", note: "Provider yang benar-benar berjalan di produksi — dihitung dari kode, bukan klaim marketing." },
   { key: "glama", label: "Glama", note: "Server direktori Glama. Metadata listing, bukan endpoint yang kita jalankan sendiri." },
-  { key: "glama-connector", label: "Glama Connector", note: "Endpoint MCP remote milik pihak ketiga yang answering initialize + tools/list. Konektor no-auth yang lolos baca-saja ikut call-verified." },
+  { key: "glama-connector", label: "Glama Connector", note: "Endpoint MCP remote milik pihak ketiga. 351 konektor no-auth diuji; 201 integrasi call-verified lewat satu tools/call baca-saja." },
   { key: "openconnector", label: "OpenConnector", note: "18.010 actions dijangkau lewat 5 meta-tool MCP (list_apps, list_connections, search_actions, get_action_guide, execute_action)." },
   { key: "composio", label: "Composio", note: "Toolkit Composio. OAuth dikunci per user, jadi sebagian besar butuh koneksi akun lebih dulu." },
   { key: "toolsdk", label: "ToolSDK", note: "Katalog metadata saja — tidak ada verifikasi runtime untuk entri ini." },
   { key: "openapi-generated", label: "OpenAPI", note: "API yang di-import dari spesifikasi OpenAPI lalu di-generate jadi tool. Dihasilkan dari manifest, bukan dari listing pihak ketiga." },
+  { key: "nango", label: "Nango (OAuth)", note: "1.024 provider OAuth dari Nango — ini lapisan koneksi, BUKAN katalog tool, jadi tidak menambah angka tools. 434-nya duplikat dari Composio/Glama/OpenConnector dan sengaja digabung, bukan dihitung dua kali." },
+  { key: "metorial", label: "Metorial", note: "Platform MCP terkelola. Akun ini punya 1 integration provider aktif (GitHub) di instance Production." },
 ] as const;
 
 export default function IntegrationsPage() {
@@ -66,6 +81,8 @@ export default function IntegrationsPage() {
   const [items, setItems] = useState<Server[]>([]);
   const [total, setTotal] = useState(0);
   const [sources, setSources] = useState<Sources>({});
+  const [uniqueSources, setUniqueSources] = useState<Sources>({});
+  const [view, setView] = useState<"all" | "unique">("all");
   const [status, setStatus] = useState<string>("Memuat registry…");
   const [error, setError] = useState<string | null>(null);
   const [installing, setInstalling] = useState<string | null>(null);
@@ -130,6 +147,7 @@ export default function IntegrationsPage() {
       } else {
         const qs = new URLSearchParams({ limit: "50", search: q });
         if (source) qs.set("source", source);
+        qs.set("view", view);
         const r = await apiFetch(`/mcp/registry?${qs.toString()}`, { timeoutMs: 15000 });
         if (!r.ok) throw new Error(`HTTP ${r.status}`);
         const d = await r.json();
@@ -137,11 +155,16 @@ export default function IntegrationsPage() {
         setStatus(`${d.items?.length ?? 0} dari ${d.total ?? 0} integrasi`);
       }
       const sr = await apiFetch("/mcp/registry/sources", { timeoutMs: 15000 });
-      if (sr.ok) setSources(((await sr.json()).sources ?? {}) as Sources);
+      if (sr.ok) {
+        const j = await sr.json();
+        setSources((j.sources ?? {}) as Sources);
+        setUniqueSources((j.sources_unique ?? {}) as Sources);
+      }
     } catch { setError("Registry tidak dapat dimuat. Coba lagi."); setStatus("Gagal memuat registry"); }
   }
   useEffect(() => { void load("", ""); }, []);
   function pickTab(key: string) { setTab(key); void load(search, key); }
+  function pickView(v: "all" | "unique") { setView(v); void load(search, tab); }
 
   return <SimplePage title="Integrasi MCP" subtitle="Temukan koneksi untuk otomasi Anda.">
     <div className="flex flex-col gap-4">
@@ -149,9 +172,31 @@ export default function IntegrationsPage() {
         <label className="relative flex-1"><span className="sr-only">Cari integrasi</span><Search className="absolute left-3 top-3 text-fg-muted" size={16}/><Input value={search} onChange={e => setSearch(e.target.value)} onKeyDown={e => e.key === "Enter" && load(search)} placeholder="Cari Telegram, Sheets, Slack…" className="pl-9" data-testid="integrations-search" /></label>
         <Button onClick={() => load(search)} data-testid="integrations-refresh">Cari</Button>
       </div>
+      {/*
+        Dedup toggle. "All" is the raw merged catalogue, "Unique" is one row per
+        integration after collapsing cross-source duplicates. They differ by ~21%
+        (29.558 vs 23.474), and showing only one of them either hides how much of
+        the catalogue is duplicated or inflates the headline - so both are here,
+        each labelled with its own total.
+      */}
+      <div className="flex items-center gap-2" role="group" aria-label="Tampilan katalog">
+        {(["all", "unique"] as const).map(v => {
+          const active = view === v;
+          return <button key={v} onClick={() => pickView(v)} aria-pressed={active} data-testid={`view-toggle-${v}`}
+            className={`rounded-full border px-3 py-1 text-xs transition ${active ? "border-primary bg-primary/10 text-primary" : "border-border text-fg-muted hover:text-fg"}`}>
+            {v === "all" ? "All (mentah)" : "Unique (dedup)"}
+          </button>;
+        })}
+        <span className="text-xs text-fg-muted" data-testid="view-hint">
+          {view === "all"
+            ? "Satu baris per entri katalog, duplikat antar sumber masih dihitung."
+            : "Satu baris per integrasi; duplikat antar sumber sudah digabung."}
+        </span>
+      </div>
       <div role="tablist" aria-label="Sumber integrasi" className="flex flex-wrap gap-2">
         {TABS.map(t => {
-          const count = t.key === "" ? total : (sources as Record<string, number>)[t.key] ?? 0;
+          const pool = view === "all" ? sources : uniqueSources;
+          const count = t.key === "" ? total : (pool as Record<string, number>)[t.key] ?? 0;
           const active = tab === t.key;
           return <button key={t.key || "all"} role="tab" aria-selected={active} data-testid={`source-tab-${t.key || "all"}`}
             onClick={() => pickTab(t.key)}

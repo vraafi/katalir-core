@@ -5,7 +5,7 @@ from pathlib import Path
 from typing import Any
 import httpx
 SOURCE_URL='https://raw.githubusercontent.com/ToolSDK-AI/toolsdk-mcp-registry/main/indexes/packages-list.json'
-CACHE_PATH=Path(__file__).with_name('mcp_registry_cache.json'); COMPOSIO_PATH=Path(__file__).with_name('composio_toolkits.json'); OPENCONNECTOR_PATH=Path(__file__).with_name('openconnector_actions.json'); GLAMA_PATH=Path(__file__).with_name('glama_servers.json'); GLAMA_CONNECTOR_PATH=Path(__file__).with_name('glama_connectors.json'); OPENAPI_PATH=Path(__file__).with_name('openapi_apis.json'); _CACHE={}; _LOCK=threading.RLock(); _COMPOSIO_LOADED=False; _OC_LOADED=False; _GLAMA_LOADED=False; _OPENAPI_LOADED=False
+CACHE_PATH=Path(__file__).with_name('mcp_registry_cache.json'); COMPOSIO_PATH=Path(__file__).with_name('composio_toolkits.json'); OPENCONNECTOR_PATH=Path(__file__).with_name('openconnector_actions.json'); GLAMA_PATH=Path(__file__).with_name('glama_servers.json'); GLAMA_CONNECTOR_PATH=Path(__file__).with_name('glama_connectors.json'); OPENAPI_PATH=Path(__file__).with_name('openapi_apis.json'); NANGO_PATH=Path(__file__).with_name('nango_providers.json'); METORIAL_PATH=Path(__file__).with_name('metorial_integrations.json'); _CACHE={}; _LOCK=threading.RLock(); _COMPOSIO_LOADED=False; _OC_LOADED=False; _GLAMA_LOADED=False; _OPENAPI_LOADED=False; _OAUTH_LOADED=False
 GLAMA_SOURCES={'glama','glama-connector'}
 def _slim_glama(v):
  """Project a Glama record down to what search/UI actually needs.
@@ -42,7 +42,7 @@ def _normalize(i,item):
  tools=item.get('tools') if isinstance(item.get('tools'),dict) else {}
  return {'id':i,'name':i.rsplit('/',1)[-1],'category':str(item.get('category') or 'other'),'description':str(item.get('description') or f'MCP server {i}'),'repo_url':str(item.get('repo') or item.get('repository') or ''),'install_config':{'transport':'metadata-only','package':i},'tenant_scope':'user','validated':bool(item.get('validated')),'tools':[{'name':str(n),'description':str((v or {}).get('description') or '')} for n,v in tools.items()]}
 def load_cached():
- global _COMPOSIO_LOADED, _OC_LOADED, _GLAMA_LOADED, _OPENAPI_LOADED
+ global _COMPOSIO_LOADED, _OC_LOADED, _GLAMA_LOADED, _OPENAPI_LOADED, _OAUTH_LOADED
  with _LOCK:
   if not _CACHE and CACHE_PATH.exists():
    try:_CACHE.update({str(k):_normalize(str(k),v or {}) for k,v in json.loads(CACHE_PATH.read_text(encoding='utf-8')).items() if isinstance(v,dict)})
@@ -81,6 +81,17 @@ def load_cached():
      if isinstance(rows,dict): _CACHE.update({str(k):v for k,v in rows.items() if isinstance(v,dict)})
     except (OSError,ValueError,TypeError): pass
    _OPENAPI_LOADED=True
+  if not _OAUTH_LOADED:
+   # Nango (OAuth layer) and Metorial (managed MCP). Loaded verbatim like the
+   # other sources - they are not tools catalogues, and `kind` says so, so the
+   # marketplace can label them instead of counting them as tools.
+   for path in (NANGO_PATH, METORIAL_PATH):
+    if not path.exists(): continue
+    try:
+     rows=json.loads(path.read_text(encoding='utf-8'))
+     if isinstance(rows,dict): _CACHE.update({str(k):v for k,v in rows.items() if isinstance(v,dict)})
+    except (OSError,ValueError,TypeError): pass
+   _OAUTH_LOADED=True
   return _CACHE
 def sync_from_public(*,timeout=30):
  r=httpx.get(SOURCE_URL,timeout=timeout,follow_redirects=True);r.raise_for_status();raw=r.json()
@@ -107,6 +118,43 @@ def source_counts():
   out[s]=out.get(s,0)+1
  return dict(sorted(out.items(),key=lambda kv:-kv[1]))
 
+CANONICAL_PATH=Path(__file__).with_name('dedup_canonical.json')
+def list_canonical(*,page=1,limit=50,search='',category='',source=''):
+ '''Dedup-aware listing: one row per canonical integration, not per source row.
+
+ The two views differ by the duplicate rate (~22%), so a marketplace that shows
+ only one either hides how much of the catalogue is duplicated or quietly
+ inflates its own headline. Both are served, each labelled with its own total.
+
+ Raises if dedup_canonical.json is missing rather than falling back to the raw
+ list, because a fallback would report a "unique" total that is not unique.
+ '''
+ if not CANONICAL_PATH.exists():raise ValueError('unique view unavailable: run mcp_dedup.py to build dedup_canonical.json')
+ if page<1 or not 1<=limit<=100:raise ValueError('invalid pagination')
+ rows=json.loads(CANONICAL_PATH.read_text(encoding='utf-8'))
+ if not isinstance(rows,list):raise ValueError('dedup_canonical.json is not a list; run mcp_dedup.py')
+ needle=search.casefold().strip()
+ if needle:rows=[r for r in rows if needle in (str(r.get('id') or '')+' '+str(r.get('name') or '')+' '+str(r.get('description') or '')).casefold()]
+ if category:rows=[r for r in rows if str(r.get('category') or '').casefold()==category.casefold()]
+ if source:
+  wanted={s.strip().casefold() for s in source.split(',') if s.strip()}
+  # A canonical entry counts for a source when that source contributed a member,
+  # so a duplicate present in both glama and composio shows in both tabs - these
+  # per-source counts are membership, not disjoint sets.
+  rows=[r for r in rows if wanted&{str(s).casefold() for s in (r.get('sources') or [])}]
+ total=len(rows);start=(page-1)*limit;page_rows=rows[start:start+limit]
+ for r in page_rows:r['member_count']=len(r.get('member_ids') or []) or 1
+ return {'items':page_rows,'page':page,'limit':limit,'total':total,'view':'unique','source':'dedup-canonical','raw_total':len(load_cached())}
+def source_counts_unique():
+ '''Per-source counts over the canonical set (membership, not disjoint).'''
+ if not CANONICAL_PATH.exists():return {}
+ rows=json.loads(CANONICAL_PATH.read_text(encoding='utf-8'))
+ if not isinstance(rows,list):return {}
+ out={}
+ for r in rows:
+  for s in (r.get('sources') or []):out[str(s)]=out.get(str(s),0)+1
+ return out
+
 def list_servers(*,page=1,limit=50,search='',category='',source=''):
  if page<1 or not 1<=limit<=100:raise ValueError('invalid pagination')
  items=list(load_cached().values());needle=search.casefold().strip()
@@ -114,7 +162,9 @@ def list_servers(*,page=1,limit=50,search='',category='',source=''):
  if category:items=[x for x in items if x['category'].casefold()==category.casefold()]
  if source:
   wanted={s.strip().casefold() for s in source.split(',') if s.strip()}
-  if 'glama' in wanted:wanted|= {'glama-connector'}
+  # Each source is now its own tab, so this must filter on exactly what was
+  # asked for. It used to fold glama-connector into glama, which made the "Glama"
+  # tab report 20.000 while the grid underneath it held 21.000 rows.
   items=[x for x in items if str(x.get('source') or 'toolsdk').casefold() in wanted]
  items.sort(key=lambda x:x['id']);total=len(items);start=(page-1)*limit
  return {'items':items[start:start+limit],'page':page,'limit':limit,'total':total,'source':'toolsdk-mcp-registry','sources':source_counts()}

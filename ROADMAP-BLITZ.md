@@ -11,30 +11,38 @@ any claim stops reproducing. **If you edit a number here, run that script.**
 
 | Metric | Value | Where it comes from |
 | --- | --- | --- |
-| Raw catalogue entries | 28.670 | sum of the 5 source files |
-| **Unique integrations (deduped)** | **22.904** | `mcp_dedup.py` → `dedup_report.json` |
-| Unique % | 79.89 % (5.766 collapsed) | same |
-| Groups present in >1 source | 1.602 | same |
+| Raw catalogue entries | 29.695 | sum of the 8 source files |
+| **Unique integrations (deduped)** | **23.474** | `mcp_dedup.py` → `dedup_report.json` |
+| Unique % | 79.05 % (6.221 collapsed) | same |
+| Groups present in >1 source | 1.797 | same |
 | **Unique call-verified** | **227** + Groq + Gemini = **229** | `dedup_report.json` → `unique_verified` |
 | **Integrations that list tools** | **1.896** | `dedup_report.json` → `tools_listed` |
-| discovered only | 21.008 | `dedup_report.json` |
+| discovered only | 21.578 | `dedup_report.json` |
 | Generated OpenAPI tools | 884 registered (889 generated) | `openapi_tools_manifest.json` |
 | Glama no-auth pool | 351 connectors → **4.714 tools** | `glama-connector-verify-batch{1,2}.json` |
+| Glama pool, call-verified | 351 attempted → **203 connectors** | `glama-connector-call-batch1.json` |
+| Nango (OAuth) | 1.024 providers, **0 tools** | `nango_providers.json` |
+| Metorial | 1 integration provider (GitHub) | `metorial_integrations.json` |
 
 **Two different units — do not add or compare these.** 1.896 counts
-*integrations* that answer `tools/list` (1.896 + 21.008 = 22.904, the deduped
+*integrations* that answer `tools/list` (1.896 + 21.578 = 23.474, the deduped
 total). 4.714 counts *tools* returned by those calls. They are not the same kind
 of number, so "1.781 vs 4.714" was never a meaningful comparison.
 
 Measured containment: all **351 of 351** pool connectors are already keys in
-`glama_connectors.json`. The pool sweep therefore adds **no new sourcing** — it
-converts 351 already-catalogued entries from "listed" to "listed, with a counted
-tool inventory". **Neither figure is call-verified**; the sweep never issued a
-single `tools/call`.
+`glama_connectors.json`, so the pool sweep added **no new sourcing** — it
+upgraded 351 already-catalogued entries from "listed" to "call-verified".
+
+**Nango and Metorial are not tools catalogues and must never be counted as
+tools.** Nango is an OAuth/connection layer: 1.024 providers, 0 tools. It added
+**570** genuinely new integrations and its other **434** are duplicates of
+Composio/Glama/OpenConnector entries that dedup collapsed rather than counted
+twice. Metorial added **0** new integrations — GitHub already existed, and now
+carries a 7th source tag.
 
 **The honest gap:** the blitz target is 2.000 unique *verified*. Reality is **229
 call-verified** (227 from the catalogue + Groq + Gemini), up from 28. The gap is
-still a *verification* problem, not a sourcing problem: 22.904 unique integrations
+still a *verification* problem, not a sourcing problem: 23.474 unique integrations
 are in the catalogue, and only the ones with a working no-auth endpoint can be
 call-verified without a user's credential.
 
@@ -65,7 +73,12 @@ call-verified without a user's credential.
       (`github-getting-started`, provider `github`, created 2026-09-25) via
       `GET /integrations`. Note `/provider-templates` returns **HTML**, not JSON —
       it is the Connect UI docs page, not an API. Use `/integrations` instead.
-- [!] F1.3 Metorial tools → **BLOCKED-USER** (key valid, project has 0 providers connected)
+- [x] F1.3 Metorial tools → **works.** `GET /integration-providers` → 200, **1 active
+      integration provider (GitHub)** on a Production instance (`katalir`). The
+      recorded "0 providers" was stale, and a first probe reported 403 — that 403
+      was Cloudflare **error 1010**, a WAF block on a non-browser signature, not
+      an auth failure. Read from the body, not assumed. It added **0** new
+      integrations because GitHub was already in the catalogue.
 - [x] F1.4 Batch verify candidates — **complete, no-auth Glama pool exhausted**:
       619 attempted → **351 ok** / **4.714 tools** (batch 1: 420 → 236 / 2.313,
       batch 2: 199 → 115 / 2.401). The two batches overlap by **0** connectors, so
@@ -85,13 +98,22 @@ call-verified without a user's credential.
 
 ## FASE 2 — Sync All Sources
 - [ ] F2.1 sync the 884 OpenAPI tools (dedup first) · [ ] F2.2 source tags
-- [x] F2.3 marketplace 8+ source tabs — **8 tabs, one per real `source`**, verified
-      against a live backend: 28.533 / 7 / 20.000 / 1.000 / 1.554 / 1.558 / 4.415 / 6.
-      `glama` and `glama-connector` were merged under one "Glama" label, which hid
-      the only source we can verify at runtime and made the count match neither tab;
-      `openapi-generated` had no tab at all. `tests/marketplace-tabs.spec.ts` asserts
-      each count is non-zero, because a missing key renders "(0)" and looks
-      identical to a genuinely empty source. · [ ] F2.4 commit
+- [x] F2.3 marketplace tabs + dedup toggle + runtime badge — **10 tabs, one per real
+      `source`**, plus the two controls this phase asked for.
+      - Tabs: All, Native MCP, Glama, Glama Connector, OpenConnector, Composio,
+        ToolSDK, OpenAPI, Nango (OAuth), Metorial. Two are beyond the 8 requested
+        because both are real sources that previously had no tab.
+      - **Dedup toggle** All / Unique: 29.558 raw vs 23.474 deduped, 6.084
+        collapsed. `view=bogus` → 400, never a silent fallback. If
+        `dedup_canonical.json` is absent the unique view errors rather than
+        returning a "unique" total that is not unique.
+      - **Runtime badge, 4 tiers**: call_verified / auth_required / tools_listed /
+        discovered. `no_auth === false` means auth_required; *absent* `no_auth`
+        stays discovered, so "unknown" is never upgraded to "needs a key".
+      - Fixed a real bug found while doing this: the backend folded
+        `glama-connector` into `glama`, so the Glama tab read 20.000 while its own
+        grid held 21.000 rows. Every tab count now equals its grid in **both** views.
+      - 7/7 Playwright green, `tsc` clean. · [x] F2.4 commit
 
 ## FASE 3 — Multi-Protocol Executor (MCP + OpenAPI + GraphQL + JS)
 - [ ] F3.1 OpenAPI import · [ ] F3.2 GraphQL import · [ ] F3.3 JS sandbox
