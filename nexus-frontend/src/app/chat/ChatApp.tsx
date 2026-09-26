@@ -1,7 +1,7 @@
 "use client";
 
 import { Suspense, useCallback, useEffect, useRef, useState } from "react";
-import { Send, Square, Sparkles, Bot, User, KeyRound, RotateCcw, AlertTriangle, AlertCircle, Pencil, X, Clock, ChevronDown, ChevronRight } from "lucide-react";
+import { Send, Square, Sparkles, User, KeyRound, RotateCcw, AlertTriangle, AlertCircle, Pencil, X, Clock, ChevronDown, ChevronRight } from "lucide-react";
 import { motion } from "motion/react";
 import { toast } from "sonner";
 import { useQueryState, parseAsString } from "nuqs";
@@ -922,32 +922,29 @@ return (
         <div ref={scrollRef} className="chat-scroll min-h-0 w-full flex-1 overflow-y-auto">
           <div className="mx-auto flex min-h-full w-full max-w-[48rem] flex-col justify-end px-5 pt-4">
             {!loading && !activeEmail ? (
-              /* FASE 6 lanjutan (perf): blok ini adalah kandidat elemen LCP.
-                 Sebelumnya dibungkus `FadeIn` (opacity 0 -> 1); Chrome baru
-                 mencatat LCP saat elemen TERLIHAT, sehingga animasi masuk ikut
-                 menunda LCP (terukur LCP 4.78s vs FCP 1.75s). Hero kini tampil
-                 seketika; animasi masuk hanya dipakai untuk konten di bawah layar. */
+              /* Empty state (belum login). Tanpa ikon dekoratif di tengah:
+                 DeepSeek menampilkan teks saja, dan elemen besar di tengah
+                 CCS juga jadi LCP yang menunda render. */
               <div className="m-auto flex w-full flex-col items-center text-center">
-                <Bot size={48} strokeWidth={1.25} className="text-fg-subtle" />
-                <h2 className="mt-4 text-title3 font-semibold text-fg">{t("chat.loginTitle")}</h2>
-                <p className="mt-1 max-w-sm text-callout text-fg-muted">
+                <h2 className="text-title2 font-medium text-fg">{t("chat.loginTitle")}</h2>
+                <p className="mt-2 max-w-sm text-callout text-fg-muted">
                   {t("chat.loginHint")}
                 </p>
               </div>
             ) : messages.length === 0 && !loadingMsg ? (
-              <div className="m-auto flex w-full flex-col items-center text-center">
-                <div className="rounded-sm bg-surface/70 p-5 shadow-sm">
-                  <Sparkles size={52} strokeWidth={1.25} className="text-accent drop-shadow-md" />
-                </div>
-                <h2 className="mt-5 text-title2 font-bold tracking-tight">
+              /* Gaya DeepSeek: sapaan tenang + suggestion pill, tanpa logo/
+                 ikon besar di tengah. */
+              <div className="m-auto flex w-full flex-col items-center gap-6 text-center">
+                <h2 className="text-title2 font-medium tracking-tight text-fg">
                   {t("chat.greeting")}
                 </h2>
-                <div className="mt-6 grid w-full max-w-md grid-cols-3 gap-3">
+                <div className="flex max-w-2xl flex-wrap items-center justify-center gap-2.5">
                   {suggestionsFor(t).map((s) => (
                     <button
                       key={s}
+                      type="button"
                       onClick={() => sendPrompt(s)}
-                      className="rounded-xl border border-border bg-surface px-3 py-2.5 text-[13px] font-medium text-fg shadow-xs transition-all duration-200 hover:-translate-y-0.5 hover:border-accent/40 hover:text-accent"
+                      className="rounded-full border border-border bg-surface px-4 py-2 text-[13px] font-medium text-fg-muted transition-colors duration-200 hover:border-accent/40 hover:bg-accent/5 hover:text-fg"
                     >
                       {s}
                     </button>

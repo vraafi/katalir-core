@@ -15,6 +15,7 @@
   "dependencies": {
     "@codemirror/autocomplete": "^6.20.3",
     "@dagrejs/dagre": "^1.1.5",
+    "@lobehub/icons": "^5.21.0",
     "@opennextjs/cloudflare": "^1.20.6",
     "@radix-ui/react-dialog": "^1.1.23",
     "@radix-ui/react-dropdown-menu": "^2.1.24",
@@ -38,6 +39,7 @@
     "react-resizable-panels": "^4.12.4",
     "sonner": "^2.0.8",
     "tailwind-merge": "^3.6.0",
+    "use-magnetic": "^1.0.0",
     "zustand": "^5.0.15"
   },
   "devDependencies": {

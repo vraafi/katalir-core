@@ -26,6 +26,7 @@ import { I18nProvider, useI18n } from "@/i18n/context";
 import { HydrationReady } from "@/i18n/HydrationReady";
 import { SkipToContent } from "@/components/SkipToContent";
 import { BrandMark } from "@/components/BrandMark";
+import { LogoCloud } from "@/components/logo-cloud";
 
 function Landing() {
   const { t } = useI18n();
@@ -93,6 +94,7 @@ function Landing() {
               <p className="mt-1 text-footnote leading-relaxed text-fg-muted">{t("landing.feature3Desc")}</p>
             </li>
           </ul>
+          <LogoCloud />
         </main>
 
         <footer className="flex flex-wrap items-center justify-between gap-2 border-t border-border/60 px-5 py-4 text-footnote text-fg-muted sm:px-8">
