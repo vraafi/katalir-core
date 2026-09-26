@@ -26,7 +26,7 @@ import { I18nProvider, useI18n } from "@/i18n/context";
 import { HydrationReady } from "@/i18n/HydrationReady";
 import { SkipToContent } from "@/components/SkipToContent";
 import { BrandMark } from "@/components/BrandMark";
-import { LogoCloud } from "@/components/logo-cloud";
+import { HeroLogoStrip, LogoCloud } from "@/components/logo-cloud";
 
 function Landing() {
   const { t } = useI18n();
@@ -74,6 +74,13 @@ function Landing() {
               {t("landing.ctaSecondary")}
             </Link>
           </div>
+
+          {/* F6: social proof pindah ke HERO, tepat di bawah CTA.
+              Yang di sini adalah strip ringkas 10 brand, bukan cloud 55 -
+              cloud penuh di 8 kolom sekitar 450px dan akan mendorong judul serta
+              CTA ke bawah, yaitu kebalikan dari fungsi hero. Cloud penuh tetap
+              ada, di bawah lipatan. */}
+          <HeroLogoStrip />
 
           {/* Di bawah lipatan: animasi CSS dipakai di sini (bukan di hero) supaya
               tidak menunda LCP, dan tetap dihormati saat reduced-motion. */}

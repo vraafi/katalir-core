@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { mcpLogos, type McpLogo } from "@/lib/mcp-logos";
+import { mcpLogos, heroLogos, type McpLogo } from "@/lib/mcp-logos";
 
 const RANGE = 150;
 const STRENGTH = 0.3;
@@ -49,6 +49,9 @@ function MagneticLogo({
   const y = active?.dy ?? 0;
   const isActive = active !== null;
   const scale = isActive ? 1.12 : 1;
+  // simple-icons paints its own brand fill; lobehub Mono and the baked paths
+  // paint `currentColor` and so need the colour set on the wrapper instead.
+  const isBrandFill = logo.color === "default";
 
   return (
     <div
@@ -70,15 +73,28 @@ function MagneticLogo({
         }}
       />
       <span
-        className="pointer-events-none flex items-center justify-center text-fg-muted transition-transform duration-200"
+        className="pointer-events-none flex items-center justify-center transition-transform duration-200"
         style={{
           transform: reduced
             ? "none"
             : `perspective(600px) rotateX(${isActive ? -6 : 0}deg) rotateY(${isActive ? 6 : 0}deg) scale(${scale})`,
+          // Only the lobehub and baked-path tiers read this. `text-fg-muted` stays
+          // as the class fallback, so a brand with no colour of its own shows up
+          // as muted grey rather than as an invisible or wrongly-coloured logo.
+          ...(isBrandFill ? {} : { color: logo.color ?? "var(--fg)" }),
         }}
       >
         {logo.Component ? (
-          <logo.Component size={30} />
+          // simple-icons resolves "default" to the real brand hex itself, which
+          // is why the wrapper must not force a colour over it. The outer check
+          // on logo.Component is what narrows the type - testing isBrandFill
+          // alone leaves it possibly-undefined, and the build (unlike a bare
+          // tsc pass) rejects that.
+          isBrandFill ? (
+            <logo.Component size={30} color="default" />
+          ) : (
+            <logo.Component size={30} />
+          )
         ) : (
           <svg
             viewBox={logo.path?.viewBox ?? "0 0 24 24"}
@@ -92,6 +108,56 @@ function MagneticLogo({
           </svg>
         )}
       </span>
+    </div>
+  );
+}
+
+/**
+ * The compact cloud that sits in the hero, directly under the CTA.
+ *
+ * Separate from LogoCloud on purpose. The full grid is 55 tiles across 8
+ * columns - roughly 450px tall - and putting that above the fold would push the
+ * headline and the CTA down, which is the exact opposite of what a hero is for.
+ * So the hero gets the ten most recognisable brands on one row, and the full
+ * cloud stays below the fold where it can breathe.
+ *
+ * Accessibility and clickability rules are inherited from the full cloud's
+ * design: decorative only, aria-hidden, pointer-events-none. No logo can be
+ * clicked or focused, and the brand names are announced once in the sr-only
+ * list of the full cloud below.
+ */
+export function HeroLogoStrip() {
+  return (
+    <div className="mt-9" data-testid="hero-logo-strip">
+      <p className="text-[11px] uppercase tracking-wider text-fg-subtle">
+        Works with 200+ MCP servers
+      </p>
+      <ul className="mt-3 flex list-none flex-wrap items-center gap-x-6 gap-y-3">
+        {heroLogos.map((logo) => (
+          <li key={`hero-` + logo.name} className="pointer-events-none select-none" aria-hidden="true">
+            {logo.Component ? (
+              logo.color === "default" ? (
+                <logo.Component size={22} color="default" />
+              ) : (
+                <span style={{ color: logo.color ?? "var(--fg)" }}>
+                  <logo.Component size={22} />
+                </span>
+              )
+            ) : (
+              <svg
+                viewBox={logo.path?.viewBox ?? "0 0 24 24"}
+                width={22}
+                height={22}
+                fill={logo.color ?? "currentColor"}
+                aria-hidden="true"
+                focusable="false"
+              >
+                <path d={logo.path?.d ?? ""} />
+              </svg>
+            )}
+          </li>
+        ))}
+      </ul>
     </div>
   );
 }

@@ -244,6 +244,56 @@ Data personal (mis. URL profil profesional) tidak boleh masuk repo ini. Simpan d
 
 ## Gotcha: parameter yang tak pernah dipanggil bukan parameter yang working
 - `list_servers` memakai `x['category']`. 3.112 baris katalog tidak punya key itu,
+
+## Gotcha: Brand Logo Color (F6)
+- `@lobehub/icons@5.21.0` **tidak punya varian `.Color`**. Compounded icon-nya hanya
+  `Mono`, `Avatar`, `Combine`, `Text`. Jadi `<Github.Color />` TIDAK ADA di versi ini -
+  sudah diverifikasi dengan membaca direktori `es/<icon>/components/` paketnya.
+  Yang tersedia adalah `colorPrimary` (string hex) per ikon.
+- `@icons-pack/react-simple-icons` memberi warna brand asli lewat `color="default"`
+  (atau `SiXxxHex` untuk hex konstanta).
+- **Simple Icons v16 sudah MENGHAPUS Slack, OpenAI, Amazon AWS, Twilio, dan Heroku**
+  karena alasan trademark. `SiSlackware` itu distribusi Linux, BUKAN Slack - memetakan
+  Slack ke sana akan menaruh penguin di halaman depan dengan nama Slack. Cek nama
+  `Si*` ke `index.d.ts` paket SEBELUM memakainya, jangan percaya daftar.
+- Teknik kami: 3 tier. simple-icons (`color="default"`) untuk brand yang ada;
+  lobehub Mono di-tint dengan `colorPrimary` untuk sisanya; baked path + hex
+  eksplisit untuk sisanya lagi. Warna selalu dari sumber brand, tidak ditebak.
+- **Jangan pakai `filter: invert` atau CSS warna** - itu membuat warna brand tidak
+  akurat.
+
+## Gotcha: `colorPrimary` putih = logo tak terlihat (F6)
+- Enam ikon lobehub mengirim `colorPrimary: "#FFFFFF"`: Together, Windsurf, Tavily,
+  MCP, Azure, Google Cloud. Di tile terang itu **logo putih di atas kartu putih** -
+  ada di DOM, benar di data, tapi tidak terlihat oleh manusia.
+- **Aturan:** `lobe()` wajib menolak hex dengan luminance > 0.78 dan mengembalikan
+  `undefined`, sehingga tile jatuh ke `var(--fg)`. Brand primary putih memang benar
+  untuk UI gelap dan memang tidak bisa dipindahkan ke surface terang.
+- Cara menangkapnya: baca `getComputedStyle(path).fill` DAN `.color`. Memeriksa
+  atribut `fill` saja TIDAK cukup - ikon lobehub memakai `currentColor`, jadi fill-nya
+  kosong dan tesnya lolos padahal logonya tidak terlihat.
+
+## Gotcha: Above-the-Fold (F6)
+- Konten penting (logo, value prop, CTA) harus terlihat tanpa scroll.
+- Social proof penuh (55 logo, 8 kolom) kira-kira **450px** - terlalu tinggi untuk
+  hero, dan akan mendorong judul + CTA ke bawah, kebalikan dari fungsi hero.
+- Pola yang dipakai: **strip ringkas di hero** (10 brand, satu baris) + **cloud penuh
+  di bawah lipatan**. Yang di atas fold yang diuji, yang lengkap tetap ada.
+- Cara menguji "di atas fold" dengan benar: ambil `boundingBox()` lalu bandingkan
+  dengan tinggi viewport. `toBeVisible()` hanya berarti ada di DOM, bukan di layar.
+
+## Gotcha: TSC hijau tapi `next build` gagal (F6)
+- `npx tsc --noEmit` **hijau**, tapi `npm run build` gagal dengan
+  `JSX element type has no construct or call signatures`.
+- Penyebab: `isBrandFill ? <logo.Component/> : ...` tidak mempersempit
+  `logo.Component` dari `ElementType | undefined`. Typewidening seperti ini hanya
+  ditolak oleh build.
+- **Aturan:** di JSX, periksa optional DI LUAR (`logo.Component ? ... : ...`), lalu
+  pindah ke logika lain di dalam. `tsc --noEmit` saja tidak cukup - build adalah
+  gerbang yang sebenarnya.
+- Alias `next dev` yang masih hidup juga memblokir build lewat
+  `scripts/check-no-dev-running.mjs`. Itu fitur yang benar, bukan hambatan.
+
   jadi begitu F4.3 mengirim `category` pertama kali, endpoint balas **500
   KeyError**. Bug laten yang justru tidak terjangkau karena tidak ada test.
 - **Aturan:** setiap parameter API butuh minimal satu test yang mengirimnya,

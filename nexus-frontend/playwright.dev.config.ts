@@ -66,6 +66,8 @@ export default defineConfig({
     // F4.3: filter kategori + status runtime. Butuh backend :8000 hidup
     // (meny recount via /mcp/registry) seperti spec di atasnya.
     "marketplace-f4-filters.spec.ts",
+    // F6: logo cloud landing — posisi di hero, warna brand, magnetik, non-click.
+    "landing-logo-f6.spec.ts",
     // CATATAN: launch-demo.spec.ts sengaja TIDAK ada di testMatch. Ia bukan
     // assertion, melainkan rekaman video untuk launch, dan menambahkannya di
     // sini akan membuat setiap test suite ikut menjalankan kamera. Jalankan
