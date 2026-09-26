@@ -1,17 +1,17 @@
 /**
  * MCP app logo data.
  *
- * Sources, and why both are used:
- *  - `@lobehub/icons` for the brands it actually ships (GitHub, Google, Vercel,
- *    Notion, Railway, Figma, Anthropic, OpenAI, Cloudflare, N8n, Zapier, MCP,
- *    DeepSeek, Gemini, Groq, Ollama, Replicate, HuggingFace, ...). Verified by
- *    reading the package's own directory listing - it is 38 MB and mostly
- *    AI-model logos.
- *  - Simple Icons CDN for the brands lobehub does not ship at all (Slack,
- *    Stripe, Linear, Supabase, Discord, Telegram, GitLab, Postgres, Redis,
- *    Docker, Sentry, Airtable, Zoom, Shopify, ...). That is the documented
- *    fallback, and it is the only way to reach 40+ real integrations without
- *    inlining 40+ hand-written SVGs.
+ * Two sources, and why both are needed:
+ *  - `@lobehub/icons` for the 40 brands it actually ships (GitHub, Google,
+ *    Vercel, Notion, Railway, Figma, Anthropic, OpenAI, Cloudflare, N8n,
+ *    Zapier, MCP, DeepSeek, Gemini, Groq, Ollama, Replicate, HuggingFace, ...).
+ *    Verified against the package's own directory listing: it is 38 MB and is
+ *    mostly AI-model logos, with no Slack, Stripe, Linear, Supabase, Discord or
+ *    Telegram at all.
+ *  - Baked brand paths in `brand-paths.ts` for the 15 it does not ship. These
+ *    are inlined rather than hot-linked from cdn.simpleicons.org because the
+ *    production CSP is `img-src 'self' data: blob:`, which blocked every remote
+ *    logo at runtime.
  */
 import {
   Ai302, Anthropic, Aws, Azure, Baidu, Brave, Cline, Cloudflare, CodeFlicker,
@@ -20,39 +20,40 @@ import {
   Notion, Nvidia, Ollama, OpenAI, Perplexity, Railway, Replicate, Replit,
   Smithery, Tavily, Together, V0, Vercel, Windsurf, Zapier,
 } from "@lobehub/icons";
+import { BRAND_PATHS } from "./brand-paths";
 
 export type McpLogo = {
   name: string;
   /** Local component when lobehub ships the brand. Its own `CompoundedIcon`
    *  type is stricter than a plain function component, so this stays ElementType. */
   Component?: React.ElementType;
-  /** Simple Icons slug when lobehub does not ship the brand. */
-  slug?: string;
+  /** Baked brand path for the brands lobehub does not ship at all. */
+  path?: { viewBox: string; d: string };
 };
 
 export const mcpLogos: McpLogo[] = [
   { name: "GitHub", Component: Github },
-  { name: "Slack", slug: "slack" },
+  { name: "Slack", path: brandPath("slack") },
   { name: "Notion", Component: Notion },
-  { name: "Linear", slug: "linear" },
-  { name: "Stripe", slug: "stripe" },
-  { name: "Supabase", slug: "supabase" },
+  { name: "Linear", path: brandPath("linear") },
+  { name: "Stripe", path: brandPath("stripe") },
+  { name: "Supabase", path: brandPath("supabase") },
   { name: "Vercel", Component: Vercel },
   { name: "Figma", Component: Figma },
-  { name: "Discord", slug: "discord" },
-  { name: "Telegram", slug: "telegram" },
+  { name: "Discord", path: brandPath("discord") },
+  { name: "Telegram", path: brandPath("telegram") },
   { name: "Google", Component: Google },
   { name: "AWS", Component: Aws },
   { name: "Cloudflare", Component: Cloudflare },
-  { name: "Docker", slug: "docker" },
-  { name: "GitLab", slug: "gitlab" },
-  { name: "Postgres", slug: "postgresql" },
-  { name: "Redis", slug: "redis" },
-  { name: "MongoDB", slug: "mongodb" },
-  { name: "Airtable", slug: "airtable" },
-  { name: "Zoom", slug: "zoom" },
-  { name: "Shopify", slug: "shopify" },
-  { name: "Sentry", slug: "sentry" },
+  { name: "Docker", path: brandPath("docker") },
+  { name: "GitLab", path: brandPath("gitlab") },
+  { name: "Postgres", path: brandPath("postgresql") },
+  { name: "Redis", path: brandPath("redis") },
+  { name: "MongoDB", path: brandPath("mongodb") },
+  { name: "Airtable", path: brandPath("airtable") },
+  { name: "Zoom", path: brandPath("zoom") },
+  { name: "Shopify", path: brandPath("shopify") },
+  { name: "Sentry", path: brandPath("sentry") },
   { name: "Railway", Component: Railway },
   { name: "DigitalOcean", Component: DigitalOcean },
   { name: "Replicate", Component: Replicate },
@@ -88,8 +89,7 @@ export const mcpLogos: McpLogo[] = [
   { name: "v0", Component: V0 },
 ];
 
-/** Simple Icons CDN URL. The brand colour is applied by CSS filter, so the
- *  request itself stays cacheable and theme-neutral. */
-export function simpleIconUrl(slug: string): string {
-  return `https://cdn.simpleicons.org/${slug}/919191`;
+/** Maps a Simple Icons slug to its baked path. */
+export function brandPath(slug: string) {
+  return BRAND_PATHS[slug];
 }

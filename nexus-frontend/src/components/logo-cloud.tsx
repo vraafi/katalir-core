@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { mcpLogos, simpleIconUrl, type McpLogo } from "@/lib/mcp-logos";
+import { mcpLogos, type McpLogo } from "@/lib/mcp-logos";
 
 const RANGE = 150;
 const STRENGTH = 0.3;
@@ -70,7 +70,7 @@ function MagneticLogo({
         }}
       />
       <span
-        className="pointer-events-none flex items-center justify-center transition-transform duration-200"
+        className="pointer-events-none flex items-center justify-center text-fg-muted transition-transform duration-200"
         style={{
           transform: reduced
             ? "none"
@@ -80,15 +80,16 @@ function MagneticLogo({
         {logo.Component ? (
           <logo.Component size={30} />
         ) : (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
-            src={simpleIconUrl(logo.slug ?? "")}
-            alt=""
+          <svg
+            viewBox={logo.path?.viewBox ?? "0 0 24 24"}
             width={30}
             height={30}
-            loading="lazy"
-            decoding="async"
-          />
+            fill="currentColor"
+            aria-hidden="true"
+            focusable="false"
+          >
+            <path d={logo.path?.d ?? ""} />
+          </svg>
         )}
       </span>
     </div>
