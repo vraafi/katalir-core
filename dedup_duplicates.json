@@ -5,6 +5,7 @@
     "sources": [
       "composio",
       "glama",
+      "metorial",
       "openapi-generated",
       "openconnector",
       "toolsdk"
@@ -42,6 +43,7 @@
       "glama:glama/y7v44v6bz2",
       "glama:glama/z094kqis8o",
       "glama:glama/z8p89dfwkb",
+      "metorial:metorial:GitHub",
       "openapi-generated:github",
       "openconnector:github",
       "toolsdk:@missionsquad/mcp-github",
@@ -57,6 +59,7 @@
     "sources": [
       "composio",
       "glama",
+      "nango",
       "openapi-generated",
       "openconnector",
       "toolsdk"
@@ -64,32 +67,13 @@
     "collapsed_ids": [
       "composio:slack",
       "glama:glama/wbtice40kd",
+      "nango:nango:slack",
+      "nango:nango:slack-mcp",
       "openapi-generated:slack",
       "openconnector:slack",
       "toolsdk:@modelcontextprotocol/server-slack",
       "toolsdk:slack",
       "toolsdk:slack-mcp-server"
-    ]
-  },
-  {
-    "name": "Stripe",
-    "canonical_key": "stripe",
-    "sources": [
-      "composio",
-      "glama",
-      "openapi-generated",
-      "openconnector",
-      "toolsdk"
-    ],
-    "collapsed_ids": [
-      "composio:stripe",
-      "composio:stripe_mcp",
-      "glama:glama/apxfob1qni",
-      "glama:glama/ntdm2awg0l",
-      "glama:glama/vpe1m71bz8",
-      "openapi-generated:stripe",
-      "openconnector:stripe",
-      "toolsdk:stripe"
     ]
   },
   {
@@ -99,6 +83,7 @@
       "composio",
       "glama",
       "glama-connector",
+      "nango",
       "openconnector",
       "toolsdk"
     ],
@@ -107,6 +92,7 @@
       "glama-connector:glama-connector/nh0ll4wwmc",
       "glama:glama/hku22wirl5",
       "glama:glama/palivzimca",
+      "nango:nango:gitlab",
       "openconnector:gitlab",
       "toolsdk:@dubuqingfeng/gitlab-mcp-server",
       "toolsdk:@harshmaur/gitlab-mcp",
@@ -124,6 +110,7 @@
     "sources": [
       "composio",
       "glama",
+      "nango",
       "openapi-generated",
       "openconnector",
       "toolsdk"
@@ -131,6 +118,7 @@
     "collapsed_ids": [
       "composio:replicate",
       "glama:glama/an6ecs60il",
+      "nango:nango:replicate",
       "openapi-generated:replicate",
       "openconnector:replicate",
       "toolsdk:mcp-server-replicate",
@@ -143,12 +131,15 @@
     "sources": [
       "composio",
       "glama",
+      "nango",
       "openconnector",
       "toolsdk"
     ],
     "collapsed_ids": [
       "composio:airtable",
       "glama:glama/rivp2vbf74",
+      "nango:nango:airtable",
+      "nango:nango:airtable-mcp",
       "openconnector:airtable",
       "toolsdk:@domdomegg/airtable-mcp-server",
       "toolsdk:airtable",
@@ -161,6 +152,7 @@
     "sources": [
       "composio",
       "glama",
+      "nango",
       "openconnector",
       "toolsdk"
     ],
@@ -168,6 +160,8 @@
       "composio:asana",
       "glama:glama/god6zult3t",
       "glama:glama/hgidrpcrnt",
+      "nango:nango:asana",
+      "nango:nango:asana-mcp",
       "openconnector:asana",
       "toolsdk:@cristip73/mcp-server-asana",
       "toolsdk:@roychri/mcp-server-asana",
@@ -180,6 +174,7 @@
     "sources": [
       "composio",
       "glama",
+      "nango",
       "openconnector",
       "toolsdk"
     ],
@@ -199,6 +194,7 @@
       "glama:glama/ygbn064923",
       "glama:glama/ylj7hnm6xt",
       "glama:glama/yvr72v9mil",
+      "nango:nango:discord",
       "openconnector:discord",
       "toolsdk:@jar285/mcp-discord",
       "toolsdk:discord",
@@ -212,6 +208,7 @@
     "sources": [
       "composio",
       "glama",
+      "nango",
       "openconnector",
       "toolsdk"
     ],
@@ -219,6 +216,7 @@
       "composio:dropbox",
       "glama:glama/fuvy58fd8f",
       "glama:glama/iwsda9bg3w",
+      "nango:nango:dropbox",
       "openconnector:dropbox",
       "toolsdk:dropbox"
     ]
@@ -229,6 +227,7 @@
     "sources": [
       "composio",
       "glama",
+      "nango",
       "openconnector",
       "toolsdk"
     ],
@@ -258,6 +257,7 @@
       "glama:glama/vam2iwa1p0",
       "glama:glama/wtkfz37j7w",
       "glama:glama/xq5m40m8ml",
+      "nango:nango:google-mail",
       "openconnector:gmail",
       "toolsdk:@shinzolabs/gmail-mcp",
       "toolsdk:gmail",
@@ -270,6 +270,7 @@
     "sources": [
       "composio",
       "glama",
+      "nango",
       "openconnector",
       "toolsdk"
     ],
@@ -278,6 +279,8 @@
       "glama:glama/cmgxjgas7b",
       "glama:glama/sy7rh1xoyt",
       "glama:glama/vtf7ev1ouv",
+      "nango:nango:hubspot",
+      "nango:nango:hubspot-mcp",
       "openconnector:hubspot",
       "toolsdk:@NaorAIdeas/hubspot-mcp-server",
       "toolsdk:@lkm1developer/hubspot-mcp-server",
@@ -291,6 +294,7 @@
     "sources": [
       "composio",
       "glama",
+      "nango",
       "openconnector",
       "toolsdk"
     ],
@@ -301,6 +305,8 @@
       "glama:glama/lyef06abte",
       "glama:glama/snhvru5ot4",
       "glama:glama/zq4j0yqj9w",
+      "nango:nango:linear",
+      "nango:nango:linear-mcp",
       "openconnector:linear",
       "toolsdk:@tacticlaunch/mcp-linear",
       "toolsdk:linear",
@@ -314,6 +320,7 @@
     "sources": [
       "composio",
       "glama",
+      "nango",
       "openconnector",
       "toolsdk"
     ],
@@ -342,6 +349,7 @@
       "glama:glama/xqfbvslqhs",
       "glama:glama/ymk38qfjsh",
       "glama:glama/z1y05xll3i",
+      "nango:nango:linkedin",
       "openconnector:linkedin",
       "toolsdk:@Dishant27/linkedin-mcp-server",
       "toolsdk:linkedin",
@@ -354,6 +362,7 @@
     "sources": [
       "composio",
       "glama",
+      "nango",
       "openconnector",
       "toolsdk"
     ],
@@ -362,6 +371,8 @@
       "composio:notion_mcp",
       "glama:glama/gzbldb02p1",
       "glama:glama/tpofcxtkws",
+      "nango:nango:notion",
+      "nango:nango:notion-mcp",
       "openconnector:notion",
       "toolsdk:@makenotion/notion-mcp-server",
       "toolsdk:@notionhq/notion-mcp-server",
@@ -373,11 +384,33 @@
     ]
   },
   {
+    "name": "Stripe",
+    "canonical_key": "stripe",
+    "sources": [
+      "composio",
+      "glama",
+      "openapi-generated",
+      "openconnector",
+      "toolsdk"
+    ],
+    "collapsed_ids": [
+      "composio:stripe",
+      "composio:stripe_mcp",
+      "glama:glama/apxfob1qni",
+      "glama:glama/ntdm2awg0l",
+      "glama:glama/vpe1m71bz8",
+      "openapi-generated:stripe",
+      "openconnector:stripe",
+      "toolsdk:stripe"
+    ]
+  },
+  {
     "name": "Telegram",
     "canonical_key": "telegram",
     "sources": [
       "composio",
       "glama",
+      "nango",
       "openconnector",
       "toolsdk"
     ],
@@ -402,6 +435,7 @@
       "glama:glama/wxekz0ejmr",
       "glama:glama/xtfj25qllq",
       "glama:glama/yawpg4zd9w",
+      "nango:nango:telegram",
       "openconnector:telegram",
       "toolsdk:@chaindead/telegram-mcp",
       "toolsdk:@jeroensmink98/telegram-mcp",
@@ -416,6 +450,7 @@
     "sources": [
       "composio",
       "glama",
+      "nango",
       "openconnector",
       "toolsdk"
     ],
@@ -426,6 +461,7 @@
       "glama:glama/m1g3iuk0mm",
       "glama:glama/v48yz4i4if",
       "glama:glama/vnbu3eq1ac",
+      "nango:nango:trello",
       "openconnector:trello",
       "toolsdk:@delorenj/mcp-server-trello",
       "toolsdk:@v4lheru/trello-mcp-server",
@@ -434,57 +470,12 @@
     ]
   },
   {
-    "name": "WhatsApp",
-    "canonical_key": "whatsapp",
-    "sources": [
-      "composio",
-      "glama",
-      "openconnector",
-      "toolsdk"
-    ],
-    "collapsed_ids": [
-      "composio:whatsapp",
-      "glama:glama/cb82av2yt9",
-      "glama:glama/ci34u8l63u",
-      "glama:glama/gou5czlxng",
-      "glama:glama/i1nhftip3u",
-      "glama:glama/iziaxej8vf",
-      "glama:glama/kglt6qllgn",
-      "glama:glama/m42ch95ifm",
-      "glama:glama/of51jjz57z",
-      "glama:glama/p1kscq7w0f",
-      "glama:glama/s4sbtvyct8",
-      "glama:glama/uacl43xe7z",
-      "glama:glama/x39p2w8vje",
-      "glama:glama/xljlqpzjw2",
-      "openconnector:whatsapp",
-      "toolsdk:whatsapp"
-    ]
-  },
-  {
-    "name": "bing_webmaster",
-    "canonical_key": "bing webmaster",
-    "sources": [
-      "composio",
-      "glama",
-      "openconnector",
-      "toolsdk"
-    ],
-    "collapsed_ids": [
-      "composio:bing_webmaster_tools",
-      "glama:glama/dt8rq7g1eq",
-      "glama:glama/kkvm6j3kdm",
-      "glama:glama/pidx9w0h6s",
-      "openconnector:bing_webmaster",
-      "toolsdk:bing-webmaster-tools"
-    ]
-  },
-  {
     "name": "bitbucket",
     "canonical_key": "bitbucket",
     "sources": [
       "composio",
       "glama",
+      "nango",
       "openconnector",
       "toolsdk"
     ],
@@ -499,6 +490,7 @@
       "glama:glama/uw98vp7x3l",
       "glama:glama/vftj4pcz1z",
       "glama:glama/vgz5dr3f0b",
+      "nango:nango:bitbucket",
       "openconnector:bitbucket",
       "toolsdk:@atlassian-dc-mcp/bitbucket",
       "toolsdk:@nexus2520/bitbucket-mcp-server",
@@ -512,6 +504,7 @@
     "sources": [
       "composio",
       "glama",
+      "nango",
       "openconnector",
       "toolsdk"
     ],
@@ -519,6 +512,7 @@
       "composio:clickhouse",
       "composio:clickhouse_mcp",
       "glama:glama/nwev2ygkde",
+      "nango:nango:clickhouse",
       "openconnector:clickhouse",
       "toolsdk:clickhouse",
       "toolsdk:clickhouse-mcp-server"
@@ -530,12 +524,14 @@
     "sources": [
       "composio",
       "glama",
+      "nango",
       "openconnector",
       "toolsdk"
     ],
     "collapsed_ids": [
       "composio:clicksend",
       "glama:glama/zmcszvexgf",
+      "nango:nango:clicksend",
       "openconnector:clicksend",
       "toolsdk:clicksend"
     ]
@@ -546,6 +542,7 @@
     "sources": [
       "composio",
       "glama",
+      "nango",
       "openconnector",
       "toolsdk"
     ],
@@ -553,6 +550,7 @@
       "composio:clickup",
       "composio:clickup_mcp",
       "glama:glama/diidv4euw3",
+      "nango:nango:clickup",
       "openconnector:clickup",
       "openconnector:clickup_mcp",
       "toolsdk:@taazkareem/clickup-mcp-server",
@@ -562,28 +560,12 @@
     ]
   },
   {
-    "name": "clockify",
-    "canonical_key": "clockify",
-    "sources": [
-      "composio",
-      "glama",
-      "openconnector",
-      "toolsdk"
-    ],
-    "collapsed_ids": [
-      "composio:clockify",
-      "glama:glama/hp3gxkdyd6",
-      "glama:glama/p929a5m4fz",
-      "openconnector:clockify",
-      "toolsdk:clockify"
-    ]
-  },
-  {
     "name": "cloudflare_mcp",
     "canonical_key": "cloudflare",
     "sources": [
       "composio",
       "glama",
+      "nango",
       "openconnector",
       "toolsdk"
     ],
@@ -594,6 +576,8 @@
       "glama:glama/t67ff0pr5x",
       "glama:glama/th8fle3kyr",
       "glama:glama/wofhg7o5qt",
+      "nango:nango:cloudflare",
+      "nango:nango:cloudflare-mcp",
       "openconnector:cloudflare_mcp",
       "toolsdk:@cloudflare/mcp-server-cloudflare",
       "toolsdk:@gutmutcode/mcp-server-cloudflare",
@@ -601,19 +585,92 @@
     ]
   },
   {
-    "name": "coinmarketcap",
-    "canonical_key": "coinmarketcap",
+    "name": "confluence",
+    "canonical_key": "confluence",
     "sources": [
       "composio",
       "glama",
+      "nango",
       "openconnector",
       "toolsdk"
     ],
     "collapsed_ids": [
-      "composio:coinmarketcap",
-      "glama:glama/jw8vtulbcx",
-      "openconnector:coinmarketcap",
-      "toolsdk:coinmarketcap"
+      "composio:confluence",
+      "glama:glama/qzds79wszl",
+      "glama:glama/sa2ao06iga",
+      "nango:nango:confluence",
+      "openconnector:confluence",
+      "toolsdk:@atlassian-dc-mcp/confluence",
+      "toolsdk:@zereight/mcp-confluence",
+      "toolsdk:confluence",
+      "toolsdk:mcp-confluence"
+    ]
+  },
+  {
+    "name": "figma",
+    "canonical_key": "figma",
+    "sources": [
+      "composio",
+      "glama",
+      "nango",
+      "openconnector",
+      "toolsdk"
+    ],
+    "collapsed_ids": [
+      "composio:figma",
+      "glama:glama/f7ygyodf5y",
+      "glama:glama/i0ft26d1m7",
+      "glama:glama/t8mabu3o1m",
+      "glama:glama/xbluroecb2",
+      "glama:glama/z7zujmm7w5",
+      "glama:glama/znbchzskvb",
+      "nango:nango:figma",
+      "openconnector:figma",
+      "toolsdk:@jayarrowz/mcp-figma",
+      "toolsdk:figma",
+      "toolsdk:figma-mcp"
+    ]
+  },
+  {
+    "name": "freshdesk",
+    "canonical_key": "freshdesk",
+    "sources": [
+      "composio",
+      "glama",
+      "nango",
+      "openconnector",
+      "toolsdk"
+    ],
+    "collapsed_ids": [
+      "composio:freshdesk",
+      "glama:glama/bceg4i939f",
+      "nango:nango:freshdesk",
+      "openconnector:freshdesk",
+      "toolsdk:freshdesk-mcp"
+    ]
+  },
+  {
+    "name": "google_analytics",
+    "canonical_key": "google analytics",
+    "sources": [
+      "composio",
+      "glama",
+      "nango",
+      "openconnector",
+      "toolsdk"
+    ],
+    "collapsed_ids": [
+      "composio:google_analytics",
+      "glama:glama/nl07wroqdn",
+      "glama:glama/pd7ug7b6v8",
+      "glama:glama/tgyvuo1y7y",
+      "glama:glama/y1g9xw0goi",
+      "nango:nango:google-analytics",
+      "openconnector:google_analytics",
+      "toolsdk:@toolsdk.ai/google-analytics-mcp",
+      "toolsdk:@toolsdk.ai/mcp-server-google-analytics",
+      "toolsdk:google-analytics-mcp",
+      "toolsdk:mcp-google-analytics"
     ]
   }
 ]
