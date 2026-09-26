@@ -26,20 +26,27 @@ function badgeFor(item: Server): { label: string; cls: string; testid: string } 
   return { label: "Catalog", cls: "bg-fg-muted/15 text-fg-muted", testid: "badge-catalog" };
 }
 
-const SOURCE_LABEL: Record<string, string> = { native: "Native MCP", glama: "Glama", "glama-connector": "Glama", composio: "Composio", openconnector: "OpenConnector", toolsdk: "ToolSDK" };
+const SOURCE_LABEL: Record<string, string> = { native: "Native MCP", glama: "Glama", "glama-connector": "Glama Connector", composio: "Composio", openconnector: "OpenConnector", toolsdk: "ToolSDK", "openapi-generated": "OpenAPI" };
 
 /**
  * Tabs are driven by real sources. "Native" is NOT the ToolSDK catalogue: it is
  * the set of providers that actually execute in-process, counted by the backend
  * from provider_registry, so the number can never drift from reality.
+ *
+ * One tab per real `source` value in the registry. `glama` (server directory)
+ * and `glama-connector` (live remote endpoints) used to be merged into one
+ * "Glama" tab, which hid the only source we can actually verify at runtime, so
+ * they are separate now.
  */
 const TABS = [
   { key: "", label: "All", note: "Gabungan semua sumber di katalog." },
   { key: "native", label: "Native MCP", note: "Provider yang benar-benar berjalan di produksi — dihitung dari kode, bukan klaim marketing." },
+  { key: "glama", label: "Glama", note: "Server direktori Glama. Metadata listing, bukan endpoint yang kita jalankan sendiri." },
+  { key: "glama-connector", label: "Glama Connector", note: "Endpoint MCP remote milik pihak ketiga yang answering initialize + tools/list. Konektor no-auth yang lolos baca-saja ikut call-verified." },
   { key: "openconnector", label: "OpenConnector", note: "18.010 actions dijangkau lewat 5 meta-tool MCP (list_apps, list_connections, search_actions, get_action_guide, execute_action)." },
   { key: "composio", label: "Composio", note: "Toolkit Composio. OAuth dikunci per user, jadi sebagian besar butuh koneksi akun lebih dulu." },
-  { key: "glama", label: "Glama", note: "Server direktori + konektor MCP remote. 28 konektor terverifikasi live lewat initialize + tools/list." },
   { key: "toolsdk", label: "ToolSDK", note: "Katalog metadata saja — tidak ada verifikasi runtime untuk entri ini." },
+  { key: "openapi-generated", label: "OpenAPI", note: "API yang di-import dari spesifikasi OpenAPI lalu di-generate jadi tool. Dihasilkan dari manifest, bukan dari listing pihak ketiga." },
 ] as const;
 
 export default function IntegrationsPage() {
@@ -133,7 +140,7 @@ export default function IntegrationsPage() {
       </div>
       <div role="tablist" aria-label="Sumber integrasi" className="flex flex-wrap gap-2">
         {TABS.map(t => {
-          const count = t.key === "" ? total : (t.key === "glama" ? (sources.glama ?? 0) + (sources["glama-connector"] ?? 0) : (sources as Record<string, number>)[t.key] ?? 0);
+          const count = t.key === "" ? total : (sources as Record<string, number>)[t.key] ?? 0;
           const active = tab === t.key;
           return <button key={t.key || "all"} role="tab" aria-selected={active} data-testid={`source-tab-${t.key || "all"}`}
             onClick={() => pickTab(t.key)}

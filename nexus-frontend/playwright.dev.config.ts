@@ -54,6 +54,11 @@ export default defineConfig({
     // produksi >300 detik dan menolak port yang sudah terpakai. Tanpa baris ini
     // perubahan pada spec-nya tidak pernah diuji, jadi ia ikut di harness dev.
     "hydration.spec.ts",
+    // F2.3: tab sumber marketplace. Dibuat saat menambah tab ke-8
+    // (glama-connector + openapi-generated) yang sebelumnya tertumpuk di tab
+    // "Glama". Di sini karena butuh backend :8000 yang hidup, dan harness
+    // build-produksi tidak selesai di mesin ini (lihat catatan di kepala file).
+    "marketplace-tabs.spec.ts",
   ],
   testIgnore: ["**/_probes/**"],
   timeout: 90000,
