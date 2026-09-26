@@ -26,7 +26,8 @@ import { I18nProvider, useI18n } from "@/i18n/context";
 import { HydrationReady } from "@/i18n/HydrationReady";
 import { SkipToContent } from "@/components/SkipToContent";
 import { BrandMark } from "@/components/BrandMark";
-import { HeroLogoStrip, LogoCloud } from "@/components/logo-cloud";
+import { MagneticLogoCloud } from "@/components/logo-cloud";
+import { mcpLogos } from "@/lib/mcp-logos";
 
 function Landing() {
   const { t } = useI18n();
@@ -46,62 +47,95 @@ function Landing() {
           </Link>
         </header>
 
-        <main id="main-content" tabIndex={-1} className="mx-auto flex w-full max-w-3xl flex-1 flex-col justify-center px-5 py-8 sm:px-8">
-          <h1 className="text-title1 font-bold leading-tight tracking-tight sm:text-title1">
-            {t("landing.title")}
-          </h1>
-          <p className="mt-4 max-w-xl text-callout leading-relaxed text-fg-muted">
-            {t("landing.subtitle")}
-          </p>
-          <p className="mt-3 max-w-xl text-footnote leading-relaxed text-fg-subtle" data-testid="landing-integrations-note">
-            {t("landing.integrationsNote")}
-          </p>
+        <main>
+        {/*
+          HERO — the 55-brand cloud is a BACKGROUND layer, not a strip below the
+          CTA. The earlier version put a 10-logo strip under the button and left
+          the full cloud below the fold, which read as two different components at
+          two different sizes. One size everywhere is the fix.
 
-          <div className="mt-7 flex flex-wrap items-center gap-3">
-            <Link
-              href="/chat"
-              data-testid="landing-cta"
-              className="inline-flex min-h-11 items-center gap-2 rounded-lg bg-accent px-5 py-3 text-subhead font-semibold text-accent-fg shadow-sm transition-transform duration-150 ease-out hover:-translate-y-0.5"
-            >
-              {t("landing.cta")}
-              <ArrowRight size={16} strokeWidth={2} aria-hidden />
-            </Link>
-            <Link
-              href="/help"
-              data-testid="landing-cta-secondary"
-              className="inline-flex min-h-11 items-center gap-2 rounded-lg border border-border px-5 py-3 text-subhead font-medium text-fg transition-colors hover:bg-bg-subtle"
-            >
-              {t("landing.ctaSecondary")}
-            </Link>
+          Readability is not left to chance: the layer is faded to 0.2, the copy
+          sits in a z-10 wrapper with a backdrop blur, and the text block is
+          capped in width so a logo never runs under a full line of words. The
+          blur is the load-bearing part - at 0.2 the logos are subtle enough that
+          the text stays AA without it, and with it they can be missed entirely.
+        */}
+        <section className="relative isolate overflow-hidden" data-testid="hero-section">
+          <div
+            className="pointer-events-none absolute inset-0 -z-10"
+            data-testid="hero-logo-layer"
+          >
+            <MagneticLogoCloud gap={80} size={48} radius={180} strength={0.4} opacity={0.2} />
           </div>
 
-          {/* F6: social proof pindah ke HERO, tepat di bawah CTA.
-              Yang di sini adalah strip ringkas 10 brand, bukan cloud 55 -
-              cloud penuh di 8 kolom sekitar 450px dan akan mendorong judul serta
-              CTA ke bawah, yaitu kebalikan dari fungsi hero. Cloud penuh tetap
-              ada, di bawah lipatan. */}
-          <HeroLogoStrip />
+          <div
+            id="main-content"
+            tabIndex={-1}
+            className="relative z-10 mx-auto flex w-full max-w-3xl flex-1 flex-col justify-center px-5 py-8 sm:px-8"
+          >
+            <div className="w-full rounded-2xl bg-bg/70 px-5 py-6 backdrop-blur-sm sm:px-7">
+              <h1 className="text-title1 font-bold leading-tight tracking-tight sm:text-title1">
+                {t("landing.title")}
+              </h1>
+              <p className="mt-4 max-w-xl text-callout leading-relaxed text-fg-muted">
+                {t("landing.subtitle")}
+              </p>
+              <p
+                className="mt-3 max-w-xl text-footnote leading-relaxed text-fg-subtle"
+                data-testid="landing-integrations-note"
+              >
+                {t("landing.integrationsNote")}
+              </p>
 
-          {/* Di bawah lipatan: animasi CSS dipakai di sini (bukan di hero) supaya
-              tidak menunda LCP, dan tetap dihormati saat reduced-motion. */}
-          <ul className="k-fade-up mt-10 grid gap-4 sm:grid-cols-3">
-            <li className="rounded-xl border border-border bg-surface p-4">
-              <Bot size={18} strokeWidth={1.75} aria-hidden className="text-accent" />
-              <p className="mt-2 text-[13.5px] font-semibold text-fg">{t("landing.feature1Title")}</p>
-              <p className="mt-1 text-footnote leading-relaxed text-fg-muted">{t("landing.feature1Desc")}</p>
-            </li>
-            <li className="rounded-xl border border-border bg-surface p-4">
-              <Workflow size={18} strokeWidth={1.75} aria-hidden className="text-accent" />
-              <p className="mt-2 text-[13.5px] font-semibold text-fg">{t("landing.feature2Title")}</p>
-              <p className="mt-1 text-footnote leading-relaxed text-fg-muted">{t("landing.feature2Desc")}</p>
-            </li>
-            <li className="rounded-xl border border-border bg-surface p-4">
-              <Plug size={18} strokeWidth={1.75} aria-hidden className="text-accent" />
-              <p className="mt-2 text-[13.5px] font-semibold text-fg">{t("landing.feature3Title")}</p>
-              <p className="mt-1 text-footnote leading-relaxed text-fg-muted">{t("landing.feature3Desc")}</p>
-            </li>
-          </ul>
-          <LogoCloud />
+              <div className="mt-7 flex flex-wrap items-center gap-3">
+                <Link
+                  href="/chat"
+                  data-testid="landing-cta"
+                  className="inline-flex min-h-11 items-center gap-2 rounded-lg bg-accent px-5 py-3 text-subhead font-semibold text-accent-fg shadow-sm transition-transform duration-150 ease-out hover:-translate-y-0.5"
+                >
+                  {t("landing.cta")}
+                  <ArrowRight size={16} strokeWidth={2} aria-hidden />
+                </Link>
+                <Link
+                  href="/help"
+                  data-testid="landing-cta-secondary"
+                  className="inline-flex min-h-11 items-center gap-2 rounded-lg border border-border px-5 py-3 text-subhead font-medium text-fg transition-colors hover:bg-bg-subtle"
+                >
+                  {t("landing.ctaSecondary")}
+                </Link>
+              </div>
+            </div>
+
+            {/* Di bawah lipatan: animasi CSS dipakai di sini (bukan di hero) supaya
+                tidak menunda LCP, dan tetap dihormati saat reduced-motion. */}
+            <ul className="k-fade-up mt-10 grid gap-4 sm:grid-cols-3">
+              <li className="rounded-xl border border-border bg-surface p-4">
+                <Bot size={18} strokeWidth={1.75} aria-hidden className="text-accent" />
+                <p className="mt-2 text-[13.5px] font-semibold text-fg">{t("landing.feature1Title")}</p>
+                <p className="mt-1 text-footnote leading-relaxed text-fg-muted">{t("landing.feature1Desc")}</p>
+              </li>
+              <li className="rounded-xl border border-border bg-surface p-4">
+                <Workflow size={18} strokeWidth={1.75} aria-hidden className="text-accent" />
+                <p className="mt-2 text-[13.5px] font-semibold text-fg">{t("landing.feature2Title")}</p>
+                <p className="mt-1 text-footnote leading-relaxed text-fg-muted">{t("landing.feature2Desc")}</p>
+              </li>
+              <li className="rounded-xl border border-border bg-surface p-4">
+                <Plug size={18} strokeWidth={1.75} aria-hidden className="text-accent" />
+                <p className="mt-2 text-[13.5px] font-semibold text-fg">{t("landing.feature3Title")}</p>
+                <p className="mt-1 text-footnote leading-relaxed text-fg-muted">{t("landing.feature3Desc")}</p>
+              </li>
+            </ul>
+
+            {/* Brand names announced once for screen readers. The visible layer is
+                aria-hidden decoration, so without this the page would have 55
+                unlabelled marks and no names at all. */}
+            <ul className="sr-only">
+              {mcpLogos.map((l) => (
+                <li key={`sr-${l.name}`}>{l.name}</li>
+              ))}
+            </ul>
+          </div>
+        </section>
         </main>
 
         <footer className="flex flex-wrap items-center justify-between gap-2 border-t border-border/60 px-5 py-4 text-footnote text-fg-muted sm:px-8">

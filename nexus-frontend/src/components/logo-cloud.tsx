@@ -1,236 +1,222 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
-import { mcpLogos, heroLogos, type McpLogo } from "@/lib/mcp-logos";
+/**
+ * F6 — the 55-brand cloud as a magnetic BACKGROUND layer for the hero.
+ *
+ * WHY NOT `motion/react` (the library the obvious approach reaches for):
+ * `page.tsx` carries a hard, test-enforced rule that the landing page must not
+ * import it. The reason is measured, not aesthetic: this page once loaded the
+ * entire chat app, and `motion` is two chunks of roughly 180 KB. Adding it back
+ * to save fifty lines of arithmetic would undo a documented performance
+ * decision. The physics below is the same maths without the dependency.
+ *
+ * WHY ONE rAF LOOP AND NOT FIFTY-FIVE:
+ * the naive version gives every tile its own animation frame. That is 55 layout
+ * reads per frame, every frame, and it is why "logo swarm" demos usually melt a
+ * laptop. Here the parent owns a single loop, the tile centres are measured once
+ * and cached (they live in a static grid), and each frame only writes
+ * transforms. No React state, no re-render, no layout thrash.
+ *
+ * The feel: a tile is pulled toward the cursor, and the pull falls off linearly
+ * to zero at the edge of `radius`. Smoothing is an exponential lerp, which reads
+ * as a soft spring without overshoot. A real spring constant would oscillate,
+ * and for 55 tiles moving at once that looks like a shiver rather than a shoal.
+ *
+ * Accessibility, unchanged from the previous cloud: decorative only,
+ * `aria-hidden`, `pointer-events-none`, and every effect is off under
+ * `prefers-reduced-motion`. Brand names are still announced once by the sr-only
+ * list the page renders.
+ */
 
-const RANGE = 150;
-const STRENGTH = 0.3;
+import { useCallback, useEffect, useRef } from "react";
+import { mcpLogos, type McpLogo } from "@/lib/mcp-logos";
 
-function usePrefersReducedMotion(): boolean {
-  const [reduced, setReduced] = useState(false);
-  useEffect(() => {
-    const mq = window.matchMedia("(prefers-reduced-motion: reduce)");
-    setReduced(mq.matches);
-    const onChange = () => setReduced(mq.matches);
-    mq.addEventListener("change", onChange);
-    return () => mq.removeEventListener("change", onChange);
-  }, []);
-  return reduced;
+type Tile = {
+  el: HTMLDivElement;
+  /** Centre in viewport coordinates, cached at measure time. */
+  cx: number;
+  cy: number;
+  x: number;
+  y: number;
+  tx: number;
+  ty: number;
+};
+
+function renderLogo(logo: McpLogo, size: number) {
+  if (!logo.Component) {
+    return (
+      <svg
+        viewBox={logo.path?.viewBox ?? "0 0 24 24"}
+        width={size}
+        height={size}
+        fill={logo.color ?? "currentColor"}
+        aria-hidden="true"
+        focusable="false"
+      >
+        <path d={logo.path?.d ?? ""} />
+      </svg>
+    );
+  }
+  // simple-icons paints its own brand fill; everything else is currentColor and
+  // takes its colour from the wrapper. `logo.color` is undefined when a brand's
+  // primary is white, which is what keeps that logo visible on a light hero.
+  return logo.color === "default" ? (
+    <logo.Component size={size} color="default" />
+  ) : (
+    <span style={{ color: logo.color ?? "var(--fg)", display: "block", lineHeight: 0 }}>
+      <logo.Component size={size} />
+    </span>
+  );
 }
 
-type Rect = { left: number; top: number; width: number; height: number };
-type Active = { index: number; x: number; y: number; dx: number; dy: number } | null;
-
 /**
- * One logo tile: renders the brand and applies the transform the grid computed.
+ * The 55-brand cloud, rendered as the hero BACKGROUND.
  *
- * Accessibility and clickability rules that are deliberate, not accidents:
- *  - the tile is `pointer-events-none` and `aria-hidden`, so a logo can never be
- *    clicked, focused or announced. A grid of 55 fake buttons would be worse
- *    than no logos at all, and the brands are named once in the sr-only list;
- *  - because `pointer-events: none` also means the browser never dispatches
- *    mouse events to the tile, the magnetic input is handled on the parent grid
- *    and passed down as props. That is what lets "not clickable" and "moves
- *    toward the cursor" coexist;
- *  - all motion is disabled under `prefers-reduced-motion`.
+ * Replaces both earlier shapes - the 10-logo strip under the CTA and the full
+ * cloud below the fold. Two components at two sizes read as a bug, so there is
+ * now exactly one, at 48px, filling the hero.
+ *
+ * Purely decorative: aria-hidden, pointer-events-none, inert under
+ * prefers-reduced-motion. The brand names are announced once by the sr-only
+ * list in page.tsx.
  */
-function MagneticLogo({
-  logo,
-  active,
-  reduced,
+export function MagneticLogoCloud({
+  logos = mcpLogos,
+  gap = 80,
+  size = 48,
+  radius = 180,
+  strength = 0.4,
+  opacity = 0.2,
+  className = "",
 }: {
-  logo: McpLogo;
-  active: Active;
-  reduced: boolean;
+  logos?: McpLogo[];
+  gap?: number;
+  size?: number;
+  radius?: number;
+  strength?: number;
+  opacity?: number;
+  className?: string;
 }) {
-  // The grid only hands the matching tile a non-null `active`, so no index
-  // comparison is needed in here.
-  const x = active?.dx ?? 0;
-  const y = active?.dy ?? 0;
-  const isActive = active !== null;
-  const scale = isActive ? 1.12 : 1;
-  // simple-icons paints its own brand fill; lobehub Mono and the baked paths
-  // paint `currentColor` and so need the colour set on the wrapper instead.
-  const isBrandFill = logo.color === "default";
+  const hostRef = useRef<HTMLDivElement>(null);
+  const tiles = useRef<Tile[]>([]);
+  const mouse = useRef({ x: -99999, y: -99999, active: false });
+  const reduced = useRef(false);
+
+  const measure = useCallback(() => {
+    const nodes = hostRef.current?.querySelectorAll<HTMLDivElement>("[data-magnetic-tile]");
+    if (!nodes) return;
+    tiles.current = Array.from(nodes).map((el) => {
+      const r = el.getBoundingClientRect();
+      return { el, cx: r.left + r.width / 2, cy: r.top + r.height / 2, x: 0, y: 0, tx: 0, ty: 0 };
+    });
+  }, []);
+
+  useEffect(() => {
+    const mq = window.matchMedia("(prefers-reduced-motion: reduce)");
+    reduced.current = mq.matches;
+    const onMq = () => {
+      reduced.current = mq.matches;
+    };
+    mq.addEventListener("change", onMq);
+
+    const onMove = (e: MouseEvent) => {
+      mouse.current = { x: e.clientX, y: e.clientY, active: true };
+    };
+    const onLeave = () => {
+      mouse.current.active = false;
+    };
+    // Listeners are on the window, not the grid. The grid is pointer-events-none
+    // so a logo can never be clicked, and a pointer-events-none element also
+    // never dispatches mouse events - that is exactly why "not clickable" and
+    // "reacts to the cursor" have to coexist.
+    window.addEventListener("mousemove", onMove, { passive: true });
+    window.addEventListener("scroll", measure, { passive: true });
+    window.addEventListener("resize", measure);
+    document.addEventListener("mouseleave", onLeave);
+
+    // Measure after layout settles: the grid is sized by the parent, so a
+    // measurement taken before first paint would cache the wrong centres.
+    const raf = requestAnimationFrame(measure);
+    const t = setTimeout(measure, 300);
+
+    let frame = 0;
+    const tick = () => {
+      if (!reduced.current) {
+        const { x: mx, y: my, active } = mouse.current;
+        for (const tile of tiles.current) {
+          if (active) {
+            const dx = mx - tile.cx;
+            const dy = my - tile.cy;
+            const dist = Math.hypot(dx, dy);
+            if (dist < radius) {
+              // Falls to zero at the edge of the radius, so the outer ring
+              // barely moves and the inner tiles commit.
+              const f = (1 - dist / radius) * strength;
+              tile.tx = dx * f;
+              tile.ty = dy * f;
+            } else {
+              tile.tx = 0;
+              tile.ty = 0;
+            }
+          } else {
+            tile.tx = 0;
+            tile.ty = 0;
+          }
+          // Exponential lerp. The factor is frame-rate independent, so the
+          // motion looks the same on a 60Hz and a 144Hz display.
+          const k = 1 - Math.pow(0.001, 1 / 60);
+          tile.x += (tile.tx - tile.x) * k;
+          tile.y += (tile.ty - tile.y) * k;
+          if (Math.abs(tile.tx - tile.x) > 0.05 || Math.abs(tile.ty - tile.y) > 0.05) {
+            tile.el.style.transform = `translate3d(${tile.x.toFixed(2)}px, ${tile.y.toFixed(2)}px, 0)`;
+          }
+        }
+      }
+      frame = requestAnimationFrame(tick);
+    };
+    frame = requestAnimationFrame(tick);
+
+    return () => {
+      cancelAnimationFrame(frame);
+      cancelAnimationFrame(raf);
+      clearTimeout(t);
+      mq.removeEventListener("change", onMq);
+      window.removeEventListener("mousemove", onMove);
+      window.removeEventListener("scroll", measure);
+      window.removeEventListener("resize", measure);
+      document.removeEventListener("mouseleave", onLeave);
+    };
+  }, [radius, strength, measure]);
 
   return (
     <div
+      ref={hostRef}
+      data-testid="magnetic-logo-cloud"
       aria-hidden="true"
-      data-testid="mcp-logo"
-      className="pointer-events-none relative flex h-16 w-full select-none items-center justify-center rounded-2xl border border-border bg-surface/60 transition-colors duration-200"
+      className={`grid h-full w-full place-items-center ${className}`}
       style={{
-        transform: reduced ? "none" : `translate3d(${x}px, ${y}px, 0)`,
-        transition: reduced ? "none" : "transform 220ms cubic-bezier(0.22,1,0.36,1)",
+        gridTemplateColumns: `repeat(auto-fill, minmax(${gap}px, 1fr))`,
+        gap: `${gap}px`,
+        padding: `${gap}px`,
+        opacity,
       }}
     >
-      <span
-        className="pointer-events-none absolute inset-0 rounded-2xl transition-opacity duration-200"
-        style={{
-          opacity: active ? 1 : 0,
-          background: active
-            ? `radial-gradient(120px circle at ${active.x}% ${active.y}%, rgba(108,99,255,0.28), transparent 70%)`
-            : "none",
-        }}
-      />
-      <span
-        className="pointer-events-none flex items-center justify-center transition-transform duration-200"
-        style={{
-          transform: reduced
-            ? "none"
-            : `perspective(600px) rotateX(${isActive ? -6 : 0}deg) rotateY(${isActive ? 6 : 0}deg) scale(${scale})`,
-          // Only the lobehub and baked-path tiers read this. `text-fg-muted` stays
-          // as the class fallback, so a brand with no colour of its own shows up
-          // as muted grey rather than as an invisible or wrongly-coloured logo.
-          ...(isBrandFill ? {} : { color: logo.color ?? "var(--fg)" }),
-        }}
-      >
-        {logo.Component ? (
-          // simple-icons resolves "default" to the real brand hex itself, which
-          // is why the wrapper must not force a colour over it. The outer check
-          // on logo.Component is what narrows the type - testing isBrandFill
-          // alone leaves it possibly-undefined, and the build (unlike a bare
-          // tsc pass) rejects that.
-          isBrandFill ? (
-            <logo.Component size={30} color="default" />
-          ) : (
-            <logo.Component size={30} />
-          )
-        ) : (
-          <svg
-            viewBox={logo.path?.viewBox ?? "0 0 24 24"}
-            width={30}
-            height={30}
-            fill="currentColor"
-            aria-hidden="true"
-            focusable="false"
-          >
-            <path d={logo.path?.d ?? ""} />
-          </svg>
-        )}
-      </span>
-    </div>
-  );
-}
-
-/**
- * The compact cloud that sits in the hero, directly under the CTA.
- *
- * Separate from LogoCloud on purpose. The full grid is 55 tiles across 8
- * columns - roughly 450px tall - and putting that above the fold would push the
- * headline and the CTA down, which is the exact opposite of what a hero is for.
- * So the hero gets the ten most recognisable brands on one row, and the full
- * cloud stays below the fold where it can breathe.
- *
- * Accessibility and clickability rules are inherited from the full cloud's
- * design: decorative only, aria-hidden, pointer-events-none. No logo can be
- * clicked or focused, and the brand names are announced once in the sr-only
- * list of the full cloud below.
- */
-export function HeroLogoStrip() {
-  return (
-    <div className="mt-9" data-testid="hero-logo-strip">
-      <p className="text-[11px] uppercase tracking-wider text-fg-subtle">
-        Works with 200+ MCP servers
-      </p>
-      <ul className="mt-3 flex list-none flex-wrap items-center gap-x-6 gap-y-3">
-        {heroLogos.map((logo) => (
-          <li key={`hero-` + logo.name} className="pointer-events-none select-none" aria-hidden="true">
-            {logo.Component ? (
-              logo.color === "default" ? (
-                <logo.Component size={22} color="default" />
-              ) : (
-                <span style={{ color: logo.color ?? "var(--fg)" }}>
-                  <logo.Component size={22} />
-                </span>
-              )
-            ) : (
-              <svg
-                viewBox={logo.path?.viewBox ?? "0 0 24 24"}
-                width={22}
-                height={22}
-                fill={logo.color ?? "currentColor"}
-                aria-hidden="true"
-                focusable="false"
-              >
-                <path d={logo.path?.d ?? ""} />
-              </svg>
-            )}
-          </li>
-        ))}
-      </ul>
-    </div>
-  );
-}
-
-export function LogoCloud() {
-  const gridRef = useRef<HTMLUListElement>(null);
-  const [active, setActive] = useState<Active>(null);
-  const reduced = usePrefersReducedMotion();
-
-  const onMove = useCallback(
-    (event: React.MouseEvent<HTMLUListElement>) => {
-      if (reduced) return;
-      const grid = gridRef.current;
-      if (!grid) return;
-      const tiles = grid.querySelectorAll<HTMLElement>("[data-testid=mcp-logo]");
-      let best: Active = null;
-      let bestDist = RANGE;
-      tiles.forEach((tile, index) => {
-        const rect = tile.getBoundingClientRect();
-        const cx = rect.left + rect.width / 2;
-        const cy = rect.top + rect.height / 2;
-        const dx = event.clientX - cx;
-        const dy = event.clientY - cy;
-        const dist = Math.hypot(dx, dy);
-        if (dist < bestDist) {
-          bestDist = dist;
-          best = {
-            index,
-            x: ((event.clientX - rect.left) / rect.width) * 100,
-            y: ((event.clientY - rect.top) / rect.height) * 100,
-            dx: dx * STRENGTH * (1 - dist / RANGE),
-            dy: dy * STRENGTH * (1 - dist / RANGE),
-          };
-        }
-      });
-      setActive(best);
-    },
-    [reduced],
-  );
-
-  return (
-    <section
-      className="px-5 py-20 sm:px-8"
-      aria-labelledby="logo-cloud-title"
-      data-testid="logo-cloud"
-    >
-      <div className="mx-auto max-w-5xl">
-        <h2 id="logo-cloud-title" className="text-center text-2xl font-medium tracking-tight text-fg">
-          Works with <span className="text-accent">200+ MCP servers</span>
-        </h2>
-        <p className="mx-auto mt-3 max-w-2xl text-center text-[13.5px] leading-relaxed text-fg-muted">
-          One catalog spanning native MCP, OpenConnector, Composio, Glama and generated OpenAPI
-          wrappers. Decoration only — open the integrations page for the source and verification
-          status of each one.
-        </p>
-        <ul className="sr-only">
-          {mcpLogos.map((l) => (
-            <li key={`sr-${l.name}`}>{l.name}</li>
-          ))}
-        </ul>
-        <ul
-          ref={gridRef}
-          onMouseMove={onMove}
-          onMouseLeave={() => setActive(null)}
-          className="mt-10 grid list-none grid-cols-3 gap-3 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8"
+      {logos.map((logo) => (
+        <div
+          key={logo.name}
+          data-magnetic-tile
+          data-testid="mcp-logo"
+          data-brand={logo.name}
+          className="pointer-events-none flex select-none items-center justify-center"
+          style={{ width: size, height: size, willChange: "transform" }}
         >
-          {mcpLogos.map((logo, index) => (
-            <li key={logo.name}>
-              <MagneticLogo logo={logo} active={active?.index === index ? active : null} reduced={reduced} />
-            </li>
-          ))}
-        </ul>
-      </div>
-    </section>
+          {renderLogo(logo, size)}
+        </div>
+      ))}
+    </div>
   );
 }
+
+export default MagneticLogoCloud;
+
+

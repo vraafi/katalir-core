@@ -68,6 +68,11 @@ export default defineConfig({
     "marketplace-f4-filters.spec.ts",
     // F6: logo cloud landing — posisi di hero, warna brand, magnetik, non-click.
     "landing-logo-f6.spec.ts",
+    // F6: rekam bukti efek magnetik (frame sebelum/sesudah + angka jarak).
+    // Hanya screenshot dan mengukur displacement — TIDAK memakai video, jadi
+    // tidak ada biaya kamera di setiap suite. Gated karena ia gagal kalau
+    // magnet berhenti menggerakkan tile, dan itulah yang ingin dijaga.
+    "landing-magnet-evidence.spec.ts",
     // CATATAN: launch-demo.spec.ts sengaja TIDAK ada di testMatch. Ia bukan
     // assertion, melainkan rekaman video untuk launch, dan menambahkannya di
     // sini akan membuat setiap test suite ikut menjalankan kamera. Jalankan

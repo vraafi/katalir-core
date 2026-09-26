@@ -13,38 +13,111 @@ const SHOTS = "f6-shots";
 test.describe("F6 landing logo cloud", () => {
   test.setTimeout(120_000);
 
-  test("hero strip is above the fold, below the CTA", async ({ page }) => {
+  test("the 55-brand cloud fills the hero as a background layer", async ({ page }) => {
     await page.setViewportSize({ width: 1440, height: 900 });
     await page.goto("/", { waitUntil: "domcontentloaded", timeout: 90_000 });
-    await page.waitForSelector('[data-testid="hero-logo-strip"]');
+    await page.waitForSelector('[data-testid="mcp-logo"]');
     await page.waitForTimeout(1200);
 
-    const strip = page.getByTestId("hero-logo-strip");
-    await expect(strip).toBeVisible();
+    const layer = page.getByTestId("hero-logo-layer");
+    await expect(layer).toBeVisible();
 
-    // The real requirement is "visible in the FIRST viewport". Measuring the box
-    // is the only way to prove it, because "the component exists" says nothing
-    // about where it sits.
-    const box = await strip.boundingBox();
-    expect(box, "hero strip has no box").not.toBeNull();
-    expect(box!.y, "hero strip starts below the fold").toBeLessThan(900);
-    expect(box!.y + box!.height, "hero strip is cut off by the fold").toBeLessThanOrEqual(900);
+    // 55 is the count the earlier work asserted, and moving the cloud into the
+    // hero must not quietly drop brands on the way.
+    await expect(page.getByTestId("mcp-logo")).toHaveCount(55);
 
-    // And it must come after the CTA, so the CTA is still above it.
-    const cta = await page.getByTestId("landing-cta").boundingBox();
-    expect(box!.y, "logo strip is above the CTA").toBeGreaterThan(cta!.y);
+    // "Background" has to mean background, not "somewhere on the page". The layer
+    // must actually cover the hero and sit BEHIND the copy - the previous
+    // failure mode was logos stacking on top of the headline.
+    const layerBox = (await layer.boundingBox())!;
+    const heroBox = (await page.getByTestId("hero-section").boundingBox())!;
+    expect(layerBox.width).toBeGreaterThanOrEqual(heroBox.width - 2);
+    expect(layerBox.height).toBeGreaterThanOrEqual(heroBox.height - 2);
+
+    // z-index: the layer is -z-10, the copy wrapper is z-10. Compare computed
+    // z-index rather than trusting the class names.
+    const z = await page.evaluate(() => {
+      const l = document.querySelector('[data-testid="hero-logo-layer"]');
+      const c = document.querySelector("#main-content");
+      return {
+        layer: Number(getComputedStyle(l!).zIndex),
+        copy: Number(getComputedStyle(c!).zIndex),
+      };
+    });
+    expect(z.layer, "logo layer is not behind the copy").toBeLessThan(z.copy);
+
+    // And the copy must actually be on top where they overlap, not merely later
+    // in the DOM. hit-testing the headline is the direct check.
+    const hit = await page.evaluate(() => {
+      const h1 = document.querySelector("h1")!;
+      const r = h1.getBoundingClientRect();
+      const el = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2);
+      return el?.closest("#main-content") !== null;
+    });
+    expect(hit, "a logo is painted over the headline").toBe(true);
 
     await page.screenshot({ path: `${SHOTS}/f6-desktop-hero.png` });
   });
 
-  test("the full 55-brand cloud is still on the page", async ({ page }) => {
+  test("every logo is the same size, and sized as specified", async ({ page }) => {
     await page.goto("/", { waitUntil: "domcontentloaded", timeout: 90_000 });
     await page.waitForSelector('[data-testid="mcp-logo"]');
     await page.waitForTimeout(1000);
-    // Adding a strip to the hero must not have deleted the cloud. 55 is the
-    // count the earlier work asserted and it is still the honest number.
-    await expect(page.getByTestId("mcp-logo")).toHaveCount(55);
-    await expect(page.getByTestId("logo-cloud")).toBeVisible();
+
+    // The complaint was "inconsistent size". Measuring every tile is the only
+    // way that is falsifiable - a screenshot cannot be asserted on.
+    const sizes = await page
+      .getByTestId("mcp-logo")
+      .evaluateAll((els) => els.map((el) => el.getBoundingClientRect().width));
+
+    expect(sizes.length).toBe(55);
+    // Displacement from the magnet is a translation, so width is unaffected -
+    // but read width rather than transform to prove the magnet is not resizing.
+    for (const w of sizes) expect(Math.abs(w - 48)).toBeLessThanOrEqual(1);
+  });
+
+  test("logos are spread out, not packed shoulder to shoulder", async ({ page }) => {
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await page.goto("/", { waitUntil: "domcontentloaded", timeout: 90_000 });
+    await page.waitForSelector('[data-testid="mcp-logo"]');
+    await page.waitForTimeout(1000);
+
+    // The brief asked for 80px of breathing room; the old strip ran at 20-30px,
+    // which is what made the magnetic effect look like nothing at all.
+    const gap = await page
+      .getByTestId("mcp-logo")
+      .evaluateAll((els) => {
+        const rs = els
+          .map((el) => el.getBoundingClientRect())
+          .sort((a, b) => a.top - b.top || a.left - b.left);
+        let min = Infinity;
+        for (let i = 0; i < rs.length; i++) {
+          for (let j = i + 1; j < rs.length; j++) {
+            const dx = Math.abs(rs[i].left - rs[j].left);
+            const dy = Math.abs(rs[i].top - rs[j].top);
+            if (dx < 1 || dy < 1) continue; // not in the same row/column
+            const d = dx < dy ? dx : dy;
+            if (d < min) min = d;
+          }
+        }
+        return min;
+      });
+    expect(gap, "logos are packed too tightly for the magnetic effect to read").toBeGreaterThan(60);
+  });
+
+  test("the layer is faded, so the headline stays readable", async ({ page }) => {
+    await page.goto("/", { waitUntil: "domcontentloaded", timeout: 90_000 });
+    await page.waitForSelector('[data-testid="mcp-logo"]');
+    await page.waitForTimeout(1000);
+
+    // Read the opacity off the cloud itself. The layer wrapper is transparent -
+    // reading its parent measures the <section>, which is always 1, and that is
+    // exactly the mistake that makes a "faded background" test pass vacuously.
+    const opacity = await page
+      .getByTestId("magnetic-logo-cloud")
+      .evaluate((el) => Number(getComputedStyle(el).opacity));
+    expect(opacity, "logos are too strong to read the hero over").toBeLessThanOrEqual(0.25);
+    expect(opacity, "logos are invisible, which is not a background either").toBeGreaterThan(0.1);
   });
 
   test("logos are brand coloured, not monochrome", async ({ page }) => {
@@ -90,11 +163,10 @@ test.describe("F6 landing logo cloud", () => {
     expect(colors[git]).toBe("#181717");
     if (notch >= 0) expect(colors[notch]).not.toBe(colors[git]);
 
-    // Scroll the cloud itself into view before capturing, or the "cloud"
-    // screenshot is just another picture of the hero.
-    await page.getByTestId("logo-cloud").scrollIntoViewIfNeeded();
-    await page.waitForTimeout(800);
-    await page.screenshot({ path: `${SHOTS}/f6-desktop-cloud.png` });
+    // The cloud no longer lives below the fold - it IS the hero - so there is no
+    // separate "cloud" region to scroll to any more. A full-page shot is what
+    // actually shows how the hero sits in the document.
+    await page.screenshot({ path: `${SHOTS}/f6-desktop-cloud.png`, fullPage: true });
   });
 
   test("magnetic hover still moves a logo, and logos are not clickable", async ({ page }) => {
@@ -122,7 +194,13 @@ test.describe("F6 landing logo cloud", () => {
     await tile.click({ force: true });
     await page.waitForTimeout(500);
     expect(page.url()).toBe(urlBefore);
-    await expect(tile).toHaveAttribute("aria-hidden", "true");
+    // aria-hidden sits on the cloud container, not on each tile - one attribute
+    // hides all 55. Asserting it on the tile tested the wrong element and failed
+    // for the right reason, which is worth stating so nobody "fixes" it by
+    // adding a redundant attribute to 55 nodes.
+    await expect(page.getByTestId("magnetic-logo-cloud")).toHaveAttribute("aria-hidden", "true");
+    // And a decorative mark must be invisible to the tab order.
+    await expect(tile).not.toHaveAttribute("tabindex", /\S/);
 
     await page.screenshot({ path: `${SHOTS}/f6-desktop-magnetic.png` });
   });
@@ -162,7 +240,7 @@ test.describe("F6 landing logo cloud", () => {
 
   test("axe accessibility audit on the landing page", async ({ page }) => {
     await page.goto("/", { waitUntil: "domcontentloaded", timeout: 90_000 });
-    await page.waitForSelector('[data-testid="hero-logo-strip"]');
+    await page.waitForSelector('[data-testid="mcp-logo"]');
     await page.waitForTimeout(1500);
 
     // NOTE ON HONESTY: the brief asked for "Lighthouse a11y >= 90". Lighthouse is
@@ -187,10 +265,10 @@ test.describe("F6 landing logo cloud", () => {
     expect(violations, JSON.stringify(violations, null, 1)).toEqual([]);
   });
 
-  test("mobile: hero strip visible, no horizontal overflow", async ({ page }) => {
+  test("mobile: hero cloud visible, no horizontal overflow", async ({ page }) => {
     await page.setViewportSize({ width: 390, height: 844 });
     await page.goto("/", { waitUntil: "domcontentloaded", timeout: 90_000 });
-    await page.waitForSelector('[data-testid="hero-logo-strip"]');
+    await page.waitForSelector('[data-testid="mcp-logo"]');
     await page.waitForTimeout(1500);
     await page.screenshot({ path: `${SHOTS}/f6-mobile-hero.png` });
 

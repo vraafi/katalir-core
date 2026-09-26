@@ -149,16 +149,3 @@ export const mcpLogos: McpLogo[] = [
 export function brandPath(slug: string) {
   return BRAND_PATHS[slug];
 }
-
-/**
- * The short list that goes in the hero.
- *
- * Why a subset exists at all: 55 tiles in an 8-column grid is roughly 450px of
- * logo, which does not belong above the fold. It would push the headline and
- * the CTA down, and those are the one thing on this page that must not be
- * pushed down. So the hero gets the most recognisable brands on a single row,
- * and the full cloud stays below the fold where it can be as large as it likes.
- */
-export const heroLogos: McpLogo[] = mcpLogos.filter((l) =>
-  ["GitHub", "Slack", "Notion", "Stripe", "Vercel", "Google", "Anthropic", "OpenAI", "Docker", "Cloudflare"].includes(l.name),
-);
