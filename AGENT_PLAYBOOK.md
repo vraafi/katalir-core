@@ -207,4 +207,47 @@ Data personal (mis. URL profil profesional) tidak boleh masuk repo ini. Simpan d
   `GET /integrations`.
 - Dua tipe key: **Environment API key** (untuk `/providers`, `/integrations`) dan
   **Account API key** (hanya API level-akun). `GET /environments` → 403
+
+## Gotcha: Cloudflare 1010 = blokir WAF, BUKAN auth gagal (Metorial)
+- Metorial sempat dicatat "403 di semua endpoint" dan kami hampir mengulang error
+  Nango yang sama. Badannya ternyata **Cloudflare error 1010** — WAF yang memblokir
+  *browser signature*, bukan penolakan kredensial.
+- Dengan **User-Agent browser** endpoint yang sama balas **200** dan integration
+  provider GitHub aktif di instance Production (`katalir`).
+- **Aturan yang lebih umum dari kedua insiden:** 401/403 dari pihak ketiga =
+  "endpoint salah ATAU WAF block ATAU key salah". **Baca body response dulu**,
+  lalu verifikasi rute + header ke docs resmi. 1010 selalu berarti WAF.
+- Banyak skrip sync memakai default `requests`/`httpx` yang identifiable sebagai
+  bot. Set `User-Agent` yang wajar sejak awal, jangan menunggu debugging.
+
+## Gotcha: badge runtime dan filter harus berasal dari SATU fungsi
+- F4.3 menambahkan filter tier. Filter yang berbeda pendapat dengan badge lebih
+  buruk daripada tidak ada filter: user klik "call_verified", dapat N baris, dan
+  N baris itu bukan yang ber-badge call_verified.
+- Maka `mcp_registry.runtime_tier()` adalah **satu-satunya** definisi tier, API
+  mengirim `runtime_tier` di setiap item, dan UI **merender** nilai itu — bukan
+  menghitung ulang di browser. Dua salinan satu aturan pasti akan menyimpang.
+- **Aturan:** jangan pernah menulis aturan tier kedua di frontend. Kalau perlu
+  tier baru, ubah fungsi backend-nya dan tambahkan klaimnya ke
+  `verify_roadmap_claims.mjs`.
+
+## Gotcha: React — setState lalu load() membaca nilai LAMA
+- Pola ini diam-diam tidak melakukan apa-apa: `setTier(t); void load();` —
+  `load()` membaca `tier` dari closure, yang masih nilai **sebelum** re-render.
+  Filter terlihat aktif (tombolnya `aria-pressed`) tapi grid tidak terfilter, jadi
+  bug ini lolos review karena tidak error.
+- **Aturan:** kalau `load`/fetch bergantung pada state yang baru di-`set`, teruskan
+  nilainya sebagai argumen eksplisit (`load(search, tab, { tier: t })`), jangan
+  andalkan render yang belum terjadi. `pickView` dan `pickCategory` punya bug
+  yang sama.
+- "Saya sudah set state-nya" bukan bukti bahwa request-nya memakai nilai itu.
+
+## Gotcha: parameter yang tak pernah dipanggil bukan parameter yang working
+- `list_servers` memakai `x['category']`. 3.112 baris katalog tidak punya key itu,
+  jadi begitu F4.3 mengirim `category` pertama kali, endpoint balas **500
+  KeyError**. Bug laten yang justru tidak terjangkau karena tidak ada test.
+- **Aturan:** setiap parameter API butuh minimal satu test yang mengirimnya,
+  termasuk nilai tidak biasa (string kosong, kategori yang tidak ada). Filter baru
+  di UI **wajib** punya test end-to-end, bukan cuma unit test fungsi parse.
+
   `Insufficient scope` justru **membuktikan** key-nya Environment key yang benar.

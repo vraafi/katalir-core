@@ -175,8 +175,33 @@ can honestly be `call_verified`. The evidence script asserts this, because
    sponsored` (syarat Glama Data License) ikut dipertahankan di sana.
 
 ## FASE 5 — Marketing + Launch Prep
-- [ ] F5.1 landing claim · [ ] F5.2 pricing/docs · [ ] F5.3 Product Hunt kit
-- [ ] F5.4 playbook final · [ ] F5.5 commit · [ ] F5.6 report "ready for launch"
+- [x] F5.1 landing claim — angka **diubah dari sumber yang sama** dengan roadmap, dan
+      setiap angka marketing sekarang jadi klaim di `verify_roadmap_claims.mjs`.
+      Halaman landing tadinya bilang "28,500+ catalog entries" dan "28 Glama
+      connectors runtime-verified" — keduanya angka **sebelum** fase `tools/call`,
+      jadi sudah tidak didukung bukti. Kini: 23.474 unik, 229 call-verified.
+- [x] F5.2 pricing + docs — **grep menemukan klaim basi di TIGA tempat**, bukan satu.
+      Landing (i18n EN + ID), halaman **pricing**, dan halaman **docs** semuanya
+      masih mengulang angka pra-`tools/call`. Semuanya dikoreksi. Klaim
+      "no stale pre-call-phase claim" sekarang menscan keempat permukaan itu,
+      karena permukaan marketing bukan cuma file yang kita ingat.
+- [x] F5.3 Product Hunt kit — `docs/marketing/product-hunt/launch-kit.md`:
+      tagline, subtitle, deskripsi, tabel tier, topik, founder comment, checklist
+      hari-launch, 5 screenshot production, dan **video 60 detik yang benar-benar
+      direkam** (1,0 menit, 1,1 MB webm, 1440x900).
+- [x] F5.4 playbook final — 4 gotcha baru: Cloudflare 1010, satu sumber tier,
+      React setState-lalu-load, dan parameter yang tak pernah dipanggil.
+- [x] F5.5 commit
+- [x] F5.6 report
+
+**Yang dikasih tahu di kit, bukan disembunyikan:** Dodo KYC **ditunda**, verifikasi
+vendor tambahan **ditunda**, dan target 2.000 **tidak tercapai** (sekarang 229).
+Kalau ada yang bertanya "apakah pembayaran jalan", jawabannya kebenaran, bukan
+rencana. Video masih kasar tanpa suara — itu langkah produksi manusia.
+
+Rekaman demo sengaja tidak masuk `testMatch`: ia bukan assertion, dan kamera di
+regression suite membuat setiap test run ikut merekam serta membuat gangguan
+rekaman terlihat seperti regresi produk.
 
 ## FASE 6 — Product Hunt Launch ⭐ USER ACTION
 - [ ] F6.1–F6.4 submit, announce, respond · [ ] F6.5 metrics snapshot

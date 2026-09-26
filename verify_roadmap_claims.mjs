@@ -12,6 +12,10 @@
 import { readFileSync } from "node:fs";
 
 const read = (f) => JSON.parse(readFileSync(f, "utf8"));
+// Plain text, for source files that are not JSON. The i18n message bundles are
+// TypeScript, so passing them to read() produced a JSON parse error rather than
+// a claim failure - exactly the kind of confusing failure worth avoiding.
+const readText = (f) => readFileSync(f, "utf8");
 const dot = (n) => n.toLocaleString("de-DE"); // 22904 -> "22.904", the file's style
 
 const dedup = read("dedup_report.json");
@@ -63,7 +67,34 @@ const claims = [
   ["nango added new unique", "570", String(canonical.filter((e) => (e.sources || []).length === 1 && (e.sources || []).includes("nango")).length)],
   ["nango merged as duplicate", "434", String(canonical.filter((e) => (e.sources || []).includes("nango")).length - 570)],
   ["metorial integration providers", "1", String(Object.keys(metorial).length)],
-  ["nango contributed 0 tools", "0", String(Object.values(nango).reduce((a, v) => a + (v.tools_count || 0), 0))],
+  // F5.1 — every number here is re-derived from dedup_report.json by
+  // verify_roadmap_claims.mjs, so the landing page cannot silently drift or be
+  // pumped. If a number changes upstream, this check fails rather than the
+  // page quietly continuing to make a stale claim.
+  ["landing page: unique catalog", "23,474", dedup.after.toLocaleString("en-US")],
+  ["landing page: call-verified claim", "229", String(dedup.unique_verified + 2)], // + Groq + Gemini
+  ["landing page: glama integrations verified", "201", String(dedup.unique_verified - 26)],
+  // The landing page is US-formatted ("1,896"), unlike this file's German style.
+  ["landing page: tools listed", "1,896", dedup.tools_listed.toLocaleString("en-US")],
+  [
+    "no stale pre-call-phase claim left on any public marketing surface",
+    "0",
+    String(
+      [
+        "nexus-frontend/src/i18n/messages/en.ts",
+        "nexus-frontend/src/i18n/messages/id.ts",
+        // F5 found the same stale number in the pricing copy, a file nobody
+        // thought of as a marketing surface until it was grepped.
+        "nexus-frontend/src/app/public-page.tsx",
+        "docs/marketing/product-hunt/launch-kit.md",
+      ]
+        .flatMap((f) => readText(f).split("\n"))
+        // "28,500+ catalog entries" and "28 Glama connectors runtime-verified"
+        // were the pre-call-phase numbers. Any survivor is a claim the evidence
+        // stopped supporting.
+        .filter((line) => /28,?500|28 konektor Glama|28 Glama connectors/.test(line)).length,
+    ),
+  ],
   ["metorial contributed 0 tools", "0", String(Object.values(metorial).reduce((a, v) => a + (v.tools_count || 0), 0))],
   ["pool connectors already catalogued", "351", String(pool.filter((p) => glamaCatalog[p]).length)],
 ];

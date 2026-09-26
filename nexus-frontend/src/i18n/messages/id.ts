@@ -131,9 +131,9 @@ export const id = {
     feature2Desc: "Draf muncul di kanvas, siap dijalankan atau diubah.",
     feature3Title: "Hubungkan alat Anda",
     feature3Desc:
-      "28.500+ entri katalog dari OpenConnector, Composio, dan Glama. Badge menunjukkan apa yang benar-benar teruji — bukan sekadar terdaftar.",
+      "23.474 integrasi unik di katalog, 229 di antaranya terbukti lewat panggilan tool sungguhan. Badge menampilkan apa yang benar-benar teruji — bukan sekadar terdaftar.",
     integrationsNote:
-      "5 meta-tool OpenConnector menjangkau 18.010 actions · 11 action call-verified · 28 konektor Glama terverifikasi runtime.",
+      "5 meta-tool OpenConnector menjangkau 18.010 actions · 11 action call-verified · 201 integrasi Glama call-verified · 1.896 menampilkan daftar tools.",
     glamaCredit: "Katalog termasuk data dari",
     footer: "Katalir — agen AI otonom untuk bisnis Anda.",
   },
