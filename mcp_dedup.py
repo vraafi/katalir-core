@@ -29,12 +29,16 @@ REGISTRY_FILES = {
     "openconnector": "openconnector_actions.json",
     "glama": "glama_servers.json",
     "glama-connector": "glama_connectors.json",
+    "openapi-generated": "openapi_apis.json",
 }
 
 # Generator/branding words that carry no identity information.
+# Word-boundary matched on purpose: without \b the word "api" was being carved
+# out of "openapi", turning that name into "open" and letting real duplicates
+# slip past the dedup.
 _NOISE = re.compile(
-    r"(?:\bmcp\b|server[-_]?servers?[-_]?|[-_]?mcp[-_]?|[-_]?server\b|"
-    r"[_\-.]?(?:api|sdk|client|tool|tools|integration|integrations|node|nodes)\b)",
+    r"\b(?:mcp|mcps|server|servers|api|apis|sdk|client|clients|tool|tools|"
+    r"integration|integrations|node|nodes|generated|openapi|wrapper|official)\b",
     re.IGNORECASE,
 )
 

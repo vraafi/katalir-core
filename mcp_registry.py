@@ -5,7 +5,7 @@ from pathlib import Path
 from typing import Any
 import httpx
 SOURCE_URL='https://raw.githubusercontent.com/ToolSDK-AI/toolsdk-mcp-registry/main/indexes/packages-list.json'
-CACHE_PATH=Path(__file__).with_name('mcp_registry_cache.json'); COMPOSIO_PATH=Path(__file__).with_name('composio_toolkits.json'); OPENCONNECTOR_PATH=Path(__file__).with_name('openconnector_actions.json'); GLAMA_PATH=Path(__file__).with_name('glama_servers.json'); GLAMA_CONNECTOR_PATH=Path(__file__).with_name('glama_connectors.json'); _CACHE={}; _LOCK=threading.RLock(); _COMPOSIO_LOADED=False; _OC_LOADED=False; _GLAMA_LOADED=False
+CACHE_PATH=Path(__file__).with_name('mcp_registry_cache.json'); COMPOSIO_PATH=Path(__file__).with_name('composio_toolkits.json'); OPENCONNECTOR_PATH=Path(__file__).with_name('openconnector_actions.json'); GLAMA_PATH=Path(__file__).with_name('glama_servers.json'); GLAMA_CONNECTOR_PATH=Path(__file__).with_name('glama_connectors.json'); OPENAPI_PATH=Path(__file__).with_name('openapi_apis.json'); _CACHE={}; _LOCK=threading.RLock(); _COMPOSIO_LOADED=False; _OC_LOADED=False; _GLAMA_LOADED=False; _OPENAPI_LOADED=False
 GLAMA_SOURCES={'glama','glama-connector'}
 def _slim_glama(v):
  """Project a Glama record down to what search/UI actually needs.
@@ -42,7 +42,7 @@ def _normalize(i,item):
  tools=item.get('tools') if isinstance(item.get('tools'),dict) else {}
  return {'id':i,'name':i.rsplit('/',1)[-1],'category':str(item.get('category') or 'other'),'description':str(item.get('description') or f'MCP server {i}'),'repo_url':str(item.get('repo') or item.get('repository') or ''),'install_config':{'transport':'metadata-only','package':i},'tenant_scope':'user','validated':bool(item.get('validated')),'tools':[{'name':str(n),'description':str((v or {}).get('description') or '')} for n,v in tools.items()]}
 def load_cached():
- global _COMPOSIO_LOADED, _OC_LOADED, _GLAMA_LOADED
+ global _COMPOSIO_LOADED, _OC_LOADED, _GLAMA_LOADED, _OPENAPI_LOADED
  with _LOCK:
   if not _CACHE and CACHE_PATH.exists():
    try:_CACHE.update({str(k):_normalize(str(k),v or {}) for k,v in json.loads(CACHE_PATH.read_text(encoding='utf-8')).items() if isinstance(v,dict)})
@@ -74,6 +74,13 @@ def load_cached():
       _CACHE.update({str(k):_slim_glama_connector(v) for k,v in rows.items() if isinstance(v,dict)})
     except (OSError,ValueError,TypeError): pass
    _GLAMA_LOADED=True
+  if not _OPENAPI_LOADED:
+   if OPENAPI_PATH.exists():
+    try:
+     rows=json.loads(OPENAPI_PATH.read_text(encoding='utf-8'))
+     if isinstance(rows,dict): _CACHE.update({str(k):v for k,v in rows.items() if isinstance(v,dict)})
+    except (OSError,ValueError,TypeError): pass
+   _OPENAPI_LOADED=True
   return _CACHE
 def sync_from_public(*,timeout=30):
  r=httpx.get(SOURCE_URL,timeout=timeout,follow_redirects=True);r.raise_for_status();raw=r.json()
@@ -81,6 +88,16 @@ def sync_from_public(*,timeout=30):
  with _LOCK:
   _CACHE.clear();_CACHE.update({str(k):_normalize(str(k),v or {}) for k,v in raw.items() if isinstance(v,dict)});tmp=CACHE_PATH.with_suffix('.tmp');tmp.write_text(json.dumps(_CACHE,ensure_ascii=False),encoding='utf-8');tmp.replace(CACHE_PATH)
  return len(_CACHE)
+def openapi_coverage():
+ """Counts for the OpenAPI-generated source.
+
+ One registry entry per API, not per tool: a generated tool is not a separate
+ integration, and counting 889 rows would be exactly the inflation the dedup
+ engine exists to remove.
+ """
+ items=[x for x in load_cached().values() if isinstance(x,dict) and x.get('source')=='openapi-generated']
+ return {'apis':len(items),'tools':sum(int(x.get('tools_count') or 0) for x in items),'tools_callable':sum(int(x.get('tools_callable') or 0) for x in items),'tools_call_verified':sum(int(x.get('tools_call_verified') or 0) for x in items)}
+
 def source_counts():
  """Entry counts per source, for the marketplace tabs."""
  items=[x for x in load_cached().values() if isinstance(x,dict) and x.get('id')]
@@ -155,7 +172,7 @@ def coverage():
     composio = [x for x in items if x.get('source') == 'composio']
     official = [x for x in items if x.get('source') == 'official-mcp-registry']
     oc = openconnector_coverage()
-    return {'total': len(items), 'executable': len(executable_servers()), 'metadata_only': len(items) - len(executable_servers()), 'composio_toolkits': len(composio), 'official_remote': len(official), 'openconnector_services': oc['services'], 'openconnector_actions': oc['actions'], 'openconnector_actions_call_verified': oc['actions_call_verified'], 'sources': source_counts()}
+    return {'total': len(items), 'executable': len(executable_servers()), 'metadata_only': len(items) - len(executable_servers()), 'composio_toolkits': len(composio), 'official_remote': len(official), 'openconnector_services': oc['services'], 'openconnector_actions': oc['actions'], 'openconnector_actions_call_verified': oc['actions_call_verified'], 'openapi': openapi_coverage(), 'sources': source_counts()}
 
 def recommend_servers(query: str, limit: int = 5):
     """Return catalog matches for the AI integration picker; metadata only."""

@@ -60,7 +60,20 @@ def test_dedup_naik_tidak_menurunkan_bukti():
     assert canon[0]["unique_verified"] is True
 
 
-def test_dedup_katalog_sebenarnya_tidak_mengembang():
+def test_normalize_tidak_memotong_kata_di_dalam_kata():
+    """"api" must not be carved out of "openapi".
+
+    The first version of this pattern had no word boundary, so "openapi"
+    normalised to "open" and real duplicates could slip past dedup.
+    """
+    assert mcp_dedup.normalize_name("openapi") != "open"
+    assert mcp_dedup.normalize_name("github (OpenAPI generated)") == "github"
+    assert mcp_dedup.normalize_name("slack api") == "slack"
+    # an owned wrapper is still the same integration
+    assert mcp_dedup.normalize_name("openapi/github") == mcp_dedup.normalize_name("GitHub MCP Server")
+
+
+def test_dedup_tidak_lebih_menghitung_unique_daripada_input():
     """On the real catalogue the unique count must never exceed the input."""
     reg = mcp_dedup.load_registry()
     canon, stats = mcp_dedup.dedup_catalog(reg)

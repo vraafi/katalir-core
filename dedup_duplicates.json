@@ -1,5 +1,98 @@
 [
   {
+    "name": "GitHub",
+    "canonical_key": "github",
+    "sources": [
+      "composio",
+      "glama",
+      "openapi-generated",
+      "openconnector",
+      "toolsdk"
+    ],
+    "collapsed_ids": [
+      "composio:github",
+      "composio:github_mcp",
+      "glama:glama/aegj08hreg",
+      "glama:glama/azaecc0ga1",
+      "glama:glama/b6xkuwkq1v",
+      "glama:glama/dr4ryxvy1f",
+      "glama:glama/e9arhxty7a",
+      "glama:glama/e9u2a5y02a",
+      "glama:glama/eyte9i3qh7",
+      "glama:glama/fb0cvhc98q",
+      "glama:glama/fp1t9d55dl",
+      "glama:glama/ft4ufdgm2u",
+      "glama:glama/g32iu8reur",
+      "glama:glama/g91q7uln0v",
+      "glama:glama/ghiqg6li5s",
+      "glama:glama/iagapy8bgo",
+      "glama:glama/j5rrv7a5gb",
+      "glama:glama/lljqcwxbrg",
+      "glama:glama/lmq7si85jo",
+      "glama:glama/myav24ekx9",
+      "glama:glama/pjpvwf8xpm",
+      "glama:glama/qy9lh4ui8i",
+      "glama:glama/sjz3n3bfc6",
+      "glama:glama/swjqxxakie",
+      "glama:glama/tip050ap9n",
+      "glama:glama/v4itx09hot",
+      "glama:glama/vz0xtbnimr",
+      "glama:glama/wmby9fy3sd",
+      "glama:glama/wn9fqpuq40",
+      "glama:glama/y7v44v6bz2",
+      "glama:glama/z094kqis8o",
+      "glama:glama/z8p89dfwkb",
+      "openapi-generated:github",
+      "openconnector:github",
+      "toolsdk:@missionsquad/mcp-github",
+      "toolsdk:@modelcontextprotocol/server-github",
+      "toolsdk:github",
+      "toolsdk:github-mcp",
+      "toolsdk:github-mcp-server"
+    ]
+  },
+  {
+    "name": "Slack",
+    "canonical_key": "slack",
+    "sources": [
+      "composio",
+      "glama",
+      "openapi-generated",
+      "openconnector",
+      "toolsdk"
+    ],
+    "collapsed_ids": [
+      "composio:slack",
+      "glama:glama/wbtice40kd",
+      "openapi-generated:slack",
+      "openconnector:slack",
+      "toolsdk:@modelcontextprotocol/server-slack",
+      "toolsdk:slack",
+      "toolsdk:slack-mcp-server"
+    ]
+  },
+  {
+    "name": "Stripe",
+    "canonical_key": "stripe",
+    "sources": [
+      "composio",
+      "glama",
+      "openapi-generated",
+      "openconnector",
+      "toolsdk"
+    ],
+    "collapsed_ids": [
+      "composio:stripe",
+      "composio:stripe_mcp",
+      "glama:glama/apxfob1qni",
+      "glama:glama/ntdm2awg0l",
+      "glama:glama/vpe1m71bz8",
+      "openapi-generated:stripe",
+      "openconnector:stripe",
+      "toolsdk:stripe"
+    ]
+  },
+  {
     "name": "gitlab",
     "canonical_key": "gitlab",
     "sources": [
@@ -23,6 +116,25 @@
       "toolsdk:@zereight/mcp-gitlab",
       "toolsdk:gitlab",
       "toolsdk:gitlab-mcp-server"
+    ]
+  },
+  {
+    "name": "replicate",
+    "canonical_key": "replicate",
+    "sources": [
+      "composio",
+      "glama",
+      "openapi-generated",
+      "openconnector",
+      "toolsdk"
+    ],
+    "collapsed_ids": [
+      "composio:replicate",
+      "glama:glama/an6ecs60il",
+      "openapi-generated:replicate",
+      "openconnector:replicate",
+      "toolsdk:mcp-server-replicate",
+      "toolsdk:replicate"
     ]
   },
   {
@@ -75,11 +187,9 @@
       "composio:discord",
       "glama:glama/bvxdn369xc",
       "glama:glama/fbkvv3ngkz",
-      "glama:glama/lntbditm9f",
       "glama:glama/lr04oyd7vk",
       "glama:glama/mjocfnaeoy",
       "glama:glama/r4eg5mz7ru",
-      "glama:glama/ro4wuhr8hk",
       "glama:glama/t8gqff7byq",
       "glama:glama/tccveq0hxf",
       "glama:glama/vniecpd1c3",
@@ -111,56 +221,6 @@
       "glama:glama/iwsda9bg3w",
       "openconnector:dropbox",
       "toolsdk:dropbox"
-    ]
-  },
-  {
-    "name": "GitHub",
-    "canonical_key": "github",
-    "sources": [
-      "composio",
-      "glama",
-      "openconnector",
-      "toolsdk"
-    ],
-    "collapsed_ids": [
-      "composio:github",
-      "composio:github_mcp",
-      "glama:glama/aegj08hreg",
-      "glama:glama/azaecc0ga1",
-      "glama:glama/b6xkuwkq1v",
-      "glama:glama/c6uj70bs2h",
-      "glama:glama/dr4ryxvy1f",
-      "glama:glama/e9arhxty7a",
-      "glama:glama/eyte9i3qh7",
-      "glama:glama/fb0cvhc98q",
-      "glama:glama/fp1t9d55dl",
-      "glama:glama/ft4ufdgm2u",
-      "glama:glama/g32iu8reur",
-      "glama:glama/g91q7uln0v",
-      "glama:glama/ghiqg6li5s",
-      "glama:glama/iagapy8bgo",
-      "glama:glama/j5rrv7a5gb",
-      "glama:glama/lljqcwxbrg",
-      "glama:glama/lmq7si85jo",
-      "glama:glama/myav24ekx9",
-      "glama:glama/pjpvwf8xpm",
-      "glama:glama/qy9lh4ui8i",
-      "glama:glama/sjz3n3bfc6",
-      "glama:glama/swjqxxakie",
-      "glama:glama/tip050ap9n",
-      "glama:glama/v4itx09hot",
-      "glama:glama/vz0xtbnimr",
-      "glama:glama/wmby9fy3sd",
-      "glama:glama/wn9fqpuq40",
-      "glama:glama/y7v44v6bz2",
-      "glama:glama/z094kqis8o",
-      "glama:glama/z8p89dfwkb",
-      "openconnector:github",
-      "toolsdk:@missionsquad/mcp-github",
-      "toolsdk:@modelcontextprotocol/server-github",
-      "toolsdk:github",
-      "toolsdk:github-mcp",
-      "toolsdk:github-mcp-server"
     ]
   },
   {
@@ -237,6 +297,7 @@
     "collapsed_ids": [
       "composio:linear",
       "composio:linear_mcp",
+      "glama:glama/kijiuzhr5j",
       "glama:glama/lyef06abte",
       "glama:glama/snhvru5ot4",
       "glama:glama/zq4j0yqj9w",
@@ -312,43 +373,6 @@
     ]
   },
   {
-    "name": "Slack",
-    "canonical_key": "slack",
-    "sources": [
-      "composio",
-      "glama",
-      "openconnector",
-      "toolsdk"
-    ],
-    "collapsed_ids": [
-      "composio:slack",
-      "glama:glama/wbtice40kd",
-      "openconnector:slack",
-      "toolsdk:@modelcontextprotocol/server-slack",
-      "toolsdk:slack",
-      "toolsdk:slack-mcp-server"
-    ]
-  },
-  {
-    "name": "Stripe",
-    "canonical_key": "stripe",
-    "sources": [
-      "composio",
-      "glama",
-      "openconnector",
-      "toolsdk"
-    ],
-    "collapsed_ids": [
-      "composio:stripe",
-      "composio:stripe_mcp",
-      "glama:glama/apxfob1qni",
-      "glama:glama/ntdm2awg0l",
-      "glama:glama/vpe1m71bz8",
-      "openconnector:stripe",
-      "toolsdk:stripe"
-    ]
-  },
-  {
     "name": "Telegram",
     "canonical_key": "telegram",
     "sources": [
@@ -398,7 +422,6 @@
     "collapsed_ids": [
       "composio:trello",
       "glama:glama/g8dn26hdpw",
-      "glama:glama/hhudjliogn",
       "glama:glama/hzrdhre164",
       "glama:glama/m1g3iuk0mm",
       "glama:glama/v48yz4i4if",
@@ -591,26 +614,6 @@
       "glama:glama/jw8vtulbcx",
       "openconnector:coinmarketcap",
       "toolsdk:coinmarketcap"
-    ]
-  },
-  {
-    "name": "confluence",
-    "canonical_key": "confluence",
-    "sources": [
-      "composio",
-      "glama",
-      "openconnector",
-      "toolsdk"
-    ],
-    "collapsed_ids": [
-      "composio:confluence",
-      "glama:glama/qzds79wszl",
-      "glama:glama/sa2ao06iga",
-      "openconnector:confluence",
-      "toolsdk:@atlassian-dc-mcp/confluence",
-      "toolsdk:@zereight/mcp-confluence",
-      "toolsdk:confluence",
-      "toolsdk:mcp-confluence"
     ]
   }
 ]

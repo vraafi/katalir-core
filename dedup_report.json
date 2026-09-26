@@ -1,17 +1,18 @@
 {
-  "before": 28664,
-  "after": 22789,
-  "collapsed": 5875,
-  "unique_percent": 79.5,
-  "multi_source_groups": 1610,
-  "unique_verified": 25,
-  "tools_listed": 1895,
-  "discovered_only": 20894,
+  "before": 28670,
+  "after": 22904,
+  "collapsed": 5766,
+  "unique_percent": 79.89,
+  "multi_source_groups": 1602,
+  "unique_verified": 26,
+  "tools_listed": 1896,
+  "discovered_only": 21008,
   "by_source_membership": {
-    "glama": 16786,
-    "toolsdk": 3976,
+    "glama": 16874,
+    "toolsdk": 3990,
     "openconnector": 1549,
-    "composio": 1518,
-    "glama-connector": 982
+    "composio": 1519,
+    "glama-connector": 982,
+    "openapi-generated": 6
   }
 }
