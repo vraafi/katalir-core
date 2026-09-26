@@ -93,4 +93,6 @@ docs/audit/backups/
 
 # Temporary test JWT
 test-jwt.txt
-
+# Catatan pribadi user - NEVER di-commit (berisi data personal)
+LOCAL.private.md
+*.private.md

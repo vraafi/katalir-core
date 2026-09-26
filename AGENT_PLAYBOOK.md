@@ -182,3 +182,29 @@ BLOCKED hanya valid untuk: user action (login/approve/bayar), keputusan keamanan
 - Jangan mengarang transport atau menjalankan package registry hanya dari nama/id. Tambahkan manifest runtime terpisah dengan digest, method, image/package, permissions, dan health proof.
 `USER ACTION: <aksi> di <tempat> (<estimasi waktu>)`
 
+## Gotcha: Nango + Metorial Integration
+- NANGO_API_KEY (bukan NANGO_SECRET_KEY) — SDK v2 2026 pakai ini.
+- METORIAL_API_KEY (format: metorial_sk_...).
+- Nango = OAuth/connection layer (1000+ APIs).
+- Metorial = MCP integration platform (600+ integrations, 1200+ catalog).
+- Kedua-duanya free tier — jangan asumsi butuh bayar.
+- Kalau API error 401 → cek key name benar.
+## Catatan pribadi
+Data personal (mis. URL profil profesional) tidak boleh masuk repo ini. Simpan di
+`LOCAL.private.md` — sudah masuk `.gitignore`, jadi tidak akan pernah ter-push.
+
+## Gotcha: Nango endpoint itu TIDAK ada prefix `/api/v1/`
+- **Rute yang benar: `GET https://api.nango.dev/providers`** dengan header
+  `Authorization: Bearer <Environment API key>`. Tidak ada `/api/v1`.
+- Kami sempat mencatat "Nango 401 → minta user bikin key baru" selama berhari-hari.
+  Padahal key-nya **sah**. Penyebabnya kami memanggil `/api/v1/providers`, yang
+  bukan rute Nango, lalu menyimpulkan key ditolak. Endpoint yang salah → 401 palsu
+  → blokir palsu → permintaan action ke user yang tidak pernah perlu terjadi.
+- **Aturan:** 401 dari API ketiga pihak **tidak pernah** membuktikan key salah
+  sampai rute dan nama header diverifikasi ke dokumentasi resmi. Cek docs lebih dulu.
+- `/provider-templates` mengembalikan **HTML**, bukan JSON — itu halaman docs
+  Connect UI, bukan endpoint API. Untuk integrasi yang sudah dikonfigurasi pakai
+  `GET /integrations`.
+- Dua tipe key: **Environment API key** (untuk `/providers`, `/integrations`) dan
+  **Account API key** (hanya API level-akun). `GET /environments` → 403
+  `Insufficient scope` justru **membuktikan** key-nya Environment key yang benar.
