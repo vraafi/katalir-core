@@ -60,7 +60,7 @@ function Landing() {
           </div>
         </header>
 
-        <main>
+        <main id="main-content" tabIndex={-1} className="outline-none">
         {/*
           HERO — full-viewport, edge to edge, with the 55-brand cloud as a
           BACKGROUND field rather than a strip or a section of its own.
@@ -98,8 +98,6 @@ function Landing() {
           </div>
 
           <div
-            id="main-content"
-            tabIndex={-1}
             className="relative z-10 mx-auto flex min-h-[100svh] w-full max-w-3xl flex-col justify-center px-5 py-8 sm:px-8"
           >
             <div className="w-full rounded-2xl bg-bg/90 px-6 py-8 backdrop-blur-md sm:px-9 sm:py-10">

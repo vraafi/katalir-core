@@ -226,9 +226,28 @@ rekaman terlihat seperti regresi produk.
 - [ ] F8.4 education · [ ] F8.5 sync + test + commit
 
 ## FASE 9 — Parity Push
-- [ ] F9.1 audit n8n nodes → gap map · [ ] F9.2 generate missing via OpenAPI
-- [ ] F9.3 community bounty · [ ] F9.4 batch verify + commit
-- [ ] F9.5 update claim · [ ] F9.6 THE END
+- [x] F9.1 audit n8n nodes → gap map · [ ] F9.2 generate missing via OpenAPI
+- [x] F9.3 community bounty (doc only) · [ ] F9.4 batch verify + commit
+- [x] F9.5 update claim · [ ] F9.6 THE END
+
+### F9.1 results (measured, `docs/audit/n8n-gap-analysis.json`)
+
+| Number | Value | Note |
+|---|---|---|
+| n8n distinct nodes | **685** | not the ~2.864 in earlier notes; measured from n8n-nodes-base 2.15.1 |
+| already in catalogue | 225 (32.85%) | |
+| raw gaps | 181 | **not 181 missing integrations** |
+| ├ real integrations | 83 | the only genuinely fillable set |
+| ├ n8n core nodes | 63 | `If`, `Merge`, `Webhook`, `Cron`, `SplitInBatches`… |
+| ├ infrastructure | 6 | databases / transports |
+| └ helper artefacts | 29 | `*Helpers`, `*Interfaces`, `currencies` — not nodes at all |
+
+Of the 83 real integration gaps, **exactly 1** (Cloudflare) is fillable from
+the provider snapshots already in this repo; 82 have no source snapshot yet.
+`dedup_canonical.json` was **not modified** — see
+`docs/audit/f9-gap-fill-proposal.json` (`applied_to_canonical: false`).
+Quoting "181 gaps" as backlog size would overstate the work by ~180x.
+
 
 ## Already done (earlier phases, kept for continuity)
 - [x] Dedup engine · [x] OpenAPI generator · [x] AI tools (Groq + Gemini call-verified)

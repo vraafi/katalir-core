@@ -57,11 +57,53 @@ QUERIES = [
     "location:Singapore language:Python followers:>10",
     "location:Malaysia language:TypeScript followers:>10",
     "location:Malaysia language:JavaScript followers:>10",
-    "location:Philippines language:TypeScript followers:>10",
-    "location:Thailand language:TypeScript followers:>10",
-    "location:Vietnam language:TypeScript followers:>10",
+    # Lower traction bars for the thinner markets. `followers:>10` matches
+    # almost nobody in the Philippines / Thailand / Vietnam, so the strict
+    # threshold silently produced 0 rows for them. These stay positive (a real
+    # public account) while widening the pool enough to be reviewable.
+    "location:Philippines language:TypeScript followers:>5",
+    "location:Philippines language:JavaScript followers:>5",
+    "location:Thailand language:TypeScript followers:>5",
+    "location:Thailand language:JavaScript followers:>5",
+    "location:Vietnam language:TypeScript followers:>5",
+    "location:Vietnam language:JavaScript followers:>5",
+    "location:Vietnam language:Python followers:>5",
+    "location:Malaysia language:Python followers:>5",
+    "location:Thailand language:Python followers:>3",
     "location:Indonesia repos:>20",
 ]
+
+# Per-country cap, so the shortlist is actually regional.
+#
+# REGRESSION THIS FIXES: the enrichment loop below stops as soon as it has
+# TARGET rows. Because the Indonesia queries come first, the first run filled
+# all 100 slots before Singapore/Malaysia/Philippines/Thailand/Vietnam were
+# ever enriched -- the output was 100% Indonesian despite being called
+# "SEA". Tagging each candidate with its country and skipping a country once
+# it hits its quota keeps the file honest about its own name.
+COUNTRY_QUOTA = 20
+COUNTRIES = [
+    "Indonesia",
+    "Singapore",
+    "Malaysia",
+    "Philippines",
+    "Thailand",
+    "Vietnam",
+]
+# The country a query targets, derived from its `location:` qualifier. Anything
+# we cannot attribute is still eligible, but does not consume a quota.
+COUNTRY_ORDER = {c: i for i, c in enumerate(COUNTRIES)}
+
+
+def country_of(query: str) -> str | None:
+    m = re.search(r"location:([A-Za-z]+)", query)
+    if not m:
+        return None
+    name = m.group(1)
+    for c in COUNTRIES:
+        if c.lower() == name.lower():
+            return c
+    return None
 
 # Agents that are not people we want in a human-reviewed shortlist.
 JUNK = re.compile(
@@ -159,8 +201,12 @@ def main() -> int:
 
     seen: dict[str, dict] = {}
     for query in QUERIES:
-        if len(seen) >= TARGET * 2:
-            break
+        # NO early exit. The previous `len(seen) >= TARGET * 2` break meant the
+        # Indonesia queries alone filled the candidate pool, so the Malaysia /
+        # Philippines / Thailand / Vietnam queries never ran and the "SEA"
+        # file came out two countries wide. A regional shortlist is only
+        # useful if the region is actually represented, so every query runs and
+        # the per-country quota below shapes the output instead.
         print(f"search: {query}")
         data = api("/search/users", token, {"q": query, "sort": "followers", "per_page": 50})
         for user in (data or {}).get("items", []):
@@ -172,14 +218,37 @@ def main() -> int:
             seen[login] = {
                 "search_language": user.get("language") or "unspecified",
                 "discovered_via": query,
+                "country": country_of(query),
             }
         time.sleep(2)  # be a good API citizen between searches
 
     print(f"candidates: {len(seen)}")
     rows: list[dict] = []
-    for idx, (login, stub) in enumerate(seen.items(), start=1):
+    per_country: dict[str, int] = {c: 0 for c in COUNTRIES}
+    # Round-robin over countries so a thin country (fewer than 20 matching
+    # users) cannot starve the others and leave the file half-empty.
+    by_country: dict[str | None, list[tuple[str, dict]]] = {c: [] for c in COUNTRIES}
+    for login, stub in seen.items():
+        by_country.setdefault(stub["country"], []).append((login, stub))
+    unattributed = by_country.pop(None, [])
+    # Big countries first, then interleave round-robin taking at most one per
+    # country per pass so no single country monopolises the shortlist.
+    pools = [by_country[c] for c in COUNTRIES if by_country.get(c)]
+    round_robin: list[tuple[str, dict]] = []
+    idx_per_pool = 0
+    while any(idx_per_pool < len(p) for p in pools):
+        for p in pools:
+            if idx_per_pool < len(p):
+                round_robin.append(p[idx_per_pool])
+        idx_per_pool += 1
+    round_robin.extend(unattributed)
+
+    for idx, (login, stub) in enumerate(round_robin, start=1):
         if len(rows) >= TARGET:
             break
+        country = stub.get("country")
+        if country and per_country[country] >= COUNTRY_QUOTA:
+            continue
         profile = api(f"/users/{login}", token)
         if not profile:
             continue
@@ -225,10 +294,16 @@ def main() -> int:
                 "public_repos": top_repos,
                 "discovered_via": stub["discovered_via"],
                 "search_language": stub["search_language"],
+                "country": stub.get("country"),
             }
         )
+        if country:
+            per_country[country] += 1
         if idx % 20 == 0:
-            print(f"  enriched {idx} -> kept {len(rows)}")
+            print(
+                f"  enriched {idx} -> kept {len(rows)} "
+                f"({', '.join(f'{c}={per_country[c]}' for c in COUNTRIES)})"
+            )
         time.sleep(0.4)
 
     # Rank: real shipped work first, then audience size.
@@ -247,6 +322,9 @@ def main() -> int:
             ),
         },
         "count": len(rows),
+        "country_breakdown": {
+            c: sum(1 for r in rows if r.get("country") == c) for c in COUNTRIES
+        },
         "profiles": rows,
     }
 

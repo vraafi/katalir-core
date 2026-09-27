@@ -26,6 +26,12 @@ const nango = read("nango_providers.json");
 const metorial = read("metorial_integrations.json");
 const canonical = read("dedup_canonical.json");
 const glamaCatalog = read("glama_connectors.json");
+// F9 audit artefacts. The n8n numbers are re-derived from the committed audit
+// output rather than hard-coded, so regenerating the audit turns this red
+// rather than letting a stale marketing number survive.
+const f9 = read("docs/audit/n8n-gap-analysis.json");
+const f9prop = read("docs/audit/f9-gap-fill-proposal.json");
+const outreach = read("docs/community/outreach-sea.json");
 
 const pool = [...b1.tools_listed_connectors, ...b2.tools_listed_connectors];
 const overlap = b1.tools_listed_connectors.filter((x) => b2.tools_listed_connectors.includes(x)).length;
@@ -97,6 +103,40 @@ const claims = [
   ],
   ["metorial contributed 0 tools", "0", String(Object.values(metorial).reduce((a, v) => a + (v.tools_count || 0), 0))],
   ["pool connectors already catalogued", "351", String(pool.filter((p) => glamaCatalog[p]).length)],
+  // F9 — n8n parity. Re-derived from the audit artefacts so the roadmap
+  // cannot quote an n8n node count nobody measured.
+  //
+  // NOTE: the n8n figure is 685 DISTINCT node names, not the ~2,864 that
+  // appeared in earlier planning notes. Measured from n8n-nodes-base 2.15.1:
+  // 5,801 definition files collapse to 511 unique stems once per-node
+  // variants are collapsed, plus name/displayName fields -> 685.
+  ["F9 n8n distinct nodes", "685", String(f9.summary.n8n_node_count)],
+  ["F9 matched in catalogue", "225", String(f9.summary.matched)],
+  ["F9 raw gaps", "181", String(f9.summary.gaps)],
+  ["F9 overlap %", "32.85", String(f9.summary.overlap_percent)],
+  ["F9 gaps: real integrations", "83", String(f9prop.gap_classification.integration)],
+  ["F9 gaps: n8n core nodes", "63", String(f9prop.gap_classification.n8n_core)],
+  ["F9 gaps: infrastructure", "6", String(f9prop.gap_classification.infra)],
+  ["F9 gaps: helper artefacts", "29", String(f9prop.gap_classification.helper_artifact)],
+  // 83 real integration gaps, but only 1 (Cloudflare) is fillable from the
+  // snapshots already in the repo. Publishing "181 gaps to fill" would
+  // overstate the backlog by ~180x.
+  ["F9 integrations fillable from existing sources", "1", String(f9prop.total_proposed)],
+  ["F9 real integrations with no source snapshot", "82", String(f9prop.unresolved_no_source)],
+  ["F9 catalogue rows actually changed", "0", f9prop.policy.applied_to_canonical ? "1" : "0"],
+  // F7.1 — outreach shortlist. Guards the two claims that were previously
+  // false: that it is regional, and that it holds no contact data.
+  ["F7 outreach profiles", "100", String(outreach.count)],
+  [
+    "F7 outreach countries represented",
+    "6",
+    String(Object.values(outreach.country_breakdown || {}).filter((n) => n > 0).length),
+  ],
+  [
+    "F7 outreach emails collected",
+    "0",
+    String((JSON.stringify(outreach).match(/[\w.+-]+@[\w-]+\.[\w.-]+/g) || []).length),
+  ],
 ];
 
 let failed = 0;
