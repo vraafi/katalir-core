@@ -207,9 +207,21 @@ rekaman terlihat seperti regresi produk.
 - [ ] F6.1–F6.4 submit, announce, respond · [ ] F6.5 metrics snapshot
 
 ## FASE 7 — Community Outreach
-- [ ] F7.1 outreach · [ ] F7.2 tutorial · [ ] F7.3 bounty · [ ] F7.4 dashboard · [ ] F7.5 first 10 reviewed
+- [x] F7.1 outreach shortlist (public GitHub profiles only — no emails/contact data) · [x] F7.2 tutorial · [x] F7.3 bounty doc (design only) · [ ] F7.4 dashboard *(blocked: backend down)* · [x] F7.5 waiting-list email
+- F7.1 note: `docs/community/outreach-sea.json` holds public profile data only
+  (login, URL, bio, self-declared location, public repos). **No email addresses
+  and no scraped contact details** — a human decides who to contact and how.
+  Regenerate with `python scripts/collect_outreach_sea.py`.
 
 ## FASE 8 — Regional + Vertical Expansion
+> **`[!] DEFERRED` — F8 skipped by explicit decision (2026-09-28).**
+> Regional expansion (F8.1 SEA VN/TH/PH/MY) and the vertical pushes
+> (healthcare, logistics, education) are deferred, not cancelled. The blocking
+> constraint is credentials: each regional/vertical target needs live provider
+> API keys (payment rails, health data agreements, logistics accounts) that we
+> do not have and were instructed not to request. Building the integration
+> shells without keys would produce untestable code and unverifiable claims.
+> Revisit once keys exist.
 - [ ] F8.1 SEA (VN/TH/PH/MY) · [ ] F8.2 healthcare · [ ] F8.3 logistics
 - [ ] F8.4 education · [ ] F8.5 sync + test + commit
 

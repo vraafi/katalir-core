@@ -1,0 +1,1112 @@
+{
+  "generated_by": "scripts/audit_n8n_gap.py",
+  "sources": {
+    "n8n_package": {
+      "name": "n8n-nodes-base",
+      "version": "2.15.1",
+      "tarball": "https://registry.npmjs.org/n8n-nodes-base/-/n8n-nodes-base-2.15.1.tgz"
+    },
+    "katalir_catalog": {
+      "file": "dedup_canonical.json",
+      "entries": 23474
+    }
+  },
+  "summary": {
+    "n8n_node_count": 685,
+    "catalogue_entries": 23474,
+    "matched": 225,
+    "gaps": 181,
+    "overlap_percent": 32.85
+  },
+  "policy": {
+    "existing_public_sources_only": true,
+    "api_keys_required": 0,
+    "catalogue_mutated": false,
+    "note": "Read-only analysis over public data. No catalogue entries were created. F9.2 generation is a separate, credentialed step and is NOT covered by this file."
+  },
+  "matched": [
+    {
+      "node": "ActiveCampaign",
+      "slug": "activecampaign"
+    },
+    {
+      "node": "ActiveCampaignTrigger",
+      "slug": "activecampaign"
+    },
+    {
+      "node": "AcuitySchedulingTrigger",
+      "slug": "acuity_scheduling"
+    },
+    {
+      "node": "Affinity",
+      "slug": "affinity"
+    },
+    {
+      "node": "AffinityTrigger",
+      "slug": "affinity"
+    },
+    {
+      "node": "AgileCrm",
+      "slug": "agile_crm"
+    },
+    {
+      "node": "Airtable",
+      "slug": "airtable"
+    },
+    {
+      "node": "AirtableTrigger",
+      "slug": "airtable"
+    },
+    {
+      "node": "Airtop",
+      "slug": "airtop"
+    },
+    {
+      "node": "Asana",
+      "slug": "asana"
+    },
+    {
+      "node": "AsanaTrigger",
+      "slug": "asana"
+    },
+    {
+      "node": "AwsLambda",
+      "slug": null
+    },
+    {
+      "node": "BambooHr",
+      "slug": "bamboohr"
+    },
+    {
+      "node": "Bannerbear",
+      "slug": "bannerbear"
+    },
+    {
+      "node": "Baserow",
+      "slug": "baserow"
+    },
+    {
+      "node": "Beeminder",
+      "slug": "beeminder"
+    },
+    {
+      "node": "BitbucketTrigger",
+      "slug": "bitbucket"
+    },
+    {
+      "node": "Bitly",
+      "slug": "bitly"
+    },
+    {
+      "node": "Bitwarden",
+      "slug": "bitwarden"
+    },
+    {
+      "node": "Box",
+      "slug": "box"
+    },
+    {
+      "node": "BoxTrigger",
+      "slug": "box"
+    },
+    {
+      "node": "Brandfetch",
+      "slug": "brandfetch"
+    },
+    {
+      "node": "Brevo",
+      "slug": "brevo"
+    },
+    {
+      "node": "BrevoTrigger",
+      "slug": "brevo"
+    },
+    {
+      "node": "Bubble",
+      "slug": "bubble"
+    },
+    {
+      "node": "CalTrigger",
+      "slug": "cal"
+    },
+    {
+      "node": "CalendlyTrigger",
+      "slug": "calendly"
+    },
+    {
+      "node": "Chargebee",
+      "slug": "chargebee"
+    },
+    {
+      "node": "ChargebeeTrigger",
+      "slug": "chargebee"
+    },
+    {
+      "node": "CircleCi",
+      "slug": "circleci"
+    },
+    {
+      "node": "ClickUp",
+      "slug": "clickup"
+    },
+    {
+      "node": "ClickUpTrigger",
+      "slug": "clickup"
+    },
+    {
+      "node": "Clockify",
+      "slug": "clockify"
+    },
+    {
+      "node": "ClockifyTrigger",
+      "slug": "clockify"
+    },
+    {
+      "node": "Coda",
+      "slug": "coda"
+    },
+    {
+      "node": "Code",
+      "slug": "code"
+    },
+    {
+      "node": "CoinGecko",
+      "slug": "coingecko"
+    },
+    {
+      "node": "Contentful",
+      "slug": "contentful"
+    },
+    {
+      "node": "Copper",
+      "slug": "copper"
+    },
+    {
+      "node": "CopperTrigger",
+      "slug": "copper"
+    },
+    {
+      "node": "Cortex",
+      "slug": "cortex"
+    },
+    {
+      "node": "CustomerIo",
+      "slug": "customerio"
+    },
+    {
+      "node": "CustomerIoTrigger",
+      "slug": "customerio"
+    },
+    {
+      "node": "Databricks",
+      "slug": "databricks"
+    },
+    {
+      "node": "DeepL",
+      "slug": "deepl"
+    },
+    {
+      "node": "Demio",
+      "slug": "demio"
+    },
+    {
+      "node": "Discord",
+      "slug": "discord"
+    },
+    {
+      "node": "Discourse",
+      "slug": "discourse"
+    },
+    {
+      "node": "Dropbox",
+      "slug": "dropbox"
+    },
+    {
+      "node": "Dropcontact",
+      "slug": "dropcontact"
+    },
+    {
+      "node": "ERPNext",
+      "slug": "erpnext"
+    },
+    {
+      "node": "Emelia",
+      "slug": "emelia"
+    },
+    {
+      "node": "EmeliaTrigger",
+      "slug": "emelia"
+    },
+    {
+      "node": "EventbriteTrigger",
+      "slug": "eventbrite"
+    },
+    {
+      "node": "FacebookTrigger",
+      "slug": "facebook"
+    },
+    {
+      "node": "FigmaTrigger",
+      "slug": "figma"
+    },
+    {
+      "node": "FormstackTrigger",
+      "slug": "formstack"
+    },
+    {
+      "node": "Freshdesk",
+      "slug": "freshdesk"
+    },
+    {
+      "node": "Freshservice",
+      "slug": "freshservice"
+    },
+    {
+      "node": "GetResponse",
+      "slug": "getresponse"
+    },
+    {
+      "node": "GetResponseTrigger",
+      "slug": "getresponse"
+    },
+    {
+      "node": "Ghost",
+      "slug": "ghost"
+    },
+    {
+      "node": "Github",
+      "slug": "github"
+    },
+    {
+      "node": "GithubTrigger",
+      "slug": "github"
+    },
+    {
+      "node": "Gitlab",
+      "slug": "gitlab"
+    },
+    {
+      "node": "GitlabTrigger",
+      "slug": "gitlab"
+    },
+    {
+      "node": "Gong",
+      "slug": "gong"
+    },
+    {
+      "node": "Gotify",
+      "slug": "gotify"
+    },
+    {
+      "node": "Grafana",
+      "slug": "grafana"
+    },
+    {
+      "node": "GraphQL",
+      "slug": null
+    },
+    {
+      "node": "Grist",
+      "slug": "grist"
+    },
+    {
+      "node": "GumroadTrigger",
+      "slug": "gumroad"
+    },
+    {
+      "node": "HackerNews",
+      "slug": "hackernews"
+    },
+    {
+      "node": "HaloPSA",
+      "slug": null
+    },
+    {
+      "node": "Harvest",
+      "slug": "harvest"
+    },
+    {
+      "node": "HelpScout",
+      "slug": "help_scout"
+    },
+    {
+      "node": "HelpScoutTrigger",
+      "slug": "help_scout"
+    },
+    {
+      "node": "HighLevel",
+      "slug": "high_level"
+    },
+    {
+      "node": "HomeAssistant",
+      "slug": "home_assistant"
+    },
+    {
+      "node": "Hubspot",
+      "slug": "hubspot"
+    },
+    {
+      "node": "HubspotTrigger",
+      "slug": "hubspot"
+    },
+    {
+      "node": "Hunter",
+      "slug": "hunter"
+    },
+    {
+      "node": "Intercom",
+      "slug": "intercom"
+    },
+    {
+      "node": "InvoiceNinja",
+      "slug": "invoice_ninja"
+    },
+    {
+      "node": "InvoiceNinjaTrigger",
+      "slug": "invoice_ninja"
+    },
+    {
+      "node": "Iterable",
+      "slug": "iterable"
+    },
+    {
+      "node": "Jenkins",
+      "slug": null
+    },
+    {
+      "node": "JinaAi",
+      "slug": "jina_ai"
+    },
+    {
+      "node": "Jira",
+      "slug": "jira"
+    },
+    {
+      "node": "JiraTrigger",
+      "slug": "jira"
+    },
+    {
+      "node": "JotFormTrigger",
+      "slug": "jotform"
+    },
+    {
+      "node": "Kafka",
+      "slug": null
+    },
+    {
+      "node": "KafkaTrigger",
+      "slug": null
+    },
+    {
+      "node": "Keap",
+      "slug": null
+    },
+    {
+      "node": "KeapTrigger",
+      "slug": null
+    },
+    {
+      "node": "KoBoToolbox",
+      "slug": "kobotoolbox"
+    },
+    {
+      "node": "KoBoToolboxTrigger",
+      "slug": "kobotoolbox"
+    },
+    {
+      "node": "Lemlist",
+      "slug": "lemlist"
+    },
+    {
+      "node": "LemlistTrigger",
+      "slug": "lemlist"
+    },
+    {
+      "node": "Line",
+      "slug": "line"
+    },
+    {
+      "node": "Linear",
+      "slug": "linear"
+    },
+    {
+      "node": "LinearTrigger",
+      "slug": "linear"
+    },
+    {
+      "node": "LinkedIn",
+      "slug": "linkedin"
+    },
+    {
+      "node": "Magento2",
+      "slug": null
+    },
+    {
+      "node": "Mailcheck",
+      "slug": "mailcheck"
+    },
+    {
+      "node": "Mailchimp",
+      "slug": "mailchimp"
+    },
+    {
+      "node": "MailchimpTrigger",
+      "slug": "mailchimp"
+    },
+    {
+      "node": "MailerLite",
+      "slug": "mailerlite"
+    },
+    {
+      "node": "MailerLiteTrigger",
+      "slug": "mailerlite"
+    },
+    {
+      "node": "Mailgun",
+      "slug": "mailgun"
+    },
+    {
+      "node": "Mailjet",
+      "slug": "mailjet"
+    },
+    {
+      "node": "MailjetTrigger",
+      "slug": "mailjet"
+    },
+    {
+      "node": "Mandrill",
+      "slug": null
+    },
+    {
+      "node": "Marketstack",
+      "slug": "marketstack"
+    },
+    {
+      "node": "Mattermost",
+      "slug": "mattermost"
+    },
+    {
+      "node": "Mautic",
+      "slug": "mautic"
+    },
+    {
+      "node": "MauticTrigger",
+      "slug": "mautic"
+    },
+    {
+      "node": "Metabase",
+      "slug": "metabase"
+    },
+    {
+      "node": "MistralAi",
+      "slug": "mistral_ai"
+    },
+    {
+      "node": "Mocean",
+      "slug": "mocean"
+    },
+    {
+      "node": "MonicaCrm",
+      "slug": "monica_crm"
+    },
+    {
+      "node": "Mqtt",
+      "slug": "mqtt"
+    },
+    {
+      "node": "MqttTrigger",
+      "slug": "mqtt"
+    },
+    {
+      "node": "Msg91",
+      "slug": "msg91"
+    },
+    {
+      "node": "N8n",
+      "slug": "n8n"
+    },
+    {
+      "node": "N8nTrigger",
+      "slug": "n8n"
+    },
+    {
+      "node": "Nasa",
+      "slug": "nasa"
+    },
+    {
+      "node": "Netlify",
+      "slug": "netlify"
+    },
+    {
+      "node": "NetlifyTrigger",
+      "slug": "netlify"
+    },
+    {
+      "node": "NocoDB",
+      "slug": "nocodb"
+    },
+    {
+      "node": "Notion",
+      "slug": "notion"
+    },
+    {
+      "node": "NotionTrigger",
+      "slug": "notion"
+    },
+    {
+      "node": "Npm",
+      "slug": "npm"
+    },
+    {
+      "node": "Odoo",
+      "slug": "odoo"
+    },
+    {
+      "node": "Okta",
+      "slug": "okta"
+    },
+    {
+      "node": "OneSimpleApi",
+      "slug": "onesimpleapi"
+    },
+    {
+      "node": "Onfleet",
+      "slug": "onfleet"
+    },
+    {
+      "node": "OnfleetTrigger",
+      "slug": "onfleet"
+    },
+    {
+      "node": "OpenAi",
+      "slug": "openai"
+    },
+    {
+      "node": "OpenWeatherMap",
+      "slug": "weathermap"
+    },
+    {
+      "node": "Oura",
+      "slug": "oura"
+    },
+    {
+      "node": "Paddle",
+      "slug": "paddle"
+    },
+    {
+      "node": "PagerDuty",
+      "slug": "pagerduty"
+    },
+    {
+      "node": "PayPal",
+      "slug": "paypal"
+    },
+    {
+      "node": "PayPalTrigger",
+      "slug": "paypal"
+    },
+    {
+      "node": "Perplexity",
+      "slug": "perplexity"
+    },
+    {
+      "node": "Phantombuster",
+      "slug": "phantombuster"
+    },
+    {
+      "node": "Pipedrive",
+      "slug": "pipedrive"
+    },
+    {
+      "node": "PipedriveTrigger",
+      "slug": "pipedrive"
+    },
+    {
+      "node": "Plivo",
+      "slug": "plivo"
+    },
+    {
+      "node": "PostHog",
+      "slug": "posthog"
+    },
+    {
+      "node": "PostmarkTrigger",
+      "slug": "postmark"
+    },
+    {
+      "node": "Pushbullet",
+      "slug": "pushbullet"
+    },
+    {
+      "node": "Pushover",
+      "slug": "pushover"
+    },
+    {
+      "node": "QuickBase",
+      "slug": "quickbase"
+    },
+    {
+      "node": "QuickBooks",
+      "slug": "quickbooks"
+    },
+    {
+      "node": "QuickChart",
+      "slug": "quickchart"
+    },
+    {
+      "node": "RabbitMQ",
+      "slug": null
+    },
+    {
+      "node": "RabbitMQTrigger",
+      "slug": null
+    },
+    {
+      "node": "Raindrop",
+      "slug": "raindrop"
+    },
+    {
+      "node": "Reddit",
+      "slug": "reddit"
+    },
+    {
+      "node": "Redis",
+      "slug": null
+    },
+    {
+      "node": "RedisTrigger",
+      "slug": null
+    },
+    {
+      "node": "Rocketchat",
+      "slug": "rocket_chat"
+    },
+    {
+      "node": "Salesforce",
+      "slug": "salesforce"
+    },
+    {
+      "node": "SalesforceTrigger",
+      "slug": "salesforce"
+    },
+    {
+      "node": "Salesmate",
+      "slug": "salesmate"
+    },
+    {
+      "node": "Sandbox",
+      "slug": "sandbox"
+    },
+    {
+      "node": "SeaTable",
+      "slug": "seatable"
+    },
+    {
+      "node": "SeaTableTrigger",
+      "slug": "seatable"
+    },
+    {
+      "node": "Segment",
+      "slug": "segment"
+    },
+    {
+      "node": "SendGrid",
+      "slug": "sendgrid"
+    },
+    {
+      "node": "ServiceNow",
+      "slug": "servicenow"
+    },
+    {
+      "node": "Shopify",
+      "slug": "shopify"
+    },
+    {
+      "node": "ShopifyTrigger",
+      "slug": "shopify"
+    },
+    {
+      "node": "Slack",
+      "slug": "slack"
+    },
+    {
+      "node": "SlackTrigger",
+      "slug": "slack"
+    },
+    {
+      "node": "Snowflake",
+      "slug": "snowflake"
+    },
+    {
+      "node": "Splunk",
+      "slug": null
+    },
+    {
+      "node": "Spotify",
+      "slug": "spotify"
+    },
+    {
+      "node": "Stackby",
+      "slug": "stackby"
+    },
+    {
+      "node": "Storyblok",
+      "slug": "storyblok"
+    },
+    {
+      "node": "Strava",
+      "slug": "strava"
+    },
+    {
+      "node": "StravaTrigger",
+      "slug": "strava"
+    },
+    {
+      "node": "Stripe",
+      "slug": "stripe"
+    },
+    {
+      "node": "StripeTrigger",
+      "slug": "stripe"
+    },
+    {
+      "node": "Supabase",
+      "slug": "supabase"
+    },
+    {
+      "node": "SurveyMonkeyTrigger",
+      "slug": "survey_monkey"
+    },
+    {
+      "node": "Taiga",
+      "slug": "taiga"
+    },
+    {
+      "node": "TaigaTrigger",
+      "slug": "taiga"
+    },
+    {
+      "node": "Tapfiliate",
+      "slug": "tapfiliate"
+    },
+    {
+      "node": "Telegram",
+      "slug": "telegram"
+    },
+    {
+      "node": "TelegramTrigger",
+      "slug": "telegram"
+    },
+    {
+      "node": "TheHive",
+      "slug": "thehive"
+    },
+    {
+      "node": "TheHiveTrigger",
+      "slug": "thehive"
+    },
+    {
+      "node": "Todoist",
+      "slug": "todoist"
+    },
+    {
+      "node": "TogglTrigger",
+      "slug": "toggl"
+    },
+    {
+      "node": "Totp",
+      "slug": "totp"
+    },
+    {
+      "node": "Trello",
+      "slug": "trello"
+    },
+    {
+      "node": "TrelloTrigger",
+      "slug": "trello"
+    },
+    {
+      "node": "Twilio",
+      "slug": "twilio"
+    },
+    {
+      "node": "TwilioTrigger",
+      "slug": "twilio"
+    },
+    {
+      "node": "Twitter",
+      "slug": "twitter"
+    },
+    {
+      "node": "TypeformTrigger",
+      "slug": "typeform"
+    },
+    {
+      "node": "UptimeRobot",
+      "slug": "uptimerobot"
+    },
+    {
+      "node": "UrlScanIo",
+      "slug": "urlscanio"
+    },
+    {
+      "node": "Vonage",
+      "slug": "vonage"
+    },
+    {
+      "node": "Webflow",
+      "slug": "webflow"
+    },
+    {
+      "node": "WebflowTrigger",
+      "slug": "webflow"
+    },
+    {
+      "node": "WhatsApp",
+      "slug": "whatsapp"
+    },
+    {
+      "node": "WhatsAppTrigger",
+      "slug": "whatsapp"
+    },
+    {
+      "node": "Wise",
+      "slug": "wise"
+    },
+    {
+      "node": "WiseTrigger",
+      "slug": "wise"
+    },
+    {
+      "node": "WooCommerce",
+      "slug": "woocommerce"
+    },
+    {
+      "node": "WooCommerceTrigger",
+      "slug": "woocommerce"
+    },
+    {
+      "node": "Wordpress",
+      "slug": "wordpress"
+    },
+    {
+      "node": "WorkableTrigger",
+      "slug": "workable"
+    },
+    {
+      "node": "WufooTrigger",
+      "slug": "wufoo"
+    },
+    {
+      "node": "Xero",
+      "slug": "xero"
+    },
+    {
+      "node": "Zammad",
+      "slug": "zammad"
+    },
+    {
+      "node": "Zendesk",
+      "slug": "zendesk"
+    },
+    {
+      "node": "ZendeskTrigger",
+      "slug": "zendesk"
+    },
+    {
+      "node": "ZohoCrm",
+      "slug": null
+    },
+    {
+      "node": "Zoom",
+      "slug": "zoom"
+    },
+    {
+      "node": "Zulip",
+      "slug": "zulip"
+    }
+  ],
+  "gaps": [
+    "ActionNetwork",
+    "Adalo",
+    "AiTransform",
+    "Amqp",
+    "AmqpTrigger",
+    "ApiTemplateIo",
+    "Autopilot",
+    "AutopilotTrigger",
+    "AwsSns",
+    "AwsSnsTrigger",
+    "Clearbit",
+    "Cloudflare",
+    "Cockpit",
+    "CompareDatasets",
+    "Compression",
+    "ConvertKit",
+    "ConvertKitTrigger",
+    "CrateDb",
+    "Cron",
+    "Crypto",
+    "Currents",
+    "CurrentsTrigger",
+    "CurrentsTriggerHelpers",
+    "DataTable",
+    "DateTime",
+    "DebugHelper",
+    "Dhl",
+    "Disqus",
+    "Drift",
+    "DynamicCredentialCheck",
+    "E2eTest",
+    "EcommerceOrderDescripion",
+    "EditImage",
+    "Egoi",
+    "EmailReadImap",
+    "EmailSend",
+    "ErrorTrigger",
+    "EventDescripion",
+    "ExecuteCommand",
+    "ExecutionData",
+    "ExecutionError",
+    "FacebookGraphApi",
+    "FacebookLeadAdsTrigger",
+    "FileMaker",
+    "Flow",
+    "FlowTrigger",
+    "Form",
+    "FormIoTrigger",
+    "FormTrigger",
+    "FreshworksCrm",
+    "Ftp",
+    "Function",
+    "FunctionItem",
+    "GenericFunction",
+    "Git",
+    "GithubTriggerHelpers",
+    "GoToWebinar",
+    "Helpers",
+    "Html",
+    "HtmlExtract",
+    "HttpRequest",
+    "HumanticAi",
+    "ICalendar",
+    "IEvent",
+    "If",
+    "Interfaces",
+    "Interval",
+    "ItemLists",
+    "JavaScriptSandbox",
+    "JsCodeValidator",
+    "JsTaskRunnerSandbox",
+    "Jwt",
+    "Ldap",
+    "LingvaNex",
+    "LocalFileTrigger",
+    "LoneScale",
+    "LoneScaleTrigger",
+    "ManualTrigger",
+    "Markdown",
+    "Matrix",
+    "Medium",
+    "Merge",
+    "MessageBird",
+    "Mindee",
+    "Misp",
+    "MondayCom",
+    "MongoDb",
+    "MongoDbProperties",
+    "MoveBinaryData",
+    "MySql",
+    "N8nTrainingCustomerDatastore",
+    "N8nTrainingCustomerMessenger",
+    "NextCloud",
+    "NoOp",
+    "OpenThesaurus",
+    "Orbit",
+    "Peekalink",
+    "PhilipsHue",
+    "PostBin",
+    "Postgres",
+    "PostgresTrigger",
+    "ProfitWell",
+    "ProjectInterfaces",
+    "Pushcut",
+    "PushcutTrigger",
+    "PythonTaskRunnerSandbox",
+    "Queries",
+    "QuestDb",
+    "ReadBinaryFile",
+    "ReadBinaryFiles",
+    "ReadPDF",
+    "RenameKeys",
+    "RespondToWebhook",
+    "RssFeedRead",
+    "RssFeedReadTrigger",
+    "Rundeck",
+    "RundeckApi",
+    "S3",
+    "ScheduleTrigger",
+    "SecurityScorecard",
+    "SenderDescrition",
+    "Sendy",
+    "SentryIo",
+    "Set",
+    "Signl4",
+    "Simulate",
+    "SimulateTrigger",
+    "SlackTriggerHelpers",
+    "Sms77",
+    "SplitInBatches",
+    "SpreadsheetFile",
+    "SseTrigger",
+    "Ssh",
+    "StickyNote",
+    "StopAndError",
+    "Strapi",
+    "StripeTriggerHelpers",
+    "Switch",
+    "SyncroMsp",
+    "TheHiveProject",
+    "TheHiveProjectTrigger",
+    "TimeEntryInterfaces",
+    "TimeSaved",
+    "TimescaleDb",
+    "TravisCi",
+    "TriggerPlaceholders",
+    "Twake",
+    "Twist",
+    "TypeformTriggerHelpers",
+    "UProc",
+    "UnleashedSoftware",
+    "Uplead",
+    "ValidationError",
+    "Vero",
+    "Wait",
+    "Webhook",
+    "WebhookMapping",
+    "Wekan",
+    "WorkflowLocator",
+    "WorkflowTrigger",
+    "WorkpaceInterfaces",
+    "WriteBinaryFile",
+    "Xml",
+    "Yourls",
+    "ZendeskTriggerHelpers",
+    "countries",
+    "createEvent.operation",
+    "cssVariables",
+    "currencies",
+    "error",
+    "helpers",
+    "interfaces",
+    "mock",
+    "placeholder",
+    "python-runner-unavailable.error",
+    "randomData",
+    "reserved-key-found-error",
+    "result-validation",
+    "throw-execution-error",
+    "utils",
+    "validation"
+  ]
+}
