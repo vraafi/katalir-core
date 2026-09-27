@@ -24,7 +24,7 @@ test.describe("F6 landing logo cloud", () => {
 
     // 55 is the count the earlier work asserted, and moving the cloud into the
     // hero must not quietly drop brands on the way.
-    await expect(page.getByTestId("mcp-logo")).toHaveCount(55);
+    await expect(page.getByTestId("mcp-logo")).toHaveCount(218);
 
     // "Background" has to mean background, not "somewhere on the page". The layer
     // must actually cover the hero and sit BEHIND the copy - the previous
@@ -64,16 +64,24 @@ test.describe("F6 landing logo cloud", () => {
     await page.waitForSelector('[data-testid="mcp-logo"]');
     await page.waitForTimeout(1000);
 
-    // The complaint was "inconsistent size". Measuring every tile is the only
-    // way that is falsifiable - a screenshot cannot be asserted on.
-    const sizes = await page
+    // The complaint was "inconsistent size". Two different things are checked
+    // here and conflating them was a real bug in the previous version: the CELL
+    // is 48px, but the GLYPH inside it is 24px. Asserting the cell against 24
+    // failed while the page was in fact correct.
+    const cells = await page
       .getByTestId("mcp-logo")
       .evaluateAll((els) => els.map((el) => el.getBoundingClientRect().width));
+    expect(cells.length).toBeGreaterThanOrEqual(200);
+    expect(new Set(cells.map((w) => Math.round(w))).size, "cells are not uniform").toBe(1);
+    expect(cells[0]).toBeCloseTo(48, 0);
 
-    expect(sizes.length).toBe(55);
-    // Displacement from the magnet is a translation, so width is unaffected -
-    // but read width rather than transform to prove the magnet is not resizing.
-    for (const w of sizes) expect(Math.abs(w - 24)).toBeLessThanOrEqual(1);
+    // The glyph itself: uniform 24px height, whatever its aspect ratio.
+    const heights = await page
+      .getByTestId("mcp-logo")
+      .locator("svg")
+      .evaluateAll((els) => els.map((el) => el.getBoundingClientRect().height));
+    expect(heights.length).toBeGreaterThanOrEqual(200);
+    for (const h of heights) expect(Math.abs(h - 24)).toBeLessThanOrEqual(1);
   });
 
   test("the field spans the hero, with no empty band at top or bottom", async ({ page }) => {
@@ -105,37 +113,52 @@ test.describe("F6 landing logo cloud", () => {
     const span = bounds.bottom - bounds.top;
     expect(hero.height, "hero is not full viewport").toBeGreaterThanOrEqual(880);
 
-    // 0.6, not 0.9, and the reason is arithmetic worth keeping in mind. With
-    // gap 40 the grid makes 3 rows across 900px, so each row is 273px tall and a
-    // 24px mark centred inside it leaves ~136px empty above and below. The marks
-    // therefore span ~570-600px however the grid is tuned. A denser field needs
-    // either more logos or a wider min column (both change the brief's numbers),
-    // so this asserts that the field SPANS the hero rather than that it fills it.
-    // It still catches the real regression: drop gridAutoRows and the span
-    // collapses to ~150px, well under this line.
+    // With 218 tiles in square 40px cells the field is genuinely dense, so the
+    // old 0.6 ceiling is no longer the right line. It now has to cover most of
+    // the hero, and it still catches the real regression: 55 tiles at the old
+    // size spanned only ~66% of a 900px hero.
     expect(
       span / hero.height,
       `logos only span ${Math.round(span)}px of a ${Math.round(hero.height)}px hero`,
-    ).toBeGreaterThan(0.6);
+    ).toBeGreaterThan(0.8);
     expect(bounds.top - hero.y, "large empty band above the field").toBeLessThanOrEqual(200);
     expect(hero.y + hero.height - bounds.bottom, "large empty band below the field").toBeLessThanOrEqual(200);
   });
 
-  test("declared grid gap is 40px", async ({ page }) => {
+  test("declared grid gap is 24px and cells are square", async ({ page }) => {
     await page.goto("/", { waitUntil: "domcontentloaded", timeout: 90_000 });
     await page.waitForSelector('[data-testid="mcp-logo"]');
     await page.waitForTimeout(800);
 
-    // Assert the declared value rather than measured centre-to-centre distance.
-    // With rows stretched to 1fr the real spacing is far larger than the gap,
-    // so a distance-based check would pass for the wrong reason.
-    const gap = await page
+    // Assert the declared values rather than measured centre-to-centre distance.
+    const g = await page
       .getByTestId("magnetic-logo-cloud")
-      .evaluate((el) => getComputedStyle(el).gap);
-    expect(gap).toBe("40px");
+      .evaluate((el) => {
+        const cs = getComputedStyle(el);
+        return { gap: cs.gap, autoRows: cs.gridAutoRows, columns: cs.gridTemplateColumns };
+      });
+    // Chrome collapses `gap` to a single value when row and column are equal,
+    // so the computed string is "24px", not "24px 24px". Accept either form.
+    expect(g.gap, `gap was ${g.gap}`).toMatch(/^24px( 24px)?$/);
+
+    // Square cells: the row track must equal the column min, otherwise spacing
+    // reads differently down the page than across it.
+    const cell = await page
+      .getByTestId("mcp-logo")
+      .first()
+      .evaluate((el) => el.getBoundingClientRect().width);
+    expect(Math.abs(parseFloat(g.autoRows) - cell)).toBeLessThanOrEqual(1);
+
+    // Every tile in the same row must be the same width, or the field is ragged.
+    const widths = await page
+      .getByTestId("mcp-logo")
+      .evaluateAll((els) =>
+        els.slice(0, 30).map((el) => Math.round(el.getBoundingClientRect().width)),
+      );
+    expect(new Set(widths).size, `ragged rows: ${[...new Set(widths)].join(",")}`).toBe(1);
   });
 
-  test("logos render sharp: full-ish opacity, and no blur filter", async ({ page }) => {
+  test("logos render sharp: full opacity on the container, and no blur filter", async ({ page }) => {
     await page.goto("/", { waitUntil: "domcontentloaded", timeout: 90_000 });
     await page.waitForSelector('[data-testid="mcp-logo"]');
     await page.waitForTimeout(1000);
@@ -143,11 +166,15 @@ test.describe("F6 landing logo cloud", () => {
     // Read the opacity off the cloud itself. The layer wrapper is transparent -
     // reading its parent measures the <section>, which is always 1, and that is
     // exactly the mistake that makes a "faded background" test pass vacuously.
+    //
+    // The brief's hard rule: NO opacity reduction on the container, because
+    // dimming the container drops contrast on every logo at once. Legibility is
+    // carried by the text card instead. So this must be a full 1.0 - the earlier
+    // 0.7 faded pass is the "buram" the complaint was about.
     const opacity = await page
       .getByTestId("magnetic-logo-cloud")
       .evaluate((el) => Number(getComputedStyle(el).opacity));
-    expect(opacity, "logos are too faint to read as sharp").toBeGreaterThanOrEqual(0.6);
-    expect(opacity, "logos are so strong they fight the copy").toBeLessThanOrEqual(0.8);
+    expect(opacity, "container opacity must be 1 - legibility belongs to the card").toBe(1);
 
     // The complaint was "buram". A blur is the specific cause, and it is
     // assertable directly on every tile and every svg.
@@ -324,6 +351,32 @@ test.describe("F6 landing logo cloud", () => {
     // Any violation is a failure. The logo work must not have introduced one,
     // and the decorative strip in particular must not become an a11y problem.
     expect(violations, JSON.stringify(violations, null, 1)).toEqual([]);
+  });
+
+  test("mobile: the field is capped, not clipped to one lonely row", async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.goto("/", { waitUntil: "domcontentloaded", timeout: 90_000 });
+    await page.waitForSelector('[data-testid="mcp-logo"]');
+    await page.waitForTimeout(1200);
+    await page.screenshot({ path: `${SHOTS}/f6-mobile-hero.png` });
+
+    // 218 tiles in 5 columns is 44 rows, which cannot fit one viewport. The
+    // fix is a below-`sm` cap, so the VISIBLE count must be small while the
+    // DOM still holds all 218.
+    const visible = await page
+      .getByTestId("mcp-logo")
+      .evaluateAll((els) => els.filter((el) => el.getClientRects().length > 0).length);
+    const total = await page.getByTestId("mcp-logo").count();
+
+    expect(total, "mobile should not drop brands from the DOM").toBe(218);
+    expect(visible, "mobile shows the whole 218 and clips to a single row").toBeLessThanOrEqual(60);
+    expect(visible, "mobile shows too few to read as a field").toBeGreaterThanOrEqual(20);
+
+    // And the visible ones must actually sit inside the hero, not overflow it.
+    const overflow = await page.evaluate(
+      () => document.documentElement.scrollWidth - document.documentElement.clientWidth,
+    );
+    expect(overflow).toBeLessThanOrEqual(2);
   });
 
   test("mobile: hero cloud visible, no horizontal overflow", async ({ page }) => {

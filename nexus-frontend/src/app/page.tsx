@@ -27,7 +27,7 @@ import { HydrationReady } from "@/i18n/HydrationReady";
 import { SkipToContent } from "@/components/SkipToContent";
 import { BrandMark } from "@/components/BrandMark";
 import { MagneticLogoCloud } from "@/components/logo-cloud";
-import { mcpLogos } from "@/lib/mcp-logos";
+import { denseLogos } from "@/lib/dense-logos";
 
 function Landing() {
   const { t } = useI18n();
@@ -81,7 +81,7 @@ function Landing() {
             className="pointer-events-none absolute inset-0 -z-10"
             data-testid="hero-logo-layer"
           >
-            <MagneticLogoCloud gap={40} size={24} radius={250} strength={1.5} opacity={0.7} />
+            <MagneticLogoCloud gap={24} size={24} cell={48} radius={250} strength={1.5} opacity={1} />
           </div>
 
           <div
@@ -146,7 +146,7 @@ function Landing() {
                 aria-hidden decoration, so without this the page would have 55
                 unlabelled marks and no names at all. */}
             <ul className="sr-only">
-              {mcpLogos.map((l) => (
+              {denseLogos.map((l) => (
                 <li key={`sr-${l.name}`}>{l.name}</li>
               ))}
             </ul>

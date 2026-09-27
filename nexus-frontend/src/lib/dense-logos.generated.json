@@ -1,0 +1,882 @@
+{
+ "OpenAI": {
+  "pack": "lobehub",
+  "icon": "OpenAI"
+ },
+ "Anthropic": {
+  "pack": "simple-icons",
+  "icon": "SiAnthropic"
+ },
+ "Gemini": {
+  "pack": "simple-icons",
+  "icon": "SiGooglegemini"
+ },
+ "Claude": {
+  "pack": "simple-icons",
+  "icon": "SiClaude"
+ },
+ "Mistral": {
+  "pack": "simple-icons",
+  "icon": "SiMistralai"
+ },
+ "HuggingFace": {
+  "pack": "simple-icons",
+  "icon": "SiHuggingface"
+ },
+ "Replicate": {
+  "pack": "simple-icons",
+  "icon": "SiReplicate"
+ },
+ "Groq": {
+  "pack": "lobehub",
+  "icon": "Groq"
+ },
+ "Perplexity": {
+  "pack": "simple-icons",
+  "icon": "SiPerplexity"
+ },
+ "Cohere": {
+  "pack": "lobehub",
+  "icon": "Cohere"
+ },
+ "LangChain": {
+  "pack": "lobehub",
+  "icon": "LangChain"
+ },
+ "LangGraph": {
+  "pack": "lobehub",
+  "icon": "LangGraph"
+ },
+ "LangSmith": {
+  "pack": "lobehub",
+  "icon": "LangSmith"
+ },
+ "LlamaIndex": {
+  "pack": "lobehub",
+  "icon": "LlamaIndex"
+ },
+ "Ollama": {
+  "pack": "lobehub",
+  "icon": "Ollama"
+ },
+ "CrewAI": {
+  "pack": "lobehub",
+  "icon": "CrewAI"
+ },
+ "Mastra": {
+  "pack": "lobehub",
+  "icon": "Mastra"
+ },
+ "DeepSeek": {
+  "pack": "lobehub",
+  "icon": "DeepSeek"
+ },
+ "DeepMind": {
+  "pack": "lobehub",
+  "icon": "DeepMind"
+ },
+ "Qwen": {
+  "pack": "lobehub",
+  "icon": "Qwen"
+ },
+ "Gemma": {
+  "pack": "lobehub",
+  "icon": "Gemma"
+ },
+ "Bedrock": {
+  "pack": "lobehub",
+  "icon": "Bedrock"
+ },
+ "VertexAI": {
+  "pack": "lobehub",
+  "icon": "VertexAI"
+ },
+ "AzureAI": {
+  "pack": "lobehub",
+  "icon": "AzureAI"
+ },
+ "XAI": {
+  "pack": "lobehub",
+  "icon": "XAI"
+ },
+ "Grok": {
+  "pack": "lobehub",
+  "icon": "Grok"
+ },
+ "Cerebras": {
+  "pack": "lobehub",
+  "icon": "Cerebras"
+ },
+ "Baseten": {
+  "pack": "lobehub",
+  "icon": "Baseten"
+ },
+ "Fireworks": {
+  "pack": "lobehub",
+  "icon": "Fireworks"
+ },
+ "DeepInfra": {
+  "pack": "lobehub",
+  "icon": "DeepInfra"
+ },
+ "Together": {
+  "pack": "lobehub",
+  "icon": "Together"
+ },
+ "Baseten2": {
+  "pack": "lobehub",
+  "icon": "Baseten"
+ },
+ "Jina": {
+  "pack": "lobehub",
+  "icon": "Jina"
+ },
+ "Qdrant": {
+  "pack": "simple-icons",
+  "icon": "SiQdrant"
+ },
+ "Langfuse": {
+  "pack": "lobehub",
+  "icon": "Langfuse"
+ },
+ "WeightsAndBiases": {
+  "pack": "lobehub",
+  "icon": "Wandb"
+ },
+ "PyTorch": {
+  "pack": "simple-icons",
+  "icon": "SiPytorch"
+ },
+ "TensorFlow": {
+  "pack": "simple-icons",
+  "icon": "SiTensorflow"
+ },
+ "NumPy": {
+  "pack": "simple-icons",
+  "icon": "SiNumpy"
+ },
+ "Pandas": {
+  "pack": "simple-icons",
+  "icon": "SiPandas"
+ },
+ "ScikitLearn": {
+  "pack": "simple-icons",
+  "icon": "SiScikitlearn"
+ },
+ "OpenCV": {
+  "pack": "simple-icons",
+  "icon": "SiOpencv"
+ },
+ "Jupyter": {
+  "pack": "simple-icons",
+  "icon": "SiJupyter"
+ },
+ "Colab": {
+  "pack": "lobehub",
+  "icon": "Colab"
+ },
+ "Kaggle": {
+  "pack": "simple-icons",
+  "icon": "SiKaggle"
+ },
+ "GitHub": {
+  "pack": "simple-icons",
+  "icon": "SiGithub"
+ },
+ "GitHubCopilot": {
+  "pack": "lobehub",
+  "icon": "GithubCopilot"
+ },
+ "GitLab": {
+  "pack": "simple-icons",
+  "icon": "SiGitlab"
+ },
+ "Vercel": {
+  "pack": "simple-icons",
+  "icon": "SiVercel"
+ },
+ "Netlify": {
+  "pack": "simple-icons",
+  "icon": "SiNetlify"
+ },
+ "Cloudflare": {
+  "pack": "simple-icons",
+  "icon": "SiCloudflare"
+ },
+ "Railway": {
+  "pack": "lobehub",
+  "icon": "Railway"
+ },
+ "Render": {
+  "pack": "simple-icons",
+  "icon": "SiRender"
+ },
+ "Deno": {
+  "pack": "simple-icons",
+  "icon": "SiDeno"
+ },
+ "Bun": {
+  "pack": "simple-icons",
+  "icon": "SiBun"
+ },
+ "Node.js": {
+  "pack": "simple-icons",
+  "icon": "SiNodedotjs"
+ },
+ "Python": {
+  "pack": "simple-icons",
+  "icon": "SiPython"
+ },
+ "Rust": {
+  "pack": "simple-icons",
+  "icon": "SiRust"
+ },
+ "Go": {
+  "pack": "simple-icons",
+  "icon": "SiGo"
+ },
+ "TypeScript": {
+  "pack": "simple-icons",
+  "icon": "SiTypescript"
+ },
+ "OpenJDK": {
+  "pack": "simple-icons",
+  "icon": "SiOpenjdk"
+ },
+ "AWS": {
+  "pack": "lobehub",
+  "icon": "Aws"
+ },
+ "Azure": {
+  "pack": "lobehub",
+  "icon": "Azure"
+ },
+ "GoogleCloud": {
+  "pack": "simple-icons",
+  "icon": "SiGooglecloud"
+ },
+ "AlibabaCloud": {
+  "pack": "simple-icons",
+  "icon": "SiAlibabacloud"
+ },
+ "TencentCloud": {
+  "pack": "lobehub",
+  "icon": "Tencent"
+ },
+ "BaiduCloud": {
+  "pack": "lobehub",
+  "icon": "BaiduCloud"
+ },
+ "DigitalOcean": {
+  "pack": "simple-icons",
+  "icon": "SiDigitalocean"
+ },
+ "Hetzner": {
+  "pack": "simple-icons",
+  "icon": "SiHetzner"
+ },
+ "Scaleway": {
+  "pack": "simple-icons",
+  "icon": "SiScaleway"
+ },
+ "Vultr": {
+  "pack": "simple-icons",
+  "icon": "SiVultr"
+ },
+ "Fastly": {
+  "pack": "simple-icons",
+  "icon": "SiFastly"
+ },
+ "Akamai": {
+  "pack": "simple-icons",
+  "icon": "SiAkamai"
+ },
+ "IBM": {
+  "pack": "lobehub",
+  "icon": "IBM"
+ },
+ "Zeabur": {
+  "pack": "lobehub",
+  "icon": "Zeabur"
+ },
+ "WorkersAI": {
+  "pack": "lobehub",
+  "icon": "WorkersAI"
+ },
+ "Docker": {
+  "pack": "simple-icons",
+  "icon": "SiDocker"
+ },
+ "Kubernetes": {
+  "pack": "simple-icons",
+  "icon": "SiKubernetes"
+ },
+ "Terraform": {
+  "pack": "simple-icons",
+  "icon": "SiTerraform"
+ },
+ "Ansible": {
+  "pack": "simple-icons",
+  "icon": "SiAnsible"
+ },
+ "Grafana": {
+  "pack": "simple-icons",
+  "icon": "SiGrafana"
+ },
+ "Prometheus": {
+  "pack": "simple-icons",
+  "icon": "SiPrometheus"
+ },
+ "Datadog": {
+  "pack": "simple-icons",
+  "icon": "SiDatadog"
+ },
+ "Sentry": {
+  "pack": "simple-icons",
+  "icon": "SiSentry"
+ },
+ "PostHog": {
+  "pack": "simple-icons",
+  "icon": "SiPosthog"
+ },
+ "Mixpanel": {
+  "pack": "simple-icons",
+  "icon": "SiMixpanel"
+ },
+ "NewRelic": {
+  "pack": "simple-icons",
+  "icon": "SiNewrelic"
+ },
+ "CircleCI": {
+  "pack": "simple-icons",
+  "icon": "SiCircleci"
+ },
+ "TravisCI": {
+  "pack": "simple-icons",
+  "icon": "SiTravisci"
+ },
+ "Jenkins": {
+  "pack": "simple-icons",
+  "icon": "SiJenkins"
+ },
+ "Argo": {
+  "pack": "simple-icons",
+  "icon": "SiArgo"
+ },
+ "Helm": {
+  "pack": "simple-icons",
+  "icon": "SiHelm"
+ },
+ "Istio": {
+  "pack": "simple-icons",
+  "icon": "SiIstio"
+ },
+ "Consul": {
+  "pack": "simple-icons",
+  "icon": "SiConsul"
+ },
+ "Vault": {
+  "pack": "simple-icons",
+  "icon": "SiVault"
+ },
+ "Nomad": {
+  "pack": "simple-icons",
+  "icon": "SiNomad"
+ },
+ "OpenTelemetry": {
+  "pack": "simple-icons",
+  "icon": "SiOpentelemetry"
+ },
+ "Nginx": {
+  "pack": "simple-icons",
+  "icon": "SiNginx"
+ },
+ "Apache": {
+  "pack": "simple-icons",
+  "icon": "SiApache"
+ },
+ "Caddy": {
+  "pack": "simple-icons",
+  "icon": "SiCaddy"
+ },
+ "Linux": {
+  "pack": "simple-icons",
+  "icon": "SiLinux"
+ },
+ "Ubuntu": {
+  "pack": "simple-icons",
+  "icon": "SiUbuntu"
+ },
+ "Debian": {
+  "pack": "simple-icons",
+  "icon": "SiDebian"
+ },
+ "Git": {
+  "pack": "simple-icons",
+  "icon": "SiGit"
+ },
+ "Bitbucket": {
+  "pack": "simple-icons",
+  "icon": "SiBitbucket"
+ },
+ "JFrog": {
+  "pack": "simple-icons",
+  "icon": "SiJfrog"
+ },
+ "Codecov": {
+  "pack": "simple-icons",
+  "icon": "SiCodecov"
+ },
+ "Dependabot": {
+  "pack": "simple-icons",
+  "icon": "SiDependabot"
+ },
+ "GitBook": {
+  "pack": "simple-icons",
+  "icon": "SiGitbook"
+ },
+ "Docusaurus": {
+  "pack": "simple-icons",
+  "icon": "SiDocusaurus"
+ },
+ "Readme": {
+  "pack": "simple-icons",
+  "icon": "SiReadme"
+ },
+ "Supabase": {
+  "pack": "simple-icons",
+  "icon": "SiSupabase"
+ },
+ "Firebase": {
+  "pack": "simple-icons",
+  "icon": "SiFirebase"
+ },
+ "Appwrite": {
+  "pack": "simple-icons",
+  "icon": "SiAppwrite"
+ },
+ "Convex": {
+  "pack": "simple-icons",
+  "icon": "SiConvex"
+ },
+ "Neon": {
+  "pack": "simple-icons",
+  "icon": "SiNeon"
+ },
+ "Turso": {
+  "pack": "simple-icons",
+  "icon": "SiTurso"
+ },
+ "PlanetScale": {
+  "pack": "simple-icons",
+  "icon": "SiPlanetscale"
+ },
+ "MongoDB": {
+  "pack": "simple-icons",
+  "icon": "SiMongodb"
+ },
+ "Redis": {
+  "pack": "simple-icons",
+  "icon": "SiRedis"
+ },
+ "PostgreSQL": {
+  "pack": "simple-icons",
+  "icon": "SiPostgresql"
+ },
+ "MySQL": {
+  "pack": "simple-icons",
+  "icon": "SiMysql"
+ },
+ "ClickHouse": {
+  "pack": "simple-icons",
+  "icon": "SiClickhouse"
+ },
+ "Prisma": {
+  "pack": "simple-icons",
+  "icon": "SiPrisma"
+ },
+ "Drizzle": {
+  "pack": "simple-icons",
+  "icon": "SiDrizzle"
+ },
+ "Upstash": {
+  "pack": "simple-icons",
+  "icon": "SiUpstash"
+ },
+ "CockroachDB": {
+  "pack": "simple-icons",
+  "icon": "SiCockroachlabs"
+ },
+ "Elasticsearch": {
+  "pack": "simple-icons",
+  "icon": "SiElasticsearch"
+ },
+ "OpenSearch": {
+  "pack": "simple-icons",
+  "icon": "SiOpensearch"
+ },
+ "Solr": {
+  "pack": "simple-icons",
+  "icon": "SiApachesolr"
+ },
+ "MeiliSearch": {
+  "pack": "simple-icons",
+  "icon": "SiMeilisearch"
+ },
+ "Algolia": {
+  "pack": "simple-icons",
+  "icon": "SiAlgolia"
+ },
+ "Notion": {
+  "pack": "simple-icons",
+  "icon": "SiNotion"
+ },
+ "Linear": {
+  "pack": "simple-icons",
+  "icon": "SiLinear"
+ },
+ "Discord": {
+  "pack": "simple-icons",
+  "icon": "SiDiscord"
+ },
+ "Telegram": {
+  "pack": "simple-icons",
+  "icon": "SiTelegram"
+ },
+ "Zoom": {
+  "pack": "simple-icons",
+  "icon": "SiZoom"
+ },
+ "Asana": {
+  "pack": "simple-icons",
+  "icon": "SiAsana"
+ },
+ "Trello": {
+  "pack": "simple-icons",
+  "icon": "SiTrello"
+ },
+ "Airtable": {
+  "pack": "simple-icons",
+  "icon": "SiAirtable"
+ },
+ "ClickUp": {
+  "pack": "simple-icons",
+  "icon": "SiClickup"
+ },
+ "Miro": {
+  "pack": "simple-icons",
+  "icon": "SiMiro"
+ },
+ "Obsidian": {
+  "pack": "simple-icons",
+  "icon": "SiObsidian"
+ },
+ "Figma": {
+  "pack": "simple-icons",
+  "icon": "SiFigma"
+ },
+ "Framer": {
+  "pack": "simple-icons",
+  "icon": "SiFramer"
+ },
+ "Sketch": {
+  "pack": "simple-icons",
+  "icon": "SiSketch"
+ },
+ "Adobe": {
+  "pack": "lobehub",
+  "icon": "Adobe"
+ },
+ "AdobeFirefly": {
+  "pack": "lobehub",
+  "icon": "AdobeFirefly"
+ },
+ "Ideogram": {
+  "pack": "lobehub",
+  "icon": "Ideogram"
+ },
+ "Midjourney": {
+  "pack": "lobehub",
+  "icon": "Midjourney"
+ },
+ "Runway": {
+  "pack": "lobehub",
+  "icon": "Runway"
+ },
+ "ElevenLabs": {
+  "pack": "lobehub",
+  "icon": "ElevenLabs"
+ },
+ "Suno": {
+  "pack": "lobehub",
+  "icon": "Suno"
+ },
+ "Udio": {
+  "pack": "lobehub",
+  "icon": "Udio"
+ },
+ "Typeform": {
+  "pack": "simple-icons",
+  "icon": "SiTypeform"
+ },
+ "Stripe": {
+  "pack": "simple-icons",
+  "icon": "SiStripe"
+ },
+ "LemonSqueezy": {
+  "pack": "simple-icons",
+  "icon": "SiLemonsqueezy"
+ },
+ "PayPal": {
+  "pack": "simple-icons",
+  "icon": "SiPaypal"
+ },
+ "Wise": {
+  "pack": "simple-icons",
+  "icon": "SiWise"
+ },
+ "Dodo": {
+  "pack": "simple-icons",
+  "icon": "SiDodopayments"
+ },
+ "Razorpay": {
+  "pack": "simple-icons",
+  "icon": "SiRazorpay"
+ },
+ "Paddle": {
+  "pack": "simple-icons",
+  "icon": "SiPaddle"
+ },
+ "Resend": {
+  "pack": "simple-icons",
+  "icon": "SiResend"
+ },
+ "Mailchimp": {
+  "pack": "simple-icons",
+  "icon": "SiMailchimp"
+ },
+ "Brevo": {
+  "pack": "simple-icons",
+  "icon": "SiBrevo"
+ },
+ "Mailgun": {
+  "pack": "simple-icons",
+  "icon": "SiMailgun"
+ },
+ "Intercom": {
+  "pack": "simple-icons",
+  "icon": "SiIntercom"
+ },
+ "Zendesk": {
+  "pack": "simple-icons",
+  "icon": "SiZendesk"
+ },
+ "HubSpot": {
+  "pack": "simple-icons",
+  "icon": "SiHubspot"
+ },
+ "Shopify": {
+  "pack": "simple-icons",
+  "icon": "SiShopify"
+ },
+ "WooCommerce": {
+  "pack": "simple-icons",
+  "icon": "SiWoocommerce"
+ },
+ "BigCommerce": {
+  "pack": "simple-icons",
+  "icon": "SiBigcommerce"
+ },
+ "Snowflake": {
+  "pack": "lobehub",
+  "icon": "Snowflake"
+ },
+ "Databricks": {
+  "pack": "simple-icons",
+  "icon": "SiDatabricks"
+ },
+ "Airflow": {
+  "pack": "simple-icons",
+  "icon": "SiApacheairflow"
+ },
+ "Airbyte": {
+  "pack": "simple-icons",
+  "icon": "SiAirbyte"
+ },
+ "Prefect": {
+  "pack": "simple-icons",
+  "icon": "SiPrefect"
+ },
+ "Kafka": {
+  "pack": "simple-icons",
+  "icon": "SiApachekafka"
+ },
+ "RabbitMQ": {
+  "pack": "simple-icons",
+  "icon": "SiRabbitmq"
+ },
+ "NATS": {
+  "pack": "simple-icons",
+  "icon": "SiNatsdotio"
+ },
+ "X": {
+  "pack": "simple-icons",
+  "icon": "SiX"
+ },
+ "Facebook": {
+  "pack": "simple-icons",
+  "icon": "SiFacebook"
+ },
+ "Instagram": {
+  "pack": "simple-icons",
+  "icon": "SiInstagram"
+ },
+ "TikTok": {
+  "pack": "simple-icons",
+  "icon": "SiTiktok"
+ },
+ "YouTube": {
+  "pack": "simple-icons",
+  "icon": "SiYoutube"
+ },
+ "Reddit": {
+  "pack": "simple-icons",
+  "icon": "SiReddit"
+ },
+ "Medium": {
+  "pack": "simple-icons",
+  "icon": "SiMedium"
+ },
+ "Substack": {
+  "pack": "simple-icons",
+  "icon": "SiSubstack"
+ },
+ "DevTo": {
+  "pack": "simple-icons",
+  "icon": "SiDevdotto"
+ },
+ "Hashnode": {
+  "pack": "simple-icons",
+  "icon": "SiHashnode"
+ },
+ "ProductHunt": {
+  "pack": "simple-icons",
+  "icon": "SiProducthunt"
+ },
+ "Zapier": {
+  "pack": "simple-icons",
+  "icon": "SiZapier"
+ },
+ "N8n": {
+  "pack": "lobehub",
+  "icon": "N8n"
+ },
+ "Make": {
+  "pack": "lobehub",
+  "icon": "Make"
+ },
+ "Firecrawl": {
+  "pack": "lobehub",
+  "icon": "Firecrawl"
+ },
+ "Tavily": {
+  "pack": "lobehub",
+  "icon": "Tavily"
+ },
+ "Exa": {
+  "pack": "lobehub",
+  "icon": "Exa"
+ },
+ "Cline": {
+  "pack": "lobehub",
+  "icon": "Cline"
+ },
+ "Cursor": {
+  "pack": "lobehub",
+  "icon": "Cursor"
+ },
+ "Windsurf": {
+  "pack": "lobehub",
+  "icon": "Windsurf"
+ },
+ "Replit": {
+  "pack": "lobehub",
+  "icon": "Replit"
+ },
+ "Copilot": {
+  "pack": "lobehub",
+  "icon": "Copilot"
+ },
+ "Devin": {
+  "pack": "lobehub",
+  "icon": "Devin"
+ },
+ "Dify": {
+  "pack": "lobehub",
+  "icon": "Dify"
+ },
+ "Lovable": {
+  "pack": "lobehub",
+  "icon": "Lovable"
+ },
+ "Manus": {
+  "pack": "lobehub",
+  "icon": "Manus"
+ },
+ "Poe": {
+  "pack": "lobehub",
+  "icon": "Poe"
+ },
+ "Moxt": {
+  "pack": "lobehub",
+  "icon": "Moxt"
+ },
+ "V0": {
+  "pack": "lobehub",
+  "icon": "V0"
+ },
+ "ComfyUI": {
+  "pack": "lobehub",
+  "icon": "ComfyUI"
+ },
+ "Gradio": {
+  "pack": "lobehub",
+  "icon": "Gradio"
+ },
+ "LmStudio": {
+  "pack": "lobehub",
+  "icon": "LmStudio"
+ },
+ "Lambda": {
+  "pack": "lobehub",
+  "icon": "Lambda"
+ },
+ "Glama": {
+  "pack": "lobehub",
+  "icon": "Glama"
+ },
+ "Smithery": {
+  "pack": "lobehub",
+  "icon": "Smithery"
+ },
+ "GiteeAI": {
+  "pack": "lobehub",
+  "icon": "GiteeAI"
+ },
+ "SearXNG": {
+  "pack": "lobehub",
+  "icon": "SearXNG"
+ },
+ "SiliconFlow": {
+  "pack": "lobehub",
+  "icon": "SiliconCloud"
+ },
+ "ModelScope": {
+  "pack": "lobehub",
+  "icon": "ModelScope"
+ },
+ "Poe2": {
+  "pack": "lobehub",
+  "icon": "Poe"
+ }
+}

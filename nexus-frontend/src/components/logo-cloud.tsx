@@ -30,6 +30,7 @@
 
 import { useCallback, useEffect, useRef } from "react";
 import { mcpLogos, type McpLogo } from "@/lib/mcp-logos";
+import { denseLogos, type DenseLogo } from "@/lib/dense-logos";
 
 type Tile = {
   el: HTMLDivElement;
@@ -41,6 +42,25 @@ type Tile = {
   tx: number;
   ty: number;
 };
+
+/** Uniform square cells.
+ *
+ *  The brief asked for a uniform height rather than a uniform width, because
+ *  forcing every logo to the same width distorts the wordmarks: "GitHub" and a
+ *  square app icon cannot share a width without one of them stretching. So the
+ *  cell is square (`gridAutoRows` = column track) and the glyph keeps its own
+ *  aspect ratio inside it, centred. Equal spacing in all four directions is a
+ *  property of a square cell with one gap value, not of equal glyph widths.
+ */
+function renderDense(logo: DenseLogo, size: number) {
+  if (logo.brand) {
+    // simple-icons paints its own brand fill.
+    return <logo.Component size={size} color="default" />;
+  }
+  // lobehub Mono is currentColor; the theme foreground is the right neutral
+  // here, and these are the brands simple-icons dropped for trademark reasons.
+  return <logo.Component size={size} />;
+}
 
 function renderLogo(logo: McpLogo, size: number) {
   if (!logo.Component) {
@@ -82,16 +102,25 @@ function renderLogo(logo: McpLogo, size: number) {
  */
 export function MagneticLogoCloud({
   logos = mcpLogos,
-  gap = 40,
+  dense = true,
+  gap = 24,
   size = 24,
+  cell = 40,
+  mobileLimit = 40,
   radius = 250,
   strength = 1.5,
-  opacity = 0.7,
+  opacity = 1,
   className = "",
 }: {
   logos?: McpLogo[];
+  /** Use the 218-brand generated field instead of the 55 curated ones. */
+  dense?: boolean;
   gap?: number;
   size?: number;
+  /** Square cell edge. Equals the column min so rows and columns match. */
+  cell?: number;
+  /** How many tiles stay visible below the `sm` breakpoint. */
+  mobileLimit?: number;
   radius?: number;
   strength?: number;
   opacity?: number;
@@ -102,13 +131,23 @@ export function MagneticLogoCloud({
   const mouse = useRef({ x: -99999, y: -99999, active: false });
   const reduced = useRef(false);
 
+  // The dense set already contains the curated brands, so `dense` replaces the
+  // list rather than appending to it; merging would double up GitHub, Stripe,
+  // Vercel and friends in adjacent cells.
+  const items = dense ? (denseLogos as unknown as (McpLogo | DenseLogo)[]) : logos;
+
   const measure = useCallback(() => {
     const nodes = hostRef.current?.querySelectorAll<HTMLDivElement>("[data-magnetic-tile]");
     if (!nodes) return;
-    tiles.current = Array.from(nodes).map((el) => {
-      const r = el.getBoundingClientRect();
-      return { el, cx: r.left + r.width / 2, cy: r.top + r.height / 2, x: 0, y: 0, tx: 0, ty: 0 };
-    });
+    tiles.current = Array.from(nodes)
+      // Tiles hidden by the mobile budget report a 0x0 box at the origin.
+      // Keeping them would put phantom magnet targets at (0,0) that respond to
+      // the cursor from across the page.
+      .filter((el) => el.getClientRects().length > 0)
+      .map((el) => {
+        const r = el.getBoundingClientRect();
+        return { el, cx: r.left + r.width / 2, cy: r.top + r.height / 2, x: 0, y: 0, tx: 0, ty: 0 };
+      });
   }, []);
 
   useEffect(() => {
@@ -205,27 +244,42 @@ export function MagneticLogoCloud({
       aria-hidden="true"
       className={`grid h-full w-full place-items-center ${className}`}
       style={{
-        gridTemplateColumns: `repeat(auto-fit, minmax(${size}px, 1fr))`,
-        // Rows divide the full height instead of hugging the 24px tiles. Without
-        // this, 55 small logos stack into ~3 short rows at the top and the bottom
-        // two thirds of the hero is empty - the exact "white space" complaint.
-        // The tile keeps its fixed size and simply centres inside its row.
-        gridAutoRows: "1fr",
+        // Square cells: the row track is pinned to the same value as the column
+        // min, so every logo sits in an identical cell and one `gap` value
+        // reads as equal spacing on all four sides. `1fr` rows were the previous
+        // approach and are what produced the sparse constellation - with 200+
+        // tiles the field is dense enough not to need them.
+        gridTemplateColumns: `repeat(auto-fill, minmax(${cell}px, 1fr))`,
+        gridAutoRows: `${cell}px`,
+        alignContent: "center",
+        justifyItems: "center",
         gap: `${gap}px`,
         padding: `${gap}px`,
         opacity,
       }}
     >
-      {logos.map((logo) => (
+      {items.map((logo, i) => (
         <div
           key={logo.name}
           data-magnetic-tile
           data-testid="mcp-logo"
           data-brand={logo.name}
-          className="pointer-events-none flex select-none items-center justify-center"
-          style={{ width: size, height: size, willChange: "transform" }}
+          className={
+            // Mobile budget. 218 tiles in 5 columns needs 44 rows, and the hero
+            // is one viewport tall, so the field is clipped to a single lonely
+            // row - which reads as a rendering bug rather than as texture. No
+            // cell size fixes this: 44 rows is 44 rows at any size, and fitting
+            // 30 columns into 375px would mean 12px icons. So below `sm` the
+            // field is capped, and the cap is removed at `sm` and up. This is
+            // pure CSS, so there is no hydration mismatch and no JS bundle cost
+            // for a purely presentational decision.
+            i < mobileLimit
+              ? "pointer-events-none flex select-none items-center justify-center"
+              : "pointer-events-none hidden select-none items-center justify-center sm:flex"
+          }
+          style={{ width: cell, height: cell, willChange: "transform" }}
         >
-          {renderLogo(logo, size)}
+          {"brand" in logo ? renderDense(logo, size) : renderLogo(logo, size)}
         </div>
       ))}
     </div>
