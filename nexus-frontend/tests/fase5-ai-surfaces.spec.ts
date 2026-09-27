@@ -65,9 +65,20 @@ async function seed(page: Page, opts: { locale?: "id" | "en"; onboardingDone?: b
   }, entries);
 }
 
+/**
+ * Backend requests to stub.
+ *
+ * Derived from E2E_BACKEND_URL rather than hardcoded. The test backend runs
+ * on 8123 (playwright.config.ts moved it off 8000 so a manually-started
+ * uvicorn could never be tested by mistake), but this spec still compared
+ * `u.port === "8000"`. Every stub was therefore bypassed and the tests hit
+ * the real API: each one burned ~32s and failed. Comparing the full origin
+ * fixes it and makes the spec immune to a future port change.
+ */
 function isApi(req: Request): boolean {
+  const expected = new URL(process.env.E2E_BACKEND_URL || "http://127.0.0.1:8123");
   const u = new URL(req.url());
-  return u.port === "8000";
+  return u.hostname === expected.hostname && u.port === expected.port;
 }
 
 type Stub = {
@@ -77,7 +88,7 @@ type Stub = {
   sessions?: { id: string; title?: string }[];
 };
 
-/** Stub HANYA endpoint backend (port 8000); sisanya dibiarkan nyata. */
+/** Stub HANYA endpoint backend (E2E_BACKEND_URL); sisanya dibiarkan nyata. */
 async function stubApi(page: Page, opts: Stub) {
   const seen: { chat: number; prefs: unknown[] } = { chat: 0, prefs: [] };
   await page.route("**/*", async (route: Route) => {
