@@ -21,16 +21,19 @@
  *     `<main>`, target sentuh >= 44 px, dan teks kontras AA.
  */
 import Link from "next/link";
+import { useState } from "react";
 import { Bot, ArrowRight, BookOpen, Plug, Workflow } from "lucide-react";
 import { I18nProvider, useI18n } from "@/i18n/context";
 import { HydrationReady } from "@/i18n/HydrationReady";
 import { SkipToContent } from "@/components/SkipToContent";
 import { BrandMark } from "@/components/BrandMark";
 import { MagneticLogoCloud } from "@/components/logo-cloud";
+import { LoginModal } from "@/components/auth/login-modal";
 import { denseLogos } from "@/lib/dense-logos";
 
 function Landing() {
   const { t } = useI18n();
+  const [loginOpen, setLoginOpen] = useState(false);
   return (
     <>
       <SkipToContent />
@@ -39,12 +42,22 @@ function Landing() {
           <Link href="/chat" aria-label="Katalir" className="rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent">
             <BrandMark data-testid="landing-logo" />
           </Link>
-          <Link
-            href="/chat"
-            className="rounded-md border border-border px-3 py-2 text-footnote text-fg-muted transition-colors hover:text-fg"
-          >
-            {t("landing.openApp")}
-          </Link>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => setLoginOpen(true)}
+              data-testid="landing-signin-trigger"
+              className="rounded-md border border-border px-3 py-2 text-footnote font-medium text-fg transition-colors hover:bg-bg-subtle focus-visible:shadow-focus"
+            >
+              {t("nav.login")}
+            </button>
+            <Link
+              href="/chat"
+              className="rounded-md border border-border px-3 py-2 text-footnote text-fg-muted transition-colors hover:text-fg"
+            >
+              {t("landing.openApp")}
+            </Link>
+          </div>
         </header>
 
         <main>
@@ -170,6 +183,7 @@ function Landing() {
           </div>
         </footer>
       </div>
+      <LoginModal open={loginOpen} onOpenChange={setLoginOpen} />
     </>
   );
 }

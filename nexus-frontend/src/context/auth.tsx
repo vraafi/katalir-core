@@ -8,6 +8,7 @@ import {
   ReactNode,
 } from "react";
 import { supabase } from "@/lib/supabase";
+import * as authActions from "@/lib/auth-actions";
 import { invalidateChatQueries } from "@/lib/query-client";
 import { isHydrated, onHydrated } from "@/i18n/hydration-signal";
 
@@ -17,6 +18,12 @@ interface AuthContextValue {
   displayName: string | null;
   loading: boolean;
   signInWithGoogle: () => Promise<void>;
+  signInWithGithub: () => Promise<void>;
+  signInWithEmail: (email: string, password: string) => Promise<{ error: string | null }>;
+  signUpWithEmail: (
+    email: string,
+    password: string
+  ) => Promise<{ error: string | null; needsConfirmation: boolean }>;
   signOut: () => Promise<void>;
   getToken: () => Promise<string | null>;
 }
@@ -99,16 +106,25 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     };
   }, []);
 
+  /**
+   * Session-reading context. The actual sign-in calls live in
+   * `@/lib/auth-actions` so the landing page can offer a modal without
+   * pulling `AuthProvider` (and supabase-js) into the landing bundle.
+   */
   async function signInWithGoogle() {
-    // Preserve the user's intended destination across the external OAuth
-    // round-trip. The landing page has no useful post-login destination, so
-    // it defaults to /chat; all other pages retain their path and query.
-    const currentPath = `${window.location.pathname}${window.location.search}`;
-    const returnTo = currentPath === "/" || currentPath === "" ? "/chat" : currentPath;
-    await supabase.auth.signInWithOAuth({
-      provider: "google",
-      options: { redirectTo: `${window.location.origin}${returnTo}` },
-    });
+    await authActions.signInWithProvider("google");
+  }
+
+  async function signInWithGithub() {
+    await authActions.signInWithProvider("github");
+  }
+
+  async function signInWithEmail(email: string, password: string) {
+    return authActions.signInWithEmail(email, password);
+  }
+
+  async function signUpWithEmail(email: string, password: string) {
+    return authActions.signUpWithEmail(email, password);
   }
 
   /**
@@ -152,7 +168,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   return (
     <AuthContext.Provider
-      value={{ email, avatarUrl, displayName, loading, signInWithGoogle, signOut, getToken }}
+      value={{
+        email,
+        avatarUrl,
+        displayName,
+        loading,
+        signInWithGoogle,
+        signInWithGithub,
+        signInWithEmail,
+        signUpWithEmail,
+        signOut,
+        getToken,
+      }}
     >
       {children}
     </AuthContext.Provider>
