@@ -7,6 +7,11 @@
  * call_verified. Everything else checks the controls exist and move real state.
  */
 import { test, expect } from "@playwright/test";
+import { skipIfBackendDown } from "./helpers/backend";
+
+test.beforeEach(async ({ request }) => {
+  await skipIfBackendDown(request);
+});
 
 const API_ORIGIN = process.env.E2E_BACKEND_URL || "http://127.0.0.1:8000";
 const TIERS = ["call_verified", "auth_required", "tools_listed", "discovered"] as const;

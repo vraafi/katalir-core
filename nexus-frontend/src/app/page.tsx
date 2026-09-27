@@ -81,7 +81,7 @@ function Landing() {
             className="pointer-events-none absolute inset-0 -z-10"
             data-testid="hero-logo-layer"
           >
-            <MagneticLogoCloud gap={24} size={24} cell={48} radius={250} strength={1.5} opacity={1} />
+            <MagneticLogoCloud gap={24} size={24} cell={48} radius={350} strength={3} opacity={1} />
           </div>
 
           <div

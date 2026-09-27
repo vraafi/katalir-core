@@ -1,4 +1,9 @@
 import { test, expect } from "@playwright/test";
+import { skipIfBackendDown } from "./helpers/backend";
+
+test.beforeEach(async ({ request }) => {
+  await skipIfBackendDown(request);
+});
 
 /**
  * F3.5 visual evidence for the marketplace.

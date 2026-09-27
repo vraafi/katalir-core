@@ -1,4 +1,9 @@
 import { test, expect, type Page, type APIRequestContext } from "@playwright/test";
+import { skipIfBackendDown } from "./helpers/backend";
+
+test.beforeEach(async ({ request }) => {
+  await skipIfBackendDown(request);
+});
 import { existsSync, readFileSync, mkdirSync } from "node:fs";
 import { join, dirname } from "node:path";
 import { tmpdir } from "node:os";

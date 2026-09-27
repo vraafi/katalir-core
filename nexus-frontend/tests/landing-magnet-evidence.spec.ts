@@ -78,7 +78,14 @@ test.describe("magnetic evidence", () => {
     let frame = 0;
     let maxDisplacement = 0;
     let totalOverlaps = 0;
-    let worstOverlap = 0;
+    // Worst single-tile overshoot past the cursor, in px. Bounded, not zero:
+    // a soft spring always overshoots a little, and that is the requested feel.
+    let worstOvershoot = 0;
+    // Closest centre-to-centre distance seen between two neighbouring cards
+    // across the whole sweep. This is the collision solver's real output and
+    // is what proves the tiles BOUNCE (stay at contact distance) rather than
+    // merge (collapse toward zero).
+    let minContact = Infinity;
     for (const p of probes) {
       await page.mouse.move(p.x, p.y);
       await page.waitForTimeout(900);
@@ -86,14 +93,26 @@ test.describe("magnetic evidence", () => {
       const disp = moved.map((m, i) => Math.hypot(m.x - settled[i].x, m.y - settled[i].y));
       report[p.name] = Number(Math.max(...disp).toFixed(1));
 
-      // A tile must never end up further from the cursor than it started. An
-      // unclamped force above 1.0 sends it past the cursor and out the far side.
-      // Measured per probe, against THIS probe's cursor - comparing every probe
-      // against one shared snapshot of the field is meaningless.
-      overshoots += moved.filter((m, i) => {
+      // Overshoot measurement. The ORIGINAL check here asserted zero tiles ever
+      // end up further from the cursor than they started, because the old force
+      // was clamped to `Math.min(1, ...)` and a tile could not travel past the
+      // cursor. That clamp is now deliberately GONE: the brief asks for a soft
+      // spring, and an underdamped spring overshoots its target by definition.
+      // So "zero overshoot" is no longer the right invariant.
+      //
+      // The invariant that IS right: overshoot must be BOUNDED. A few px past
+      // the cursor is the flowing bounce. Overshooting far past it is the
+      // vibration artefact the old comment warned about (a dozen tiles buzzing
+      // rather than a shoal). So measure the worst overshoot in px and bound
+      // that, rather than counting events and demanding none.
+      for (let i = 0; i < moved.length; i++) {
         const d0 = Math.hypot(settled[i].x - p.x, settled[i].y - p.y);
-        return Math.hypot(m.x - p.x, m.y - p.y) > d0 + 1.5;
-      }).length;
+        const d1 = Math.hypot(moved[i].x - p.x, moved[i].y - p.y);
+        if (d1 > d0 + 1.5) {
+          overshoots++;
+          worstOvershoot = Math.max(worstOvershoot, d1 - d0);
+        }
+      }
 
       // Task D: the collision-free bound, measured from the laid-out grid. The
       // grid is `minmax(cell, 1fr)`, so columns stretch and the real pitch is
@@ -126,11 +145,19 @@ test.describe("magnetic evidence", () => {
             if (dx < 2 && dy > 2 && dy < minY) minY = dy;
           }
         }
-        const free = Math.min(minX - rest[0].w, minY - rest[0].h);
-        const limit = (free / 2) * 0.9;
+        // The old test asserted `maxD <= gap/2` (a ~10.75px ceiling) and
+        // `overlaps === 0`. Both are gone: the brief now asks for a DRAMATIC
+        // field where tiles travel 30-50px and visibly BOUNCE off each other.
+        // A zero-overlap assertion would forbid the exact effect that was
+        // requested, and the old travel ceiling is what made the field look
+        // inert in the first place.
+        //
+        // What is still a real defect, and is asserted instead:
+        //   - every probe must move the field (no dead zones), and
+        //   - travel must actually be dramatic, not merely non-zero.
         let maxD = 0;
-        let overlaps = 0;
-        let worst = 0;
+        let minNeighbour = Infinity;
+        let fused = 0;
         for (let i = 0; i < rest.length; i++) {
           maxD = Math.max(maxD, Math.hypot(rest[i].dx, rest[i].dy));
           for (let j = i + 1; j < rest.length; j++) {
@@ -141,27 +168,31 @@ test.describe("magnetic evidence", () => {
             const isNeighbour =
               (Math.abs(rx - minX) < 3 && ry < 3) || (Math.abs(ry - minY) < 3 && rx < 3);
             if (!isNeighbour) continue;
-            const ox = Math.min(a.cx + a.dx + a.w / 2, c.cx + c.dx + c.w / 2) -
-              Math.max(a.cx + a.dx - a.w / 2, c.cx + c.dx - c.w / 2);
-            const oy = Math.min(a.cy + a.dy + a.h / 2, c.cy + c.dy + c.h / 2) -
-              Math.max(a.cy + a.dy - a.h / 2, c.cy + c.dy - c.h / 2);
-            const o = Math.min(ox, oy);
-            if (o > 0.5) {
-              overlaps++;
-              worst = Math.max(worst, o);
-            }
+            // Centre-to-centre distance of the two cards, which is the
+            // quantity the collision solver actually maintains.
+            const d = Math.hypot(
+              a.cx + a.dx - (c.cx + c.dx),
+              a.cy + a.dy - (c.cy + c.dy),
+            );
+            if (d < minNeighbour) minNeighbour = d;
+            // FUSING is the failure mode to forbid: two cards collapsing into
+            // one indistinguishable blob. The solver's contact distance is
+            // cardWidth * 0.86, so a pair materially closer than the card
+            // width means the glyphs are on top of each other, not touching.
+            if (d < rest[0].w * 0.7) fused++;
           }
         }
-        return { limit: +limit.toFixed(2), maxD: +maxD.toFixed(2), overlaps, worst: +worst.toFixed(2) };
+        return {
+          maxD: +maxD.toFixed(2),
+          minNeighbour: minNeighbour === Infinity ? null : +minNeighbour.toFixed(2),
+          fused,
+        };
       });
       maxDisplacement = Math.max(maxDisplacement, geom.maxD);
-      totalOverlaps += geom.overlaps;
-      worstOverlap = Math.max(worstOverlap, geom.worst);
-      // 0.5px tolerance absorbs sub-pixel rounding in the matrix readback.
-      expect(
-        geom.maxD,
-        `tile travelled ${geom.maxD}px, past the collision-free bound of ${geom.limit}px`,
-      ).toBeLessThanOrEqual(geom.limit + 0.5);
+      totalOverlaps += geom.fused;
+      if (geom.minNeighbour !== null) {
+        minContact = Math.min(minContact, geom.minNeighbour);
+      }
 
       await page.screenshot({ path: `f6-shots/magnet/0${++frame}-${p.name}.png` });
     }
@@ -188,19 +219,21 @@ test.describe("magnetic evidence", () => {
       return { deadPct: +((dead / total) * 100).toFixed(1), samples: total };
     });
 
-    console.log("MAGNETIC", JSON.stringify({ ...report, overshoots, maxDisplacement, totalOverlaps, worstOverlap, ...reach }));
+    console.log("MAGNETIC", JSON.stringify({ ...report, overshoots, worstOvershoot: +worstOvershoot.toFixed(1), maxDisplacement, fusedPairs: totalOverlaps, minContact, ...reach }));
 
-    // The old assertion here was `some probe > 80px`. It encoded the UNCLAMPED
-    // behaviour: tiles used to travel up to 93px, which is 4x the 24px of free
-    // space between two cards, so adjacent cards overlapped by ~20px. Asserting
-    // a large travel figure was asserting the bug. The invariants that matter
-    // are now: EVERY sampled point moves the field, no tile passes the
-    // collision-free bound, no neighbour pair overlaps, and nothing overshoots
-    // the cursor.
+    // The old assertion here was `some probe > 80px`, then a `gap/2` ceiling and
+    // `overlaps === 0`. That encoded a deliberately COOL field, and it is the
+    // opposite of what was asked for. The brief now wants a dramatic pull where
+    // tiles travel 30-50px and visibly bounce off one another.
     //
-    // "Every probe" rather than "some probe" is the load-bearing part. With a
-    // stale centre cache two of three probes read 0.0px and the suite still
-    // passed, because only one probe had to exceed the threshold.
+    // So the invariants are inverted, not deleted:
+    //   - every probe must move the field (no dead zones), AND
+    //   - the peak travel must be DRAMATIC, not merely non-zero, AND
+    //   - tiles must not FUSE (collapse into one blob).
+    //
+    // "Every probe" rather than "some probe" stays load-bearing: with a stale
+    // centre cache two of three probes read 0.0px and the suite still passed,
+    // because only one probe had to exceed the threshold.
     const dead = Object.entries(report)
       .filter(([, v]) => v <= 0.5)
       .map(([k]) => k);
@@ -208,12 +241,32 @@ test.describe("magnetic evidence", () => {
       dead,
       `magnet dead at ${dead.length}/${Object.keys(report).length} probes: ${JSON.stringify(report)}`,
     ).toEqual([]);
+    // The drama floor. The previous bar was 3px, which any drift cleared; 25px
+    // is the brief's stated minimum and is an order of magnitude above the old
+    // ~10.75px ceiling, so this fails loudly if the field regresses to a drift.
     expect(
-      Math.max(...Object.values(report)),
-      `field looks frozen: peak travel was only ${JSON.stringify(report)}px`,
-    ).toBeGreaterThan(3);
-    expect(totalOverlaps, `${totalOverlaps} neighbouring card pairs overlapped`).toBe(0);
-    expect(worstOverlap).toBe(0);
-    expect(overshoots, `${overshoots} tiles passed through the cursor`).toBe(0);
+      maxDisplacement,
+      `field is not dramatic: peak travel was only ${maxDisplacement}px`,
+    ).toBeGreaterThan(25);
+    // FUSING is the one thing that must never happen: cards collapsing into a
+    // single unreadable blob. Contact at ~0.86x the card width is the intended
+    // look; anything under 0.7x means glyphs are on top of each other.
+    expect(totalOverlaps, `${totalOverlaps} neighbouring card pairs fused into a blob`).toBe(0);
+    // The bounce itself: some pair must have been pushed to real contact. If the
+    // field never actually collides, the physics is decorative, not dramatic.
+    expect(
+      minContact,
+      `no collision ever occurred - closest neighbour pair stayed ${minContact}px apart`,
+    ).toBeLessThan(48);
+    // Bounded overshoot, not zero. A soft underdamped spring always travels a
+    // little past its target; that IS the requested "flowing" feel. What must
+    // not happen is a tile flying far past the cursor and out the other side,
+    // which is the vibration artefact rather than a bounce. The bound is
+    // generous (well above a normal spring's ~10% overshoot) but far below the
+    // distance a tile can actually travel, so a runaway spring still fails.
+    expect(
+      worstOvershoot,
+      `a tile overshot the cursor by ${worstOvershoot.toFixed(1)}px - the spring is ringing, not bouncing`,
+    ).toBeLessThan(25);
   });
 });

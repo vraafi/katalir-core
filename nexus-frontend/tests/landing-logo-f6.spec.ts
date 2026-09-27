@@ -411,10 +411,11 @@ test.describe("F6 landing logo cloud", () => {
     expect(after, "magnetic effect did not move the tile").not.toBe(before);
     expect(after).not.toBe("none");
 
-    // Task D: the tile must move, but only within the collision-free bound.
-    // A tile directly under the cursor has a legitimate displacement of ~0, so
-    // the bound is asserted separately below against the whole field rather
-    // than against this one tile.
+    // The tile under the cursor must move. A tile directly beneath the pointer
+    // has a legitimate displacement near zero, so this is asserted against the
+    // field as a whole in the evidence sweep; here it is a smoke test that the
+    // hovered cell reacts at all. The dramatic-travel and collision invariants
+    // live in landing-magnet-evidence.spec.ts, which samples the whole field.
     const moved = await tile.evaluate((el) => {
       const m = new DOMMatrix(getComputedStyle(el).transform);
       return Math.hypot(m.m41, m.m42);

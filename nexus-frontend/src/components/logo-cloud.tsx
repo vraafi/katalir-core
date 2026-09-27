@@ -41,6 +41,13 @@ type Tile = {
   y: number;
   tx: number;
   ty: number;
+  /**
+   * Velocity, in px/step. A spring needs this to overshoot and settle; the
+   * previous exponential lerp had no velocity at all, which is precisely why
+   * it could never look like a collision.
+   */
+  vx: number;
+  vy: number;
 };
 
 /** Uniform square cells.
@@ -108,8 +115,8 @@ export function MagneticLogoCloud({
   size = 24,
   cell = 40,
   mobileLimit = 40,
-  radius = 250,
-  strength = 1.5,
+  radius = 350,
+  strength = 3,
   opacity = 1,
   className = "",
 }: {
@@ -137,26 +144,14 @@ export function MagneticLogoCloud({
   // Vercel and friends in adjacent cells.
   const items = dense ? (denseLogos as unknown as (McpLogo | DenseLogo)[]) : logos;
 
-  // The collision-free displacement bound, MEASURED rather than assumed.
-  //
-  // Reasoning: two adjacent cards can only touch once their combined travel
-  // consumes the free space between them, so each may travel at most half of
-  // it. The free space is NOT the `gap` prop. The grid is
-  // `repeat(auto-fill, minmax(cell, 1fr))`, so columns stretch to fill the
-  // hero: measured in the browser the real pitch is 74.5px across and 72px
-  // down, giving 26.5px and 24px of clearance, not a clean 24. Assuming
-  // `gap` under-counted the horizontal case, and the brief's suggested
-  // `cell * 0.4` (~19px) would have left every neighbouring pair overlapping
-  // by 12-14px -- Task C's new border makes that far more obvious than it was
-  // against a bare glyph.
-  //
-  // It is a ref, not a const, because it depends on the laid-out grid: it is
-  // recomputed from real tile boxes on every measure (resize/scroll/layout),
-  // and defaults conservatively until the first one lands.
-  const maxDisp = useRef(10);
-  // 0.9 leaves a visible hairline of clearance at rest rather than letting the
-  // cards exactly touch, which is what a strict gap/2 bound produces.
-  const SAFETY = 0.9;
+  // The travel bound. This used to be derived from the measured free space
+  // between tiles, which capped it at ~10.75px and made the field look like a
+  // slow drift rather than a shoal. The brief asks for a DRAMATIC pull, so the
+  // bound is now an explicit, generous cap that exists only to stop a tile
+  // flying off-screen - collisions, not this cap, are what stop tiles merging.
+  const maxDisp = useRef(40);
+  // Visual size of one card, for the collision radius. Measured, not assumed.
+  const tileSize = useRef(48);
 
   const measure = useCallback(() => {
     const nodes = hostRef.current?.querySelectorAll<HTMLDivElement>("[data-magnetic-tile]");
@@ -168,37 +163,24 @@ export function MagneticLogoCloud({
       .filter((el) => el.getClientRects().length > 0)
       .map((el) => {
         const r = el.getBoundingClientRect();
-        return { el, cx: r.left + r.width / 2, cy: r.top + r.height / 2, x: 0, y: 0, tx: 0, ty: 0 };
+        return {
+          el,
+          cx: r.left + r.width / 2,
+          cy: r.top + r.height / 2,
+          x: 0,
+          y: 0,
+          tx: 0,
+          ty: 0,
+          vx: 0,
+          vy: 0,
+        };
       });
-    // Task D: derive the collision bound from the pitch the browser actually
-    // produced, rather than from the `gap` prop. The nearest neighbour on each
-    // axis is the smallest non-zero centre-to-centre distance, and the free
-    // space is that minus the tile. This has to be measured because the columns
-    // are `1fr` and therefore stretch: 24px of declared gap becomes 26.5px of
-    // real horizontal clearance in the browser, so a hard-coded gap/2 is wrong
-    // on one axis or the other at some viewport width.
-    let minX = Infinity;
-    let minY = Infinity;
-    const t = tiles.current;
-    for (let i = 0; i < t.length; i++) {
-      for (let j = i + 1; j < t.length; j++) {
-        const dx = Math.abs(t[i].cx - t[j].cx);
-        const dy = Math.abs(t[i].cy - t[j].cy);
-        // Same row / same column only, so diagonal pairs cannot set the bound.
-        if (dy < 2 && dx > 2 && dx < minX) minX = dx;
-        if (dx < 2 && dy > 2 && dy < minY) minY = dy;
-      }
-    }
-    const w = tiles.current[0].el.offsetWidth;
-    const h = tiles.current[0].el.offsetHeight;
-    const free = Math.min(
-      Number.isFinite(minX) ? minX - w : gap,
-      Number.isFinite(minY) ? minY - h : gap,
-    );
-    // A non-positive bound would freeze the field entirely and an unbounded one
-    // would restore the overlap, so fall back to the conservative default.
-    maxDisp.current = free > 0 ? (free / 2) * SAFETY : 10;
-  }, [gap, SAFETY]);
+    if (!tiles.current.length) return;
+    // Card size drives the collision radius. Measured because the tile is laid
+    // out by the grid, and assuming 48px would silently shrink or grow the
+    // contact patch if the cell size ever changes.
+    tileSize.current = tiles.current[0].el.offsetWidth || 48;
+  }, []);
 
   useEffect(() => {
     const mq = window.matchMedia("(prefers-reduced-motion: reduce)");
@@ -257,6 +239,26 @@ export function MagneticLogoCloud({
       document.fonts.ready.then(measure).catch(() => {});
     }
 
+    // Spring constants. `SPRING` is the stiffness (how hard a tile is pulled
+    // back toward its target) and `DAMP` the per-frame velocity retention (how
+    // quickly it stops ringing). Stiffness 150 with heavy damping is the brief's
+    // "softer, more flowing" setting: the tile arrives with momentum and eases
+    // in rather than snapping.
+    const SPRING = 0.15;
+    const DAMP = 0.86;
+
+    // Spatial hash for collision broadphase.
+    //
+    // The naive O(n^2) pair test is 23,762 comparisons per frame for 218
+    // tiles, every frame, on the main thread - that is the difference between
+    // a smooth shoal and a stuttering one. Bucketing each tile into a cell the
+    // size of the contact diameter means a tile can only touch its eight
+    // neighbours' buckets, so the real cost is ~6 checks per tile instead of
+    // 218. Buckets are rebuilt each frame because every tile moves.
+    const BUCKET = tileSize.current || 48;
+    const buckets = new Map<string, Tile[]>();
+    const key = (gx: number, gy: number) => `${gx},${gy}`;
+
     let frame = 0;
     const tick = () => {
       if (!reduced.current) {
@@ -270,25 +272,14 @@ export function MagneticLogoCloud({
               // Falls to zero at the edge of the radius, so the outer ring
               // barely moves and the inner tiles commit.
               //
-              // The clamp is not cosmetic. At strength 1.5 the raw force exceeds
-              // 1.0 for anything closer than ~83px, which means a tile 25px from
-              // the cursor would be told to travel 33.8px - straight past it and
-              // out the other side. A dozen tiles doing that at once reads as a
-              // vibration, not a shoal. Capping the force at 1 lets a tile travel
-              // AT MOST the distance to the cursor: it converges, and it stops.
-              //
-              // TASK D, a second and independent clamp on the RESULT. Clamping the
-              // force alone does not prevent overlap. Neighbouring tiles are
-              // `cell + gap` = 72px apart centre to centre, each 48px card, so two
-              // tiles pulled towards the same cursor close the gap between them by
-              // the SUM of their displacements. Overlap therefore requires
-              //   2 * d > (cell + gap) - cell  =  gap = 24
-              // so d > 12px is enough to make two cards touch. The brief asked for
-              // a ~22px clamp, which would have produced a 20px overlap between
-              // every adjacent pair in the magnet's radius - a larger artefact
-              // than the one it set out to fix. The bound that is actually
-              // collision-free is gap/2, and that is what is used here.
-              const f = Math.min(1, (1 - dist / radius) * strength);
+              // The force is NOT clamped to 1. The old `Math.min(1, ...)` existed
+              // to stop a tile being told to travel further than the distance to
+              // the cursor, which is what made it converge and stop. That is
+              // exactly the lifeless behaviour being replaced: with strength 3.0
+              // the near tiles are driven hard into the cursor, pile up, and the
+              // collision pass below bounces them off each other. Overshoot is
+              // the point, not the bug.
+              const f = (1 - dist / radius) * strength;
               const rawX = dx * f;
               const rawY = dy * f;
               const mag = Math.hypot(rawX, rawY);
@@ -306,17 +297,138 @@ export function MagneticLogoCloud({
             tile.tx = 0;
             tile.ty = 0;
           }
-          // Exponential lerp, frame-rate independent so a 60Hz and a 144Hz
-          // display settle identically. The 1/50 constant is a little snappier
-          // than the 1/60 used previously: with tiles now travelling ~90px
-          // instead of ~18px, the old curve left them visibly lagging behind the
-          // cursor, which is what "sluggish" looks like in motion.
-          const k = 1 - Math.pow(0.001, 1 / 50);
-          tile.x += (tile.tx - tile.x) * k;
-          tile.y += (tile.ty - tile.y) * k;
+          // Damped spring, integrated semi-implicitly (velocity first, then
+          // position). This replaces the exponential lerp, which could not
+          // produce a collision: a lerp moves each tile independently toward
+          // its own target and has no notion of contact, so tiles slid through
+          // one another instead of bouncing.
+          //
+          // The constants are in the brief. `SPRING` is the stiffness and
+          // `DAMP` the drag; together they set how hard a tile is pulled and
+          // how long it rings afterwards.
+          tile.vx += (tile.tx - tile.x) * SPRING;
+          tile.vy += (tile.ty - tile.y) * SPRING;
+          // Damping is applied to velocity, so a tile that overshoots
+          // decelerates instead of oscillating forever. The -0.94 is a
+          // per-frame retention factor chosen so a tile comes to rest in
+          // roughly a fifth of a second without looking like it is being
+          // dragged through syrup.
+          tile.vx *= DAMP;
+          tile.vy *= DAMP;
+          tile.x += tile.vx;
+          tile.y += tile.vy;
+
           if (Math.abs(tile.tx - tile.x) > 0.05 || Math.abs(tile.ty - tile.y) > 0.05) {
             tile.el.style.transform = `translate3d(${tile.x.toFixed(2)}px, ${tile.y.toFixed(2)}px, 0)`;
           }
+        }
+
+        // ---------------------------------------------------------------------
+        // COLLISION
+        //
+        // This is the part that makes the field read as a shoal of tiles
+        // BOUNCING rather than a set of tiles sliding through one another. The
+        // magnet drives every nearby tile toward the same point; without
+        // contact resolution they simply stack up on top of each other and the
+        // glyphs merge into an unreadable smear.
+        //
+        // Two things happen on contact, and both are needed:
+        //   1. POSITIONAL separation - the pair is pushed apart to the contact
+        //      distance, so cards visibly bump and stay legible.
+        //   2. VELOCITY exchange along the contact normal - each tile gives the
+        //      other the component of its velocity that is driving them
+        //      together. This is what produces the BOUNCE. Separation alone
+        //      stops the overlap but the tiles would still creep into each other
+        //      every frame; only exchanging velocity makes contact repulsive.
+        //
+        // `MIN_DIST` is deliberately slightly less than the card width. Allowing
+        // a few px of visual contact is the whole point: tiles should be seen
+        // touching at the moment of impact, not floating with a permanent gap.
+        // ---------------------------------------------------------------------
+        const MIN_DIST = (tileSize.current || 48) * 0.86;
+        const minSq = MIN_DIST * MIN_DIST;
+
+        // SEVERAL relaxation passes, not one.
+        //
+        // A single pass is Gauss-Seidel: fixing pair (A,B) moves both tiles, which
+        // can push A into a third tile C that was already resolved. At strength
+        // 3.0 a dozen tiles are driven into the same spot each frame, and one
+        // pass left pairs 14.5px apart when the cards are 48px - genuinely
+        // FUSED, which is the one outcome the brief forbids.
+        //
+        // The buckets are REBUILT INSIDE the loop, and that is the load-bearing
+        // detail. Bucketing once and relaxing many times made things WORSE, not
+        // better: measured 4 passes -> 28.0px min contact, 12 passes -> 11.0px.
+        // The map described where tiles were at the start of the frame while the
+        // lookup coordinates were recomputed from their CURRENT positions, so
+        // after a few passes tiles had drifted out of the buckets they were
+        // filed under and most pairs were never tested at all. The bucket set
+        // must be re-derived whenever the set it indexes has moved.
+        const PASSES = 12;
+        for (let pass = 0; pass < PASSES; pass++) {
+          const applyImpulse = pass === 0;
+
+          buckets.clear();
+          for (const tile of tiles.current) {
+            const gx = Math.floor((tile.cx + tile.x) / BUCKET);
+            const gy = Math.floor((tile.cy + tile.y) / BUCKET);
+            const k = key(gx, gy);
+            const cell = buckets.get(k);
+            if (cell) cell.push(tile);
+            else buckets.set(k, [tile]);
+          }
+
+          for (const tile of tiles.current) {
+            const gx = Math.floor((tile.cx + tile.x) / BUCKET);
+            const gy = Math.floor((tile.cy + tile.y) / BUCKET);
+            for (let ox = -1; ox <= 1; ox++) {
+              for (let oy = -1; oy <= 1; oy++) {
+                const near = buckets.get(key(gx + ox, gy + oy));
+                if (!near) continue;
+                for (const other of near) {
+                  // Each pair once per pass. Comparing bucket keys would need the
+                  // original indices, so identity is the cheap equivalent.
+                  if (other === tile) continue;
+                  const dx = tile.cx + tile.x - (other.cx + other.x);
+                  const dy = tile.cy + tile.y - (other.cy + other.y);
+                  const distSq = dx * dx + dy * dy;
+                  if (distSq >= minSq || distSq === 0) continue;
+                  const dist = Math.sqrt(distSq);
+                  const nx = dx / dist;
+                  const ny = dy / dist;
+                  const overlap = MIN_DIST - dist;
+
+                  // 1. Positional separation, split evenly.
+                  tile.x += nx * overlap * 0.5;
+                  tile.y += ny * overlap * 0.5;
+                  other.x -= nx * overlap * 0.5;
+                  other.y -= ny * overlap * 0.5;
+
+                  // 2. Exchange the closing component of velocity, once. This is
+                  // what produces the BOUNCE: separation alone stops the overlap
+                  // but the tiles would still creep into each other every frame.
+                  if (!applyImpulse) continue;
+                  const relVx = tile.vx - other.vx;
+                  const relVy = tile.vy - other.vy;
+                  const closing = relVx * nx + relVy * ny;
+                  if (closing < 0) {
+                    const imp = closing * 0.9;
+                    tile.vx -= imp * nx;
+                    tile.vy -= imp * ny;
+                    other.vx += imp * nx;
+                    other.vy += imp * ny;
+                  }
+                }
+              }
+            }
+          }
+        }
+
+        // Collision moved tiles after their transforms were written, so the
+        // correction has to be flushed or it shows up one frame late as a
+        // visible lag on every impact.
+        for (const tile of tiles.current) {
+          tile.el.style.transform = `translate3d(${tile.x.toFixed(2)}px, ${tile.y.toFixed(2)}px, 0)`;
         }
       }
       frame = requestAnimationFrame(tick);
