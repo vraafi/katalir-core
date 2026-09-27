@@ -30,6 +30,40 @@ si_ci = {n[2:].lower(): n for n in si}
 
 lo = {d.name for d in (ROOT / 'node_modules/@lobehub/icons/es').iterdir() if d.is_dir()}
 
+LO_DIR = ROOT / 'node_modules/@lobehub/icons/es'
+
+
+def lobehub_primary(icon):
+    """The brand's own primary colour, read from the pack's style.js.
+
+    WHY THIS IS NEEDED, measured on production 368881c: `import { OpenAI } from
+    '@lobehub/icons'` binds the Mono component (`var Icons = Mono` in the
+    package's own index.js), and Mono paints `fill: currentColor`. With no
+    colour prop the glyph inherits the theme foreground, so 73 brands rendered
+    as flat grey. The previous theory -- that the "grey" logos were a fallback
+    placeholder -- was wrong: 0 tiles had a missing fill, 0 network image
+    requests were made, and every tile carried `filter: none; opacity: 1`.
+    The grey was never a placeholder. It was the correct glyph, unpainted.
+
+    There is no `Combine`-style multicolor alternative: Combine is Mono plus a
+    wordmark, not a second colour. `colorPrimary` IS the brand colour, and
+    these are the library's own values rather than ones invented here.
+
+    A value of `#fff` is returned as None on purpose. It is a real primary for
+    14 of the 73 (Azure, Copilot, Cursor, Midjourney, Ollama, XAI, ...) but
+    the hero is a light surface, so painting those white would delete them
+    rather than colour them. They keep the foreground and stay visible.
+    """
+    style = LO_DIR / icon / 'style.js'
+    if not style.exists():
+        return None
+    m = re.search(r"COLOR_PRIMARY\s*=\s*['\"](#[0-9A-Fa-f]{3,8})['\"]",
+                  style.read_text(encoding='utf-8'))
+    if not m:
+        return None
+    return None if m.group(1).lower() in ('#fff', '#ffffff') else m.group(1)
+
+
 candidates = (ROOT / 'scripts/dense-candidates.txt').read_text(encoding='utf-8').splitlines()
 
 found, missing, dupes = {}, [], []
@@ -45,7 +79,8 @@ for line in candidates:
     if s_slug and s_slug.lower() in si_ci:
         found[brand] = {'pack': 'simple-icons', 'icon': si_ci[s_slug.lower()]}
     elif l_dir and l_dir in lo:
-        found[brand] = {'pack': 'lobehub', 'icon': l_dir}
+        found[brand] = {'pack': 'lobehub', 'icon': l_dir,
+                        'color': lobehub_primary(l_dir)}
     else:
         missing.append(brand)
 

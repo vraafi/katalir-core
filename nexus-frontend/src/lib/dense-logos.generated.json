@@ -1,7 +1,8 @@
 {
  "OpenAI": {
   "pack": "lobehub",
-  "icon": "OpenAI"
+  "icon": "OpenAI",
+  "color": "#000"
  },
  "Anthropic": {
   "pack": "simple-icons",
@@ -29,7 +30,8 @@
  },
  "Groq": {
   "pack": "lobehub",
-  "icon": "Groq"
+  "icon": "Groq",
+  "color": "#F55036"
  },
  "Perplexity": {
   "pack": "simple-icons",
@@ -37,99 +39,123 @@
  },
  "Cohere": {
   "pack": "lobehub",
-  "icon": "Cohere"
+  "icon": "Cohere",
+  "color": "#39594D"
  },
  "LangChain": {
   "pack": "lobehub",
-  "icon": "LangChain"
+  "icon": "LangChain",
+  "color": "#7FC8FF"
  },
  "LangGraph": {
   "pack": "lobehub",
-  "icon": "LangGraph"
+  "icon": "LangGraph",
+  "color": "#1C3C3C"
  },
  "LangSmith": {
   "pack": "lobehub",
-  "icon": "LangSmith"
+  "icon": "LangSmith",
+  "color": "#1C3C3C"
  },
  "LlamaIndex": {
   "pack": "lobehub",
-  "icon": "LlamaIndex"
+  "icon": "LlamaIndex",
+  "color": "#000"
  },
  "Ollama": {
   "pack": "lobehub",
-  "icon": "Ollama"
+  "icon": "Ollama",
+  "color": null
  },
  "CrewAI": {
   "pack": "lobehub",
-  "icon": "CrewAI"
+  "icon": "CrewAI",
+  "color": null
  },
  "Mastra": {
   "pack": "lobehub",
-  "icon": "Mastra"
+  "icon": "Mastra",
+  "color": "#000"
  },
  "DeepSeek": {
   "pack": "lobehub",
-  "icon": "DeepSeek"
+  "icon": "DeepSeek",
+  "color": "#4D6BFE"
  },
  "DeepMind": {
   "pack": "lobehub",
-  "icon": "DeepMind"
+  "icon": "DeepMind",
+  "color": "#4285F4"
  },
  "Qwen": {
   "pack": "lobehub",
-  "icon": "Qwen"
+  "icon": "Qwen",
+  "color": "#615ced"
  },
  "Gemma": {
   "pack": "lobehub",
-  "icon": "Gemma"
+  "icon": "Gemma",
+  "color": "#2E96FF"
  },
  "Bedrock": {
   "pack": "lobehub",
-  "icon": "Bedrock"
+  "icon": "Bedrock",
+  "color": "#222F3E"
  },
  "VertexAI": {
   "pack": "lobehub",
-  "icon": "VertexAI"
+  "icon": "VertexAI",
+  "color": "#4285F4"
  },
  "AzureAI": {
   "pack": "lobehub",
-  "icon": "AzureAI"
+  "icon": "AzureAI",
+  "color": "#000"
  },
  "XAI": {
   "pack": "lobehub",
-  "icon": "XAI"
+  "icon": "XAI",
+  "color": null
  },
  "Grok": {
   "pack": "lobehub",
-  "icon": "Grok"
+  "icon": "Grok",
+  "color": "#000"
  },
  "Cerebras": {
   "pack": "lobehub",
-  "icon": "Cerebras"
+  "icon": "Cerebras",
+  "color": "#F15A29"
  },
  "Baseten": {
   "pack": "lobehub",
-  "icon": "Baseten"
+  "icon": "Baseten",
+  "color": "#19E76E"
  },
  "Fireworks": {
   "pack": "lobehub",
-  "icon": "Fireworks"
+  "icon": "Fireworks",
+  "color": "#5019C5"
  },
  "DeepInfra": {
   "pack": "lobehub",
-  "icon": "DeepInfra"
+  "icon": "DeepInfra",
+  "color": null
  },
  "Together": {
   "pack": "lobehub",
-  "icon": "Together"
+  "icon": "Together",
+  "color": null
  },
  "Baseten2": {
   "pack": "lobehub",
-  "icon": "Baseten"
+  "icon": "Baseten",
+  "color": "#19E76E"
  },
  "Jina": {
   "pack": "lobehub",
-  "icon": "Jina"
+  "icon": "Jina",
+  "color": "#000"
  },
  "Qdrant": {
   "pack": "simple-icons",
@@ -137,11 +163,13 @@
  },
  "Langfuse": {
   "pack": "lobehub",
-  "icon": "Langfuse"
+  "icon": "Langfuse",
+  "color": "#1B1917"
  },
  "WeightsAndBiases": {
   "pack": "lobehub",
-  "icon": "Wandb"
+  "icon": "Wandb",
+  "color": "#FFCC33"
  },
  "PyTorch": {
   "pack": "simple-icons",
@@ -173,7 +201,8 @@
  },
  "Colab": {
   "pack": "lobehub",
-  "icon": "Colab"
+  "icon": "Colab",
+  "color": "#F9AB00"
  },
  "Kaggle": {
   "pack": "simple-icons",
@@ -185,7 +214,8 @@
  },
  "GitHubCopilot": {
   "pack": "lobehub",
-  "icon": "GithubCopilot"
+  "icon": "GithubCopilot",
+  "color": "#000"
  },
  "GitLab": {
   "pack": "simple-icons",
@@ -205,7 +235,8 @@
  },
  "Railway": {
   "pack": "lobehub",
-  "icon": "Railway"
+  "icon": "Railway",
+  "color": "#853bce"
  },
  "Render": {
   "pack": "simple-icons",
@@ -245,11 +276,13 @@
  },
  "AWS": {
   "pack": "lobehub",
-  "icon": "Aws"
+  "icon": "Aws",
+  "color": "#222F3E"
  },
  "Azure": {
   "pack": "lobehub",
-  "icon": "Azure"
+  "icon": "Azure",
+  "color": null
  },
  "GoogleCloud": {
   "pack": "simple-icons",
@@ -261,11 +294,13 @@
  },
  "TencentCloud": {
   "pack": "lobehub",
-  "icon": "Tencent"
+  "icon": "Tencent",
+  "color": "#0052D9"
  },
  "BaiduCloud": {
   "pack": "lobehub",
-  "icon": "BaiduCloud"
+  "icon": "BaiduCloud",
+  "color": "#2468f2"
  },
  "DigitalOcean": {
   "pack": "simple-icons",
@@ -293,15 +328,18 @@
  },
  "IBM": {
   "pack": "lobehub",
-  "icon": "IBM"
+  "icon": "IBM",
+  "color": "#0F62FE"
  },
  "Zeabur": {
   "pack": "lobehub",
-  "icon": "Zeabur"
+  "icon": "Zeabur",
+  "color": "#6300FF"
  },
  "WorkersAI": {
   "pack": "lobehub",
-  "icon": "WorkersAI"
+  "icon": "WorkersAI",
+  "color": "#F38020"
  },
  "Docker": {
   "pack": "simple-icons",
@@ -585,35 +623,43 @@
  },
  "Adobe": {
   "pack": "lobehub",
-  "icon": "Adobe"
+  "icon": "Adobe",
+  "color": "#EB1000"
  },
  "AdobeFirefly": {
   "pack": "lobehub",
-  "icon": "AdobeFirefly"
+  "icon": "AdobeFirefly",
+  "color": "#EB1000"
  },
  "Ideogram": {
   "pack": "lobehub",
-  "icon": "Ideogram"
+  "icon": "Ideogram",
+  "color": null
  },
  "Midjourney": {
   "pack": "lobehub",
-  "icon": "Midjourney"
+  "icon": "Midjourney",
+  "color": null
  },
  "Runway": {
   "pack": "lobehub",
-  "icon": "Runway"
+  "icon": "Runway",
+  "color": null
  },
  "ElevenLabs": {
   "pack": "lobehub",
-  "icon": "ElevenLabs"
+  "icon": "ElevenLabs",
+  "color": null
  },
  "Suno": {
   "pack": "lobehub",
-  "icon": "Suno"
+  "icon": "Suno",
+  "color": "#000"
  },
  "Udio": {
   "pack": "lobehub",
-  "icon": "Udio"
+  "icon": "Udio",
+  "color": "#e30a5d"
  },
  "Typeform": {
   "pack": "simple-icons",
@@ -689,7 +735,8 @@
  },
  "Snowflake": {
   "pack": "lobehub",
-  "icon": "Snowflake"
+  "icon": "Snowflake",
+  "color": "#249EDC"
  },
  "Databricks": {
   "pack": "simple-icons",
@@ -769,114 +816,142 @@
  },
  "N8n": {
   "pack": "lobehub",
-  "icon": "N8n"
+  "icon": "N8n",
+  "color": "#EA4B71"
  },
  "Make": {
   "pack": "lobehub",
-  "icon": "Make"
+  "icon": "Make",
+  "color": "#ff009a"
  },
  "Firecrawl": {
   "pack": "lobehub",
-  "icon": "Firecrawl"
+  "icon": "Firecrawl",
+  "color": "#ff4d00"
  },
  "Tavily": {
   "pack": "lobehub",
-  "icon": "Tavily"
+  "icon": "Tavily",
+  "color": null
  },
  "Exa": {
   "pack": "lobehub",
-  "icon": "Exa"
+  "icon": "Exa",
+  "color": "#1f40ed"
  },
  "Cline": {
   "pack": "lobehub",
-  "icon": "Cline"
+  "icon": "Cline",
+  "color": "#323B43"
  },
  "Cursor": {
   "pack": "lobehub",
-  "icon": "Cursor"
+  "icon": "Cursor",
+  "color": "#000"
  },
  "Windsurf": {
   "pack": "lobehub",
-  "icon": "Windsurf"
+  "icon": "Windsurf",
+  "color": null
  },
  "Replit": {
   "pack": "lobehub",
-  "icon": "Replit"
+  "icon": "Replit",
+  "color": "#FD5402"
  },
  "Copilot": {
   "pack": "lobehub",
-  "icon": "Copilot"
+  "icon": "Copilot",
+  "color": null
  },
  "Devin": {
   "pack": "lobehub",
-  "icon": "Devin"
+  "icon": "Devin",
+  "color": null
  },
  "Dify": {
   "pack": "lobehub",
-  "icon": "Dify"
+  "icon": "Dify",
+  "color": "#03F"
  },
  "Lovable": {
   "pack": "lobehub",
-  "icon": "Lovable"
+  "icon": "Lovable",
+  "color": "#000"
  },
  "Manus": {
   "pack": "lobehub",
-  "icon": "Manus"
+  "icon": "Manus",
+  "color": null
  },
  "Poe": {
   "pack": "lobehub",
-  "icon": "Poe"
+  "icon": "Poe",
+  "color": "#000"
  },
  "Moxt": {
   "pack": "lobehub",
-  "icon": "Moxt"
+  "icon": "Moxt",
+  "color": "#29C16A"
  },
  "V0": {
   "pack": "lobehub",
-  "icon": "V0"
+  "icon": "V0",
+  "color": "#000"
  },
  "ComfyUI": {
   "pack": "lobehub",
-  "icon": "ComfyUI"
+  "icon": "ComfyUI",
+  "color": "#F0FF41"
  },
  "Gradio": {
   "pack": "lobehub",
-  "icon": "Gradio"
+  "icon": "Gradio",
+  "color": null
  },
  "LmStudio": {
   "pack": "lobehub",
-  "icon": "LmStudio"
+  "icon": "LmStudio",
+  "color": "#4338CA"
  },
  "Lambda": {
   "pack": "lobehub",
-  "icon": "Lambda"
+  "icon": "Lambda",
+  "color": "#000"
  },
  "Glama": {
   "pack": "lobehub",
-  "icon": "Glama"
+  "icon": "Glama",
+  "color": "#000"
  },
  "Smithery": {
   "pack": "lobehub",
-  "icon": "Smithery"
+  "icon": "Smithery",
+  "color": "#EA580C"
  },
  "GiteeAI": {
   "pack": "lobehub",
-  "icon": "GiteeAI"
+  "icon": "GiteeAI",
+  "color": "#000"
  },
  "SearXNG": {
   "pack": "lobehub",
-  "icon": "SearXNG"
+  "icon": "SearXNG",
+  "color": "#3050FF"
  },
  "SiliconFlow": {
   "pack": "lobehub",
-  "icon": "SiliconCloud"
+  "icon": "SiliconCloud",
+  "color": "#6E29F6"
  },
  "ModelScope": {
   "pack": "lobehub",
-  "icon": "ModelScope"
+  "icon": "ModelScope",
+  "color": "#624AFF"
  },
  "Poe2": {
   "pack": "lobehub",
-  "icon": "Poe"
+  "icon": "Poe",
+  "color": "#000"
  }
 }

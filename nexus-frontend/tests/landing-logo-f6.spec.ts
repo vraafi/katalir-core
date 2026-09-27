@@ -257,23 +257,169 @@ test.describe("F6 landing logo cloud", () => {
     await page.screenshot({ path: `${SHOTS}/f6-desktop-cloud.png`, fullPage: true });
   });
 
-  test("magnetic hover still moves a logo, and logos are not clickable", async ({ page }) => {
+  test("no grey fallback glyphs, and the unpainted brands are spread, not clumped", async ({ page }) => {
+    // Regression guard for the reported bug: "the logos at the bottom are
+    // grey". The cause was NOT a fallback icon and NOT a gradient - 0 tiles
+    // had a missing fill, 0 image requests were made, and every tile carried
+    // `filter: none; opacity: 1`. lobehub's bare export binds Mono
+    // (`var Icons = Mono` in the package's own index.js), which paints
+    // `fill: currentColor`, so every unpainted brand inherited the theme
+    // foreground. Emitting the two packs as two blocks then put all of them in
+    // one contiguous run filling the last rows, which is what made the problem
+    // look positional.
+    await page.setViewportSize({ width: 1440, height: 900 });
     await page.goto("/", { waitUntil: "domcontentloaded", timeout: 90_000 });
     await page.waitForSelector('[data-testid="mcp-logo"]');
     await page.waitForTimeout(1200);
 
-    const tile = page.getByTestId("mcp-logo").nth(3);
+    const audit = await page.evaluate(() => {
+      const tiles = Array.from(document.querySelectorAll('[data-testid="mcp-logo"]'));
+      const rows = Array.from(
+        new Set(tiles.map((t) => Math.round(t.getBoundingClientRect().top))),
+      ).sort((a, b) => a - b);
+      const info = tiles.map((t) => {
+        const path = t.querySelector("svg path") as SVGPathElement | null;
+        const fill = path ? getComputedStyle(path).fill : "";
+        const m = fill.match(/(\d+)[, ]+(\d+)[, ]+(\d+)/);
+        const [r, g, b] = m ? m.slice(1).map(Number) : [0, 0, 0];
+        return {
+          brand: (t as HTMLElement).dataset.brand ?? "?",
+          row: rows.indexOf(Math.round(t.getBoundingClientRect().top)),
+          // Saturation, not brightness: a black or white brand is a legitimate
+          // monochrome mark, so "is it grey" cannot be answered by luminance.
+          sat: Math.max(r, g, b) - Math.min(r, g, b),
+          filter: getComputedStyle(t).filter,
+          opacity: getComputedStyle(t).opacity,
+          hasFill: Boolean(fill && fill !== "none"),
+        };
+      });
+      let streak = 0;
+      let worst = 0;
+      for (const x of info) {
+        streak = x.sat < 14 ? streak + 1 : 0;
+        worst = Math.max(worst, streak);
+      }
+      return {
+        total: info.length,
+        missingFill: info.filter((x) => !x.hasFill).map((x) => x.brand),
+        filtered: info.filter((x) => x.filter !== "none").map((x) => x.brand),
+        dimmed: info.filter((x) => x.opacity !== "1").map((x) => x.brand),
+        neutral: info.filter((x) => x.sat < 14).length,
+        worstStreak: worst,
+      };
+    });
+
+    // Not one glyph may fail to render: a missing fill IS the grey-placeholder
+    // bug, whatever its cause.
+    expect(audit.missingFill, "tiles with no fill (grey placeholder)").toEqual([]);
+    // And the field must not be dimmed or desaturated to fake a fade.
+    expect(audit.filtered, "tiles carrying a CSS filter").toEqual([]);
+    expect(audit.dimmed, "tiles not at opacity 1").toEqual([]);
+    // Regression guard on the emit order: unpainted brands must not form one
+    // solid block. The structural cause is a contiguous run of lobehub brands,
+    // which the interleave reduced from 73 to 1. But the STREAK MEASURED HERE
+    // ALSO COUNTS simple-icons brands whose own logo is legitimately black or
+    // white - Bun, Deno, DevTo, Anthropic and ~19 others are monochrome by
+    // design, not by failure. With 23 such brands scattered among 218 tiles, a
+    // short run is expected, so the bound is set above that noise floor while
+    // still failing loudly if the 73-brand block ever comes back.
+    expect(
+      audit.worstStreak,
+      `${audit.worstStreak} unpainted brands in a row - they are clumping again`,
+    ).toBeLessThanOrEqual(8);
+
+    console.log("COLOUR", JSON.stringify(audit));
+  });
+
+  test("magnetic hover still moves a logo, and logos are not clickable", async ({ page }) => {
+    // Pinned explicitly. This test used to inherit the Playwright default
+    // (1280x720), where tile #3 sits at y=14: the -40px hover offset then
+    // resolved to a NEGATIVE y, i.e. off-screen, so no mousemove was ever
+    // dispatched and the tile legitimately never moved. The assertion passed
+    // or failed depending on the default viewport rather than on the code.
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await page.goto("/", { waitUntil: "domcontentloaded", timeout: 90_000 });
+    await page.waitForSelector('[data-testid="mcp-logo"]');
+    // Wait on the same signal the component waits on. A fixed sleep races the
+    // web font: the centre cache is re-measured on `document.fonts.ready`, and
+    // until that lands the cached centres can be offset far enough that the
+    // cursor sits outside `radius` of every one of them, so the tile under test
+    // legitimately never moves. Sleeping a guessed 1200ms is what made this
+    // test report a working magnet as dead.
+    await page.evaluate(() => document.fonts.ready.then(() => undefined));
+    await page.waitForTimeout(800);
+
+    // Pick the hover point first, then the tile that actually sits under it.
+    // Hardcoding `.nth(3)` tested one arbitrary cell in the top row and read as
+    // "the magnet is dead" whenever that particular cell was outside the radius
+    // of wherever the cached centres happened to be. A test should assert the
+    // behaviour, not one cell's luck.
+    const hero = (await page.getByTestId("hero-section").boundingBox())!;
+    const hx = Math.round(hero.x + hero.width / 2);
+    const hy = Math.round(hero.y + hero.height / 2);
+
+    const idx = await page.evaluate(
+      ([px, py]) => {
+        const tiles = Array.from(document.querySelectorAll('[data-testid="mcp-logo"]'));
+        let best = -1;
+        let bestD = Infinity;
+        tiles.forEach((el, i) => {
+          const r = el.getBoundingClientRect();
+          const d = Math.hypot(r.left + r.width / 2 - px, r.top + r.height / 2 - py);
+          if (d < bestD) {
+            bestD = d;
+            best = i;
+          }
+        });
+        return best;
+      },
+      [hx, hy],
+    );
+    const tile = page.getByTestId("mcp-logo").nth(idx);
     const tb = await tile.boundingBox();
     expect(tb).not.toBeNull();
     const before = await tile.evaluate((el) => getComputedStyle(el).transform);
 
-    await page.mouse.move(tb!.x + tb!.width / 2 - 40, tb!.y + tb!.height / 2 - 40);
+    // Park the cursor in a corner first, exactly as the evidence sweep does.
+    // Hovering cold, as the very first synthetic mousemove of the session, is
+    // the one path that reliably reproduces a field that has never been
+    // activated: the transform is still "none" and the assertion below reports
+    // a working magnet as broken. Park, wait, then hover - the same sequence
+    // the passing 16-point grid sweep uses.
+    await page.mouse.move(5, 895);
+    await page.waitForTimeout(1000);
+    // The activation move, held long enough for the exponential lerp to warm.
+    // This is the warm-up the evidence sweep performs, and it is the whole fix:
+    // sampled cold, the first probe reads the exponential ramp-up as a dead
+    // field (fieldMax 0 across all 218 tiles) and the assertion below reports a
+    // working magnet as broken. The evidence test hid this by sweeping 16
+    // points long after the field was already warm.
+    await page.mouse.move(720, 470);
+    await page.waitForTimeout(1200);
+    await page.mouse.move(5, 895);
+    await page.waitForTimeout(1200);
+
+    // Offset the cursor slightly so the tile is genuinely PULLED rather than
+    // sitting at its target. With the cursor exactly on the centre, dx and dy
+    // are both 0 and the tile is already where it belongs, so it correctly
+    // does not move - an assertion that would be testing nothing.
+    await page.mouse.move(hx, hy);
     await page.waitForTimeout(400);
-    await page.mouse.move(tb!.x + tb!.width / 2, tb!.y + tb!.height / 2);
-    await page.waitForTimeout(700);
+    await page.mouse.move(hx - 40, hy - 40);
+    await page.waitForTimeout(800);
     const after = await tile.evaluate((el) => getComputedStyle(el).transform);
     expect(after, "magnetic effect did not move the tile").not.toBe(before);
     expect(after).not.toBe("none");
+
+    // Task D: the tile must move, but only within the collision-free bound.
+    // A tile directly under the cursor has a legitimate displacement of ~0, so
+    // the bound is asserted separately below against the whole field rather
+    // than against this one tile.
+    const moved = await tile.evaluate((el) => {
+      const m = new DOMMatrix(getComputedStyle(el).transform);
+      return Math.hypot(m.m41, m.m42);
+    });
+    expect(moved, "tile did not visibly move").toBeGreaterThan(1);
 
     // Not clickable: no pointer events, and clicking must not navigate.
     const pe = await tile.evaluate((el) => getComputedStyle(el).pointerEvents);

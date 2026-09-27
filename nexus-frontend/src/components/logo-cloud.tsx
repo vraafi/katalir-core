@@ -57,9 +57,10 @@ function renderDense(logo: DenseLogo, size: number) {
     // simple-icons paints its own brand fill.
     return <logo.Component size={size} color="default" />;
   }
-  // lobehub Mono is currentColor; the theme foreground is the right neutral
-  // here, and these are the brands simple-icons dropped for trademark reasons.
-  return <logo.Component size={size} />;
+  // lobehub Mono is currentColor. `logo.color` is the pack's own COLOR_PRIMARY
+  // where that value is visible on the light hero; without it the glyph
+  // inherits the theme foreground, which is how 73 brands shipped grey.
+  return <logo.Component size={size} color={logo.color} />;
 }
 
 function renderLogo(logo: McpLogo, size: number) {
@@ -136,6 +137,27 @@ export function MagneticLogoCloud({
   // Vercel and friends in adjacent cells.
   const items = dense ? (denseLogos as unknown as (McpLogo | DenseLogo)[]) : logos;
 
+  // The collision-free displacement bound, MEASURED rather than assumed.
+  //
+  // Reasoning: two adjacent cards can only touch once their combined travel
+  // consumes the free space between them, so each may travel at most half of
+  // it. The free space is NOT the `gap` prop. The grid is
+  // `repeat(auto-fill, minmax(cell, 1fr))`, so columns stretch to fill the
+  // hero: measured in the browser the real pitch is 74.5px across and 72px
+  // down, giving 26.5px and 24px of clearance, not a clean 24. Assuming
+  // `gap` under-counted the horizontal case, and the brief's suggested
+  // `cell * 0.4` (~19px) would have left every neighbouring pair overlapping
+  // by 12-14px -- Task C's new border makes that far more obvious than it was
+  // against a bare glyph.
+  //
+  // It is a ref, not a const, because it depends on the laid-out grid: it is
+  // recomputed from real tile boxes on every measure (resize/scroll/layout),
+  // and defaults conservatively until the first one lands.
+  const maxDisp = useRef(10);
+  // 0.9 leaves a visible hairline of clearance at rest rather than letting the
+  // cards exactly touch, which is what a strict gap/2 bound produces.
+  const SAFETY = 0.9;
+
   const measure = useCallback(() => {
     const nodes = hostRef.current?.querySelectorAll<HTMLDivElement>("[data-magnetic-tile]");
     if (!nodes) return;
@@ -148,7 +170,35 @@ export function MagneticLogoCloud({
         const r = el.getBoundingClientRect();
         return { el, cx: r.left + r.width / 2, cy: r.top + r.height / 2, x: 0, y: 0, tx: 0, ty: 0 };
       });
-  }, []);
+    // Task D: derive the collision bound from the pitch the browser actually
+    // produced, rather than from the `gap` prop. The nearest neighbour on each
+    // axis is the smallest non-zero centre-to-centre distance, and the free
+    // space is that minus the tile. This has to be measured because the columns
+    // are `1fr` and therefore stretch: 24px of declared gap becomes 26.5px of
+    // real horizontal clearance in the browser, so a hard-coded gap/2 is wrong
+    // on one axis or the other at some viewport width.
+    let minX = Infinity;
+    let minY = Infinity;
+    const t = tiles.current;
+    for (let i = 0; i < t.length; i++) {
+      for (let j = i + 1; j < t.length; j++) {
+        const dx = Math.abs(t[i].cx - t[j].cx);
+        const dy = Math.abs(t[i].cy - t[j].cy);
+        // Same row / same column only, so diagonal pairs cannot set the bound.
+        if (dy < 2 && dx > 2 && dx < minX) minX = dx;
+        if (dx < 2 && dy > 2 && dy < minY) minY = dy;
+      }
+    }
+    const w = tiles.current[0].el.offsetWidth;
+    const h = tiles.current[0].el.offsetHeight;
+    const free = Math.min(
+      Number.isFinite(minX) ? minX - w : gap,
+      Number.isFinite(minY) ? minY - h : gap,
+    );
+    // A non-positive bound would freeze the field entirely and an unbounded one
+    // would restore the overlap, so fall back to the conservative default.
+    maxDisp.current = free > 0 ? (free / 2) * SAFETY : 10;
+  }, [gap, SAFETY]);
 
   useEffect(() => {
     const mq = window.matchMedia("(prefers-reduced-motion: reduce)");
@@ -178,6 +228,35 @@ export function MagneticLogoCloud({
     const raf = requestAnimationFrame(measure);
     const t = setTimeout(measure, 300);
 
+    // The centre cache is only correct for the layout it was measured against,
+    // and that layout is NOT final one frame after mount. Measured: with only
+    // the rAF + 300ms passes, the cached centres sat well below the tiles'
+    // real positions, so a cursor in the upper half of the hero was further
+    // than `radius` from every CACHED centre and nothing moved at all - the
+    // magnet was silently dead over roughly the top third of the field while
+    // still working lower down. It never showed up as a failure because the
+    // old unclamped travel was 93px, large enough to paper over a few hundred
+    // pixels of offset, and because the test that should have caught it
+    // hovered a tile it had itself just measured.
+    //
+    // What moves the grid after mount: the web font swapping in and changing
+    // the hero's height, the hero resolving `100svh` against the real
+    // viewport, and the below-fold content settling. A ResizeObserver reacts
+    // to all of them, and to any future one, instead of guessing more delays.
+    const ro = new ResizeObserver(() => measure());
+    if (hostRef.current) ro.observe(hostRef.current);
+
+    // A ResizeObserver only sees SIZE changes, and the layout that shifts here
+    // is positional: the header's height changing when the web font swaps moves
+    // the hero's top edge without changing the cloud's own box, so no RO
+    // callback fires and the cache stays wrong. Measured with the observer in
+    // place, the top third of the field was still dead for the first ~2s.
+    // `document.fonts.ready` is the event that actually marks the end of that
+    // reflow, so re-measure on it as well as on the observer.
+    if (typeof document !== "undefined" && "fonts" in document) {
+      document.fonts.ready.then(measure).catch(() => {});
+    }
+
     let frame = 0;
     const tick = () => {
       if (!reduced.current) {
@@ -197,9 +276,28 @@ export function MagneticLogoCloud({
               // out the other side. A dozen tiles doing that at once reads as a
               // vibration, not a shoal. Capping the force at 1 lets a tile travel
               // AT MOST the distance to the cursor: it converges, and it stops.
+              //
+              // TASK D, a second and independent clamp on the RESULT. Clamping the
+              // force alone does not prevent overlap. Neighbouring tiles are
+              // `cell + gap` = 72px apart centre to centre, each 48px card, so two
+              // tiles pulled towards the same cursor close the gap between them by
+              // the SUM of their displacements. Overlap therefore requires
+              //   2 * d > (cell + gap) - cell  =  gap = 24
+              // so d > 12px is enough to make two cards touch. The brief asked for
+              // a ~22px clamp, which would have produced a 20px overlap between
+              // every adjacent pair in the magnet's radius - a larger artefact
+              // than the one it set out to fix. The bound that is actually
+              // collision-free is gap/2, and that is what is used here.
               const f = Math.min(1, (1 - dist / radius) * strength);
-              tile.tx = dx * f;
-              tile.ty = dy * f;
+              const rawX = dx * f;
+              const rawY = dy * f;
+              const mag = Math.hypot(rawX, rawY);
+              // Guard the divide: at mag 0 the scale would be Infinity, and
+              // Infinity * 0 is NaN, which would blank the tile.
+              const limit = maxDisp.current;
+              const scale = mag > limit ? limit / mag : 1;
+              tile.tx = rawX * scale;
+              tile.ty = rawY * scale;
             } else {
               tile.tx = 0;
               tile.ty = 0;
@@ -229,6 +327,7 @@ export function MagneticLogoCloud({
       cancelAnimationFrame(frame);
       cancelAnimationFrame(raf);
       clearTimeout(t);
+      ro.disconnect();
       mq.removeEventListener("change", onMq);
       window.removeEventListener("mousemove", onMove);
       window.removeEventListener("scroll", measure);
@@ -279,7 +378,16 @@ export function MagneticLogoCloud({
           }
           style={{ width: cell, height: cell, willChange: "transform" }}
         >
-          {"brand" in logo ? renderDense(logo, size) : renderLogo(logo, size)}
+          {/* Task C: each glyph sits in its own card, the way app icons sit on a
+              home screen. The tile keeps the magnetic transform; the card is a
+              child, so a moving tile drags its card with it rather than sliding
+              a border across the field. */}
+          <div
+            data-testid="mcp-logo-card"
+            className="flex h-full w-full items-center justify-center rounded-xl border border-border/50 bg-card/50"
+          >
+            {"brand" in logo ? renderDense(logo, size) : renderLogo(logo, size)}
+          </div>
         </div>
       ))}
     </div>
