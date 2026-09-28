@@ -248,7 +248,7 @@ export const en = {
     oauthLoadFailed: "Connection status could not be loaded.",
     oauthConnected: "{provider} connected successfully.",
     oauthDenied: "{provider} was not connected ({reason}).",
-    slackRevokeNote: "Disconnecting here removes the token from the Vault. To fully revoke it, also remove this app from your Slack workspace.",
+    revokeNote: "Disconnecting removes the token from the Vault. To fully revoke, remove Katalir from {target}.",
     dangerZone: "Danger Zone",
     dangerDesc: "Deleting your account is permanent and cannot be undone.",
     deleteAccount: "Delete Account",

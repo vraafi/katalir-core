@@ -216,11 +216,30 @@ interface OAuthCardSpec {
   authorize: string;
   disconnect: string;
   testid: string;
+  /** Tujuan pencabutan penuh, dipakai disclaimer.
+   *  Dulu disclaimer hanya ada di Slack (`card.id === "slack"`), jadi kartu
+   *  Google lebih pendek dan tombolnya tidak sejajar. Sekarang setiap kartu
+   *  punya teks sendiri dengan struktur yang sama. */
+  revokeTarget: string;
 }
 
 const OAUTH_CARDS: OAuthCardSpec[] = [
-  { id: "google", provider: "Google Sheets", authorize: "/oauth/google/authorize", disconnect: "/oauth/google", testid: "card-oauth-google" },
-  { id: "slack", provider: "Slack", authorize: "/oauth/slack/authorize", disconnect: "/oauth/slack", testid: "card-oauth-slack" },
+  {
+    id: "google",
+    provider: "Google Sheets",
+    authorize: "/oauth/google/authorize",
+    disconnect: "/oauth/google",
+    testid: "card-oauth-google",
+    revokeTarget: "Google account permissions",
+  },
+  {
+    id: "slack",
+    provider: "Slack",
+    authorize: "/oauth/slack/authorize",
+    disconnect: "/oauth/slack",
+    testid: "card-oauth-slack",
+    revokeTarget: "Slack workspace",
+  },
 ];
 
 interface OAuthState {
@@ -332,7 +351,10 @@ function ConnectionsSection() {
         <CardDescription>{t("settings.connectionsDesc")}</CardDescription>
       </CardHeader>
       <CardContent>
-        <div data-testid="oauth-cards" className="grid gap-3 sm:grid-cols-2">
+        <div
+          data-testid="oauth-cards"
+          className="grid items-stretch gap-3 sm:grid-cols-2"
+        >
           {OAUTH_CARDS.map((card) => {
             const st = state[card.id];
             const loading = !st?.loaded;
@@ -341,7 +363,7 @@ function ConnectionsSection() {
               <div
                 key={card.id}
                 data-testid={card.testid}
-                className="flex flex-col gap-2 rounded-md border border-border p-3"
+                className="flex h-full flex-col gap-2 rounded-md border border-border p-3"
               >
                 <div className="flex items-center justify-between gap-2">
                   <span className="text-footnote font-medium text-fg">{card.provider}</span>
@@ -386,11 +408,24 @@ function ConnectionsSection() {
                     </Button>
                   </div>
                 )}
-                <div className="mt-auto pt-1">
+                {/*
+                  Footer. `mt-auto` MENYEJAKANKAN tombol ke dasar kartu, dan
+                  disclaimer sekarang DI DALAM footer ini -- sebelumnya berada
+                  di luar, sehingga pada kartu Slack (yang punya disclaimer)
+                  `mt-auto` tidak lagi mendorong apa pun ke bawah dan kedua
+                  kartu jadi berbeda tinggi. Disclaimer juga dirender untuk
+                  SETIAP provider, bukan hanya saat `card.id === "slack"`,
+                  jadi strukturnya identik.
+                */}
+                <div
+                  className="mt-auto flex flex-col gap-2 pt-1"
+                  data-testid={`oauth-footer-${card.id}`}
+                >
                   {st?.connected ? (
                     <Button
                       variant="danger"
                       size="sm"
+                      className="self-start"
                       data-testid={`oauth-disconnect-${card.id}`}
                       loading={busy === card.id}
                       onClick={() => void disconnect(card)}
@@ -401,6 +436,7 @@ function ConnectionsSection() {
                     <Button
                       variant="primary"
                       size="sm"
+                      className="self-start"
                       data-testid={`oauth-connect-${card.id}`}
                       loading={busy === card.id}
                       disabled={loading}
@@ -409,10 +445,13 @@ function ConnectionsSection() {
                       {t("settings.connect", { provider: card.provider })}
                     </Button>
                   )}
+                  <p
+                    className="text-caption text-fg-subtle"
+                    data-testid={`oauth-revoke-${card.id}`}
+                  >
+                    {t("settings.revokeNote", { target: card.revokeTarget })}
+                  </p>
                 </div>
-                {card.id === "slack" && st?.connected && (
-                  <p className="text-caption text-fg-subtle">{t("settings.slackRevokeNote")}</p>
-                )}
               </div>
             );
           })}
@@ -470,10 +509,12 @@ function SettingsContent() {
           <CardDescription>{t("settings.languageDesc")}</CardDescription>
         </CardHeader>
         <CardContent>
+          {/* Catatan "Saved automatically on this device." TIDAK ditulis di sini:
+              `LanguageSwitcher` sudah merendernya sendiri sebagai bagian dari
+              komponennya. Duplikat ini pernah tampil dua kali berturut-turut dan
+              terbaca seperti salah ketik, bukan pesan. Komponen yang memegang
+              teks; halaman cukup menempelkannya. */}
           <LanguageSwitcher />
-          <p id="language-note" className="mt-2 text-caption text-fg-subtle">
-            {t("settings.languageNote")}
-          </p>
         </CardContent>
       </Card>
 

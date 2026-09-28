@@ -253,7 +253,7 @@ export const id = {
     oauthLoadFailed: "Status koneksi tidak bisa dimuat.",
     oauthConnected: "{provider} berhasil terhubung.",
     oauthDenied: "{provider} tidak terhubung ({reason}).",
-    slackRevokeNote: "Menghapus di sini menghapus token dari Brankas. Untuk mencabut penuh, hapus juga app ini di workspace Slack Anda.",
+    revokeNote: "Menghapus di sini menghapus token dari Brankas. Untuk mencabut penuh, hapus Katalir dari {target}.",
     dangerZone: "Zona Berbahaya",
     dangerDesc: "Menghapus akun bersifat permanen dan tidak bisa dibatalkan.",
     deleteAccount: "Hapus Akun",
