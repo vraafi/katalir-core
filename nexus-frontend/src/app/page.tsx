@@ -29,11 +29,50 @@ import { SkipToContent } from "@/components/SkipToContent";
 import { BrandMark } from "@/components/BrandMark";
 import { MagneticLogoCloud } from "@/components/logo-cloud";
 import { LoginModal } from "@/components/auth/login-modal";
+import { supabase } from "@/lib/supabase";
 import { denseLogos } from "@/lib/dense-logos";
 
 function Landing() {
   const { t } = useI18n();
   const [loginOpen, setLoginOpen] = useState(false);
+  const [checkingSession, setCheckingSession] = useState(false);
+
+  /**
+   * CTA utama: "Start now".
+   *
+   * DULUNYA ini `<Link href="/chat">`, jadi pengunjung yang BELUM masuk
+   * mengkliknya langsung mendarat di /chat dan hanya melihat "Please sign
+   * in first" — persis laporan yang masuk. Link tidak bisa membuka modal.
+   *
+   * Sekarang: kalau sudah punya sesi, terus ke /chat; kalau belum, buka
+   * modal di tempat (tanpa kehilangan halaman). Setelah login, `next`
+   * yang disimpan modal membuat /chat tetap menjadi tujuan.
+   *
+   * CATATAN BUNDLE: `supabase` bukan impor baru yang berat — `LoginModal`
+   * sudah ikut merender di halaman ini (dan menarik `auth-actions` →
+   * `@supabase/supabase-js`), jadi kliennya sudah ada di chunk landing.
+   * Import langsung `@/context/auth` justru DILARANG di sini: `AuthProvider`
+   * hanya terpasang di Shell, sehingga `useAuth()` akan melempar
+   * "must be used within AuthProvider" di landing.
+   */
+  const handleStartNow = async () => {
+    if (checkingSession) return;
+    setCheckingSession(true);
+    try {
+      const { data } = await supabase.auth.getSession();
+      if (data.session) {
+        window.location.assign("/chat");
+        return;
+      }
+      setLoginOpen(true);
+    } catch {
+      // Gagal cek sesi: tetap buka modal. Jangan pernah melempar user ke
+      // /chat hanya karena probe sesi error — itu login wall yang tadi.
+      setLoginOpen(true);
+    } finally {
+      setCheckingSession(false);
+    }
+  };
   return (
     <>
       <SkipToContent />
@@ -115,14 +154,17 @@ function Landing() {
               </p>
 
               <div className="mt-7 flex flex-wrap items-center gap-3">
-                <Link
-                  href="/chat"
+                <button
+                  type="button"
+                  onClick={handleStartNow}
+                  disabled={checkingSession}
+                  aria-busy={checkingSession}
                   data-testid="landing-cta"
-                  className="inline-flex min-h-11 items-center gap-2 rounded-lg bg-accent px-5 py-3 text-subhead font-semibold text-accent-fg shadow-sm transition-transform duration-150 ease-out hover:-translate-y-0.5"
+                  className="inline-flex min-h-11 items-center gap-2 rounded-lg bg-accent px-5 py-3 text-subhead font-semibold text-accent-fg shadow-sm transition-transform duration-150 ease-out hover:-translate-y-0.5 disabled:opacity-70"
                 >
                   {t("landing.cta")}
                   <ArrowRight size={16} strokeWidth={2} aria-hidden />
-                </Link>
+                </button>
                 <Link
                   href="/help"
                   data-testid="landing-cta-secondary"

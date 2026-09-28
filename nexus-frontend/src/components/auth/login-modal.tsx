@@ -71,6 +71,24 @@ export function LoginModal({
     }
   };
 
+  /**
+   * Email/password sign-in never leaves the page, so nothing else will move the
+   * user forward. Closing the modal alone was a dead end: someone who opened it
+   * from the landing CTA wants /chat, and silently leaving them on the landing
+   * page looked identical to a button that does nothing.
+   *
+   * This mirrors the OAuth path on purpose - both consume the same stored
+   * destination, so a user who signs in with a password lands where they would
+   * have landed with GitHub. A full navigation (not the router) is used because
+   * the page mounts no router-backed auth context; the reload is what lets the
+   * app pick up the new session and drop the now-redundant sign-in entry point.
+   */
+  const goAfterAuth = () => {
+    const next = authActions.consumeReturnTo();
+    close(false);
+    window.location.assign(next);
+  };
+
   const handleEmail = async (e: FormEvent) => {
     e.preventDefault();
     setPending("email");
@@ -80,7 +98,7 @@ export function LoginModal({
       if (mode === "signin") {
         const { error: err } = await authActions.signInWithEmail(email, password);
         if (err) setError(err);
-        else close(false);
+        else goAfterAuth();
       } else {
         const { error: err, needsConfirmation } = await authActions.signUpWithEmail(email, password);
         if (err) setError(err);

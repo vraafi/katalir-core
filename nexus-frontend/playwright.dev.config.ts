@@ -78,6 +78,10 @@ export default defineConfig({
     // tidak ada biaya kamera di setiap suite. Gated karena ia gagal kalau
     // magnet berhenti menggerakkan tile, dan itulah yang ingin dijaga.
     "landing-magnet-evidence.spec.ts",
+    // CTA utama landing. Menutup bug yang dilaporkan: `<Link href="/chat">`
+    // mengirim pengunjung anonim ke tembok login. Dua cabang diuji — anonim
+    // (modal terbuka) dan ber-session (langsung ke /chat).
+    "landing-cta.spec.ts",
     // CATATAN: launch-demo.spec.ts sengaja TIDAK ada di testMatch. Ia bukan
     // assertion, melainkan rekaman video untuk launch, dan menambahkannya di
     // sini akan membuat setiap test suite ikut menjalankan kamera. Jalankan
