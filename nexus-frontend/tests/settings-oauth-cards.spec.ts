@@ -70,7 +70,20 @@ test.describe("Settings vs Integrations", () => {
       const results = await new AxeBuilder({ page }).analyze();
       const blocking = results.violations.filter((v) => v.impact === "critical" || v.impact === "serious");
       console.log(`AXE ${route} total=${results.violations.length} blocking=${blocking.length}`);
-      if (blocking.length) console.log("AXE_DETAIL " + JSON.stringify(blocking.map((v) => ({ id: v.id, n: v.nodes.length }))));
+      if (blocking.length) {
+        // Cetak node DETAIL, bukan hanya jumlah: "color-contrast di 9 tempat"
+        // tidak bisa diperbaiki tanpa tahu elemen apa yang terlibat.
+        console.log(
+          "AXE_NODES " +
+            route +
+            " " +
+            JSON.stringify(
+              blocking.flatMap((v) =>
+                v.nodes.slice(0, 12).map((n) => ({ id: v.id, target: n.target.join(" "), msg: (n.failureSummary || "").slice(0, 160) })),
+              ),
+            ),
+        );
+      }
       expect(blocking, `${route}: ${JSON.stringify(blocking.map((v) => v.id))}`).toHaveLength(0);
     }
   });
@@ -186,14 +199,23 @@ test.describe("OAuth cards symmetry", () => {
 
   test("dark mode: kartu tetap simetris dan tidak kehilangan disclaimer", async ({ page }) => {
     await page.setViewportSize({ width: 1440, height: 900 });
+    // Setel tema lewat localStorage milik next-themes (kunci `theme`), bukan
+    // lewat klik. Kontrol `app-theme-dark` hanya ada di /settings, sedangkan
+    // kartu OAuth kini ada di /integrations -- jadi test ini harus cara yang
+    // bekerja di kedua halaman. Kunci `katalir.theme` milik ThemeToggle lama
+    // dan TIDAK dibaca next-themes; menyetelnya membuat test mengukur mode
+    // terang sambil mengira ia mode gelap.
+    await page.addInitScript(() => {
+      try {
+        window.localStorage.setItem("theme", "dark");
+      } catch {
+        /* storage diblokir: kelas di bawah yang menentukan */
+      }
+      document.documentElement.classList.add("dark");
+      document.documentElement.style.colorScheme = "dark";
+    });
     await page.goto(`${BASE}/integrations`, { waitUntil: "load", timeout: 90_000 });
     await page.locator(GOOGLE).waitFor({ state: "visible", timeout: 45_000 });
-
-    // Tekan kontrol tema yang BENAR-BENAR ada di halaman, bukan menebak
-    // localStorage. Halaman ini pakai next-themes (kunci `theme`), sementara
-    // ThemeToggle lama memakai `katalir.theme`; menyetel kunci yang salah
-    // membuat test mengukur mode terang sambil mengira ia mode gelap.
-    await page.locator('[data-testid="app-theme-dark"]').click();
     // Tunggu kelas benar-benar menempel di <html> sebelum mengukur apa pun.
     await page.waitForFunction(
       () => document.documentElement.classList.contains("dark"),

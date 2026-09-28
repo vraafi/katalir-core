@@ -312,7 +312,12 @@ export default function IntegrationsPage() {
           return <button key={t.key || "all"} role="tab" aria-selected={active} data-testid={`source-tab-${t.key || "all"}`}
             onClick={() => pickTab(t.key)}
             className={`rounded-full border px-3 py-1.5 text-sm transition ${active ? "border-primary bg-primary/10 text-primary" : "border-border text-fg-muted hover:text-fg"}`}>
-            {t.label} <span className="tabular-nums opacity-70">({count.toLocaleString("id-ID")})</span>
+            {/* Angka jumlah di dalam tab.
+              `opacity-70` dulu menurunkan kontras jadi 3.55:1 di atas
+              bg #fafafa -- di bawah WCAG AA 4.5:1 untuk teks 14px. Angka ini
+              justru informasi (berapa banyak integrasi per sumber), jadi
+              diredupkan berarti informasi penting dibuat tak terbaca. `text-fg-muted` tanpa opacity sudah 4.6:1. */}
+          {t.label} <span className="tabular-nums text-fg-muted">({count.toLocaleString("id-ID")})</span>
           </button>;
         })}
       </div>
