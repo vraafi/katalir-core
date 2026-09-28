@@ -1136,10 +1136,23 @@ def chat(req: ChatRequest, authorization: str | None = Header(None)):
         # CredentialMissingError, sudah diuji di test_mcp_registry), jadi
         # pemetaan ke `needs_oauth` dilakukan di sini: satu tempat, tidak
         # mengguncang tool yang sudah stabil.
+        # Hanya provider yang alur OAuth-nya benar-benar bisa memenuhi kebutuhannya.
+        #
+        # Pemetaan ini sebelumnya memuat gmail + google_calendar. Keduanya salah,
+        # dan bukan cuma soal scope:
+        #   1. `/oauth/google/authorize` meng-hardcode `scope` menjadi
+        #      `auth/spreadsheets` (lihat oauth_google.SHEETS_SCOPE), jadi consent
+        #      screen tidak pernah meminta izin Gmail/Calendar.
+        #   2. `kirim_email_gmail` membaca `db.get_integration(...)`, bukan
+        #      `user_vault` tempat token OAuth disimpan. Token Sheets secara
+        #      struktur tidak mungkin memakainya.
+        #
+        # Akibatnya user diberi tombol "Connect", menyetujuinya, melihat
+        # "Connected", lalu tool-nya tetap gagal. Mencantumkan gmail sebagai
+        # OAuth menahan janji palsu; `needs_credential` jujur walau form manual
+        # belum punya entri gmail (lihat docs/oauth/provider-status.md).
         _oauth_providers = {
             "google_sheets": "/oauth/google/authorize",
-            "gmail": "/oauth/google/authorize",
-            "google_calendar": "/oauth/google/authorize",
             "slack": "/oauth/slack/authorize",
         }
         connect_url = _oauth_providers.get(str(e.provider_name or "").lower())
