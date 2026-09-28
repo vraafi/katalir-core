@@ -70,7 +70,7 @@ means than discover later that it meant less than you hoped.
 
 - Product: `https://katalir.de5.net`
 - Docs: `https://katalir.de5.net/docs`
-- Repository: _(add before submitting)_
+- Repository: `https://github.com/vraafi/katalir-core`
 
 ---
 
@@ -150,9 +150,16 @@ That is a human production step and is not automated here.
 
 **Before submitting**
 
-- [ ] Add the repository link (we left it blank rather than guess)
-- [ ] Re-run `node verify_roadmap_claims.mjs` — must exit 0
-- [ ] Confirm the live site serves the same numbers as this file
+- [x] Add the repository link (`vraafi/katalir-core`; this is the actual `origin`,
+      read from git rather than guessed)
+- [x] Re-run `node verify_roadmap_claims.mjs` — must exit 0
+- [x] Confirm the live site serves the same numbers as this file
+      (verified 2026-09-28 against `katalir.de5.net`: landing reads
+      "23.474 integrasi unik di katalog, 229 di antaranya terbukti lewat
+      panggilan tool sungguhan"; `/pricing` reads "Akses ke 23.474 integrasi
+      unik di katalog". No `2.864` or `1.000` in visible text on either page —
+      both strings do occur inside inline SVG path data, which is a false
+      positive if you grep the raw HTML.)
 - [ ] Verify payment flow end to end (Dodo verification is **deferred** — see below)
 - [ ] Pick a hunter, or self-post
 - [ ] Set up a 2FA-capable account for the launch account
