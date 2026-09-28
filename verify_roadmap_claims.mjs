@@ -32,6 +32,11 @@ const glamaCatalog = read("glama_connectors.json");
 const f9 = read("docs/audit/n8n-gap-analysis.json");
 const f9prop = read("docs/audit/f9-gap-fill-proposal.json");
 const outreach = read("docs/community/outreach-sea.json");
+// F7.4 sources: the route registration and its behavioural tests. Read as text
+// because what is being claimed is that the code says this, not that some JSON
+// reports it.
+const serverSource = readText("api_server.py");
+const communityTests = readText("tests/test_community.py");
 
 const pool = [...b1.tools_listed_connectors, ...b2.tools_listed_connectors];
 const overlap = b1.tools_listed_connectors.filter((x) => b2.tools_listed_connectors.includes(x)).length;
@@ -136,6 +141,25 @@ const claims = [
     "F7 outreach emails collected",
     "0",
     String((JSON.stringify(outreach).match(/[\w.+-]+@[\w-]+\.[\w.-]+/g) || []).length),
+  ],
+  // F7.4 — the earnings dashboard. The roadmap used to say "blocked: backend
+  // down", which was wrong: the route existed but no test ever exercised what
+  // it returns. These two claims keep the status honest in both directions -
+  // the route must stay registered, and the behavioural coverage must stay in
+  // place rather than quietly shrinking back to the route-existence check.
+  [
+    "F7.4 my-earnings route registered",
+    "1",
+    String(
+      (serverSource.match(/@app\.get\("\/community\/my-earnings"\)/) || []).length
+    ),
+  ],
+  [
+    "F7.4 my-earnings behaviour tests",
+    "5",
+    String(
+      (communityTests.match(/^def test_my_earnings_\w+/gm) || []).length
+    ),
   ],
 ];
 

@@ -207,11 +207,25 @@ rekaman terlihat seperti regresi produk.
 - [ ] F6.1–F6.4 submit, announce, respond · [ ] F6.5 metrics snapshot
 
 ## FASE 7 — Community Outreach
-- [x] F7.1 outreach shortlist (public GitHub profiles only — no emails/contact data) · [x] F7.2 tutorial · [x] F7.3 bounty doc (design only) · [ ] F7.4 dashboard *(blocked: backend down)* · [x] F7.5 waiting-list email
+- [x] F7.1 outreach shortlist (public GitHub profiles only — no emails/contact data) · [x] F7.2 tutorial · [x] F7.3 bounty doc (design only) · [x] F7.4 dashboard · [x] F7.5 waiting-list email
 - F7.1 note: `docs/community/outreach-sea.json` holds public profile data only
   (login, URL, bio, self-declared location, public repos). **No email addresses
   and no scraped contact details** — a human decides who to contact and how.
   Regenerate with `python scripts/collect_outreach_sea.py`.
+  **Country mix is already interleave, not Indonesia-only** (re-measured
+  2026-09-28): 100 profiles across 6 countries — Indonesia 18, Thailand 17,
+  Vietnam 17, Singapore 16, Malaysia 16, Philippines 16; 100 distinct logins,
+  0 emails. An earlier note describing this file as "100% Indonesia" was wrong
+  and no re-generation was needed.
+- F7.4 — **DONE.** `GET /community/my-earnings` in `api_server.py` plus the
+  `/community/my-earnings` page. The earlier "blocked: backend down" note was
+  wrong: the endpoint was already wired, and what was actually missing was test
+  coverage — the only test asserted the route was *registered*, never what it
+  returns. `tests/test_community.py` now covers 5 behaviours: 401 without a
+  token, 503 when the table is undeployed, 200-empty, `total_usd` summed from
+  rows including PostgREST's string `numeric`, and the developer id coming from
+  the verified token. 10/10 green. RLS verified live against Supabase: anon key
+  → `200 []`, user JWT → `200 []`, forged JWT → `401`, missing table → `PGRST205`.
 
 ## FASE 8 — Regional + Vertical Expansion
 > **`[!] DEFERRED` — F8 skipped by explicit decision (2026-09-28).**
@@ -226,9 +240,41 @@ rekaman terlihat seperti regresi produk.
 - [ ] F8.4 education · [ ] F8.5 sync + test + commit
 
 ## FASE 9 — Parity Push
-- [x] F9.1 audit n8n nodes → gap map · [ ] F9.2 generate missing via OpenAPI
-- [x] F9.3 community bounty (doc only) · [ ] F9.4 batch verify + commit
-- [x] F9.5 update claim · [ ] F9.6 THE END
+- [x] F9.1 audit n8n nodes → gap map · [!] F9.2 generate missing via OpenAPI **deferred**
+- [x] F9.3 community bounty (doc only) · [!] F9.4 batch verify + commit **deferred**
+- [x] F9.5 update claim · [x] F9.6 THE END
+
+### F9.2 / F9.4 — DEFERRED, with the reason stated
+
+> **`[!] DEFERRED — data acquisition post-launch (decided 2026-09-28).**
+> Not cancelled, and not "hard". The blocker is that **82 of the 83 real
+> integration gaps have no provider snapshot anywhere in this repo.** Only
+> Cloudflare is fillable from what we already hold. Generating a manifest for a
+> provider we have never contacted would produce an entry that looks like an
+> integration and cannot be called — which is precisely the failure mode this
+> project keeps undoing, and the reason `false_call_verified` is asserted to
+> stay at 0. Fabricating them is therefore **not** an option.
+> Revisit when provider snapshots can be acquired, after launch.
+>
+> F9.2 (generate via OpenAPI) and F9.4 (batch verify) are the same blocker seen
+> from two ends: there is nothing to generate from, and nothing new to verify.
+
+### F9.6 — DONE, with the honest number
+
+The parity target is **not met**, and this file records that rather than
+restating the goal. Where Katalir actually stands, all re-derived by
+`node verify_roadmap_claims.mjs`:
+
+| Number | Value | Note |
+|---|---|---|
+| n8n distinct nodes | **685** | not the ~2.864 in earlier notes |
+| already in catalogue | **225 (32.85%)** | measured from n8n-nodes-base 2.15.1 |
+| **Katalir call-verified** | **229** | not 1.000 |
+| **Katalir unique catalogue** | **23.474** | deduped from 29.695 raw |
+
+Public wording is therefore *"Katalir supports 229 verified integrations + 23K
+catalog. Working toward n8n parity (225/685 nodes covered)."* — the gap is
+stated on the page rather than implied away.
 
 ### F9.1 results (measured, `docs/audit/n8n-gap-analysis.json`)
 
