@@ -1,18 +1,102 @@
 import { test, expect } from "@playwright/test";
 import AxeBuilder from "@axe-core/playwright";
 
-// Mengukur, bukan Assume: klaim "kartu simetris" hanya sah kalau
-// getBoundingClientRect() kedua kartu benar-benar sama tinggi.
-//
-// Jalankan terhadap produksi secara default (AXE_TARGET), atau lokal:
-//   AXE_TARGET=http://127.0.0.1:3000 npx playwright test -c playwright.config.ts tests/settings-oauth-cards.spec.ts
+/**
+ * Pemisahan Settings vs Integrations (standar 2026).
+ *
+ * User complained: "/settings cuma punya 7 provider, padahal klaim 23K
+ * katalog. Di mana connect Slack, di mana GitHub?" The cause was that
+ * /settings mixed account settings with connections.
+ *
+ * These tests assert the SEPARATION itself, not just that a page renders:
+ * OAuth cards must be gone from /settings and present on /integrations.
+ */
 const BASE = (process.env.AXE_TARGET || "https://katalir.de5.net").replace(/\/$/, "");
+const SHOTS = "../docs/marketing/screenshots";
+
+test.describe("Settings vs Integrations", () => {
+  test("/settings TIDAK lagi memuat kartu OAuth", async ({ page }) => {
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await page.goto(`${BASE}/settings`, { waitUntil: "load", timeout: 90_000 });
+    await page.waitForSelector("#main-content", { timeout: 45_000 });
+    await page.waitForTimeout(1200);
+
+    // Kartu OAuth pindah ke /integrations. Kalau muncul lagi di sini, means
+    // someone re-added them and the two pages drift apart again.
+    await expect(page.locator('[data-testid="card-connections"]')).toHaveCount(0);
+    await expect(page.locator('[data-testid="card-oauth-google"]')).toHaveCount(0);
+    await expect(page.locator('[data-testid="card-oauth-slack"]')).toHaveCount(0);
+
+    // Tapi pintasan ke /integrations harus ada, supaya tidak ada yang tiba
+    // di /settings lalu bertanya "jadi di mana?".
+    const link = page.locator('[data-testid="settings-integrations-link"]');
+    await expect(link, "pintasan ke /integrations hilang").toBeVisible();
+    await expect(link).toHaveAttribute("href", "/integrations");
+
+    await page.screenshot({ path: `${SHOTS}/settings-clean-desktop.png`, fullPage: true });
+  });
+
+  test("/integrations memuat kartu OAuth simetris", async ({ page }) => {
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await page.goto(`${BASE}/integrations`, { waitUntil: "load", timeout: 90_000 });
+    await page.waitForSelector("#main-content", { timeout: 45_000 });
+    await page.locator('[data-testid="card-oauth-google"]').waitFor({ state: "visible", timeout: 45_000 });
+    await page.waitForTimeout(1500);
+
+    await expect(page.locator('[data-testid="card-connections"]')).toBeVisible();
+    await expect(page.locator('[data-testid="card-oauth-google"]')).toBeVisible();
+    await expect(page.locator('[data-testid="card-oauth-slack"]')).toBeVisible();
+
+    // Simetri harus tetap berlaku setelah pindah halaman.
+    const [g, s] = await Promise.all([
+      page.locator('[data-testid="card-oauth-google"]').boundingBox(),
+      page.locator('[data-testid="card-oauth-slack"]').boundingBox(),
+    ]);
+    if (!g || !s) throw new Error("kartu OAuth tidak ada di /integrations");
+    const diff = Math.round(Math.abs(g.height - s.height));
+    console.log(`INTEGRATIONS_CARD_HEIGHT google=${Math.round(g.height)} slack=${Math.round(s.height)} diff=${diff}`);
+    expect(diff, `kartu OAuth tidak simetris di /integrations (selisih ${diff}px)`).toBeLessThanOrEqual(1);
+
+    await page.locator('[data-testid="card-connections"]').screenshot({ path: `${SHOTS}/integrations-connections-desktop.png` });
+  });
+
+
+  test("axe /settings dan /integrations tetap 0 violation blocking", async ({ page }) => {
+    for (const route of ["/settings", "/integrations"]) {
+      await page.setViewportSize({ width: 1440, height: 900 });
+      await page.goto(`${BASE}${route}`, { waitUntil: "load", timeout: 90_000 });
+      await page.waitForSelector("#main-content", { timeout: 45_000 });
+      await page.waitForTimeout(1500);
+      const results = await new AxeBuilder({ page }).analyze();
+      const blocking = results.violations.filter((v) => v.impact === "critical" || v.impact === "serious");
+      console.log(`AXE ${route} total=${results.violations.length} blocking=${blocking.length}`);
+      if (blocking.length) console.log("AXE_DETAIL " + JSON.stringify(blocking.map((v) => ({ id: v.id, n: v.nodes.length }))));
+      expect(blocking, `${route}: ${JSON.stringify(blocking.map((v) => v.id))}`).toHaveLength(0);
+    }
+  });
+
+  test("mobile 375px: kedua halaman tidak meluber", async ({ page }) => {
+    for (const route of ["/settings", "/integrations"]) {
+      await page.setViewportSize({ width: 375, height: 812 });
+      await page.goto(`${BASE}${route}`, { waitUntil: "load", timeout: 90_000 });
+      await page.waitForSelector("#main-content", { timeout: 45_000 });
+      await page.waitForTimeout(1200);
+      const overflow = await page.evaluate(
+        () => document.documentElement.scrollWidth - document.documentElement.clientWidth,
+      );
+      console.log(`MOBILE ${route} overflow=${overflow}px`);
+      expect(overflow, `${route} meluber ${overflow}px`).toBeLessThanOrEqual(0);
+      if (route === "/integrations") {
+        await page.screenshot({ path: `${SHOTS}/integrations-mobile.png`, fullPage: false });
+      }
+    }
+  });
+});
+
 
 /** Kartu koneksi. `id` bukan `data-testid` di JSX, jadi pakai yang benar. */
 const CONNECTIONS = '[data-testid="card-connections"]';
 
-/** Folder bukti. Di-commit supaya screenshot bisa dibandingkan lewat `git diff`. */
-const SHOTS = "../docs/marketing/screenshots";
 
 const GOOGLE = '[data-testid="card-oauth-google"]';
 const SLACK = '[data-testid="card-oauth-slack"]';
@@ -31,7 +115,7 @@ async function measure(page: import("@playwright/test").Page): Promise<Heights> 
 test.describe("OAuth cards symmetry", () => {
   test("desktop 1440x900: tinggi kedua kartu sama", async ({ page }) => {
     await page.setViewportSize({ width: 1440, height: 900 });
-    await page.goto(`${BASE}/settings`, { waitUntil: "load", timeout: 90_000 });
+    await page.goto(`${BASE}/integrations`, { waitUntil: "load", timeout: 90_000 });
     await page.waitForSelector("#main-content", { timeout: 45_000 });
     await page.locator(GOOGLE).waitFor({ state: "visible", timeout: 45_000 });
     await page.waitForTimeout(1500);
@@ -47,7 +131,7 @@ test.describe("OAuth cards symmetry", () => {
 
   test("footer tiap kartu membumi (mt-auto bekerja)", async ({ page }) => {
     await page.setViewportSize({ width: 1440, height: 900 });
-    await page.goto(`${BASE}/settings`, { waitUntil: "load", timeout: 90_000 });
+    await page.goto(`${BASE}/integrations`, { waitUntil: "load", timeout: 90_000 });
     await page.locator(GOOGLE).waitFor({ state: "visible", timeout: 45_000 });
     await page.waitForTimeout(1200);
 
@@ -68,7 +152,7 @@ test.describe("OAuth cards symmetry", () => {
 
   test("disclaimer ada di SETIAP kartu, bukan hanya Slack", async ({ page }) => {
     await page.setViewportSize({ width: 1440, height: 900 });
-    await page.goto(`${BASE}/settings`, { waitUntil: "load", timeout: 90_000 });
+    await page.goto(`${BASE}/integrations`, { waitUntil: "load", timeout: 90_000 });
     await page.locator(GOOGLE).waitFor({ state: "visible", timeout: 45_000 });
     await page.waitForTimeout(1200);
 
@@ -87,7 +171,7 @@ test.describe("OAuth cards symmetry", () => {
 
   test("mobile 375x812: tidak ada overflow horizontal", async ({ page }) => {
     await page.setViewportSize({ width: 375, height: 812 });
-    await page.goto(`${BASE}/settings`, { waitUntil: "load", timeout: 90_000 });
+    await page.goto(`${BASE}/integrations`, { waitUntil: "load", timeout: 90_000 });
     await page.locator(GOOGLE).waitFor({ state: "visible", timeout: 45_000 });
     await page.waitForTimeout(1200);
 
@@ -102,7 +186,7 @@ test.describe("OAuth cards symmetry", () => {
 
   test("dark mode: kartu tetap simetris dan tidak kehilangan disclaimer", async ({ page }) => {
     await page.setViewportSize({ width: 1440, height: 900 });
-    await page.goto(`${BASE}/settings`, { waitUntil: "load", timeout: 90_000 });
+    await page.goto(`${BASE}/integrations`, { waitUntil: "load", timeout: 90_000 });
     await page.locator(GOOGLE).waitFor({ state: "visible", timeout: 45_000 });
 
     // Tekan kontrol tema yang BENAR-BENAR ada di halaman, bukan menebak

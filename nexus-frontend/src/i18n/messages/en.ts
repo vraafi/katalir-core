@@ -177,6 +177,8 @@ export const en = {
     runHint: "run",
     closeHint: "close",
     newWorkflow: "New workflow",
+    integrations: "Browse Integrations",
+    myIntegrations: "My Integrations",
   },
   builder: {
     /* FASE 5: accessible names for the two <aside> landmarks in /builder.
@@ -249,6 +251,9 @@ export const en = {
     oauthConnected: "{provider} connected successfully.",
     oauthDenied: "{provider} was not connected ({reason}).",
     revokeNote: "Disconnecting removes the token from the Vault. To fully revoke, remove Katalir from {target}.",
+  browseIntegrations: "Looking for integrations?",
+  browseIntegrationsDesc: "Connect Google Sheets, Slack and browse the full 23K catalogue in one place. Settings is for your account and preferences only.",
+  browseIntegrationsCta: "Browse all integrations",
     dangerZone: "Danger Zone",
     dangerDesc: "Deleting your account is permanent and cannot be undone.",
     deleteAccount: "Delete Account",

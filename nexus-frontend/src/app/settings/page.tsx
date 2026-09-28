@@ -1,7 +1,10 @@
 "use client";
 
+import Link from "next/link";
+import { ArrowRight } from "lucide-react";
+
 import { useCallback, useEffect, useState } from "react";
-import { Check, KeyRound, Loader2, MonitorSmartphone, Moon, Sun, Trash2 } from "lucide-react";
+import { Check, KeyRound, MonitorSmartphone, Moon, Sun, Trash2 } from "lucide-react";
 import { useTheme } from "next-themes";
 import { toast } from "sonner";
 import { useAuth } from "@/context/auth";
@@ -198,268 +201,6 @@ function CredentialsSection() {
 }
 
 
-/**
- * Task 1B — kartu koneksi OAuth (Google Sheets + Slack).
- *
- * KENAPA KARTU TERPISAH dari form Brankas: koneksi ini BUKAN token yang bisa
- * ditempel user. Kalau digabung, user akan mencari "token Slack" yang tidak
- * pernah ada dan mengisi sesuatu yang mustahil benar.
- *
- * Redirect memakai HALAMAN PENUH (bukan popup) setelah URL authorize diambil
- * lewat `apiFetch`: endpoint authorize butuh header Authorization, dan redirect
- * mentah tidak bisa membawa header — karena itu backend punya `mode=json`.
- * JWT tidak pernah masuk ke URL.
- */
-interface OAuthCardSpec {
-  id: "google" | "slack";
-  provider: string;
-  authorize: string;
-  disconnect: string;
-  testid: string;
-  /** Tujuan pencabutan penuh, dipakai disclaimer.
-   *  Dulu disclaimer hanya ada di Slack (`card.id === "slack"`), jadi kartu
-   *  Google lebih pendek dan tombolnya tidak sejajar. Sekarang setiap kartu
-   *  punya teks sendiri dengan struktur yang sama. */
-  revokeTarget: string;
-}
-
-const OAUTH_CARDS: OAuthCardSpec[] = [
-  {
-    id: "google",
-    provider: "Google Sheets",
-    authorize: "/oauth/google/authorize",
-    disconnect: "/oauth/google",
-    testid: "card-oauth-google",
-    revokeTarget: "Google account permissions",
-  },
-  {
-    id: "slack",
-    provider: "Slack",
-    authorize: "/oauth/slack/authorize",
-    disconnect: "/oauth/slack",
-    testid: "card-oauth-slack",
-    revokeTarget: "Slack workspace",
-  },
-];
-
-interface OAuthState {
-  loaded: boolean;
-  connected: boolean;
-  target: string;
-  configured: boolean;
-  error?: boolean;
-}
-
-function ConnectionsSection() {
-  const { t } = useI18n();
-  const { email } = useAuth();
-  const [state, setState] = useState<Record<string, OAuthState>>({});
-  const [busy, setBusy] = useState<string | null>(null);
-
-  const refresh = useCallback(async () => {
-    const next: Record<string, OAuthState> = {};
-    for (const card of OAUTH_CARDS) {
-      try {
-        const r = await apiFetch(`/oauth/${card.id}/status`, { method: "GET", timeoutMs: 5_000 });
-        if (!r.ok) throw new Error(`HTTP ${r.status}`);
-        const d = (await r.json()) as Record<string, unknown>;
-        if (card.id === "google") {
-          const g = (d.google_sheets ?? {}) as { connected?: boolean };
-          next[card.id] = {
-            loaded: true,
-            connected: Boolean(g.connected),
-            target: email ?? "",
-            configured: Boolean(d.configured),
-          };
-        } else {
-          next[card.id] = {
-            loaded: true,
-            connected: Boolean(d.connected),
-            target: String(d.team_name ?? ""),
-            configured: d.keys_present === d.keys_total,
-          };
-        }
-      } catch {
-        next[card.id] = { loaded: true, connected: false, target: "", configured: false, error: true };
-      }
-    }
-    setState(next);
-  }, [email]);
-
-  useEffect(() => {
-    if (email) void refresh();
-  }, [email, refresh]);
-
-  /** Setelah consent, callback backend mengarahkan ke `/settings?<provider>=...`.
-   *  Dibaca dari `window.location` (bukan useSearchParams) supaya halaman ini
-   *  tidak butuh boundary Suspense tambahan. Query dibersihkan agar toast tidak
-   *  muncul lagi saat refresh. */
-  useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    let changed = false;
-    for (const card of OAUTH_CARDS) {
-      const v = params.get(card.id);
-      if (!v) continue;
-      changed = true;
-      if (v === "connected") toast.success(t("settings.oauthConnected", { provider: card.provider }));
-      else toast.error(t("settings.oauthDenied", { provider: card.provider, reason: v }));
-      params.delete(card.id);
-    }
-    if (changed) {
-      const q = params.toString();
-      window.history.replaceState({}, "", `${window.location.pathname}${q ? `?${q}` : ""}`);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  async function connect(card: OAuthCardSpec) {
-    setBusy(card.id);
-    try {
-      const r = await apiFetch(`${card.authorize}?mode=json`, { method: "GET" });
-      const d = (await r.json().catch(() => ({}))) as { url?: string; detail?: string };
-      if (!r.ok || !d.url) throw new Error(d.detail || `HTTP ${r.status}`);
-      window.location.href = d.url; // halaman penuh (bukan popup)
-    } catch (error) {
-      setBusy(null);
-      // Preserve the backend's actionable reason (missing session, missing
-      // provider configuration, redirect mismatch) instead of hiding it behind
-      // the old generic toast.
-      const message = error instanceof Error ? error.message : "";
-      toast.error(message || t("settings.connectFailed"));
-    }
-  }
-
-  async function disconnect(card: OAuthCardSpec) {
-    setBusy(card.id);
-    try {
-      const r = await apiFetch(card.disconnect, { method: "DELETE" });
-      if (!r.ok) throw new Error(`HTTP ${r.status}`);
-      toast.success(t("settings.disconnectDone", { provider: card.provider }));
-      await refresh();
-    } catch {
-      toast.error(t("settings.disconnectFailed", { provider: card.provider }));
-    } finally {
-      setBusy(null);
-    }
-  }
-
-
-  return (
-    <Card data-testid="card-connections">
-      <CardHeader>
-        <CardTitle>{t("settings.connections")}</CardTitle>
-        <CardDescription>{t("settings.connectionsDesc")}</CardDescription>
-      </CardHeader>
-      <CardContent>
-        <div
-          data-testid="oauth-cards"
-          className="grid items-stretch gap-3 sm:grid-cols-2"
-        >
-          {OAUTH_CARDS.map((card) => {
-            const st = state[card.id];
-            const loading = !st?.loaded;
-            const target = card.id === "slack" ? st?.target || "" : email || "";
-            return (
-              <div
-                key={card.id}
-                data-testid={card.testid}
-                className="flex h-full flex-col gap-2 rounded-md border border-border p-3"
-              >
-                <div className="flex items-center justify-between gap-2">
-                  <span className="text-footnote font-medium text-fg">{card.provider}</span>
-                  {loading ? (
-                    <span className="inline-flex items-center gap-1 text-caption text-fg-muted">
-                      <Loader2 size={12} className="animate-spin" aria-hidden /> {t("common.loading")}
-                    </span>
-                  ) : st?.connected ? (
-                    <span
-                      data-testid={`oauth-badge-${card.id}`}
-                      className="inline-flex items-center gap-1 rounded-full bg-success/15 px-2 py-0.5 text-caption font-medium text-success"
-                    >
-                      <Check size={12} strokeWidth={2.5} aria-hidden /> {t("settings.connected")}
-                    </span>
-                  ) : (
-                    <span
-                      data-testid={`oauth-badge-${card.id}`}
-                      className="inline-flex items-center rounded-full border border-border px-2 py-0.5 text-caption text-fg-muted"
-                    >
-                      {t("settings.notConnected")}
-                    </span>
-                  )}
-                </div>
-                {st?.connected && target && (
-                  <p className="text-caption text-fg-muted" data-testid={`oauth-target-${card.id}`}>
-                    {t("settings.connectedAs", { target })}
-                  </p>
-                )}
-                {st?.error && (
-                  <div className="flex flex-wrap items-center gap-2" role="status" aria-live="polite">
-                    <p className="text-caption text-danger" data-testid={`oauth-error-${card.id}`}>
-                      {t("settings.oauthLoadFailed")}
-                    </p>
-                    <Button
-                      type="button"
-                      variant="secondary"
-                      size="sm"
-                      data-testid={`oauth-retry-${card.id}`}
-                      onClick={() => void refresh()}
-                    >
-                      {t("common.retry")}
-                    </Button>
-                  </div>
-                )}
-                {/*
-                  Footer. `mt-auto` MENYEJAKANKAN tombol ke dasar kartu, dan
-                  disclaimer sekarang DI DALAM footer ini -- sebelumnya berada
-                  di luar, sehingga pada kartu Slack (yang punya disclaimer)
-                  `mt-auto` tidak lagi mendorong apa pun ke bawah dan kedua
-                  kartu jadi berbeda tinggi. Disclaimer juga dirender untuk
-                  SETIAP provider, bukan hanya saat `card.id === "slack"`,
-                  jadi strukturnya identik.
-                */}
-                <div
-                  className="mt-auto flex flex-col gap-2 pt-1"
-                  data-testid={`oauth-footer-${card.id}`}
-                >
-                  {st?.connected ? (
-                    <Button
-                      variant="danger"
-                      size="sm"
-                      className="self-start"
-                      data-testid={`oauth-disconnect-${card.id}`}
-                      loading={busy === card.id}
-                      onClick={() => void disconnect(card)}
-                    >
-                      {t("settings.disconnect")}
-                    </Button>
-                  ) : (
-                    <Button
-                      variant="primary"
-                      size="sm"
-                      className="self-start"
-                      data-testid={`oauth-connect-${card.id}`}
-                      loading={busy === card.id}
-                      disabled={loading}
-                      onClick={() => void connect(card)}
-                    >
-                      {t("settings.connect", { provider: card.provider })}
-                    </Button>
-                  )}
-                  <p
-                    className="text-caption text-fg-subtle"
-                    data-testid={`oauth-revoke-${card.id}`}
-                  >
-                    {t("settings.revokeNote", { target: card.revokeTarget })}
-                  </p>
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      </CardContent>
-    </Card>
-  );
-}
 
 
 /** Konten Pengaturan — di DALAM SimplePage (SimplePage yang memegang provider). */
@@ -612,8 +353,36 @@ function SettingsContent() {
       {/* 5. KREDENSIAL (Vault Fernet) */}
       <CredentialsSection />
 
-      {/* 5b. KONEKSI OAUTH (Task 1B: tombol Connect/Disconnect + badge) */}
-      <ConnectionsSection />
+      {/*
+        5b. KONEKSI OAUTH PINDAH KE /integrations.
+
+        Kenapa dipindah: /settings mencampur akun dengan koneksi, dan user
+        sendiri bingung "di mana connect Slack?". Standar 2026 memisahkannya.
+        Kartu OAuth kini hidup di components/OAuthConnections.tsx yang
+        dirender /integrations, jadi hanya SATU implementasi.
+
+        Yang tersisa di sini hanya pintasan, supaya tidak ada jin yang
+        menemukan /settings lalu bertanya "jadi di mana?".
+      */}
+      <Card data-testid="card-integrations-link">
+        <CardContent className="flex flex-wrap items-center justify-between gap-3 py-4">
+          <div className="min-w-0">
+            <p className="text-callout font-medium text-fg">{t("settings.browseIntegrations")}</p>
+            <p className="text-footnote text-fg-muted">{t("settings.browseIntegrationsDesc")}</p>
+          </div>
+          {/* `Button` di repo ini tidak punya `asChild` (lihat ui/button.tsx),
+              jadi tautan memakai kelas tombol yang sama, bukan Button yang
+              dibungkus Link. Dua sumber gaya untuk satu tombol = cepat rusak. */}
+          <Link
+            href="/integrations"
+            className="inline-flex shrink-0 items-center gap-1.5 rounded-md border border-border bg-surface px-3 py-1.5 text-caption font-medium text-fg transition-colors hover:bg-bg-subtle focus-visible:shadow-focus"
+            data-testid="settings-integrations-link"
+          >
+            {t("settings.browseIntegrationsCta")}
+            <ArrowRight size={14} strokeWidth={2} aria-hidden />
+          </Link>
+        </CardContent>
+      </Card>
 
       {/* 6. ZONA BERBAHAYA */}
       <Card className="border-danger/40" data-testid="card-danger">

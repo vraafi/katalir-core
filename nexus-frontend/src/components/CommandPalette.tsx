@@ -16,6 +16,8 @@ import {
   CreditCard,
   HelpCircle,
   Search,
+  Plug,
+  Boxes,
 } from "lucide-react";
 import { useTheme } from "next-themes";
 import { useAuth } from "@/context/auth";
@@ -69,6 +71,11 @@ export function CommandPalette({ onNewChat, onNewWorkflow }: PaletteProps) {
       { id: "new-chat", icon: Plus, label: t("nav.newChat"), run: () => { setOpen(false); onNewChat(); } },
       { id: "new-wf", icon: Plus, label: t("palette.newWorkflow"), run: () => { setOpen(false); onNewWorkflow(); } },
       { id: "settings", icon: Settings, label: t("userMenu.settings"), run: () => go("/settings") },
+      // Integrasi dipisah dari Settings pada 2026-09: /settings = akun &
+      // preferensi, /integrations = semua koneksi. Tanpa entri ini, Cmd+K
+      // tetap menjadi jalan ke halaman yang salah untuk "connect apa saja".
+      { id: "integrations", icon: Plug, label: t("palette.integrations"), keywords: ["integration", "connect", "oauth", "api", "slack", "sheets"], run: () => go("/integrations") },
+      { id: "my-integrations", icon: Boxes, label: t("palette.myIntegrations"), keywords: ["installed", "instance", "installed mcp"], run: () => go("/my-integrations") },
       { id: "billing", icon: CreditCard, label: t("userMenu.billing"), run: () => go("/billing") },
       { id: "help", icon: HelpCircle, label: t("userMenu.help"), run: () => go("/help") },
       {

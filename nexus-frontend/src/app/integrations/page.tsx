@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { Search, Plus, ExternalLink } from "lucide-react";
 import { SimplePage } from "@/components/SimplePage";
+import { OAuthConnections } from "@/components/OAuthConnections";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -230,6 +231,21 @@ export default function IntegrationsPage() {
 
   return <SimplePage title="Integrasi MCP" subtitle="Temukan koneksi untuk otomasi Anda.">
     <div className="flex flex-col gap-4">
+      {/*
+        KONEKSI AKUN SAYA — kartu OAuth pindah ke sini dari /settings.
+
+        User bertanya "di mana connect Slack, di mana GitHub?" karena
+        /settings mencampur akun dengan koneksi. Kartu ini menjawab
+        pertanyaan itu di tempat yang mereka cari, dan /settings cukup
+        menaut ke halaman ini.
+
+        Dicetak sebelum baris pencarian dengan sengaja: koneksi yang SUDAH
+        aktif adalah hal yang paling ingin dilihat user, bukan katalog.
+      */}
+      <OAuthConnections
+        title="Koneksi Anda"
+        description="Hubungkan akun yang boleh Katalir gunakan atas nama Anda. Token disimpan terenkripsi di Brankas."
+      />
       <div className="flex flex-col gap-2 sm:flex-row">
         <label className="relative flex-1"><span className="sr-only">Cari integrasi</span><Search className="absolute left-3 top-3 text-fg-muted" size={16}/><Input value={search} onChange={e => setSearch(e.target.value)} onKeyDown={e => e.key === "Enter" && load(search)} placeholder="Cari Telegram, Sheets, Slack…" className="pl-9" data-testid="integrations-search" /></label>
         <Button onClick={() => load(search)} data-testid="integrations-refresh">Cari</Button>

@@ -180,6 +180,8 @@ export const id = {
     runHint: "jalankan",
     closeHint: "tutup",
     newWorkflow: "Workflow baru",
+    integrations: "Telusuri Integrasi",
+    myIntegrations: "Integrasi Saya",
   },
   builder: {
     /* FASE 5: nama landmark untuk dua <aside> di /builder. Tanpa nama, dua
@@ -254,6 +256,9 @@ export const id = {
     oauthConnected: "{provider} berhasil terhubung.",
     oauthDenied: "{provider} tidak terhubung ({reason}).",
     revokeNote: "Menghapus di sini menghapus token dari Brankas. Untuk mencabut penuh, hapus Katalir dari {target}.",
+  browseIntegrations: "Cari integrasi?",
+  browseIntegrationsDesc: "Hubungkan Google Sheets, Slack, dan telusuri katalog 23K lengkap dalam satu tempat. Settings hanya untuk akun dan preferensi Anda.",
+  browseIntegrationsCta: "Telusuri semua integrasi",
     dangerZone: "Zona Berbahaya",
     dangerDesc: "Menghapus akun bersifat permanen dan tidak bisa dibatalkan.",
     deleteAccount: "Hapus Akun",
