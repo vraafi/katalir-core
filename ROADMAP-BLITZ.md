@@ -276,6 +276,43 @@ Public wording is therefore *"Katalir supports 229 verified integrations + 23K
 catalog. Working toward n8n parity (225/685 nodes covered)."* — the gap is
 stated on the page rather than implied away.
 
+### F9 UI polish — DONE (settings, measured in production)
+
+- [x] OAuth cards symmetric. `google=120px slack=120px diff=0`, footer bottoms
+      also equal (`1683/1683`). No hardcoded heights: grid `items-stretch`,
+      card `h-full flex flex-col`, footer `mt-auto`.
+- [x] Revoke disclaimer consistent across providers. It used to render only
+      for Slack and sat *outside* the `mt-auto` footer, which both broke
+      bottom alignment and left the Google card with no disclaimer at all.
+      Now `settings.revokeNote` takes `{target}` and renders on every card.
+- [x] Dark mode verified, not assumed: `ratio=11.97` (fg 212,212,216 on
+      24,24,29) against a WCAG AA floor of 4.5.
+- [x] Mobile 375x812: `MOBILE_OVERFLOW=0px`.
+- [x] `AXE_SETTINGS total=0 blocking=0`.
+- [x] Removed a duplicate "Saved automatically on this device." line —
+      `LanguageSwitcher` already rendered it and `/settings` rendered it
+      again, so it appeared twice and read like a typo.
+
+Proof: `nexus-frontend/tests/settings-oauth-cards.spec.ts` (7 tests, run
+against both localhost and `https://katalir.de5.net`) plus screenshots in
+`docs/marketing/screenshots/settings-oauth-cards-*.png`.
+
+Worth recording: the dark-mode contrast assertion first failed at 3.98:1
+and appeared to indict the CSS. It did not. The measurement dropped the
+alpha channel, so `rgba(0,0,0,0)` read as black, and the test had set the
+wrong localStorage key (`katalir.theme` from the legacy `ThemeToggle`,
+while the page uses next-themes). Real ratio is 11.97:1. The test now
+refuses to report unless the `.dark` class is genuinely active.
+
+### OAuth provider status — see `docs/oauth/provider-status.md`
+
+Round-trip confirmed by the user for both Google Sheets and Slack.
+Separately, `gmail` and `google_calendar` were removed from
+`_oauth_providers`: the Google consent flow only ever requests the
+`auth/spreadsheets` scope, and `kirim_email_gmail` reads a different
+credential store, so the Connect button could never succeed. They now
+return `needs_credential` rather than a promise that breaks.
+
 ### F9.1 results (measured, `docs/audit/n8n-gap-analysis.json`)
 
 | Number | Value | Note |
