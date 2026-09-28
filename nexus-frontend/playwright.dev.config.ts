@@ -48,6 +48,11 @@ export default defineConfig({
     "model-filter.spec.ts",
     "routes-no-crash.spec.ts",
     "chat-auth.spec.ts",
+    // Audit axe 6 rute terhadap SITUS YANG SUDAH DEPLOY (bukan dev), jadi
+    // yang diukur adalah yang benar-benar diterima pengunjung. Menembak
+    // production dari harness dev yang sama-sama memakai port 3000 aman:
+    // spec ini mengabaikan baseURL dan memakai AXE_TARGET.
+    "axe-audit.spec.ts",
     // FASE 5: spec ini DISENTUH fase 5 (selector model pindah ke data-testid)
     // tetapi TIDAK ada di harness mana pun yang bisa dijalankan di mesin ini —
     // `playwright.config.ts` (satu-satunya yang memuatnya sebelumnya) mem-build

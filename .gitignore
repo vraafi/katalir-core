@@ -96,3 +96,7 @@ test-jwt.txt
 # Catatan pribadi user - NEVER di-commit (berisi data personal)
 LOCAL.private.md
 *.private.md
+# Bukti visual lokal (screenshot + rekaman video). BUKAN artefak build;
+# sengaja tidak di-commit agar repo tetap ringan. Lihat docs/evidence/.
+nexus-frontend/f6-shots/
+*.webm
