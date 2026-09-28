@@ -36,14 +36,24 @@ test.describe("F6 landing logo cloud", () => {
 
     // z-index: the layer is -z-10, the copy wrapper is z-10. Compare computed
     // z-index rather than trusting the class names.
+    // `#main-content` is the <main> landmark (`z-index: auto` on the landing
+    // page), and `#main-content > div` is the transparent `isolate` wrapper, so
+    // both reads gave NaN while the page was correct. Anchor to the element
+    // that actually holds the headline: the <h1>'s own stacking ancestor.
+    // Verified in-browser: layer=-10, copy wrapper=10, and elementFromPoint at
+    // the centre of the h1 returns the h1 (i.e. the copy really is on top).
     const z = await page.evaluate(() => {
       const l = document.querySelector('[data-testid="hero-logo-layer"]');
-      const c = document.querySelector("#main-content");
+      const h1 = document.querySelector("h1");
+      const c = h1?.closest("div[class*='z-10']") as HTMLElement | null;
       return {
         layer: Number(getComputedStyle(l!).zIndex),
-        copy: Number(getComputedStyle(c!).zIndex),
+        copy: c ? Number(getComputedStyle(c).zIndex) : NaN,
+        copySelectorFound: !!c,
       };
     });
+    expect(z.copySelectorFound, "hero copy wrapper not found").toBe(true);
+    expect(Number.isFinite(z.copy), "hero copy z-index is not a number").toBe(true);
     expect(z.layer, "logo layer is not behind the copy").toBeLessThan(z.copy);
 
     // And the copy must actually be on top where they overlap, not merely later
@@ -200,12 +210,18 @@ test.describe("F6 landing logo cloud", () => {
     // Legibility is carried by the card, not by dimming the field. If this
     // drops below ~0.8 the logos have to be faded again to compensate, which is
     // the design the brief explicitly rejected.
+    // The card that carries legibility is the one wrapping the <h1>, two levels
+    // below <main> (`<main> > z-10 wrapper > card`). `#main-content > div` is the
+    // transparent z-10 wrapper, so reading it reported alpha 0 on a page whose
+    // card was correctly opaque. Anchor to the card that actually holds the
+    // headline instead of counting ancestors.
     const bg = await page.evaluate(() => {
-      const card = document.querySelector("#main-content > div") as HTMLElement;
-      return getComputedStyle(card).backgroundColor;
+      const h1 = document.querySelector("h1");
+      const card = h1?.closest("div[class*='backdrop-blur'], div[class*='rounded-2xl']");
+      return { color: card ? getComputedStyle(card).backgroundColor : "NO_CARD" };
     });
-    const alpha = Number(bg.match(/rgba?\([^)]*?,\s*([\d.]+)\s*\)/)?.[1] ?? "1");
-    expect(alpha, `card background too transparent: ${bg}`).toBeGreaterThanOrEqual(0.8);
+    const alpha = Number(bg.color.match(/rgba?\([^)]*?,\s*([\d.]+)\s*\)/)?.[1] ?? "1");
+    expect(alpha, `card background too transparent: ${bg.color}`).toBeGreaterThanOrEqual(0.8);
   });
 
   test("logos are brand coloured, not monochrome", async ({ page }) => {
