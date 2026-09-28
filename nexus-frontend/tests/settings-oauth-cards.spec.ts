@@ -298,7 +298,7 @@ test.describe("OAuth cards symmetry", () => {
     await page.setViewportSize({ width: 1440, height: 900 });
     await page.goto(`${BASE}/settings`, { waitUntil: "load", timeout: 90_000 });
     await page.waitForSelector("#main-content", { timeout: 45_000 });
-    await page.locator(GOOGLE).waitFor({ state: "visible", timeout: 45_000 });
+    // Catatan: halaman ini /settings, yang TIDAK lagi memuat kartu OAuth.
     await page.waitForTimeout(1200);
 
     // `LanguageSwitcher` sudah merender note-nya sendiri, dan `/settings`
