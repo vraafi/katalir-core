@@ -117,3 +117,56 @@ test("discovered tier menampilkan peringatan", async ({ page }) => {
   await warn.screenshot({ path: "integrations-discovered-warning.png" });
   console.log("SHOT=integrations-discovered-warning.png");
 });
+
+/**
+ * view=unique dulu balas 400 di produksi karena `dedup_canonical.json`
+ * tidak ikut ter-deploy (gitignored, 29,8 MB). Perbaikan: railway.json
+ * menjalankan `python mcp_dedup.py` di build, dan frontend menyembunyikan
+ * toggle kalau `/mcp/registry/capabilities` bilang tidak didukung.
+ *
+ * Test ini mengunci hasil yang BENAR (toggle bekerja), bukan sekadar "tidak
+ * error" - supaya regresi ke kondisi "toggle hilang" juga terdeteksi, karena
+ * menyembunyikan kontrol adalah cara yang salah untuk menutupi bug ini.
+ */
+test("view=unique berfungsi di produksi", async ({ page }) => {
+  const codes: string[] = [];
+  page.on("response", (r) => { if (r.url().includes("/mcp/registry")) codes.push(`${r.status()} ${r.url()}`); });
+
+  await page.goto(`${TARGET}/integrations`, { waitUntil: "domcontentloaded" });
+  await page.locator('[data-testid="integration-card"]').first().waitFor({ timeout: 45000 });
+
+  const caps = await page.getByTestId("view-toggle-unique").count();
+  const note = await page.getByTestId("view-unavailable-note").count();
+  console.log(`UNIQUE_TOGGLE_PRESENT=${caps > 0}`);
+  console.log(`UNAVAILABLE_NOTE=${note > 0}`);
+
+  // Toggle harus tampil: backend sudah bisa membangun artefaknya.
+  expect(caps).toBeGreaterThan(0);
+  expect(note).toBe(0);
+
+  await page.getByTestId("view-toggle-unique").click();
+  const uniqueResp = await page.waitForResponse((r) => r.url().includes("view=unique"), { timeout: 45000 });
+  const uniquePayload = (await uniqueResp.json()) as { total?: number; items?: unknown[] };
+  console.log(`UNIQUE_API_TOTAL=${uniquePayload.total} UNIQUE_API_ITEMS=${uniquePayload.items?.length}`);
+  await page.locator('[data-testid="integration-card"]').first().waitFor({ timeout: 45000 });
+
+  const body = (await page.locator("body").innerText()).replace(/\s+/g, " ");
+  console.log(`UNIQUE_STATUS=${/(\d+) dari ([\d.]+) integrasi/.exec(body)?.[0] ?? "pending"}`);
+  console.log(`UNIQUE_ACTIVE=${(await page.getByTestId("view-toggle-unique").getAttribute("aria-pressed"))}`);
+  console.log(`UNIQUE_CARDS=${await page.locator('[data-testid="integration-card"]').count()}`);
+  const codesUnique = codes.filter((c) => c.includes("view=unique"));
+  console.log(`UNIQUE_CALLS=${JSON.stringify(codesUnique)}`);
+
+  // Tidak boleh ada 400 pada view=unique - itu gejala asli bug-nya.
+  expect(uniqueResp.status()).toBe(200);
+  expect(codesUnique.every((c) => c.startsWith("200"))).toBe(true);
+  expect(body).not.toContain("Registry tidak dapat dimuat");
+  // Invarian sebenarnya: dedup harus menghasilkan himpunan yang lebih kecil
+  // dari katalog mentah (29.558). Kalau total unique >= total mentah, dedup
+  // tidak berjalan dan "Unique" hanya berlabel kosong.
+  expect(uniquePayload.total ?? 0).toBeGreaterThan(0);
+  expect(uniquePayload.total ?? 0).toBeLessThan(29558);
+
+  await page.screenshot({ path: "integrations-unique-view.png", fullPage: false });
+  console.log("SHOT=integrations-unique-view.png");
+});
