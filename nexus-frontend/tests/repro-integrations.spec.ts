@@ -107,10 +107,13 @@ test("discovered tier menampilkan peringatan", async ({ page }) => {
   expect(m).not.toBeNull();
   const warnN = /Menampilkan ([\d.]+) server/.exec(text)?.[1];
   console.log(`WARN_N=${warnN} STATUS_TOTAL=${m![2]}`);
-  expect(warnN).toBe(m![2]);
+  // Bandingkan sebagai angka: `total` dirender dengan format id-ID ("14.934")
+  // sedangkan yang di baris status adalah angka mentah ("14934").
+  expect(Number(warnN?.replace(/\./g, ""))).toBe(Number(m![2]));
+  expect(Number(m![2])).toBeGreaterThan(10000);
   // Badge di halaman ini memang boleh "Belum diuji" - itu memang isinya.
   const badges = await page.locator('[data-testid^="badge-"]').allInnerTexts();
   expect(badges.some((b) => b.trim() === "Belum diuji")).toBe(true);
-  await page.screenshot({ path: "integrations-discovered-warning.png", fullPage: false });
+  await warn.screenshot({ path: "integrations-discovered-warning.png" });
   console.log("SHOT=integrations-discovered-warning.png");
 });
