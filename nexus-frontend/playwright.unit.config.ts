@@ -13,7 +13,11 @@ import { defineConfig } from "@playwright/test";
 export default defineConfig({
   testDir: "./tests",
   testMatch: /(execution-report-healing|repro-integrations|repro-detail|badge-layout)\.spec\.ts/,
-  timeout: 15000,
+  // Spec badge-layout memverifikasi produksi nyata: setiap test menunggu
+  // kartu pertama + respons registry, yang bisa >15s saat katalog besar.
+  // Timeout global 15s (default config repo ini) akan membunuh test yang
+  // sebenarnya sedang menunggu data, bukan catch bug.
+  timeout: 90000,
   reporter: [["line"]],
   use: {},
 });

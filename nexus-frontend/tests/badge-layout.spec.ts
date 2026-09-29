@@ -72,9 +72,12 @@ async function measure(page: import("@playwright/test").Page): Promise<Geom> {
 async function search(page: import("@playwright/test").Page, term: string) {
   await page.goto(`${TARGET}/integrations`, { waitUntil: "domcontentloaded" });
   await page.locator(CARD).first().waitFor({ timeout: 45000 });
-  await page.getByPlaceholder(/cari|search/i).first().fill(term);
+  // Pakai testid, bukan `getByPlaceholder` dengan regex: placeholder-nya
+  // berisi "23.474+ integrasi" yang bisa berubah, dan regex `/cari|search/i`
+  // ikut cocok ke input lain. Testid stabil.
+  await page.getByTestId("integrations-search").fill(term);
   await page.waitForResponse((r) => r.url().includes("/mcp/registry?") && r.url().includes("search="), { timeout: 45000 });
-  await page.waitForTimeout(600);
+  await page.waitForTimeout(800);
 }
 
 
@@ -90,6 +93,10 @@ test("badge terlihat untuk judul panjang (desktop)", async ({ page }) => {
   expect(g.badgesVisible).toBe(g.badgesTotal);
   expect(g.badgesClippedByTitle).toEqual([]);
   expect(g.badgesOutsideCard).toEqual([]);
+  await page.locator(CARD).first().scrollIntoViewIfNeeded();
+  await page.waitForTimeout(300);
+  await page.screenshot({ path: "badge-layout-desktop.png", fullPage: false });
+  console.log("SHOT=badge-layout-desktop.png");
 });
 
 test("badge terlihat untuk judul panjang (mobile 375px)", async ({ page }) => {
@@ -104,6 +111,8 @@ test("badge terlihat untuk judul panjang (mobile 375px)", async ({ page }) => {
   expect(g.badgesVisible).toBe(g.badgesTotal);
   expect(g.badgesClippedByTitle).toEqual([]);
   expect(g.badgesOutsideCard).toEqual([]);
+  await page.locator(CARD).first().scrollIntoViewIfNeeded();
+  await page.waitForTimeout(300);
   await page.screenshot({ path: "badge-layout-mobile.png", fullPage: false });
   console.log("SHOT=badge-layout-mobile.png");
 });
@@ -113,12 +122,12 @@ test("judul buatan sangat panjang tidak menyembunyikan badge", async ({ page }) 
   await page.locator(CARD).first().waitFor({ timeout: 45000 });
 
   await page.evaluate((cardSel) => {
-    const t = document.querySelector(`${cardSel} h2`);
-    if (!t) throw new Error("card title not found");
-    const badge = t.querySelector('[data-testid^="badge-"]');
-    const label = badge?.textContent ?? "";
-    t.textContent = "";
-    t.append("Very Long Title That Should Not Break Layout At All Costs Even On Mobile " + label);
+    const t = document.querySelector(`${cardSel} [data-testid="integration-title"]`);
+    if (!t) throw new Error("card title span not found");
+    // Ganti HANYA teks judul. Versi pertama yang mencoba set textContent
+    // pada <h2> ikut menghapus <span> badge, jadi test "lolos" padahal badge
+    // masih hidup dan tetap diuji.
+    t.textContent = "Very Long Title That Should Not Break Layout At All Costs Even On Mobile 375px";
   }, CARD);
   await page.waitForTimeout(300);
 
@@ -130,7 +139,13 @@ test("judul buatan sangat panjang tidak menyembunyikan badge", async ({ page }) 
 
   expect(g.badgesClippedByTitle).toEqual([]);
   expect(g.badgesOutsideCard).toEqual([]);
+  // 50/50: SETIAP kartu harus punya badge yang terlihat, termasuk kartu yang
+  // judulnya kita replaced. Kalau ini 49, berarti ada kartu yang badge-nya
+  // hilang dan test sebelumnya hanya kebetulan tidak menangkapnya.
+  expect(g.badgesTotal).toBe(g.cards);
   expect(g.badgesVisible).toBe(g.badgesTotal);
+  await page.locator(CARD).first().scrollIntoViewIfNeeded();
+  await page.waitForTimeout(300);
   await page.screenshot({ path: "badge-layout-injected.png", fullPage: false });
   console.log("SHOT=badge-layout-injected.png");
 });
