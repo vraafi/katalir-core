@@ -99,6 +99,50 @@ def sync_from_public(*,timeout=30):
  with _LOCK:
   _CACHE.clear();_CACHE.update({str(k):_normalize(str(k),v or {}) for k,v in raw.items() if isinstance(v,dict)});tmp=CACHE_PATH.with_suffix('.tmp');tmp.write_text(json.dumps(_CACHE,ensure_ascii=False),encoding='utf-8');tmp.replace(CACHE_PATH)
  return len(_CACHE)
+def coverage():
+ """Regenerate: total = executable + metadata_only, dihitung dari katalog.
+
+ Dipulihkan setelah `e7ff081` menghapusnya dan meninggalkan tiga pemanggil
+ (`api_server.py` dua kali + `tests/test_mcp_recommendations.py`). Tanpa ini
+ `/mcp/registry/sources` membalas 500 AttributeError, dan itu yang membuat tab
+ source di `/integrations` menampilkan (0) untuk semua sumber sementara katalog
+ utamanya tetap termuat.
+
+ Tidak ada angka konstanta di sini. `runtime_tier` hanya memberi
+ `call_verified` untuk entri yang benar-benar terverifikasi, jadi tidak ada
+ entri yang dipromosikan menjadi executable hanya karena punya data.
+
+ `source_counts_unique()` dijumlahkan untuk `total`, dan
+ `executable_servers()` untuk `executable`, jadi keduanya berasal dari
+ katalog yang sama dan tidak bisa berbeda definisi. Tidak ada angka
+ konstanta di sini.
+ """
+ total=sum(int(n) for n in source_counts_unique().values())
+ executable=len(executable_servers())
+ return {"total":total,"executable":executable,"metadata_only":total-executable,"sources":source_counts()}
+def recommend_servers(query: str, limit: int = 5):
+ """Return catalog matches for the AI integration picker; metadata only.
+
+ Dipulihkan bersama `coverage()` setelah `e7ff081` menghapusnya dan
+ meninggalkan pemanggilnya di `tests/test_mcp_recommendations.py`.
+ """
+ q=(query or '').strip()
+ result=list_servers(page=1,limit=min(max(int(limit),1),20),search=q)
+ return result['items']
+def openconnector_coverage():
+ """Honest numbers for the OpenConnector catalogue.
+
+ `actions` counts catalogue rows, `meta_tools` is what an MCP client can
+ actually see, and `actions_call_verified` counts actions proved by a real
+ `tools/call`.
+
+ Dipulihkan bersama `coverage()` setelah `e7ff081` menghapusnya dan
+ meninggalkan pemanggilnya di `tests/test_mcp_registry.py`.
+ """
+ items=[x for x in load_cached().values() if isinstance(x,dict) and x.get('source')=='openconnector']
+ return {'services':len(items),'actions':sum(int(x.get('tools_count') or 0) for x in items),'meta_tools':5,
+         'actions_call_verified':sum(1 for x in items for t in (x.get('tools') or []) if isinstance(t,dict) and t.get('call_verified')),
+         'services_call_verified':sum(1 for x in items if (x.get('verification') or {}).get('call_verified'))}
 def openapi_coverage():
  """Counts for the OpenAPI-generated source.
 
