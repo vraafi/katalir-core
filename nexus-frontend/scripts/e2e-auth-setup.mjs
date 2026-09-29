@@ -46,7 +46,17 @@ import { pathToFileURL } from "node:url";
 
 const ROOT = process.cwd();
 const FRONTEND_PORT = Number(process.env.E2E_PORT || 3000);
-const ORIGIN = `http://localhost:${FRONTEND_PORT}`;
+/**
+ * Origin untuk storage state. WAJIB cocok dengan origin yang dituju tes.
+ *
+ * Playwright menerapkan storageState per origin: state untuk
+ * localhost TIDAK akan dipakai saat tes menuju katalir.de5.net, dan
+ * Playwright tidak memberi error -- tes berjalan sebagai guest lalu
+ * "lulus". Karena itu ini bisa dioverride lewat E2E_ORIGIN, supaya
+ * tes yang memang mau menguji produksi bisa meminta state untuk origin
+ * produksi.
+ */
+const ORIGIN = process.env.E2E_ORIGIN || `http://localhost:${FRONTEND_PORT}`;
 /** Token dipakai ulang hanya bila sisa umurnya di atas ambang ini (detik). */
 const MIN_TTL_S = 60;
 /** Batas waktu panggilan GoTrue (ms). */

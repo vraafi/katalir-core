@@ -1,7 +1,83 @@
 # Katalir Game Dev — Blockers & Decisions
 
-Terisi 2026-09-28 saat memulai Fase G1. Semua di sini **terverifikasi**,
-bukan dugaan. Each punya cara membuktikan ulang.
+Terisi 2026-09-28, diperbarui 2026-09-29. Semua klaim di sini punya cara
+membuktikan ulang. **Tidak ada blocker yang masih terbuka.** Yang tersisa
+sudah diputuskan, dan keputusannya tercatat di bawah.
+
+## Ringkasan status
+
+| Status | Jumlah | Item |
+|---|---|---|
+| Resolved | 2 | LoopFlow verification gate, Cline worker |
+| Resolved by decision | 2 | BLOCKER-1 (key kosong), BLOCKER-2 (kage) |
+| N/A — tidak pernah eksis | 1 | Phaser Game Agent MCP |
+| Deferred by schedule | 2 | Rust install, PixelLab license |
+| **butuh keputusan** | **0** | — |
+
+## BLOCKER-1 — 2 API key kosong → **RESOLVED by decision**
+
+`ANTHROPIC_API_KEY`, `DEEPSEEK_API_KEY`, dan `OPENAI_API_KEY` kosong di `.env`.
+Diverifikasi dua cara independen:
+
+```
+GROQ_API_KEY      : rawlen=56
+DEEPSEEK_API_KEY  : rawlen=0
+OPENAI_API_KEY    : rawlen=0
+ANTHROPIC_API_KEY : rawlen=0
+```
+
+**Keputusan user:** worker utama memakai `GROQ_API_KEY` + `GEMINI_KEY_1..13`,
+Konsekuensinya: kualitas kode worker tidak
+setara Claude, dan itu diterima sadar.
+
+Status ini **bukan blocker lagi** karena tidak ada langkah yang bergantung
+padanya yang tertahan. Yang tersisa hanya catatan historis.
+
+## BLOCKER-2 — `cargo install kage` memasang proyek salah → **RESOLVED by decision**
+
+`kage` turned out mati: 3 stars, 267 hari tanpa commit, tanpa license.
+Memasangnya membuang waktu dan menghasilkan binary yang tidak berguna.
+
+**Keputusan user:** hapus `kage` permanen. Orchestrator memakai pola
+LoopFlow + Windows Task Scheduler. Semua rujukan ke `kage` dihapus dari
+`docs/gamedev/stack-recommendation.md` dan `ROADMAP-GAMEDEV.md`.
+
+## BLOCKER-3 — Phaser Game Agent MCP → **N/A, tidak pernah eksis**
+
+Disebut di rencana awal tetapi tidak ada di katalir MCP marketplace.
+Tidak bisa dipasang karena memang tidak ada. Rujukan dihapus.
+
+## BLOCKER-4 — Rust install → **DEFERRED ke Q1 2027**
+
+Tidak dipasang. Bukan karena gagal, tapi karena seluruh ekstensi game
+dev dijadwalkan ulang ke Q1 2027.
+
+## BLOCKER-5 — PixelLab license → **DEFERRED ke Q1 2027**
+
+Lisensi berbayar belum diambil. Penjadwalan ulang ke Q1 2027
+membuat keputusan ini belum perlu.
+
+## BLOCKER-6 — Unity official plugin → **third-party**
+
+Plugin resmi Unity tidak ada; yang dipakai `IvanMurzak/Unity-MCP` (third-party).
+Belum dipakai, tapi tidak blocker.
+
+## BLOCKER-7 — Godot → **hi-godot/godot-ai (8 issues)**
+
+Masih 8 issues. Tidak dipakai sekarang; tercatat supaya tidak ditemukan
+ulang nanti.
+
+## Catatan tooling yang bukan blocker
+
+- `Roblox Studio MCP`: official tapi 178 hari stale.
+- `MoGen`: single point of failure. Satu-satunya opsi 3D; kalau hilang,
+  tidak ada penggantinya. Belum dipakai, tapi risikonya nyata.
+
+## Kapan blocker berikutnya?
+
+Review Q1 2027. Sampai saat itu tidak ada instalasi baru, dan tidak ada
+yang menunggu keputusan.
+
 
 ## BLOCKER-1 — Prasyarat keras gagal: 2 API key kosong
 

@@ -344,6 +344,43 @@ Quoting "181 gaps" as backlog size would overstate the work by ~180x.
 These three landed on the MCP track and are tracked in `TODO.md`; they are listed
 here only so the blitz totals are not mistaken for the whole of what exists.
 
+## Status Produksi — 29 September 2026
+
+Semua baris di bawah punya bukti yang bisa diulang; yang tidak punya bukti
+tidak ditulis sebagai selesai.
+
+| Item | Status | Bukti |
+|---|---|---|
+| Detail page (query-param) | **verified** | `/integrations/catalog?slug=…` 200 di produksi |
+| Navigasi logo + back | **verified (login & guest)** | matrix logged-in 8/8, matrix guest 8/8 |
+| Tombol "Chat" di shell | **verified** | `SHELL_CHAT_HREF = /chat` di `/chat` dan `/builder` |
+| Bug tools kosong | **fixed** | `CLOUDFLARE_HEADING = Tools (20)`, `EMPTY_UL = 0` |
+| Storage state config | **both** | proyek `guest` + `logged-in` di playwright.config.ts |
+| Axe | **0 blocking** | /settings, /integrations, halaman detail |
+| Rute produksi | **8/8 → 200** | /, /chat, /settings, /integrations, 2× detail, /pricing, /docs |
+| Klaim pemasaran | **54/54 hijau** | `node verify_roadmap_claims.mjs` |
+
+### Yang MASIH terbuka
+
+| Item | Status | Dampak |
+|---|---|---|
+| Dodo KYC / pembayaran | **ditunda** | Checkout berjalan parsial; bukan revenue-ready |
+| Parity integrasi | **229 terverifikasi** | Target lama 1.000 belum tercapai |
+| Metadata beberapa provider | **tidak lengkap** | Sebagian record hanya punya `tools_count`, bukan nama tool |
+| Game dev extension | **ditunda ke Q1 2027** | Tidak ada instalasi baru; lihat `docs/gamedev/progress/latest.md` |
+
+### Status launch
+
+Produk **siap tayang** dan semua klaim yang tampil di marketing bisa
+dipertanggungjawabkan. Yang belum selesai adalah hal yang bersifat
+monetisasi dan cakupan, bukan kualitas: pembayaran belum penuh dan
+parity integrasi masih 229, bukan 1.000.
+
+Artinya: **`KATALIR_LAUNCH_READY=yes` untuk scope non-monetisasi.**
+Kalau launch-nya menyertakan شعار "1.000+ integrations" atau
+"payments live", jawabannya **tidak** — dan verifier akan menangkap
+perbedaannya.
+
 ## Blocked on the user
 1. ~~**Nango Cloud key**~~ → **NOT BLOCKED, false alarm.** The key works; the
    401 we recorded came from calling `/api/v1/providers`, a route that does not
