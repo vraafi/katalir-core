@@ -11,7 +11,20 @@ import { test, expect } from "@playwright/test";
  * Kalau file ini gagal dengan "not signed in", itu harness (fixture auth),
  * bukan produk. Periksa `_e2e_storage.json`.
  */
-const BASE = (process.env.AXETARGET || process.env.AXE_TARGET || "https://katalir.de5.net").replace(/\/$/, "");
+/**
+ * Target logged-in adalah build produksi LOKAL, bukan domain ter-deploy.
+ *
+ * Alasannya menentukan, bukan teknis: `storageState` di-scope per origin.
+ * `scripts/e2e-auth-setup.mjs` menulis state untuk `http://localhost:3000`
+ * (dia banter dengan webServer di playwright.config.ts), sedangkan
+ * spec lain mengarahkan BASE ke katalir.de5.net. Playwright lalu diam-diam
+ * TIDAK menerapkan state itu ke domain lain, dan test berjalan sebagai
+ * guest tanpa error -- persis jenis lulus palsu yang paling berbahaya.
+ *
+ * Jadi BASE di sini ikut ke localhost, tempat storageState-nya benar.
+ * Set E2E_PORT kalau portnya bukan 3000.
+ */
+const BASE = (process.env.E2E_BASE || `http://localhost:${process.env.E2E_PORT || 3000}`).replace(/\/$/, "");
 const SHOTS = "../docs/marketing/screenshots/navigation-logged-in";
 
 /** Halaman akun; semua memakai SimplePage. */
