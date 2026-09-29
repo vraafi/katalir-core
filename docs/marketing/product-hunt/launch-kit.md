@@ -46,6 +46,11 @@ rather show you 229 that work than imply 23,474 do.
 - **A marketplace that cannot lie to you.** Filter by runtime tier, and the
   filter and the badge are computed by the same function, so they cannot
   disagree.
+- **Self-healing runs.** When a node hits a 5xx or a rate limit, the runner
+  retries up to 5 times with exponential backoff, looks the failure up against
+  developer forums, and shows you the suggestions it found. A run that recovers
+  is reported as a success, not an error. Credential errors skip the retry
+  entirely and tell you what to fix.
 - **Your credentials stay yours.** OAuth per user, per tenant.
 
 **Built for people who got burned by a catalogue number.** If a vendor says

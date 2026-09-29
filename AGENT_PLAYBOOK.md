@@ -45,6 +45,7 @@ BLOCKED hanya valid untuk: user action (login/approve/bayar), keputusan keamanan
 - JWT `test-jwt.txt` kedaluwarsa sekitar 1 jam; minta user refresh dari browser Console.
 - Railway deploy stale → force redeploy commit terbaru.
 - Jangan jalankan `npm run build` bersamaan dengan `next dev` (`.next` corruption).
+- **WAJIB: `npm run build` untuk DEPLOY harus punya `NEXT_PUBLIC_API_URL` yang benar.** Nilai `NEXT_PUBLIC_*` di-inline ke bundle SAAT BUILD, jadi `npm run build` biasa membaca `.env.local` lokal yang berisi `http://localhost:8000`, lalu meng-upload bundle yang memanggil localhost. Gejalanya halus: semua route tetap 200, tapi halaman integrasi macet di "Loading..." karena setiap panggilan API gagal. Sumber URL produksi yang benar ada di `.env.example` (commit `ab6cf2e`: `https://web-production-dc90b.up.railway.app`). Setelah build, WAJIB cek `out/_next/static` tidak mengandung `localhost:8000` SEBELUM menjalankan `_deploy_pages.py`.
 - Supabase Auth Site URL harus domain production.
 - `python-dotenv` dapat memberi warning parse pada `.env`; gunakan key aktual dan jangan menyimpulkan key kosong hanya dari baris yang gagal parse.
 - VPS: `.env` memuat `VPS_IP`, `VPS_USERNAME`, `VPS_PASSWORD`.
