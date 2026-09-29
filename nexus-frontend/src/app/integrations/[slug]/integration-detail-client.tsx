@@ -22,12 +22,29 @@ export default function IntegrationDetailClient() {
   // pola yang sudah dipakai halaman /settings. `useSearchParams` memaksa
   // Suspense boundary, dan di `output: "export"` itu menambah berat
   // tanpa manfaat.
-  const [slug, setSlug] = useState<string>(params.slug);
+  //
+  // PENTING: state awal adalah `null`, bukan `params.slug`. Kalau diisi
+  // `params.slug` sejak awal, ada DUA request: yang pertama untuk "catalog"
+  // (yang 404), yang kedua untuk slug asli. Yang 404 itu men-set `error`
+  // lebih dulu, dan karena `if (error)` diperiksa sebelum `if (item)`,
+  // halaman menampilkan "tidak ditemukan" walau request yang benar
+  // sudah 200. Itu terjadi sungguhan dan ketahuan lewat log jaringan.
+  const [slug, setSlug] = useState<string | null>(null);
   useEffect(() => {
     const q = new URLSearchParams(window.location.search).get("slug");
-    setSlug(q || params.slug);
+    setSlug(q || params.slug || null);
   }, [params.slug]);
-  useEffect(() => { if (!slug) return; setItem(null); setError(false); apiFetch(`/mcp/registry/${encodeURIComponent(slug)}`, { timeoutMs: 8000 }).then(r => r.ok ? r.json() : Promise.reject()).then(setItem).catch(() => setError(true)); }, [slug]);
+  useEffect(() => {
+    if (!slug) return;
+    let cancelled = false;
+    setItem(null);
+    setError(false);
+    apiFetch(`/mcp/registry/${encodeURIComponent(slug)}`, { timeoutMs: 12_000 })
+      .then((r) => (r.ok ? r.json() : Promise.reject(new Error(`HTTP ${r.status}`))))
+      .then((d) => { if (!cancelled) setItem(d); })
+      .catch(() => { if (!cancelled) setError(true); });
+    return () => { cancelled = true; };
+  }, [slug]);
   if (error) return <SimplePage title="Integrasi tidak ditemukan"><p>Server ini tidak tersedia di registry.</p></SimplePage>;
   if (!item) return <SimplePage title="Memuat integrasi…"><p className="text-sm text-fg-muted">Mengambil detail server…</p></SimplePage>;
   return <SimplePage title={item.name} subtitle={item.category}>
