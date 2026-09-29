@@ -17,7 +17,9 @@ const SHOTS = "../docs/marketing/screenshots/navigation";
 /** Halaman akun yang memakai SimplePage. */
 const ACCOUNT_PAGES = ["/settings", "/billing", "/help", "/integrations"];
 
-test.describe("Matrix navigasi", () => {
+// Hanya di proyek `guest`: file ini menguji perilaku tanpa sesi, yang
+// persis perlu login untuk diuji sebagai bug navigasi.
+test.describe("Matrix navigasi (guest)", () => {
   test("landing: logo mengarah ke /chat (marketing -> app)", async ({ page }) => {
     await page.setViewportSize({ width: 1440, height: 900 });
     await page.goto(`${BASE}/`, { waitUntil: "load", timeout: 90_000 });

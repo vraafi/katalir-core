@@ -1,4 +1,13 @@
 import { defineConfig, devices } from "@playwright/test";
+import fs from "node:fs";
+import path from "node:path";
+
+/**
+ * Storage state untuk proyek `logged-in`. Dipakai hanya kalau file-nya
+ * benar-benar ada; `scripts/e2e-auth-setup.mjs` yang menulisnya, dan
+ * file ini sengaja tidak di-commit.
+ */
+const AUTH_STATE_FILE = path.join(__dirname, "_e2e_storage.json");
 
 /**
  * E2E WAJIB berjalan di PRODUCTION BUILD, bukan `next dev`.
@@ -74,7 +83,20 @@ export default defineConfig({
     screenshot: "only-on-failure",
   },
   projects: [
-    { name: "chromium", use: { ...devices["Desktop Chrome"] } },
+    // `guest` dulu (default) supaya spec yang bergantung pada "belum
+    // login" tidak ikut berubah. Proyek `logged-in` di bawah memakai
+    // storageState yang sama dengan suite verifikasi roadmap.
+    { name: "guest", use: { ...devices["Desktop Chrome"] } },
+    {
+      name: "logged-in",
+      use: {
+        ...devices["Desktop Chrome"],
+        // Hanya aktif bila harness auth memang menulis file-nya.
+        // Kalau file tidak ada, storageState yang hilang akan gagal
+        // dengan ENOENT yang menyamar jadi bug produk, jadi dicek dulu.
+        storageState: fs.existsSync(AUTH_STATE_FILE) ? AUTH_STATE_FILE : undefined,
+      },
+    },
   ],
   webServer: [
     {
