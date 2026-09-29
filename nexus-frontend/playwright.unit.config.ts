@@ -12,7 +12,7 @@ import { defineConfig } from "@playwright/test";
  */
 export default defineConfig({
   testDir: "./tests",
-  testMatch: /(execution-report-healing|repro-integrations|repro-detail)\.spec\.ts/,
+  testMatch: /(execution-report-healing|repro-integrations|repro-detail|badge-layout)\.spec\.ts/,
   timeout: 15000,
   reporter: [["line"]],
   use: {},

@@ -432,7 +432,27 @@ export default function IntegrationsPage() {
           item shrink so truncate actually does its job. */}
       <div className="grid min-w-0 gap-3 sm:grid-cols-2">
         {items.map(item => { const b = badgeFor(item); return <Card key={item.id} data-testid="integration-card" className="min-w-0">
-          <CardHeader><CardTitle className="truncate">{item.name} <span className={`ml-1 rounded-full px-2 py-0.5 text-[10px] font-semibold ${b.cls}`} data-testid={b.testid} title={TIER_HINT[(item as { runtime_tier?: string }).runtime_tier ?? "discovered"]}>{b.label}</span></CardTitle><CardDescription>{item.category} · {item.tools?.length ?? item.tools_count ?? 0} tools · {SOURCE_LABEL[item.source ?? "toolsdk"] ?? item.source}</CardDescription></CardHeader>
+          {/* Judul + badge dipisah jadi dua kolom flex, bukan satu baris teks.
+
+              Sebelumnya: `<h2 class="truncate">{name} <span>badge</span></h2>`.
+              `truncate` memberi `white-space:nowrap`, jadi nama panjang tidak
+              membungkus - satu baris melebar melewati tepi h2 lalu terpotong
+              `overflow:hidden`. Badge ada di AKHIR baris itu, jadi dia yang
+              pertama hilang. Terukur di produksi: `badge.right=696` vs
+              `card.right=634` - badge keluar 62px dari card dan terpotong h2.
+
+              Sekarang: `min-w-0` + `flex-1` + `truncate` di teks, dan
+              `shrink-0` di badge. Teks yang memendek dengan ellipsis; badge
+              tidak pernah ikut menyusut karena ukurannya kecil.
+              `overflow:hidden` sengaja TIDAK dipakai di card: memotong card
+              juga akan memotong badge, yaitu gejala yang sama. */}
+          <CardHeader className="min-w-0">
+            <CardTitle className="flex min-w-0 items-center gap-2">
+              <span className="min-w-0 flex-1 truncate" data-testid="integration-title">{item.name}</span>
+              <span className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-semibold ${b.cls}`} data-testid={b.testid} title={TIER_HINT[(item as { runtime_tier?: string }).runtime_tier ?? "discovered"]}>{b.label}</span>
+            </CardTitle>
+            <CardDescription>{item.category} · {item.tools?.length ?? item.tools_count ?? 0} tools · {SOURCE_LABEL[item.source ?? "toolsdk"] ?? item.source}</CardDescription>
+          </CardHeader>
           <CardContent className="flex flex-col gap-3">
             <p className="line-clamp-2 text-sm text-fg-muted">{item.description}</p>
             {/* WAJIB lisensi: tiap listing Glama tertaut ke halamannya di Glama.
