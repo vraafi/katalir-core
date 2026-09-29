@@ -163,6 +163,12 @@ export default function IntegrationsPage() {
   const [uniqueSources, setUniqueSources] = useState<Sources>({});
   const [view, setView] = useState<"all" | "unique">("all");
   const [tier, setTier] = useState(DEFAULT_TIER);
+  // Tier yang benar-benar dipakai untuk data yang sedang tampil. The warning
+  // butuh ini: `tier` berubah seketika saat tombol diklik, tapi `total` baru
+  // berubah setelah fetch selesai. Tanpa penanda ini, warning sempat tampil
+  // dengan angka milik filter SEBELUMNYA - sempat terlihat "14.624 server yang
+  // belum diuji" padahal angka itu milik tier terverifikasi.
+  const [loadedTier, setLoadedTier] = useState("");
   const [category, setCategory] = useState("");
   const [categories, setCategories] = useState<Array<{ category: string; count: number }>>([]);
   const [status, setStatus] = useState<string>("Memuat registry…");
@@ -234,6 +240,8 @@ export default function IntegrationsPage() {
         }));
         setItems(mapped); setTotal(d.total ?? mapped.length);
         setStatus(`${d.total ?? mapped.length} provider native berjalan`);
+        // Tab native dibangun client-side, jadi `tier` tidak berlaku di sini.
+        setLoadedTier("native");
       } else {
         const qs = new URLSearchParams({ limit: "50", search: q });
         if (source) qs.set("source", source);
@@ -255,6 +263,7 @@ export default function IntegrationsPage() {
         });
         setItems(sorted); setTotal(d.total ?? 0);
         setStatus(`${sorted.length} dari ${d.total ?? 0} integrasi`);
+        setLoadedTier(t);
       }
       const sr = await apiFetch("/mcp/registry/sources", { timeoutMs: 15000 });
       if (sr.ok) {
@@ -379,7 +388,7 @@ export default function IntegrationsPage() {
           user tidak perlu menekan Enter atau tombol Cari. */}
       <SearchBar onSearch={(q) => { setSearch(q); void load(q); }} />
       <p role="status" aria-live="polite" className="text-sm text-fg-muted">{status}</p>
-      {tier === "discovered" && <div role="status" data-testid="discovered-warning"
+      {tier === "discovered" && loadedTier === "discovered" && <div role="status" data-testid="discovered-warning"
         className="rounded-lg border border-warning/40 bg-warning/10 p-3 text-sm text-fg">
         <strong>Menampilkan {total.toLocaleString("id-ID")} server yang belum diuji.</strong>{" "}
         Katalog ini jauh lebih besar dari yang bisa kami hubungi, tapi sebagian besar entri
