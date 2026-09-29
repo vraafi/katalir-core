@@ -26,6 +26,7 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
+from self_healing import SelfHealingAgent
 import database as db
 # FASE 2.6: node MCP dengan `config.provider` dirutekan ke registry tool native.
 import provider_registry
@@ -403,7 +404,8 @@ class StatefulOrchestrator:
 
     def __init__(self, graph: FlowGraph, registry: Optional[MCPRegistry] = None,
                  trigger_input: Optional[dict] = None,
-                 owner_email: str = ""):
+                 owner_email: str = "",
+                 healing_factory: Optional[Callable[[], Any]] = None):
         self.graph = graph
         self.registry = registry or get_registry()
         self.trigger_input = dict(trigger_input or {})
@@ -412,6 +414,10 @@ class StatefulOrchestrator:
         # user. Tanpa ini setiap node ber-kredensial gagal "CredentialMissing"
         # walau user sudah menyimpannya.
         self.owner_email = owner_email or ""
+        # Self-healing. `healing_factory` injectable supaya test bisa
+        # menyuntikkan agent palsu (tanpa jaringan/LLM) tanpa mengubah
+        # kode produksi. Default-nya constructs SelfHealingAgent sungguhan.
+        self.healing_factory = healing_factory or (lambda: SelfHealingAgent())
         self.states: dict[str, str] = {n.id: "pending" for n in graph.nodes}
         self.outputs: dict[str, dict] = {}
         self._by_id = {n.id: n for n in graph.nodes}
@@ -614,30 +620,76 @@ class StatefulOrchestrator:
         steps: list[ExecutionStep],
         on_step: Optional[Callable],
     ) -> None:
+        """Jalankan satu node, dengan self-healing.
+
+        Loop, bukan rekursi (draf memakai `return await self._run_node(...)`):
+        rekursi menambah frame per percobaan dan membuat batas recursion
+        jadi batas healing yang tidak sengaja. Loop dengan penghitung
+        `attempt` eksplisit jauh lebih mudah dibaca dan diuji.
+
+        Healing hanya untuk error dari eksekusi node. RuntimeError untuk
+        graph rusak (tidak ada Trigger, workflow buntu) dilempar dari run(),
+        bukan dari sini, jadi tidak masuk healing -- itu bukan sementara.
+        """
         node = self._by_id[node_id]
-        self.states[node_id] = "running"
-        step = ExecutionStep(node_id=node_id, kind=node.data.kind, status="running")
-        if on_step:
-            await on_step(step)
-        try:
-            executor = self.EXECUTORS[node.data.kind]
-            inps = {p: self.outputs.get(p, {}) for p in self._preds[node_id]}
-            inp = dict(inps)
-            inp["_from"] = next(iter(inps), "trigger")
-            out = await executor(self, node, inp)
-            self.outputs[node_id] = out or {"noop": True}
-            self.states[node_id] = "completed"
-            step.status = "completed"
-            step.input = inp
-            step.output = self.outputs[node_id]
-        except Exception as exc:  # noqa: BLE001
-            self.states[node_id] = "error"
-            step.status = "error"
-            step.output = {"error": str(exc)}
-            raise
-        steps.append(step)
-        if on_step:
-            await on_step(step)
+        healing = self._healing()
+        attempt = 1
+        while True:
+            self.states[node_id] = "running"
+            step = ExecutionStep(node_id=node_id, kind=node.data.kind, status="running")
+            if on_step:
+                await on_step(step)
+            try:
+                executor = self.EXECUTORS[node.data.kind]
+                inps = {p: self.outputs.get(p, {}) for p in self._preds[node_id]}
+                inp = dict(inps)
+                inp["_from"] = next(iter(inps), "trigger")
+                out = await executor(self, node, inp)
+                self.outputs[node_id] = out or {"noop": True}
+                self.states[node_id] = "completed"
+                step.status = "completed"
+                step.input = inp
+                step.output = self.outputs[node_id]
+            except Exception as exc:  # noqa: BLE001
+                plan = await healing.handle_failure(
+                    node_id=node_id, error=exc, attempt=attempt)
+                if plan.action == "retry":
+                    # Emit SETIAP percobaan ke on_step supaya riwayat punya
+                    # jejak, bukan cuma hasil akhir. Tanpa ini user hanya
+                    # melihat "gagal" tanpa tahu sudah dicoba 5x.
+                    retry_step = ExecutionStep(
+                        node_id=node_id, kind=node.data.kind, status="retrying",
+                        output={"healing": plan.to_dict()},
+                    )
+                    steps.append(retry_step)
+                    if on_step:
+                        await on_step(retry_step)
+                    if plan.delay_ms:
+                        await asyncio.sleep(plan.delay_ms / 1000)
+                    attempt += 1
+                    continue
+                # Escalate / credential / abort: catat diagnosis terakhir,
+                # lalu teruskan error aslinya supaya run() tetap gagal
+                # dengan alasan yang benar.
+                self.states[node_id] = "error"
+                step.status = "error"
+                step.output = {"error": str(exc), "healing": plan.to_dict()}
+                steps.append(step)
+                if on_step:
+                    await on_step(step)
+                raise
+            steps.append(step)
+            if on_step:
+                await on_step(step)
+            return
+
+    def _healing(self):
+        """SelfHealingAgent, bisa di-override test lewat healing_factory.
+
+        Dibuat per pemanggilan, bukan sekali di __init__, supaya tidak ada
+        state bersama antar eksekusi workflow yang berjalan paralel.
+        """
+        return self.healing_factory()
 # ---------------------------------------------------------------------------
 # API DE ORQUESTACION + PERSISTENCIA (execution_logs)
 # ---------------------------------------------------------------------------
