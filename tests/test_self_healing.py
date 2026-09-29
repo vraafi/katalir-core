@@ -1,80 +1,198 @@
-"""Test self-healing: klasifikasi, batas percobaan, dan graceful abort.
+﻿"""Test self-healing hybrid: batas per kategori, backoff, escalate.
 
-Tan's tanpa LLM dan tanpa jaringan, jadi hasilnya deterministik dan
-tidak bisa "lucky pass" tergantung model yang sedang menjawab.
+Deterministik: tanpa LLM dan tanpa jaringan, jadi hasilnya tidak bisa
+bergantung pada model yang sedang menjawab.
 """
 import asyncio
 import unittest
 
-from self_healing import MAX_ATTEMPTS, SelfHealingAgent, classify_error
+from self_healing import (
+    CATEGORIES, RATE_LIMIT_DELAYS_MS, SelfHealingAgent, classify_error,
+)
+
+
+def run(coro):
+    return asyncio.run(coro)
 
 
 class TestClassification(unittest.TestCase):
-    def test_token_expired_is_credential_not_retry(self):
-        # Ini kasus inti dari brief (Gmail 401). Kalau ini diklasifikasi
-        # retry, engine akan membakar 3 percobaan untuk hal yang mustahil
-        # berhasil tanpa token baru.
+    def test_token_expired_is_credential(self):
         for msg in ("401 Unauthorized", "invalid_grant: token has expired",
                     "Could not refresh access token: invalid_grant"):
             self.assertEqual(classify_error(msg).action, "credential", msg)
 
-    def test_rate_limit_and_5xx_are_retryable(self):
+    def test_rate_limit_5xx_network_are_retry(self):
         for msg in ("429 Too Many Requests", "rate limit exceeded",
                     "503 Service Unavailable", "502 Bad Gateway",
                     "Connection reset by peer", "ETIMEDOUT"):
             self.assertEqual(classify_error(msg).action, "retry", msg)
 
     def test_404_and_400_abort(self):
-        # Retry payload yang sama tidak akan menemukan target yang tidak
-        # ada, dan 400 tidak akan jadi 200 dengan payload yang sama.
         for msg in ("404 Not Found", "400 Bad Request", "422 validation error"):
             self.assertEqual(classify_error(msg).action, "abort", msg)
 
-    def test_unknown_error_is_not_matched(self):
-        # Penting: tidak ada rule = tidak ada aksi. Jangan sampai error
-        # aneh ikut dapat aksi retry.
-        self.assertIsNone(classify_error("wibble: something nobody predicted"))
-        self.assertIsNone(classify_error(""))
+    def test_unknown_returns_unknown_rule_not_none(self):
+        # Versi lama mengembalikan None lalu langsung abort. Sekarang
+        # error tak dikenal tetap dapat 2 percobaan sebelum escalate,
+        # jadi classify_error tidak boleh pernah mengembalikan None.
+        for msg in ("wibble: something nobody predicted", ""):
+            rule = classify_error(msg)
+            self.assertIsNotNone(rule)
+            self.assertEqual(rule.name, "unknown")
 
 
-class TestAttemptLimit(unittest.TestCase):
-    def test_stops_at_max_attempts(self):
+class TestHybridCategoryLimits(unittest.TestCase):
+    """Kontrak baru: batas per kategori, bukan satu angka global."""
+
+    def _run(self, msg, attempts):
         agent = SelfHealingAgent(search_enabled=False)
 
-        async def run():
-            out = []
-            for attempt in range(1, MAX_ATTEMPTS + 2):
-                plan = await agent.handle_failure(
-                    node_id="gmail_1", error="503 Service Unavailable", attempt=attempt)
-                out.append(plan.action if plan else None)
-            return out
+        async def go():
+            return [await agent.handle_failure(node_id="n", error=msg, attempt=a)
+                    for a in attempts]
+        return run(go())
 
-        actions = asyncio.run(run())
-        self.assertEqual(actions, ["retry", "retry", "retry", None])
-        self.assertIsNone(actions[3], "retry harus berhenti, bukan loop")
+    def test_credential_escalates_immediately_zero_retry(self):
+        plans = self._run("401 Unauthorized: invalid_grant", [1, 2, 3, 4, 5])
+        for p in plans:
+            self.assertEqual(p.action, "escalate")
+            self.assertEqual(p.max_attempts, 0)
+        self.assertTrue(plans[0].suggestions, "escalate harus membawa saran")
 
-    def test_credential_never_retries(self):
+    def test_credential_escalate_carries_provider(self):
+        p = self._run("401 Unauthorized while calling Gmail API", [1])[0]
+        self.assertEqual(p.provider, "gmail",
+                         "UI butuh tahu provider mana yang disambung ulang")
+
+    def test_network_retries_five_then_escalates(self):
+        plans = self._run("ETIMEDOUT contacting api", [1, 2, 3, 4, 5, 6])
+        self.assertEqual([p.action for p in plans],
+                         ["retry"] * 5 + ["escalate"])
+        self.assertEqual(plans[-1].max_attempts, 5)
+
+    def test_api_5xx_retries_five_then_escalates(self):
+        plans = self._run("503 Service Unavailable", [1, 2, 3, 4, 5, 6])
+        self.assertEqual([p.action for p in plans],
+                         ["retry"] * 5 + ["escalate"])
+
+    def test_unknown_retries_twice_then_escalates(self):
+        plans = self._run("wibble: nobody predicted this", [1, 2, 3, 4])
+        self.assertEqual([p.action for p in plans],
+                         ["retry", "retry", "escalate", "escalate"])
+        self.assertEqual(plans[0].max_attempts, 2)
+
+    def test_404_and_400_still_abort_immediately(self):
+        for msg in ("404 Not Found", "400 Bad Request"):
+            self.assertEqual(self._run(msg, [1])[0].action, "abort", msg)
+
+    def test_escalate_always_carries_suggestions(self):
+        """UI butuh sesuatu yang bisa diklik; escalate tanpa saran sia-sia."""
+        for msg, n in (("ETIMEDOUT", 6), ("wibble", 3), ("401 token", 1)):
+            p = self._run(msg, [n])[-1]
+            if p.action == "escalate":
+                self.assertTrue(p.suggestions, msg)
+
+    def test_category_table_matches_required_contract(self):
+        self.assertEqual(CATEGORIES["credential"], 0)
+        self.assertEqual(CATEGORIES["network"], 5)
+        self.assertEqual(CATEGORIES["api_5xx"], 5)
+        self.assertEqual(CATEGORIES["rate_limit"], 5)
+        self.assertEqual(CATEGORIES["unknown"], 2)
+
+
+class TestRateLimitBackoff(unittest.TestCase):
+    def test_delay_is_exponential(self):
         agent = SelfHealingAgent(search_enabled=False)
 
-        async def run():
-            for attempt in (1, 2, 3):
-                plan = await agent.handle_failure(
-                    node_id="gmail_1", error="401 token expired", attempt=attempt)
-                self.assertEqual(plan.action, "credential")
+        async def go():
+            return [(await agent.handle_failure(node_id="n", error="429 rate limit",
+                                                attempt=a)).delay_ms
+                    for a in range(1, 6)]
+        got = run(go())
+        self.assertEqual(got, list(RATE_LIMIT_DELAYS_MS))
+        for prev, nxt in zip(got, got[1:]):
+            self.assertEqual(nxt, prev * 2, "backoff harus mengalikan dua")
 
-        asyncio.run(run())
-
-    def test_unknown_error_aborts_immediately(self):
+    def test_transient_backoff_starts_at_zero(self):
+        # Percobaan pertama tidak perlu jeda: kalau error-nya sesaat,
+        # menunggu sebelum mencoba hanya menambah latensi yang dirasakan
+        # user tanpa memperbaiki apa pun.
         agent = SelfHealingAgent(search_enabled=False)
 
-        async def run():
-            plan = await agent.handle_failure(
-                node_id="x", error="wibble: unpredictable", attempt=1)
-            return plan
+        async def go():
+            return (await agent.handle_failure(node_id="n",
+                                               error="503 Service Unavailable",
+                                               attempt=1)).delay_ms
+        self.assertEqual(run(go()), 0)
 
-        plan = asyncio.run(run())
-        self.assertEqual(plan.action, "abort")
-        self.assertIn("tidak dikenali", plan.reason)
+    def test_no_delay_once_escalated(self):
+        # Setelah 5 percobaan, plan-nya escalate -- bukan retry, jadi
+        # tidak ada yang perlu menunggu. Percobaan ke-6 tidak boleh
+        # "delay 16000 lalu coba lagi": itu loop tak berujung.
+        agent = SelfHealingAgent(search_enabled=False)
+
+        async def go():
+            return [await agent.handle_failure(node_id="n", error="429 rate limit",
+                                               attempt=a) for a in (6, 99)]
+        for p in run(go()):
+            self.assertEqual(p.action, "escalate")
+            self.assertEqual(p.delay_ms, 0, "hanya retry yang menunggu")
+
+
+class TestSearchEveryAttempt(unittest.TestCase):
+    def test_search_runs_on_attempt_one_for_non_credential(self):
+        """Perubahan dari versi lama: pencarian tidak lagi nunggu attempt>=2."""
+        calls = []
+
+        async def fake(msg):
+            calls.append(msg)
+            return [{"source": "github", "title": "x", "link": "l"}]
+
+        agent = SelfHealingAgent(search_enabled=True)
+        agent.search_forum = fake  # type: ignore[assignment]
+
+        async def go():
+            return await agent.handle_failure(node_id="n", error="ETIMEDOUT", attempt=1)
+
+        plan = run(go())
+        self.assertEqual(len(calls), 1, "pencarian harus jalan di attempt 1")
+        self.assertEqual(plan.search_hits, 1)
+        self.assertTrue(plan.suggestions)
+
+    def test_credential_never_searches(self):
+        calls = []
+
+        async def fake(msg):
+            calls.append(msg)
+            return []
+
+        agent = SelfHealingAgent(search_enabled=True)
+        agent.search_forum = fake  # type: ignore[assignment]
+
+        async def go():
+            return await agent.handle_failure(node_id="n", error="401 token expired", attempt=1)
+
+        plan = run(go())
+        self.assertEqual(len(calls), 0, "credential butuh manusia, bukan artikel")
+        self.assertEqual(plan.action, "escalate")
+
+    def test_escalate_still_searches_for_suggestions(self):
+        calls = []
+
+        async def fake(msg):
+            calls.append(msg)
+            return [{"source": "stackoverflow", "title": "how to fix", "link": "l"}]
+
+        agent = SelfHealingAgent(search_enabled=True)
+        agent.search_forum = fake  # type: ignore[assignment]
+
+        async def go():
+            return await agent.handle_failure(node_id="n", error="ETIMEDOUT", attempt=9)
+
+        plan = run(go())
+        self.assertEqual(plan.action, "escalate")
+        self.assertTrue(calls, "escalate tanpa saran forum tidak berguna")
+        self.assertEqual(plan.suggestions[0]["kind"], "stackoverflow")
 
 
 class TestResilience(unittest.TestCase):
@@ -85,42 +203,69 @@ class TestResilience(unittest.TestCase):
 
         agent = SelfHealingAgent(search_enabled=False, llm_reflect=bad_llm)
 
-        async def run():
+        async def go():
             return await agent.handle_failure(
                 node_id="n", error="503 Service Unavailable", attempt=1)
 
-        plan = asyncio.run(run())
+        plan = run(go())
         self.assertEqual(plan.action, "retry")
-        ignored = [t for t in plan.trace if t.get("impact") == "ignored"]
-        self.assertTrue(ignored, "kegagalan LLM harus tercatat di trace")
+        self.assertTrue([t for t in plan.trace if t.get("impact") == "ignored"],
+                        "kegagalan LLM harus tercatat di trace")
 
-    def test_search_failure_does_not_abort(self):
+    def test_search_failure_does_not_change_action(self):
         async def boom(msg):
             raise RuntimeError("search down")
 
         agent = SelfHealingAgent(search_enabled=True)
         agent.search_forum = boom  # type: ignore[assignment]
 
-        async def run():
+        async def go():
             return await agent.handle_failure(
                 node_id="n", error="429 rate limit", attempt=2)
 
-        plan = asyncio.run(run())
+        plan = run(go())
         self.assertEqual(plan.action, "retry")
         self.assertEqual(plan.search_hits, 0)
+
+    def test_search_failure_still_escalates_with_fallback(self):
+        async def boom(msg):
+            raise RuntimeError("search down")
+
+        agent = SelfHealingAgent(search_enabled=True)
+        agent.search_forum = boom  # type: ignore[assignment]
+
+        async def go():
+            return await agent.handle_failure(
+                node_id="n", error="429 rate limit", attempt=6)
+
+        plan = run(go())
+        self.assertEqual(plan.action, "escalate")
+        self.assertTrue(plan.suggestions,
+                        "escalate wajib punya saran walau pencarian gagal")
 
     def test_plan_is_json_serialisable(self):
         import json
         agent = SelfHealingAgent(search_enabled=False)
 
-        async def run():
+        async def go():
             return await agent.handle_failure(
                 node_id="n", error={"status": 429, "message": "rate limit"}, attempt=2)
 
-        plan = asyncio.run(run())
-        json.dumps(plan.to_dict())  # tidak boleh melempar
-        self.assertEqual(plan.action, "retry")
+        json.dumps(run(go()).to_dict())  # tidak boleh melempar
+
+    def test_dict_and_str_errors_classify_identically(self):
+        agent = SelfHealingAgent(search_enabled=False)
+
+        async def a():
+            return await agent.handle_failure(node_id="n", error="401 Unauthorized", attempt=1)
+
+        async def b():
+            return await agent.handle_failure(
+                node_id="n", error={"status": 401, "message": "Unauthorized"}, attempt=1)
+
+        self.assertEqual(run(a()).action, run(b()).action)
 
 
 if __name__ == "__main__":
     unittest.main(verbosity=2)
+
