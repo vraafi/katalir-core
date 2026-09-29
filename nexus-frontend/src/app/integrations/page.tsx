@@ -37,6 +37,44 @@ type Sources = Record<string, number> & { glama?: number; "glama-connector"?: nu
 /** The four tiers, in the same order the backend ranks them. */
 const RUNTIME_TIERS = ["call_verified", "auth_required", "tools_listed", "discovered"] as const;
 
+/**
+ * Default filter: the three tiers that have actually been contacted at runtime.
+ *
+ * `discovered` is 14.934 dari 29.558 entri dan semuanya metadata-only: 0 tools,
+ * tidak pernah dijalankan. Membuka katalog tanpa filter hampir pasti mendarat
+ * di sana, jadi user menyimpulkan katalog ini kosong padahal isinya 29 ribu.
+ * Yang pertama dilihat user harus jujur soal apa yang benar-benar bisa
+ * dijalankan, bukan baris paling banyak.
+ *
+ * auth_required ikut di dalam "terverifikasi" karena itu berarti kita PERNAH
+ * menghubungi server itu dan tahu ia butuh credential. Yang tidak pernah
+ * dihubungi hanya `discovered`.
+ */
+const DEFAULT_TIER = "call_verified,auth_required,tools_listed";
+
+/** Urutan prioritas untuk sorting client-side saat tier = "Semua". */
+const TIER_RANK: Record<string, number> = {
+  call_verified: 0,
+  auth_required: 1,
+  tools_listed: 2,
+  discovered: 3,
+};
+
+/** Label badge. "discovered" mentah tidak menjelaskan apa pun ke user awam. */
+const TIER_LABEL: Record<string, string> = {
+  call_verified: "Teruji",
+  auth_required: "Perlu login",
+  tools_listed: "Terdaftar",
+  discovered: "Belum diuji",
+};
+
+const TIER_HINT: Record<string, string> = {
+  call_verified: "Sudah diuji: satu tools/call nyata berhasil mengembalikan hasil.",
+  auth_required: "Sudah diuji sampai ke server, tapi perlu akun/kredensial Anda sebelum bisa dipakai.",
+  tools_listed: "Sudah diuji: server merespons dan mendaftar tool-nya. Belum ada panggilan yang terbukti jalan.",
+  discovered: "Ada di katalog, tapi belum pernah dijalankan oleh kami. Buka Detail untuk cek sumbernya.",
+};
+
 const TIER_STYLE: Record<string, { cls: string; testid: string }> = {
   call_verified: { cls: "bg-emerald-500/15 text-emerald-600", testid: "badge-ready" },
   auth_required: { cls: "bg-amber-500/15 text-amber-600", testid: "badge-auth" },
@@ -47,18 +85,18 @@ const TIER_STYLE: Record<string, { cls: string; testid: string }> = {
 function badgeFor(item: Server): { label: string; cls: string; testid: string } {
   const shipped = (item as { runtime_tier?: string }).runtime_tier;
   if (shipped && TIER_STYLE[shipped]) {
-    return { label: shipped, ...TIER_STYLE[shipped] };
+    return { label: TIER_LABEL[shipped] ?? shipped, ...TIER_STYLE[shipped] };
   }
   const v = item.verification ?? {};
   if (v.call_verified || item.runtime_verified)
-    return { label: "call_verified", ...TIER_STYLE.call_verified };
+    return { label: TIER_LABEL.call_verified, ...TIER_STYLE.call_verified };
   // no_auth === false is an explicit statement that a credential is required.
   // Absent means unknown, so it must NOT be treated as auth_required.
   if (item.no_auth === false)
-    return { label: "auth_required", ...TIER_STYLE.auth_required };
+    return { label: TIER_LABEL.auth_required, ...TIER_STYLE.auth_required };
   if (v.tools_listed)
-    return { label: "tools_listed", ...TIER_STYLE.tools_listed };
-  return { label: "discovered", ...TIER_STYLE.discovered };
+    return { label: TIER_LABEL.tools_listed, ...TIER_STYLE.tools_listed };
+  return { label: TIER_LABEL.discovered, ...TIER_STYLE.discovered };
 }
 
 /**
@@ -124,7 +162,7 @@ export default function IntegrationsPage() {
   const [sources, setSources] = useState<Sources>({});
   const [uniqueSources, setUniqueSources] = useState<Sources>({});
   const [view, setView] = useState<"all" | "unique">("all");
-  const [tier, setTier] = useState("");
+  const [tier, setTier] = useState(DEFAULT_TIER);
   const [category, setCategory] = useState("");
   const [categories, setCategories] = useState<Array<{ category: string; count: number }>>([]);
   const [status, setStatus] = useState<string>("Memuat registry…");
@@ -205,8 +243,18 @@ export default function IntegrationsPage() {
         const r = await apiFetch(`/mcp/registry?${qs.toString()}`, { timeoutMs: 15000 });
         if (!r.ok) throw new Error(`HTTP ${r.status}`);
         const d = await r.json();
-        setItems(d.items ?? []); setTotal(d.total ?? 0);
-        setStatus(`${d.items?.length ?? 0} dari ${d.total ?? 0} integrasi`);
+        const rows: Server[] = d.items ?? [];
+        // Saat filter longgar (tier = "Semua"), backend tidak menjamin urutan apa
+        // pun, jadi 50 baris pertama bisa saja semuanya `discovered`. Diurutkan
+        // di sini per tier: yang sudah diuji naik. Backend tetap satu-satunya
+        // sumber kebenaran untuk tier-nya; ini hanya urutan tampil.
+        const sorted = [...rows].sort((a, b) => {
+          const ra = TIER_RANK[(a as { runtime_tier?: string }).runtime_tier ?? "discovered"] ?? 9;
+          const rb = TIER_RANK[(b as { runtime_tier?: string }).runtime_tier ?? "discovered"] ?? 9;
+          return ra - rb;
+        });
+        setItems(sorted); setTotal(d.total ?? 0);
+        setStatus(`${sorted.length} dari ${d.total ?? 0} integrasi`);
       }
       const sr = await apiFetch("/mcp/registry/sources", { timeoutMs: 15000 });
       if (sr.ok) {
@@ -227,7 +275,7 @@ export default function IntegrationsPage() {
   function pickView(v: "all" | "unique") { setView(v); void load(search, tab, { view: v }); }
   function pickTier(t: string) { setTier(t); void load(search, tab, { tier: t }); }
   function pickCategory(c: string) { setCategory(c); void load(search, tab, { category: c }); }
-  function clearFilters() { setTier(""); setCategory(""); void load(search, tab, { tier: "", category: "" }); }
+  function clearFilters() { setTier(DEFAULT_TIER); setCategory(""); void load(search, tab, { tier: DEFAULT_TIER, category: "" }); }
 
   return <SimplePage title="Integrasi MCP" subtitle="Temukan koneksi untuk otomasi Anda.">
     <div className="flex flex-col gap-4">
@@ -282,12 +330,14 @@ export default function IntegrationsPage() {
       <div className="flex flex-col gap-2" data-testid="integrations-filters">
         <div className="flex flex-wrap items-center gap-2" role="group" aria-label="Filter status runtime">
           <span className="text-xs text-fg-muted">Status runtime:</span>
-          {(["", ...RUNTIME_TIERS] as const).map(t => {
+          {([...RUNTIME_TIERS, "", DEFAULT_TIER] as const).map(t => {
             const active = tier === t;
-            return <button key={t || "any"} onClick={() => pickTier(t)} aria-pressed={active}
+            const label = t === "" ? "Semua" : t === DEFAULT_TIER ? "Terverifikasi" : TIER_LABEL[t];
+            const hint = t === "" ? "Semua entri katalog, termasuk yang belum diuji." : t === DEFAULT_TIER ? "Tiga tier yang pernah dihubungi: Teruji, Perlu login, Terdaftar. Tidak termasuk yang belum diuji." : TIER_HINT[t];
+            return <button key={t || "any"} onClick={() => pickTier(t)} aria-pressed={active} title={hint}
               data-testid={`tier-filter-${t || "any"}`}
               className={`rounded-full border px-3 py-1 text-xs transition ${active ? "border-primary bg-primary/10 text-primary" : "border-border text-fg-muted hover:text-fg"}`}>
-              {t || "Semua"}
+              {label}
             </button>;
           })}
         </div>
@@ -329,6 +379,15 @@ export default function IntegrationsPage() {
           user tidak perlu menekan Enter atau tombol Cari. */}
       <SearchBar onSearch={(q) => { setSearch(q); void load(q); }} />
       <p role="status" aria-live="polite" className="text-sm text-fg-muted">{status}</p>
+      {tier === "discovered" && <div role="status" data-testid="discovered-warning"
+        className="rounded-lg border border-warning/40 bg-warning/10 p-3 text-sm text-fg">
+        <strong>Menampilkan {total.toLocaleString("id-ID")} server yang belum diuji.</strong>{" "}
+        Katalog ini jauh lebih besar dari yang bisa kami hubungi, tapi sebagian besar entri
+        metadata saja — belum ada panggilan runtime yang terbukti.{" "}
+        <button onClick={() => pickTier(DEFAULT_TIER)} className="font-medium text-primary underline">
+          Lihat yang sudah diuji
+        </button>
+      </div>}
       {error && <div role="alert" className="rounded-lg border border-danger/40 bg-danger/10 p-3 text-sm text-danger">{error}</div>}
       {/* `min-w-0` on the grid: a grid item defaults to min-width:auto, so the
           `truncate` title below (white-space:nowrap) would otherwise set the
@@ -337,7 +396,7 @@ export default function IntegrationsPage() {
           item shrink so truncate actually does its job. */}
       <div className="grid min-w-0 gap-3 sm:grid-cols-2">
         {items.map(item => { const b = badgeFor(item); return <Card key={item.id} data-testid="integration-card" className="min-w-0">
-          <CardHeader><CardTitle className="truncate">{item.name} <span className={`ml-1 rounded-full px-2 py-0.5 text-[10px] font-semibold ${b.cls}`} data-testid={b.testid}>{b.label}</span></CardTitle><CardDescription>{item.category} · {item.tools?.length ?? item.tools_count ?? 0} tools · {SOURCE_LABEL[item.source ?? "toolsdk"] ?? item.source}</CardDescription></CardHeader>
+          <CardHeader><CardTitle className="truncate">{item.name} <span className={`ml-1 rounded-full px-2 py-0.5 text-[10px] font-semibold ${b.cls}`} data-testid={b.testid} title={TIER_HINT[(item as { runtime_tier?: string }).runtime_tier ?? "discovered"]}>{b.label}</span></CardTitle><CardDescription>{item.category} · {item.tools?.length ?? item.tools_count ?? 0} tools · {SOURCE_LABEL[item.source ?? "toolsdk"] ?? item.source}</CardDescription></CardHeader>
           <CardContent className="flex flex-col gap-3">
             <p className="line-clamp-2 text-sm text-fg-muted">{item.description}</p>
             {/* WAJIB lisensi: tiap listing Glama tertaut ke halamannya di Glama.
