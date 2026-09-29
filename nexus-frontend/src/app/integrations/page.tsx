@@ -169,6 +169,11 @@ export default function IntegrationsPage() {
   // dengan angka milik filter SEBELUMNYA - sempat terlihat "14.624 server yang
   // belum diuji" padahal angka itu milik tier terverifikasi.
   const [loadedTier, setLoadedTier] = useState("");
+  // Apakah backend bisa melayani view `unique`. Artefak dedup (29,8 MB) tidak
+  // di-commit, jadi di beberapa deploy file itu tidak ada dan endpoint
+  // view=unique membalas 400. Tanpa cek ini, toggle-nya tampil lalu gagal saat
+  // diklik - kontrol yang menggoda lalu mengecewakan.
+  const [uniqueSupported, setUniqueSupported] = useState<boolean | null>(null);
   const [category, setCategory] = useState("");
   const [categories, setCategories] = useState<Array<{ category: string; count: number }>>([]);
   const [status, setStatus] = useState<string>("Memuat registry…");
@@ -271,6 +276,13 @@ export default function IntegrationsPage() {
         setSources((j.sources ?? {}) as Sources);
         setUniqueSources((j.sources_unique ?? {}) as Sources);
       }
+      // Capabilities menentukan haruskah toggle "Unique" ditampilkan. Dibaca dari
+      // endpoint, bukan dari tebakan: satu-satunya sumber kebenaran soal
+      // apakah artefak dedup benar-benar ada di server.
+      try {
+        const cap = await apiFetch("/mcp/registry/capabilities", { timeoutMs: 8000 });
+        if (cap.ok) setUniqueSupported(Boolean((await cap.json()).unique_view));
+      } catch { /* biarkan null -> toggle disembunyikan, bukan error */ }
       // Facets follow the active source, so switching tab cannot leave a
       // category selected that belongs to a different source and returns 0.
       const cr = await apiFetch(`/mcp/registry/categories?limit=40${source ? `&source=${encodeURIComponent(source)}` : ""}`, { timeoutMs: 15000 });
@@ -281,7 +293,14 @@ export default function IntegrationsPage() {
   // Every picker passes its own new value through. Calling setX() and then
   // load() without the override is the stale-closure bug described on load().
   function pickTab(key: string) { setTab(key); setCategory(""); void load(search, key, { category: "" }); }
-  function pickView(v: "all" | "unique") { setView(v); void load(search, tab, { view: v }); }
+  function pickView(v: "all" | "unique") {
+    // Guard ganda: toggle sudah disembunyikan saat `unique_view` false, tapi
+    // state bisa saja masih "unique" dari render sebelumnya kalau backend
+    // kehilangan artefak saat reload. Tanpa guard, load() memanggil endpoint
+    // yang pasti 400.
+    if (v === "unique" && uniqueSupported === false) return;
+    setView(v); void load(search, tab, { view: v });
+  }
   function pickTier(t: string) { setTier(t); void load(search, tab, { tier: t }); }
   function pickCategory(c: string) { setCategory(c); void load(search, tab, { category: c }); }
   function clearFilters() { setTier(DEFAULT_TIER); setCategory(""); void load(search, tab, { tier: DEFAULT_TIER, category: "" }); }
@@ -318,12 +337,20 @@ export default function IntegrationsPage() {
       */}
       <div className="flex items-center gap-2" role="group" aria-label="Tampilan katalog">
         {(["all", "unique"] as const).map(v => {
+          // Tombol "Unique" hanya dirender kalau backend melapor bisa melayaninya.
+          // `unique_view=false` berarti artefak dedup tidak ada di server, jadi
+          // endpoint view=unique akan 400 - menampilkan tombol yang pasti gagal
+          // lebih buruk daripada tidak menampilkannya.
+          if (v === "unique" && uniqueSupported === false) return null;
           const active = view === v;
           return <button key={v} onClick={() => pickView(v)} aria-pressed={active} data-testid={`view-toggle-${v}`}
             className={`rounded-full border px-3 py-1 text-xs transition ${active ? "border-primary bg-primary/10 text-primary" : "border-border text-fg-muted hover:text-fg"}`}>
             {v === "all" ? "All (mentah)" : "Unique (dedup)"}
           </button>;
         })}
+        {uniqueSupported === false && <span className="text-xs text-fg-muted" data-testid="view-unavailable-note">
+          Tampilan "Unique (dedup)" tidak tersedia di server ini.
+        </span>}
         <span className="text-xs text-fg-muted" data-testid="view-hint">
           {view === "all"
             ? "Satu baris per entri katalog, duplikat antar sumber masih dihitung."

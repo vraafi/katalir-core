@@ -215,3 +215,50 @@ def test_http_request_menolak_method_aneh():
         assert "Method" in str(exc)
     else:
         raise AssertionError("method tak didukung harus ditolak")
+
+
+def test_capabilities_melapor_keberadaan_artefak_dedup(monkeypatch):
+    """`/mcp/registry/capabilities` harus jujur soal view `unique`.
+
+    Artefak `dedup_canonical.json` sengaja tidak di-commit, jadi ada deploy yang
+    booting tanpa file itu. `GET /mcp/registry?view=unique` waktu itu balas 400
+    dan toggle "Unique (dedup)" di UI jadi kontrol yang pasti gagal.
+
+    Endpoint capabilities ini yang dipakai frontend untuk menyembunyikan toggle,
+    jadi ia harus mengembalikan `unique_view=false` - bukan `true` yang berbohong
+    - ketika artefaknya memang tidak ada. Test ini mengunci kedua arah.
+    """
+    from fastapi.testclient import TestClient
+
+    import api_server
+
+    client = TestClient(api_server.app)
+    seen = []
+    try:
+        response = client.get("/mcp/registry/capabilities")
+        assert response.status_code == 200, response.text
+        body = response.json()
+        seen.append(body)
+        # whatever the environment holds, the flag must be a real bool and must
+        # agree with the file the backend actually consults
+        assert isinstance(body["unique_view"], bool)
+        assert body["unique_view"] == mcp_registry.CANONICAL_PATH.exists()
+        if body["unique_view"]:
+            assert body["reason"] is None
+        else:
+            # must explain itself instead of failing silently later
+            assert body["reason"] and "mcp_dedup.py" in body["reason"]
+
+        # Now force the "artifact missing" branch and confirm the flag flips.
+        # `Path.exists` is read-only, so the whole Path object is swapped for one
+        # pointing at a name that cannot exist. The endpoint reads
+        # `CANONICAL_PATH.exists()`, so swapping the module attribute is the seam.
+        monkeypatch.setattr(
+            mcp_registry, "CANONICAL_PATH", mcp_registry.CANONICAL_PATH.with_name("__absent__.json")
+        )
+        body2 = client.get("/mcp/registry/capabilities").json()
+        seen.append(body2)
+        assert body2["unique_view"] is False
+        assert body2["reason"]
+    finally:
+        print("capabilities saw:", seen)

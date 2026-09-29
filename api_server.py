@@ -1501,6 +1501,35 @@ def mcp_registry(page: int = 1, limit: int = 50, search: str = "", category: str
         raise HTTPException(400, str(exc))
 
 
+@app.get("/mcp/registry/capabilities")
+def mcp_registry_capabilities():
+    """Apakah view `unique` benar-benar bisa dilayani, dan kenapa.
+
+    `dedup_canonical.json` sengaja TIDAK di-commit (29,8 MB hasil turunan), jadi
+    ada deploy yang bisa booting tanpa file itu. Waktu itu `GET /mcp/registry?
+    view=unique` balas 400 dan toggle "Unique (dedup)" di UI jadi gagal tanpa
+    penjelasan.
+
+    Frontend memakai endpoint ini untuk jujur menyembunyikan toggle ketika
+    artifact-nya memang tidak ada, alih-alih memunculkan kontrol yang pasti
+    error. `reason` sengaja dikembalikan supaya UI bisa menjelaskan, bukan
+    hanya diam.
+
+    Catatan: `buildCommand: python mcp_dedup.py` di railway.json seharusnya
+    selalu menghasilkan file ini, jadi di Railway normal nilainya true. Endpoint
+    ini adalah jaring pengaman untuk target deploy lain (Railway alternate,
+    container manual, Codespaces) yang tidak menjalankan build step.
+    """
+    import mcp_registry as catalog
+    available = catalog.CANONICAL_PATH.exists()
+    return {
+        "unique_view": available,
+        "reason": None if available else "unique view unavailable: run mcp_dedup.py to build dedup_canonical.json",
+        "canonical_path": catalog.CANONICAL_PATH.name,
+        "version": "1.0",
+    }
+
+
 @app.get("/mcp/native")
 def mcp_native():
     """The natively executable providers, derived from provider_registry.
