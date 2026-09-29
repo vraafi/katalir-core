@@ -32,20 +32,40 @@ Selalu cek *konten yang benar-benar tampil*, bukan kode status.
 ## 2. Halaman Integrasi (paling rawan)
 
 1. Buka `/integrations` dalam keadaan sudah login.
-2. **Verifikasi daftar katalog muncul** — bukan macet di "Loading...".
+2. **Verifikasi TIDAK ada pesan "Registry tidak dapat dimuat".**
+   Pesan itu muncul kalau `/mcp/registry/sources` balas 500 — bukan
+   soal katalog. Lihat `registry-fetch-bug.md`.
+3. **Verifikasi tab source punya angka, bukan (0) semua.**
+   Yang diharapkan: `Semua (29.558)`, `Native MCP (7)`, `Glama (20.000)`,
+   `ToolSDK (4.415)`, `Nango (1.024)`. Kalau semua `(0)`, cek
+   `curl .../mcp/registry/sources`.
+4. **Verifikasi daftar katalog muncul** — bukan macet di "Loading...".
    Tunggu 5-10 detik; itu normal.
-3. **Verifikasi search bar berfungsi** — ketik `cloudflare`, daftar
+5. **Verifikasi search bar berfungsi** — ketik `cloudflare`, daftar
    menyaring tanpa reload halaman.
-4. Klik satu kartu (mis. **Cloudflare**).
-5. **Verifikasi halaman detail tampil:**
+6. Klik satu kartu (mis. **Cloudflare**).
+7. **Verifikasi halaman detail tampil:**
    - judul **Cloudflare**
    - baris **Tools (20)**
    - transport metadata **composio-remote**
-6. **Harus TIDAK** menampilkan "Integrasi tidak ditemukan".
+8. **Harus TIDAK** menampilkan "Integrasi tidak ditemukan".
 
-**Gagal kalau:** macet di "Loading..." → Hampir pasti `NEXT_PUBLIC_API_URL`
-salah. Periksa Network tab: request ke `localhost:8000` = regresi.
-Request ke `*.up.railway.app` = benar.
+**Gagal kalau:**
+- macet di "Loading..." → Hampir pasti `NEXT_PUBLIC_API_URL` salah.
+  Periksa Network tab: request ke `localhost:8000` = regresi.
+  Request ke `*.up.railway.app` = benar.
+- "Registry tidak dapat dimuat" + semua tab `(0)` → endpoint
+  `/mcp/registry/sources` balas 500. Cek dulu dengan curl; jangan
+  langsung rebuild frontend, karena penyebabnya ada di backend.
+
+**Cek cepat tanpa browser** (basis data production):
+
+```
+curl -s -o /dev/null -w "%{http_code}\n" \
+  https://web-production-dc90b.up.railway.app/mcp/registry/sources
+```
+
+`200` = sehat. `500` = bug backend, buka `registry-fetch-bug.md`.
 
 ---
 
