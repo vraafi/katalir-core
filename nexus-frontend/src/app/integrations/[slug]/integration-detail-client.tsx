@@ -12,7 +12,22 @@ type Server = { id: string; name: string; category: string; description: string;
 export default function IntegrationDetailClient() {
   const params = useParams<{ slug: string }>(); const router = useRouter();
   const [item, setItem] = useState<Server | null>(null); const [error, setError] = useState(false);
-  useEffect(() => { apiFetch(`/mcp/registry/${encodeURIComponent(params.slug)}`, { timeoutMs: 8000 }).then(r => r.ok ? r.json() : Promise.reject()).then(setItem).catch(() => setError(true)); }, [params.slug]);
+  // `?slug=` (query) menang atas segmen route. Alasannya hanya ada SATU
+  // halaman yang di-prerender: `generateStaticParams` hanya menghasilkan
+  // "catalog", jadi /integrations/<apa-pun> selain itu 404 di static
+  // export. Dengan query, semua slug berbagi satu file HTML yang sudah
+  // ada di cache edge.
+  //
+  // Query dibaca dari `window.location`, bukan `useSearchParams`, mengikuti
+  // pola yang sudah dipakai halaman /settings. `useSearchParams` memaksa
+  // Suspense boundary, dan di `output: "export"` itu menambah berat
+  // tanpa manfaat.
+  const [slug, setSlug] = useState<string>(params.slug);
+  useEffect(() => {
+    const q = new URLSearchParams(window.location.search).get("slug");
+    setSlug(q || params.slug);
+  }, [params.slug]);
+  useEffect(() => { if (!slug) return; setItem(null); setError(false); apiFetch(`/mcp/registry/${encodeURIComponent(slug)}`, { timeoutMs: 8000 }).then(r => r.ok ? r.json() : Promise.reject()).then(setItem).catch(() => setError(true)); }, [slug]);
   if (error) return <SimplePage title="Integrasi tidak ditemukan"><p>Server ini tidak tersedia di registry.</p></SimplePage>;
   if (!item) return <SimplePage title="Memuat integrasi…"><p className="text-sm text-fg-muted">Mengambil detail server…</p></SimplePage>;
   return <SimplePage title={item.name} subtitle={item.category}>

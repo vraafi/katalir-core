@@ -341,7 +341,7 @@ export default function IntegrationsPage() {
             {item.source_url && (ATTRIBUTION_LABEL[item.source ?? ""]
               ? <a href={item.source_url} target="_blank" rel="noopener noreferrer nofollow sponsored" data-testid="attribution-link" className="text-xs text-primary hover:underline">{ATTRIBUTION_LABEL[item.source ?? ""]}</a>
               : <a href={item.source_url} target="_blank" rel="noopener noreferrer" data-testid="attribution-link" className="text-xs text-fg-muted hover:underline">Lihat detail →</a>)}
-            <div className="flex gap-2"><Button size="sm" onClick={() => install(item)} loading={installing === item.id} data-testid="integration-install"><Plus size={14}/> Pasang</Button><Button size="sm" variant="ghost" onClick={() => window.location.href = `/integrations/${encodeURIComponent(item.id)}`}><ExternalLink size={14}/> Detail</Button></div>
+            <div className="flex gap-2"><Button size="sm" onClick={() => install(item)} loading={installing === item.id} data-testid="integration-install"><Plus size={14}/> Pasang</Button><Button size="sm" variant="ghost" onClick={() => window.location.href = `/integrations/catalog?slug=${encodeURIComponent(item.id)}`} data-testid="integration-detail-link"><ExternalLink size={14}/> Detail</Button></div>
           </CardContent>
         </Card>; })}
       </div>
