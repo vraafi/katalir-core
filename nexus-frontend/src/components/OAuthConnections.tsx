@@ -18,6 +18,7 @@ import { Check, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { apiFetch } from "@/lib/api";
+import { supabase } from "@/lib/supabase";
 import { toast } from "sonner";
 import { useI18n } from "@/i18n/context";
 import { useAuth } from "@/context/auth";
@@ -72,7 +73,21 @@ export function OAuthConnections({ title, description }: { title?: string; descr
     const next: Record<string, OAuthState> = {};
     for (const card of OAUTH_CARDS) {
       try {
-        const r = await apiFetch(`/oauth/${card.id}/status`, { method: "GET", timeoutMs: 5_000 });
+        // 5 detik terlalu agresif untuk endpoint yang membaca vault:
+        // latensi Railway terukur 284-1551 ms dan sesekali lebih lama
+        // saat decrypt. Timeout yang keputus lalu dibaca sebagai
+        // "tidak terhubung" (lihat catatan di bawah).
+        let r = await apiFetch(`/oauth/${card.id}/status`, { method: "GET", timeoutMs: 15_000 });
+        // 401 = token Supabase yang dipakai kedaluwarsa, BUKAN berarti
+        // koneksi OAuth diputus. getSession() sudah memicu refresh,
+        // jadi satu percobaan ulang biasanya membetulkan. Tanpa ini,
+        // token yang megang di detik membuat kartu menampilkan "Not
+        // connected" padahal vault utuh.
+        if (r.status === 401) {
+          await supabase.auth.getSession();
+          r = await apiFetch(`/oauth/${card.id}/status`, { method: "GET", timeoutMs: 15_000 });
+        }
+        if (!r.ok) throw new Error(`HTTP ${r.status}`);
         const d = (await r.json().catch(() => ({}))) as {
           connected?: boolean;
           google_sheets?: { connected?: boolean };
@@ -97,6 +112,13 @@ export function OAuthConnections({ title, description }: { title?: string; descr
           };
         }
       } catch {
+        // PENTING: `connected: false` DI SINI tidak berarti "terputus".
+        // Ini hanya bisa berarti "tidak bisa dipastikan".
+        // Error network, timeout, atau 5xx akan mendarat di branch ini,
+        // dan sebelumnya branch ini ditampilkan sebagai "Not connected"
+        // -- itu akar laporan "connect lalu beberapa menit kemudian
+        // Not connected lagi". Kolom `error` sudah ada tapi tidak
+        // pernah dipakai untuk membedakan keduanya.
         next[card.id] = { loaded: true, connected: false, target: "", configured: false, error: true };
       }
     }
@@ -184,9 +206,23 @@ export function OAuthConnections({ title, description }: { title?: string; descr
                     <span className="inline-flex items-center gap-1 text-caption text-fg-muted">
                       <Loader2 size={12} strokeWidth={2} className="animate-spin" aria-hidden /> {t("common.loading")}
                     </span>
+                  ) : st?.error ? (
+                    // Status TIDAK bisa dipastikan. Menampilkan "Not connected"
+                    // di sini adalah kebohongan: kartu ini bisa jadi tetap
+                    // terhubung, hanya saja request-nya yang gagal. Laporan
+                    // "connect lalu beberapa menit kemudian Not connected
+                    // lagi" berasal dari branch tepat ini.
+                    <span
+                      data-testid={`oauth-badge-${card.id}`}
+                      data-state="unknown"
+                      className="inline-flex items-center gap-1 rounded-full border border-warning/40 bg-warning/10 px-2 py-0.5 text-caption font-medium text-fg-muted"
+                    >
+                      {t("settings.oauthStatusUnknown")}
+                    </span>
                   ) : st?.connected ? (
                     <span
                       data-testid={`oauth-badge-${card.id}`}
+                      data-state="connected"
                       className="inline-flex items-center gap-1 rounded-full bg-success/15 px-2 py-0.5 text-caption font-medium text-success"
                     >
                       <Check size={12} strokeWidth={2.5} aria-hidden /> {t("settings.connected")}
@@ -194,6 +230,7 @@ export function OAuthConnections({ title, description }: { title?: string; descr
                   ) : (
                     <span
                       data-testid={`oauth-badge-${card.id}`}
+                      data-state="disconnected"
                       className="inline-flex items-center rounded-full border border-border px-2 py-0.5 text-caption text-fg-muted"
                     >
                       {t("settings.notConnected")}

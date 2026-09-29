@@ -247,6 +247,7 @@ export const en = {
     connectFailed: "Could not start OAuth. Please try again.",
     disconnectDone: "{provider} disconnected.",
     disconnectFailed: "Failed to disconnect {provider}.",
+    oauthStatusUnknown: "Status unavailable",
     oauthLoadFailed: "Connection status could not be loaded.",
     oauthConnected: "{provider} connected successfully.",
     oauthDenied: "{provider} was not connected ({reason}).",

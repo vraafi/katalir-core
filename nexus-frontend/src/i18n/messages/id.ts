@@ -252,6 +252,7 @@ export const id = {
     connectFailed: "Gagal memulai OAuth. Coba lagi.",
     disconnectDone: "{provider} diputus.",
     disconnectFailed: "Gagal memutus {provider}.",
+    oauthStatusUnknown: "Status tidak terbaca",
     oauthLoadFailed: "Status koneksi tidak bisa dimuat.",
     oauthConnected: "{provider} berhasil terhubung.",
     oauthDenied: "{provider} tidak terhubung ({reason}).",
