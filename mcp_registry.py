@@ -305,15 +305,19 @@ def compute_recommendation_score(entry: dict[str, Any]) -> dict[str, Any]:
     """Skor rekomendasi + rincian komponennya.
 
     Mengembalikan dict, bukan float, supaya UI dan audit bisa melihat
-    komponen mana yang benar-benar contribute. Kalau hanya mengembalikan
-    angka, bobot 0,35 dan 0,20 yang tidak terpakai akan tersembunyi di
-    balik angka yang terlihat meyakinkan.
+    komponen mana yang benar-benar contribute.
+
+    REBALANCE (fallback, bukan perubahan rumus utama): kalau `install` dan
+    `freshness` sama-sama 0 karena tidak ada datanya, bobot 0,35 + 0,20 itu
+    mati dan entri yang punya bukti runtime bisa kalah dari entri yang
+    tidak punya apa-apa hanya karena noise. Dalam kasus itu verified dan
+    curator diskalakan penuh (0,6 / 0,4) supaya skor tetap informatif.
+    Rumus utama TIDAK diubah dan langsung berlaku lagi begitu
+    `mcp_signals.json` terisi.
     """
     install_raw = entry.get("install_count")
-    # 0 kalau tidak ada; min(x/1000, 1.0) sesuai rumus terkunci.
+    # min(x/1000, 1.0) sesuai rumus terkunci.
     install = min(float(install_raw or 0) / 1000.0, 1.0) * 0.35
-
-    verified = 0.35 if _is_call_verified(entry) else 0.0
 
     updated = entry.get("updated_at")
     fresh = 0.0
@@ -327,7 +331,17 @@ def compute_recommendation_score(entry: dict[str, Any]) -> dict[str, Any]:
         except Exception:
             fresh = 0.0
 
-    curator = 0.10 if is_curator_pick(entry) else 0.0
+    is_verified = _is_call_verified(entry)
+    is_curator = is_curator_pick(entry)
+
+    rebalanced = False
+    if install == 0.0 and fresh == 0.0:
+        rebalanced = True
+        verified = 0.6 if is_verified else 0.0
+        curator = 0.4 if is_curator else 0.0
+    else:
+        verified = 0.35 if is_verified else 0.0
+        curator = 0.10 if is_curator else 0.0
 
     return {
         "score": round(install + verified + fresh + curator, 4),
@@ -340,18 +354,41 @@ def compute_recommendation_score(entry: dict[str, Any]) -> dict[str, Any]:
         "signals": {
             "has_install_count": install_raw is not None,
             "has_updated_at": bool(updated),
-            "is_curator_pick": curator > 0,
-            "is_call_verified": verified > 0,
+            "is_curator_pick": is_curator,
+            "is_call_verified": is_verified,
+            "rebalanced": rebalanced,
         },
     }
+
+
+_SIGNALS: dict[str, Any] | None = None
+
+
+def _load_signals() -> dict[str, Any]:
+    """Sinyal hasil fetch (install_count / updated_at) per entry id.
+
+    Dibaca dari `mcp_signals.json` yang ditulis `scripts/fetch-install-counts.py`.
+    Sengaja dipisah dari cache katalog: cache adalah hasil sync upstream,
+    sedangkan ini hasil pengukuran kita, dan keduanya punya tingkat
+    freshness yang berbeda. Dicache per proses supaya tidak dibaca ulang
+    tiap request.
+    """
+    global _SIGNALS
+    if _SIGNALS is None:
+        p = Path(__file__).with_name('mcp_signals.json')
+        try:
+            _SIGNALS = json.loads(p.read_text(encoding='utf-8')) if p.exists() else {}
+        except Exception:
+            _SIGNALS = {}
+    return _SIGNALS
 
 
 def get_recommended(*, category: str = "", source: str = "", limit: int = 5) -> dict[str, Any]:
     """Integrasi dengan skor tertinggi, dihitung runtime.
 
-    Tidak ada daftar hardcoded di sini. CURATOR_SEED hanya memberi bonus
-    0,10; urutan sebenarnya dihitung dari call_verified + curator, jadi
-    entri non-curator yang call_verified pun bisa mendahului.
+    Tidak ada daftar hardcoded di sini. CURATOR_SEED hanya memberi bonus;
+    urutan sebenarnya dihitung dari sinyal, jadi entri non-curator yang punya
+    bukti runtime bisa mendahului.
     """
     if not 1 <= int(limit) <= 50:
         raise ValueError("limit must be 1..50")
@@ -363,8 +400,19 @@ def get_recommended(*, category: str = "", source: str = "", limit: int = 5) -> 
         wanted = {s.strip().casefold() for s in source.split(",") if s.strip()}
         items = [x for x in items if str(x.get("source") or "toolsdk").casefold() in wanted]
 
+    signals = _load_signals()
     scored = []
     for e in items:
+        # Sinyal hasil fetch digabung ke SALINAN entri, tidak ditulis ke cache
+        # katalog: cache itu milik upstream, dan menulisi field-nya akan hilang
+        # diam-diam pada sync berikutnya.
+        sig = signals.get(str(e.get("id")))
+        if sig:
+            merged = dict(e)
+            for k in ("install_count", "updated_at"):
+                if sig.get(k) is not None and merged.get(k) is None:
+                    merged[k] = sig[k]
+            e = merged
         r = compute_recommendation_score(e)
         out = dict(e)
         out["recommendation"] = r
@@ -375,21 +423,41 @@ def get_recommended(*, category: str = "", source: str = "", limit: int = 5) -> 
     # "top picks" bergeser tiap sync untuk alasan yang tak terlihat.
     scored.sort(key=lambda x: (-x["recommendation"]["score"], str(x.get("name") or "").casefold()))
 
+    n = len(scored)
+    cov_install = sum(1 for x in scored if x["recommendation"]["signals"]["has_install_count"])
+    cov_updated = sum(1 for x in scored if x["recommendation"]["signals"]["has_updated_at"])
+    cov_verified = sum(1 for x in scored if x["recommendation"]["signals"]["is_call_verified"])
+    cov_curator = sum(1 for x in scored if x["recommendation"]["signals"]["is_curator_pick"])
+    cov_rebalanced = sum(1 for x in scored if x["recommendation"]["signals"].get("rebalanced"))
+
+    def pct(v):
+        return round(v / n * 100, 2) if n else 0.0
+
     return {
         "items": scored[: int(limit)],
-        "total_scored": len(scored),
+        "total_scored": n,
         "limit": int(limit),
         "category": category,
         "source": source,
         "formula": "install*0.35 + call_verified*0.35 + freshness*0.20 + curator_pick*0.10",
-        # Dilaporkan terbuka supaya tidak ada yang mengira bobot 0,35 dan
-        # 0,20 sudah aktif padahal belum ada sumber datanya.
+        "formula_note": "Bila install dan freshness keduanya 0 karena belum ada datanya, verified/curator diskalakan ke 0.6/0.4 supaya bobot 0.55 yang mati tidak memalsukan peringkat.",
         "data_coverage": {
-            "entries_with_install_count": sum(1 for x in scored if x["recommendation"]["signals"]["has_install_count"]),
-            "entries_with_updated_at": sum(1 for x in scored if x["recommendation"]["signals"]["has_updated_at"]),
-            "entries_call_verified": sum(1 for x in scored if x["recommendation"]["signals"]["is_call_verified"]),
-            "entries_curator_pick": sum(1 for x in scored if x["recommendation"]["signals"]["is_curator_pick"]),
-            "max_achievable_score_today": 0.45,
+            "total": n,
+            "with_install_count": cov_install,
+            "with_call_verified": cov_verified,
+            "with_updated_at": cov_updated,
+            "with_curator_pick": cov_curator,
+            "using_fallback_weights": cov_rebalanced,
+            "coverage_pct": {
+                "install": pct(cov_install),
+                "verified": pct(cov_verified),
+                "freshness": pct(cov_updated),
+                "curator": pct(cov_curator),
+            },
+            "signals_fetched": len(signals),
+            # Bobot yang benar-benar berkontribusi saat ini, bukan teaser:
+            # 0,35 + 0,20 = 0,55 masih nol sampai mcp_signals.json terisi.
+            "max_achievable_score_today": 0.45 if cov_install == 0 and cov_updated == 0 else 1.0,
         },
     }
 
@@ -400,53 +468,3 @@ def executable_servers():
     ToolSDK metadata is currently metadata-only; do not treat it as runnable.
     """
     return [x for x in load_cached().values() if isinstance(x, dict) and (x.get('runtime_verified') is True or x.get('install_config', {}).get('transport') in {'stdio','http','sse'})]
-
-def _normalize_official(entry: dict[str, Any]) -> dict[str, Any] | None:
-    server=(entry or {}).get('server') if isinstance(entry,dict) else None
-    if not isinstance(server,dict) or not server.get('name'): return None
-    remotes=server.get('remotes') if isinstance(server.get('remotes'),list) else []
-    remote=next((r for r in remotes if isinstance(r,dict) and r.get('url')),None)
-    return {'id':str(server['name']),'name':str(server.get('title') or server['name']),'description':str(server.get('description') or ''),'repo_url':str((server.get('repository') or {}).get('url') or ''),'install_config':{'transport':str((remote or {}).get('type') or 'metadata-only'),'package':str((remote or {}).get('url') or ''),'install_method':'remote'},'tenant_scope':'user','validated':True,'tools':[],'source':'official-mcp-registry'}
-
-def sync_official_registry(*,limit=100,timeout=30) -> list[dict[str,Any]]:
-    r=httpx.get('https://registry.modelcontextprotocol.io/v0/servers',params={'limit':min(int(limit),100),'offset':'0'},timeout=timeout,follow_redirects=True);r.raise_for_status()
-    out=[]
-    for e in r.json().get('servers',[]):
-        x=_normalize_official(e)
-        if x: out.append(x)
-    return out
-
-def executable_candidates():
-    """Filter entries with enough runtime evidence for a batch test."""
-    out = []
-    for key, item in load_cached().items():
-        cfg = item.get('install_config') or {}
-        method = cfg.get('install_method') or cfg.get('method')
-        if method in {'npm', 'python', 'docker'} and cfg.get('package') and item.get('tools') and not cfg.get('requires_credentials'):
-            out.append({'id': key, 'install_method': method, 'package': cfg['package']})
-    return out
-
-def openconnector_coverage():
- """Honest numbers for the OpenConnector catalogue.
-
- ``actions`` counts catalogue rows, ``meta_tools`` is what an MCP client can
- actually see, and ``actions_call_verified`` counts actions proved by a real
- ``tools/call``.
- """
- items=[x for x in load_cached().values() if isinstance(x,dict) and x.get('source')=='openconnector']
- return {'services':len(items),'actions':sum(int(x.get('tools_count') or 0) for x in items),'meta_tools':5,
-         'actions_call_verified':sum(1 for x in items for t in (x.get('tools') or []) if isinstance(t,dict) and t.get('call_verified')),
-         'services_call_verified':sum(1 for x in items if (x.get('verification') or {}).get('call_verified'))}
-
-def coverage():
-    items = [x for x in load_cached().values() if isinstance(x, dict) and x.get('id')]
-    composio = [x for x in items if x.get('source') == 'composio']
-    official = [x for x in items if x.get('source') == 'official-mcp-registry']
-    oc = openconnector_coverage()
-    return {'total': len(items), 'executable': len(executable_servers()), 'metadata_only': len(items) - len(executable_servers()), 'composio_toolkits': len(composio), 'official_remote': len(official), 'openconnector_services': oc['services'], 'openconnector_actions': oc['actions'], 'openconnector_actions_call_verified': oc['actions_call_verified'], 'openapi': openapi_coverage(), 'sources': source_counts()}
-
-def recommend_servers(query: str, limit: int = 5):
-    """Return catalog matches for the AI integration picker; metadata only."""
-    q=(query or '').strip()
-    result=list_servers(page=1,limit=min(max(int(limit),1),20),search=q)
-    return result['items']
