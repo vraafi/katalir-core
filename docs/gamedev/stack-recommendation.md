@@ -22,7 +22,7 @@ dipasang, tidak ada deploy.**
 
 | Kategori | Pilihan | Alternatif | Alasan (berbasis data) |
 |---|---|---|---|
-| Orchestrator | **Katalir Studio Connector (tulis sendiri)** | loopflow | Tidak ada kandidat yang memenuhi 5 aspek. `kage` mati, `loopflow` belum punya output JSON atau verdict terstruktur (3 issue terbuka sejak Jun), `HarnessOfHarness` artefak riset dengan PRD tertutup. Katalir sudah punya MCP registry, jadi connector sendiri lebih murah daripadaadaptasi kandidat yang belum matang. |
+| Orchestrator | **LoopFlow pattern sendiri + cron (Task Scheduler)** | loopflow (repo) | Keputusan user 2026-09-28. Semua kandidat eksternal gugur: `kage` mati dan `cargo install kage` bahkan memasang crate milik orang lain; `HarnessOfHarness` artefak riset; `loopflow` sendiri belum punya keluaran JSON atau verdict terstruktur. Pola gate yang dipakai sudah ada dan terbukti jalan di `scripts/gamedev/verify_gate.py` (PASS dan FAIL, dua-duanya exit code benar). Cron Windows memicu runner-nya. |
 | Worker | **cline/cline** | (Claude Code via API saja) | 69.499 stars, **Apache-2.0**, aktif 0 hari. `anthropics/claude-code` punya 148k stars tapi lisensi `NONE` — source-available, bukan OSS. Claude tetap bisa dipakai lewat `ANTHROPIC_API_KEY`, tapi bukan sebagai fondasi yang di-*vendor-lock*. |
 | Framework | **leigest519/OpenGame** | htdt/godogen | 2.958 stars, Apache-2.0, TypeScript, 25 hari. Jalur web-nya matang; jalur 3D masih PR. `godogen` lebih besar (7k) tapi Python dan fokus Godot/Bevy, tidak cocok untuk PoC web. |
 | Engine Bridge G3 (Roblox) | **Roblox/studio-rust-mcp-server** | (tidak ada) | Satu-satunya repo **official** di daftar. Tapi 178 hari stale + 21 issue + butuh Rust + Windows-only. Kandidat G3, bukan PoC. |
@@ -65,8 +65,8 @@ membuktikan orkestrasi, bukan kompatibilitas engine.
 
 | Hari | Pekerjaan | Keluaran yang harus ada |
 |---|---|---|
-| 1-2 | Pasang Cline CLI headless. Tulis Studio Connector minimal: terima artifact, catat setiap langkah ke run log JSON. | Connector bisa menerima 1 prompt dan mengembalikan daftar langkah yang dijalankan. |
-| 3-4 | Definisikan "game spec" sebagai JSON: scenes, entities, sprites, audio. Worker mengubah spec itu menjadi kode Phaser + TypeScript. | 1 prompt -> `game.json` -> proyek Phaser yang bisa dikompilasi. |
+| 1-2 | Pasang `clite` (bukan `cline`) dan konfirmasi mode headless.
+| 1-2 | Pakang `clite` (bukan `cline`) dan konfirmasi mode headless. LoopFlow gate sudah ada; tambahkan pemicu cron. | 1 prompt menghasilkan run log JSON terstruktur plus verdict PASS/FAIL. |
 | 5-6 | Jalankan 1 prompt end-to-end. Loop: hasil worker -> build -> verifikasi headless via `BRAVE_CDP_URL` -> umpan balik ke worker. Maks 5 iterasi. | 1 game yang benar-benar jalan di browser. |
 | 7 | Ukur dan tulis jujur: berapa iterasi, berapa menit, berapa-interupsi manusia. | Angka, bukan klaim. Laporan di `docs/gamedev/poc-results.md`. |
 
