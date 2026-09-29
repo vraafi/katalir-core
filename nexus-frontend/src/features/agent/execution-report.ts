@@ -125,7 +125,12 @@ function collapse(logs: unknown[]): Record<string, unknown>[] {
     if (String(rec.status ?? "") === "retrying") {
       const key = `${node}#retry${order.length}`;
       order.push(key);
-      byNode.set(key, rec);
+      // Kunci unik harus DISALIHKAN ke mapper. Kalau tidak, semua baris
+      // retry untuk node yang sama berbagi `id`, dan accordion
+      // (`openStep === s.id`) akan membuka/menutup semuanya bersama --
+      // klik kedua menutup yang pertama, sehingga rincian healing
+      // hilang begitu langkah berikutnya diklik.
+      byNode.set(key, { ...rec, __k: key });
       continue;
     }
     if (!byNode.has(node)) order.push(node);
@@ -188,7 +193,9 @@ export function buildExecutionReport(input: {
     const payload = (rec.payload ?? rec.output) as Record<string, unknown> | undefined;
     const h = (payload?.healing ?? rec.healing) as HealingInfo | undefined;
     return {
-      id: String(rec.node_id ?? "?"),
+      // `__k` hanya ada pada baris retry; dipakai agar tiap baris retry
+      // punya `id` sendiri (lihat catatan di `collapse`).
+      id: String(rec.__k ?? rec.node_id ?? "?"),
       label: String(rec.node_id ?? "?"),
       status: statusOf(rec),
       detail: h?.reason ? h.reason : snippet(payload),

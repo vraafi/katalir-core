@@ -137,6 +137,19 @@ test.describe("self-healing di execution report", () => {
     expect(r.steps[0].healing?.suggestions?.[0]?.text).toBe("Refresh OAuth token");
   });
 
+  // Regresi #4: `collapse()` membuat kunci unik per baris retry, tapi dulu
+  // mapper BUANG kunci itu sehingga semua baris retry satu node berbagi
+  // `id`. `ExecutionReportCard` memakai `openStep === s.id` (accordion satu
+  // jendela) sehingga semua baris itu ikut buka-tutup BERSAMA. Ditemukan
+  // saat menulis screenshot: skenario "2 retry" kebetulan lolos, skenario
+  // "5 retry + escalate" menutup semua karena jumlah baris genap.
+  test("tiap baris retry punya id unik agar accordion tidak saling menutup", () => {
+    const logs = [retryLog(1, 5, 1000), retryLog(2, 5, 2000), retryLog(3, 5, 4000)];
+    const r = buildExecutionReport({ logs, status: "running" } as any);
+    const ids = r.steps.filter((s) => s.status === "retrying").map((s) => s.id);
+    expect(new Set(ids).size).toBe(ids.length);
+  });
+
   test("laporan tanpa healing tetap berperilaku seperti sebelumnya", () => {
     const r = buildExecutionReport({
       logs: [{ node_id: "a1", status: "completed", payload: { summary: "selesai" } }],
