@@ -1,5 +1,7 @@
 import type { Metadata, Viewport } from "next";
+import { Suspense } from "react";
 import { Inter, JetBrains_Mono } from "next/font/google";
+import { NavigationTracker } from "@/components/navigation-tracker";
 import { ThemeProvider } from "next-themes";
 import { Toaster } from "sonner";
 import { MotionConfig } from "motion/react";
@@ -60,6 +62,13 @@ export default function RootLayout({
           <MotionConfig reducedMotion="user">
             <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
               <HydrationMonitor />
+              {/* Penanda navigasi internal untuk tombol Back. `Suspense`
+                  wajib karena komponen ini memakai `useSearchParams`; pada
+                  `output: "export"` tanpa boundary Next.js menolak build.
+                  Fallback null karena komponen ini tidak merender apa pun. */}
+              <Suspense fallback={null}>
+                <NavigationTracker />
+              </Suspense>
               {/* FASE 6 (PWA): no-op di dev, mendaftarkan /sw.js hanya di produksi. */}
               <ServiceWorkerRegistrar />
               {children}

@@ -2,9 +2,9 @@
 
 import Link from "next/link";
 import { Suspense } from "react";
-import { ArrowLeft } from "lucide-react";
+import { AuthProvider, useAuth } from "@/context/auth";
+import { BackButton } from "@/components/back-button";
 import { BrandMark } from "@/components/BrandMark";
-import { AuthProvider } from "@/context/auth";
 import { QueryProvider } from "@/features/builder/provider";
 import { I18nProvider, useI18n } from "@/i18n/context";
 import { HydrationReady } from "@/i18n/HydrationReady";
@@ -65,6 +65,7 @@ function SimplePageInner({
   maxW: string;
 }) {
   const { t } = useI18n();
+  const { email } = useAuth();
   const tr = (s: string) => (s.includes(".") && !s.includes(" ") ? t(s) : s);
   return (
           <div className="min-h-screen bg-bg text-fg">
@@ -76,16 +77,15 @@ function SimplePageInner({
                 diganti hanya setelah subtree ini selesai dihidrasi. */}
             <HydrationReady />
             <nav className="flex items-center justify-between border-b border-border px-5 py-3">
-              <Link href="/" className="flex items-center" aria-label="Katalir">
+              <Link
+                href={email ? "/chat" : "/"}
+                className="flex items-center"
+                aria-label={email ? "Go to chat" : "Katalir"}
+                data-testid="account-logo"
+              >
                 <BrandMark />
               </Link>
-              <Link
-                href="/"
-                className="flex h-9 items-center gap-1.5 rounded-md border border-border bg-surface px-3 text-subhead font-medium text-fg transition hover:bg-bg-subtle"
-              >
-                <ArrowLeft size={15} strokeWidth={2} aria-hidden />
-                {t("common.back")}
-              </Link>
+              <BackButton fallback={email ? "/chat" : "/"} />
             </nav>
             <main id="main-content" tabIndex={-1} className={`mx-auto ${maxW} px-5 py-8 outline-none`}>
               <PageTransition>

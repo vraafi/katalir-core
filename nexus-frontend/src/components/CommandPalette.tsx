@@ -66,7 +66,9 @@ export function CommandPalette({ onNewChat, onNewWorkflow }: PaletteProps) {
 
   const items = useMemo(
     () => [
-      { id: "chat", icon: MessageSquare, label: t("nav.chat"), run: () => go("/") },
+      // `nav.chat` harus ke /chat, bukan /. Tombol "Chat" yang mengarah ke
+      // landing adalah bug kembar dari logo halaman akun.
+      { id: "chat", icon: MessageSquare, label: t("nav.chat"), run: () => go("/chat") },
       { id: "builder", icon: Workflow, label: t("nav.builder"), run: () => go("/builder") },
       { id: "new-chat", icon: Plus, label: t("nav.newChat"), run: () => { setOpen(false); onNewChat(); } },
       { id: "new-wf", icon: Plus, label: t("palette.newWorkflow"), run: () => { setOpen(false); onNewWorkflow(); } },

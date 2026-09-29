@@ -210,7 +210,7 @@ export default function Shell({ children, sessions, currentSessionId, onSelectSe
           </div>
           <div className="flex items-center gap-2">
             <ThemeToggle />
-            <Link href="/" className="flex h-9 items-center gap-2 rounded-md border-0 bg-surface px-3 text-subhead font-medium text-fg transition duration-200 hover:bg-bg-subtle">
+            <Link href="/chat" className="flex h-9 items-center gap-2 rounded-md border-0 bg-surface px-3 text-subhead font-medium text-fg transition duration-200 hover:bg-bg-subtle" data-testid="shell-chat-link">
               <MessageSquare className="h-4 w-4" strokeWidth={1.75} /> {t("nav.chat")}
             </Link>
             <Link href="/builder" className="flex h-9 items-center gap-2 rounded-md border-0 bg-surface px-3 text-subhead font-medium text-fg transition duration-200 hover:bg-bg-subtle">
