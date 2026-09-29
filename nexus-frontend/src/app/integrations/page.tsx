@@ -2,13 +2,13 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { Search, Plus, ExternalLink } from "lucide-react";
+import { Plus, ExternalLink } from "lucide-react";
 import { SimplePage } from "@/components/SimplePage";
 import { OAuthConnections } from "@/components/OAuthConnections";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { apiFetch } from "@/lib/api";
+import { SearchBar } from "@/components/search-bar";
 
 type Server = { id: string; name: string; category: string; description: string; tools?: { name: string }[]; tools_count?: number; install_config?: { transport?: string; package?: string }; source?: string; source_url?: string; attribution_required?: boolean; no_auth?: boolean; auth_type?: string; kind?: string; runtime_verified?: boolean; verification?: { discovered?: boolean; tools_listed?: boolean; call_verified?: boolean } };
 
@@ -246,10 +246,12 @@ export default function IntegrationsPage() {
         title="Koneksi Anda"
         description="Hubungkan akun yang boleh Katalir gunakan atas nama Anda. Token disimpan terenkripsi di Brankas."
       />
-      <div className="flex flex-col gap-2 sm:flex-row">
-        <label className="relative flex-1"><span className="sr-only">Cari integrasi</span><Search className="absolute left-3 top-3 text-fg-muted" size={16}/><Input value={search} onChange={e => setSearch(e.target.value)} onKeyDown={e => e.key === "Enter" && load(search)} placeholder="Cari Telegram, Sheets, Slack…" className="pl-9" data-testid="integrations-search" /></label>
-        <Button onClick={() => load(search)} data-testid="integrations-refresh">Cari</Button>
-      </div>
+      {/* Baris pencarian dipindah ke BAWAH tab sumber (lihat blok tablist
+          di bawah). Di atas ia terpisah dari filter yang mengaktifkannya;
+          di bawah urutannya mengikuti yang dilakukan user: pilih sumber,
+          lalu ketik kebutuhannya. Catatan lama "Gabungan semua sumber di
+          katalog." dihapus karena hint baris pencarian sekarang
+          menjelaskan hal itu lebih baik, dan tidak perlu dua kali. */}
       {/*
         Dedup toggle. "All" is the raw merged catalogue, "Unique" is one row per
         integration after collapsing cross-source duplicates. They differ by ~21%
@@ -321,9 +323,11 @@ export default function IntegrationsPage() {
           </button>;
         })}
       </div>
-      {TABS.filter(t => t.key === tab).map(t => (
-        <p key={t.key || "all"} className="rounded-lg border border-border bg-fg-muted/5 p-3 text-xs text-fg-muted" data-testid="tab-note">{t.note}</p>
-      ))}
+      {/* Task C: baris pencarian duduk DI BAWAH tab sumber, menggantikan
+          catatan lama "Gabungan semua sumber di katalog.".
+          Task D: pencarian berjalan seketika dengan debounce 250 ms, jadi
+          user tidak perlu menekan Enter atau tombol Cari. */}
+      <SearchBar onSearch={(q) => { setSearch(q); void load(q); }} />
       <p role="status" aria-live="polite" className="text-sm text-fg-muted">{status}</p>
       {error && <div role="alert" className="rounded-lg border border-danger/40 bg-danger/10 p-3 text-sm text-danger">{error}</div>}
       {/* `min-w-0` on the grid: a grid item defaults to min-width:auto, so the

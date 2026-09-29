@@ -1655,6 +1655,27 @@ def mcp_registry_coverage():
     return catalog.coverage()
 
 
+@app.get("/mcp/recommended")
+def mcp_recommended(category: str = "", source: str = "", limit: int = 5):
+    """Integrasi yang direkomendasikan, dihitung dari rumus yang dikunci.
+
+    Skor dihitung runtime di `mcp_registry.compute_recommendation_score` —
+    tidak ada daftar hardcoded di endpoint maupun di registry. Endpoint ini
+    hanya membungkusnya, menambah batasan param, dan meneruskan
+    `data_coverage` apa adanya supaya kelemahan data terlihat di respons,
+    bukan hanya di dokumen internal.
+
+    `GET /mcp/registry/{server_id:path}` ada di SEJAKHIRANYA dan memakai
+    pola `{...:path}`, jadi rute ini harus dideklarasikan SEBELUM-nya agar
+    "recommended" tidak tertangkap sebagai server_id.
+    """
+    import mcp_registry as catalog
+    try:
+        return catalog.get_recommended(category=category, source=source, limit=max(1, min(int(limit), 50)))
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+
 @app.get("/mcp/registry/{server_id:path}")
 def mcp_registry_detail(server_id: str):
     import mcp_registry as catalog

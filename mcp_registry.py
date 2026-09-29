@@ -245,6 +245,155 @@ def get_server(server_id):
  if not x:raise KeyError(server_id)
  return x
 
+
+
+# ─── Recommended MCP ────────────────────────────────────────────────────────
+# Formula dikunci user (2026-09-29), TIDAK diubah di sini:
+#   install_count_norm * 0.35 + call_verified * 0.35
+#   + freshness * 0.20 + curator_pick * 0.10
+#
+# PENTING — dua dari empat input BELUM punya sumber data:
+#   * install_count : tidak ada di katalog mana pun. Tidak diinventar.
+#   * updated_at    : entri disinkron dari file cache, bukan DB bertimestamp.
+# Keduanya ditulis 0 dan `signals` mengembalikan mana yang aktif, supaya
+# bobot yang tidak terpakai TERLIHAT dan tidak tersembunyi di angka yang
+# terlihat meyakinkan. Bobot 0,35 + 0,20 praktisnya diam; peringkat
+# digerakkan call_verified (0,35) dan curator_pick (0,10). Rumus tetap utuh
+# supaya begitu sumber datanya ada, bobotnya langsung hidup.
+CURATOR_SEED = {
+    "slack", "github", "notion", "linear", "stripe",
+    "google-sheets", "google_sheets", "googlesheets", "gmail", "google-calendar",
+    "google_calendar", "googlecalendar", "openai", "anthropic", "gemini",
+    "telegram", "discord", "whatsapp", "supabase", "vercel", "cloudflare",
+    "openconnector", "composio",
+}
+
+
+def _curator_key(entry: dict) -> str:
+    """Kunci pencocokan curator.
+
+    Dicocokkan ke `id` apa adanya (bukan ke `name`), karena `name`
+    title case-nya tidak konsisten antar sumber, sedangkan `id` stabil
+    walau memuat "@" dan titik (mis. "@toolsdk.ai/aws-ses-mcp").
+    """
+    return str(entry.get("id") or "").strip().casefold()
+
+
+def is_curator_pick(entry: dict) -> bool:
+    if entry.get("curator_pick") is True:
+        return True
+    key = _curator_key(entry)
+    if key in CURATOR_SEED:
+        return True
+    # Sebagian id berawalan "@vendor/name"; dicocokkan juga tanpa bagian
+    # vendor supaya "slack" tidak hanya lolos lewat vendor tertentu.
+    tail = key.rsplit("/", 1)[-1]
+    return tail in CURATOR_SEED or tail.replace("-", "_") in CURATOR_SEED
+
+
+def _is_call_verified(entry: dict) -> bool:
+    """Bukti runtime, mengikuti definisi tier yang sudah dipakai UI."""
+    if entry.get("call_verified"):
+        return True
+    v = entry.get("verification")
+    if isinstance(v, dict) and v.get("call_verified"):
+        return True
+    return bool(entry.get("runtime_verified"))
+
+
+def compute_recommendation_score(entry: dict[str, Any]) -> dict[str, Any]:
+    """Skor rekomendasi + rincian komponennya.
+
+    Mengembalikan dict, bukan float, supaya UI dan audit bisa melihat
+    komponen mana yang benar-benar contribute. Kalau hanya mengembalikan
+    angka, bobot 0,35 dan 0,20 yang tidak terpakai akan tersembunyi di
+    balik angka yang terlihat meyakinkan.
+    """
+    install_raw = entry.get("install_count")
+    # 0 kalau tidak ada; min(x/1000, 1.0) sesuai rumus terkunci.
+    install = min(float(install_raw or 0) / 1000.0, 1.0) * 0.35
+
+    verified = 0.35 if _is_call_verified(entry) else 0.0
+
+    updated = entry.get("updated_at")
+    fresh = 0.0
+    if updated:
+        try:
+            from datetime import datetime, timezone
+            dt = updated if isinstance(updated, datetime) else datetime.fromisoformat(str(updated).replace("Z", "+00:00"))
+            if dt.tzinfo is None:
+                dt = dt.replace(tzinfo=timezone.utc)
+            fresh = max(0.0, 1.0 - (datetime.now(timezone.utc) - dt).days / 180.0) * 0.20
+        except Exception:
+            fresh = 0.0
+
+    curator = 0.10 if is_curator_pick(entry) else 0.0
+
+    return {
+        "score": round(install + verified + fresh + curator, 4),
+        "components": {
+            "install": round(install, 4),
+            "call_verified": verified,
+            "freshness": round(fresh, 4),
+            "curator_pick": curator,
+        },
+        "signals": {
+            "has_install_count": install_raw is not None,
+            "has_updated_at": bool(updated),
+            "is_curator_pick": curator > 0,
+            "is_call_verified": verified > 0,
+        },
+    }
+
+
+def get_recommended(*, category: str = "", source: str = "", limit: int = 5) -> dict[str, Any]:
+    """Integrasi dengan skor tertinggi, dihitung runtime.
+
+    Tidak ada daftar hardcoded di sini. CURATOR_SEED hanya memberi bonus
+    0,10; urutan sebenarnya dihitung dari call_verified + curator, jadi
+    entri non-curator yang call_verified pun bisa mendahului.
+    """
+    if not 1 <= int(limit) <= 50:
+        raise ValueError("limit must be 1..50")
+    items = [x for x in load_cached().values() if isinstance(x, dict)]
+    if category:
+        c = category.casefold()
+        items = [x for x in items if str(x.get("category") or "").casefold() == c]
+    if source:
+        wanted = {s.strip().casefold() for s in source.split(",") if s.strip()}
+        items = [x for x in items if str(x.get("source") or "toolsdk").casefold() in wanted]
+
+    scored = []
+    for e in items:
+        r = compute_recommendation_score(e)
+        out = dict(e)
+        out["recommendation"] = r
+        out["is_recommended"] = r["score"] > 0
+        scored.append(out)
+
+    # Tie-break by name supaya urutan stabil antar request; tanpa itu
+    # "top picks" bergeser tiap sync untuk alasan yang tak terlihat.
+    scored.sort(key=lambda x: (-x["recommendation"]["score"], str(x.get("name") or "").casefold()))
+
+    return {
+        "items": scored[: int(limit)],
+        "total_scored": len(scored),
+        "limit": int(limit),
+        "category": category,
+        "source": source,
+        "formula": "install*0.35 + call_verified*0.35 + freshness*0.20 + curator_pick*0.10",
+        # Dilaporkan terbuka supaya tidak ada yang mengira bobot 0,35 dan
+        # 0,20 sudah aktif padahal belum ada sumber datanya.
+        "data_coverage": {
+            "entries_with_install_count": sum(1 for x in scored if x["recommendation"]["signals"]["has_install_count"]),
+            "entries_with_updated_at": sum(1 for x in scored if x["recommendation"]["signals"]["has_updated_at"]),
+            "entries_call_verified": sum(1 for x in scored if x["recommendation"]["signals"]["is_call_verified"]),
+            "entries_curator_pick": sum(1 for x in scored if x["recommendation"]["signals"]["is_curator_pick"]),
+            "max_achievable_score_today": 0.45,
+        },
+    }
+
+
 def executable_servers():
     """Return only registry entries with an explicit executable transport.
 
