@@ -14,13 +14,41 @@
 //   3. tidak ada keduanya — status "error" dengan pesan jujur (bukan "sukses").
 import type { AgentWorkflow } from "./workflow-spec";
 
-export type StepStatus = "success" | "error" | "running" | "pending";
+// "retrying" = node dicoba ulang, belum final. Dipisah dari "error"
+// supaya lima percobaan yang berakhir berhasil tidak dihitung sebagai
+// lima kegagalan oleh penghitung okCount/failCount di bawah.
+export type StepStatus = "success" | "error" | "running" | "pending" | "retrying";
 
 export type ReportStep = {
   id: string;
   label: string;
   status: StepStatus;
   detail: string;
+  /**
+   * Payload self-healing, apa adanya dari `execution_logs`.
+   *
+   * Tanpa ini, `detail` meratakan seluruh plan jadi satu string
+   * terpotong (`healing=action=retry, category=...`) dan UI tidak bisa
+   * menampilkan attempt/max/delay/suggestions dengan benar. Field ini
+   * disimpan apa adanya supaya renderer tidak perlu menebak.
+   */
+  healing?: HealingInfo;
+};
+
+/** Bentuk `HealingPlan.to_dict()` dari `self_healing.py`. */
+export type HealingInfo = {
+  action: "retry" | "escalate" | "abort" | "credential";
+  node_id: string;
+  attempt: number;
+  category: string;
+  reason: string;
+  changes: Record<string, unknown>;
+  provider: string;
+  delay_ms: number;
+  max_attempts: number;
+  trace: Array<Record<string, unknown>>;
+  search_hits: number;
+  suggestions: Array<{ kind: string; text: string; link?: string }>;
 };
 
 export type ExecutionReport = {
@@ -89,6 +117,17 @@ function collapse(logs: unknown[]): Record<string, unknown>[] {
     if (!row || typeof row !== "object") continue; // entri kotor dari jaringan: dilewati, bukan crash
     const rec = row as Record<string, unknown>;
     const node = String(rec.node_id ?? "?");
+    // Percobaan retry ADALAH kejadian terpisah, bukan baris duplikat dari
+    // node yang sama. Kalau ikut di-collapse, 5 percobaan untuk satu node
+    // jadi 1 baris dan pengguna tidak pernah melihat bahwa sistem sudah
+    // mencoba berulang. Hanya status "retrying" yang lolos apa adanya;
+    // sisanya tetap ambil yang terakhir.
+    if (String(rec.status ?? "") === "retrying") {
+      const key = `${node}#retry${order.length}`;
+      order.push(key);
+      byNode.set(key, rec);
+      continue;
+    }
     if (!byNode.has(node)) order.push(node);
     byNode.set(node, rec);
   }
@@ -96,6 +135,12 @@ function collapse(logs: unknown[]): Record<string, unknown>[] {
 }
 
 function statusOf(step: Record<string, unknown>): StepStatus {
+  // "retrying" harus dicek SEBELUM stepFailed: stepFailed menandai apa
+  // pun yang punya field `error` sebagai gagal, sementara payload retry
+  // justru MEMBAWA error itu -- dia bukti bahwa ada yang dicoba, bukan
+  // kegagalan. Tanpa urutan ini, 5 percobaan yang sukses ditampilkan
+  // sebagai 5 kegagalan.
+  if (String(step.status ?? "") === "retrying") return "retrying";
   if (stepFailed(step)) return "error";
   const s = String(step.status ?? "");
   if (s === "completed" || s === "success") return "success";
@@ -134,17 +179,32 @@ export function buildExecutionReport(input: {
   workflowRef?: AgentWorkflow | null;
 }): ExecutionReport {
   const raw = Array.isArray(input.logs) ? collapse(input.logs) : [];
-  let steps: ReportStep[] = raw.map((s) => ({
-    id: String(s.node_id ?? "?"),
-    label: String(s.node_id ?? "?"),
-    status: statusOf(s),
-    detail: snippet(s.payload),
-  }));
+  let steps: ReportStep[] = raw.map((s) => {
+    const rec = s as Record<string, unknown>;
+    // Healing diambil dari `payload.healing`: `append_execution_log`
+    // menyimpan (node_id, kind, status, output) dan output berisi
+    // {"healing": {...}}. Dicoba dua bentuk karena payload bisa
+    // datang sudah diratakan atau belum.
+    const payload = (rec.payload ?? rec.output) as Record<string, unknown> | undefined;
+    const h = (payload?.healing ?? rec.healing) as HealingInfo | undefined;
+    return {
+      id: String(rec.node_id ?? "?"),
+      label: String(rec.node_id ?? "?"),
+      status: statusOf(rec),
+      detail: h?.reason ? h.reason : snippet(payload),
+      ...(h ? { healing: h } : {}),
+    };
+  });
   if (!steps.length) steps = stepsFromText(input.text);
 
   const failCount = steps.filter((s) => s.status === "error").length;
   const running = steps.filter((s) => s.status === "running" || s.status === "pending").length;
-  const okCount = steps.length - failCount - running;
+  // Baris retry bukan hasil akhir, jadi tidak boleh masuk hitungan mana pun:
+  // dihitung sebagai okCount maka "5 percobaan sukses" terlihat seperti
+  // 5 node sukses; dihitung sebagai running maka `ok` selalu false walau
+  // eksekusi sebenarnya selesai.
+  const retrying = steps.filter((s) => s.status === "retrying").length;
+  const okCount = steps.length - failCount - running - retrying;
   const execStatus = String(input.status ?? "");
   const ok = execStatus === "completed" && failCount === 0 && running === 0 && steps.length > 0;
   // Tanpa langkah sama sekali => "error", BUKAN sukses: laporan kosong tidak boleh

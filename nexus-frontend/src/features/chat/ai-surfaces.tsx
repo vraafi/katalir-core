@@ -197,6 +197,9 @@ const STEP_STYLE = {
   error: "text-danger",
   running: "text-accent",
   pending: "text-fg-muted",
+  // Percobaan ulang: bukan gagal dan belum tentu sukses. Warna
+  // peringatan supaya terbaca sebagai "dalam proses", bukan verdict.
+  retrying: "text-warning",
 } as const;
 
 /** B2 — laporan eksekusi terstruktur (bukan teks polos): header status +
@@ -260,7 +263,7 @@ export function ExecutionReportCard({
                   }`}
                 >
                   <span className={`font-mono text-[11px] ${STEP_STYLE[s.status]}`} aria-hidden>
-                    {s.status === "success" ? "OK" : s.status === "error" ? "GAGAL" : s.status}
+                    {s.status === "success" ? "OK" : s.status === "error" ? "GAGAL" : s.status === "retrying" ? `RETRY ${s.healing?.attempt ?? ""}/${s.healing?.max_attempts ?? ""}` : s.status}
                   </span>
                   <span className="truncate text-fg">{s.label}</span>
                   {clickable && (
@@ -278,6 +281,55 @@ export function ExecutionReportCard({
                   >
                     {s.detail}
                   </p>
+                )}
+                {/* Rincian self-healing: kategori, provider, sumber error,
+                    jeda backoff, dan saran developer. Tanpa ini data
+                    healing datang ke browser lalu dibuang. */}
+                {open && s.healing && (
+                  <div
+                    className="mx-1.5 mb-1.5 rounded-md border border-line px-2 py-1.5 text-[11px] leading-snug"
+                    data-testid="healing-detail"
+                    data-healing-action={s.healing.action}
+                  >
+                    <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-fg-muted">
+                      <span className="font-mono uppercase">{s.healing.category}</span>
+                      <span aria-hidden>·</span>
+                      <span>{s.healing.provider || "provider tidak dikenal"}</span>
+                      {s.healing.delay_ms > 0 && (
+                        <>
+                          <span aria-hidden>·</span>
+                          <span className="font-mono" data-testid="healing-delay">
+                            jeda {s.healing.delay_ms} ms
+                          </span>
+                        </>
+                      )}
+                    </div>
+                    {s.healing.search_hits > 0 && (
+                      <p className="mt-1 text-fg-muted">
+                        {s.healing.search_hits} hasil referensi forum dicocokkan
+                      </p>
+                    )}
+                    {s.healing.suggestions.length > 0 && (
+                      <ol className="mt-1 list-decimal space-y-0.5 pl-4" data-testid="healing-suggestions">
+                        {s.healing.suggestions.map((sg, j) => (
+                          <li key={j}>
+                            {sg.link ? (
+                              <a
+                                href={sg.link}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="underline decoration-dotted underline-offset-2"
+                              >
+                                {sg.text}
+                              </a>
+                            ) : (
+                              sg.text
+                            )}
+                          </li>
+                        ))}
+                      </ol>
+                    )}
+                  </div>
                 )}
               </li>
             );
