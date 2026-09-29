@@ -117,9 +117,21 @@ def coverage():
  katalog yang sama dan tidak bisa berbeda definisi. Tidak ada angka
  konstanta di sini.
  """
- total=sum(int(n) for n in source_counts_unique().values())
+ per_unik=source_counts_unique()
+ # `dedup_canonical.json` di-gitignore, jadi di produksi file itu tidak ada
+ # dan `source_counts_unique()` mengembalikan {}. Kalau kita selalu memakainya,
+ # `total` jadi 0 di produksi padahal katalognya penuh. Jadi: pakai set unik
+ # kalau ada, kalau tidak jatuh ke `source_counts()` yang selalu hidup.
+ # `native` dikeluarkan karena itu jumlah provider internal, bukan isi katalog,
+ # dan sudah ditambahkan terpisah oleh endpoint `/mcp/registry/sources`.
+ if per_unik:
+  total=sum(int(n) for n in per_unik.values())
+  basis="dedup_canonical"
+ else:
+  total=sum(int(n) for k,n in source_counts().items() if k!="native")
+  basis="source_counts"
  executable=len(executable_servers())
- return {"total":total,"executable":executable,"metadata_only":total-executable,"sources":source_counts()}
+ return {"total":total,"executable":executable,"metadata_only":total-executable,"basis":basis,"sources":source_counts()}
 def recommend_servers(query: str, limit: int = 5):
  """Return catalog matches for the AI integration picker; metadata only.
 
