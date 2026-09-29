@@ -27,8 +27,11 @@ test.describe("Integration detail via query-param", () => {
 
     // Nama server harus muncul. Kalau query tidak dibaca, halaman akan
     // tetap menampilkan "Memuat integrasi..." atau "tidak ditemukan".
+    // `.first()` dipakai karena nama muncul di beberapa tempat (judul
+    // halaman, judul kartu, deskripsi) -- tanpa itu Playwright protes
+    // strict mode, bukan karena UI salah.
     await expect(
-      page.getByText("server-github", { exact: false }),
+      page.getByText("server-github", { exact: false }).first(),
       "detail server tidak pernah muncul -> ?slug= kemungkinan tidak dibaca",
     ).toBeVisible({ timeout: 45_000 });
 
@@ -67,7 +70,14 @@ test.describe("Integration detail via query-param", () => {
     console.log(`DETAIL_URL = ${url}`);
 
     expect(url, "klik Detail harus ke /integrations/catalog?slug=").toContain("/integrations/catalog?slug=");
-    expect(url, "URL lama /integrations/<slug> akan 404").not.toMatch(/\/integrations\/[^?]+\?slug/);
+
+    // Deteksi format LAMA (/integrations/<slug> tanpa query), yang 404.
+    // Cek segmen path sebelum '?', bukan regex longgar: pola
+    // /integrations/[^?]+?slug juga cocok dengan format BARU yang
+    // benar, sehingga assertion sebelumnya salah menandai halaman yang
+    // justru sehat sebagai rusak.
+    const [path] = url.split("?");
+    expect(path, `path harus persis /integrations/catalog, bukan ${path}`).toMatch(/\/integrations\/catalog$/);
   });
 
   test("axe pada halaman detail 0 violation blocking", async ({ page }) => {
