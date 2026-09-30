@@ -17,7 +17,7 @@ streamlit==1.41.1
 google-genai==1.65.0
 httpx==0.28.1
 # MCP Python SDK for agentgateway Streamable HTTP client
-mcp==1.26.0
+mcp==1.28.1
 ddgs==9.0.1
 
 # Models & validasi
@@ -31,7 +31,7 @@ pytest-playwright==0.5.2
 pytest==8.3.3
 
 # Util global
-python-dotenv==1.0.1
+python-dotenv==1.2.2
 
 # Agentic framework modern (LangChain Core + provider universal)
 langchain-core==0.3.49

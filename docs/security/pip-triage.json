@@ -1,0 +1,126 @@
+{
+  "total": 110,
+  "by_kind": {
+    "MINOR": 43,
+    "MAJOR": 52,
+    "PATCH": 8,
+    "NO_FIX": 7
+  },
+  "fixable_no_major": [
+    [
+      "langchain-core",
+      "0.3.80",
+      "PATCH"
+    ],
+    [
+      "langchain-core",
+      "0.3.81",
+      "PATCH"
+    ],
+    [
+      "langchain-core",
+      "0.3.84",
+      "PATCH"
+    ],
+    [
+      "langchain-core",
+      "0.3.85",
+      "PATCH"
+    ],
+    [
+      "langsmith",
+      "0.7.31",
+      "MINOR"
+    ],
+    [
+      "langsmith",
+      "0.8.0",
+      "MINOR"
+    ],
+    [
+      "langsmith",
+      "0.8.18",
+      "MINOR"
+    ],
+    [
+      "litellm",
+      "1.82.0",
+      "MINOR"
+    ],
+    [
+      "litellm",
+      "1.83.0",
+      "MINOR"
+    ],
+    [
+      "litellm",
+      "1.83.10",
+      "MINOR"
+    ],
+    [
+      "litellm",
+      "1.83.14",
+      "MINOR"
+    ],
+    [
+      "litellm",
+      "1.83.7",
+      "MINOR"
+    ],
+    [
+      "litellm",
+      "1.83.9",
+      "MINOR"
+    ],
+    [
+      "litellm",
+      "1.84.0",
+      "MINOR"
+    ],
+    [
+      "mcp",
+      "1.27.2",
+      "MINOR"
+    ],
+    [
+      "mcp",
+      "1.28.1",
+      "MINOR"
+    ],
+    [
+      "python-dotenv",
+      "1.2.2",
+      "MINOR"
+    ],
+    [
+      "starlette",
+      "0.47.2",
+      "MINOR"
+    ],
+    [
+      "starlette",
+      "0.49.1",
+      "MINOR"
+    ],
+    [
+      "streamlit",
+      "1.53.1",
+      "MINOR"
+    ],
+    [
+      "streamlit",
+      "1.54.0",
+      "MINOR"
+    ]
+  ],
+  "needs_major": [
+    "langchain-core",
+    "langchain-openai",
+    "pillow",
+    "pytest",
+    "starlette"
+  ],
+  "no_fix": [
+    "litellm"
+  ]
+}
