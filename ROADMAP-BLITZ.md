@@ -45,6 +45,32 @@ call-verified** (227 from the catalogue + Groq + Gemini), up from 28. The gap is
 still a *verification* problem, not a sourcing problem: 23.474 unique integrations
 are in the catalogue, and only the ones with a working no-auth endpoint can be
 call-verified without a user's credential.
+## 🔴 P0 POST-LAUNCH — Upgrade FastAPI + Starlette (DEFERRED, sudah diinvestigasi)
+
+**Status:** DEFERRED ke post-launch. **Sudah dimitigasi** lewat
+`TrustedHostMiddleware` (lihat `docs/security/cve-investigation.md`).
+
+**Yang harus dikerjakan:**
+
+- Naikkan `fastapi==0.115.6` → `0.142.2` (versi terbaru, diakses 2026-09-30)
+- Naikkan `starlette` → `>=1.0.1` (versi patched untuk CVE-2026-48710)
+- Bersihkan **8+ konflik `pip check`** yang sudah rusak sebelum upgrade
+- Jalankan test matrix E2E 14/14 sebagai **gate**; gagal → revert, jangan paksa
+
+**Kenapa ditunda (alasan faktual, bukan alasan umum):**
+
+1. `fastapi==0.115.6` mensyaratkan `starlette<0.42.0`. Cap itu baru dipecah
+   di fastapi ~0.13x → lompat **27 versi minor** di garis 0.x.
+2. `pip check` baseline sudah salah 8+ konflik (`browser-use` vs `anthropic`,
+   `openai`, `groq`, `pydantic`, `requests`). Menumpuk upgrade mayor di atas
+   environment yang sudah tidak bersih = risiko regresi yang sulit diisolasi.
+3. Mitigasi `TrustedHostMiddleware` **sudah terbukti** memblokir PoC
+   (`HTTP 200` → `400`) di layer ASGI, bukan cuma di reverse proxy.
+
+**Yang TIDAK boleh dilupakan saat upgrade:** `ALLOWED_HOSTS` harus tetap
+diisi di Railway, kalau tidak backend gagal start (fail-secure by design).
+
+
 
 ## FASE 1 — Batch Verify  ← current
 - [x] F1.5 metrics — `dedup_report.json` regenerated after the call phase

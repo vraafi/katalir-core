@@ -21,6 +21,7 @@ from contextlib import asynccontextmanager
 
 from fastapi import BackgroundTasks, FastAPI, Header, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
+from starlette.middleware.trustedhost import TrustedHostMiddleware
 from pydantic import BaseModel, Field
 from typing import Optional, Any
 
@@ -78,6 +79,56 @@ app.add_middleware(
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
+)
+
+# ---------------------------------------------------------------------------
+# CVE-2026-48710 (Starlette "BadHost") - MITIGASI (lihat docs/security/cve-investigation.md)
+#
+# Starlette < 1.0.1 menyusun `request.url` dari header `Host` TANPA validasi.
+# Karakter di luar grammar RFC 3986 (`/`, `?`, `#`) menggeser batas path saat
+# re-parse, sehingga `request.url.path` != path yang benar-benar di-routing.
+# Contoh terverifikasi (layer ASGI, scope crafted):
+#     Host: evil.com/health?x=  ->  scope['path']='/protected'  TAPI  request.url.path='/health'
+# Auth berbasis `request.url.path` akan terbaca path publik sambil handler
+# terproteksi dieksekusi.
+#
+# TrustedHostMiddleware menolak Host di luar allowlist SEBELUM router berjalan,
+# jadi `request.url.path` tak pernah bisa dipois pada app ini.
+#
+# CATATAN URUTAN (sudah dibuktikan, bukan asumsi):
+# `app.add_middleware()` pada Starlette MENDASARIK (prepend) ke
+# `user_middleware`; index 0 = OUTERMOST = berjalan PERTAMA. Supaya
+# TrustedHost benar-benar menjadi pagar terluar, ia harus di-add_middleware
+# SESUDAH CORSMiddleware - bukan "sebelum" seperti kelihatannya.
+#   add TrustedHost lalu CORSMiddleware -> [0]=CORSMiddleware     (Salah)
+#   add CORSMiddleware lalu TrustedHost -> [0]=TrustedHostMiddleware (Benar)
+#
+# Tidak ada path-based auth middleware di repo ini sama sekali
+# (`request.url.path` = 0 hasil, `security.py:351` pakai Depends pada header
+# `Authorization`), jadi mitigasi ini bersifat defense-in-depth - mencegah
+# kerentanan ini diaktifkan oleh kode yang ditulis berikutnya.
+# ---------------------------------------------------------------------------
+_allowed_hosts_raw = (os.getenv("ALLOWED_HOSTS") or "").strip()
+if not _allowed_hosts_raw:
+    # FAIL-SECURE. `TrustedHostMiddleware(allowed_hosts=None)` diam-diam
+    # menjadi `["*"]` (lihat source: `if allowed_hosts is None: allowed_hosts = ["*"]`),
+    # yang justru membatalkan seluruh mitigasi ini. Gagal keras lebih aman
+    # daripada berjalan dengan proteksi yang terlihat aktif tapi tidak ada.
+    raise RuntimeError(
+        "ALLOWED_HOSTS wajib diisi. JANGAN fallback ke '*' - itu membatalkan "
+        "mitigasi CVE-2026-48710. Lihat docs/security/cve-investigation.md"
+    )
+
+ALLOWED_HOSTS = [h.strip() for h in _allowed_hosts_raw.split(",") if h.strip()]
+if "*" in ALLOWED_HOSTS:
+    raise RuntimeError("ALLOWED_HOSTS tidak boleh berisi '*' (mitigasi CVE-2026-48710 dinonaktifkan).")
+
+app.add_middleware(
+    TrustedHostMiddleware,
+    allowed_hosts=ALLOWED_HOSTS,
+    # API gateway tidak dilayani via `www`, jadi fail-closed (400) lebih
+    # dapat di_debug daripada redirect diam-diam yang bisa jadi loop.
+    www_redirect=False,
 )
 
 
