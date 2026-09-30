@@ -22,9 +22,9 @@ from typing import Any, Awaitable, Callable, Optional
 
 from pydantic import BaseModel, Field
 
-from dotenv import load_dotenv
+from dotenv_loader import load_repo_env
 
-load_dotenv()
+load_repo_env()
 
 from self_healing import SelfHealingAgent
 import database as db

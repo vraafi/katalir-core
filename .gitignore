@@ -2,6 +2,7 @@
 .env
 .env.*
 !.env.example
+!.env.template
 *.secret
 client_secret_*.json
 credentials.json

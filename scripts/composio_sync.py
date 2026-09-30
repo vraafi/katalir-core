@@ -7,9 +7,9 @@ from __future__ import annotations
 import json, os, sys
 from pathlib import Path
 import httpx
-from dotenv import load_dotenv
+from dotenv_loader import load_repo_env
 
-load_dotenv()
+load_repo_env()
 BASE = "https://backend.composio.dev/api/v3.1"
 KEY = (os.environ.get("COMPOSIO_API_KEY") or "").strip()
 TARGETS = ["whatsapp","slack","gmail","github","notion","linear","stripe","googlesheets","telegram","discord","twitter","linkedin","hubspot","salesforce","airtable","dropbox","googledrive","googlecalendar","trello","asana"]

@@ -4,8 +4,8 @@ from typing import Optional
 
 # Paksa muat file .env yang ada di folder proyek ke memori OS
 # (agar API key dari GEMINI_KEY_1/GEMINI_API_KEY/GOOGLE_API_KEY terbaca)
-from dotenv import load_dotenv
-load_dotenv()
+from dotenv_loader import load_repo_env
+load_repo_env()
 
 from google import genai
 from google.genai import types

@@ -12,12 +12,12 @@ Berjalan (dari folder proyek):
 """
 import os
 
-from dotenv import load_dotenv
+from dotenv_loader import load_repo_env
 
 
 def _resolve_api_key() -> str:
     """Muati .env lalu cek deteksi kunci multi-nama (persis seperti backend)."""
-    load_dotenv()  # Paksa muat file .env ke memori OS
+    load_repo_env()  # Paksa muat file .env ke memori OS
     return (
         os.getenv("GOOGLE_API_KEY")
         or os.getenv("GEMINI_API_KEY")

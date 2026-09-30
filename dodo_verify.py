@@ -4,8 +4,8 @@
 #    to webhook.verify() — the Standard Webhooks signature covers id.timestamp.body"
 
 import os
-from dotenv import load_dotenv
-load_dotenv()
+from dotenv_loader import load_repo_env
+load_repo_env()
 
 
 def _sdk_client():

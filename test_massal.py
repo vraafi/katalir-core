@@ -17,9 +17,9 @@ Jalankan:
 import os
 import sys
 
-from dotenv import load_dotenv
+from dotenv_loader import load_repo_env
 
-load_dotenv()
+load_repo_env()
 
 # force fallback lokal bila Supabase belum dikonfigurasi penuh
 import database as db

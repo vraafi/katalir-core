@@ -13,8 +13,8 @@ Menjalankan:
 import os
 
 # 1) Muat .env secara paksa ke memori OS sebelum apa pun.
-from dotenv import load_dotenv
-load_dotenv()
+from dotenv_loader import load_repo_env
+load_repo_env()
 
 
 def _chat_bubbles(at) -> list:

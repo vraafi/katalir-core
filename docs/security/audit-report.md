@@ -223,6 +223,96 @@ ALLOWED_HOSTS=''   -> RuntimeError: ALLOWED_HOSTS wajib diisi...
 
 ---
 
+### C.6 FIX — `load_dotenv()` merayap keluar repo (2026-09-30)
+
+#### Gejala
+
+```
+$ python -m pytest tests -q
+tests/test_ai_tools.py:15 -> scripts/ai_tools_mcp.py:20
+    load_dotenv(override=True)
+  -> UnicodeDecodeError: 'utf-8' codec can't decode byte 0xff
+20 errors during collection          (seluruh suite mati, bukan 1 test)
+```
+
+#### Akar masalah
+
+```
+C:\Users\user\Proyek_AI\.env   (tidak ada - dihapus user)
+C:\Users\user\.env             size=148  first4=255,254,81,0   <-- UTF-16 LE
+```
+
+`python-dotenv` mencari `.env` mulai dari **folder tempat modul berada**, lalu
+merayap **naik ke folder induk** sampai ketemu. `load_dotenv(override=True)`
+di `scripts/ai_tools_mcp.py:20` dipanggil **tanpa argumen path**. Karena
+`Proyek_AI/.env` tidak ada, ia menemukan `C:\Users\user\.env` — file milik
+program lain — dan crash saat membacanya sebagai UTF-8.
+
+Jadi ini **dua** bug, bukan satu:
+
+1. `load_dotenv()` tanpa path = **reachable ke luar repo** (security issue:
+   bisa membaca file konfigurasi program lain).
+2. Ketergantungan pada keberadaan `.env` = **ketidaktersediaan (availability
+   failure)**: menghapus
+   satu file mematikan seluruh test suite.
+
+#### Fix
+
+Modul baru `dotenv_loader.py` di root:
+
+```python
+ROOT = Path(__file__).resolve().parent
+ENV_PATH = ROOT / ".env"
+
+def load_repo_env(*, override: bool = True) -> Path | None:
+    if ENV_PATH.is_file():
+        load_dotenv(dotenv_path=ENV_PATH, override=override)
+        return ENV_PATH
+    # tidak crash; beri peringatan sekali, andalkan env proses
+    ...
+```
+
+Semua call site diganti ke `load_repo_env()`:
+
+```
+FILES_PATCHED=37   CALLSITES_PATCHED=37
+```
+
+Termasuk yang sebelumnya **relatif ke CWD** (`load_dotenv(".env", ...)` di
+`scripts/check_metorial.py` dan `scripts/sync_nango_metorial.py`) — itu rapuh
+karena bergantung pada directory tempat proses dijalankan.
+
+#### Bukti fix
+
+```
+$ python -c "import importlib.util; ... exec_module(ai_tools_mcp)"
+IMPORT_OK tools= ['gemini_generate', 'groq_chat']
+[dotenv] WARNING: .env tidak ditemukan di C:\Users\user\Proyek_AI\.env. ...
+
+$ python -c "import database, security"
+ROOT_MODULES_OK
+
+$ python -m pytest tests --collect-only -q
+344 tests collected in 4.15s          (0 error; sebelumnya 20 error)
+```
+
+**Tidak ada credential yang dibutuhkan untuk import** — suite kembali bisa
+dikoleksi sepenuhnya.
+
+#### Sisa: E2E tetap BLOCKED
+
+Koleksi lolos, tapi **eksekusi test belum dijalankan** — hampir semua test
+butuh credential nyata (Supabase, LLM, Telegram) yang hanya ada di `.env`.
+`.env` sengaja tidak dipulihkan: isinya memuat
+`SUPABASE_DB_PASSWORD` + `SUPABASE_SERVICE_ROLE_KEY` versi lama yang
+rotasinya memang belum berhasil (§F). **Status: E2E BLOCKED, menunggu user
+membangun `.env` dari nol dengan credential baru.**
+
+`.env.template` (99 key, 0 nilai, aman di-commit) sudah disiapkan supaya
+user tidak perlu menebak nama variabelnya.
+
+
+
 ## BAGIAN D — Frontend: ✅ BERSIH
 
 ```

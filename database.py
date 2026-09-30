@@ -22,10 +22,10 @@
 import os
 from datetime import datetime, timedelta, timezone
 
-from dotenv import load_dotenv
+from dotenv_loader import load_repo_env
 from fastapi import HTTPException
 
-load_dotenv()
+load_repo_env()
 
 SUPABASE_URL = (os.getenv("SUPABASE_URL") or "").strip().rstrip("/")
 SUPABASE_KEY = (os.getenv("SUPABASE_KEY") or "").strip()

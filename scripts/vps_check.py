@@ -7,9 +7,9 @@ import os
 import sys
 
 import paramiko
-from dotenv import load_dotenv
+from dotenv_loader import load_repo_env
 
-load_dotenv()
+load_repo_env()
 
 host = (os.getenv("VPS_IP") or "").strip()
 user = (os.getenv("VPS_USERNAME") or "").strip()

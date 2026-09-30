@@ -1,7 +1,7 @@
 """Generate a short-lived Supabase test JWT for authenticated production audit."""
 import os, time, json, pathlib, httpx
-from dotenv import load_dotenv
-load_dotenv()
+from dotenv_loader import load_repo_env
+load_repo_env()
 url = os.environ["SUPABASE_URL"]
 service_key = os.environ["SUPABASE_SERVICE_ROLE_KEY"]
 anon_key = os.environ.get("SUPABASE_PUBLISHABLE_KEY") or os.environ["SUPABASE_KEY"]

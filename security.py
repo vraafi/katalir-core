@@ -39,8 +39,8 @@ import jwt
 from fastapi import HTTPException
 from jwt.algorithms import ECAlgorithm, RSAAlgorithm
 
-from dotenv import load_dotenv
-load_dotenv()
+from dotenv_loader import load_repo_env
+load_repo_env()
 
 SUPABASE_URL = (os.getenv("SUPABASE_URL") or "").strip().rstrip("/")
 # anon key cukup untuk auth.get_user (verify JWT + nacti leta user profil).

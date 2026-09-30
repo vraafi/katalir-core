@@ -9,9 +9,9 @@ import os
 import urllib.error
 import urllib.request
 
-from dotenv import load_dotenv
+from dotenv_loader import load_repo_env
 
-load_dotenv(".env", override=True)
+load_repo_env(override=True)
 key = os.environ.get("METORIAL_API_KEY", "")
 print(f"key_present={bool(key)} prefix_ok={key.startswith('metorial_sk_')} len={len(key)}")
 if not key:

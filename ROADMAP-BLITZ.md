@@ -77,6 +77,32 @@ call-verified without a user's credential.
 **Yang TIDAK boleh dilupakan saat upgrade:** `ALLOWED_HOSTS` harus tetap
 diisi di Railway, kalau tidak backend gagal start (fail-secure by design).
 
+diisi di Railway, kalau tidak backend gagal start (fail-secure by design).
+
+---
+
+## 🟡 P2 POST-LAUNCH — Regenerasi Railway API token
+
+Status 2026-09-30: `RAILWAY_API_TOKEN` yang ada di `.env.bak-20260926-150120`
+**tidak sah** — Backboard GraphQL API membalas **HTTP 403**. Akibatnya status
+deployment Railway **tidak bisa diverifikasi** (`RAILWAY_REDEPLOY=UNVERIFIED`)
+walau `/health` tetap 200.
+
+Tugas:
+
+1. Railway Dashboard → Settings → **API Tokens** → create token baru
+   (scope minimum: read project + deploy).
+2. Simpan ke `.env` **dan** Railway variable yang memakainya.
+3. Verifikasi: `python scripts/security/railway_deploy_status.py`
+   (butuh `RAILWAY_API_TOKEN` di `.env`; skrip fallback ke `.env.bak-*`).
+
+**Kenapa P2, bukan P1:** tidak ada risiko kebocoran — token hanya mengotorisasi
+membaca status deploy, danoperasional produksi tetap berjalan (`/health` 200).
+Yang hilang adalah kemampuan **membuktikan** status deploy, bukan deploy itu
+sendiri.
+
+---
+
 ---
 
 ## 🟠 P1 POST-LAUNCH — Sisa advisory dependency

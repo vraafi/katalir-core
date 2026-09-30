@@ -32,7 +32,7 @@ import pathlib
 import urllib.error
 import urllib.request
 
-from dotenv import load_dotenv
+from dotenv_loader import load_repo_env
 
 for _s in (__import__("sys").stdout, __import__("sys").stderr):
     try:
@@ -40,7 +40,7 @@ for _s in (__import__("sys").stdout, __import__("sys").stderr):
     except Exception:  # noqa: BLE001
         pass
 
-load_dotenv(".env", override=True)
+load_repo_env(override=True)
 
 UA = (
     "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "

@@ -19,9 +19,9 @@
 import os
 from typing import Any
 
-from dotenv import load_dotenv
+from dotenv_loader import load_repo_env
 
-load_dotenv()
+load_repo_env()
 
 from langchain_core.tools import tool
 

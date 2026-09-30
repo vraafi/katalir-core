@@ -14,10 +14,10 @@ import os
 import time
 
 import httpx
-from dotenv import load_dotenv
+from dotenv_loader import load_repo_env
 from mcp.server.fastmcp import FastMCP
 
-load_dotenv(override=True)
+load_repo_env(override=True)
 mcp = FastMCP("katalir-ai-tools")
 
 GROQ_URL = "https://api.groq.com/openai/v1/chat/completions"

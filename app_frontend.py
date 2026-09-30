@@ -17,9 +17,9 @@ import os
 import uuid
 
 import streamlit as st
-from dotenv import load_dotenv
+from dotenv_loader import load_repo_env
 
-load_dotenv()
+load_repo_env()
 
 import database as db
 import tools  # Tool Registry + CredentialMissingError

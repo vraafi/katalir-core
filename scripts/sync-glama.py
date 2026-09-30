@@ -29,7 +29,7 @@ import sys
 import time
 
 import httpx
-from dotenv import load_dotenv
+from dotenv_loader import load_repo_env
 
 BASE = "https://glama.ai/api/mcp/v1/servers"
 PAGE = "https://glama.ai"
@@ -38,7 +38,7 @@ DESC_LIMIT = 300
 
 
 def load_key() -> str:
-    load_dotenv(override=True)
+    load_repo_env(override=True)
     key = (os.environ.get("GLAMA_API_KEY") or "").strip()
     if not key:
         raise SystemExit("GLAMA_API_KEY missing")
