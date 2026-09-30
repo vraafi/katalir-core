@@ -1,0 +1,24 @@
+{
+  "before": {
+    "execution_logs": 44,
+    "executions": 21,
+    "workflows": 20
+  },
+  "after": {
+    "execution_logs": 0,
+    "executions": 0,
+    "workflows": 0
+  },
+  "rowsecurity": {
+    "execution_logs": true,
+    "executions": true,
+    "workflows": true
+  },
+  "remaining_policies": [
+    {
+      "tablename": "workflows",
+      "policyname": "workflows_owner_all",
+      "qual": "(auth.uid() = user_id)"
+    }
+  ]
+}
