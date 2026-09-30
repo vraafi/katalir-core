@@ -58,6 +58,10 @@ export interface ChatMessage {
   connectUrl?: string;
   /** Metadata model (transparansi): model, latency, tokens, fallback. */
   meta?: ChatMeta;
+  /** BUG FIX 2026-10-01: kunci idempotensi kiriman logis. Disimpan pada kartu
+   *  error agar `retry` mengirim UUID yang SAMA — kalau di-regenerate, backend
+   *  tidak bisa melakukan dedup dan pesan user ter-insert GANDUL tiap retry. */
+  clientRequestId?: string;
 }
 
 async function fetchSessions(email: string): Promise<SessionItem[]> {
@@ -211,7 +215,7 @@ export function useSendChatMutation() {
   return useMutation<
     { reply: string; session_id?: string; needsCredential?: boolean; needsOauth?: boolean; provider?: string; connectUrl?: string; message?: string; meta?: ChatMeta },
     Error & { provider?: string; promptEcho?: string },
-    { prompt: string; sessionId?: string | null; email?: string | null; abortSignal?: AbortSignal; clientRequestId?: string; model?: string },
+    { prompt: string; sessionId?: string | null; email?: string | null; abortSignal?: AbortSignal; clientRequestId?: string; model?: string; retryOfLocalId?: string },
     {
       optimisticUserId: string;
       optimisticAsstId: string;
@@ -219,6 +223,9 @@ export function useSendChatMutation() {
       previous?: ChatMessage[];
       sessionId: string | null;
       prompt: string;
+      /** BUG FIX 2026-10-01: retry TIDAK menambah bubble user baru (sudah ada
+       *  dan sudah ter-persist di server); ia hanya mengganti kartu error. */
+      isRetry: boolean;
     }
   >({
     mutationFn: async ({ prompt, sessionId, abortSignal, clientRequestId, model }) => {
@@ -290,12 +297,18 @@ export function useSendChatMutation() {
         throw new Error(message);
       }
     },
-    onMutate: async ({ prompt, sessionId }) => {
+    onMutate: async ({ prompt, sessionId, retryOfLocalId }) => {
       const key = chatKeys.messages(sessionId ?? "__pending__");
       await qc.cancelQueries({ queryKey: key });
       const previous = qc.getQueryData<ChatMessage[]>(key);
+      const isRetry = Boolean(retryOfLocalId);
       const optimisticUserId = `local-user-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
-      const optimisticAsstId = `local-asst-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
+      // Pada retry, placeholder assistant MEWAKILI kartu error (ganti di tempat,
+      // _localId sama) supaya key React stabil dan kartu error tidak mengambang
+      // sebagai kartu lama sementara placeholder baru muncul.
+      const optimisticAsstId = isRetry
+        ? (retryOfLocalId as string)
+        : `local-asst-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
       const optimisticUser: ChatMessage = {
         id: optimisticUserId,
         _localId: optimisticUserId,
@@ -308,7 +321,18 @@ export function useSendChatMutation() {
         role: "assistant",
         content: "…",
       };
-      qc.setQueryData<ChatMessage[]>(key, (old) => [...(old ?? []), optimisticUser, optimisticAsst]);
+      qc.setQueryData<ChatMessage[]>(key, (old) => {
+        const base = old ?? [];
+        if (isRetry) {
+          // JANGAN tambah bubble user: pesan itu sudah tampil DAN sudah
+          // ter-insert di server pada percakapan pertama. Menambahnya lagi
+          // bikin user melihat pesan dobel, dan mengosongkan cache bila
+          // retried-nya juga gagal (bug "riwayat hilang").
+          return [...base.filter((m) => m._localId !== optimisticAsstId),
+            optimisticAsst];
+        }
+        return [...base, optimisticUser, optimisticAsst];
+      });
       return {
         optimisticUserId,
         optimisticAsstId,
@@ -316,9 +340,10 @@ export function useSendChatMutation() {
         previous,
         sessionId: sessionId ?? null,
         prompt,
+        isRetry,
       };
     },
-    onError: (err, _vars, context) => {
+    onError: (err, vars, context) => {
       if (!context) return;
       // User klik Stop: buang bubble optimistic user+asst yang sedang diproses
       // (jangan holt jadi kartu error).
@@ -326,14 +351,19 @@ export function useSendChatMutation() {
         qc.setQueryData<ChatMessage[]>(context.targetKey, (old) =>
           (old ?? []).filter(
             (m) =>
-              m._localId !== context.optimisticUserId &&
-              m._localId !== context.optimisticAsstId
+              // Pada retry TIDAK ada bubble user baru milik kiriman ini, jadi
+              // bubble user milik giliran lain WAJIB tetap ada. Versi lama
+              // membungkus segalanya dalam satu filter dan ikut menghapus
+              // `optimisticUserId` milik giliran LAIN karena nilainya selalu
+              // di-generate ulang -> history terkirim ikut hilang saat Stop.
+              m._localId !== context.optimisticAsstId &&
+              (!context.isRetry || m._localId !== context.optimisticUserId)
           )
         );
         return;
       }
       // Fase 1: HOLD optimistic — jangan hapus bubble user sampai reply/error
-      // jelas (instruksi user). KITA ganti placeholder assistant "…" dengan
+      // jelas (instruksi user). Kita ganti placeholder assistant "…" dengan
       // kartu error (role system type error) + tombol retry. Retry di dalam
       // mutationFn sudah habis sebelum onError ini dipanggil.
       const msg = (err as Error)?.message || "Terjadi kesalahan. Coba lagi.";
@@ -347,6 +377,10 @@ export function useSendChatMutation() {
                 type: "error",
                 content: msg,
                 original: context.prompt,
+                // Kunci idempotensi ikut dibawa ke kartu error. Tanpa ini
+                // `retry` membuat UUID BARU -> backend tidak bisa dedup ->
+                // pesan user ter-insert ulang di DB tiap kali retry.
+                clientRequestId: vars.clientRequestId,
               }
             : m
         )
@@ -361,9 +395,17 @@ export function useSendChatMutation() {
       // overlay men-dedup per _localId agar tidak duplikat saat frame switch.
       const finalKey = chatKeys.messages(data.session_id ?? vars.sessionId ?? "__pending__");
       if (context && (finalKey.join("/") !== context.targetKey.join("/"))) {
-        const moving = (qc.getQueryData<ChatMessage[]>(context.targetKey) ?? []).filter(
-          (m) => m._localId === context.optimisticUserId || m._localId === context.optimisticAsstId
-        );
+        // Pada retry TIDAK ada bubble user baru milik kiriman ini, jadi
+        // menyaring hanya dua `_localId` akan meninggalkan bubble user YANG
+        // SUDAH ADA di `__pending__` -> ikut terhapus saat effect[sessionId]
+        // mengosongkan `__pending__` = "percakapan hilang" setelah reply sukses.
+        // Karena itu untuk retry kita pindahkan SELURUH isi targetKey.
+        const moving = context.isRetry
+          ? (qc.getQueryData<ChatMessage[]>(context.targetKey) ?? [])
+          : (qc.getQueryData<ChatMessage[]>(context.targetKey) ?? []).filter(
+              (m) => m._localId === context.optimisticUserId
+                || m._localId === context.optimisticAsstId
+            );
         if (moving.length) {
           qc.setQueryData<ChatMessage[]>(finalKey, (old) => [...(old ?? []), ...moving]);
         }

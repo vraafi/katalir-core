@@ -1113,7 +1113,12 @@ def chat(req: ChatRequest, authorization: str | None = Header(None)):
     if req_id:
         prior = db.find_user_message_by_request(req_id)
         if prior and prior.get("session_id"):
-            prev_reply = db.get_last_assistant_reply(prior["session_id"])
+            # PENTING: reply WAJIB ditautkan ke req_id yang sama. Tanpa itu
+            # (versi lama) percakapan yang sudah punya giliran sukses akan
+            # mengembalikan reply giliran SEBELUMNYA lalu short-circuit ->
+            # retry terkira berhasil padahal tidak pernah dijalankan ulang.
+            prev_reply = db.get_last_assistant_reply(prior["session_id"],
+                                                      client_request_id=req_id)
             if prev_reply:
                 return {
                     "status": "success",

@@ -54,6 +54,11 @@ export type Msg =
       type: "error";
       content: string;
       original: string;
+      /** BUG FIX 2026-10-01: `_localId` + kunci idempotensi ikut dibawa agar
+       *  `onRetry` bisa men-target kartu error ini secara presisi dan memakai
+       *  ulang `clientRequestId` (retry = kiriman logis yang sama). */
+      localId?: string;
+      clientRequestId?: string;
     };
 
 /** Indikator mengetik: 3 dot animasi (transform+opacity only, CSS .typing-dot).
@@ -160,7 +165,7 @@ export function Message({
   /** Task 1C: tombol Connect pada provider ber-OAuth (handler dari ChatApp). */
   onOauthConnect: (provider: string, connectUrl?: string) => void;
   oauthBusy?: boolean;
-  onRetry: (m: { content: string; original: string }) => void;
+  onRetry: (m: { content: string; original: string; localId?: string; clientRequestId?: string }) => void;
   /** FASE 5: draf sedang dijalankan (tombol "Jalankan Langsung" disabled). */
   draftRunning?: boolean;
   onOpenCanvas: (wf: AgentWorkflow) => void;
@@ -205,7 +210,14 @@ export function Message({
             <p className="mt-1.5 text-footnote text-fg-muted">{msg.content}</p>
             <Button
               variant="secondary"
-              onClick={() => onRetry({ content: msg.content, original: msg.original })}
+              onClick={() => onRetry({
+          content: msg.content,
+          original: msg.original,
+          // BUG FIX 2026-10-01: teruskan `localId` + `clientRequestId` supaya
+          // retry men-target kartu error ini saja dan memakai UUID yang sama.
+          localId: msg.localId,
+          clientRequestId: msg.clientRequestId,
+        })}
               className="mt-2.5 w-full justify-center gap-1.5"
             >
               <RotateCcw size={14} strokeWidth={1.75} aria-hidden />
@@ -266,7 +278,7 @@ export function Thread({
     /** Task 1C: handler tombol Connect (diisi ChatApp; default = no-op). */
     onOauthConnect?: (p: string, connectUrl?: string) => void;
     oauthBusy?: boolean;
-    onRetry: (m: { content: string; original: string }) => void;
+    onRetry: (m: { content: string; original: string; localId?: string; clientRequestId?: string }) => void;
   };
   /** FASE 5 (B2): laporan eksekusi TERSTRUKTUR dari state lokal. */
   runReports?: { id: string; report: ExecutionReport }[];

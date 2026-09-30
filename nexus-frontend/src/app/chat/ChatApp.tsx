@@ -60,6 +60,10 @@ function suggestionsFor(t: (k: string) => string): string[] {
 interface QueuedMsg {
   id: string;
   text: string;
+  /** Konteks retry ikut diantre — kalau tidak, `retry` yang masuk antrean
+   *  akan dikirim sebagai kiriman BARU (UUID baru + bubble user tambahan),
+   *  persis bug yang seharusnya kita perbaiki. */
+  retry?: { retryOfLocalId?: string; clientRequestId?: string };
 }
 
 /** id unik lokal untuk item antrean. */
@@ -477,7 +481,19 @@ function ChatApp() {
         return { key: `oauth-${m.id ?? m._localId ?? m.provider}`, role: "system", type: "oauth_prompt", provider: m.provider, connectUrl: m.connectUrl };
       }
       if (m.type === "error" && m.original !== undefined) {
-        return { key: `err-${m.id ?? m._localId ?? m.original}`, role: "system", type: "error", content: m.content, original: m.original };
+        // BUG FIX 2026-10-01: teruskan `localId` + `clientRequestId` ke Msg
+        // supaya `onRetry` bisa (a) menghapus HANYA kartu error ini, bukan
+        // pesan user lain dengan teks sama, dan (b) memakai ulang UUID
+        // kiriman agar backend tidak meng-insert pesan user dua kali.
+        return {
+          key: `err-${m.id ?? m._localId ?? m.original}`,
+          role: "system",
+          type: "error",
+          content: m.content,
+          original: m.original,
+          localId: m._localId,
+          clientRequestId: m.clientRequestId,
+        };
       }
       if (m.role === "user") return { key: `opt-${m._localId ?? m.id ?? m.content}`, role: "user", content: m.content };
       if (m.role === "assistant")
@@ -623,7 +639,7 @@ function ChatApp() {
     if (sendMutation.isPending || busyRef.current || messageQueue.length === 0) return;
     const next = messageQueue[0];
     setMessageQueue((prev) => prev.slice(1));
-    void sendPrompt(next.text);
+    void sendPrompt(next.text, next.retry);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [loadingMsg, messageQueue, sendMutation.isPending]);
 
@@ -636,13 +652,13 @@ function ChatApp() {
     setEditingId(null);
   }
 
-  async function sendPrompt(text: string) {
+  async function sendPrompt(text: string, retry?: { retryOfLocalId?: string; clientRequestId?: string }) {
     // Fix 1/3: bila AI sedang sibuk, jangan blokir — antre, bukan lock UI.
     // busyRef sinkron menutup race window 1-tick (3 submit cepat sekaligus):
     // yang pertama jalan, sisanya masuk antrean FIFO — TIDAK pernah 2
     // mutateAsync paralel ke key yang sama.
     if (busyRef.current || loadingMsg || sendMutation.isPending) {
-      setMessageQueue((prev) => [...prev, { id: qid(), text }]);
+      setMessageQueue((prev) => [...prev, { id: qid(), text, retry }]);
       setInput("");
       return;
     }
@@ -659,8 +675,13 @@ function ChatApp() {
     // ini untuk TIDAK meng-insert user-message dua kali bila request retry
     // setelah server-commit (mis. timeout saat respons hilang) — mencegah pesan
     // user duplikat dalam 1 sesi. Di-kirim via POST /chat body client_request_id.
-    const clientRequestId =
-      (typeof crypto !== "undefined" && "randomUUID" in crypto
+    //
+    // BUG FIX 2026-10-01: pada RETRY kita WAJIB memakai UUID yang sama, bukan
+    // membuat yang baru. Backend memakai UUID ini untuk (a) tidak meng-insert
+    // ulang pesan user dan (b) menemukan reply yang sudah tersimpan. UUID baru
+    // = setiap retry = satu baris user duplikat di DB.
+    const clientRequestId = retry?.clientRequestId
+      ?? (typeof crypto !== "undefined" && "randomUUID" in crypto
         ? crypto.randomUUID()
         : `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`);
     // Optimistic bubble ditulis oleh onMutate (setQueryData) — TANPA useState.
@@ -671,6 +692,7 @@ function ChatApp() {
         email: em,
         abortSignal: controller.signal,
         clientRequestId,
+        retryOfLocalId: retry?.retryOfLocalId,
         model: selectedModel,
       });
       if (data.session_id && !sessionId) {
@@ -707,18 +729,35 @@ function ChatApp() {
     }
   }
 
-  /** Fase 1: tombol "Coba Lagi" pada kartu error. Hapus bubble error + user
-   *  pasangannya dari cache, lalu kirim ulang prompt asli secara fresh. */
-  async function retryMessage(errMsg: { content: string; original: string }) {
+  /** Tombol "Coba Lagi" pada kartu error.
+
+   *  BUG FIX 2026-10-01 (data loss). Versi lama melakukan dua hal merusak:
+   *    1. menghapus SELURUH bubble user dengan `content === errMsg.original`
+   *       -> kalau user pernah mengetik prompt yang sama lebih dulu di giliran
+   *          sebelumnya, pesan lama itu ikut terhapus dari layar;
+   *    2. mengirim ulang prompt dengan `clientRequestId` BARU, sehingga
+   *       idempotensi backend tidak berlaku dan pesan user ter-insert GANDUL.
+   *
+   *  Yang benar: hanya kartu error yang dihapus (cocok via `_localId`, bukan
+   *  teks), bubble user dibiarkan, dan UUID kiriman yang SAMA dipakai lagi
+   *  supaya backend mendeteksi kiriman logis yang sama dan tidak menggandakan
+   *  baris di chat_messages. */
+  async function retryMessage(errMsg: { content: string; original: string; localId?: string; clientRequestId?: string }) {
     const key = chatKeys.messages(sessionId ?? "__pending__");
+    const targetLocalId = errMsg.localId;
     qc.setQueryData<ChatMessage[]>(key, (old) =>
-      (old ?? []).filter(
-        (m) =>
-          !(m.type === "error" && m.original === errMsg.original && m.content === errMsg.content) &&
-          !(m.role === "user" && m.content === errMsg.original)
-      )
+      (old ?? []).filter((m) => {
+        if (m.type !== "error") return true;
+        // Cocok persis pada kartu error itu saja. JANGAN pernah memfilter
+        // berdasarkan `content` pesan user.
+        if (targetLocalId) return m._localId !== targetLocalId;
+        return !(m.original === errMsg.original && m.content === errMsg.content);
+      })
     );
-    await sendPrompt(errMsg.original);
+    await sendPrompt(errMsg.original, {
+      retryOfLocalId: targetLocalId,
+      clientRequestId: errMsg.clientRequestId,
+    });
   }
 
   /** Tugas3: hapus satu sesi. Bila itu sesi aktif → reset ke chat baru. */

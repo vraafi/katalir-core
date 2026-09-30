@@ -391,19 +391,30 @@ def find_user_message_by_request(client_request_id):
         return None
 
 
-def get_last_assistant_reply(session_id):
+def get_last_assistant_reply(session_id, client_request_id=None):
     """Reply assistant terakhir untuk sesi — dipakai saat deteksi kiriman yg sudah
-    diproses, supaya retry mengembalikan reply yg sama (TANPA menjalankan ulang loop)."""
+    diproses, supaya retry mengembalikan reply yg sama (TANPA menjalankan ulang loop).
+
+    BUG FIX 2026-10-01 (data loss / reply salah): kalau `client_request_id` diberi,
+    reply WAJIB ditautkan ke kiriman itu. Versi lama hanya memfilter
+    `session_id` + `role=assistant`, sehingga pada percakapan yang sudah punya
+    giliran sukses, retry dari pesan yang GAGAL akan mengembalikan reply giliran
+    SEBELUMNYA (bukan reply pesan tsb) lalu short-circuit di api_server ->
+    user melihat jawaban basi seolah retried-nya berhasil.
+    Tanpa `client_request_id` perilaku lama dipertahankan (dipakai endpoint lain).
+    """
     if not is_configured() or not session_id:
         return None
     try:
         wc = _get_write_client()
+        query = (wc.table("chat_messages")
+                 .select("content")
+                 .eq("session_id", session_id)
+                 .eq("role", "assistant"))
+        if client_request_id and _request_key_enabled():
+            query = query.eq("client_request_id", client_request_id)
         res = _wrap_write(
-            lambda: wc.table("chat_messages")
-            .select("content")
-            .eq("session_id", session_id)
-            .eq("role", "assistant")
-            .order("created_at", desc=True).limit(1).execute(),
+            lambda: query.order("created_at", desc=True).limit(1).execute(),
             "chat_messages.last_reply",
         )
         rows = res.data or []
