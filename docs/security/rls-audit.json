@@ -1,0 +1,256 @@
+{
+  "tables_total": 16,
+  "policies_total": 10,
+  "policies": [
+    {
+      "tablename": "community_earnings",
+      "policyname": "community_earnings_own_read",
+      "cmd": "SELECT",
+      "roles": "{public}",
+      "qual": "(developer_id = auth.uid())",
+      "with_check": null
+    },
+    {
+      "tablename": "community_integrations",
+      "policyname": "community_integrations_own_update",
+      "cmd": "UPDATE",
+      "roles": "{public}",
+      "qual": "(developer_id = auth.uid())",
+      "with_check": "((developer_id = auth.uid()) AND (status <> 'approved'::text))"
+    },
+    {
+      "tablename": "community_integrations",
+      "policyname": "community_integrations_own_write",
+      "cmd": "INSERT",
+      "roles": "{public}",
+      "qual": null,
+      "with_check": "(developer_id = auth.uid())"
+    },
+    {
+      "tablename": "community_integrations",
+      "policyname": "community_integrations_public_read",
+      "cmd": "SELECT",
+      "roles": "{public}",
+      "qual": "(status = 'approved'::text)",
+      "with_check": null
+    },
+    {
+      "tablename": "execution_logs",
+      "policyname": "Izinkan semua akses ke execution_logs",
+      "cmd": "ALL",
+      "roles": "{public}",
+      "qual": "true",
+      "with_check": null
+    },
+    {
+      "tablename": "executions",
+      "policyname": "Izinkan semua akses ke executions",
+      "cmd": "ALL",
+      "roles": "{public}",
+      "qual": "true",
+      "with_check": null
+    },
+    {
+      "tablename": "user_mcp_instances",
+      "policyname": "users manage own mcp instances",
+      "cmd": "ALL",
+      "roles": "{public}",
+      "qual": "(auth.uid() = user_id)",
+      "with_check": "(auth.uid() = user_id)"
+    },
+    {
+      "tablename": "user_preferences",
+      "policyname": "user_own_prefs",
+      "cmd": "ALL",
+      "roles": "{public}",
+      "qual": "(user_email = (auth.jwt() ->> 'email'::text))",
+      "with_check": "(user_email = (auth.jwt() ->> 'email'::text))"
+    },
+    {
+      "tablename": "workflows",
+      "policyname": "Allow public read and write",
+      "cmd": "ALL",
+      "roles": "{public}",
+      "qual": "true",
+      "with_check": "true"
+    },
+    {
+      "tablename": "workflows",
+      "policyname": "workflows_owner_all",
+      "cmd": "ALL",
+      "roles": "{public}",
+      "qual": "(auth.uid() = user_id)",
+      "with_check": "(auth.uid() = user_id)"
+    }
+  ],
+  "probe": [
+    {
+      "table": "chat_messages",
+      "rowsecurity": true,
+      "policies": 0,
+      "anon_select": "0"
+    },
+    {
+      "table": "chat_sessions",
+      "rowsecurity": true,
+      "policies": 0,
+      "anon_select": "0"
+    },
+    {
+      "table": "community_earnings",
+      "rowsecurity": true,
+      "policies": 1,
+      "anon_select": "0"
+    },
+    {
+      "table": "community_integrations",
+      "rowsecurity": true,
+      "policies": 3,
+      "anon_select": "0"
+    },
+    {
+      "table": "execution_logs",
+      "rowsecurity": true,
+      "policies": 1,
+      "anon_select": "44"
+    },
+    {
+      "table": "executions",
+      "rowsecurity": true,
+      "policies": 1,
+      "anon_select": "21"
+    },
+    {
+      "table": "payment_events",
+      "rowsecurity": true,
+      "policies": 0,
+      "anon_select": "0"
+    },
+    {
+      "table": "roster_cache",
+      "rowsecurity": true,
+      "policies": 0,
+      "anon_select": "0"
+    },
+    {
+      "table": "user_balances",
+      "rowsecurity": true,
+      "policies": 0,
+      "anon_select": "0"
+    },
+    {
+      "table": "user_integrations",
+      "rowsecurity": true,
+      "policies": 0,
+      "anon_select": "0"
+    },
+    {
+      "table": "user_mcp_instances",
+      "rowsecurity": true,
+      "policies": 1,
+      "anon_select": "0"
+    },
+    {
+      "table": "user_preferences",
+      "rowsecurity": true,
+      "policies": 1,
+      "anon_select": "0"
+    },
+    {
+      "table": "user_usage",
+      "rowsecurity": true,
+      "policies": 0,
+      "anon_select": "0"
+    },
+    {
+      "table": "user_vault",
+      "rowsecurity": true,
+      "policies": 0,
+      "anon_select": "0"
+    },
+    {
+      "table": "users",
+      "rowsecurity": true,
+      "policies": 0,
+      "anon_select": "0"
+    },
+    {
+      "table": "workflows",
+      "rowsecurity": true,
+      "policies": 2,
+      "anon_select": "20"
+    }
+  ],
+  "rls_off": [],
+  "anon_leak": [
+    "execution_logs",
+    "executions",
+    "workflows"
+  ],
+  "anon_leak_rows": {
+    "execution_logs": "44",
+    "executions": "21",
+    "workflows": "20"
+  },
+  "rls_on_no_policy": [
+    "chat_messages",
+    "chat_sessions",
+    "payment_events",
+    "roster_cache",
+    "user_balances",
+    "user_integrations",
+    "user_usage",
+    "user_vault",
+    "users"
+  ],
+  "permissive_policies": [
+    {
+      "table": "execution_logs",
+      "policy": "Izinkan semua akses ke execution_logs",
+      "cmd": "ALL",
+      "roles": "{public}",
+      "qual": "true",
+      "with_check": null
+    },
+    {
+      "table": "executions",
+      "policy": "Izinkan semua akses ke executions",
+      "cmd": "ALL",
+      "roles": "{public}",
+      "qual": "true",
+      "with_check": null
+    },
+    {
+      "table": "user_mcp_instances",
+      "policy": "users manage own mcp instances",
+      "cmd": "ALL",
+      "roles": "{public}",
+      "qual": "(auth.uid() = user_id)",
+      "with_check": "(auth.uid() = user_id)"
+    },
+    {
+      "table": "user_preferences",
+      "policy": "user_own_prefs",
+      "cmd": "ALL",
+      "roles": "{public}",
+      "qual": "(user_email = (auth.jwt() ->> 'email'::text))",
+      "with_check": "(user_email = (auth.jwt() ->> 'email'::text))"
+    },
+    {
+      "table": "workflows",
+      "policy": "Allow public read and write",
+      "cmd": "ALL",
+      "roles": "{public}",
+      "qual": "true",
+      "with_check": "true"
+    },
+    {
+      "table": "workflows",
+      "policy": "workflows_owner_all",
+      "cmd": "ALL",
+      "roles": "{public}",
+      "qual": "(auth.uid() = user_id)",
+      "with_check": "(auth.uid() = user_id)"
+    }
+  ]
+}
