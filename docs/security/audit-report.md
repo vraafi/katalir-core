@@ -9,14 +9,16 @@
 
 ---
 
-## ⚠️ RINGKASAN EKSEKUTIF — 1 CRITICAL terbuka
+## ⚠️ RINGKASAN EKSEKUTIF (status 2026-09-30)
 
 | # | Temuan | Severity | Status |
 |---|---|---|---|
-| **R-1** | `execution_logs`/`executions`/`workflows` terbaca **anonim** (85 baris) | 🔴 **CRITICAL** | **OPEN — butuh approval** |
+| **R-1** | 3 policy RLS full-CRUD untuk `anon` (`executions`/`execution_logs`/`workflows`, 85 baris) | 🔴 **CRITICAL** | ✅ **FIXED** — 85→0 baris, §B.7 |
 | C-1 | CVE-2026-48710 Starlette BadHost | 🔴 HIGH (6.5) | ✅ **MITIGATED** (PoC terbukti) |
-| C-2 | Venv lokal ≠ produksi (0.52.1 vs ~0.40–0.41) | 🟠 MEDIUM | ✅ **DOCUMENTED** |
-| S-2 | `SUPABASE_DB_PASSWORD` bocor di git history | 🔴 P0 | ⚠️ **PENDING** — rotasi tidak terbukti berlaku, lihat §B.8 |
+| C-2 | Starlette produksi 0.41.3 (12 advisory) | 🟠 MEDIUM | 📌 **P0 #1 post-launch** |
+| S-1 | `VPS_PASSWORD` bocor di git history | 🔴 P0 | ✅ **ROTATED** 2026-09-30 |
+| S-2 | `SUPABASE_DB_PASSWORD` bocor | 🔴 P0 | 🔴 **PENDING — rotasi gagal, §F** |
+| S-3 | `SUPABASE_SERVICE_ROLE_KEY` bocor | 🔴 P0 | 🔴 **PENDING — rotasi gagal, §F** |
 | N-1 | npm `postcss` → butuh **Next 16** (major) | 🟠 HIGH | ⚠️ **ACCEPTED RISK** |
 | N-2 | npm 5 HIGH lain (rantai `wrangler`) | 🟠 HIGH | 📋 deferred (tool deploy) |
 | H-1 | CSP `report-only`, belum `enforce` | 🟡 MEDIUM | ⚠️ **ACCEPTED** |
@@ -479,20 +481,81 @@ $ gitleaks git . --log-opts="origin/main..HEAD" --redact
 | C-1 — CVE-2026-48710 Starlette BadHost | 🔴 HIGH | ✅ **MITIGATED** | PoC 200 → 400 |
 | S-1 — `VPS_PASSWORD` bocor di git history | 🔴 P0 | ✅ **ROTATED** | `rotate_vps_password.py`, lama FAIL / baru PASS ×2 |
 | D-1 — 2 advisory pip minor | 🟠 HIGH | ✅ **FIXED** | `python-dotenv` 1.2.2, `mcp` 1.28.1, 344/344 |
-| S-2 — `SUPABASE_DB_PASSWORD` bocor | 🔴 P0 | ⚠️ **PENDING — rotasi tidak terbukti berlaku (§B.8)** | nilai `.env` identik dgn backup 09-17 & masih konek |
-| S-3 — `SUPABASE_SERVICE_ROLE_KEY` | 🔴 P0 | ⏳ **PENDING** | Fase F lanjutan |
-| S-4 — `VAULT_SECRET_KEY` | 🔴 P0 | ⏳ **PENDING** | butuh re-encrypt Vault |
+| S-2 — `SUPABASE_DB_PASSWORD` bocor | 🔴 P0 | 🔴 **PENDING — ROTASI GAGAL** | fingerprint identik backup 09-17 & password lama masih konek |
+| S-3 — `SUPABASE_SERVICE_ROLE_KEY` bocor | 🔴 P0 | 🔴 **PENDING — ROTASI GAGAL, kunci lama HTTP 200** | bypass RLS penuh masih hidup |
+| S-4 — `VAULT_SECRET_KEY` | 🔴 P0 | ⏳ **PENDING** | butuh re-encrypt Vault (pekerjaan terpisah) |
 | D-2 — 108 advisory pip sisanya | 🟠 HIGH | ⚠️ **ACCEPTED** | major upgrade — `ROADMAP-BLITZ.md` P1 |
 | N-1 — npm `postcss` → Next 16 | 🟠 HIGH | ⚠️ **ACCEPTED** | major, di luar cakupan |
 | C-2 — Starlette produksi 0.41.3 | 🟠 MEDIUM | 📋 **P0 #1 post-launch** | `ROADMAP-BLITZ.md` |
 | H-1 — CSP `report-only` | 🟡 MEDIUM | ⚠️ **ACCEPTED** | temuan M-1 audit 2026-09 |
 
+### 🔴 PENDING ITEMS — tindak lanjut ke user (per 2026-09-30)
+
+Tiga credential **belum ter-rotasi**. Untuk dua yang pertama, rotasi diklaim
+sudah dilakukan di Supabase Dashboard, tetapi **bukti menunjukkan sebaliknya**.
+
+#### S-2 — `SUPABASE_DB_PASSWORD` (16 char) — 🔴 PENDING
+
+```
+fingerprint sha256[:12]  .env (sekarang)   = bbccb72a1faa
+                         .env.bak-20260917-014828 = bbccb72a1faa   IDENTIK
+                         (4 backup lain juga sama)
+koneksi pooler dgn password .env -> PASS   policies_total=7
+```
+
+Password lama **masih berfungsi**. Setelah reset di Dashboard seharusnya ia
+ditolak. Dugaan: reset tidak tersimpan, atau dilakukan pada project ref yang
+salah.
+
+#### S-3 — `SUPABASE_SERVICE_ROLE_KEY` (219 char) — 🔴 PENDING, palingapsinggi
+
+```
+fingerprint sha256[:12]  .env (sekarang)   = fdd6d40b4880
+                         .env.bak-20260917-014828 = fdd6d40b4880   IDENTIK
+
+TES PENENTU — kunci LAMA dari backup 17 Sep:
+  GET /rest/v1/workflows?select=id  (apikey = kunci LAMA)
+  -> HTTP 200        MASIH AKTIF
+```
+
+Ini yang paling serius: `service_role` **bypass penuh RLS**. Selama kunci ini
+masih hidup di server,vault data tetap terbuka penuh bagi siapa pun yang
+memegangnya — terlepas dari semua perbaikan RLS di §B.7 (policy hanya menahan
+role `anon`/`authenticated`; `service_role` tetap menembusnya).
+
+Cakupan eksposurnya sekarang narrowed:
+
+```
+SUPABASE_DB_PASSWORD       di 0 file TRACKED   git history: tidak
+SUPABASE_SERVICE_ROLE_KEY  di 0 file TRACKED   git history: tidak
+```
+
+Keduanya hanya ada di `.env` / `.env.bak-*` yang gitignored — **tidak pernah
+sampai ke repo publik**. Jadi ini risiko operasional, bukan kebocoran publik.
+
+#### S-4 — `VAULT_SECRET_KEY` (44 char) — ⏳ PENDING (bukan rotasi biasa)
+
+Tidak dirotasi karena **rotasi tanpa re-encrypt akan membuat seluruh entri
+Vault tidak terbaca** — itu kerusakan data, bukan kebocoran. Butuh pekerjaan
+terpisah: decrypt semua entri dengan kunci lama → re-encrypt dengan kunci baru.
+
+#### Langkah yang harus dilakukan user
+
+1. Buka **project ref `qmukkphwaajzbqjrcvaz`** (ap-southeast-1) — pastikan
+   project yang benar.
+2. Settings → **API** → `service_role` → **Reset** (prioritas tertinggi).
+3. Settings → **Database** → **Reset password**.
+4. Update `.env` **dan** Railway variables untuk keduanya.
+5. Verifikasi: `fingerprint` berubah **dan** kunci lama membalas `401`.
+
+
+
 ### Rotasi credential
 
 ```
 VPS_PASSWORD              ROTATED 2026-09-30   lama=FAIL  baru=PASS (2x verifikasi)
-SUPABASE_DB_PASSWORD      PENDING (rotasi TAKAH berlaku - lihat B.8)
-SUPABASE_SERVICE_ROLE_KEY PENDING               Fase F lanjutan
+SUPABASE_DB_PASSWORD      PENDING  (ROTASI GAGAL - fingerprint identik, password lama masih konek)
+SUPABASE_SERVICE_ROLE_KEY PENDING  (ROTASI GAGAL - fingerprint identik, kunci lama HTTP 200)
 VAULT_SECRET_KEY          PENDING               butuh re-encrypt Vault
 ```
 
