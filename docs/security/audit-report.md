@@ -313,6 +313,57 @@ user tidak perlu menebak nama variabelnya.
 
 
 
+### C.8 KOREKSI — diagnosa rotasi & Railway direvisi setelah riset API 2026
+
+Rincian lengkap: `docs/security/api-2026-investigation.md`.
+
+Saya sebelumnya menyatakan dua hal yang **ternyata salah atau
+berlebihan**. Koreksi inidicatat di sini, bukan dikubur.
+
+#### 1. Railway 403 = Cloudflare, BUKAN token expired
+
+Bukti A/B dengan query identik, hanya `User-Agent` berbeda:
+
+```
+$ python (UA default urllib)  -> HTTP 403  body='error code: 1010'
+$ User-Agent: curl/8.4.0     -> HTTP 200  errors: "Not Authorized"
+$ User-Agent: Mozilla/5.0    -> HTTP 200  errors: "Not Authorized"
+```
+
+`error code: 1010` = Cloudflare memblokir signature bot. Dokumentasi resmi
+Railway (`railway.com/api-reliability.md`) menyatakan penolakan otorisasi
+resmi membalas **HTTP 200 + `errors`**, bukan 403 — jadi 403 itu **tidak pernah
+menyentuh Railway**. Hipotesis Anda benar.
+
+Setelah Cloudflare dilewati, ada masalah kedua yang terpisah: token memang
+`Not Authorized` (kemungkinan project-scoped, bukan account-scoped).
+
+#### 2. Rotasi Supabase: "gagal" → "tidak dapat diverifikasi"
+
+Dokumentasi resmi **tidak** menyatakan rotasi legacy key dihentikan. Yang
+terbukti:
+
+```
+SUPABASE_MIGRATION_STATUS = migrating
+  sb_publishable_  -> HTTP 200, rows=0   (key BARU aktif, RLS berlaku)
+  legacy JWT       -> HTTP 200, rows=1   (service_role bypass RLS)
+```
+
+Project Katalir **sudah mengaktifkan sistem key baru**, tapi semua client
+masih legacy. Dokumentasi menyatakan rotasi legacy JWT secret akan
+**logout semua sesi aktif** — itu menjelaskan mengapa rotasi tidak
+sederhana "klik reset", dan kenapa saya tidak boleh menyimpulkan "gagal".
+
+Saya juga **tidak** mengonfirmasi hipotesis pooler-cache; dua kemungkinan
+(tidak tersimpan vs belum propagasi) tidak dapat dipisahkan tanpa Dashboard.
+
+#### Yang TIDAK saya lakukan
+
+Tidak me-rotasi, tidak me-migrasi, tidak me-restart project, tidak
+mengubah file produk. Dokumentasi saja.
+
+
+
 ## BAGIAN D — Frontend: ✅ BERSIH
 
 ```
