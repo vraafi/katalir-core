@@ -350,3 +350,136 @@ memaksacredential lama dimatikan hari ini.
 2. **Tes pooler bukan bukti rotasi DB.** Bisa jadi reset-nya tidak tersimpan,
    bisa jadi cache. Butuh konfirmasi dari Dashboard.
 
+
+---
+
+## SECTION 6 — Railway API 2026: hasil diagnosa sebenarnya
+
+### 6.1 Tiga kesalahan diagnosa sebelumnya
+
+| Kesalahan | Gejala yang dilihat | Kenyataan |
+|---|---|---|
+| Query `me { account { … } }` | `HTTP 200` + `Not Authorized` → disimpulkan "token expired" | `User.account` **dihapus** di 2026, diganti `User.workspaces`. Tokennya sehat. |
+| `RAILWAY_API_TOKEN` dicoba sebagai account token | `Not Authorized` | Itu **project token**. Hanya boleh query `projects` miliknya sendiri. |
+| Header `Project-Access-Token` | dicoba desperate | Tidak pernah ada di Railway API. Semua token pakai `Authorization: Bearer`. |
+
+Sumber: `railway.com/auth.md` + introspeksi skema langsung terhadap endpoint
+`https://backboard.railway.com/graphql/v2`.
+
+> `railway.com/auth.md`: "`me` resolves only for account tokens — it is scoped
+> to a personal account."
+
+### 6.2 Cara membuktikan token hidup vs mati
+
+Query introspeksi adalah pembuktian paling bersih:
+
+- Token **mati/ber-scope sempit** → `HTTP 200` + `errors: Not Authorized`
+- Token **hidup** → `HTTP 400` + `GRAPHQL_VALIDATION_FAILED`
+
+Cara cepat: `python scripts/security/railway_introspect.py Environment Project`
+
+### 6.3 Bentuk skema yang berubah (2026-09-30)
+
+| Kebutuhan | Bentuk benar |
+|---|---|
+| Daftar project | `projects { edges { node { id name } } }` |
+| Ambil project | `project(id: "<uuid>")` |
+| Daftar service | `Project.services` (bukan `Environment.services`) |
+| Daftar deployment | `Environment.deployments` |
+| Log | `buildLogs(deploymentId, limit)` / `deploymentLogs(…)` → `[{ message timestamp severity }]` |
+| Event | `deploymentEvents(id)` → connection `edges { node }` |
+| Ubah env var | `mutation { variableUpsert(input: {…}) }` |
+
+Dua jebakan tambahan yang memakan waktu:
+
+1. **Urutan deployment.** `deployments(first: N)` = N **terbaru**;
+   `last: N` justru N **tertua** di endpoint ini.
+2. **Object input GraphQL bukan JSON.** `json.dumps` menghasilkan
+   `{"projectId": "…"}`; GraphQL menuntut `{projectId: "…"}` →
+   `Syntax Error: Expected Name, found String`.
+
+### 6.4 Root cause produksi mati (SEMUA TERJADWI)
+
+Dua sebab berurutan, keduanya ketahuan lewat log:
+
+**(1) Build gagal — konflik dependency, 25 Sep 2026**
+
+```
+ERROR: Cannot install … and pydantic==2.10.4 because these package versions
+       have conflicting dependencies.
+    The user requested pydantic==2.10.4
+    google-genai 1.65.0 depends on pydantic<3.0.0 and >=2.9.0
+    mcp 1.26.0 depends on pydantic<3.0.0 and >=2.11.0
+Build Failed: … pip install -r requirements.txt … exit code: 1
+```
+
+Perbaikannya sudah ada di repo (`mcp==1.28.1` + `pydantic==2.11.4`), tapi
+**tidak pernah ter-deploy**: tidak ada deployment baru sama sekali sejak
+25 Sep. Verifikasi lokal `pip install --dry-run` → `EXIT=0`, jadi fix-nya
+memang benar.
+
+**(2) Container crash — `ALLOWED_HOSTS` belum di-set**
+
+Setelah build berhasil, aplikasi crash saat import:
+
+```
+File "/app/api_server.py", line 117, in <module>
+    raise RuntimeError(
+RuntimeError: ALLOWED_HOSTS wajib diisi. JANGAN fallback ke '*' - itu
+membatalkan mitigasi CVE-2026-48710.
+```
+
+Fail-secure yang kita tulis sendiri adalah penyebabnya — hardening CVE
+menuntut env var yang belum pernah diisi di Railway. Railway crash-loop →
+HTTP 502.
+
+**Fix:** `variableUpsert` `ALLOWED_HOSTS=web-production-dc90b.up.railway.app`
+(tidak ada custom domain; `domains` mengembalikan `[]`).
+
+### 6.5 Bukti pemulihan
+
+```
+deploy bf0efe41  SUCCESS  2026-09-30T18:34:42Z  (commit 5a4c6f9)
+/health          HTTP 200  {"status":"ok","persistence":{"status":"persisted",
+                            "backend":"supabase",
+                            "url":"https://qmukkphwaajzbqjrcvaz.supabase.co"}}
+/docs            HTTP 200
+/openapi.json    HTTP 200
+/workflows       HTTP 401  {"detail":"Token wajib (Authorization: Bearer <jwt>)."}
+frontend         https://katalir.de5.net → HTTP 200
+```
+
+`/workflows` 401 adalah **perilaku benar** (auth ditegakkan), bukan crash.
+
+### 6.6 Skrip yang dipakai
+
+| Skrip | Fungsi |
+|---|---|
+| `scripts/security/railway_deploy_status.py` | status deploy + pembuktian autentikasi token |
+| `scripts/security/railway_deploy.py` | picet deploy dari commit terbaru + polling |
+| `scripts/security/railway_logs.py` | tarik `buildLogs` / `deploymentLogs` / `diagnosis` |
+| `scripts/security/railway_vars.py` | baca & ubah environment variable |
+| `scripts/security/railway_introspect.py` | introspeksi skema (Query/Mutation/tipe/argumen) |
+| `scripts/security/check_prod.py` | probe endpoint produksi |
+| `scripts/security/find_katalir_env.py` | cari `.env` mana pun yang memuat ref Katalir |
+
+### 6.7 Yang MASIH terblokir
+
+Migrasi `sb_secret_` **belum bisa dilakukan**. Setelah pencarian menyeluruh:
+
+- 44 file `.env*` di disk diperiksa, 9 memuat ref Katalir
+  (`qmukkphwaajzbqjrcvaz`).
+- Salinan terbaru: `C:\Users\user\minimax_agent_otonom\.env` (mtime
+  2026-09-30 21:38) — punya `sb_publishable_` ✅, tetapi
+  `SUPABASE_SERVICE_ROLE_KEY` masih **legacy JWT** (219 char), bukan
+  `sb_secret_`.
+- `sb_secret_` **tidak ada di mana pun** yang bisa diakses.
+- `RAILWAY_TOKEN` (account token) tidak bisa dipakai: lolos introspeksi tapi
+  semua query data ditolak → kemungkinan sudah dicabut. Yang bekerja hanya
+  `RAILWAY_API_TOKEN` (project token).
+
+Untuk menyelesaikan migrasi diperlukan **satu tindakan manual**: ambil
+`sb_secret_` dari Dashboard Supabase → Project Settings → API Keys, lalu
+`python scripts/security/railway_vars.py --set SUPABASE_SERVICE_ROLE_KEY <nilai>`
+lalu deploy ulang.
+
