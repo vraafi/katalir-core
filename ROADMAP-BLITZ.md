@@ -45,6 +45,13 @@ call-verified** (227 from the catalogue + Groq + Gemini), up from 28. The gap is
 still a *verification* problem, not a sourcing problem: 23.474 unique integrations
 are in the catalogue, and only the ones with a working no-auth endpoint can be
 call-verified without a user's credential.
+## 🔴 P0 #1 POST-LAUNCH — Upgrade Starlette 0.41.3 + FastAPI 0.115.6
+
+> Dipromosikan ke **P0 #1** setelah `pip-audit -r requirements.txt` membuktikan
+> bahwa produksi menjalankan **starlette 0.41.3** — bukan 0.52.1 seperti venv
+> lokal — dengan 12 advisory termasuk BadHost.
+> Rincian: `docs/security/audit-report.md` §E.4.
+
 ## 🔴 P0 POST-LAUNCH — Upgrade FastAPI + Starlette (DEFERRED, sudah diinvestigasi)
 
 **Status:** DEFERRED ke post-launch. **Sudah dimitigasi** lewat
@@ -69,6 +76,34 @@ call-verified without a user's credential.
 
 **Yang TIDAK boleh dilupakan saat upgrade:** `ALLOWED_HOSTS` harus tetap
 diisi di Railway, kalau tidak backend gagal start (fail-secure by design).
+
+---
+
+## 🟠 P1 POST-LAUNCH — Sisa advisory dependency
+
+Hasil `pip-audit -r requirements.txt` (110 advisory) + `npm audit`
+(6 HIGH). Triage: `docs/security/pip-triage.json`.
+
+| Prioritas | Item | Jumlah | Alasan ditunda |
+|---|---|---|---|
+| P1 | `pillow` 11.3.0 → 12.x | 18 advisory | **major** |
+| P1 | `litellm` 1.65.1 → 1.84 | 17 + 7 tanpa fix | major churn; 7 advisory **tanpa versi patched** |
+| P1 | `langchain-core` 0.3.49 → 0.3.85 | 10 advisory | naik ke 0.3.85 **merusak** 4 paket `langchain-*` (butuh core ≥1.3.2) — sudah dicoba & di-revert |
+| P1 | `streamlit` 1.41.1 → 1.54 | 4 advisory | major churn |
+| P1 | `pytest` 8.3.3 → 9.0.3 | 1 advisory | **major** |
+| P1 | `langchain-openai` 0.3.7 → 1.1.14 | 1 advisory | **major** |
+| P1 | npm `postcss` → Next 16.3.7 | 1 HIGH | **major**, berisiko merusak build |
+| — | npm `wrangler`/`miniflare`/`sharp`/`undici`/`brace-expansion` | 5 HIGH | rantai tool deploy, tidak masuk production bundle |
+
+**Sudah di-fix (minor, aman):** `python-dotenv` 1.0.1→1.2.2, `mcp` 1.26.0→1.28.1
+— keduanya lolos gate `pytest` 344/344.
+
+> ⚠️ **Venv lokal tidak sinkron dengan `requirements.txt`** (10 paket menyimpang,
+> termasuk `fastapi` 0.128.8 vs pin 0.115.6). Karena itu upgrade dependency
+> **tidak boleh** diverifikasi di venv lokal — harus di container/venv bersih
+> yang dibangun dari `requirements.txt`. Ini sebabnya upgrade
+> `langchain-core` terlihat "aman" di sini tapi justru merusak.
+
 
 
 

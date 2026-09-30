@@ -379,6 +379,62 @@ Next.js. **Tidak ada** rewrite git history. **Tidak ada** push.
 3. 🟠 **110 advisory pip** — perlu remediation terpisah dengan ruang uji.
 4. 🟠 **Upgrade FastAPI/Starlette** — P0 post-launch (`ROADMAP-BLITZ.md`).
 
+> ⚠️ **STATUS PER 2026-09-30 (setelah R-1 fix + Fase F Tahap 1):**
+> R-1 ✅ **FIXED** (§B.7), `VPS_PASSWORD` ✅ **ROTATED**,
+> 2 advisory pip minor ✅ **FIXED**. Yang tersisa hanya
+> `SUPABASE_DB_PASSWORD` (user action) + pekerjaan post-launch.
+> Ringkasan lengkap: §F.
+
+---
+
+## BAGIAN F — KESIMPULAN AKHIR (2026-09-30)
+
+| Temuan | Severity | Status | Bukti |
+|---|---|---|---|
+| R-1 — 3 policy RLS full-CRUD untuk `anon` | 🔴 CRITICAL | ✅ **FIXED** | §B.7 — 85→0 baris, service_role OK, 344/344 |
+| C-1 — CVE-2026-48710 Starlette BadHost | 🔴 HIGH | ✅ **MITIGATED** | PoC 200 → 400 |
+| S-1 — `VPS_PASSWORD` bocor di git history | 🔴 P0 | ✅ **ROTATED** | `rotate_vps_password.py`, lama FAIL / baru PASS ×2 |
+| D-1 — 2 advisory pip minor | 🟠 HIGH | ✅ **FIXED** | `python-dotenv` 1.2.2, `mcp` 1.28.1, 344/344 |
+| S-2 — `SUPABASE_DB_PASSWORD` bocor | 🔴 P0 | ⚠️ **PENDING (user)** | butuh Supabase Dashboard |
+| S-3 — `SUPABASE_SERVICE_ROLE_KEY` | 🔴 P0 | ⏳ **PENDING** | Fase F lanjutan |
+| S-4 — `VAULT_SECRET_KEY` | 🔴 P0 | ⏳ **PENDING** | butuh re-encrypt Vault |
+| D-2 — 108 advisory pip sisanya | 🟠 HIGH | ⚠️ **ACCEPTED** | major upgrade — `ROADMAP-BLITZ.md` P1 |
+| N-1 — npm `postcss` → Next 16 | 🟠 HIGH | ⚠️ **ACCEPTED** | major, di luar cakupan |
+| C-2 — Starlette produksi 0.41.3 | 🟠 MEDIUM | 📋 **P0 #1 post-launch** | `ROADMAP-BLITZ.md` |
+| H-1 — CSP `report-only` | 🟡 MEDIUM | ⚠️ **ACCEPTED** | temuan M-1 audit 2026-09 |
+
+### Rotasi credential
+
+```
+VPS_PASSWORD              ROTATED 2026-09-30   lama=FAIL  baru=PASS (2x verifikasi)
+SUPABASE_DB_PASSWORD      PENDING               butuh Supabase Dashboard (USER ACTION)
+SUPABASE_SERVICE_ROLE_KEY PENDING               Fase F lanjutan
+VAULT_SECRET_KEY          PENDING               butuh re-encrypt Vault
+```
+
+### Dua pelajaran dari sesi ini
+
+1. **Gate E2E menangkap regresi yang tak terlihat di `pip check`.** Upgrade
+   `langchain-core` 0.3.49→0.3.85 terlihat "PATCH" (aman) tapi menarik
+   `langchain-openai` ke 1.6.1 yang butuh core ≥1.6.2 →
+   `ImportError: ContextOverflowError` → 3 test gagal. Sudah di-revert ke 0.3.7.
+
+2. **Venv lokal bukan tempat memvalidasi upgrade dependency.** 10 paket
+   menyimpang dari `requirements.txt` (termasuk `fastapi` 0.128.8 vs pin
+   0.115.6). Upgrade hanya boleh diverifikasi di container/venv bersih yang
+   dibangun dari `requirements.txt`.
+
+### Kenapa tidak ada policy pengganti untuk 2 tabel
+
+Setelah drop, `execution_logs` dan `executions` **tidak punya policy sama
+sekali** — jadi tidak bisa ditulis oleh user mana pun (bukan hanya anonim).
+Ini disengaja: backend menulis lewat `service_role` yang bypass RLS, dan
+`workflows` masih punya `workflows_owner_all` (uid-based) sehingga user login
+tetap bisa mengakses workflow-nya. Kalau nanti `GET /api/workflows` 500 untuk
+user login, tambahkan policy `authenticated`-scoped dengan pola
+`auth.uid() = user_id` — polanya sudah ada di `workflows_owner_all`.
+
+
 
 
 ALLOWED_HOSTS='*'  -> RuntimeError: ALLOWED_HOSTS tidak boleh berisi '*'
@@ -405,3 +461,75 @@ conftest (`ai_tools+community` = 8 failed; `community` sendiri = 10 passed).
 
 > **Kenapa belum dieksekusi:** `DROP POLICY` = perubahan schema produksi,
 > sedangkan [10] hanya mengizinkan "tambah RLS policy". Butuh approval.
+
+### B.7 R-1 FIX — SUDAH DIEKSEKUSI (2026-09-30, disetujui user)
+
+**Backup dulu** (`pg_dump` tidak tersedia → definisi diambil dari katalog lewat
+psycopg2, tanpa data): `docs/security/rls-backup-20260930-181910.sql`
+(26 baris SQL, 0 statement `INSERT`/`COPY` — diverifikasi).
+
+#### PoC BEFORE (leak terbukti ulang)
+
+```
+SET ROLE anon -> SELECT count(*)
+  execution_logs   44
+  executions       21
+  workflows        20          TOTAL 85 baris bocor
+
+REST API (anon key, sama dengan yang ada di browser bundle)
+  GET /rest/v1/execution_logs  -> HTTP 200  baris=44
+  GET /rest/v1/executions      -> HTTP 200  baris=21
+  GET /rest/v1/workflows       -> HTTP 200  baris=20
+```
+
+#### DROP (tepat 3 policy, tidak ada lain)
+
+```
+DROPPED: execution_logs.Izinkan semua akses ke execution_logs
+DROPPED: executions.Izinkan semua akses ke executions
+DROPPED: workflows.Allow public read and write
+```
+
+Skrip memverifikasi nama policy masih persis sebelum drop, jadi tidak mungkin
+men-drop policy yang berbeda.
+
+#### PoC AFTER (blocked)
+
+```
+SET ROLE anon -> SELECT count(*)
+  execution_logs   0
+  executions       0
+  workflows        0          TOTAL 0 baris
+
+REST API (anon key)
+  GET /rest/v1/execution_logs  -> HTTP 200  baris=0
+  GET /rest/v1/executions      -> HTTP 200  baris=0
+  GET /rest/v1/workflows       -> HTTP 200  baris=0
+
+rowsecurity tetap aktif:  execution_logs=True  executions=True  workflows=True
+policy tersisa workflows: workflows_owner_all  qual=(auth.uid() = user_id)   <- benar
+```
+
+`HTTP 200 + array kosong` (bukan 401) karena PostgREST mengembalikan 200 untuk
+query yang sah-nol-hasil; yang menentukan adalah **0 baris**, bukan statusnya.
+
+#### service_role tetap berfungsi (B3 gate)
+
+```
+[SVC] GET /rest/v1/execution_logs  -> HTTP 200  baris=1
+[SVC] GET /rest/v1/executions      -> HTTP 200  baris=1
+[SVC] GET /rest/v1/workflows       -> HTTP 200  baris=1
+```
+
+Backend lewat `service_role` tetap membaca normal — RLS hanya membatasi peran
+`anon`/`authenticated`, bukan service_role.
+
+#### Regresi test
+
+```
+$ python -m pytest tests -q
+344 passed in 84.73s
+```
+
+Nol regresi setelah DROP.
+
