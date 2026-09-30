@@ -16,7 +16,7 @@
 | **R-1** | `execution_logs`/`executions`/`workflows` terbaca **anonim** (85 baris) | 🔴 **CRITICAL** | **OPEN — butuh approval** |
 | C-1 | CVE-2026-48710 Starlette BadHost | 🔴 HIGH (6.5) | ✅ **MITIGATED** (PoC terbukti) |
 | C-2 | Venv lokal ≠ produksi (0.52.1 vs ~0.40–0.41) | 🟠 MEDIUM | ✅ **DOCUMENTED** |
-| S-1 | `SUPABASE_DB_PASSWORD` bocor di git history | 🔴 P0 | ⏳ **Fase F** (rotasi) |
+| S-2 | `SUPABASE_DB_PASSWORD` bocor di git history | 🔴 P0 | ⚠️ **PENDING** — rotasi tidak terbukti berlaku, lihat §B.8 |
 | N-1 | npm `postcss` → butuh **Next 16** (major) | 🟠 HIGH | ⚠️ **ACCEPTED RISK** |
 | N-2 | npm 5 HIGH lain (rantai `wrangler`) | 🟠 HIGH | 📋 deferred (tool deploy) |
 | H-1 | CSP `report-only`, belum `enforce` | 🟡 MEDIUM | ⚠️ **ACCEPTED** |
@@ -387,6 +387,90 @@ Next.js. **Tidak ada** rewrite git history. **Tidak ada** push.
 
 ---
 
+## B.8 VERIFIKASI PASCA-DROP (2026-09-30, pra-push)
+
+#### [1] Frontend — tidak ada query langsung ke 3 tabel
+
+```
+$ grep -F "from('executions')" / "from(\"executions\")"        nexus-frontend/src/**  -> 0
+$ grep -F "from('execution_logs')" / "from(\"execution_logs\")" nexus-frontend/src/**  -> 0
+$ grep -F "from('workflows')"     / "from(\"workflows\")"      nexus-frontend/src/**  -> 0
+```
+
+Production bundle (16 chunk `.js` diambil dari `https://katalir.de5.net/`,
+**bukan** `.next` lokal):
+
+```
+chunks diperiksa: 16
+query langsung ke executions/execution_logs/workflows : 0
+```
+
+Frontend tidak pernah menyentuh ketiga tabel itu langsung — semua lewat
+backend `/api/*`.
+
+#### [2] Backend — tulis lewat `service_role`
+
+| File:line | Fungsi |
+|---|---|
+| `database.py:42` | komentar: Railway pakai `SUPABASE_SERVICE_ROLE_KEY` |
+| **`database.py:46`** | `or (os.getenv("SUPABASE_SERVICE_ROLE_KEY") or "").strip()` — sumber key |
+| `database.py:166` | "Usa client de escritura si disponible (service_role bypasa RLS)" |
+| `database.py:908` | `def create_execution(...)` — writer |
+| `api_server.py:2340` | `db.create_execution(execution_id, workflow_id, flow_data)` |
+| `execution_engine.py:720, 785` | `db.create_execution(...)` |
+
+`execution_logs` diisi lewat `execution_engine` (log per node) yang juga
+pakai writer `service_role` yang sama.
+
+#### [3] Endpoint user-facing (JWT test asli, production)
+
+```
+GET /workflows  -> HTTP 200   (0 workflow milik user test)
+GET /executions -> HTTP 404   (route list tidak ada; yang ada /executions/{id})
+GET /me         -> HTTP 200
+GET /quota      -> HTTP 200
+POST /workflows -> HTTP 422   (body tidak cocok schema — BUKAN 500)
+```
+
+**Tidak ada 500.** User login tetap bisa membaca workflow-nya sendiri lewat
+`workflows_owner_all` (`auth.uid() = user_id`) yang dipertahankan.
+
+> Catatan: `POST /workflows` mengembalikan **422**, bukan 500 — itu validasi
+> body (`flow_data`), bukan masalah RLS. Tidak ada policy pengganti yang perlu
+> ditambahkan.
+
+#### [4] Koneksi DB
+
+```
+password .env (fp sha256[:12]) vs 5 backup:
+  .env (sekarang)                fp=bbccb72a1faa
+  .env.bak-pretrustedhost-…      fp=bbccb72a1faa   SAMA
+  .env.bak-20260926-150120        fp=bbccb72a1faa   SAMA
+  .env.bak-20260924-131948        fp=bbccb72a1faa   SAMA
+  .env.bak-20260924-101059        fp=bbccb72a1faa   SAMA
+  .env.bak-20260917-014828        fp=bbccb72a1faa   SAMA
+
+$ koneksi pooler memakai password dari .env
+  CONNECT = PASS   policies_total=7   (10 - 3 yang di-drop)
+```
+
+🔴 **CATATAN PENTING — rotasi `SUPABASE_DB_PASSWORD` TIDAK TERBUKTI BERLAKU.**
+Nilai di `.env` identik dengan 5 backup sejak 2026-09-17 dan **masih bisa
+menghubungkan**. Seharusnya, kalau sudah di-reset di Dashboard, password lama
+ditolak. Jadi item S-2 tetap **PENDING** — lihat §F.
+
+#### [5] Kebersihan yang akan dipush
+
+```
+$ git diff origin/main..HEAD --name-only | grep -E "\.env$|secret|token|\.pem|\.key"
+  (kosong)
+
+$ gitleaks git . --log-opts="origin/main..HEAD" --redact
+  8 commits scanned.  (tidak ada "leaks found")
+```
+
+---
+
 ## BAGIAN F — KESIMPULAN AKHIR (2026-09-30)
 
 | Temuan | Severity | Status | Bukti |
@@ -395,7 +479,7 @@ Next.js. **Tidak ada** rewrite git history. **Tidak ada** push.
 | C-1 — CVE-2026-48710 Starlette BadHost | 🔴 HIGH | ✅ **MITIGATED** | PoC 200 → 400 |
 | S-1 — `VPS_PASSWORD` bocor di git history | 🔴 P0 | ✅ **ROTATED** | `rotate_vps_password.py`, lama FAIL / baru PASS ×2 |
 | D-1 — 2 advisory pip minor | 🟠 HIGH | ✅ **FIXED** | `python-dotenv` 1.2.2, `mcp` 1.28.1, 344/344 |
-| S-2 — `SUPABASE_DB_PASSWORD` bocor | 🔴 P0 | ⚠️ **PENDING (user)** | butuh Supabase Dashboard |
+| S-2 — `SUPABASE_DB_PASSWORD` bocor | 🔴 P0 | ⚠️ **PENDING — rotasi tidak terbukti berlaku (§B.8)** | nilai `.env` identik dgn backup 09-17 & masih konek |
 | S-3 — `SUPABASE_SERVICE_ROLE_KEY` | 🔴 P0 | ⏳ **PENDING** | Fase F lanjutan |
 | S-4 — `VAULT_SECRET_KEY` | 🔴 P0 | ⏳ **PENDING** | butuh re-encrypt Vault |
 | D-2 — 108 advisory pip sisanya | 🟠 HIGH | ⚠️ **ACCEPTED** | major upgrade — `ROADMAP-BLITZ.md` P1 |
@@ -407,7 +491,7 @@ Next.js. **Tidak ada** rewrite git history. **Tidak ada** push.
 
 ```
 VPS_PASSWORD              ROTATED 2026-09-30   lama=FAIL  baru=PASS (2x verifikasi)
-SUPABASE_DB_PASSWORD      PENDING               butuh Supabase Dashboard (USER ACTION)
+SUPABASE_DB_PASSWORD      PENDING (rotasi TAKAH berlaku - lihat B.8)
 SUPABASE_SERVICE_ROLE_KEY PENDING               Fase F lanjutan
 VAULT_SECRET_KEY          PENDING               butuh re-encrypt Vault
 ```
