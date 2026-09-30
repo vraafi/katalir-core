@@ -475,6 +475,84 @@ $ gitleaks git . --log-opts="origin/main..HEAD" --redact
 
 ## BAGIAN F — KESIMPULAN AKHIR (2026-09-30)
 
+
+#### [6] PUSH — 10 commit ke `origin/main`, terverifikasi via remote ref
+
+```
+$ git push origin main
+$ git fetch origin main
+LOCAL_HEAD  = aef20843c99dfea4d6620d18c69db66f853e2fcb
+ORIGIN_HEAD = aef20843c99dfea4d6620d18c69db66f853e2fcb
+IDENTIK     = True      unpushed = 0
+
+$ GET https://api.github.com/repos/vraafi/katalir-core/commits/main
+  sha     = aef20843c99dfea4d6620d18c69db66f853e2fcb
+  message = docs(security): mark S-2/S-3 PENDING - rotasi DB + service_role tidak terbukti berlaku
+```
+
+Verifikasi memakai **remote ref + GitHub API**, bukan exit code `git push`.
+
+Isi 10 commit: hanya `docs/security/*`, `scripts/security/*`,
+`tests/conftest.py`, `api_server.py`, `requirements.txt`, `.env.example`,
+`ROADMAP-BLITZ.md`. **Tidak ada** `.env`, `.env.bak-*`, atau credential.
+7 file `M` milik user (`docs/marketing/screenshots/*`,
+`nexus-frontend/public/_headers`, `scripts/gamedev/verify_gate.py`,
+`tests/test_key_in_header_not_url.py`) **tidak ikut** ter-commit.
+
+#### [7] Produksi setelah push
+
+```
+GET https://katalir.de5.net/                              -> HTTP 200
+GET https://web-production-dc90b.up.railway.app/health     -> HTTP 200
+```
+
+`RAILWAY_REDEPLOY` = **UNVERIFIED**. Query Backboard GraphQL API membalas
+**HTTP 403** — token di `.env.bak-20260926-150120` sudah tidak sah, dan
+`.env` tidak ada untuk mengambil token yang valid. Ke-200-an `health` di atas
+menunjukkan service hidup, tapi **status deployment record tidak bisa
+dibuktikan** tanpa token. Tidak diklaim SUCCESS.
+
+#### [8] 🔴 TEMUAN BARU — `.env` HILANG dari working tree
+
+```
+C:\Users\user\Proyek_AI\.env   (tidak ada)
+C:\Users\user\.env             size=148  first4=255,254,81,0   <-- UTF-16 LE
+```
+
+Dampaknya **test suite tidak bisa jalan sama sekali**:
+
+```
+$ python -m pytest tests -q
+tests/test_ai_tools.py:15 -> scripts/ai_tools_mcp.py:20
+    load_dotenv(override=True)
+  -> UnicodeDecodeError: 'utf-8' codec can't decode ...
+20 errors during collection
+```
+
+**Akar masalah (satu kalimat):** `scripts/ai_tools_mcp.py:20` memanggil
+`load_dotenv(override=True)` **tanpa argumen path**. `python-dotenv` mencari
+`.env` mulai dari folder skrip dan **naik ke folder induk**. Karena
+`Proyek_AI/.env` dihapus, ia menemukan `C:\Users\user\.env` — file UTF-16
+yang sama sekali tidak terkait dengan Katalir — dan crash saat membacanya.
+
+Dua pelajaran:
+
+1. `load_dotenv()` tanpa path eksplisit **berbahaya**: ia bisa diam-diam
+   membaca file milik program lain. Seharusnya
+   `load_dotenv(ROOT / ".env", override=True)`.
+2. Ini adalah Operational Risk yang nyata, bukan hanya theoretis. Layer ini
+   sudah saya dokumentasikan di §C.5 sebagai root cause test pollution
+   `ALLOWED_HOSTS`, tapi dampaknya ternyata jauh lebih luas: menghapus satu
+   file membuat seluruh suite mati.
+
+**Tindakan:** `.env` perlu dipulihkan (saya tidak menjalankannya karena
+`.env` ada di daftar "JANGANG sentuh"). **Jangan** dipulihkan apa adanya dari
+backup lama tanpa peninjauan ulang — isinya memuat `SUPABASE_DB_PASSWORD` dan
+`SUPABASE_SERVICE_ROLE_KEY` versi lama yang rotasinya memang belum berhasil
+(§F), jadi memulihkannya akan menghidupkan kembali credential yang sudah
+diketahui bocor.
+
+
 | Temuan | Severity | Status | Bukti |
 |---|---|---|---|
 | R-1 — 3 policy RLS full-CRUD untuk `anon` | 🔴 CRITICAL | ✅ **FIXED** | §B.7 — 85→0 baris, service_role OK, 344/344 |
