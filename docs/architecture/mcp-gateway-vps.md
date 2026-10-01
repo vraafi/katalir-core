@@ -18,53 +18,65 @@
 MCP Gateway health uses a raw initialize probe with a five-second timeout. Production API routes require Supabase JWT. Never print or commit JWTs, VPS passwords, tunnel tokens, or Slack/Google credentials.
 
 
-### OPEN RISK (2026-10-01): tunnel path still anonymous
+### CLOSED (2026-10-01): native apiKey auth, no Cloudflare
 
-- **Direct-IP vector: FIXED.** `agentgateway` bound `*:3001`, so the RackNerd IP was a second,
-  tunnel-free exposure. Closed with ufw (`deny 3001/tcp`, `allow from 127.0.0.1`, SSH allowed first):
-  ```
-  2.4a DIRECT-IP TCP 3001 -> BLOCKED TimeoutError after 12.0s
-  2.4a DIRECT-IP HTTP    -> REFUSED/BLOCKED ConnectTimeout
-  loopback initialize    -> HTTP=200        (tunnel path intact)
-  cloudflared/agentgateway -> active/active
-  ```
-- **Tunnel path: STILL OPEN** — needs Cloudflare Access (below). Cannot be fixed with a valid
-  CF token alone, because Access is not enabled on the account:
-  ```
-  POST /accounts/{id}/access/service_tokens -> HTTP 403
-  code 9999: "access.api.error.not_enabled: Access is not enabled."
-  ```
+Cloudflare Zero Trust Access requires a payment method, so it is not an available path. The
+gateway is instead protected by **agentgateway's own `mcp.policies.apiKey`** (mode `strict`).
 
-### Cloudflare token: valid, but Access is not enabled
-
-`/user/tokens/verify` returns 401 for account-scoped tokens and is NOT a valid validity test.
-The account-scoped endpoint is authoritative:
+```yaml
+mcp:
+  policies:
+    apiKey:
+      mode: strict
+      keys:
+        - key: "${KATALIR_GATEWAY_API_KEY}"
+          metadata: { user: katalir-client, role: admin }
+  port: 3001
+  targets: [ ...existing 6 targets preserved... ]
 ```
-GET /client/v4/user/tokens/verify              -> 401 code 1000 (user-scoped; misleading)
-GET /client/v4/accounts/{id}/tokens/verify     -> 200 "This API Token is valid and active"
+
+Gotchas learned the hard way (both caused a production outage on first attempt):
+1. The field is **`key:`**, not `value:` — the schema type is the untagged enum `LocalAPIKey`.
+   `value:` / `secret:` / `string:` / bare-string all fail validation.
+2. For **MCP server mode** the policy belongs under `mcp.policies.apiKey`. Putting it under
+   `binds[].listeners[].routes[].policies` is the LLM/HTTP gateway path, and mixing both on
+   port 3001 errors with "configured by both binds[0] and mcp".
+3. `EnvironmentFile=` **must sit inside `[Service]`**. Appending it to the end of the unit file
+   lands it after `[Install]`, where systemd silently ignores it — the service then crash-loops
+   with `environment variable not found`.
+
+Verified from outside the VPS:
 ```
-`/user/tokens/permission_groups` is also user-level and 403s ("Valid user-level authentication not
-found") for a valid account token — do not read that as a scope verdict. Test scope by attempting
-the real operation.
-
-### Hardening (in order)
-
-1. **Enable Access once**: Cloudflare Zero Trust dashboard -> "Enable Access" (or API
-   `POST /accounts/{id}/access/apps`). This is a one-time account toggle and is the current blocker.
-2. Access -> Applications -> `gateway.katalir.de5.net/*`, policy = Service Auth; create a Service Token.
-3. Configure Railway + local env so the backend still reaches the gateway:
-   `AGENTGATEWAY_TOKEN`, `CF_ACCESS_CLIENT_ID`, `CF_ACCESS_CLIENT_SECRET`.
-   `mcp_gateway/client.py` sends these as headers only, never in the URL.
-4. Client fails closed: `GatewayClient` raises unless a credential exists
-   (`MCP_GATEWAY_ALLOW_ANON=1` is a local-debug-only opt-out).
-5. Verify both: naked request -> 401/403, authenticated via client -> 200 + tools/list.
-6. Keep the admin UI `:15000` out of the tunnel ingress (already loopback-bound).
-
-### Firewall rollback
+3a NAKED initialize    -> HTTP 401
+3c WITH-KEY initialize -> HTTP 200
+   real MCP SDK: tools/list = 44 tools; call_tool reached the time server
 ```
-ufw disable                       # emergency
-ufw --force disable && ufw enable # keep SSH rule, drop the rest
-# config backup: /tmp/config-backup.yaml
+Key storage: `/etc/agentgateway/.env` mode 0600, referenced via `EnvironmentFile`. It is never
+printed, never committed, and never placed in a URL. `mcp_gateway/client.py` reads
+`AGENTGATEWAY_TOKEN` or `GATEWAY_API_KEY`, sends `Authorization: Bearer` + `x-api-key`, and
+raises unless a credential exists (`MCP_GATEWAY_ALLOW_ANON=1` is a local-debug-only opt-out).
+
+### Direct-IP vector: also fixed
+
+agentgateway bound `*:3001`, so the RackNerd IP was a second, tunnel-free exposure. Closed with
+ufw (`allow 22/tcp` first, then `deny 3001/tcp`, then `enable`):
+```
+2.4a DIRECT-IP TCP 3001 -> BLOCKED TimeoutError
+2.4a DIRECT-IP HTTP     -> REFUSED/BLOCKED ConnectTimeout
+loopback initialize     -> HTTP=200      (tunnel path intact)
+```
+
+### Cloudflare token notes (for future work)
+
+`/user/tokens/verify` returns 401 for account-scoped tokens and is NOT a validity test. Use
+`/accounts/{id}/tokens/verify`. Likewise `/user/tokens/permission_groups` is user-level and 403s
+for a valid account token — never read that as a scope verdict; attempt the real operation instead.
+
+### Rollback
+```
+cp /tmp/config-good.bak /opt/agentgateway/config.yaml && systemctl restart agentgateway
+cp /tmp/unit-good.bak /etc/systemd/system/agentgateway.service && systemctl daemon-reload
+ufw disable
 ```
 
 ## Known tenant boundary

@@ -5,7 +5,7 @@ import pytest
 @pytest.fixture(autouse=True)
 def _clear_auth(monkeypatch):
     """Setiap test mulai dari kondisi 'tanpa kredensial'."""
-    for env in ("AGENTGATEWAY_TOKEN", "CF_ACCESS_CLIENT_ID", "CF_ACCESS_CLIENT_SECRET", "MCP_GATEWAY_ALLOW_ANON"):
+    for env in ("AGENTGATEWAY_TOKEN", "GATEWAY_API_KEY", "CF_ACCESS_CLIENT_ID", "CF_ACCESS_CLIENT_SECRET", "MCP_GATEWAY_ALLOW_ANON"):
         monkeypatch.delenv(env, raising=False)
 
 
@@ -43,3 +43,21 @@ def test_cloudflare_access_header_terkirim(monkeypatch):
     assert h["Authorization"] == "Bearer tok"
     assert h["CF-Access-Client-Id"] == "cid"
     assert h["CF-Access-Client-Secret"] == "csecret"
+
+
+def test_gateway_api_key_alias_juga_dipakai(monkeypatch):
+    """Env name GATEWAY_API_KEY (dipakai di Railway) harus sama-sama honoured."""
+    from mcp_gateway.client import _headers
+    monkeypatch.setenv("GATEWAY_API_KEY", "alias-key")
+    h = _headers()
+    assert h["Authorization"] == "Bearer alias-key"
+    assert h["x-api-key"] == "alias-key"
+    assert "alias-key" not in GatewayClient(url="https://gateway.example.com").mcp_url
+
+
+def test_token_tidak_pernah_di_query_string(monkeypatch):
+    """Key tidak boleh bocor ke URL (masuk log proxy / access log)."""
+    monkeypatch.setenv("AGENTGATEWAY_TOKEN", "leakme")
+    c = GatewayClient(url="https://gateway.example.com")
+    assert "leakme" not in c.mcp_url
+    assert "?" not in c.mcp_url

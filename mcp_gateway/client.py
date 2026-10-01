@@ -13,11 +13,19 @@ from mcp.client.streamable_http import streamablehttp_client
 TOKEN_ENV = "AGENTGATEWAY_TOKEN"
 
 def _headers() -> dict[str, str]:
-    """Auth + Cloudflare Access headers for the gateway tunnel."""
+    """Auth headers for the agentgateway native apiKey policy.
+
+    The gateway enforces `mcp.policies.apiKey` with mode `strict`, so an
+    unauthenticated request gets 401. The key is accepted either as
+    `Authorization: Bearer <key>` or `x-api-key: <key>`; we send the bearer form
+    plus the x-api-key header for compatibility. Values are sent as headers only,
+    never embedded in the URL, so they cannot leak into logs.
+    """
     h: dict[str, str] = {}
-    token = (os.getenv(TOKEN_ENV) or "").strip()
-    if token:
-        h["Authorization"] = f"Bearer {token}"
+    key = (os.getenv(TOKEN_ENV) or os.getenv("GATEWAY_API_KEY") or "").strip()
+    if key:
+        h["Authorization"] = f"Bearer {key}"
+        h["x-api-key"] = key
     for env, header in (
         ("CF_ACCESS_CLIENT_ID", "CF-Access-Client-Id"),
         ("CF_ACCESS_CLIENT_SECRET", "CF-Access-Client-Secret"),
@@ -28,7 +36,8 @@ def _headers() -> dict[str, str]:
     return h
 
 def auth_configured() -> bool:
-    return bool(_headers())
+    return bool((os.getenv(TOKEN_ENV) or os.getenv("GATEWAY_API_KEY") or "").strip()
+                or (os.getenv("CF_ACCESS_CLIENT_SECRET") or "").strip())
 
 class GatewayClient:
     def __init__(self, url: str | None = None):
