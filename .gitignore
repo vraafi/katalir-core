@@ -12,6 +12,8 @@ token.json
 .autonomous_jwt
 .autonomous_user_id
 .cf_service_token_id
+# Live gateway apiKey fetched from the VPS (scripts/vps_auth_probe.py).
+.gateway_api_key
 
 # ===== E2E test artifacts (berisi token sesi — JANGAN push) =====
 # Globs, bukan nama pasti: `_e2e_session.extended.json` (varian dengan `exp`
