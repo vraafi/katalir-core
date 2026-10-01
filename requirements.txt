@@ -21,10 +21,23 @@ mcp==1.28.1
 ddgs==9.0.1
 
 # Models & validasi
-pydantic==2.11.4
+# 2026-10-01: naikkan 2.11.4 -> 2.12.5. Dipaksa oleh `realtime==2.31.0`
+# (ikut supabase 2.31.0) yang mensyaratkan pydantic>=2.11.7. Tanpa ini
+# `pip install -r requirements.txt` = ResolutionImpossible dan build produksi
+# gagal. 2.12.5 satisfies semua: google-genai >=2.9.0, mcp >=2.11.0,
+# postgrest >=1.9, realtime >=2.11.7 - dan sudah dipakai lokal + lolos 353 test.
+pydantic==2.12.5
 
 # BaaS - Supabase (Auth + Postgres DB untuk akun/langganan/chat)
-supabase==2.15.0
+# WAJIB >= 2.31.0 (2026-10-01): versi 2.15.0 yang dipin sebelumnya TIDAK
+# mengenal format key baru `sb_secret_`. Akibatnya SETIAP operasi DB yang
+# memakai write client gagal dengan:
+#     SupabaseException: Invalid API key
+# Gejalanya nyata: /quota -> 503, /workflows -> 500, padahal /me, /sessions,
+# /preferences tetap 200 (jalur yang tidak menyentuh write client).
+# Bukti: venv terisolasi supabase==2.15.0 -> sb_secret_ GAGAL,
+# legacy service_role OK; supabase==2.31.0 -> keduanya OK.
+supabase==2.31.0
 
 # E2E Browser Testing (Playwright via Pytest)
 pytest-playwright==0.5.2
