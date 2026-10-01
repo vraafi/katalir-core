@@ -5,6 +5,22 @@ export const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000
 /** Timeout default untuk semua request (ms). Chat Gemini lambat -> 90s. */
 export const FETCH_TIMEOUT_MS = 90_000;
 
+/** Timeout KHUSUS endpoint `/chat` (ms).
+ *
+ *  Kenapa lebih besar dari default: `apiFetch` memulai ulang timer AbortController
+ *  untuk SETIAP fetch, jadi 90s di sini bukan batas total — batasnya per percobaan.
+ *  Yang terjadi tanpa nilai ini: satu percobaan yang macet (gateway lambat, atau
+ *  panggilan Supabase yang tidak dijawab) sudah melewati 90s, sehingga abort
+ *  menyala dan user melihat "Server lambat, coba lagi." padahal backend masih
+ *  bekerja dan jawabannya hampir jadi.
+ *
+ *  BUDGET TIMER INI: satu fetch. Retry loop di `useChat` (3 percobaan +
+ *  backoff 2s/5s) punya plafon sendiri, jadi total teratas adalah
+ *  3 x budget_backend + 7s dan harus tetap DI BAWAH nilai ini agar tidak ada
+ *  fetch yang terbunuh di tengah jalan oleh abort.
+ */
+export const CHAT_TIMEOUT_MS = 150_000;
+
 export function sleep(ms: number) {
   return new Promise((r) => setTimeout(r, ms));
 }

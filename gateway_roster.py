@@ -369,7 +369,15 @@ def _probe_one(client: httpx.Client, url: str, key: str, cand: dict,
     if not rec["routed"]:
         rec["error"] = "header X-Routed-Via tidak ada"
         return rec
-    rprov, _, rmodel = rec["routed"].partition("/")
+    rprov, _, _rpath = rec["routed"].partition("/")
+    # BUG FIX 2026-10-01: `X-Routed-Via` bisa BerNAMA BERLAPIS, misalnya
+    # "nvidia/google/gemma-4-31b-it" (provider = nvidia, upstream = google).
+    # `partition("/")` memecah HANYA di slash pertama, jadi `rmodel` berisi
+    # "google/gemma-4-31b-it" dan tidak pernah sama dengan mid
+    # "gemma-4-31b-it". Akibatnya model yang BENAR-BENAR hidup ditolak sebagai
+    # "disubstitusi", roster jadi kosong, dan UI jatuh ke GEMINI_FALLBACK.
+    # Yang relevan hanya NAMA model = segmen TERAKHIR.
+    rmodel = _rpath.rsplit("/", 1)[-1]
     if rmodel != mid:
         rec["error"] = f"disubstitusi ke '{rec['routed']}'"
         return rec

@@ -2,7 +2,7 @@
 // Volgt Makerkit-pattern: staleTime 60s, query keys factory, query
 // functies gescheiden. refetchOnWindowFocus=true (chat moet fresh zijn).
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { apiFetch, classifyChatError, classifyHttpError, sleep } from "@/lib/api";
+import { CHAT_TIMEOUT_MS, apiFetch, classifyChatError, classifyHttpError, sleep } from "@/lib/api";
 import { chatKeys } from "@/lib/query-keys";
 
 /** Error khusus untuk pembatalan user (Stop button). onError membedakannya
@@ -248,7 +248,13 @@ export function useSendChatMutation() {
         if (abortSignal?.aborted) throw canceledError();
         let res: Response;
         try {
-          res = await apiFetch("/chat", { method: "POST", body, timeoutMs: 90_000, signal: abortSignal });
+          // BUG FIX 2026-10-01: fetch ini memakai CHAT_TIMEOUT_MS, bukan
+          // 90_000 global. Alasannya `apiFetch` install timer per fetch; 90s
+          // cukup untuk endpoint biasa, tapi satu percobaan /chat yang macet
+          // akan memicu abort dan user melihat "Server lambat" walaupun
+          // backend masih bekerja. Plafon retry loop sendiri =
+          // 3 x budget backend + 7s backoff, harus < CHAT_TIMEOUT_MS.
+          res = await apiFetch("/chat", { method: "POST", body, timeoutMs: CHAT_TIMEOUT_MS, signal: abortSignal });
         } catch (e) {
           if (abortSignal?.aborted) throw canceledError();
           const { message, retryable } = classifyChatError(e);
