@@ -97,3 +97,76 @@ def test_tenant_isolasi_pada_install(monkeypatch):
     _auth(monkeypatch)
     client.post("/mcp/install", json={"mcp_id": "time", "config": {"timezone": "UTC"}, "confirmed": True}, headers={"Authorization": "Bearer a"})
     assert client.get("/mcp/my-instances", headers={"Authorization": "Bearer b"}).json()["instances"] == []
+
+
+class _FakeTable:
+    def __init__(self, store):
+        self.store = store
+        self._sel = None
+
+    def select(self, *a):
+        return self
+
+    def eq(self, col, val):
+        self._sel = (col, val)
+        return self
+
+    def limit(self, n):
+        return self
+
+    def execute(self):
+        rows = [r for r in self.store if self._sel and r.get(self._sel[0]) == self._sel[1]]
+        class R:
+            data = rows
+        return R()
+
+    def insert(self, payload):
+        self.store.append(dict(payload))
+        return self
+
+    def update(self, payload):
+        for r in self.store:
+            if self._sel and r.get(self._sel[0]) == self._sel[1]:
+                r.update(payload)
+        return self
+
+
+class _FakeClient:
+    def __init__(self, store):
+        self.store = store
+
+    def table(self, name):
+        return _FakeTable(self.store)
+
+
+def test_status_needs_config_tersimpan_konsisten_di_database(monkeypatch):
+    """Regresi: payload DB pernah hardcode 'active' walau responssays needs_config.
+
+    Kalau install tanpa konfigurasi wajib disimpan sebagai 'active', user melihat
+    integrasi aktif padahal runtime-nya belum bisa jalan.
+    """
+    store: list[dict] = []
+    api_server._MCP_INSTANCES.clear()
+    monkeypatch.setattr(api_server.security, "get_current_user", lambda a: {"id": "u-db", "email": "db@example.com"})
+    monkeypatch.setattr(api_server.db, "is_configured", lambda: True)
+    monkeypatch.setattr(api_server.db, "_get_write_client", lambda: _FakeClient(store))
+    monkeypatch.setattr(api_server.db, "_now", lambda: "2026-01-01T00:00:00Z")
+
+    r = client.post("/mcp/install", json={"mcp_id": "filesystem", "config": {}, "confirmed": True}, headers={"Authorization": "Bearer a"})
+    assert r.status_code == 200
+    assert r.json()["instance"]["status"] == "needs_config"
+    assert len(store) == 1
+    assert store[0]["status"] == "needs_config", "status di DB harus sama dengan respons API"
+
+
+def test_status_active_tersimpan_konsisten_di_database(monkeypatch):
+    store: list[dict] = []
+    api_server._MCP_INSTANCES.clear()
+    monkeypatch.setattr(api_server.security, "get_current_user", lambda a: {"id": "u-db2", "email": "db2@example.com"})
+    monkeypatch.setattr(api_server.db, "is_configured", lambda: True)
+    monkeypatch.setattr(api_server.db, "_get_write_client", lambda: _FakeClient(store))
+    monkeypatch.setattr(api_server.db, "_now", lambda: "2026-01-01T00:00:00Z")
+
+    r = client.post("/mcp/install", json={"mcp_id": "time", "config": {"timezone": "UTC"}, "confirmed": True}, headers={"Authorization": "Bearer a"})
+    assert r.status_code == 200
+    assert store and store[0]["status"] == "active"

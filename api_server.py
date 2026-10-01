@@ -1464,7 +1464,7 @@ def mcp_install(req: MCPInstanceRequest, authorization: str | None = Header(None
            "missing_config": p.missing_config, "warnings": p.warnings}
     if db.is_configured():
         client = db._get_write_client()
-        payload = {"user_id": user_id, "mcp_id": row["mcp_id"], "config": req.config, "status": "active", "updated_at": db._now()}
+        payload = {"user_id": user_id, "mcp_id": row["mcp_id"], "config": req.config, "status": row["status"], "updated_at": db._now()}
         existing = client.table("user_mcp_instances").select("id").eq("user_id", user_id).eq("mcp_id", row["mcp_id"]).limit(1).execute()
         if existing.data:
             client.table("user_mcp_instances").update(payload).eq("id", existing.data[0]["id"]).execute()
