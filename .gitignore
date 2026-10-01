@@ -7,6 +7,11 @@
 client_secret_*.json
 credentials.json
 token.json
+# Autonomous test credentials (scripts/autonomous_login.py). The JWT is a REAL
+# user access token — tracked status would put a working credential in git.
+.autonomous_jwt
+.autonomous_user_id
+.cf_service_token_id
 
 # ===== E2E test artifacts (berisi token sesi — JANGAN push) =====
 # Globs, bukan nama pasti: `_e2e_session.extended.json` (varian dengan `exp`
