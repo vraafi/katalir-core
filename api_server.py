@@ -58,8 +58,17 @@ async def _lifespan(_app: "FastAPI"):
     yield
 
 
+# Swagger/OpenAPI hanya untuk development. Default `development` (bukan
+# `production`) supaya environment yang lupa set ENVIRONMENT tidak mematikan
+# dokumentasi secara diam-diam; produksi di-set eksplisit lewat Railway.
+ENVIRONMENT = os.getenv("ENVIRONMENT", "development").strip().lower()
+_IS_PROD = ENVIRONMENT in ("production", "prod")
+
 app = FastAPI(title="Nexus Agent API Gateway", version="1.0.0",
-              lifespan=_lifespan)
+              lifespan=_lifespan,
+              docs_url=None if _IS_PROD else "/docs",
+              redoc_url=None if _IS_PROD else "/redoc",
+              openapi_url=None if _IS_PROD else "/openapi.json")
 
 # CORS: izinkan frontend publik Cloudflare Pages + local dev.
 # Nota: allow_credentials=True no se puede combinar con origin "*".
