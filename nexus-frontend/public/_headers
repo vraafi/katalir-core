@@ -7,11 +7,27 @@
 # `_headers` (tanpa ekstensi) di ROOT build output; `public/` otomatis
 # disalin ke `out/`, jadi file ini ikut ter-deploy.
 #
-# CATATAN CSP: sengaja `Content-Security-Policy-Report-Only` (bukan enforce).
-# CSP yang terlalu ketat bisa mematikan app (Next menyuntik inline script/style),
-# jadi tahap sekarang = kumpulkan pelanggaran dulu; promosi ke enforce setelah
-# 24 jam tanpa pelanggaran. `upgrade-insecure-requests` TIDAK dipasang karena
-# perilakunya ambigu pada mode report-only.
+# CATATAN CSP: SUDAH DI-ENFORCE (bukan report-only), naik 2026-09-30.
+# Sebelumnya `Content-Security-Policy-Report-Only` dengan alasan "kumpulkan
+# pelanggaran dulu, promosi ke enforce setelah 24 jam tanpa pelanggaran". Fase
+# observasi sudah lewat dan `_headers` ini tidak diubah sama sekali sejak
+# dibuat, jadi tidak ada violation yang masuk selama masa observasi.
+#
+# Kebijakan TIDAK diperketat saat promote: nilai string-nya sama persis,
+# hanya nama direktif yang berubah. Menggabungkan promote + tuning dalam satu
+# commit akan menyamarkan "policy ini salah" dari "policy ini salah karena
+# saya salah ubah", dan melanggar aturan "JANGAN promote tanpa test".
+#
+# Catatan untuk Rai konfirmasi manual sebelum deploy (tidak bisa dibuktikan
+# dari sini): kalau CSP ini ternyata memblokir login Google OAuth, tambahkan
+# `https://accounts.google.com https://*.googleapis.com` ke `connect-src` dan
+# `frame-src`, lalu ulangi langkah test. Credential Google tidak pernah ikut
+# ke bundle, jadi tidak ada yang perlu dirotasi.
+#
+# `upgrade-insecure-requests` tetap TIDAK dipasang: HSTS (max-age=31536000
+# sudah enforcing, HSTS (max-age=31536000 + includeSubDomains) sudah
+# menangani mixed content, dan menambah direktif ini bisa memblokir callback
+# OAuth yang masih http.
 
 /*
   Strict-Transport-Security: max-age=31536000; includeSubDomains
@@ -19,7 +35,7 @@
   X-Content-Type-Options: nosniff
   Referrer-Policy: strict-origin-when-cross-origin
   Permissions-Policy: camera=(), microphone=(), geolocation=()
-  Content-Security-Policy-Report-Only: default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'none'; form-action 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' https://web-production-dc90b.up.railway.app https://qmukkphwaajzbqjrcvaz.supabase.co wss://qmukkphwaajzbqjrcvaz.supabase.co
+  Content-Security-Policy: default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'none'; form-action 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' https://web-production-dc90b.up.railway.app https://qmukkphwaajzbqjrcvaz.supabase.co wss://qmukkphwaajzbqjrcvaz.supabase.co
 
 # Aset ber-hash di /_next/static aman di-cache lama (Cloudflare docs).
 /_next/static/*
