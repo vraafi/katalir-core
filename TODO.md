@@ -7,6 +7,34 @@
 - Composition research: 10 komponen MCP dipilih dengan boundary adapter/license; registry metadata tidak boleh dieksekusi otomatis.
 - `.env` hygiene: bersih dan ter-audit (`node scripts/env_audit.mjs`, 92 keys, 0 parse hazard, no BOM). Non-conforming line yang tersisa sudah di-comment, bukan dihapus.
 
+## Autonomous Bug-Fix Loop (2026-10-02)
+
+Status per bug — **PASS hanya bila ada bukti before/after**.
+
+| # | Bug | Status | Bukti |
+|---|-----|--------|-------|
+| 1 | Chat retry melampaui budget transport | **FIXED (lokal)** | `useChat.ts` kasih `CHAT_TIMEOUT_MS` penuh (150s) ke SETIAP dari 3 percobaan → plafon efektif 457s, bukan 187s. Sekarang `perAttemptMs = CHAT_TIMEOUT_MS/3 - 5s` (45s). `tsc --noEmit` exit 0. **Belum diverifikasi di browser/production.** |
+| 2 | Dropdown model cuma 3 | **FIXED (lokal)** | `/models` balas 200 tapi hanya 3 (Gemini). Gateway upstream `/v1/models` serve **259** model (llama/gemma/qwen/deepseek/...). Penyebab: Gate 2 allowlist `FREE_TIER_MODEL_IDS` cuma berisi id Gemini tapi diterapkan ke semua roster. `gateway_roster._model_allowed_for_tier` kini hanya kena allowlist untuk family `google`; family non-google yang **diketahui** lolos Gate 2 (provider kosong tetap DENY). Regresi: `tests/test_model_roster_free_tier.py` (3 tes) + `test_model_allowlist.py` → 6 passed. Simulasi katalog nyata: **0/19 → 19/19** lolos allowlist, 18 setelah filter penuh (embedding tetap terbuang). **Belum deploy.** |
+| 3 | Sidebar history chat kosong | **TIDAK REPRODUSI** | Diuji langsung ke production dengan JWT user test: `GET /sessions` → 200, **3 session** (`Test round-trip otonom.`); `GET /messages/{id}` → 200, **2 pesan** (user + assistant) cocok dengan isi DB. Audit kode: `useSessionsQuery` (useChat.ts:84) memang dipakai di `ChatApp.tsx:328` dengan `activeEmail` dari `useAuth()`; `fetchSessions` bail-out hanya bila `!email`; `SessionItem` hanya butuh `id/title/created_at` — semua ada; `Shell` merender `sessions.map` di 2 cabang (desktop + drawer) tanpa guard yang menyembunyikan list. **Belum ada bukti cacat** — perlu reproduksi browser (login nyata di UI) sebelum ada yang bisa diperbaiki. |
+| 4 | Starlette CVE | **BLOCKED** | Branch `security/starlette-cve-2026-48710`; jangan merge sebelum full suite hijau. |
+| 5 | Docs endpoint terbuka | SELESAI | `/docs`, `/redoc`, `/openapi.json` production 404. |
+| 6 | Next.js CVE | SELESAI | `15.5.27`, build hijau, 0 critical. |
+| 7 | Security headers | SELESAI | CSP enforce + HSTS + X-Frame-Options + nosniff + referrer + permissions terverifikasi production. |
+
+### Known pre-existing failures (BUKAN regresi)
+Full suite: `44 failed, 428 passed` pada tree dengan patch. Subset yang sama
+gagal `12 failed, 55 passed` **tanpa** patch `gateway_roster.py` (git stash) — jadi
+sudah rusak sebelum perubahan ini, kemungkinan order/timing-dependent:
+`tests/test_self_healing.py` (18), `test_self_healing_integration.py` (9),
+`tools/picgen-mcp/*` (8), `test_browser_e2e.py` (3),
+`tests/test_provider_registry.py` (3), `test_e2e_live.py` (1),
+`tests/test_katalir_mcp_external.py` (1).
+
+> Catatan: `pytest` di background via `cmd /c "... & echo %ERRORLEVEL% > f.txt"`
+>|report `EXIT=0` yang menyesatkan — `%ERRORLEVEL%` di-expand saat parse.
+> Selalu baca baris ringkasan pytest, bukan file exit code.
+
+
 ## FASE C — MCP Gateway
 - [x] C1: Research agentgateway + registry
 - [x] C2.1-C2.15: VPS + 5/5 server + 39 tools + call
