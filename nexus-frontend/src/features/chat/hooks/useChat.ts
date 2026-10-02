@@ -244,6 +244,19 @@ export function useSendChatMutation() {
       });
       const maxAttempts = 3; // 1 + 2 retry
       const delays = [2000, 5000];
+      // BUG FIX 2026-10-02: plafon PER-COBAN, bukan plafon total.
+      //
+      // Sebelumnya setiap percobaan memakai CHAT_TIMEOUT_MS penuh (150s).
+      // Dengan maxAttempts=3 itu memberi plafon efektif 3x150s + 7s = 457s,
+      // BUKAN 187s seperti yang diklaim komentar di bawah. Satu percobaan
+      // yang macet menghabiskan seluruh anggaran sebelum retry sempat jalan.
+      //
+      // Backend punya anggaran LLM sendiri (default 45s via LLM_GATEWAY_BUDGET),
+      // jadi attempt yang masih hidup jauh di bawah 150s sudah pasti macet.
+      const perAttemptMs = Math.max(
+        30_000,
+        Math.floor(CHAT_TIMEOUT_MS / maxAttempts) - 5_000,
+      );
       for (let attempt = 0; ; attempt++) {
         if (abortSignal?.aborted) throw canceledError();
         let res: Response;
@@ -254,7 +267,7 @@ export function useSendChatMutation() {
           // akan memicu abort dan user melihat "Server lambat" walaupun
           // backend masih bekerja. Plafon retry loop sendiri =
           // 3 x budget backend + 7s backoff, harus < CHAT_TIMEOUT_MS.
-          res = await apiFetch("/chat", { method: "POST", body, timeoutMs: CHAT_TIMEOUT_MS, signal: abortSignal });
+          res = await apiFetch("/chat", { method: "POST", body, timeoutMs: perAttemptMs, signal: abortSignal });
         } catch (e) {
           if (abortSignal?.aborted) throw canceledError();
           const { message, retryable } = classifyChatError(e);
