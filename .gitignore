@@ -11,6 +11,10 @@ token.json
 # user access token — tracked status would put a working credential in git.
 .autonomous_jwt
 .autonomous_user_id
+# 2026-10-02: password user otonom yang dibuat lewat Supabase admin API saat
+# token JWT kedaluwarsa. Sama-sama credential NYATA - HARUS diabaikan, kalau
+# tidak `git add -A` akan membocorkan password yang bisa login ke akun itu.
+.autonomous_pw
 .cf_service_token_id
 # Live gateway apiKey fetched from the VPS (scripts/vps_auth_probe.py).
 .gateway_api_key
