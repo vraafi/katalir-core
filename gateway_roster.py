@@ -403,7 +403,28 @@ def _probe_one(client: httpx.Client, url: str, key: str, cand: dict,
     # "disubstitusi", roster jadi kosong, dan UI jatuh ke GEMINI_FALLBACK.
     # Yang relevan hanya NAMA model = segmen TERAKHIR.
     rmodel = _rpath.rsplit("/", 1)[-1]
-    if rmodel != mid:
+    # BUG FIX 2026-10-02: perbaikan 10-01 di atas hanya separuh masalah, dan
+    # justru MEMECAH kasus lain yang justru paling umum. Provider modern
+    # menamespace id model-nya, jadi `mid` yang benar pun mengandung "/":
+    #
+    #   mid = "z-ai/glm-5.3"     -> routed "nvidia/z-ai/glm-5.3"
+    #   mid = "qwen/qwen3.8-27b" -> routed "groq/qwen/qwen3.8-27b"
+    #
+    # Di kedua kasus `rmodel` (segmen TERAKHIR) tidak pernah sama dengan `mid`,
+    # sehingga model yang hidup ditolak sebagai "disubstitusi". Akibatnya probe
+    # menolak hampir semua model dan roster hanya berisi 1 model gateway
+    # (allam-2-7b) sehingga UI hanya menampilkan 3-4 model.
+    #
+    # Bukti (72 model hidup diuji langsung ke gateway): 19 model HTTP 200, tapi
+    # hanya 1 yang lolos perbandingan ini. 18 sisanya terbuang padahal header
+    # routed-nya BENAR.
+    #
+    # Perbaikan: terima bila SALAH SATU cocok - path LENGKAP (`_rpath`, untuk mid
+    # ber-namespace) ATAU segmen terakhir (`rmodel`, untuk mid polos seperti
+    # kasus 10-01). Keduanya menunjuk model yang sama, jadi deteksi substitusi
+    # tetap utuh: substitusi sejati mengubah segmen terakhir sehingga kedua
+    # perbandingan sama-sama gagal dan model tetap ditolak.
+    if _rpath != mid and rmodel != mid:
         rec["error"] = f"disubstitusi ke '{rec['routed']}'"
         return rec
     if not txt.strip():
