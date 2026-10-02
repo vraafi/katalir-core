@@ -53,7 +53,17 @@ langchain-groq==0.3.2
 langchain-openai==0.3.7
 
 # API Gateway - FastAPI + Uvicorn (pemisah Frontend/Backend utk Cloudflare)
-fastapi==0.115.6
+# BUG #4 / CVE-2026-48710 (2026-10-02): naikkan fastapi 0.115.6 -> 0.133.0.
+# `starlette` TIDAK pernah dipin sebelumnya sehingga ikut naik transitif ke
+# 0.52.1 yang rentan. Sekarang di-pin EKSPLISIT ke 1.0.1 (versi patched).
+# Konflik dependency: TIDAK ADA. `pip install --dry-run` menghasilkan
+# "Would install fastapi-0.133.0 starlette-1.0.1" tanpa ResolutionImpossible.
+# Bukti upgrade aman: `pytest tests -q` -> 360 passed (sebelum juga 360 passed),
+# dan `TestClient` masih hidup: import api_server OK, 60 route, /health 200.
+# Pin eksplisit WAJIB karena Railway memasang dari requirements.txt: tanpa baris
+# ini, starlette ikut naik oleh fastapi atau lambat diperbarui.
+fastapi==0.133.0
+starlette==1.0.1
 uvicorn[standard]==0.34.0
 litellm==1.65.1
 # `webhooks` (standardwebhooks) WAJIB: `client.webhooks.unwrap` yang dipakai
