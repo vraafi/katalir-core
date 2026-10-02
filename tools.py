@@ -9,6 +9,7 @@
 # Antarmuka dipakai oleh app_frontend.py / run_agent.
 # =====================================================================
 
+import json as _json
 import os
 
 from google.genai import types
@@ -282,6 +283,52 @@ def http_request(url: str, method: str = "GET", body: str = "",
 # diusulkan model, lalu mengembalikan status + pesan perbaikan yang bisa dibaca
 # model. Kalau valid, `spec` yang dipulangkan SUDAH siap dirender ke canvas.
 # ---------------------------------------------------------------------------
+def web_search(query: str, max_results: int = 5) -> str:
+    """Pencarian web nyata (DuckDuckGo) untuk dipakai agen chat.
+
+    Mengembalikan JSON string berisi daftar hasil (judul, url, cuplikan).
+    Kegagalan DIWAKANAI sebagai JSON `{"results": [], "error": ...}` -
+    bukan exception - supaya model bisa menjelaskan ke user daripada
+    menjatuhkan seluruh permintaan sebagai 500.
+
+    Batas rigor: `max_results` dibatasi 8 supaya tidak dipakai membanjiri
+    konteks, dan query kosong ditolak di awal (DDGS tanpa query bisa
+    menggantung).
+    """
+    q = str(query or "").strip()
+    if not q:
+        return _json.dumps({"results": [], "error": "query kosong"})
+    try:
+        n = int(max_results or 5)
+    except Exception:
+        n = 5
+    n = max(1, min(n, 8))
+    try:
+        from ddgs import DDGS  # lazy import: tidak aktif bila tidak dipakai
+    except Exception as exc:  # noqa: BLE001
+        return _json.dumps({
+            "results": [],
+            "error": f"pencarian web tidak tersedia: {type(exc).__name__}: {exc}",
+        })
+    try:
+        hits = list(DDGS().text(q, max_results=n))
+    except Exception as exc:  # noqa: BLE001 - jaringan/jitter
+        return _json.dumps({
+            "results": [],
+            "error": f"pencarian gagal: {type(exc).__name__}: {exc}",
+        })
+    results = [
+        {
+            "title": str(h.get("title") or "")[:200],
+            "url": str(h.get("href") or h.get("url") or ""),
+            "snippet": str(h.get("body") or "")[:300],
+        }
+        for h in hits
+        if (h.get("href") or h.get("url"))
+    ]
+    return _json.dumps({"results": results, "query": q}, ensure_ascii=False)
+
+
 def generate_workflow_json(spec_json: str, email: str = "") -> str:
     """Validasi JSON workflow dari model; kembalikan hasil + spec siap-canvas.
 
@@ -487,6 +534,32 @@ _generate_workflow_declaration = types.FunctionDeclaration(
 )
 
 
+_web_search_declaration = types.FunctionDeclaration(
+    name="web_search",
+    description=(
+        "Mencari informasi NYATA di internet (DuckDuckGo) dan mengembalikan "
+        "judul + URL + cuplikan. WAJIB dipanggil sebelum menjawab pertanyaan "
+        "teknis yang bisa berubah cepat (versi library, CVE, error message, "
+        "best practice 2026) atau sebelum menebak penyebab bug — jangan "
+        "berasumsi. Gunakan kueri singkat dan spesifik."
+    ),
+    parameters=types.Schema(
+        type=types.Type.OBJECT,
+        properties={
+            "query": types.Schema(
+                type=types.Type.STRING,
+                description="Kata kunci pencarian, mis. 'fastapi starlette CVE 2026'.",
+            ),
+            "max_results": types.Schema(
+                type=types.Type.INTEGER,
+                description="Jumlah hasil (default 5, maksimal 8).",
+            ),
+        },
+        required=["query"],
+    ),
+)
+
+
 TOOL_DECLARATIONS = [
     types.Tool(function_declarations=[
         _send_whatsapp_declaration,
@@ -497,6 +570,7 @@ TOOL_DECLARATIONS = [
         _telegram_declaration,
         _slack_declaration,
         _http_declaration,
+        _web_search_declaration,
     ])
 ]
 
@@ -670,5 +744,10 @@ def _execute_tool_inner(name: str, args: dict, email: str) -> str:
             method=args.get("method", "GET"),
             body=args.get("body", ""),
             email=email,
+        )
+    if name == "web_search":
+        return web_search(
+            query=args.get("query", ""),
+            max_results=args.get("max_results", 5),
         )
     raise ValueError(f"Unknown tool: {name}")

@@ -102,14 +102,58 @@ def test_jembatan_ke_canvas_hanya_untuk_draf_yang_diterima():
 
 
 def test_kedua_jalur_agent_mengirim_workflow_di_meta():
-    """Gateway DAN jalur Gemini langsung harus memuat kunci `workflow`.
+    """Semua jalur agent harus memuat kunci `workflow` di meta.
 
     Kalau salah satu lupa, canvas kosong hanya pada sebagian provider — bug
     yang sulit terlihat karena tidak ada error apa pun.
+
+    Jalur yang dihitung:
+      1. gateway + `tool_calls` terstruktur
+      2. gateway + tool call TEKS (Gemma 4 / Qwen3-Coder) - BUG FIX 2026-10-02
+      3. Gemini langsung (`response.function_calls`)
     """
     src = (pathlib.Path(ROOT) / "api_server.py").read_text(encoding="utf-8")
-    assert src.count('"workflow": workflow_out') == 2, "satu jalur agent tidak mengirim workflow"
-    assert src.count('_accepted_workflow(result)') + src.count('_accepted_workflow(tool_result)') >= 2
+    n_workflow = src.count('"workflow": workflow_out')
+    assert n_workflow >= 3, (
+        f"harus ada >=3 jalur yang mengirim workflow (-structured, textual, "
+        f"direct-), ditemukan {n_workflow}")
+    assert src.count('_accepted_workflow(result)') + src.count('_accepted_workflow(tool_result)') >= 3
+
+
+def test_jalur_textual_menjalankan_alat_dan_menyembunyikan_json():
+    """Tool call TEKS harus dieksekusi, dan JSON-nya tidak boleh tampil.
+
+    Ini regresi bug "tool call tidak dieksekusi": model seperti Gemma 4 menulis
+    `<|tool_call>call:NS:NAME({...})<tool_call|>` di `content`, bukan di
+    `resp.tool_calls`. Tanpa jalur ini, JSON mentah masuk ke `reply` dan
+    canvas tetap kosong.
+    """
+    srv_path = pathlib.Path(ROOT) / "api_server.py"
+    src = srv_path.read_text(encoding="utf-8")
+    assert "extract_textual_tool_calls" in src
+    assert "strip_textual_tool_calls" in src
+    assert 'tools.execute_tool(name, c["args"], email)' in src
+    # Nama alat ber-namespace harus diupah supaya cocok dengan registry.
+    assert "def _tool_name(" in src
+
+
+def test_web_search_terdaftar_di_kedua_format_skema():
+    """Tool pencarian harus terlihat baik di jalur Gemini langsung maupun gateway."""
+    src = (pathlib.Path(ROOT) / "tools.py").read_text(encoding="utf-8")
+    assert 'name="web_search"' in src
+    assert "_web_search_declaration" in src
+    assert 'if name == "web_search":' in src
+    # openai_tool_schemas() diturunkan dari TOOL_DECLARATIONS, jadi cukup
+    # mendaftarkan di satu tempat untuk keduanya.
+    assert "def openai_tool_schemas" in src
+
+
+def test_system_prompt_meminta_verifikasi_sebelum_menjawab():
+    """System prompt harus memaksa 'cari dulu' untuk pertanyaan teknis."""
+    src = (pathlib.Path(ROOT) / "api_server.py").read_text(encoding="utf-8")
+    assert "ATURAN VERIFIKASI (WAJIB)" in src
+    assert "`web_search`" in src
+    assert "Jangan berasumsi dari ingatan" in src
 
 
 def test_kontrak_respons_chat_meneruskan_meta_apa_adanya():

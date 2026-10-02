@@ -33,6 +33,10 @@ import gemini_key_pool
 import model_discovery as md
 import security
 import tools
+from textual_tool_calls import (  # BUG FIX 2026-10-02: parser tool-call TEKS
+    extract_textual_tool_calls,
+    strip_textual_tool_calls,
+)
 import execution_engine as engine
 from tools import CredentialMissingError
 from google import genai
@@ -363,6 +367,22 @@ _AGENT_SYSTEM = (
     "Anda adalah Nexus Autonomous Agent. Rencanakan & lakukan tindakan dengan "
     "alat yang tersedia. Setelah eksekusi alat, rangkum hasil untuk pengguna "
     "secara ringkas dalam Bahasa Indonesia.\n\n"
+    # BUG FIX 2026-10-02 - aturan "cari dulu, jangan berasumsi". Tanpa ini
+    # agen menjawab pertanyaan teknis langsung dari ingatan, padahal versi
+    # library / CVE / error message berubah cepat dan sering keliru.
+    "ATURAN VERIFIKASI (WAJIB):\n"
+    "a. Untuk pertanyaan TEKNIS yang bisa berubah cepat (nomor versi, CVE, "
+    "error message, best practice, status API pihak ketiga, atau penyebab "
+    "bug yang tidak kamu yakin) WAJIB panggil alat `web_search` dulu "
+    "sebelum menjawab. Jangan berasumsi dari ingatan.\n"
+    "b. Gunakan kueri singkat dan spesifik, pilih 1-2 kata kunci yang menentukan.\n"
+    "c. Bila hasil pencarian relevan, WAJIB sebutkan sumber (nama situs/URL) "
+    "di akhir jawaban.\n"
+    "d. Bila pencarian gagal atau tidak ada hasil, katakan terus terang bahwa "
+    "informasi tidak terverifikasi - jangan mengarang.\n"
+    "e. Pertanyaan umum yang tidak berubah (matematika, definisi dasar) TIDAK "
+    "perlu searching; jangan boros waktu.\n\n"
+    # --- FASE 2.1: DISCOVERY AGENT -------------------------------------------
     # --- FASE 2.1: DISCOVERY AGENT -------------------------------------------
     # Tanpa aturan ini, model langsung menebak isi workflow dan hasilnya salah
     # (provider/jadwal/field karangan). Jadi klarifikasi dulu, baru bangun.
@@ -416,6 +436,22 @@ def _content_text(resp: Any) -> str:
         raw = "\n".join(parts)
     text = str(raw or "").strip()
     return text or "Tugas selesai dieksekusi."
+
+
+def _tool_name(raw_name: str) -> str:
+    """Ambil nama alat yang terdaftar dari nama ber-namespace.
+
+    Model seperti Gemma 4 menulis `call:nexus:generate_workflow_json`, jadi
+    nama yang sampai ke sini adalah `nexus:generate_workflow_json`. Alat
+    terdaftar sebagai `generate_workflow_json`; tanpa pengupasan ini
+    `tools.execute_tool` tidak akan menemukannya.
+    """
+    name = str(raw_name or "").strip()
+    if ":" in name:
+        name = name.rsplit(":", 1)[-1]
+    return name.strip()
+
+
 def _accepted_workflow(tool_result: Any) -> "dict | None":
     """Ambil `spec` dari hasil `generate_workflow_json` BILA alat menerimanya.
 
@@ -639,6 +675,62 @@ def _agentic_run_gateway(prompt: str, email: str, model_id: str,
                 resp = chat_model.invoke(messages)
             for _ in range(3):  # maksimal 3 ronde tool calling
                 calls = getattr(resp, "tool_calls", None) or []
+                # BUG FIX 2026-10-02: sebagian model (Gemma 4 via NVIDIA,
+                # Qwen3-Coder) membungkus panggilan alat di dalam `content`
+                # sebagai TEKS `<|tool_call>call:NS:NAME({...})<tool_call|>` dan
+                # TIDAK mengisi field `tool_calls`. Sebelum fix ini, loop langsung
+                # `break` dan JSON mentah ikut ke `reply`, jadi user melihat
+                # JSON alih-alih workflow di canvas (bug "tool call tidak
+                # dieksekusi"). Bukti reproduksi: google/gemma-4-31b-it.
+                textual = []
+                if not calls:
+                    textual = extract_textual_tool_calls(_content_text(resp))
+                if textual:
+                    print(f"[chat/gateway] textual tool_call n={len(textual)} "
+                          f"names={[c['name'] for c in textual]}")
+                    # Jalur TEKS tidak mengulang `invoke`: `messages.append(resp)`
+                    # + ToolMessage akan melanggar pasangan tool_call_id milik
+                    # LangChain karena respons aslinya tidak punya tool_calls
+                    # terstruktur. Jadi alat dieksekusi sekali, lalu reply
+                    # dibangun dari teks yang sudah dibersihkan.
+                    for c in textual:
+                        name = _tool_name(c["name"])
+                        print(f"[chat/gateway] textual tool_call name={name}")
+                        try:
+                            result = tools.execute_tool(name, c["args"], email)
+                        except CredentialMissingError:
+                            raise  # -> endpoint ubah jadi needs_credential
+                        except Exception as exc:  # noqa: BLE001 - alat gagal
+                            result = f"Gagal menjalankan {name}: {exc}"
+                        if isinstance(result, dict) and result.get("status") == "needs_oauth":
+                            raise CredentialMissingError(str(result.get("provider") or ""))
+                        if name == "generate_workflow_json":
+                            workflow_out = _accepted_workflow(result) or workflow_out
+                    textual_reply = strip_textual_tool_calls(_content_text(resp))
+                    usage = getattr(resp, "usage_metadata", None) or {}
+                    return {
+                        "reply": textual_reply or (
+                            "Workflow berhasil dibuat." if workflow_out
+                            else "Selesai."),
+                        "meta": {
+                            "model": cand,
+                            "requested_model": model_id,
+                            "latency_ms": int((time.time() - _t0) * 1000),
+                            "prompt_tokens": int(usage.get("input_tokens") or 0),
+                            "completion_tokens": int(usage.get("output_tokens") or 0),
+                            "total_tokens": int(usage.get("total_tokens") or 0),
+                            "fallback": bool(cand != model_id),
+                            "fallback_reason": (_fallback_reason(last_err)
+                                                if cand != model_id and last_err is not None
+                                                else None),
+                            "gateway": True,
+                            "tools_dropped": tools_dropped,
+                            # True bila panggilan datang sebagai TEKS, bukan
+                            # field tool_calls terstruktur.
+                            "textual_tool_calls": True,
+                            "workflow": workflow_out,
+                        },
+                    }
                 if not calls:
                     break
                 messages.append(resp)
