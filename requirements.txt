@@ -53,7 +53,19 @@ langchain-groq==0.3.2
 langchain-openai==0.3.7
 
 # API Gateway - FastAPI + Uvicorn (pemisah Frontend/Backend utk Cloudflare)
-fastapi==0.115.6
+#
+# 2026-10-01 SECURITY (CVE-2026-48710 / PYSEC-2026-161 + 4 turunan):
+# fastapi 0.115.6 mensyaratkan `starlette<0.42.0`, jadi produksi SELALU resolve
+# starlette 0.41.x yang VULNERABLE. Batas `<1.0.0` baru dilepas di fastapi
+# 0.133.0. Dipakai diuji lokal: fastapi 0.142.2 + starlette 1.7.0.
+#
+# CATATAN: starlette >= 1.0 memindahkan `testclient` ke paket `httpx2` (bukan
+# `httpx`). Tanpa httpx2, `fastapi.testclient.TestClient` melempar RuntimeError
+# dan seluruh 357 test gagal import.
+fastapi==0.142.2
+starlette==1.7.0
+# Hanya untuk TestClient pada starlette >= 1.0; runtime tidak memakainya.
+httpx2==2.13.1
 uvicorn[standard]==0.34.0
 litellm==1.65.1
 # `webhooks` (standardwebhooks) WAJIB: `client.webhooks.unwrap` yang dipakai
