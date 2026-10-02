@@ -142,8 +142,33 @@ def _log_blocked_model(model: str, tier: str, reason: str) -> None:
     log.info("model_blocked model=%s tier=%s reason=%s", model, tier, reason)
 
 
-def _model_allowed_for_tier(model: str, tier: str = "free") -> bool:
+def _model_allowed_for_tier(model: str, tier: str = "free", provider: str = "") -> bool:
+    """Gate 2 (allowlist) - HANYA untuk keluarga google.
+
+    BUG FIX 2026-10-02: allowlist `FREE_TIER_MODEL_IDS` hanya berisi id Gemini,
+    tapi fungsi ini dipanggil untuk SEMUA model termasuk roster gateway yang
+    serves llama/gemma/qwen/deepseek/... Akibatnya 259 model gateway terbuang
+    dan `/models` hanya mengembalikan 3 (Gemini yang kebetulan ada di allowlist).
+
+    Komentar di atas blok GATE PAID-ONLY sebenarnya sudah menyatakan niat yang
+    benar: "Gate 2 (allowlist) hanya diterapkan ke keluarga google. Provider lain
+    (groq/nvidia) sudah diverifikasi X-Routed-Via di probe." Implementasinya
+    belum pernah diterapkan - itu bug ini.
+
+    Model non-google tidak dibiarkan tanpa filter: Gate 1 (pola paid-only) dan
+    `_NON_CHAT` (chat_capable) tetap diterapkan, jadi gambar/embedding/robotics
+    tetap dibuang.
+    """
     if is_allowed(model, tier):
+        return True
+    family = _provider_family(provider)
+    # Hanya family yang DIKETAHUI non-google yang boleh lolos Gate 2.
+    #
+    # Provider kosong ("") = tidak diketahui -> tetap DENY. Ini menjaga
+    # `test_blocked_model_is_logged` yang memanggil fungsi ini tanpa provider
+    # dan mengharapkan model tak dikenal ditolak.
+    if family and family != "google":
+        # Bukan Gemini -> lolos Gate 2 (masih harus lolos Gate 1 + chat_capable).
         return True
     _log_blocked_model(model, tier, "tier_allowlist")
     return False
@@ -206,7 +231,7 @@ def filter_free_models(models: list[dict]) -> list[dict]:
         mid = str(m.get("id") or "")
         if not mid or not chat_capable(mid):
             continue
-        if is_paid_only(mid, str(m.get("provider") or "")) or not _model_allowed_for_tier(mid, "free"):
+        if is_paid_only(mid, str(m.get("provider") or "")) or not _model_allowed_for_tier(mid, "free", str(m.get("provider") or "")):
             continue
         out.append(m)
     return out
