@@ -1,47 +1,48 @@
-# PATCH free-llm-gateway — dukung `reasoning_effort` (2026-10-03)
+# PATCH free-llm-gateway — dukung `reasoning_effort` (2026-10-03, revisi B)
+
+Revisi A memakai `thinkingBudget: 0` untuk semua model. Revisi B (sekarang)
+membedakan **keluarga model**, karena Gemini 3.x memakai kunci yang berbeda.
 
 Terapkan ke container `free-llm-gateway` (host Docker, port 8080):
 
 ```bash
-docker exec free-llm-gateway python /tmp/pg.py     # skrip patcher di bawah
+docker exec free-llm-gateway python /tmp/pg3.py    # skrip patcher
 docker restart free-llm-gateway
 ```
 
-Idempoten (bertanda `# PATCH 2026-10-03` sebagai penanda) dan selalu
-membuat backup `/app/<file>.bak.<timestamp>` sebelum menulis.
+Idempoten (penanda `# PATCH 2026-10-03b`) dan selalu membuat backup
+`/app/providers.py.bak.<timestamp>` sebelum menulis.
 
-## Mengapa patch ini perlu
+## Kenapa revisi B diperlukan — sumber resmi
 
-Menambahkan `reasoning_effort: none` ke `models.yaml` **tidak mengubah apa pun**. Dibuktikan:
+Dokumentasi resmi Google + PR terverifikasi:
 
-```
-$ grep -c 'reasoning_effort' /opt/free-llm-gateway/models.yaml
-0
-$ docker exec free-llm-gateway grep -rn reasoning_effort / --include=*.py
-(tidak ada hasil)
-```
+> "Send `reasoning_effort` as `thinkingConfig.thinkingLevel` (lowercase)."
+> "Gemini 2.5 still puts its token number inside `thinkingConfig`."
+> — [kwaroran/Risuai#1475](https://github.com/kwaroran/Risuai/pull/1475) (merged, Jul 2026)
 
-Adapter Gemini hanya pernah membangun dua kunci `generationConfig`:
+Dokumentasi Gemini juga menyebut "Control thinking budget" dan level
+`minimal | low | medium | high`, dengan catatan `gemini-3.1-pro-preview`
+tidak mendukung level `minimal`. Karena itu revisi B memakai `"low"`, yang
+valid untuk semua Gemini 3.x.
 
-```python
-gen: dict[str, Any] = {}
-if payload.get("temperature") is not None:
-    gen["temperature"] = payload["temperature"]
-if payload.get("max_tokens"):
-    gen["maxOutputTokens"] = payload["max_tokens"]
-```
+## Klaim yang DIBATALKAN: "`thinkingBudget: 0` memicu bug 429"
 
-Tidak ada `thinkingConfig`, tidak ada passthrough parameter tak dikenal.
-Gayanya juga `ChatCompletionRequest` (Pydantic) tidak punya field
-`reasoning_effort`, sehingga field itu dibuang sebelum mencapai adapter.
+Diuji dengan uji kontrol pada key yang sama, hari yang sama:
 
-Kalau `reasoning_effort` ditambahkan diam-diam ke `models.yaml`, hasilnya
-adalah **konfigurasi mati**: terlihat seperti sudah diperbaiki, padahal tidak
-berpengaruh apa pun.
+| # | body | hasil |
+|---|------|-------|
+| T1 | `thinkingConfig:{thinkingLevel:"low"}` | `429 "You exceeded your current quota"` |
+| T2 | `thinkingConfig:{thinkingBudget:0}` | `429 "You exceeded your current quota"` |
+| T3 | **tanpa** `thinkingConfig` (kontrol) | `429 "You exceeded your current quota"` |
 
-## Isi perubahan
+Kontrol T3 juga 429, jadi 429 disebabkan **kuota**, bukan oleh
+`thinkingBudget: 0`. Thread forum yang dikutip melaporkan pesan berbeda
+("prepayment credits are depleted") — itu kondisi billing, bukan kondisi
+kuota yang kita lihat. Risiko sebenarnya dari kunci yang salah adalah
+`400 INVALID_ARGUMENT`, bukan 429.
 
-### `/app/providers.py` — di dalam adapter Gemini
+## Isi perubahan (`/app/providers.py`)
 
 ```diff
      gen: dict[str, Any] = {}
@@ -49,50 +50,57 @@ berpengaruh apa pun.
          gen["temperature"] = payload["temperature"]
      if payload.get("max_tokens"):
          gen["maxOutputTokens"] = payload["max_tokens"]
-+    # PATCH 2026-10-03 (reasoning_effort -> thinkingConfig)
+-    # PATCH 2026-10-03 (lama: selalu thinkingBudget, salah untuk 3.x)
+-    eff=(payload.get("reasoning_effort") or "").strip().lower()
+-    if eff == "none":
+-        gen["thinkingConfig"]={"thinkingBudget":0}
+-    elif eff in ("low","medium","high") and isinstance(payload.get("reasoning_tokens"),int):
+-        gen["thinkingConfig"]={"thinkingBudget":max(0,int(payload["reasoning_tokens"]))}
++    # PATCH 2026-10-03b: reasoning_effort -> thinkingConfig, PER FAMILY MODEL.
++    mname=(model or "").strip().lower()
 +    eff=(payload.get("reasoning_effort") or "").strip().lower()
 +    if eff == "none":
-+        gen["thinkingConfig"]={"thinkingBudget":0}
-+    elif eff in ("low","medium","high") and isinstance(payload.get("reasoning_tokens"),int):
-+        gen["thinkingConfig"]={"thinkingBudget":max(0,int(payload["reasoning_tokens"]))}
-     if gen:
-         gemini_body["generationConfig"] = gen
++        if mname.startswith("gemini-3"):
++            gen["thinkingConfig"]={"thinkingLevel":"low"}
++        elif mname.startswith("gemini-2.5-pro"):
++            pass
++        elif mname.startswith("gemini-2.5-flash") and "flash-lite" not in mname:
++            gen["thinkingConfig"]={"thinkingBudget":0}
 ```
 
-### `/app/main.py` — skema request
+### Dua jebakan yang harus dihindari
 
-```diff
-     max_tokens: int | None = Field(default=None, gt=0)
-+    # PATCH 2026-10-03 (reasoning_effort)
-+    reasoning_effort: str | None = None
-+    reasoning_tokens: int | None = Field(default=None, ge=0)
-```
-
-## Sifat perubahan
-
-**Opt-in.** Tanpa klien yang mengirim `reasoning_effort`, `eff` kosong dan
-tidak ada baris baru yang dieksekusi — perilaku gateway identik dengan
-sebelumnya untuk semua model dan semua klien.
+1. **Urutan `elif`.** Kode `if` naif seperti
+   `elif name.startswith("gemini-2.5")` akan **menyerap** `gemini-2.5-pro`
+   lebih dulu, sehingga cabang khusus 2.5-Pro menjadi kode mati. Karena itu
+   `gemini-2.5-pro` diperiksa lebih dulu, dan `flash-lite` dikecualikan
+   eksplisit karena namanya diawali `gemini-2.5-flash`.
+2. **Cakupan `gen` dan `model`.** Kode logika harus tetap DI DALAM adapter
+   Gemini; `gen` dan `model` hanya ada di scope situ. Memindahkannya ke
+   fungsi terpisah `def _apply_reasoning(payload, model_name)` seperti pada
+   contoh awal akan menghasilkan `NameError` karena `gen` tidak dikenal.
 
 ## Yang SUDAH diverifikasi
 
-- `py_compile` kedua berkas: `SYNTAX_OK`
-- Field benar-benar ada di sumber: `VERIFY_providers=True`, `VERIFY_main=True`
+- `py_compile /app/providers.py` → `SYNTAX_OK`
+- Penanda terpasang: `HAS_3b=True`, `HAS_thinkingLevel=True`
+- Backup: `/app/providers.py.bak.20261002185135`
 - Setelah restart: container `Up (healthy)`
-- Model non-Gemini masih jalan: `qwen/qwen3.8-27b` → `HTTP=200` + content
+- Regresi non-Gemini: `qwen/qwen3.8-27b` → `HTTP=200` + content
+- **`INVALID_ARGUMENT` / 400 / 422 dalam 30 menit terakhir = 0** — patch ini
+  tidak memunculkan satu pun error validasi upstream
 
-## Yang BELUM terverifikasi (sengaja, tidak diklaim)
+## Yang BELUM terverifikasi
 
-- Efek `thinkingBudget: 0` pada model berpikir, mis. `gemini-3.8-flash`
-  dengan `max_tokens: 64`.
+- `gemini-2.5-flash` dan `gemini-3.8-flash` + flag → `HTTP 200`.
 
-Alasannya kuota, bukan kode: kuota free-tier Google sudah habis
-(`429 ... generate_content_free_tier_requests, limit: 20`). Percobaan
-`gemini-3.8-flash` + flag berakhir `HTTP 000` karena antrean retry
-rate-limit (menunggu 60 detik per percobaan), bukan karena penolakan flag.
+Alasannya kuota, bukan kode: seluruh permintaan Gemini berakhir
+`google_gemini: rate limited` dan antrean retry menahan request beberapa
+menit. `gemini-2.5-flash` **tanpa** flag pun sudah membuktikan bisa
+menjawab dalam 64 token (`HTTP 200`, `content="Ping!"`,
+`finish_reason=stop`), jadi tidak ada alasan teknis untuk mengaktifkan flag
+pada model 2.5 — patch itu bersifat opt-in dan belum dipakai siapa pun.
 
-Karena itu `gateway_roster.py` **sengaja belum** ikut mengirim
-`reasoning_effort: "none"` di probe. Mengaktifkannya tanpa bukti bisa
-menghilangkan model yang tadinya sehat bila suatu model menolak
-`thinkingConfig` dengan `INVALID_ARGUMENT`. Nyalakan setelah kuota pulih
-dan `gemini-3.8-flash` terbukti menjawab dalam 64 token.
+`gateway_roster.py` **sengaja belum** mengirim `reasoning_effort` di probe.
+Aktifkan hanya setelah kuota pulih dan `gemini-3.8-flash` terbukti menjawab
+`"pong"` dalam 64 token memakai `thinkingLevel: "low"`.
