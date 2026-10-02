@@ -55,7 +55,19 @@ export function UserMenu({ userTier = "free", compact = false }: UserMenuProps) 
   const isDark = appTheme === "dark";
   const isPlus = userTier === "plus";
 
-  const initial = (email?.trim()?.[0] ?? "?").toUpperCase();
+  // BUG FIX 2026-10-02 (foto profil tidak muncul): inisial sebelumnya HANYA
+  // diturunkan dari email. Untuk OAuth, `full_name` sudah ada dan jauh lebih
+  // berguna ("Adi Pratama" -> "A", bukan "a" dari email). Urutan: full_name ->
+  // email -> "?". `displayName` dipakai deshalb sudah dibaca `auth.tsx` dan
+  // tidak menambah state baru.
+  const initials = (displayName || email || "").trim();
+  const initial = (initials[0] ?? "?").toUpperCase();
+  // Gambar OAuth bisa gagal dimuat (avatar dihapus, URL kedaluwarsa, atau
+  // diblokir host). Tanpa `onError`, React menampilkan ikon gambar rusak
+  // selamanya karena `avatarUrl` tetap non-null. Reset ke null memaksa
+  // cabang fallback inisial takeover.
+  const [avatarBroken, setAvatarBroken] = useState(false);
+  const showImage = Boolean(avatarUrl) && !avatarBroken;
   const itemCls =
     "flex cursor-pointer items-center gap-2 rounded-sm px-2.5 py-2 text-[13px] leading-tight outline-none transition-colors focus:bg-bg-subtle data-[highlighted]:bg-bg-subtle";
 
@@ -79,11 +91,19 @@ export function UserMenu({ userTier = "free", compact = false }: UserMenuProps) 
               ? "flex h-8 w-8 items-center justify-center overflow-hidden !rounded-full border border-border bg-accent/15 text-xs font-bold text-accent"
               : "flex h-8 w-8 shrink-0 items-center justify-center overflow-hidden !rounded-full bg-accent/15 text-[13px] font-bold text-accent"}
           >
-            {avatarUrl ? (
-              // URL profil berasal dari Google OAuth; next/image static export
+            {showImage ? (
+              // URL profil berasal dari Google/GitHub OAuth; next/image static export
               // memakai unoptimized config sehingga host eksternal tetap aman.
+              // CSP `img-src` (public/_headers) harus mengizinkan host avatar,
+              // kalau tidak browser memblokir sebelum gambar sempat digambar.
               // eslint-disable-next-line @next/next/no-img-element
-              <img src={avatarUrl} alt="" className="h-full w-full object-cover" referrerPolicy="no-referrer" />
+              <img
+                src={avatarUrl ?? ""}
+                alt=""
+                className="h-full w-full object-cover"
+                referrerPolicy="no-referrer"
+                onError={() => setAvatarBroken(true)}
+              />
             ) : initial}
           </span>
           {!compact && (

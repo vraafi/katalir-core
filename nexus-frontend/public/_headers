@@ -29,13 +29,39 @@
 # menangani mixed content, dan menambah direktif ini bisa memblokir callback
 # OAuth yang masih http.
 
+# BUG FIX 2026-10-02 (foto profil tidak muncul): `img-src 'self' data: blob:`
+# memblokir SEMUA avatar OAuth. Header di bawah ENFORCING (bukan Report-Only),
+# jadi browser menolak request gambar sebelum tag <img> sempat menggambar.
+# Bukti: header produksi yang dibaca dari katalir.de5.net memuat
+# `img-src 'self' data: blob:` tanpa host Google/GitHub, sementara
+# `auth.tsx` mengambil `user_metadata.avatar_url` (GitHub) /
+# `user_metadata.picture` (Google). Symptom: kotak avatar kosong, dan
+# fallback inisial di UserMenu tidak menyala karena `avatarUrl` bukan null.
+#
+# Host yang ditambahkan CUKUP untuk OAuth avatar, tanpa wildcard:
+#   - lh3.googleusercontent.com     -> Google OAuth (`picture`)
+#   - avatars.githubusercontent.com -> GitHub OAuth (`avatar_url`)
+# Jangan pakai `https:` wildcard: itu mengizinkan hotlink gambar dari host
+# mana pun dan tidak perlu untuk UI yang hanya memuat avatar.
+#
+# CATATAN: `next.config.ts` `images.remotePatterns` TIDAK memperbaiki ini.
+# Aplikasi memakai tag <img> polos (bukan next/image) dengan
+# `images: { unoptimized: true }` pada `output: "export"`, jadi Next.js
+# tidak memproses URL gambar sama sekali - yang mengunci unduhan adalah CSP.
+
 /*
   Strict-Transport-Security: max-age=31536000; includeSubDomains
   X-Frame-Options: DENY
   X-Content-Type-Options: nosniff
   Referrer-Policy: strict-origin-when-cross-origin
   Permissions-Policy: camera=(), microphone=(), geolocation=()
-  Content-Security-Policy: default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'none'; form-action 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' https://web-production-dc90b.up.railway.app https://qmukkphwaajzbqjrcvaz.supabase.co wss://qmukkphwaajzbqjrcvaz.supabase.co
+# data: blob:` tanpa host Google/GitHub, sementara `auth.tsx` mengambil
+# `user_metadata.avatar_url` (GitHub) / `user_metadata.picture` (Google).
+# Symptom: avatar Google/GitHub = kotak kosong; inisial tidak munculjugak
+# karena fallback di UserMenu hanya menyala bila `avatarUrl` null.
+#
+# ini - aplikasi memakai tag <img> polos (bukan next/image) dengan
+  Content-Security-Policy: default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'none'; form-action 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https://lh3.googleusercontent.com https://avatars.githubusercontent.com; font-src 'self' data:; connect-src 'self' https://web-production-dc90b.up.railway.app https://qmukkphwaajzbqjrcvaz.supabase.co wss://qmukkphwaajzbqjrcvaz.supabase.co
 
 # Aset ber-hash di /_next/static aman di-cache lama (Cloudflare docs).
 /_next/static/*

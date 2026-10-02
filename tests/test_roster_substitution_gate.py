@@ -153,3 +153,120 @@ def test_kode_repo_memakai_segmen_terakhir():
         "gerbang harus menerima path LENGKAP _rpath (= id ber-namespace) ATAU "
         "segmen terakhir; hanya segmen terakhir membuang semua model "
         "ber-namespace seperti z-ai/glm-5.3 dan qwen/qwen3.8-27b")
+
+
+# ---------------------------------------------------------------------------
+# BUG 2026-10-02: model "berpikir" (thinking) hilang dari /models
+# ---------------------------------------------------------------------------
+# Gejala: hanya 3 model Gemini tampil di dropdown walau models.yaml punya 7.
+#
+# Akar masalah (diukur langsung ke gateway, bukan ditebak):
+#   gemini-3.8-flash @ max_tokens=64  -> HTTP 200, content=null,
+#                                      completion_tokens=0, finish_reason=length
+#   gemini-3.8-flash @ max_tokens=512 -> HTTP 200, content="OK",
+#                                      finish_reason=stop
+#
+# Model berpikir memakai `max_tokens` sebagai anggaran OUTPUT dan membakar
+# entirety-nya untuk token penalaran sebelum menulis karakter jawaban pertama.
+# Probe lama (`max_tokens: 64`) lalu menerima `content` kosong dan menandai
+# model SEHAT sebagai FAIL -> whitelist /models menyusut.
+
+class _Resp:
+    """Response tiruan yang meniru perilaku nyata model berpikir."""
+
+    def __init__(self, status_code, payload, routed):
+        self.status_code = status_code
+        self._payload = payload
+        self.text = "{}"
+        self.headers = {"x-routed-via": routed}
+
+    def json(self):
+        return self._payload
+
+
+def _thinking_client(sequences):
+    """Client yang mengembalikan response berurutan sesuai `sequences`."""
+    class _Client:
+        def __init__(self):
+            self.calls = []
+
+        def post(self, url, headers=None, json=None):
+            self.calls.append(dict(json or {}))
+            return sequences[min(len(self.calls) - 1, len(sequences) - 1)]
+
+    return _Client()
+
+
+def test_model_berpikir_lolos_setelah_retry_anggaran_token():
+    """Regresi utama: `content` kosong di stage-1 harus dicoba ulang."""
+    import gateway_roster as gr
+
+    empty_then_ok = [
+        _Resp(200, {"choices": [{"message": {"content": None},
+                                 "finish_reason": "length"}]},
+              "google_gemini/gemini-3.8-flash"),
+        _Resp(200, {"choices": [{"message": {"content": "OK"},
+                                 "finish_reason": "stop"}]},
+              "google_gemini/gemini-3.8-flash"),
+    ]
+    client = _thinking_client(empty_then_ok)
+    rec = gr._probe_one(client, "http://gw", "k",
+                        {"id": "gemini-3.8-flash", "providers": set()}, "1", 0)
+
+    assert rec["status"] == "PASS", (
+        f"gemini-3.8-flash (model berpikir) HARUS PASS setelah retry; "
+        f"error={rec['error']!r}")
+    assert rec["retried"] is True, "retry harus ditandai"
+    assert len(client.calls) == 2, (
+        f"harus ada 2 pemanggilan, dapat {len(client.calls)}")
+    # Bukti anggaran token dinaikkan pada panggilan kedua.
+    assert client.calls[0]["max_tokens"] == 64, client.calls[0]
+    assert client.calls[1]["max_tokens"] == gr.PROBE_RETRY_MAX_TOKENS, client.calls[1]
+    assert gr.PROBE_RETRY_MAX_TOKENS >= 512, (
+        "512 adalah angka terukur; di bawah itu gemini-3.8-flash tidak "
+        "pernah selesai menulis jawaban")
+
+
+def test_model_yang_selalu_kosong_tetap_gagal():
+    """Gerbang 'ISI NYATA' TIDAK boleh dilonggarkan sama sekali."""
+    import gateway_roster as gr
+
+    always_empty = [
+        _Resp(200, {"choices": [{"message": {"content": None},
+                                 "finish_reason": "length"}]},
+              "google_gemini/gemini-3.5-flash-lite"),
+        _Resp(200, {"choices": [{"message": {"content": ""},
+                                 "finish_reason": "length"}]},
+              "google_gemini/gemini-3.5-flash-lite"),
+    ]
+    rec = gr._probe_one(_thinking_client(always_empty), "http://gw", "k",
+                        {"id": "gemini-3.5-flash-lite", "providers": set()},
+                        "1", 0)
+    assert rec["status"] == "FAIL", "model tanpa isi nyata TIDAK BOLEH lolos"
+    assert rec["error"] == "content kosong", rec["error"]
+
+
+def test_model_mati_http_500_tidak_berubah_status():
+    """gemini-2.5-pro sudah ditarik Google -> harus tetap HTTP 500, FAIL."""
+    import gateway_roster as gr
+
+    dead = [_Resp(500, {}, "google_gemini/gemini-2.5-pro")]
+    rec = gr._probe_one(_thinking_client(dead), "http://gw", "k",
+                        {"id": "gemini-2.5-pro", "providers": set()}, "1", 0)
+    assert rec["status"] == "FAIL", rec
+    assert rec["error"].startswith("HTTP500"), rec["error"]
+
+
+def test_model_normal_tidak_perlu_retry():
+    """Model biasa harus tetap satu panggilan (retry bukan biaya semua orang)."""
+    import gateway_roster as gr
+
+    normal = [_Resp(200, {"choices": [{"message": {"content": "OK"},
+                                       "finish_reason": "stop"}]},
+                    "google_gemini/gemini-2.5-flash")]
+    client = _thinking_client(normal)
+    rec = gr._probe_one(client, "http://gw", "k",
+                        {"id": "gemini-2.5-flash", "providers": set()}, "1", 0)
+    assert rec["status"] == "PASS", rec
+    assert len(client.calls) == 1, "model biasa tidak boleh memicu retry"
+    assert rec["retried"] is False

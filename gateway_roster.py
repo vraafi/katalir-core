@@ -39,6 +39,11 @@ log = logging.getLogger("gateway_roster")
 CACHE_TTL_S = int(os.getenv("LLM_GATEWAY_ROSTER_TTL", "21600"))   # 6 jam
 CACHE_PATH = os.getenv("LLM_GATEWAY_ROSTER_CACHE", ".gw_roster_cache.json")
 PROBE_TIMEOUT_S = float(os.getenv("LLM_GATEWAY_PROBE_TIMEOUT", "90"))
+# Anggaran token untuk PANGGILAN KEDUA probe (lihat `_probe_one`). 64 terlalu
+# kecil untuk model "berpikir": tokennya habis untuk penalaran sehingga `content`
+# kosong dan model sehat salah ditandai FAIL. 512 cukup (terukur: gemini-3.8-flash
+# menjawab "OK" dengan `finish_reason=stop`).
+PROBE_RETRY_MAX_TOKENS = int(os.getenv("LLM_GATEWAY_PROBE_RETRY_TOKENS", "512"))
 PROBE_WORKERS = int(os.getenv("LLM_GATEWAY_PROBE_WORKERS", "8"))
 MAX_ROSTER = int(os.getenv("LLM_GATEWAY_MAX_MODELS", "40"))
 
@@ -366,6 +371,7 @@ def _probe_one(client: httpx.Client, url: str, key: str, cand: dict,
     }
     rec = {"model": mid, "status": "FAIL", "ms": 0, "routed": "",
            "fallbacks": "", "cache": "", "sample": "", "error": "",
+           "retried": False,
            "provider": (sorted(cand["providers"])[0] if cand["providers"] else "")}
     t0 = time.time()
     try:
@@ -427,6 +433,48 @@ def _probe_one(client: httpx.Client, url: str, key: str, cand: dict,
     if _rpath != mid and rmodel != mid:
         rec["error"] = f"disubstitusi ke '{rec['routed']}'"
         return rec
+    if not txt.strip():
+        # BUG FIX 2026-10-02 (model "berpikir" hilang dari /models):
+        # PANGGILAN KEDUA dengan anggaran token lebih besar.
+        #
+        # Gejala nyata (diukur langsung ke gateway, bukan ditebak):
+        #   gemini-3.8-flash @ max_tokens=64  -> HTTP 200,
+        #       choices[0].message.content = null, completion_tokens = 0,
+        #       finish_reason = "length"
+        #   gemini-3.8-flash @ max_tokens=512 -> HTTP 200,
+        #       choices[0].message.content = "OK", finish_reason = "stop"
+        #
+        # Model "berpikir" (thinking/reasoning) MEMAKAI,max_tokens sebagai
+        # anggaran OUTPUT dan membakar entirety-nya untuk token penalaran
+        # sebelum menulis satu pun karakter jawaban. Probe lama|max_tokens 64|
+        # karena itu menerima `content` kosong dan menandai model SEHAT
+        # sebagai FAIL -> whitelist /models menyusut -> Gemini "berubah hilang"
+        # dari dropdown padahal upstream-nya sehat.
+        #
+        # PENTING gerbang "ISI NYATA" TIDAK dilonggarkan: stage-2 tetap wajib
+        # menghasilkan teks non-kosong. Yang diubah hanya anggaran token,
+        # bukan standar kelulusan. Model mati (mis. gemini-2.5-pro yang Google
+        # sudah menarik) tetap gagal karena HTTP 500, bukan karena alasan ini.
+        payload["max_tokens"] = PROBE_RETRY_MAX_TOKENS
+        try:
+            r2 = client.post(f"{url}/v1/chat/completions", headers=_headers(key),
+                             json=payload)
+        except Exception as exc:  # noqa: BLE001
+            rec["error"] = f"{rec['error']}; retry: {type(exc).__name__}"
+            return rec
+        if r2.status_code != 200:
+            rec["error"] = f"HTTP{r2.status_code}: {r2.text[:110]}"
+            return rec
+        rec["routed"] = r2.headers.get("x-routed-via", rec["routed"])
+        try:
+            ch2 = (r2.json().get("choices") or [{}])[0]
+            txt2 = (ch2.get("message") or {}).get("content") or ""
+        except Exception:  # noqa: BLE001
+            txt2 = ""
+        if txt2.strip():
+            txt = txt2
+            rprov, _, _ = rec["routed"].partition("/")
+            rec["retried"] = True
     if not txt.strip():
         rec["error"] = "content kosong"
         return rec
