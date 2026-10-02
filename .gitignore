@@ -15,6 +15,10 @@ token.json
 # token JWT kedaluwarsa. Sama-sama credential NYATA - HARUS diabaikan, kalau
 # tidak `git add -A` akan membocorkan password yang bisa login ke akun itu.
 .autonomous_pw
+# Berisi access_token + refresh_token SESI SUPABASE yang masih hidup. Sama
+# sifatnya dengan .autonomous_pw: bukan sekadar JWT satu kali pakai, tapi juga
+# refresh_token yang bisa ditukar jadi akses baru. Tidak boleh masuk repo.
+.autonomous_session.json
 .cf_service_token_id
 # Live gateway apiKey fetched from the VPS (scripts/vps_auth_probe.py).
 .gateway_api_key

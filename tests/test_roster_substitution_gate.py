@@ -270,3 +270,19 @@ def test_model_normal_tidak_perlu_retry():
     assert rec["status"] == "PASS", rec
     assert len(client.calls) == 1, "model biasa tidak boleh memicu retry"
     assert rec["retried"] is False
+
+
+def test_timeout_probe_cukup_untuk_model_berpikir():
+    """Timeout probe tidak boleh terlalu pendek -> katalog menyusut acak.
+
+    Gejala nyata: jumlah model Gemini berubah 3 -> 5 -> 3 antar probe
+    padahal models.yaml tidak berubah. Sumbernya model "berpikir" yang butuh
+    >90 detik, sehingga probe membunuhnya dan menandai FAIL secara acak.
+    """
+    import gateway_roster as gr
+
+    assert gr.PROBE_TIMEOUT_S >= 120, (
+        f"PROBE_TIMEOUT_S={gr.PROBE_TIMEOUT_S} terlalu pendek; model "
+        f"berpikir akan gagal probe secara acak dan katalog menyusut")
+    assert gr.PROBE_TIMEOUT_S == 180, (
+        "default harus 180 detik (dinaikkan dari 90 pada 2026-10-02)")

@@ -38,12 +38,33 @@ log = logging.getLogger("gateway_roster")
 
 CACHE_TTL_S = int(os.getenv("LLM_GATEWAY_ROSTER_TTL", "21600"))   # 6 jam
 CACHE_PATH = os.getenv("LLM_GATEWAY_ROSTER_CACHE", ".gw_roster_cache.json")
-PROBE_TIMEOUT_S = float(os.getenv("LLM_GATEWAY_PROBE_TIMEOUT", "90"))
+PROBE_TIMEOUT_S = float(os.getenv("LLM_GATEWAY_PROBE_TIMEOUT", "180"))
 # Anggaran token untuk PANGGILAN KEDUA probe (lihat `_probe_one`). 64 terlalu
 # kecil untuk model "berpikir": tokennya habis untuk penalaran sehingga `content`
 # kosong dan model sehat salah ditandai FAIL. 512 cukup (terukur: gemini-3.8-flash
 # menjawab "OK" dengan `finish_reason=stop`).
 PROBE_RETRY_MAX_TOKENS = int(os.getenv("LLM_GATEWAY_PROBE_RETRY_TOKENS", "512"))
+# BUG FIX 2026-10-02: `PROBE_TIMEOUT_S` dinaikkan 90 -> 180 detik.
+#
+# Gejala: jumlah model Gemini BERUBAH-UBAH antar probe (3 -> 5 -> 3) walau
+# `models.yaml` tidak berubah. Penyebabnya bukan config, melainkan timeout:
+# model "berpikir" (gemini-3.8-flash, gemini-3-flash-preview) butuh >90 detik
+# untuk menulis jawaban PERTAMA karena token penalarantya, jadi probe
+# membunuhnya lewat timeout dan menandainya FAIL secara acak. Akibatnya cache
+# 6 jam menyimpan hasil yang bergantung pada ITU ARI, dan user melihat
+# "katalog model saya tiba-tiba menyusut".
+#
+# Probe berjalan di luar jalur permintaan (`_warm_gateway_roster`,
+# `blocking=False`), jadi memperpanjang timeout tidak menambah latensi chat.
+# Batas bawah dijaga supaya ini tetap bukan "tunggu selamanya".
+PROBE_MIN_TIMEOUT_S = 120.0
+if PROBE_TIMEOUT_S < PROBE_MIN_TIMEOUT_S:
+    log.warning(
+        "LLM_GATEWAY_PROBE_TIMEOUT=%.0f di bawah %.0f detik; model berpikir "
+        "akan sering gagal probe dan katalog menyusut acak. Dinaikkan.",
+        PROBE_TIMEOUT_S, PROBE_MIN_TIMEOUT_S,
+    )
+    PROBE_TIMEOUT_S = PROBE_MIN_TIMEOUT_S
 PROBE_WORKERS = int(os.getenv("LLM_GATEWAY_PROBE_WORKERS", "8"))
 MAX_ROSTER = int(os.getenv("LLM_GATEWAY_MAX_MODELS", "40"))
 
