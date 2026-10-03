@@ -77,7 +77,14 @@ def _urls_with_key_in_code(src):
 def test_tidak_ada_kode_membangun_url_ber_kunci():
     offenders = []
     for rel in _tracked_py():
-        src = (ROOT / rel).read_text(encoding="utf-8", errors="replace")
+        # `utf-8-sig`, bukan `utf-8`: beberapa file .py di repo ini punya BOM
+        # UTF-8 (mis. tests/test_self_healing.py, sudah committed). Dengan
+        # `utf-8` + errors="replace", BOM-nya jadi karakter U+FEFF di awal
+        # sumber dan `ast.parse` di bawah melempar SyntaxError. Akibatnya guard
+        # ini CRASH, bukan menolak - jadi file yang melanggar aturan tidak pernah
+        # benar-benar diperiksa. `utf-8-sig` membuang BOM bila ada dan tetap
+        # aman untuk file tanpa BOM.
+        src = (ROOT / rel).read_text(encoding="utf-8-sig", errors="replace")
         for hit in _urls_with_key_in_code(src):
             offenders.append("%s: %s" % (rel.as_posix(), hit))
     assert not offenders, (

@@ -133,12 +133,32 @@ def test_kosong_ditolak():
 # ---------------------------------------------------------------------------
 # 4. Peringatan (tidak memblokir, tapi terlihat)
 # ---------------------------------------------------------------------------
-def test_provider_tak_dikenal_jadi_warning_bukan_error():
+def test_provider_tak_dikenal_ditolak_bukan_diterima():
+    """Provider karangan DITOLAK, bukan sekadar diperingatkan.
+
+    PERUBAHAN KEBIJAKAN 2026-10-03. Sebelumnya provider tak dikenal hanya
+    jadi warning dan spec tetap `ok: True`. Praktisnya itu sama dengan
+    "diam-diam": canvas menampilkan workflow yang terlihat sah, padahal
+    tidak ada satu pun handler yang bisa mengeksekusinya, dan user baru
+    sadar jauh setelah menyimpan. Tujuan asli test ini (menolak provider
+    karangan) baru benar-benar tercapai kalau penolakannya memblokir.
+    """
     raw = _spec([{"id": "t", "kind": "trigger"},
                  {"id": "m", "kind": "mcp", "config": {"provider": "zapier"}}])
     res = ws.validate_spec(raw)
-    assert res["ok"] is True, res
-    assert any("zapier" in w for w in res["warnings"]), res
+    assert res["ok"] is False, res
+    assert any("zapier" in e for e in res["errors"]), res
+    # Validator TIDAK boleh mengarang provider pengganti.
+    assert "zapier" not in ws.KNOWN_PROVIDERS
+
+
+def test_provider_tak_dikenal_memberi_jalur_keluar():
+    """Penolakan harus menyebut opsi yang bisa dipakai, bukan sekadar 'no'."""
+    raw = _spec([{"id": "t", "kind": "trigger"},
+                 {"id": "m", "kind": "mcp", "config": {"provider": "zapier"}}])
+    res = ws.validate_spec(raw)
+    msg = " ".join(res["errors"])
+    assert "http" in msg, msg
 
 
 def test_node_terpisah_tanpa_edge_jadi_warning():

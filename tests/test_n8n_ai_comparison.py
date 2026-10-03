@@ -264,21 +264,24 @@ def test_katalog_prompt_sederhana_terdefinisi():
 
 
 def test_provider_yang_muncul_di_prompt_terdaftar():
-    """Setiap provider yang disebut user harus punya jalur (atau jadi warning).
+    """Provider yang disebut user tidak boleh jadi workflow karangan.
 
     Ini yang membuat "posting ke Twitter" / "backup ke Google Drive" tidak
-    diam-diam jadi workflow dengan provider karangan.
+    diam-diam jadi workflow dengan provider karangan. PERUBAHAN 2026-10-03:
+    dari warning menjadi ERROR, karena warning tetap membiarkan spec lolos
+    sebagai "valid" despite tidak ada handler-nya. Jaminan yang sama
+    bertahan: validator tidak pernah mengarang provider pengganti.
     """
     known = set(ws.KNOWN_PROVIDERS)
-    # Prompt 6 & 8 menyebut provider yang TIDAK punya jalur kredensial bawaan.
-    # Validator harus memberi warning, bukan error, dan tidak mengarang provider.
     res = ws.validate_spec(
         '{"name":"x","nodes":[{"id":"t","kind":"trigger"},'
         '{"id":"m","kind":"mcp","config":{"provider":"twitter"}}],'
         '"edges":[{"source":"t","target":"m"}]}'
     )
-    assert res["ok"] is True
-    assert any("twitter" in w for w in res.get("warnings", [])), (
-        "provider tanpa jalur kredensial harus diberi warning"
+    assert res["ok"] is False, res
+    assert any("twitter" in e for e in res["errors"]), (
+        "provider tanpa handler harus ditolak dengan menyebut namanya"
     )
     assert "twitter" not in known
+    # Opsi http harus ditawarkan supaya user/agent punya jalan keluar.
+    assert "http" in " ".join(res["errors"])

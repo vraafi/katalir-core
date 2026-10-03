@@ -31,6 +31,7 @@ load_repo_env()
 import database as db
 import gemini_key_pool
 import model_discovery as md
+import workflow_autofix as _wf_autofix
 import security
 import tools
 from textual_tool_calls import (  # BUG FIX 2026-10-02: parser tool-call TEKS
@@ -150,6 +151,11 @@ app.add_middleware(
 # 'plus' = kebijakan bisnis (hermes #5880), tetap eksplisit per model.
 # Didefinisikan SETELAH import md (NameError `md` = crash 502 saat startup).
 PLUS_CHAT_MODELS = md.PLUS_CHAT_MODELS
+
+# Batas perbaikan otomatis: berapa kali error validasi YANG SAMA boleh
+# muncul sebelum kita menyerah dan lapor jujur ke user. Dipakai
+# `workflow_autofix` (lihat modul itu untuk analisis lengkap).
+_WAF_NO_PROGRESS = _wf_autofix.NO_PROGRESS_LIMIT
 PLUS_TIERS = frozenset({"plus", "pro", "ultra"})
 
 
@@ -492,6 +498,52 @@ def _tool_name(raw_name: str) -> str:
     return name.strip()
 
 
+def _waf_repair_track(tool_result: Any, seen: list) -> bool:
+    """Catat tanda tangan error validasi; True bila sudah TANPA PROGRES.
+
+    Menggantikan 3 ronde buta di loop tool calling. Tanpa ini, model yang
+    salah dengan cara yang sama tetap dipanggil 3x lalu output-nya tetap
+    ditolak tanpa penjelasan ke user - persis kelemahan "stuck" yang paling
+    sering dikeluhkan.
+
+    `seen` diubah in-place; tiap entri adalah dict {"sig", "errors"} supaya
+    pelapor bisa menampilkan error ASLI, bukan tanda tangan ternormalisasi.
+
+    Args:
+        tool_result: string JSON hasil `generate_workflow_json`.
+        seen: list rekaman yang sudah terkumpul.
+
+    Returns:
+        bool: True bila error yang identik sudah mencapai batas.
+    """
+    try:
+        parsed = json.loads(tool_result) if isinstance(tool_result, str) else tool_result
+    except (TypeError, ValueError):
+        return False
+    if not isinstance(parsed, dict) or parsed.get("ok"):
+        return False
+    sig = _wf_autofix.error_signature(parsed)
+    if not sig:
+        return False
+    seen.append({"sig": sig, "errors": list(parsed.get("errors") or [])})
+    return sum(1 for r in seen if r["sig"] == sig) >= _WAF_NO_PROGRESS
+
+
+def _waf_repair_message(seen: list) -> str:
+    """Pesan jujur untuk user saat perbaikan otomatis buntu.
+
+    Prinsip anti-hallucination: JANGAN menulis "workflow berhasil dibuat"
+    atau menyiratkan ada workflow di canvas bila memang tidak ada.
+    """
+    errors = list(seen[-1]["errors"]) if seen else []
+    return (
+        "Workflow belum bisa diselesaikan otomatis: "
+        f"{_WAF_NO_PROGRESS}x percobaan perbaikan menghasilkan masalah "
+        "yang sama. Benahi di bawah lalu minta ulang.\n"
+        + _wf_autofix.describe_errors(errors)
+    )
+
+
 def _accepted_workflow(tool_result: Any) -> "dict | None":
     """Ambil `spec` dari hasil `generate_workflow_json` BILA alat menerimanya.
 
@@ -697,6 +749,9 @@ def _agentic_run_gateway(prompt: str, email: str, model_id: str,
         # ikut di respons (`meta.workflow`). Tanpa ini, hasil generate hanya
         # hidup di dalam pesan tool lalu hilang -> canvas tidak punya apa pun.
         workflow_out: dict | None = None
+        # Rekam error validasi yang berulang (lihat _waf_repair_track).
+        waf_seen: list = []
+        waf_stalled = False
         try:
             try:
                 resp = chat_model.invoke(messages)
@@ -796,16 +851,29 @@ def _agentic_run_gateway(prompt: str, email: str, model_id: str,
 
                     if name == "generate_workflow_json":
                         workflow_out = _accepted_workflow(result) or workflow_out
+                        # Deteksi tanpa progres: error validasi yang IDENTIK
+                        # berulang = repair berikutnya pasti sia-sia. Menghentikan
+                        # ronde lebih awal dan melapor jujur lebih baik daripada
+                        # membuang kuota 3x lalu diam saja.
+                        if _waf_repair_track(result, waf_seen):
+                            waf_stalled = True
+                            break
                     messages.append(ToolMessage(
                         content=str(result),
                         tool_call_id=str((call or {}).get("id") or name),
                     ))
                 resp = chat_model.invoke(messages)
             usage = getattr(resp, "usage_metadata", None) or {}
+            reply_text = _content_text(resp)
+            if waf_stalled and workflow_out is None:
+                # Anti-hallucination: tidak ada workflow -> jangan menyatakan
+                # selesai. Laporan jujur lebih berguna daripada senyap kosong.
+                reply_text = _waf_repair_message(waf_seen)
             return {
-                "reply": _content_text(resp),
+                "reply": reply_text,
                 "meta": {
                     "model": cand,
+                    "repair_stalled": waf_stalled,
                     "requested_model": model_id,
                     "latency_ms": int((time.time() - _t0) * 1000),
                     "prompt_tokens": int(usage.get("input_tokens") or 0),

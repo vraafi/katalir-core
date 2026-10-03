@@ -136,7 +136,19 @@ def validate_spec(raw: str) -> dict[str, Any]:
                           f"(contoh: {', '.join(KNOWN_PROVIDERS[:3])})")
             continue
         if prov not in KNOWN_PROVIDERS:
-            warnings.append(f"provider '{prov}' belum punya jalur kredensial bawaan")
+            # ANTI-FABRIKASI (brief 2026-10-03, kelemahan n8n #7): provider
+            # yang tidak dikenal TIDAK boleh lolos sebagai sekadar warning.
+            # Dulu `x_twitter`, `gdrive`, atau nama karangan lain diterima
+            # sebagai "valid", padahal saat eksekusi tidak ada satu pun
+            # handler yang bisa memanggilnya - user baru sadar setelah
+            # menunggu. Aturan: pakai provider yang terdaftar, atau pakai
+            # `http` generik dengan URL.
+            errors.append(
+                f"node mcp '{n.id}' memakai provider '{prov}' yang tidak "
+                f"dikenal. Pilihan yang tersedia: "
+                f"{', '.join(KNOWN_PROVIDERS)}. Untuk API lain pakai "
+                "provider 'http' dengan config.url."
+            )
             continue
         # FASE 2.6: draf yang tidak bisa dijalankan DITOLAK di sini, bukan gagal
         # saat eksekusi sebagai HTTP 400 dari provider. Model lalu memanggil ulang
