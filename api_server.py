@@ -529,19 +529,26 @@ def _waf_repair_track(tool_result: Any, seen: list) -> bool:
     return sum(1 for r in seen if r["sig"] == sig) >= _WAF_NO_PROGRESS
 
 
-def _waf_repair_message(seen: list) -> str:
-    """Pesan jujur untuk user saat perbaikan otomatis buntu.
+def _waf_repair_message(seen: list, stalled: bool = False) -> str:
+    """Pesan jujur saat ada validasi gagal tapi workflow tidak terbentuk.
 
     Prinsip anti-hallucination: JANGAN menulis "workflow berhasil dibuat"
     atau menyiratkan ada workflow di canvas bila memang tidak ada.
+
+    Args:
+        seen: rekaman dari `_waf_repair_track`.
+        stalled: True bila error identik berulang sampai batas, artinya
+            perbaikan otomatis tidak lagi hydroxide ada artinya.
     """
     errors = list(seen[-1]["errors"]) if seen else []
-    return (
-        "Workflow belum bisa diselesaikan otomatis: "
-        f"{_WAF_NO_PROGRESS}x percobaan perbaikan menghasilkan masalah "
-        "yang sama. Benahi di bawah lalu minta ulang.\n"
-        + _wf_autofix.describe_errors(errors)
-    )
+    if stalled:
+        head = ("Workflow belum bisa diselesaikan otomatis: "
+                f"{_WAF_NO_PROGRESS}x percobaan perbaikan menghasilkan "
+                "masalah yang sama.")
+    else:
+        head = ("Workflow BELUM jadi - validasi menolak draf terakhir, "
+                "jadi tidak ada yang masuk ke canvas.")
+    return head + "\n" + _wf_autofix.describe_errors(errors)
 
 
 def _accepted_workflow(tool_result: Any) -> "dict | None":
@@ -865,10 +872,15 @@ def _agentic_run_gateway(prompt: str, email: str, model_id: str,
                 resp = chat_model.invoke(messages)
             usage = getattr(resp, "usage_metadata", None) or {}
             reply_text = _content_text(resp)
-            if waf_stalled and workflow_out is None:
-                # Anti-hallucination: tidak ada workflow -> jangan menyatakan
-                # selesai. Laporan jujur lebih berguna daripada senyap kosong.
-                reply_text = _waf_repair_message(waf_seen)
+            if workflow_out is None and waf_seen:
+                # Anti-hallucination: ada validasi yang GAGAL tapi tidak ada
+                # Ada validasi yang GAGAL tapi tidak ada workflow. Membalas
+                # "Selesai." apa adanya sama saja menyesatkan user - dia
+                # mengira workflow sudah dibuat. Kabar buruknya lebih berguna.
+                # Kabar buruknya selalu lebih berguna daripada senyap.
+                msg = _waf_repair_message(waf_seen, stalled=waf_stalled)
+                reply_text = (reply_text + "\n\n" + msg).strip() if reply_text else msg
+
             return {
                 "reply": reply_text,
                 "meta": {
