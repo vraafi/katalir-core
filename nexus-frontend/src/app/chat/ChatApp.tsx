@@ -13,7 +13,7 @@ import { QueryProvider } from "@/features/builder/provider";
 import { I18nProvider } from "@/i18n/context";
 import { apiFetch } from "@/lib/api";
 import { useI18n } from "@/i18n/context";
-import { useSessionsQuery, useMessagesQuery, useSendChatMutation, useDeleteSessionMutation, useModelsQuery, type ChatModelItem } from "@/features/chat/hooks/useChat";
+import { useSessionsQuery, useMessagesQuery, useSendChatMutation, useDeleteSessionMutation, useModelsQuery, resolveInterruptedSession, type ChatModelItem } from "@/features/chat/hooks/useChat";
 import type { ChatMessage } from "@/features/chat/hooks/useChat";
 import { useQueryClient } from "@tanstack/react-query";
 import { chatKeys } from "@/lib/query-keys";
@@ -300,6 +300,11 @@ function ChatApp() {
   const [atBottom, setAtBottom] = useState(true);
 
   const emailRef = useRef(activeEmail);
+  // BUG FIX 2026-10-03 (cancel context loss): `client_request_id` giliran yang
+  // SEDANG berjalan. `onStop` memakainya untuk meminta ke server sesi mana
+  // yang sudah menampung giliran yang dihentikan, supaya giliran berikutnya
+  // melanjutkan percakapan yang sama (bukan sesi baru yang kosong).
+  const activeReqIdRef = useRef<string | null>(null);
   useEffect(() => {
     emailRef.current = activeEmail;
   }, [activeEmail]);
@@ -644,12 +649,29 @@ function ChatApp() {
   }, [loadingMsg, messageQueue, sendMutation.isPending]);
 
   // Fix 2 Stop: batalkan permintaan /chat berjalan + kosongkan sisa antrean.
+  //
+  // BUG FIX 2026-10-03 (cancel context loss): bubble pesan user TIDAK lagi
+  // dihapus saat Stop (itu diurus `onError` di useChat, yang menandainya
+  // `interrupted`). Di sini kita memulihkan `session_id` supaya giliran
+  // berikutnya LANJUT di percakapan yang sama. Tanpa itu, percakapan baru
+  // selalu memulai sesi kosong dan konteks yang sudah tersimpan di server
+  // tidak pernah dibaca.
   function onStop() {
     cancelRef.current?.abort();
     cancelRef.current = null;
     busyRef.current = false;
     setMessageQueue([]);
     setEditingId(null);
+
+    const rid = activeReqIdRef.current;
+    activeReqIdRef.current = null;
+    if (!rid) return;
+    // `sessionId` sengaja dibaca lewat ref-esque closure di bawah supaya
+    // tidak memicu re-render; yang penting: jangan menimpa sesi yang sudah ada.
+    if (sessionId) return;
+    void resolveInterruptedSession(rid, qc).then((sid) => {
+      if (sid) void setSessionId(sid);
+    });
   }
 
   async function sendPrompt(text: string, retry?: { retryOfLocalId?: string; clientRequestId?: string }) {
@@ -684,6 +706,9 @@ function ChatApp() {
       ?? (typeof crypto !== "undefined" && "randomUUID" in crypto
         ? crypto.randomUUID()
         : `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`);
+    // BUG FIX 2026-10-03: simpan id kiriman ini supaya `onStop` bisa memulihkan
+    // session_id ketika user menekan Stop di tengah balasan.
+    activeReqIdRef.current = clientRequestId;
     // Optimistic bubble ditulis oleh onMutate (setQueryData) — TANPA useState.
     try {
       const data = await sendMutation.mutateAsync({
@@ -726,6 +751,9 @@ function ChatApp() {
     } finally {
       if (cancelRef.current === controller) cancelRef.current = null;
       busyRef.current = false;
+      // Jangan ada req-id yatim: `onStop` sudah consume-nya, jadi hanya
+      // bersihkan kalau masih milik kiriman ini (retry beruntun).
+      if (activeReqIdRef.current === clientRequestId) activeReqIdRef.current = null;
     }
   }
 

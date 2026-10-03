@@ -410,6 +410,13 @@ _AGENT_SYSTEM = (
     "{provider, nomor_tujuan, pesan} · google_calendar: {provider, nama_acara, waktu}. "
     "`pesan`/`isi` boleh memakai teks permintaan pengguna; `chat_id`/`url`/"
     "`channel` TIDAK boleh dikarang — kalau belum disebut, tanya dulu.\n"
+    "4b. MEMBUAT SPREADSHEET: kamu BISA membuat Google Spreadsheet baru sendiri "
+    "lewat alat `buat_google_spreadsheet` (parameter `title`, opsional "
+    "`sheet_name` dan `sheet_names`). Jika pengguna meminta spreadsheet, lembar "
+    "kerja, atau tab BARU dan belum ada spreadsheet yang disebut, PANGGIL alat "
+    "itu. JANGAN minta pengguna membuat spreadsheet secara manual dan JANGAN "
+    "meminta `spreadsheet_id` dari pengguna. Alat `baca_google_sheets` hanya "
+    "untuk spreadsheet yang SUDAH ada.\n"
     "5. Bila alat menolak (ada `errors`), perbaiki sesuai `hint` dan panggil "
     "ulang; jangan menyerahkan JSON yang ditolak ke pengguna.\n"
     "6. Setelah alat menerima, balas dengan ringkasan singkat: berapa node, "
@@ -1364,6 +1371,96 @@ def chat(req: ChatRequest, authorization: str | None = Header(None)):
         meta["quota_fallback_from"] = _q_fallback_from
 
     return {"status": "success", "reply": reply, "session_id": session_id, "meta": meta}
+
+
+# ---------------------------------------------------------------------------
+# ENDPOINT (BUG FIX 2026-10-03): POST /chat/interrupted
+#
+# Mengembalikan `session_id` dari giliran yang sudah TERSIMPAN di server lalu
+# dihentikan user (tombol Stop).
+#
+# Kenapa perlu: `POST /chat` menyimpan pesan user ke `chat_messages` SEBELUM
+# menjalankan agent, jadi konteksnya tidak pernah hilang di server. Yang hilang
+# adalah `session_id`: responsnya ter-abort, jadi klien tidak pernah tahu sesi
+# mana yang dipakai. Untuk percakapan yang masih baru, giliran berikutnya lalu
+# membuat SESI BARU yang riwayatnya kosong - gejala "konteks hilang".
+#
+# Endpoint ini menutup celah itu TANPA menghapus apa pun: ia hanya mencari
+# kembali sesi yang sudah ada. Kalau pesan user belum sempat tersimpan, jawabannya
+# `session_id: null` dan klien memakai perilaku lama.
+#
+# Idempoten: pemanggilan berulang selalu mengembalikan hal yang sama dan tidak
+# mengubah data.
+# ---------------------------------------------------------------------------
+class InterruptedTurnBody(BaseModel):
+    """Body untuk POST /chat/interrupted."""
+
+    client_request_id: str = Field(..., min_length=1)
+
+
+@app.post("/chat/interrupted")
+def chat_interrupted(body: InterruptedTurnBody, authorization: str | None = Header(None)):
+    """Cari sesi yang sudah menampung giliran yang dibatalkan user (tombol Stop).
+
+    BUG FIX 2026-10-03 (cancel context loss). Endpoint ini TIDAK menghapus apa pun.
+
+    `POST /chat` menyimpan pesan user ke `chat_messages` SEBELUM menjalankan agent
+    (lihat `db.add_message(..., "user", ...)` di fungsi `chat`), jadi konteksnya
+    tidak pernah hilang di server. Yang hilang waktu klien meng-abort request
+    hanyalah `session_id` di dalam respons. Untuk percakapan yang masih baru,
+    giliran berikutnya lalu membuat SESI BARU yang riwayatnya kosong - persis
+    gejala "konteks hilang" yang dilaporkan user.
+
+    Endpoint ini menutup celah itu dengan cara MENCARI KEMBALI sesi yang sudah
+    ada. Kalau pesan user belum sempat tersimpan (abort sebelum `add_message`),
+    balas `{session_id: null}` dan klien memakai perilaku lama.
+
+    Idempoten: pemanggilan berulang mengembalikan hasil yang sama, tanpa menulis.
+
+    Returns:
+        {status, session_id, has_reply, ok}
+        - session_id: id sesi efektif, atau None bila tidak bisa dipulihkan.
+        - has_reply: True bila balasan sempat selesai di server walau klien
+          menyerah menunggu (jarang; dicek supaya UI bisa invalidate, bukan
+          menebak).
+    """
+    user = security.get_current_user(authorization)
+    user_email = user["email"]
+
+    try:
+        prior = db.find_user_message_by_request(body.client_request_id)
+    except Exception as exc:  # noqa: BLE001
+        print(f"[api_server] gagal mencari giliran terputus: {type(exc).__name__}: {exc}")
+        prior = None
+
+    if not prior or not prior.get("session_id"):
+        return {"status": "success", "session_id": None, "has_reply": False, "ok": True}
+
+    sid = str(prior["session_id"])
+
+    # Ownership check. `find_user_message_by_request` memakai service-role
+    # client, jadi TIDAK memfilter per user. `db.get_messages(owner, ...)` sudah
+    # memvalidasi kepemilikan (dipakai juga oleh `load_history`), jadi
+    # pemeriksaan di sini mencegah endpoint ini jadi oracle keberadaan sesi
+    # milik orang lain bila `client_request_id` pernah bocor.
+    try:
+        db.get_messages(user_email, sid)
+    except HTTPException:
+        return {"status": "success", "session_id": None, "has_reply": False, "ok": True}
+    except Exception:  # noqa: BLE001
+        return {"status": "success", "session_id": None, "has_reply": False, "ok": True}
+
+    try:
+        reply = db.get_last_assistant_reply(sid, client_request_id=body.client_request_id)
+    except Exception:  # noqa: BLE001 - hanya informatif
+        reply = None
+
+    return {
+        "status": "success",
+        "session_id": sid,
+        "has_reply": bool(reply),
+        "ok": True,
+    }
 
 
 # ---------------------------------------------------------------------------

@@ -1,7 +1,7 @@
 // useChat.ts — server-state voor chat via TanStack Query v5.
 // Volgt Makerkit-pattern: staleTime 60s, query keys factory, query
 // functies gescheiden. refetchOnWindowFocus=true (chat moet fresh zijn).
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { QueryClient, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { CHAT_TIMEOUT_MS, apiFetch, classifyChatError, classifyHttpError, sleep } from "@/lib/api";
 import { chatKeys } from "@/lib/query-keys";
 
@@ -52,6 +52,10 @@ export interface ChatMessage {
   _localId?: string;
   /** Kartu form kredensial / kartu OAuth / kartu error kontekstual (system message khusus). */
   type?: "credential_form" | "oauth_prompt" | "error";
+  /** BUG FIX 2026-10-03 (cancel context loss): giliran yang user hentikan
+   *  dengan tombol Stop. Pesan user TIDAK dihapus — ditandai supaya konteks
+   *  tetap terbawa ke giliran berikutnya. Lihat `useSendChatMutation.onError`. */
+  interrupted?: boolean;
   provider?: string;
   original?: string;
   /** Task 1C: endpoint authorize dari backend (hanya untuk `oauth_prompt`). */
@@ -201,6 +205,64 @@ export function useDeleteSessionMutation() {
       if (email) void qc.invalidateQueries({ queryKey: chatKeys.sessions(email) });
     },
   });
+}
+
+/**
+ * BUG FIX 2026-10-03 — pemulihan konteks setelah giliran dibatalkan (Stop).
+ *
+ * Background: `POST /chat` adalah endpoint sinkron. Backend MENYIMPAN pesan user
+ * (`db.add_message(..., "user", ...)`) SEBELUM menjalankan agent, jadi konteksnya
+ * sudah aman di server. Yang hilang waktu request di-abort hanyalah `session_id`
+ * di dalam respons — dan kalau percakapan masih baru, klien tidak pernah 저장
+ * id itu. Efeknya: giliran berikutnya membuat SESI BARU yang riwayatnya kosong.
+ *
+ * Fungsi ini menutup celah itu: tanyakan ke server sesi mana yang sudah
+ * menampung `client_request_id` milik giliran yang dibatalkan, pindahkan bubble
+ * `interrupted` dari cache `__pending__` ke cache sesi itu, lalu segarkan daftar
+ * dari sumber kebenaran. Tidak ada konteks yang dihapus di sisi server.
+ *
+ * Best-effort: kegagalan di sini TIDAK boleh menggagalkan UX (giliran memang
+ * sudah berhenti). Semua error ditelan, pemanggil tinggal lanjut.
+ *
+ * @returns id sesi yang ditemukan, atau `null` bila tidak bisa dipulihkan.
+ */
+export async function resolveInterruptedSession(
+  clientRequestId: string | null | undefined,
+  qc: QueryClient
+): Promise<string | null> {
+  if (!clientRequestId) return null;
+  let sid: string | null = null;
+  try {
+    const res = await apiFetch("/chat/interrupted", {
+      method: "POST",
+      body: JSON.stringify({ client_request_id: clientRequestId }),
+      timeoutMs: 20_000,
+    });
+    if (!res.ok) return null;
+    const data = (await res.json().catch(() => null)) as { session_id?: string } | null;
+    sid = data?.session_id ?? null;
+  } catch {
+    return null;
+  }
+  if (!sid) return null;
+
+  try {
+    const realKey = chatKeys.messages(sid);
+    const pendingKey = chatKeys.messages("__pending__");
+    const pending = qc.getQueryData<ChatMessage[]>(pendingKey) ?? [];
+    // Pindahkan SELURUH isi `__pending__` (bukan cuma bubble terakhir): pada
+    // sesi baru bisa ada lebih dari satu bubble yang tertahan di sana.
+    if (pending.length) {
+      qc.setQueryData<ChatMessage[]>(realKey, (old) => [...(old ?? []), ...pending]);
+    }
+    // Segarkan dari server supaya bubble yang sama tidak tampil ganda dan
+    // balasan yang sempat selesai di server ikut muncul.
+    void qc.invalidateQueries({ queryKey: realKey });
+    void qc.invalidateQueries({ queryKey: chatKeys.all });
+  } catch {
+    /* best-effort */
+  }
+  return sid;
 }
 
 /** useMutation POST /chat — optimistic update single source of truth.
@@ -364,21 +426,51 @@ export function useSendChatMutation() {
     },
     onError: (err, vars, context) => {
       if (!context) return;
-      // User klik Stop: buang bubble optimistic user+asst yang sedang diproses
-      // (jangan holt jadi kartu error).
+      // BUG FIX 2026-10-03 (cancel context loss / "konteks hilang").
+      //
+      // Versi lama MEMBUANG bubble user saat Stop. Akibatnya:
+      //   1. prompt yang diketik user lenyap dari layar;
+      //   2. kalau sesi masih baru, pesannya hanya ada di cache
+      //      chatKeys.messages("__pending__") dan `setSessionId` tidak pernah
+      //      dipanggil (onSuccess tak jalan karena request di-abort);
+      //   3. pesan berikutnya membuka SESI BARU -> `load_history` sesi kosong
+      //      -> AI benar-benar lupa. Ini persis gejala yang dilaporkan.
+      //
+      // Prinsip yang dipakai (pola yang sama dipakai upstream saat memperbaiki
+      // bug serupa: lihat catatan "interrupted-turn recovery"):
+      //   - JANGAN buang apa pun yang sudah terlihat user;
+      //   - materialkan konteks yang sudah ada di server saat pembatalan,
+      //     jangan menunggu pesan berikutnya;
+      //   - tandai giliran sebagai "interrupted" supaya UI jujur bahwa
+      //     jawabannya belum selesai, bukan error.
+      //
+      // Backend sudah MENYIMPAN pesan user sebelum menjalankan agent
+      // (lihat `api_server.chat`: `db.add_message(..., "user", ...)` dijalankan
+      // sebelum `_agentic_run_direct`). Jadi konteksnya masih ada di server —
+      // yang hilang cuma:id sesi yang tidak diketahui klien, karena responsnya
+      // ter-abort. `resolveInterruptedSession` mengambil id itu kembali.
       if ((err as Error)?.name === "CanceledError") {
-        qc.setQueryData<ChatMessage[]>(context.targetKey, (old) =>
-          (old ?? []).filter(
-            (m) =>
-              // Pada retry TIDAK ada bubble user baru milik kiriman ini, jadi
-              // bubble user milik giliran lain WAJIB tetap ada. Versi lama
-              // membungkus segalanya dalam satu filter dan ikut menghapus
-              // `optimisticUserId` milik giliran LAIN karena nilainya selalu
-              // di-generate ulang -> history terkirim ikut hilang saat Stop.
-              m._localId !== context.optimisticAsstId &&
-              (!context.isRetry || m._localId !== context.optimisticUserId)
-          )
-        );
+        qc.setQueryData<ChatMessage[]>(context.targetKey, (old) => {
+          const base = old ?? [];
+          // Buang HANYA placeholder assistant "…". Bubble user milik giliran
+          // ini dipertahankan dan ditandai `interrupted`.
+          const kept = base.filter((m) => m._localId !== context.optimisticAsstId);
+          if (context.isRetry) {
+            // Retry tidak pernah membuat bubble user baru, jadi tidak ada yang
+            // perlu ditandai — bubble user milik giliran ASAL tetap utuh.
+            return kept;
+          }
+          return kept.map((m) =>
+            m._localId === context.optimisticUserId ? { ...m, interrupted: true } : m
+          );
+        });
+
+        // Catatan: pemulihan `session_id` TIDAK dilakukan di sini. `onError`
+        // berjalan pada latch yang sama dengan `finally` di `sendPrompt`, jadi
+        // komponen masih berada di kondisi "belum tahu sesi" beberapa milidetik.
+        // `resolveInterruptedSession` dipanggil satu kali saja dari `onStop()`
+        // (ChatApp), yang memang memegang `clientRequestId` giliran aktif dan
+        // bisa melakukan `setSessionId` setelah Promise selesai.
         return;
       }
       // Fase 1: HOLD optimistic — jangan hapus bubble user sampai reply/error

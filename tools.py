@@ -61,6 +61,78 @@ def baca_google_sheets(spreadsheet_id: str, range_data: str, email: str) -> str:
     return f"Data dari spreadsheet {spreadsheet_id} ({range_data}) berhasil dibaca."
 
 
+def buat_google_spreadsheet(title: str, sheet_name: str = "Sheet1",
+                           sheet_names=None, email: str = "") -> str:
+    """Membuat Google Spreadsheet BARU lewat REST API (bukan simulasi).
+
+    BUG FIX 2026-10-03. Sebelumnya satu-satunya tool Sheets adalah
+    `baca_google_sheets`, yang WAJIB punya `spreadsheet_id`. Jadi model tidak
+    pernah bisa membuat spreadsheet dan satu-satunya jalan adalah meminta user
+    membuatnya manual lalu menyalin ID.
+
+    Memakai token OAuth yang SUDAH ada di vault (`oauth_google.access_token`,
+    scope `auth/spreadsheets`) dengan refresh otomatis. Bila user belum Connect,
+    naikkan `CredentialMissingError` supaya UI menampilkan tombol Connect
+    (dipetakan di `api_server.chat` ke `/oauth/google/authorize`) - BUKAN
+    meminta user menempel token manual.
+
+    Returns:
+        Ringkasan berisi judul, daftar tab, `spreadsheet_id`, dan URL.
+
+    Raises:
+        CredentialMissingError: user belum Connect / token ditolak Google.
+        RuntimeError: Google Sheets API mengembalikan error lain.
+    """
+    import httpx
+    import oauth_google
+
+    try:
+        token = oauth_google.access_token(email)
+    except RuntimeError as exc:
+        # Belum Connect (atau refresh token dicabut) ->_ui offering Connect.
+        raise CredentialMissingError("google_sheets") from exc
+
+    tabs = [sheet_name or "Sheet1"]
+    for extra in (sheet_names or []):
+        name = str(extra).strip()
+        if name and name not in tabs:
+            tabs.append(name)
+
+    payload = {
+        "properties": {"title": str(title)},
+        "sheets": [{"properties": {"title": t}} for t in tabs],
+    }
+    try:
+        resp = httpx.post(
+            "https://sheets.googleapis.com/v4/spreadsheets",
+            headers={
+                "Authorization": f"Bearer {token}",
+                "Content-Type": "application/json",
+            },
+            json=payload,
+            timeout=30.0,
+        )
+    except httpx.HTTPError as exc:  # noqa: BLE001
+        raise RuntimeError(f"Gagal menghubungi Google Sheets API: {exc}") from exc
+
+    if resp.status_code in (401, 403):
+        # Token ditolak/kedaluwarsa total -> suruh Connect ulang.
+        raise CredentialMissingError("google_sheets")
+    if resp.status_code != 200:
+        raise RuntimeError(
+            f"Google Sheets API {resp.status_code}: {resp.text[:200]}"
+        )
+
+    data = resp.json() or {}
+    sid = data.get("spreadsheetId") or ""
+    url = data.get("spreadsheetUrl") or ""
+    return (
+        f"Spreadsheet '{title}' berhasil dibuat. "
+        f"Tab: {', '.join(tabs)}. "
+        f"spreadsheet_id={sid} URL={url}"
+    )
+
+
 def kirim_email_gmail(tujuan: str, subjek: str, isi: str, email: str) -> str:
     """Kirim email via Gmail (simulasi). Wajib validasi kredensial dulu."""
     cred = db.get_integration(email, "gmail")
@@ -404,6 +476,30 @@ _baca_sheets_declaration = types.FunctionDeclaration(
     ),
 )
 
+_buat_spreadsheet_declaration = types.FunctionDeclaration(
+    name="buat_google_spreadsheet",
+    description=(
+        "Membuat Google Spreadsheet BARU (judul + tab). Gunakan ini saat pengguna "
+        "meminta dibuatkan spreadsheet/lembar kerja/tab baru. Memerlukan koneksi "
+        "Google Sheets milik user. JANGAN minta pengguna membuat spreadsheet "
+        "secara manual."
+    ),
+    parameters=types.Schema(
+        type=types.Type.OBJECT,
+        properties={
+            "title": types.Schema(type=types.Type.STRING,
+                description="Judul spreadsheet baru, misal 'Laporan Verdi'."),
+            "sheet_name": types.Schema(type=types.Type.STRING,
+                description="Nama tab pertama. Default 'Sheet1'."),
+            "sheet_names": types.Schema(type=types.Type.ARRAY,
+                items=types.Schema(type=types.Type.STRING),
+                description="Nama tab tambahan (opsional), misal ['inventory']."),
+        },
+        required=["title"],
+    ),
+)
+
+
 _kirim_email_declaration = types.FunctionDeclaration(
     name="kirim_email_gmail",
     description=(
@@ -564,6 +660,7 @@ TOOL_DECLARATIONS = [
     types.Tool(function_declarations=[
         _send_whatsapp_declaration,
         _baca_sheets_declaration,
+        _buat_spreadsheet_declaration,
         _kirim_email_declaration,
         _agenda_calendar_declaration,
         _generate_workflow_declaration,
@@ -706,6 +803,13 @@ def _execute_tool_inner(name: str, args: dict, email: str) -> str:
         return baca_google_sheets(
             spreadsheet_id=args.get("spreadsheet_id", ""),
             range_data=args.get("range_data", ""),
+            email=email,
+        )
+    if name == "buat_google_spreadsheet":
+        return buat_google_spreadsheet(
+            title=args.get("title", ""),
+            sheet_name=args.get("sheet_name", "Sheet1"),
+            sheet_names=args.get("sheet_names") or [],
             email=email,
         )
     if name == "kirim_email_gmail":

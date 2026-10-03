@@ -76,7 +76,24 @@ export function TypingDots({ ariaHidden }: { ariaHidden?: boolean }) {
   );
 }
 
-/** Terjemahan kode `fallback_reason` backend -> bahasa manusia. */
+/** Terjemahan kode `fallback_reason` backend -> bahasa manusia.
+ *
+ *  BUG FIX 2026-10-03 (tuduhan tier salah).
+ *
+ *  Versi lama memetakan `model_unavailable` -> "Model tidak tersedia untuk tier
+ *  Anda". Itu tuduhan yang TIDAK BENAR: `model_unavailable` di backend adalah
+ *  kode generik "model ini tidak bisa dipakai sekarang", dan pemanggilnya
+ *  mencakup upstream 404/410, alias mati, dan gateway yang tidak terjangkau.
+ *  Bukti bahwa kode ini sendiri tahu masalahnya — lihat komentar di
+ *  `api_server._fallback_reason`: "frontend menuduh 'tidak tersedia untuk tier
+ *  Anda' padahal 500".
+ *
+ *  Akibatnya user free yang memilih model gratis (mis. Gemma 4) tetap diberi
+ *  tahu "tidak tersedia untuk tier Anda" saat modelnya sedang hiccup — padahal
+ *  model itu gratis dan tier-nya sudah benar. Membership memang disampaikan
+ *  di tempat yang tepat: `ModelSelector` mengunci model plus dengan badge
+ *  "locked" + tombol Upgrade. Pesan fallback tidak boleh mengulangi tuduhan itu.
+ */
 export function formatFallbackReason(reason: string | null | undefined): string {
   switch (reason) {
     case "quota_exhausted":
@@ -86,11 +103,13 @@ export function formatFallbackReason(reason: string | null | undefined): string 
     case "overloaded":
       return "Server model ini sedang sibuk";
     case "model_unavailable":
-      return "Model tidak tersedia untuk tier Anda";
+      // Netral: jangan menyebut tier. Model free yang bermasalah akan memberi
+      // pesan yang sama persis, dan itu jujur — bukan tanda langganan kurang.
+      return "Model ini sedang tidak bisa dipakai. Silakan coba lagi sebentar atau pilih model lain.";
     case "gateway_down":
       return "Layanan gateway sedang tidak tersedia";
     default:
-      return "Model yang dipilih tidak tersedia";
+      return "Model yang dipilih sedang tidak tersedia";
   }
 }
 

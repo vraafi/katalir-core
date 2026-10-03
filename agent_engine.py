@@ -56,7 +56,44 @@ append_row_declaration = types.FunctionDeclaration(
     )
 )
 
-AGENT_TOOLS = [types.Tool(function_declarations=[append_row_declaration])]
+# BUG FIX 2026-10-03 (create_spreadsheet): hanya `append_row` yang dideklarasikan,
+# dan `append_row` WAJIB punya `spreadsheet_id`. Akibatnya model tidak pernah bisa
+# membuat spreadsheet sendiri - satu-satunya jalan adalah meminta user membuat
+# manual lalu menyalin ID. Tool ini menutup jalur itu.
+create_spreadsheet_declaration = types.FunctionDeclaration(
+    name="create_spreadsheet",
+    description=(
+        "Membuat Google Spreadsheet BARU. Gunakan tool ini saat user meminta "
+        "dibuatkan spreadsheet/lembar kerja/tab baru dan belum ada "
+        "`spreadsheet_id`. Jangan pernah meminta user membuat spreadsheet manual."
+    ),
+    parameters=types.Schema(
+        type=types.Type.OBJECT,
+        properties={
+            "title": types.Schema(
+                type=types.Type.STRING,
+                description="Judul spreadsheet baru, misal 'Laporan Verdi'.",
+            ),
+            "sheet_name": types.Schema(
+                type=types.Type.STRING,
+                description="Nama tab pertama. Default 'Sheet1'.",
+            ),
+            "sheet_names": types.Schema(
+                type=types.Type.ARRAY,
+                items=types.Schema(type=types.Type.STRING),
+                description="Nama tab tambahan (opsional), misal ['inventory'].",
+            ),
+        },
+        required=["title"],
+    )
+)
+
+AGENT_TOOLS = [
+    types.Tool(function_declarations=[
+        create_spreadsheet_declaration,
+        append_row_declaration,
+    ])
+]
 
 SYSTEM_INSTRUCTION = """
 Anda adalah Autonomous Multi-SaaS Agent Engine tingkat lanjut.
@@ -65,6 +102,12 @@ Aturan:
 1. Patuhi tipe data dan parameter wajib secara ketat saat memanggil fungsi.
 2. Jika menerima feedback kesalahan dari fungsi/sistem validasi, analisa akar permasalahannya, perbaiki nilai parameter, dan panggil kembali fungsi tersebut.
 3. Selalu berikan respon akhir yang jelas dan ringkas setelah tugas berhasil diselesaikan.
+4. KAMU BISA membuat Google Spreadsheet baru. Gunakan tool `create_spreadsheet`
+   dengan parameter `title` (dan opsional `sheet_name` / `sheet_names`) saat
+   user meminta spreadsheet, lembar kerja, atau tab baru. JANGAN pernah meminta
+   user membuat spreadsheet manual atau mencari `spreadsheet_id` sendiri.
+5. Gunakan `append_row` HANYA setelah spreadsheet sudah ada (butuh
+   `spreadsheet_id`).
 """
 
 def run_autonomous_agent(user_id: str, user_prompt: str) -> str:

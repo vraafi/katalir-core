@@ -20,12 +20,39 @@ class GoogleSheetsAppendRow(BaseModel):
         description="Daftar nilai (array) yang akan dimasukkan ke dalam satu baris baru. Contoh: ['Data A', 100, True]."
     )
 
+class GoogleSheetsCreate(BaseModel):
+    """
+    Skema untuk MEMBUAT spreadsheet Google Sheets baru.
+
+    BUG FIX 2026-10-03: hanya ada `append_row`, jadi model tidak pernah bisa
+    membuat spreadsheet sendiri dan selalu diminta user membuat manual lalu
+    menyalin `spreadsheet_id`. Tool ini menutup celah itu.
+    """
+
+    title: str = Field(
+        ...,
+        min_length=1,
+        description="Judul spreadsheet baru (misal: 'Laporan Verdi').",
+    )
+    sheet_name: str = Field(
+        default="Sheet1",
+        description="Nama tab PERTAMA di dalam spreadsheet baru. Default: 'Sheet1'.",
+    )
+    sheet_names: List[str] = Field(
+        default_factory=list,
+        description=(
+            "Nama tab TAMBAHAN (opsional). Contoh: ['inventory','arsip']. "
+            "Tab pertama tetap memakai `sheet_name`."
+        ),
+    )
+
 # --- REGISTRY TOOL ---
 # Memetakan action_name ke class Pydantic yang sesuai
 TOOL_REGISTRY: Dict[str, Type[BaseModel]] = {
     "append_row": GoogleSheetsAppendRow,
-    # Di masa depan, tambahkan action lain di sini:
-    # "create_spreadsheet": GoogleSheetsCreate,
+    # BUG FIX 2026-10-03: aktifkan. Comment-out sebelumnya membuat AI tidak
+    # punya cara membuat spreadsheet, sehingga user selalu diminta bikin manual.
+    "create_spreadsheet": GoogleSheetsCreate,
 }
 
 def validate_tool_payload(action_name: str, raw_payload: dict) -> Dict[str, Any]:
