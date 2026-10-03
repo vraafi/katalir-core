@@ -335,6 +335,19 @@ class IntegrationRequest(BaseModel):
     token: str
 
 
+class GmailImapSaveRequest(BaseModel):
+    """Body untuk POST /api/vault/gmail-imap.
+
+    App password adalah kredensial nyata, jadi dikirim lewat body POST lalu
+    langsung dienkripsi (vault) dan TIDAK pernah dikembalikan dalam respons.
+    """
+    email_address: str
+    app_password: str
+    # Bila true: setelah simpan, langsung tes login IMAP supaya user tahu
+    # sekalian apakah App Password-nya benar (UI bisa tampilkan status).
+    test_connection: bool = True
+
+
 class VaultSaveRequest(BaseModel):
     provider: str
     api_key: str
@@ -2238,6 +2251,75 @@ def vault_save_endpoint(req: VaultSaveRequest, authorization: str | None = Heade
     if not ok:
         raise HTTPException(500, "Gagal menyimpan vault.")
     return {"status": "saved", "provider": req.provider, "saved": True}
+
+
+@app.get("/api/vault/gmail-imap")
+def gmail_imap_status(authorization: str | None = Header(None)):
+    """Status koneksi Gmail IMAP untuk UI. TIDAK pernah mengembalikan kredensial."""
+    user = security.get_current_user(authorization)
+    import database as _db
+    from gmail_imap import VAULT_PROVIDER as _VP
+
+    cipher = _db.vault_get(user["email"], _VP)
+    connected = bool(cipher)
+    address = None
+    if connected:
+        try:
+            import vault_security as _vs
+            address = (_json.loads(_vs.decrypt_key(cipher)) or {}).get("email_address")
+        except Exception:  # noqa: BLE001 - vault rusak tidak boleh 500
+            address = None
+    return {
+        "status": "success",
+        "connected": connected,
+        "email_address": address,
+        "method": "imap",
+        "app_password_url": "https://myaccount.google.com/apppasswords",
+    }
+
+
+@app.post("/api/vault/gmail-imap")
+def gmail_imap_save(req: GmailImapSaveRequest, authorization: str | None = Header(None)):
+    """Simpan App Password terenkripsi, opsional tes koneksi IMAP.
+
+    Keamanan: user TARGET dari JWT, bukan dari body. App password hanya
+    keluar dari server sebagai ciphertext ke vault dan TIDAK PERNAH dikembalikan
+    ke klien.
+    """
+    user = security.get_current_user(authorization)
+    try:
+        ok = tools.save_gmail_imap_credential(
+            user["email"], req.email_address, req.app_password)
+    except ValueError as exc:
+        raise HTTPException(422, str(exc))
+    if not ok:
+        raise HTTPException(500, "Gagal menyimpan kredensial Gmail.")
+
+    result: dict = {"status": "saved", "connected": True,
+                    "email_address": req.email_address}
+    if req.test_connection:
+        from gmail_imap import GmailImapError, trigger_gmail_imap as _poll
+        try:
+            # Dipakai HANYA untuk tes login; tidak membaca isi email.
+            _poll(email_address=req.email_address,
+                  app_password=req.app_password,
+                  unread_only=True, max_messages=1)
+            result["connection_test"] = "ok"
+        except GmailImapError as exc:
+            # Kredensial tetap disimpan (user mungkin salah ketik spasi), tapi
+            # status koneksi_FAILED supaya UI bisa menuntun.
+            result["connection_test"] = "failed"
+            result["connection_error"] = str(exc)
+    return result
+
+
+@app.delete("/api/vault/gmail-imap")
+def gmail_imap_delete(authorization: str | None = Header(None)):
+    """Cabut kredensial Gmail IMAP milik user pada JWT."""
+    user = security.get_current_user(authorization)
+    from gmail_imap import VAULT_PROVIDER as _VP
+    ok = db.vault_delete(user["email"], _VP)
+    return {"status": "deleted" if ok else "not_found", "connected": False}
 
 
 @app.delete("/api/vault/{provider}")

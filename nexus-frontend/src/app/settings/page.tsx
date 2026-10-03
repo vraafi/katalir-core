@@ -11,6 +11,7 @@ import { useAuth } from "@/context/auth";
 import { useI18n } from "@/i18n/context";
 import { LanguageSwitcher } from "@/components/LanguageSwitcher";
 import { SimplePage } from "@/components/SimplePage";
+import { GmailImapCard } from "@/components/GmailImapCard";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -364,6 +365,12 @@ function SettingsContent() {
         Yang tersisa di sini hanya pintasan, supaya tidak ada jin yang
         menemukan /settings lalu bertanya "jadi di mana?".
       */}
+      {/* Gmail trigger IMAP (2026-10-03). Ditaruh di /settings - bukan
+          /integrations - karena ini BUKAN koneksi OAuth: user menempel
+          App Password miliknya sendiri, jadi sifatnya closer ke "kredensial"
+          yang juga punya kartu sendiri di halaman ini. Kartu OAuth Gmail di
+          /integrations tetap "comingSoon" karena scope RESTRICTED/CASA. */}
+      <GmailImapCard />
       <Card data-testid="card-integrations-link">
         <CardContent className="flex flex-wrap items-center justify-between gap-3 py-4">
           <div className="min-w-0">

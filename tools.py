@@ -14,6 +14,11 @@ import os
 
 from google.genai import types
 
+# Gmail IMAP trigger (TIDAK OAuth - scope gmail.readonly itu restricted/CASA).
+# Import ringan di level modul: hanya konstanta + helper normalisasi, tidak
+# ada koneksi jaringan sampai tool benar-benar dipanggil.
+from gmail_imap import VAULT_PROVIDER, normalize_app_password
+
 # Load env bila dipanggil standalone (module-level: dotenv via database sudah load)
 import database as db
 
@@ -355,6 +360,89 @@ def http_request(url: str, method: str = "GET", body: str = "",
 # diusulkan model, lalu mengembalikan status + pesan perbaikan yang bisa dibaca
 # model. Kalau valid, `spec` yang dipulangkan SUDAH siap dirender ke canvas.
 # ---------------------------------------------------------------------------
+def gmail_imap_credential(email: str) -> dict:
+    """Baca kredensial Gmail IMAP dari vault user (terenkripsi Fernet).
+
+    Disimpan sebagai satu JSON string agar tetap memakai satu slot
+    `user_vault` per provider (vault hanya punya kolom key tunggal).
+    Melempar `CredentialMissingError('gmail_imap')` bila belum diisi.
+    """
+    import database as db
+    import vault_security as vs
+
+    cipher = db.vault_get(email, VAULT_PROVIDER)
+    if not cipher:
+        raise CredentialMissingError(VAULT_PROVIDER)
+    try:
+        data = _json.loads(vs.decrypt_key(cipher))
+    except Exception as exc:  # noqa: BLE001 - vault rusak/rotasi kunci
+        raise CredentialMissingError(VAULT_PROVIDER) from exc
+    if not isinstance(data, dict) or not data.get("app_password"):
+        raise CredentialMissingError(VAULT_PROVIDER)
+    return data
+
+
+def save_gmail_imap_credential(email: str, email_address: str,
+                               app_password: str) -> bool:
+    """Simpan kredensial Gmail IMAP terenkripsi. True bila tersimpan."""
+    import database as db
+    import vault_security as vs
+
+    addr = str(email_address or "").strip()
+    pw = normalize_app_password(app_password)
+    if not addr or "@" not in addr:
+        raise ValueError("Alamat Gmail tidak valid.")
+    if len(pw) < 16:
+        raise ValueError("App Password harus 16 karakter (tanpa spasi).")
+    cipher = vs.encrypt_key(_json.dumps(
+        {"email_address": addr, "app_password": pw}, ensure_ascii=False))
+    return bool(db.vault_save(email, VAULT_PROVIDER, cipher))
+
+
+def trigger_gmail_imap_tool(email_address: str, app_password: str = "",
+                            subject_filter: str = "", max_messages: int = 10,
+                            unread_only: bool = True, email: str = "") -> str:
+    """ polls Gmail via IMAP. `app_password` boleh kosong -> diambil dari vault.
+
+    Mengembalikan JSON string berisi daftar email. App password TIDAK PERNAH
+    ikut di balasan (keamanan).
+    """
+    from gmail_imap import GmailImapError, trigger_gmail_imap as _poll
+
+    addr = str(email_address or "").strip()
+    pw = str(app_password or "").strip()
+    if not pw:
+        # Ambil dari vault bila user sudah menyimpannya lewat UI.
+        cred = gmail_imap_credential(email)
+        addr = addr or cred.get("email_address", "")
+        pw = cred.get("app_password", "")
+    try:
+        res = _poll(
+            email_address=addr,
+            app_password=pw,
+            subject_filter=subject_filter,
+            max_messages=max_messages,
+            unread_only=bool(unread_only),
+        )
+    except GmailImapError as exc:
+        return _json.dumps({"status": "error", "error": str(exc)}, ensure_ascii=False)
+    return _json.dumps(res, ensure_ascii=False, default=str)
+
+
+def write_sheets_dynamic_tool(spreadsheet_id: str, sheet_name: str,
+                              data: dict, email: str) -> str:
+    """Bungkus `write_sheets_dynamic` jadi string JSON untuk dispatcher."""
+    from sheets_dynamic import write_sheets_dynamic as _write
+
+    res = _write(
+        spreadsheet_id=spreadsheet_id,
+        sheet_name=sheet_name or "Sheet1",
+        data=data,
+        email=email,
+    )
+    return _json.dumps(res, ensure_ascii=False, default=str)
+
+
 def web_search(query: str, max_results: int = 5) -> str:
     """Pencarian web nyata (DuckDuckGo) untuk dipakai agen chat.
 
@@ -656,6 +744,63 @@ _web_search_declaration = types.FunctionDeclaration(
 )
 
 
+_gmail_imap_declaration = types.FunctionDeclaration(
+    name="trigger_gmail_imap",
+    description=(
+        "Membaca email BARU dari Gmail lewat IMAP (TIDAK OAuth). Cocok untuk "
+        "trigger 'email masuk'. Butuh Gmail App Password 16 karakter yang "
+        "dibuat user sendiri di myaccount.google.com/apppasswords (2FA aktif) - "
+        "sengaja tanpa OAuth karena scope gmail.readonly itu restricted dan "
+        "butuh review CASA. Kalau kredensial belum disimpan, tool melempar "
+        "credential_missing provider 'gmail_imap' supaya UI menawarkan form."
+    ),
+    parameters=types.Schema(
+        type=types.Type.OBJECT,
+        properties={
+            "email_address": types.Schema(type=types.Type.STRING,
+                description="Alamat Gmail yang dipoll (user@domain.com)."),
+            "app_password": types.Schema(type=types.Type.STRING,
+                description=(
+                    "App Password 16 karakter. Kosongkan bila sudah tersimpan "
+                    "di vault Katalir.")),
+            "subject_filter": types.Schema(type=types.Type.STRING,
+                description="Hanya ambil email yang subjeknya mengandung teks ini."),
+            "max_messages": types.Schema(type=types.Type.INTEGER,
+                description="Maksimal email (default 10, maks 50)."),
+            "unread_only": types.Schema(type=types.Type.BOOLEAN,
+                description="Hanya email UNREAD (default true)."),
+        },
+        required=["email_address"],
+    ),
+)
+
+
+_sheets_dynamic_declaration = types.FunctionDeclaration(
+    name="write_sheets_dynamic",
+    description=(
+        "Menulis satu baris ke Google Sheets dengan header DINAMIS: sheet "
+        "kosong -> header dibuat dari kunci data; kunci baru -> kolom baru "
+        "ditambahkan di kanan; kunci yang setara header lama dipetakan ke "
+        "kolom itu (lintas bahasa, mis. 'qty' -> 'jumlah'). Menggantikan "
+        "append biasa yang gagal saat header berubah."
+    ),
+    parameters=types.Schema(
+        type=types.Type.OBJECT,
+        properties={
+            "spreadsheet_id": types.Schema(type=types.Type.STRING,
+                description="ID spreadsheet (bagian URL antara /d/ dan /edit)."),
+            "sheet_name": types.Schema(type=types.Type.STRING,
+                description="Nama tab/sheet, mis. 'inventory'."),
+            "data": types.Schema(type=types.Type.OBJECT,
+                description=(
+                    "Objek data, mis. {'nama':'Kopi','qty':10,'harga':25000}. "
+                    "Nilai boleh string/number/bool.")),
+        },
+        required=["spreadsheet_id", "data"],
+    ),
+)
+
+
 TOOL_DECLARATIONS = [
     types.Tool(function_declarations=[
         _send_whatsapp_declaration,
@@ -668,6 +813,8 @@ TOOL_DECLARATIONS = [
         _slack_declaration,
         _http_declaration,
         _web_search_declaration,
+        _gmail_imap_declaration,
+        _sheets_dynamic_declaration,
     ])
 ]
 
@@ -870,5 +1017,21 @@ def _execute_tool_inner(name: str, args: dict, email: str) -> str:
         return web_search(
             query=args.get("query", ""),
             max_results=args.get("max_results", 5),
+        )
+    if name == "trigger_gmail_imap":
+        return trigger_gmail_imap_tool(
+            email_address=args.get("email_address", ""),
+            app_password=args.get("app_password", ""),
+            subject_filter=args.get("subject_filter", ""),
+            max_messages=args.get("max_messages", 10),
+            unread_only=args.get("unread_only", True),
+            email=email,
+        )
+    if name == "write_sheets_dynamic":
+        return write_sheets_dynamic_tool(
+            spreadsheet_id=args.get("spreadsheet_id", ""),
+            sheet_name=args.get("sheet_name", "") or "Sheet1",
+            data=args.get("data", {}),
+            email=email,
         )
     raise ValueError(f"Unknown tool: {name}")
