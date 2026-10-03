@@ -31,6 +31,12 @@ import { useI18n } from "@/i18n/context";
 import type { AgentWorkflow } from "@/features/agent/workflow-spec";
 import type { ExecutionReport } from "@/features/agent/execution-report";
 
+// Form credential inline di bubble chat (2026-10-03). Dipisah ke
+// components/CredentialForm.tsx karena dipakai juga di /settings, tapi
+// diekspor dari sini agar thread.tsx cukup satu import dari barrel.
+export { CredentialForm } from "@/components/CredentialForm";
+export type { CredentialField, CredentialFormProps } from "@/components/CredentialForm";
+
 /**
  * Pisahkan blok penalaran dari jawaban final.
  *

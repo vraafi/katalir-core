@@ -479,7 +479,7 @@ function ChatApp() {
       ),
     ...unconfirmed.map((m): Msg | null => {
       if (m.type === "credential_form" && m.provider && m.original !== undefined) {
-        return { key: `cred-${m.id ?? m._localId ?? m.provider}`, role: "system", type: "credential_form", provider: m.provider, original: m.original };
+        return { key: `cred-${m.id ?? m._localId ?? m.provider}`, role: "system", type: "credential_form", provider: m.provider, displayName: m.displayName, fields: m.fields, resumeToken: m.resumeToken, original: m.original };
       }
       // Task 1C: kartu Connect OAuth — provider ber-OAuth tidak lewat form token.
       if (m.type === "oauth_prompt" && m.provider) {
@@ -823,6 +823,24 @@ function ChatApp() {
     }
   }
 
+  /** BUG/FITUR 2026-10-03: setelah form credential INLINE tersimpan, hapus
+   *  kartu dari cache lalu kirim ULANG prompt aslinya. Tool kini menemukan
+   *  credential di vault dan langsung jalan - user tidak pernah perlu
+   *  membuka halaman Vault/Settings, dan tidak ada intervensi manual.
+   *  Pola ini identik dengan `submitCredential` (jalur token lama), hanya
+   *  penyimpanan lewat POST /chat/resume. */
+  async function handleCredentialResume(original: string) {
+    const keys = [chatKeys.messages(sessionId ?? "__pending__")];
+    for (const k of keys) {
+      qc.setQueryData<ChatMessage[]>(k, (old) =>
+        (old ?? []).filter((x) => x.type !== "credential_form")
+      );
+    }
+    if (original.trim()) {
+      await sendPrompt(original);
+    }
+  }
+
   async function submitCredential(provider: string, original: string) {
     if (!credValue.trim() || !activeEmail) return;
     try {
@@ -1031,6 +1049,7 @@ return (
                 credValue,
                 onCredChange: setCredValue,
                 onCredSubmit: submitCredential,
+    onResume: handleCredentialResume,
                 onOauthConnect: connectOauth,
                 oauthBusy,
                 onRetry: retryMessage,
@@ -1275,6 +1294,12 @@ return (
                   }
                 }}
                 placeholder={activeEmail ? t("chat.placeholder") : t("landing.loginCta")}
+                /* Helper prompt (BUG FIX 2026-10-03): validasi draf menolak
+                   workflow yang config provider-nya tidak lengkap, jadi user
+                   perlu tahu bahwa menyebut integrasi + target itu menentukan
+                   apakah draf bisa langsung jalan. Guide lengkap:
+                   docs/workflow-prompt-guide.md */
+                title={activeEmail ? `${t("chat.promptTip")} ${t("chat.promptGuide")}: docs/workflow-prompt-guide.md` : undefined}
                 aria-label={t("chat.messageLabel")}
                 /* HOOK STABIL UNTUK E2E: `aria-label` sengaja tetap
                    diterjemahkan (a11y), jadi tes TIDAK boleh memakainya sebagai

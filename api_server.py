@@ -395,6 +395,18 @@ _AGENT_SYSTEM = (
     "informasi tidak terverifikasi - jangan mengarang.\n"
     "e. Pertanyaan umum yang tidak berubah (matematika, definisi dasar) TIDAK "
     "perlu searching; jangan boros waktu.\n\n"
+    # BAGIAN 3.2 (2026-10-03): credential elicited INLINE. Sebelumnya model
+    # synthesized "silakan buka halaman Vault / Settings" - itu memutus alur
+    # chat dan mudah dilupakan. Sekarang sistem otomatis memunculkan form di
+    # dalam bubble begitu tool melempar credential_missing.
+    "CREDENTIAL (WAJIB):\n"
+    "a. JANGAN PERNAH menyuruh user membuka halaman Vault, Settings, atau "
+    "mengofill credential di luar chat.\n"
+    "b. Butuh credential? Panggil toolnya. Sistem otomatis menampilkan form "
+    "di dalam percakapan, menyimpan kredensial terenkripsi, lalu mengulang "
+    "perintahmu otomatis - user tidak perlu melakukan apa pun.\n"
+    "c. Jadi cukup katakancredential kurang lalu panggil tool yang relevan; "
+    "JANGAN memberi instruksi bernada 'kunjungi halaman'.\n\n"
     # --- FASE 2.1: DISCOVERY AGENT -------------------------------------------
     # --- FASE 2.1: DISCOVERY AGENT -------------------------------------------
     # Tanpa aturan ini, model langsung menebak isi workflow dan hasilnya salah
@@ -1332,7 +1344,23 @@ def chat(req: ChatRequest, authorization: str | None = Header(None)):
             "google_sheets": "/oauth/google/authorize",
             "slack": "/oauth/slack/authorize",
         }
-        connect_url = _oauth_providers.get(str(e.provider_name or "").lower())
+        # BUG/fitur 2026-10-03: credential yang bisa diisi user (App Password
+        # Gmail) tidak lagi mengarah ke "user buka halaman Vault". Form-nya
+        # dirender INLINE di bubble chat, persis pola MCP (server balas
+        # CredentialMissing, client render form) dan Vercel AI SDK v5
+        # (tool part `requires-action`). Jadi user tidak pernah meninggalkan
+        # percakapan, dan tidak perlu mengingat di mana harus mengetik.
+        import credential_forms as _cf
+
+        _prov = str(e.provider_name or "").strip().lower()
+        if _cf.has_inline_form(_prov):
+            try:
+                return _cf.build_requires_credential(
+                    _prov, user_email, session_id=session_id)
+            except ValueError:
+                pass  # form hilang/berubah -> jatuh ke jalur lama di bawah
+
+        connect_url = _oauth_providers.get(_prov)
         return {
             "status": "needs_oauth" if connect_url else "needs_credential",
             "provider": e.provider_name,
@@ -2320,6 +2348,62 @@ def gmail_imap_delete(authorization: str | None = Header(None)):
     from gmail_imap import VAULT_PROVIDER as _VP
     ok = db.vault_delete(user["email"], _VP)
     return {"status": "deleted" if ok else "not_found", "connected": False}
+
+
+class ChatResumeRequest(BaseModel):
+    """Body POST /chat/resume — credential dari form inline di chat."""
+    resume_token: str
+    provider: str = ""
+    credentials: dict = Field(default_factory=dict)
+
+
+# ---------------------------------------------------------------------------
+# ENDPOINT: POST /chat/resume
+# Credential hasil form inline disimpan terenkripsi, lalu tool langsung bisa
+# jalan. Frontend lalu mengirim ulang prompt aslinya (ia masih memegang
+# prompt itu di message list), jadi server tidak perlu menyimpan percakapan.
+# ---------------------------------------------------------------------------
+@app.post("/chat/resume")
+def chat_resume(req: ChatResumeRequest, authorization: str | None = Header(None)):
+    """Simpan credential dari form inline chat (terenkripsi ke user_vault).
+
+    Keamanan:
+      * `resume_token` diverifikasi tanda tangan + masa berlaku + pemilik,
+        jadi user lain tidak bisa menyimpan credential ke akun ini.
+      * Credential divalidasi terhadap definisi field provider, lalu
+        disimpan lewat `vault_security` (Fernet). Tidak pernah dikembalikan.
+      * Respons hanya berisi ringkasan non-rahasia.
+    """
+    user = security.get_current_user(authorization)
+    import credential_forms as _cf
+
+    try:
+        provider = _cf.verify_resume_token(req.resume_token, user["email"])
+    except ValueError as exc:
+        raise HTTPException(400, str(exc))
+
+    # Kalau body menyebut provider lain dari token, tolak: token adalah
+    # sumber kebenaran (mencegah form dicampur antar provider).
+    claimed = str(req.provider or "").strip().lower()
+    if claimed and claimed != provider:
+        raise HTTPException(400, "Provider tidak cocok dengan resume_token.")
+
+    try:
+        summary = _cf.validate_and_save(provider, req.credentials, user["email"])
+    except ValueError as exc:
+        raise HTTPException(422, str(exc))
+    except tools.CredentialMissingError:
+        raise HTTPException(500, "Gagal menyimpan credential.")
+
+    return {
+        "status": "resumed",
+        "provider": summary["provider"],
+        "display_name": summary["display_name"],
+        "email_address": user["email"],
+        # Sinyal ke frontend: kirim ulang prompt, tool akan jalan sekarang.
+        "retry_hint": "resend_last_prompt",
+        "secure_note": "Credential disimpan terenkripsi di vault Anda.",
+    }
 
 
 @app.delete("/api/vault/{provider}")

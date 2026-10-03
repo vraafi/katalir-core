@@ -3,6 +3,7 @@
 // functies gescheiden. refetchOnWindowFocus=true (chat moet fresh zijn).
 import { QueryClient, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { CHAT_TIMEOUT_MS, apiFetch, classifyChatError, classifyHttpError, sleep } from "@/lib/api";
+import type { CredentialField } from "@/components/CredentialForm";
 import { chatKeys } from "@/lib/query-keys";
 
 /** Error khusus untuk pembatalan user (Stop button). onError membedakannya
@@ -60,6 +61,12 @@ export interface ChatMessage {
   original?: string;
   /** Task 1C: endpoint authorize dari backend (hanya untuk `oauth_prompt`). */
   connectUrl?: string;
+  /** BUG/FITUR 2026-10-03: form credential INLINE di bubble chat (bukan
+   *  redirect ke Vault). Deskripsi field datang dari backend sehingga menambah
+   *  provider tidak perlu menyentuh frontend. */
+  displayName?: string;
+  fields?: CredentialField[];
+  resumeToken?: string;
   /** Metadata model (transparansi): model, latency, tokens, fallback. */
   meta?: ChatMeta;
   /** BUG FIX 2026-10-01: kunci idempotensi kiriman logis. Disimpan pada kartu
@@ -275,7 +282,7 @@ export async function resolveInterruptedSession(
 export function useSendChatMutation() {
   const qc = useQueryClient();
   return useMutation<
-    { reply: string; session_id?: string; needsCredential?: boolean; needsOauth?: boolean; provider?: string; connectUrl?: string; message?: string; meta?: ChatMeta },
+    { reply: string; session_id?: string; needsCredential?: boolean; needsOauth?: boolean; provider?: string; connectUrl?: string; message?: string; meta?: ChatMeta; requiresCredential?: boolean; displayName?: string; fields?: CredentialField[]; resumeToken?: string },
     Error & { provider?: string; promptEcho?: string },
     { prompt: string; sessionId?: string | null; email?: string | null; abortSignal?: AbortSignal; clientRequestId?: string; model?: string; retryOfLocalId?: string },
     {
@@ -344,6 +351,20 @@ export function useSendChatMutation() {
           data = await res.json();
         } catch {
           /* body non-json */
+        }
+        if (data.status === "requires_credential") {
+          // Form credential INLINE (2026-10-03). Backend mengirim deskripsi
+          // field + resume_token, jadi UI cukup merender apa adanya - tidak
+          // perlu tahuDetail provider di frontend.
+          return {
+            reply: "",
+            session_id: data.session_id as string | undefined,
+            requiresCredential: true,
+            provider: data.provider as string | undefined,
+            displayName: data.display_name as string | undefined,
+            fields: (data.fields as CredentialField[] | undefined) ?? [],
+            resumeToken: data.resume_token as string | undefined,
+          };
         }
         if (data.status === "needs_credential") {
           return {
@@ -523,7 +544,29 @@ export function useSendChatMutation() {
         // CATATAN: sengaja TIDAK reset context.targetKey ("__pending__") di sini —
         // lihat FIX A di atas; "__pending__" dikosongkan oleh effect[sessionId].
       }
-      if ((data.needsCredential || data.needsOauth) && context) {
+      if (data.requiresCredential && context) {
+        // Kartu form inline. `original` menyimpan prompt asli supaya frontend
+        // bisa mengirim ulang setelah credential tersimpan - workflow lanjut
+        // tanpa user harus navigasi ke halaman mana pun.
+        qc.setQueryData<ChatMessage[]>(finalKey, (old) =>
+          (old ?? []).map((m) =>
+            m._localId === context.optimisticAsstId
+              ? {
+                  id: `local-credform-${Date.now()}`,
+                  _localId: context.optimisticAsstId,
+                  role: "system",
+                  content: "",
+                  type: "credential_form" as const,
+                  provider: data.provider,
+                  displayName: data.displayName,
+                  fields: data.fields,
+                  resumeToken: data.resumeToken,
+                  original: context.prompt,
+                }
+              : m
+          )
+        );
+      } else if ((data.needsCredential || data.needsOauth) && context) {
         // Ganti placeholder assistant dengan kartu form kredensial / kartu
         // Connect OAuth (Task 1C: `oauth_prompt`). PENTING: `_localId` HARUS
         // dipertahankan. Layer render (`page.tsx` `overlay`) hanya meneruskan

@@ -15,6 +15,7 @@ import type { AgentWorkflow } from "@/features/agent/workflow-spec";
 import type { ExecutionReport } from "@/features/agent/execution-report";
 import {
   ChainOfThought,
+  CredentialForm,
   CredentialPromptCard,
   ExecutionReportCard,
   OAuthConnectCard,
@@ -38,6 +39,22 @@ export type Msg =
       type: "credential_form";
       provider: string;
       original: string;
+      /* Form inline (2026-10-03): deskripsi field + token dari backend.
+       * Bila `fields`/`resumeToken` ada, renderer memakai <CredentialForm />;
+       * kalau tidak, jatuh ke kartu token lama (backward compatible). */
+      displayName?: string;
+      fields?: Array<{
+        name: string;
+        label: string;
+        type?: string;
+        placeholder?: string;
+        required?: boolean;
+        min_length?: number;
+        transform?: string;
+        help_url?: string;
+        help_text?: string;
+      }>;
+      resumeToken?: string;
     }
   | {
       /* Task 1C: provider ber-OAuth — bukan form token, tapi tombol Connect. */
@@ -168,6 +185,7 @@ export function fmtToken(n: number | undefined | null): string {
 export function Message({
   msg,
   credValue,
+  onResume,
   onCredChange,
   onCredSubmit,
   onOauthConnect,
@@ -179,6 +197,9 @@ export function Message({
 }: {
   msg: Msg;
   credValue: string;
+  /** Dipanggil setelah form inline credential tersimpan: frontend mengirim
+   *  ulang prompt asli agar tool langsung jalan (tanpa navigasi ke halaman lain). */
+  onResume: (originalPrompt: string) => void;
   onCredChange: (v: string) => void;
   onCredSubmit: (provider: string, original: string) => void;
   /** Task 1C: tombol Connect pada provider ber-OAuth (handler dari ChatApp). */
@@ -208,12 +229,27 @@ export function Message({
         }
       >
         {msg.role === "system" && msg.type === "credential_form" ? (
-          <CredentialPromptCard
-            provider={msg.provider}
-            value={credValue}
-            onChange={onCredChange}
-            onSubmit={(p) => onCredSubmit(p, msg.original)}
-          />
+          msg.fields && msg.fields.length > 0 && msg.resumeToken ? (
+            // Form INLINE (2026-10-03): deskripsi field datang dari backend,
+            // jadi frontend tidak perlu tahu detail per provider. Submit ->
+            // POST /chat/resume -> lalu onResume.send ulang prompt asli,
+            // sehingga tool langsung jalan tanpa user membuka halaman lain.
+            <CredentialForm
+              provider={msg.provider}
+              displayName={msg.displayName}
+              fields={msg.fields}
+              resumeToken={msg.resumeToken}
+              onSuccess={() => onResume(msg.original)}
+            />
+          ) : (
+            // Fallback: server tidak mengirim definisi field -> kartu token lama.
+            <CredentialPromptCard
+              provider={msg.provider}
+              value={credValue}
+              onChange={onCredChange}
+              onSubmit={(p) => onCredSubmit(p, msg.original)}
+            />
+          )
         ) : msg.role === "system" && msg.type === "oauth_prompt" ? (
           <OAuthConnectCard
             provider={msg.provider}
@@ -292,6 +328,8 @@ export function Thread({
   slowHint: boolean;
   handlers: {
     credValue: string;
+    /** Dikirim ulang prompt asli setelah form inline credential tersimpan. */
+    onResume: (originalPrompt: string) => void;
     onCredChange: (v: string) => void;
     onCredSubmit: (p: string, o: string) => void;
     /** Task 1C: handler tombol Connect (diisi ChatApp; default = no-op). */
@@ -319,6 +357,7 @@ export function Thread({
           <Message
             msg={msg}
             credValue={handlers.credValue}
+            onResume={handlers.onResume}
             onCredChange={handlers.onCredChange}
             onCredSubmit={handlers.onCredSubmit}
             onOauthConnect={handlers.onOauthConnect ?? (() => {})}
