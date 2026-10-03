@@ -740,10 +740,27 @@ TOOL_SCHEMAS_OPENAI = openai_tool_schemas()
 # ---------------------------------------------------------------------------
 # Provider yang punya alur OAuth sendiri: user TIDAK boleh diminta menempel
 # token manual — UI harus menawarkan tombol Connect ke `/oauth/.../authorize`.
+# BUG FIX 2026-10-03 (Gmail trigger): `gmail` dan `google_calendar` DIHAPUS dari
+# sini. Audit 2026-09-28 sudah menghapuskannya dari `_oauth_providers`
+# (api_server.py) karena `/oauth/google/authorize` meng-hardcode scope
+# `auth/spreadsheets` - consent screen tidak pernah meminta izin Gmail. Kalau
+# gmail tetap di sini, `execute_tool("kirim_email_gmail")` mengembalikan
+# `needs_oauth` + tombol Connect yang mengarah ke consent screen yang tidak
+# memberi akses Gmail: user menekan Connect, melihat "Connected", lalu tool-nya
+# tetap gagal. Persis janji kosong yang harus dihindari.
+#
+# Konsekuensi yang disengaja: kedua provider itu kini kembali melempar
+# `CredentialMissingError` -> `needs_credential`. Itu jujur walau form manual
+# belum punya entri gmail.
+#
+# Cara menghidupkan Gmail dengan benar (SEMUA harus dikerjakan bersama, bukan sebagian):
+#   1. oauth_google: tambahkan scope Gmail ke consent screen;
+#   2. kirim_email_gmail: baca token dari user_vault (oauth_google.access_token),
+#      bukan db.get_integration yang menunjuk user_integrations (plaintext);
+#   3. baru masukkan gmail ke dict ini.
+# Dilindungi tests/test_gmail_multitenant.py + tests/test_oauth_provider_honesty.py.
 OAUTH_CONNECT_URLS = {
     "google_sheets": "/oauth/google/authorize",
-    "gmail": "/oauth/google/authorize",
-    "google_calendar": "/oauth/google/authorize",
     "slack": "/oauth/slack/authorize",
 }
 

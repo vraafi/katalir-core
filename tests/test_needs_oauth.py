@@ -1,4 +1,4 @@
-"""tests/test_needs_oauth.py — Task 1C: provider ber-OAuth → tombol Connect.
+"""tests/test_needs_oauth.py — Task 1C: provider ber-OAuth -> tombol Connect.
 
 KENAPA PENTING: Google Sheets/Gmail/Calendar/Slack TIDAK punya jalur token
 manual. Kalau AI (atau UI) meminta user "menempel token", user akan menempel
@@ -13,6 +13,20 @@ Yang DIKUNCI di sini:
   3. kedua pemanggil tool di `api_server.py` benar-benar meneruskan sinyal itu
      (kalau tidak, dict akan diperlakukan sebagai hasil tool biasa dan user
      hanya melihat teks mentah — regresi senyap).
+  4. provider yang TIDAK punya scope OAuth TIDAK boleh dapat connect_url.
+
+BUG FIX 2026-10-03: `gmail` dan `google_calendar` DIHAPUS dari daftar
+needs_oauth di bawah.
+
+Keduanya TIDAK punya scope OAuth: `/oauth/google/authorize` meng-hardcode
+scope `auth/spreadsheets`, jadi consent screen tidak pernah meminta izin
+Gmail maupun Calendar. Kalau tetap diiklankan, user menekan Connect,
+menyetujui consent yang salah, melihat "Connected", lalu tool tetap gagal -
+janji kosong yang lebih buruk daripada tidak menawarkan apa pun.
+
+Konsekuensi yang disengaja: keduanya kini melempar CredentialMissingError
+(ditemukan api_server.chat -> needs_credential). Test pengunci lain:
+tests/test_gmail_multitenant.py + tests/test_oauth_provider_honesty.py.
 """
 from __future__ import annotations
 
@@ -34,8 +48,6 @@ def _empty_vault(monkeypatch) -> None:
 
 @pytest.mark.parametrize("tool_name,provider,expected_url", [
     ("baca_google_sheets", "google_sheets", "/oauth/google/authorize"),
-    ("kirim_email_gmail", "gmail", "/oauth/google/authorize"),
-    ("tambah_agenda_calendar", "google_calendar", "/oauth/google/authorize"),
     ("kirim_slack_message", "slack", "/oauth/slack/authorize"),
 ])
 def test_provider_oauth_mengembalikan_needs_oauth(monkeypatch, tool_name, provider, expected_url):
