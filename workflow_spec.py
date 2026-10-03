@@ -30,7 +30,30 @@ import provider_registry
 Kind = Literal["trigger", "agent", "mcp"]
 
 # Provider yang punya jalur kredensial (dipakai alur credential prompt 2.3).
-KNOWN_PROVIDERS = ("telegram", "gmail", "google_sheets", "slack", "http", "whatsapp")
+# BUG FIX 2026-10-03: `google_calendar` DITAMBAHKAN.
+#
+# `provider_registry.REQUIRED_CONFIG` sudah punya entri google_calendar
+# ("nama_acara", "waktu") dan `tambah_agenda_calendar` sudah terdaftar sebagai
+# tool, tapi nama provider-nya TIDAK ada di sini. Akibatnya `validate_spec`
+# masuk cabang `prov not in KNOWN_PROVIDERS` -> hanya memberi WARNING, tanpa
+# memeriksa kelengkapan config. Akibatnya node kalender tanpa `waktu` lolos
+# validasi lalu gagal saat eksekusi.
+#
+# Itu persis keluhan n8n yang dipetakan sebagai "hint tidak lengkap": draf
+# dianggap valid padahal tidak bisa dijalankan.
+#
+# Daftar ini sekarang WAJIB sama dengan kunci `REQUIRED_CONFIG`; test
+# `tests/test_n8n_ai_comparison.py::test_required_config_ada_per_provider`
+# mengunci kedua sisi supaya tidak ada lagi yang luput.
+KNOWN_PROVIDERS = (
+    "telegram",
+    "gmail",
+    "google_sheets",
+    "google_calendar",
+    "slack",
+    "http",
+    "whatsapp",
+)
 
 
 class SpecNode(BaseModel):
