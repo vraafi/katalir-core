@@ -2154,9 +2154,72 @@ def _ui_base() -> str:
     return (os.getenv("APP_UI_URL") or os.getenv("CORS_ORIGIN") or "http://localhost:3000").split(",")[0].strip().rstrip("/")
 
 
+def _append_query(url: str, params: dict) -> str:
+    """Tambah query param ke URL tanpa merusak param yang sudah ada."""
+    from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
+    parts = urlsplit(url)
+    q = dict(parse_qsl(parts.query))
+    q.update({k: v for k, v in params.items() if v})
+    return urlunsplit((parts.scheme, parts.netloc, parts.path,
+                       urlencode(q), parts.fragment))
+
+
+def _resume_destination(resume: str) -> str:
+    """URL chat tujuan yang MEMBAWA token resume, atau "" .
+
+    Sengaja dibangun dari `_ui_base()`, bukan dari input mentah, sehingga
+    mustahil menjadi open-redirect.
+    """
+    if not resume:
+        return ""
+    from urllib.parse import quote
+    return f"{_ui_base()}/chat?resume={quote(resume, safe='')}"
+
+
+def _safe_resume_target(state: str) -> str:
+    """Baca tujuan kembali dari `state`, TAPI hanya jika host-nya UI sendiri.
+
+    `state` berasal dari provider, jadi tidak boleh dipercaya: tanpa
+    pemeriksaan host, penyerang bisa menitipkan `redirect_to` milik situs
+    lain dan memakai callback kita sebagai pengalihan.
+    """
+    if not state:
+        return ""
+    try:
+        from urllib.parse import parse_qsl, urlsplit
+        target = dict(parse_qsl(urlsplit(state).query)).get("redirect_to", "")
+    except (TypeError, ValueError):
+        return ""
+    if not target:
+        return ""
+    a, b = urlsplit(target), urlsplit(_resume_destination("x"))
+    if a.scheme not in ("http", "https"):
+        return ""
+    if (a.scheme, a.netloc, a.path) != (b.scheme, b.netloc, b.path):
+        return ""
+    return target
+
+
+def _resume_from_state(state: str) -> str:
+    """Ambil param `resume` yang kita sisipkan sendiri saat authorize.
+
+    Jangan percaya `state` mentah: hanya terima token yang benar-benar
+    berbentuk resume token milik kita (dicek ulang di /chat/resume).
+    """
+    if not state:
+        return ""
+    try:
+        from urllib.parse import parse_qsl, urlsplit
+        q = dict(parse_qsl(urlsplit(state).query))
+    except (TypeError, ValueError):
+        return ""
+    return str(q.get("resume") or "")
+
+
+
 @app.get("/oauth/google/authorize")
 def oauth_google_authorize(authorization: str | None = Header(None), redirect_base: str | None = None,
-                          mode: str = ""):
+                          mode: str = "", resume: str = ""):
     """Redirect ke consent Google (PKCE S256, access_type=offline, prompt=consent).
 
     `mode=json` mengembalikan {"url": ...} alih-alih 302. KENAPA: tombol
@@ -2178,6 +2241,12 @@ def oauth_google_authorize(authorization: str | None = Header(None), redirect_ba
         return {"status": "success", "provider": og.PROVIDER, "url": url}
     from fastapi.responses import RedirectResponse  # impor lokal: hindari ubah blok impor
 
+    # `resume` diteruskan lewat `redirect_to` supaya setelah consent user
+    # mendarat kembali ke percakapan yang terhenti, bukan ke halaman Settings.
+    # Tanpa ini, alur OAuth selalu "buntu di halaman lain" dan user harus
+    # mengetik ulang permintaannya (Bagian 3.2c).
+    if resume:
+        url = _append_query(url, {"redirect_to": _resume_destination(resume)})
     return RedirectResponse(url, status_code=302)
 
 
@@ -2203,6 +2272,12 @@ def oauth_google_callback(code: str = "", state: str = "", error: str = ""):
     if not email or not og.save_tokens(email, tokens):
         return RedirectResponse(f"{ui}/settings?google=error&reason=vault_save_failed", status_code=302)
     print(f"[oauth] google terhubung untuk {email} (refresh_token={'ada' if tokens.get('refresh_token') else 'TIDAK ADA'})")
+    # Kembali ke percakapan yang tertunda bila ada (Bagian 3.2c). Tujuan
+    # divalidasi host-nya lebih dulu supaya `state` dari provider tidak bisa
+    # dipakai sebagai open-redirect.
+    dest = _safe_resume_target(state)
+    if dest:
+        return RedirectResponse(f"{dest}&google=connected", status_code=302)
     return RedirectResponse(f"{ui}/settings?google=connected", status_code=302)
 
 

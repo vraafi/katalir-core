@@ -49,7 +49,10 @@ export const id = {
     emailSubmitLabel: "Masuk dengan email dan kata sandi",
   },
   chat: {
-    placeholder: "Ketik pesan ke Katalir...",
+    placeholder: 'Ketik pesan ke Katalir, atau "Buat workflow: ..."',
+    promptTip: "Tips: sebut integrasi spesifik (Gmail, Slack, Telegram, Sheets) + targetnya agar workflow langsung bisa jalan.",
+    promptGuide: "Panduan prompt lengkap",
+    comingSoon: "Segera",
     newChat: "Chat Baru",
     history: "Riwayat Chat",
     noHistory: "Belum ada riwayat.",

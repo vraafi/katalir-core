@@ -162,6 +162,8 @@ __all__ = [
     "validate_and_save",
     "credential_catalog",
     "get_all_schemas",
+    "has_credential",
+    "check_credential",
 ]
 
 
@@ -337,3 +339,73 @@ def has_credential(user_email: str, provider: str) -> bool:
     if not spec:
         return False
     return load_vault_credential(user_email, spec.get("vault_provider") or provider) is not None
+
+
+def check_credential(provider: str, user_email: str,
+                    session_id: str = "") -> dict[str, Any]:
+    """Status credential satu provider untuk satu user.
+
+    Satu-satunya cara aplikasi yang benar untuk menanyakan "apakah
+    kredensial ini sudah ada?" sebelum menjalankan workflow.
+
+    Kata kuncinya: status DITENTUKAN DARI VAULT, bukan dari perkiraan.
+    Dua kesalahan yang harus dihindari dan keduanya tertutup di sini:
+      * melaporkan "ok" padahal tidak ada -> workflow gagal di eksekusi
+        jauh setelah user merasa semua beres;
+      * melaporkan "butuh" padahal sudah ada -> user isi form yang sama
+        berulang-ulang.
+    """
+    spec = get_schema(provider)
+    if not spec:
+        return {"status": "unknown_provider", "provider": provider,
+                "message": f"Provider '{provider}' tidak dikenal."}
+
+    mode = str(spec.get("mode") or "form")
+
+    if mode == "oauth_redirect":
+        try:
+            if _oauth_connected(provider, user_email):
+                return {"status": "ok", "provider": provider, "mode": mode}
+        except Exception:  # noqa: BLE001
+            pass  # gagal memeriksa = perlakukan belum terhubung
+        try:
+            return build_requires_oauth(provider, user_email,
+                                        session_id=session_id)
+        except ValueError:
+            return {"status": "requires_oauth", "provider": provider,
+                    "mode": mode}
+
+    if has_credential(user_email, provider):
+        return {"status": "ok", "provider": provider, "mode": mode}
+    try:
+        return build_requires_credential(provider, user_email,
+                                         session_id=session_id)
+    except ValueError:
+        return {"status": "requires_credential", "provider": provider,
+                "mode": mode}
+
+
+def _oauth_connected(provider: str, user_email: str) -> bool:
+    """Sudahkah user ini menyelesaikan OAuth untuk provider tersebut?
+
+    Sengaja memakai jalur baca yang sudah dipakai runtime (bukan_andal
+    penanda sendiri di memori) supaya status di sini sama dengan
+    kenyataan saat workflow dieksekusi.
+    """
+    import database as _db
+
+    spec = get_schema(provider) or {}
+    vault_provider = str(spec.get("vault_provider") or provider)
+    if _db.vault_get(user_email, vault_provider):
+        return True
+    # Google Sheets/Slack menyimpan token lewat oauth_google, bukan vault.
+    try:
+        import oauth_google
+        if vault_provider == "google_sheets" or provider == "google_sheets":
+            return bool(oauth_google.access_token(user_email))
+        if vault_provider == "slack" or provider == "slack":
+            import oauth_slack
+            return bool(oauth_slack.access_token(user_email))
+    except Exception:  # noqa: BLE001
+        return False
+    return False

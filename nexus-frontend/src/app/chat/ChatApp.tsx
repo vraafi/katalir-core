@@ -809,11 +809,15 @@ function ChatApp() {
    * backend membalas `mode=json`), lalu browser diarahkan ke URL itu. Popup
    * SENGAJA tidak dipakai: diblokir sebagian browser dan sulit diuji ulang.
    */
-  async function connectOauth(provider: string, connectUrl?: string) {
+  async function connectOauth(provider: string, connectUrl?: string, resume?: string) {
     const path = connectUrl || (provider === "slack" ? "/oauth/slack/authorize" : "/oauth/google/authorize");
     setOauthBusy(true);
     try {
-      const r = await apiFetch(`${path}${path.includes("?") ? "&" : "?"}mode=json`, { method: "GET" });
+      // `resume` diteruskan supaya setelah consent user mendarat kembali ke
+      // percakapan ini, bukan ke halaman Settings (Bagian 3.2c).
+      const q = new URLSearchParams({ mode: "json" });
+      if (resume) q.set("resume", resume);
+      const r = await apiFetch(`${path}${path.includes("?") ? "&" : "?"}${q.toString()}`, { method: "GET" });
       const d = (await r.json().catch(() => ({}))) as { url?: string };
       if (!r.ok || !d.url) throw new Error(`HTTP ${r.status}`);
       window.location.href = d.url;

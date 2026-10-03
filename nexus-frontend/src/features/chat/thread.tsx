@@ -66,6 +66,11 @@ export type Msg =
       provider: string;
       /** Dari backend (`connect_url`); dipakai agar FE tidak menebak endpoint. */
       connectUrl?: string;
+      /**
+       * Token resume dari backend. Dibawa ke URL OAuth supaya setelah
+       * consent user mendarat kembali ke percakapan ini (Bagian 3.2c).
+       */
+      resumeToken?: string;
     }
   | {
       key: string;
@@ -205,7 +210,7 @@ export function Message({
   onCredChange: (v: string) => void;
   onCredSubmit: (provider: string, original: string) => void;
   /** Task 1C: tombol Connect pada provider ber-OAuth (handler dari ChatApp). */
-  onOauthConnect: (provider: string, connectUrl?: string) => void;
+  onOauthConnect: (provider: string, connectUrl?: string, resume?: string) => void;
   oauthBusy?: boolean;
   onRetry: (m: { content: string; original: string; localId?: string; clientRequestId?: string }) => void;
   /** FASE 5: draf sedang dijalankan (tombol "Jalankan Langsung" disabled). */
@@ -257,7 +262,7 @@ export function Message({
           <OAuthConnectCard
             provider={msg.provider}
             busy={oauthBusy}
-            onConnect={(p) => onOauthConnect(p, msg.connectUrl)}
+            onConnect={(p) => onOauthConnect(p, msg.connectUrl, msg.resumeToken)}
           />
         ) : msg.role === "system" && msg.type === "error" ? (
           <div className="w-72" data-testid="error-card">
@@ -336,7 +341,7 @@ export function Thread({
     onCredChange: (v: string) => void;
     onCredSubmit: (p: string, o: string) => void;
     /** Task 1C: handler tombol Connect (diisi ChatApp; default = no-op). */
-    onOauthConnect?: (p: string, connectUrl?: string) => void;
+    onOauthConnect?: (p: string, connectUrl?: string, resume?: string) => void;
     oauthBusy?: boolean;
     onRetry: (m: { content: string; original: string; localId?: string; clientRequestId?: string }) => void;
   };

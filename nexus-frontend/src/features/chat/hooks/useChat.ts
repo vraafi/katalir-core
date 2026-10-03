@@ -378,16 +378,29 @@ export function useSendChatMutation() {
             message: data.message as string | undefined,
           };
         }
-        if (data.status === "needs_oauth") {
+        if (data.status === "needs_oauth" || data.status === "requires_oauth") {
           // Task 1C: provider OAuth (Google/Slack). UI menampilkan TOMBOL
           // Connect, bukan form token — form akan meminta user menempel
           // sesuatu yang tidak mungkin benar untuk provider ber-OAuth.
+          //
+          // `requires_oauth` = descriptor GENERIK dari registry credential
+          // (2026-10-03); `needs_oauth` = jalur lama. Keduanya ditangani di
+          // sini supaya menambah provider OAuth cukup di backend. Kalau hanya
+          // `needs_oauth` yang dikenal, provider baru akan jatuh ke "error"
+          //_generic tanpa tombol Connect sama sekali.
           return {
             reply: "",
             session_id: data.session_id as string | undefined,
             needsOauth: true,
             provider: data.provider as string | undefined,
-            connectUrl: data.connect_url as string | undefined,
+            displayName: data.display_name as string | undefined,
+            icon: data.icon as string | undefined,
+            connectUrl:
+              (data.connect_url as string | undefined) ??
+              (data.oauth_url as string | undefined),
+            // Dibawa ke URL OAuth supaya setelah consent user mendarat
+            // kembali ke percakapan ini, bukan ke halaman Settings.
+            resumeToken: data.resume_token as string | undefined,
             message: data.message as string | undefined,
           };
         }
