@@ -65,6 +65,8 @@ export interface ChatMessage {
    *  redirect ke Vault). Deskripsi field datang dari backend sehingga menambah
    *  provider tidak perlu menyentuh frontend. */
   displayName?: string;
+  /** Emoji dari registry credential_schemas. */
+  icon?: string;
   fields?: CredentialField[];
   resumeToken?: string;
   /** Metadata model (transparansi): model, latency, tokens, fallback. */
@@ -282,7 +284,7 @@ export async function resolveInterruptedSession(
 export function useSendChatMutation() {
   const qc = useQueryClient();
   return useMutation<
-    { reply: string; session_id?: string; needsCredential?: boolean; needsOauth?: boolean; provider?: string; connectUrl?: string; message?: string; meta?: ChatMeta; requiresCredential?: boolean; displayName?: string; fields?: CredentialField[]; resumeToken?: string },
+    { reply: string; session_id?: string; needsCredential?: boolean; needsOauth?: boolean; provider?: string; connectUrl?: string; message?: string; meta?: ChatMeta; requiresCredential?: boolean; displayName?: string; icon?: string; fields?: CredentialField[]; resumeToken?: string },
     Error & { provider?: string; promptEcho?: string },
     { prompt: string; sessionId?: string | null; email?: string | null; abortSignal?: AbortSignal; clientRequestId?: string; model?: string; retryOfLocalId?: string },
     {
@@ -362,6 +364,7 @@ export function useSendChatMutation() {
             requiresCredential: true,
             provider: data.provider as string | undefined,
             displayName: data.display_name as string | undefined,
+            icon: data.icon as string | undefined,
             fields: (data.fields as CredentialField[] | undefined) ?? [],
             resumeToken: data.resume_token as string | undefined,
           };
@@ -559,6 +562,7 @@ export function useSendChatMutation() {
                   type: "credential_form" as const,
                   provider: data.provider,
                   displayName: data.displayName,
+                  icon: data.icon,
                   fields: data.fields,
                   resumeToken: data.resumeToken,
                   original: context.prompt,

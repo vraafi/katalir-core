@@ -361,42 +361,36 @@ def http_request(url: str, method: str = "GET", body: str = "",
 # model. Kalau valid, `spec` yang dipulangkan SUDAH siap dirender ke canvas.
 # ---------------------------------------------------------------------------
 def gmail_imap_credential(email: str) -> dict:
-    """Baca kredensial Gmail IMAP dari vault user (terenkripsi Fernet).
+    """Baca kredensial Gmail IMAP dari vault (multi-field, terenkripsi Fernet).
 
-    Disimpan sebagai satu JSON string agar tetap memakai satu slot
-    `user_vault` per provider (vault hanya punya kolom key tunggal).
-    Melempar `CredentialMissingError('gmail_imap')` bila belum diisi.
+    BUG/FITUR 2026-10-03: sekarang satu sumber kebenaran - registry
+    `providers.credential_schemas` + helper `credential_forms`. Nilai di
+    vault disimpan sebagai JSON terenkripsi dengan key yang PERSIS sama dengan
+    nama field di registry (`email`, `app_password`), jadi menambah/mengubah
+    field di registry otomatis terbaca di sini.
     """
-    import database as db
-    import vault_security as vs
+    from credential_forms import load_vault_credential
 
-    cipher = db.vault_get(email, VAULT_PROVIDER)
-    if not cipher:
-        raise CredentialMissingError(VAULT_PROVIDER)
-    try:
-        data = _json.loads(vs.decrypt_key(cipher))
-    except Exception as exc:  # noqa: BLE001 - vault rusak/rotasi kunci
-        raise CredentialMissingError(VAULT_PROVIDER) from exc
-    if not isinstance(data, dict) or not data.get("app_password"):
+    data = load_vault_credential(email, VAULT_PROVIDER)
+    if not data or not data.get("app_password"):
         raise CredentialMissingError(VAULT_PROVIDER)
     return data
 
 
 def save_gmail_imap_credential(email: str, email_address: str,
                                app_password: str) -> bool:
-    """Simpan kredensial Gmail IMAP terenkripsi. True bila tersimpan."""
-    import database as db
-    import vault_security as vs
+    """Simpan kredensial Gmail IMAP terenkripsi (registry-driven).
 
-    addr = str(email_address or "").strip()
-    pw = normalize_app_password(app_password)
-    if not addr or "@" not in addr:
-        raise ValueError("Alamat Gmail tidak valid.")
-    if len(pw) < 16:
-        raise ValueError("App Password harus 16 karakter (tanpa spasi).")
-    cipher = vs.encrypt_key(_json.dumps(
-        {"email_address": addr, "app_password": pw}, ensure_ascii=False))
-    return bool(db.vault_save(email, VAULT_PROVIDER, cipher))
+    Dipertahankan sebagai pembungkus agar pemanggil lama tidak pecah; logika
+    validasi + enkripsi sekarang milik `credential_forms.validate_and_save`.
+    """
+    from credential_forms import validate_and_save
+
+    validate_and_save(VAULT_PROVIDER, {
+        "email": str(email_address or "").strip(),
+        "app_password": normalize_app_password(app_password),
+    }, email)
+    return True
 
 
 def trigger_gmail_imap_tool(email_address: str, app_password: str = "",

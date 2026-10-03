@@ -479,7 +479,7 @@ function ChatApp() {
       ),
     ...unconfirmed.map((m): Msg | null => {
       if (m.type === "credential_form" && m.provider && m.original !== undefined) {
-        return { key: `cred-${m.id ?? m._localId ?? m.provider}`, role: "system", type: "credential_form", provider: m.provider, displayName: m.displayName, fields: m.fields, resumeToken: m.resumeToken, original: m.original };
+        return { key: `cred-${m.id ?? m._localId ?? m.provider}`, role: "system", type: "credential_form", provider: m.provider, displayName: m.displayName, icon: m.icon, fields: m.fields, resumeToken: m.resumeToken, original: m.original };
       }
       // Task 1C: kartu Connect OAuth — provider ber-OAuth tidak lewat form token.
       if (m.type === "oauth_prompt" && m.provider) {

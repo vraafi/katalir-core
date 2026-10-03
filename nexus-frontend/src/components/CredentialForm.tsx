@@ -39,6 +39,8 @@ export interface CredentialField {
   type?: string;
   placeholder?: string;
   required?: boolean;
+  /** true = nilai rahasia: ALWAYS dirender `password` + punya tombol reveal. */
+  secret?: boolean;
   min_length?: number;
   transform?: string;
   help_url?: string;
@@ -48,6 +50,8 @@ export interface CredentialField {
 export interface CredentialFormProps {
   provider: string;
   displayName?: string;
+  /** Emoji dari registry (`credential_schemas`), supaya form generik. */
+  icon?: string;
   fields: CredentialField[];
   resumeToken: string;
   /** Dipanggil setelah credential tersimpan (frontend lalu resend prompt). */
@@ -57,11 +61,16 @@ export interface CredentialFormProps {
 export function CredentialForm({
   provider,
   displayName,
+  icon,
   fields,
   resumeToken,
   onSuccess,
 }: CredentialFormProps) {
   const [values, setValues] = useState<Record<string, string>>({});
+  // Field `secret` bisa ditampilkan sesaat untuk user memeriksa ketikkannya
+  // (App Password 16 char tanpa spasi itu sulit dicek mata). Pola yang sama
+  // dipakai FieldRenderer n8n / OpenCompany.
+  const [revealed, setRevealed] = useState<Record<string, boolean>>({});
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [done, setDone] = useState<{ provider: string; display_name: string } | null>(null);
@@ -132,6 +141,7 @@ export function CredentialForm({
       <CardHeader className="pb-2">
         <CardTitle className="flex items-center gap-2 text-[13px]">
           <KeyRound className="h-4 w-4 text-accent" aria-hidden />
+          {icon ? <span aria-hidden>{icon}</span> : null}
           Hubungkan {displayName ?? provider}
         </CardTitle>
       </CardHeader>
@@ -146,20 +156,48 @@ export function CredentialForm({
                   className="block text-caption font-medium text-fg"
                 >
                   {f.label}
+                  {f.required ? (
+                    <span className="ml-0.5 text-red-600" aria-hidden>*</span>
+                  ) : null}
                 </label>
-                <Input
-                  id={inputId}
-                  type={f.type === "password" ? "password" : f.type === "email" ? "email" : "text"}
-                  placeholder={f.placeholder}
-                  required={f.required}
-                  minLength={f.min_length}
-                  value={values[f.name] ?? ""}
-                  onChange={(e) =>
-                    setValues((prev) => ({ ...prev, [f.name]: e.target.value }))
-                  }
-                  autoComplete={f.type === "password" ? "new-password" : "off"}
-                  data-testid={`${inputId}-input`}
-                />
+                <div className="flex items-center gap-1.5">
+                  <Input
+                    id={inputId}
+                    // `secret` selalu jadi password, apa pun nilai `type`.
+                    type={
+                      f.secret && !revealed[f.name]
+                        ? "password"
+                        : f.type === "email"
+                          ? "email"
+                          : f.type === "url"
+                            ? "url"
+                            : "text"
+                    }
+                    placeholder={f.placeholder}
+                    required={f.required}
+                    minLength={f.min_length}
+                    value={values[f.name] ?? ""}
+                    onChange={(e) =>
+                      setValues((prev) => ({ ...prev, [f.name]: e.target.value }))
+                    }
+                    autoComplete={f.secret ? "new-password" : "off"}
+                    className={f.secret ? "pr-2" : undefined}
+                    data-testid={`${inputId}-input`}
+                  />
+                  {f.secret ? (
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setRevealed((prev) => ({ ...prev, [f.name]: !prev[f.name] }))
+                      }
+                      className="shrink-0 rounded-md border border-border px-1.5 py-1 text-caption text-fg-muted hover:bg-bg-subtle"
+                      aria-label={revealed[f.name] ? "Sembunyikan" : "Tampilkan"}
+                      data-testid={`${inputId}-reveal`}
+                    >
+                      {revealed[f.name] ? "Hide" : "Show"}
+                    </button>
+                  ) : null}
+                </div>
                 {f.help_url ? (
                   <a
                     href={f.help_url}

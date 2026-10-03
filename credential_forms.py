@@ -131,49 +131,79 @@ def verify_resume_token(token: str, user_email: str) -> str:
 # ---------------------------------------------------------------------------
 # Definisi form per provider
 # ---------------------------------------------------------------------------
-# `fields` dikirim apa adanya ke frontend - satu sumber kebenaran untuk label,
-# tipe input, validasi minimum, dan tautan bantuan. Menambah provider baru =
-# menambah satu entri di sini, tanpa menyentuh frontend.
+# BUG/FITUR 2026-10-03 (generic): definisi TIDAK lagi ditulis di sini.
+# Satu-satunya sumber kebenaran adalah `providers.credential_schemas`. Modul ini
+# hanya menangani token, validasi, dan penyimpanan - jadi menambah provider
+# cukup menambah satu entri di registry, tanpa menyentuh file ini maupun
+# frontend (frontend menerima descriptor field apa adanya dari server).
+from providers.credential_schemas import (  # noqa: E402
+    CREDENTIAL_SCHEMAS,
+    get_all_schemas,
+    get_schema,
+    providers_using_form,
+    providers_using_oauth,
+)
+
 PROVIDER_FORMS: dict[str, dict[str, Any]] = {
-    "gmail_imap": {
-        "display_name": "Gmail (via App Password)",
-        # Password adalah kredensial nyata: TIDAK pernah dikembalikan ke klien.
-        "writer": "gmail_imap",
-        "fields": [
-            {
-                "name": "email",
-                "label": "Alamat Gmail",
-                "type": "email",
-                "placeholder": "nama@gmail.com",
-                "required": True,
-                "min_length": 3,
-            },
-            {
-                "name": "app_password",
-                "label": "App Password (16 karakter)",
-                "type": "password",
-                "placeholder": "xxxx xxxx xxxx xxxx",
-                "required": True,
-                "min_length": 16,
-                # Spasi boleh diketik user (Google menampilkannya bergROUP);
-                # normalisasi terjadi di server.
-                "transform": "strip_spaces",
-                "help_url": "https://myaccount.google.com/apppasswords",
-                "help_text": "Buat App Password di Google Account Anda (butuh 2FA aktif).",
-            },
-        ],
-    },
+    key: spec for key, spec in CREDENTIAL_SCHEMAS.items() if spec.get("mode") == "form"
 }
 
-# Provider yang authenticate lewat OAuth: TIDAK boleh pakai form token manual
-# (user tidak bisa menempel access token Google dengan benar). Provider ini
-# tetap memakai jalur tombol Connect seperti sebelumnya.
-OAUTH_ONLY_PROVIDERS = {"google_sheets", "slack"}
+OAUTH_ONLY_PROVIDERS: set[str] = set(providers_using_oauth())
+
+__all__ = [
+    "TOKEN_TTL_S",
+    "PROVIDER_FORMS",
+    "OAUTH_ONLY_PROVIDERS",
+    "issue_resume_token",
+    "verify_resume_token",
+    "has_inline_form",
+    "build_requires_credential",
+    "build_requires_oauth",
+    "validate_and_save",
+    "credential_catalog",
+    "get_all_schemas",
+]
 
 
 def has_inline_form(provider: str) -> bool:
     """True bila provider punya form inline yang bisa dirender di chat."""
-    return str(provider or "").strip().lower() in PROVIDER_FORMS
+    spec = get_schema(provider)
+    return bool(spec and spec.get("mode") == "form")
+
+
+def build_requires_oauth(provider: str, user_email: str,
+                         session_id: str | None = None) -> dict:
+    """Bentuk respons `requires_oauth` dari registry (bukan form token)."""
+    spec = get_schema(provider)
+    if not spec or spec.get("mode") != "oauth_redirect":
+        raise ValueError(f"provider {provider!r} bukan mode oauth_redirect")
+    return {
+        "status": "requires_oauth",
+        "provider": str(provider).strip().lower(),
+        "display_name": spec["display_name"],
+        "icon": spec.get("icon", ""),
+        "oauth_url": spec.get("authorize_path", ""),
+        "scopes": list(spec.get("scopes") or []),
+        "session_id": session_id,
+        # Penjelas jujur kenapa bukan form: user tidak bisa menempel token OAuth.
+        "note": (
+            "Provider ini memakai OAuth. Token-nya tidak bisa ditempel manual, "
+            "jadi kamu akan diarahkan ke halaman persetujuan provider."
+        ),
+    }
+
+
+def credential_catalog() -> str:
+    """Ringkasan registry untuk disisipkan ke konteks AI."""
+    lines = []
+    for key, spec in CREDENTIAL_SCHEMAS.items():
+        mode = spec.get("mode")
+        if mode == "form":
+            fields = ", ".join(f["name"] for f in spec.get("fields", []))
+            lines.append(f"- {key} (form): {fields}")
+        else:
+            lines.append(f"- {key} (oauth_redirect): lewat tombol Connect")
+    return "\n".join(lines)
 
 
 def build_requires_credential(
@@ -192,6 +222,7 @@ def build_requires_credential(
         "status": "requires_credential",
         "provider": prov,
         "display_name": spec["display_name"],
+        "icon": spec.get("icon", ""),
         # Salinan dalam, bukan reference:cefek modifikasi di tempat lain
         # tidak boleh mengubah definisi global.
         "fields": [dict(f) for f in spec["fields"]],
@@ -203,51 +234,106 @@ def build_requires_credential(
     }
 
 
-def _save_gmail_imap(creds: dict, user_email: str) -> None:
-    import tools
-
-    tools.save_gmail_imap_credential(
-        user_email,
-        str(creds.get("email") or "").strip(),
-        str(creds.get("app_password") or ""),
-    )
-
-
-CREDENTIAL_WRITERS: dict[str, Callable[[dict, str], None]] = {
-    "gmail_imap": _save_gmail_imap,
-}
-
-
 def validate_and_save(provider: str, credentials: dict, user_email: str) -> dict:
-    """Validasi input form lalu simpan terenkripsi. Kembalikan ringkasan aman.
+    """Validasi input form sesuai registry, lalu simpan SEMUA field terenkripsi.
 
-    Tidak pernah mengembalikan nilai credential.
+    Generic: bekerja untuk provider mana pun ber-`mode: form`, bukan cuma
+    Gmail. Field opsional yang tidak diisi DIHAPUS (bukan disimpan sebagai
+    string kosong) supaya `vault_load` bisa membedakan "tidak diisi" dari
+    "diisi string kosong".
+
+    Mengembalikan ringkasan tanpa nilai rahasianya. Tidak pernah melempar
+    error yang memuat nilai input.
     """
     prov = str(provider or "").strip().lower()
-    writer = CREDENTIAL_WRITERS.get(prov)
-    spec = PROVIDER_FORMS.get(prov)
-    if writer is None or spec is None:
+    spec = get_schema(prov)
+    if not spec or spec.get("mode") != "form":
         raise ValueError(f"provider {prov!r} tidak punya form inline.")
+    if prov in OAUTH_ONLY_PROVIDERS:
+        raise ValueError(f"{prov} memakai OAuth, bukan form manual.")
 
-    creds = dict(credentials or {})
+    incoming = dict(credentials or {})
     clean: dict[str, str] = {}
-    for field in spec["fields"]:
+    for field in spec.get("fields", []):
         name = field["name"]
-        val = str(creds.get(name) or "")
+        raw = str(incoming.get(name) or "")
         if field.get("transform") == "strip_spaces":
-            val = "".join(val.split())
-        val = val.strip() if field.get("type") != "password" else val
-        if field.get("required") and not val:
-            raise ValueError(f"{field['label']} wajib diisi.")
+            # Google menampilkan App Password bergROUP; IMAP butuh tanpa spasi.
+            raw = "".join(raw.split())
+        else:
+            raw = raw.strip()
+        if not raw:
+            if field.get("required"):
+                raise ValueError(f"{field['label']} wajib diisi.")
+            continue  # opsional kosong -> jangan disimpan
         min_len = int(field.get("min_length") or 0)
-        if min_len and len(val) < min_len:
+        if min_len and len(raw) < min_len:
             raise ValueError(
                 f"{field['label']} minimal {min_len} karakter "
-                f"(sekarang {len(val)}).")
-        clean[name] = val
+                f"(sekarang {len(raw)}).")
+        clean[name] = raw
 
-    writer(clean, user_email)
-    # Ringkasan TANPA nilai credential.
-    summary = {k: v for k, v in clean.items() if k not in ("app_password", "api_key")}
-    summary["app_password"] = "***" if "app_password" in clean else None
-    return {"provider": prov, "display_name": spec["display_name"], "saved": summary}
+    if not clean:
+        raise ValueError("Tidak ada credential yang diisi.")
+
+    vault_provider = spec.get("vault_provider") or prov
+    save_vault_credential(user_email, vault_provider, clean)
+
+    # Ringkasan: field `secret` disamarkan, sisanya tampil apa adanya
+    # (mis. alamat email memang perlu ditampilkan balik).
+    summary = {
+        k: ("***" if spec_field_is_secret(spec, k) else v)
+        for k, v in clean.items()
+    }
+    return {
+        "provider": prov,
+        "display_name": spec["display_name"],
+        "vault_provider": vault_provider,
+        "saved": summary,
+    }
+
+
+def spec_field_is_secret(spec: dict, field_name: str) -> bool:
+    """True bila field ditandai `secret` di registry."""
+    for f in spec.get("fields", []):
+        if f["name"] == field_name:
+            return bool(f.get("secret"))
+    return False
+
+
+def save_vault_credential(user_email: str, vault_provider: str,
+                          values: dict[str, str]) -> None:
+    """Simpan dict credential (multi-field) sebagai SATU ciphertext JSON.
+
+    Satu baris `user_vault` per provider. Semua field di-encode jadi JSON lalu
+    dienkripsi Fernet, jadi tidak ada field yang tersimpan plaintext.
+    """
+    import database as db
+    import vault_security as vs
+
+    cipher = vs.encrypt_key(json.dumps(values, ensure_ascii=False, sort_keys=True))
+    if not db.vault_save(user_email, vault_provider, cipher):
+        raise ValueError("Gagal menyimpan credential ke vault.")
+
+
+def load_vault_credential(user_email: str, vault_provider: str) -> dict | None:
+    """Baca credential multi-field dari vault. None bila belum ada / rusak."""
+    import database as db
+    import vault_security as vs
+
+    cipher = db.vault_get(user_email, vault_provider)
+    if not cipher:
+        return None
+    try:
+        data = json.loads(vs.decrypt_key(cipher))
+    except Exception:  # noqa: BLE001 - vault rusak/rotasi kunci
+        return None
+    return data if isinstance(data, dict) else None
+
+
+def has_credential(user_email: str, provider: str) -> bool:
+    """Cek apakah user sudah punya credential untuk provider ini."""
+    spec = get_schema(provider)
+    if not spec:
+        return False
+    return load_vault_credential(user_email, spec.get("vault_provider") or provider) is not None

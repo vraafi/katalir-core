@@ -376,6 +376,11 @@ class ExecuteRequest(BaseModel):
 # ---------------------------------------------------------------------------
 # AGENTIC LOOP VIA GATEWAY (OpenAI-compatible /v1)
 # ---------------------------------------------------------------------------
+# Registry credential = sumber kebenaran untuk AI DAN form (2026-10-03).
+# Diimpor di luar ekspresi prompt supaya prompt tetap string konstan yang
+# bisa dibaca, dan supaya menambah provider cukup mengubah registry.
+from credential_forms import credential_catalog as _credential_catalog
+
 _AGENT_SYSTEM = (
     "Anda adalah Nexus Autonomous Agent. Rencanakan & lakukan tindakan dengan "
     "alat yang tersedia. Setelah eksekusi alat, rangkum hasil untuk pengguna "
@@ -405,9 +410,8 @@ _AGENT_SYSTEM = (
     "b. Butuh credential? Panggil toolnya. Sistem otomatis menampilkan form "
     "di dalam percakapan, menyimpan kredensial terenkripsi, lalu mengulang "
     "perintahmu otomatis - user tidak perlu melakukan apa pun.\n"
-    "c. Jadi cukup katakancredential kurang lalu panggil tool yang relevan; "
-    "JANGAN memberi instruksi bernada 'kunjungi halaman'.\n\n"
-    # --- FASE 2.1: DISCOVERY AGENT -------------------------------------------
+    "c. Jadi cukup sebutkan credential kurang lalu panggil tool yang relevan; "
+    "JANGAN memberi instruksi bernada 'kunjungi halaman'.\n"
     # --- FASE 2.1: DISCOVERY AGENT -------------------------------------------
     # Tanpa aturan ini, model langsung menebak isi workflow dan hasilnya salah
     # (provider/jadwal/field karangan). Jadi klarifikasi dulu, baru bangun.
@@ -444,7 +448,11 @@ _AGENT_SYSTEM = (
     "untuk spreadsheet yang SUDAH ada.\n"
     "5. Bila alat menolak (ada `errors`), perbaiki sesuai `hint` dan panggil "
     "ulang; jangan menyerahkan JSON yang ditolak ke pengguna.\n"
-    "6. Setelah alat menerima, balas dengan ringkasan singkat: berapa node, "
+    # Katalog credential diambil dari registry, bukan ditulis manual - kalau
+    # provider baru ditambah, prompt ini ikut punya tanpa diedit.
+    "PROVIDER CREDENTIAL YANG TERSEDIA:\n"
+    + _credential_catalog() + "\n\n"
+        "6. Setelah alat menerima, balas dengan ringkasan singkat: berapa node, "
     "alur besarnya, dan tanyakan apakah perlu diubah atau dijalankan.\n"
     "7. KEJUJURAN HASIL ALAT: bila hasil alat berstatus 'error' atau berisi "
     "'GAGAL', katakan kegagalan itu APA ADANYA — sebut alat, penyebab, dan "
@@ -1359,6 +1367,19 @@ def chat(req: ChatRequest, authorization: str | None = Header(None)):
                     _prov, user_email, session_id=session_id)
             except ValueError:
                 pass  # form hilang/berubah -> jatuh ke jalur lama di bawah
+
+        # Provider OAuth: descriptor diambil dari registry (generic), bukan
+        # dari daftar lokal. `needs_oauth` tetap dipertahankan sebagai
+        # alias supaya klien lama tidak rusak.
+        if _prov in _cf.OAUTH_ONLY_PROVIDERS:
+            try:
+                _rq = _cf.build_requires_oauth(
+                    _prov, user_email, session_id=session_id)
+                _rq["status"] = "requires_oauth"
+                _rq["connect_url"] = _rq.get("oauth_url")
+                return _rq
+            except ValueError:
+                pass
 
         connect_url = _oauth_providers.get(_prov)
         return {

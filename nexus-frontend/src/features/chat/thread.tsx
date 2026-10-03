@@ -43,7 +43,9 @@ export type Msg =
        * Bila `fields`/`resumeToken` ada, renderer memakai <CredentialForm />;
        * kalau tidak, jatuh ke kartu token lama (backward compatible). */
       displayName?: string;
+      icon?: string;
       fields?: Array<{
+        secret?: boolean;
         name: string;
         label: string;
         type?: string;
@@ -237,6 +239,7 @@ export function Message({
             <CredentialForm
               provider={msg.provider}
               displayName={msg.displayName}
+              icon={msg.icon}
               fields={msg.fields}
               resumeToken={msg.resumeToken}
               onSuccess={() => onResume(msg.original)}

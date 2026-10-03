@@ -123,11 +123,11 @@ def test_simpan_kredensial_gmail_terenkripsi(monkeypatch):
     assert ok is True
     assert saved["row"][1] == "gmail_imap"
     assert saved["row"][2] == "CIPHER-TEXT"
-    # Yang dienkripsi adalah JSON; yang harus dicek adalah NILAI password-nya
-    # sudah ternormalisasi (tanpa spasi dari format "abcd efgh ...").
+    # Yang dienkripsi adalah JSON multi-field. Nama key PERSIS sama dengan
+    # nama field di `providers.credential_schemas` (sumber kebenaran).
     payload = json.loads(saved["plain_seen_by_encryptor"])
-    assert payload["app_password"] == "abcdefghijklmnop"
-    assert payload["email_address"] == "u@gmail.com"
+    assert payload["app_password"] == "abcdefghijklmnop"  # ternormalisasi
+    assert payload["email"] == "u@gmail.com"
 
 
 def test_kredensial_belum_ada_arahkan_ke_ui(monkeypatch):
