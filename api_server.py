@@ -916,7 +916,10 @@ def _agentic_run_gateway(prompt: str, email: str, model_id: str,
                           f"{[c['tool'] for c in _bracket_calls]}")
                     for c in _bracket_calls:
                         try:
-                            result = execute_textual_tool(c, email)
+                            # `prompt` diteruskan supaya intent-alignment
+                            # bisa menilai apakah tool ini memang diminta user.
+                            result = execute_textual_tool(
+                                c, email, user_message=prompt)
                         except CredentialMissingError:
                             raise  # -> endpoint merender form inline
                         except Exception as exc:  # noqa: BLE001

@@ -198,7 +198,10 @@ def test_api_server_sudah_mengimpor_jalur_baru():
     src = open("api_server.py", encoding="utf-8").read()
     assert "from textual_tool_parser import" in src
     assert "parse_textual_tools(_raw_text)" in src
-    assert "execute_textual_tool(c, email)" in src
+    assert "execute_textual_tool(" in src
+    # prompt WAJIB diteruskan: intent-alignment bergantung padanya. Kalau
+    # ini lepas, pemeriksaan alignment diam-diam mati - makanya dikunci.
+    assert "user_message=prompt" in src
 
 
 def test_api_server_mengirim_tanpa_tools_secara_default():

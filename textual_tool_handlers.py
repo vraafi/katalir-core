@@ -215,7 +215,8 @@ def _missing_provider(tool: str) -> str:
 
 
 def execute_textual_tool(call: dict, user_email: str,
-                         policy_context: dict | None = None) -> dict:
+                         policy_context: dict | None = None,
+                         user_message: str = "") -> dict:
     """Jalankan satu call hasil `parse_textual_tools`.
 
     Bentuk call yang tidak dikenal DITOLAK diam (return error), bukan
@@ -236,6 +237,33 @@ def execute_textual_tool(call: dict, user_email: str,
     args = call.get("args") or {}
     if not isinstance(args, dict):
         return {"status": "error", "message": "Argumen tidak valid."}
+
+    # --- USER-INTENT ALIGNMENT (defense-in-depth) ---------------------
+    # Ditemukan di produksi (5 Okt 2026): pola `[VAULT: x]` yang ditulis
+    # PENGGUNA di prompt bisa membuat model menuliskannya, lalu dieksekusi.
+    # Sanitizer menutup jalur hasil-tool; jalur ini ditutup pemeriksa ini.
+    #
+    # Tidak PERNAH menolak - hanya menaikkan risiko menjadi approval, karena
+    # heuristik kata kunci bisa keliru dan memblokir operasi sah.
+    from intent_alignment import (alignment_note,
+                                  is_tool_aligned_with_user)
+
+    if not is_tool_aligned_with_user(tool, user_message):
+        try:
+            from approval_flow import (APPROVAL_TTL_S,
+                                       issue_approval_token)
+            tok = issue_approval_token(user_email, tool, args)
+        except Exception:  # noqa: BLE001
+            _audit(tool, args, Disposition.DENY,
+                   "intent tidak selaras; token gagal", user_email)
+            return {"status": "denied", "tool": tool,
+                    "reason": "Persetujuan tidak tersedia saat ini."}
+        _audit(tool, args, Disposition.REQUIRE_APPROVAL,
+               "intent tidak selaras dengan pesan user", user_email)
+        return {"status": "requires_approval", "tool": tool,
+                "reason": alignment_note(tool, user_message),
+                "alignment": "not_aligned", "approval_token": tok,
+                "expires_in": APPROVAL_TTL_S}
 
     # Allowlist per-field DIJALANKAN lebih dulu (OWASP ASI02). Ini yang
     # menutup kelas serangan yang tidak bisa ditutup blacklist: field yang
