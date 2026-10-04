@@ -8,6 +8,7 @@
  */
 import { AlertCircle, AlertTriangle, Bot, RotateCcw, Sparkles } from "lucide-react";
 import { motion } from "motion/react";
+import { ApprovalCard } from "@/components/ApprovalCard";
 import { Button } from "@/components/ui/button";
 import { useI18n } from "@/i18n/context";
 import type { ChatMessage } from "@/features/chat/hooks/useChat";
@@ -57,6 +58,19 @@ export type Msg =
         help_text?: string;
       }>;
       resumeToken?: string;
+    }
+  | {
+      /* Persetujuan tool (2026-10-05): TELEGRAM/SLACK, atau tool
+       * yang intent-nya tidak terlihat di pesan user. */
+      key: string;
+      role: "system";
+      type: "approval_prompt";
+      tool?: string;
+      toolArgs?: Record<string, unknown>;
+      reason?: string;
+      alignment?: string;
+      approvalToken?: string;
+      original: string;
     }
   | {
       /* Task 1C: provider ber-OAuth — bukan form token, tapi tombol Connect. */
@@ -257,6 +271,24 @@ export function Message({
               onChange={onCredChange}
               onSubmit={(p) => onCredSubmit(p, msg.original)}
             />
+          )
+        ) : msg.role === "system" && msg.type === "approval_prompt" ? (
+          // Tanpa approvalToken server tidak bisa memverifikasi, jadi
+          // tampilkan catatan jelas - bukan diam saja.
+          msg.approvalToken ? (
+            <ApprovalCard
+              tool={msg.tool ?? "tool"}
+              args={msg.toolArgs}
+              reason={msg.reason}
+              alignment={msg.alignment}
+              approvalToken={msg.approvalToken}
+            />
+          ) : (
+            <div className="w-80" data-testid="approval-expired">
+              <p className="text-footnote text-fg-muted">
+                Persetujuan tidak tersedia. Silakan kirim ulang permintaan.
+              </p>
+            </div>
           )
         ) : msg.role === "system" && msg.type === "oauth_prompt" ? (
           <OAuthConnectCard

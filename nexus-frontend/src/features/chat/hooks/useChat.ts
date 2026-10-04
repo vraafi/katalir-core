@@ -52,7 +52,7 @@ export interface ChatMessage {
   /** Tag optimistic lokal (pattern openclaw #14859) — tidak dikirim ke server. */
   _localId?: string;
   /** Kartu form kredensial / kartu OAuth / kartu error kontekstual (system message khusus). */
-  type?: "credential_form" | "oauth_prompt" | "error";
+  type?: "credential_form" | "oauth_prompt" | "approval_prompt" | "error";
   /** BUG FIX 2026-10-03 (cancel context loss): giliran yang user hentikan
    *  dengan tombol Stop. Pesan user TIDAK dihapus — ditandai supaya konteks
    *  tetap terbawa ke giliran berikutnya. Lihat `useSendChatMutation.onError`. */
@@ -69,6 +69,13 @@ export interface ChatMessage {
   icon?: string;
   fields?: CredentialField[];
   resumeToken?: string;
+  /** BUG/FITUR 2026-10-05: persetujuan tool yang mengirim data ke luar.
+   *  `toolArgs` dibaca dari token approval server, bukan dari client. */
+  tool?: string;
+  toolArgs?: Record<string, unknown>;
+  reason?: string;
+  alignment?: string;
+  approvalToken?: string;
   /** Metadata model (transparansi): model, latency, tokens, fallback. */
   meta?: ChatMeta;
   /** BUG FIX 2026-10-01: kunci idempotensi kiriman logis. Disimpan pada kartu
@@ -284,7 +291,7 @@ export async function resolveInterruptedSession(
 export function useSendChatMutation() {
   const qc = useQueryClient();
   return useMutation<
-    { reply: string; session_id?: string; needsCredential?: boolean; needsOauth?: boolean; provider?: string; connectUrl?: string; message?: string; meta?: ChatMeta; requiresCredential?: boolean; displayName?: string; icon?: string; fields?: CredentialField[]; resumeToken?: string },
+    { reply: string; session_id?: string; needsCredential?: boolean; needsOauth?: boolean; provider?: string; connectUrl?: string; message?: string; meta?: ChatMeta; requiresCredential?: boolean; displayName?: string; icon?: string; fields?: CredentialField[]; resumeToken?: string; requiresApproval?: boolean; tool?: string; toolArgs?: Record<string, unknown>; reason?: string; alignment?: string; approvalToken?: string; replyDenied?: boolean; deniedReason?: string },
     Error & { provider?: string; promptEcho?: string },
     { prompt: string; sessionId?: string | null; email?: string | null; abortSignal?: AbortSignal; clientRequestId?: string; model?: string; retryOfLocalId?: string },
     {
@@ -367,6 +374,44 @@ export function useSendChatMutation() {
             icon: data.icon as string | undefined,
             fields: (data.fields as CredentialField[] | undefined) ?? [],
             resumeToken: data.resume_token as string | undefined,
+          };
+        }
+        if (data.status === "requires_approval") {
+          // Persetujuan (2026-10-05). Dua pemicu:
+          //   * policy gate - TELEGRAM/SLACK mengirim data ke luar;
+          //   * intent-alignment - pola tool tidak terlihat diminta user.
+          // Argumen datang dari backend dan ditampilkan apa adanya supaya
+          // user tahu persis apa yang akan dikirim.
+          return {
+            reply: "",
+            session_id: data.session_id as string | undefined,
+            requiresApproval: true,
+            tool: data.tool as string | undefined,
+            toolArgs: (data.args as Record<string, unknown> | undefined) ?? {},
+            reason: (data.reason as string | undefined) ?? undefined,
+            alignment: (data.alignment as string | undefined) ?? undefined,
+            approvalToken: data.approval_token as string | undefined,
+          };
+        }
+        if (data.status === "denied") {
+          // Policy gate / allowlist menolak. Ditampilkan sebagai error dengan
+          // alasan dari backend supaya user tahu KENAPA aksinya ditolak -
+          // error kosong akan membingungkan.
+          return {
+            reply: "",
+            session_id: data.session_id as string | undefined,
+            replyDenied: true,
+            deniedReason: (data.reason as string | undefined) ?? undefined,
+          };
+        }
+        if (data.status === "needs_spec") {
+          // WORKFLOW hanya membawa nama, bukan spec. Handler sengaja tidak
+          // mengarang node; user perlu diminta memberi detail.
+          return {
+            reply:
+              (data.message as string | undefined) ??
+              "Workflow perlu spesifikasi lengkap (node & edge) sebelum bisa dibuat.",
+            session_id: data.session_id as string | undefined,
           };
         }
         if (data.status === "needs_credential") {
@@ -578,6 +623,47 @@ export function useSendChatMutation() {
                   icon: data.icon,
                   fields: data.fields,
                   resumeToken: data.resumeToken,
+                  original: context.prompt,
+                }
+              : m
+          )
+        );
+      } else if (data.requiresApproval && context) {
+        // Kartu persetujuan (2026-10-05). Sama seperti kartu kredensial,
+        // `_localId` WAJIB dipertahankan - layer render hanya meneruskan
+        // entri yang punya `_localId`, jadi tanpa itu kartunya dibuang
+        // sebelum sempat tampil (bug yang sama pernah menimpa form kredensial).
+        qc.setQueryData<ChatMessage[]>(finalKey, (old) =>
+          (old ?? []).map((m) =>
+            m._localId === context.optimisticAsstId
+              ? {
+                  id: `local-approval-${Date.now()}`,
+                  _localId: context.optimisticAsstId,
+                  role: "system",
+                  content: "",
+                  type: "approval_prompt" as const,
+                  tool: data.tool,
+                  toolArgs: data.toolArgs,
+                  reason: data.reason,
+                  alignment: data.alignment,
+                  approvalToken: data.approvalToken,
+                  original: context.prompt,
+                }
+              : m
+          )
+        );
+      } else if (data.replyDenied && context) {
+        // Ditolak policy gate / allowlist. Tampil sebagai kartu error dengan
+        // alasan dari backend - user perlu tahu KENAPA aksinya ditolak.
+        qc.setQueryData<ChatMessage[]>(finalKey, (old) =>
+          (old ?? []).map((m) =>
+            m._localId === context.optimisticAsstId
+              ? {
+                  id: `local-denied-${Date.now()}`,
+                  _localId: context.optimisticAsstId,
+                  role: "system",
+                  content: data.deniedReason ?? "Permintaan ditolak oleh keamanan.",
+                  type: "error" as const,
                   original: context.prompt,
                 }
               : m
