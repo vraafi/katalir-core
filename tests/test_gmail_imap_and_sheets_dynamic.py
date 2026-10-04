@@ -390,3 +390,68 @@ def test_data_kosong_ditolak():
     else:
         raise AssertionError("data kosong harus ditolak")
     assert c.appended == []
+
+
+# ---------------------------------------------------------------------------
+# BUG FIX 2026-10-04: field `sender` tidak pernah ada di parse_message.
+#
+# parse_message hanya mengembalikan key "from" (header mentah seperti
+# "Nama <surel@x>"). Pemanggil yang membaca m["sender"] selalu dapat None.
+# Sekarang ada `sender` terstruktur {"name", "email"} hasil parseaddr.
+# ---------------------------------------------------------------------------
+
+
+def _raw(from_header: bytes) -> bytes:
+    return from_header + b"Subject: Uji\r\n\r\nisi\r\n"
+
+
+def test_sender_dipisah_jadi_name_dan_email():
+    from gmail_imap import parse_message
+
+    m = parse_message(_raw(b"From: Budi <budi@contoh.co.id>\r\n"), uid="1")
+    assert m["sender"] == {"name": "Budi", "email": "budi@contoh.co.id"}
+
+
+def test_sender_nama_terenkode_rfc2047_didekode():
+    from gmail_imap import parse_message
+
+    # Header harus dib-built dari base64 UTF-8 yang BENAR. Fixture sebelumnya
+    # memakai base64 byte Latin-1 yang dilabeli utf-8, jadi tidak bisa didekode
+    # dan karakter non-ASCII-nya jadi replacement char.
+    import base64
+
+    name = "Jos\u00e9 Wahari"
+    b64 = base64.b64encode(name.encode("utf-8")).decode()
+    header = f"From: =?utf-8?B?{b64}?= <andi@contoh.co.id>\r\n".encode()
+    m = parse_message(_raw(header), uid="1")
+    assert m["sender"]["email"] == "andi@contoh.co.id"
+    assert m["sender"]["name"] == name
+
+
+def test_sender_hanya_email_tanpa_nama():
+    from gmail_imap import parse_message
+
+    m = parse_message(_raw(b"From: sari@contoh.co.id\r\n"), uid="1")
+    assert m["sender"] == {"name": "", "email": "sari@contoh.co.id"}
+
+
+def test_sender_kosong_bila_header_tidak_ada():
+    from gmail_imap import parse_message
+
+    m = parse_message(b"Subject: Uji\r\n\r\nisi\r\n", uid="1")
+    assert m["sender"] == {"name": "", "email": ""}
+
+
+def test_sender_rusak_tidak_melempar():
+    from gmail_imap import parse_message
+
+    m = parse_message(_raw(b"From: <<<rusak\r\n"), uid="1")
+    assert isinstance(m["sender"], dict)
+
+
+def test_key_from_utuh_tetap_ada_untuk_kompatibilitas():
+    """Field lama `from` tidak boleh hilang - pemanggil lama bergantung."""
+    from gmail_imap import parse_message
+
+    m = parse_message(_raw(b"From: Budi <budi@contoh.co.id>\r\n"), uid="1")
+    assert "budi@contoh.co.id" in m["from"]

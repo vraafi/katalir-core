@@ -45,6 +45,7 @@ import imaplib
 import ssl
 from email import policy as _email_policy
 from email.header import decode_header, make_header
+from email.utils import parseaddr
 from typing import Any
 
 # Provider key di `user_vault`.
@@ -228,7 +229,26 @@ def trigger_gmail_imap(
             client.logout()
         except Exception:  # noqa: BLE001 - logout gagal tidak relevan
             pass
-    return ("\n".join(plain_parts).strip(), "\n".join(html_parts).strip())
+
+
+
+def _parse_sender(raw: Any) -> dict:
+    """Pisahkan header From jadi {"name", "email"} memakai `parseaddr`.
+
+    Menangani:
+      - "Nama <surel@example.com>"  -> name dipisah, email diambil
+      - "surel@example.com"         -> name kosong, email diambil
+      - nama ber-enkode RFC 2047   -> didekode dulu
+      - header kosong/rusak        -> dict kosong, TIDAK melempar
+    """
+    header = decode_mime_header(raw)
+    if not header:
+        return {"name": "", "email": ""}
+    try:
+        name, addr = parseaddr(header)
+    except Exception:  # noqa: BLE001 - header rusak tidak menjatuhkan poll
+        return {"name": "", "email": ""}
+    return {"name": str(name or "").strip(), "email": str(addr or "").strip()}
 
 
 def parse_message(raw_bytes: bytes, uid: str = "") -> dict:
@@ -239,6 +259,11 @@ def parse_message(raw_bytes: bytes, uid: str = "") -> dict:
         "id": str(uid or msg.get("Message-ID", "")),
         "subject": decode_mime_header(msg.get("Subject")),
         "from": decode_mime_header(msg.get("From")),
+        # BUG FIX 2026-10-04: `sender` terstruktur lewat parseaddr.
+        # Sebelumnya tidak ada sama sekali; header From mentah seperti
+        # "Jos'n Wahari <andi@contoh.co.id>" sulit dipakai pemanggil (harus
+        # memotong string sendiri). Dipisah jadi {"name", "email"}.
+        "sender": _parse_sender(msg.get("From")),
         "date": decode_mime_header(msg.get("Date")),
         "to": decode_mime_header(msg.get("To")),
         "body": plain[:20000],
