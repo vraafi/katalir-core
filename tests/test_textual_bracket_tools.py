@@ -162,13 +162,21 @@ def test_handler_args_bukan_dict():
     assert r["status"] == "error"
 
 
-def test_handler_kredensial_hilang_tidak_ditelan():
-    """Harus melempar CredentialMissingError supaya form dirender."""
-    from tools import CredentialMissingError
-    with pytest.raises(CredentialMissingError):
-        execute_textual_tool(
-            {"tool": "SLACK", "args": {"channel": "#c", "pesan": "x"}},
-            "belum-terpasang@katalir.test")
+def test_handler_kredensial_hilang_mencapai_form():
+    """Kredensial hilang harus sampai ke form, bukan exception liar.
+
+    Kontrak BAGIAN 5-7 (2026-10-04): gate mengembalikan dict ber-
+    `status`, bukan melempar. `api_server` yang lalu menaikkan
+    `CredentialMissingError` dari dict itu sehingga endpoint tetap
+    merender form. Exception di tangan handler hanya dipakai sebagai
+    jaring pengaman, bukan jalur utama.
+    """
+    r = execute_textual_tool(
+        {"tool": "SLACK", "args": {"channel": "#c", "pesan": "x"}},
+        "belum-terpasang@katalir.test")
+    assert r["status"] in ("requires_credential", "requires_approval")
+    if r["status"] == "requires_credential":
+        assert r.get("provider")
 
 
 def test_api_server_sudah_mengimpor_jalur_baru():
