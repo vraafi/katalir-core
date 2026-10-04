@@ -241,3 +241,31 @@ alasan tertulis) dan dikunci lagi oleh `tests/test_gmail_multitenant.py`.
 
 Selama tiga langkah itu belum dikerjakan, status Gmail tetap
 **manual / broken end-to-end** — sama seperti tabel di atas.
+
+---
+
+## Update 2026-10-03 (c) — Gmail trigger SUDAH ADA lewat IMAP (tanpa CASA)
+
+Bagian di atas sudah **basi**. Commit `b8095a8` menambahkan `gmail_imap.py`
+(248 baris) yang melakukan polling Gmail lewat IMAP4_SSL memakai **App
+Password**, bukan OAuth.
+
+```
+gmail_imap.py:121  def trigger_gmail_imap(...)
+gmail_imap.py:171  client = imaplib.IMAP4_SSL(...)
+gmail_imap.py:52   IMAP_HOST = "imap.gmail.com"
+```
+
+Karena tidak memakai OAuth restricted scope, jalur ini **tidak memerlukan
+CASA** maupun verifikasi aplikasi. Kartu kredensialnya ada di
+`nexus-frontend/src/components/GmailImapCard.tsx`.
+
+Yang TIDAK berubah: jalur **OAuth** Gmail tetap memerlukan CASA (scope
+`gmail.readonly` / `gmail.modify` / `gmail.compose` = RESTRICTED). Hanya
+pakai IMAP yang bebas CASA.
+
+Catatan jujur: ini **polling**, bukan push notification Gmail API
+(`users.watch` + Pub/Sub). Dan App Password hanya bisa dibuat kalau 2-Step
+Verification akun aktif — syarat Google, bukan pilihan Katalir.
+
+Keputusan lengkap + analisis biaya ada di `docs/oauth/gmail-decision.md`.

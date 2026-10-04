@@ -24,26 +24,7 @@ import { useI18n } from "@/i18n/context";
 import { useAuth } from "@/context/auth";
 
 export interface OAuthCardSpec {
-  id: "google" | "slack" | "gmail";
-  /** Status kapabilitas.
-   *
-   *  BUG FIX 2026-10-03: kartu Gmail DITAMBAHKAN dengan status "comingSoon".
-   *
-   *  Kenapa tidak dihapus saja? Karena user tetap perlu tahu Gmail itu ADA di
-   *  roadmap, bukan tidak pernah ada. Menampilkan tombol "Connect Gmail" yang
-   *  tidak bisa dipakai (versi sebelumnya) adalah janji kosong - itu yang sudah
-   *  dihapus dari `tools.OAUTH_CONNECT_URLS`.
-   *
-   *  Kenapa "comingSoon" dan bukan "connected"? Karena semua scope Gmail yang
-   *  dibutuhkan trigger termasuk RESTRICTED scope Google, yang mewajibkan
-   *  security assessment (CASA) tahunan sebelum aplikasi boleh發行 untuk user
-   *  umum. Lihat docs/oauth/provider-status.md untuk analisis biayanya.
-   *
-   *  Kartu ini TIDAK punya `authorize` yang dipanggil, jadi tidak mungkin
-   *  menampilkan tombol yang tidak berfungsi. */
-  status: "ready" | "comingSoon";
-  /** Alasan singkat untuk tooltipbadge "comingSoon". */
-  statusNote?: string;
+  id: "google" | "slack";
   provider: string;
   authorize: string;
   disconnect: string;
@@ -63,23 +44,6 @@ export const OAUTH_CARDS: OAuthCardSpec[] = [
     disconnect: "/oauth/google",
     testid: "card-oauth-google",
     revokeTarget: "Google account permissions",
-    status: "ready",
-  },
-  {
-    // Gmail trigger (menunggu email masuk) membutuhkan scope RESTRICTED Google
-    // + CASA assessment tahunan. Tidak ada authorize endpoint yang boleh
-    // dipanggil untuk scope itu sekarang, jadi kartu ini TIDAK punya tombol
-    // Connect - hanya status, supaya user tidak promised sesuatu yang tidak
-    // bisadipakai. Lihat docs/oauth/provider-status.md.
-    id: "gmail",
-    provider: "Gmail",
-    authorize: "",
-    disconnect: "",
-    testid: "card-oauth-gmail",
-    revokeTarget: "Google account permissions",
-    status: "comingSoon",
-    statusNote:
-      "Butuh Google restricted-scope verification (CASA). See docs/oauth/provider-status.md",
   },
   {
     id: "slack",
@@ -88,7 +52,6 @@ export const OAUTH_CARDS: OAuthCardSpec[] = [
     disconnect: "/oauth/slack",
     testid: "card-oauth-slack",
     revokeTarget: "Slack workspace",
-    status: "ready",
   },
 ];
 
@@ -109,14 +72,6 @@ export function OAuthConnections({ title, description }: { title?: string; descr
   const refresh = useCallback(async () => {
     const next: Record<string, OAuthState> = {};
     for (const card of OAUTH_CARDS) {
-      // Kartu roadmap (comingSoon) tidak punya endpoint status sama sekali.
-      // Tanpa guard ini, `/oauth/gmail/status` akan 404 dan kartu menampilkan
-      // "Tidak bisa dipastikan" - menyiratkan user pernah mencoba connect.
-      // State-nya diisi "sudah dimuat, tidak terhubung, bukan error".
-      if (card.status === "comingSoon") {
-        next[card.id] = { loaded: true, connected: false, target: "", configured: false };
-        continue;
-      }
       try {
         // 5 detik terlalu agresif untuk endpoint yang membaca vault:
         // latensi Railway terukur 284-1551 ms dan sesekali lebih lama
@@ -238,11 +193,6 @@ export function OAuthConnections({ title, description }: { title?: string; descr
           {OAUTH_CARDS.map((card) => {
             const st = state[card.id];
             const loading = !st?.loaded;
-            // Kartu "comingSoon" TIDAK punya status endpoint (authorize kosong).
-            // Meng queried-nya akan menghasilkan 404 palsu "Not connected",
-            // yang menyiratkan user pernah mencobanya. Perlakukan sebagai
-            // "tidak berlaku" supaya badge menampilkan label roadmap.
-            const comingSoon = card.status === "comingSoon";
             const target = card.id === "slack" ? st?.target || "" : email || "";
             return (
               <div
@@ -252,16 +202,7 @@ export function OAuthConnections({ title, description }: { title?: string; descr
               >
                 <div className="flex items-center justify-between gap-2">
                   <span className="text-footnote font-medium text-fg">{card.provider}</span>
-                  {comingSoon ? (
-                    <span
-                      data-testid={`oauth-badge-${card.id}`}
-                      data-state="coming-soon"
-                      title={card.statusNote}
-                      className="inline-flex items-center rounded-full border border-border bg-muted/40 px-2 py-0.5 text-caption text-fg-muted"
-                    >
-                      {t("chat.comingSoon")}
-                    </span>
-                  ) : loading ? (
+                  {loading ? (
                     <span className="inline-flex items-center gap-1 text-caption text-fg-muted">
                       <Loader2 size={12} strokeWidth={2} className="animate-spin" aria-hidden /> {t("common.loading")}
                     </span>
@@ -326,16 +267,7 @@ export function OAuthConnections({ title, description }: { title?: string; descr
                   SETIAP provider, jadi strukturnya identik.
                 */}
                 <div className="mt-auto flex flex-col gap-2 pt-1" data-testid={`oauth-footer-${card.id}`}>
-                  {comingSoon ? (
-                    // Tanpa tombol. Satu-satunya CTA yang aman di sini adalah
-                    // penjelasan, bukan aksi yang pasti gagal.
-                    <p
-                      className="text-caption text-fg-subtle"
-                      data-testid={`oauth-comingsoon-${card.id}`}
-                    >
-                      {card.statusNote}
-                    </p>
-                  ) : st?.connected ? (
+                  {st?.connected ? (
                     <Button
                       variant="danger"
                       size="sm"

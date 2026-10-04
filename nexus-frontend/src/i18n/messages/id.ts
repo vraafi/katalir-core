@@ -52,7 +52,6 @@ export const id = {
     placeholder: 'Ketik pesan ke Katalir, atau "Buat workflow: ..."',
     promptTip: "Tips: sebut integrasi spesifik (Gmail, Slack, Telegram, Sheets) + targetnya agar workflow langsung bisa jalan.",
     promptGuide: "Panduan prompt lengkap",
-    comingSoon: "Segera",
     newChat: "Chat Baru",
     history: "Riwayat Chat",
     noHistory: "Belum ada riwayat.",

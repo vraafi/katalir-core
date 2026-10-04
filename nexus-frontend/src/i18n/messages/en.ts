@@ -49,7 +49,6 @@ export const en = {
     placeholder: 'Message Katalir, or "Build a workflow: ..."',
     promptTip: "Tip: name the integration (Gmail, Slack, Telegram, Sheets) and its target so the workflow can run as-is.",
     promptGuide: "Full prompt guide",
-    comingSoon: "Coming soon",
     newChat: "New Chat",
     history: "Chat History",
     noHistory: "No chats yet.",

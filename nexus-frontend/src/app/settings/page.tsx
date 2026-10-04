@@ -368,8 +368,17 @@ function SettingsContent() {
       {/* Gmail trigger IMAP (2026-10-03). Ditaruh di /settings - bukan
           /integrations - karena ini BUKAN koneksi OAuth: user menempel
           App Password miliknya sendiri, jadi sifatnya closer ke "kredensial"
-          yang juga punya kartu sendiri di halaman ini. Kartu OAuth Gmail di
-          /integrations tetap "comingSoon" karena scope RESTRICTED/CASA. */}
+          yang juga punya kartu sendiri di halaman ini.
+
+          CATATAN (3 Okt 2026): sempat ada kartu OAuth Gmail berlabel
+          "comingSoon" di OAUTH_CARDS. Kartu itu DIHAPUS, bukan karena scope
+          RESTRICTED/CASA berubah, tapi karena sekarang sudah ada jalur yang
+          benar-benar jalan (IMAP + App Password di bawah). Satu kartu Gmail
+          yang bisa dipakai lebih berguna daripada dua: satu hidup dan satu
+          mati. Jalur OAuth Gmail tetap butuh CASA, jadi kalau nanti dibuka,
+          ia harus berupa kartu Connect yang sungguhan - bukan label roadmap
+          yang membuat bingung dengan kartu IMAP yang sudah hidup. */}
+
       <GmailImapCard />
       <Card data-testid="card-integrations-link">
         <CardContent className="flex flex-wrap items-center justify-between gap-3 py-4">
