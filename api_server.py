@@ -42,6 +42,11 @@ from tool_call_parser import (  # BUG FIX 2026-10-04: gerbang fail-closed
     ToolCallParseError,
     parse_tool_call,
 )
+from textual_tool_parser import (  # BUG FIX 2026-10-04: jalur utama
+    parse_textual_tools,
+    strip_textual_tools,
+)
+from textual_tool_handlers import execute_textual_tool
 import execution_engine as engine
 from tools import CredentialMissingError
 from google import genai
@@ -395,6 +400,36 @@ _AGENT_SYSTEM = (
     "Anda adalah Nexus Autonomous Agent. Rencanakan & lakukan tindakan dengan "
     "alat yang tersedia. Setelah eksekusi alat, rangkum hasil untuk pengguna "
     "secara ringkas dalam Bahasa Indonesia.\n\n"
+    # BAGIAN TEXTUAL TOOL CALLING (BUG FIX 2026-10-04).
+    # Gateway production memb-drop parameter `tools` (bukti: HTTP 500 saat
+    # `tools` dikirim ke qwen3.8-27b, sementara tanpa `tools` balas 200).
+    # Karena itu alat dipanggil lewat TEKS berkurung, bukan native tool
+    # calling. Format ini model-agnostic: Qwen/Gemma/DeepSeek/Llama bisa.
+    #
+    # PENTING: blok kode di bawah ini ADALAH dokumentasi. Bila user
+    # membuat blok kode berisi [VAULT: ...], itu TIDAK dieksekusi
+    # (parser mengabaikannya) - jadi contoh di sini aman.
+    "FORMAT PEMANGGILAN ALAT (WAJIB):\n"
+    "Gateway ini tidak menerima native tool calling, jadi alat dipanggil "
+    "dengan menulis blok berkurung di jawabanmu:\n\n"
+    "  [VAULT: <provider>]              -> cek/nyambung kredensial "
+    "(supabase | gmail_imap | telegram | slack | google_sheets)\n"
+    "  [WORKFLOW: <nama>]               -> minta pembuatan workflow\n"
+    "  [EMAIL: cek subjek=<teks> max=<n>]-> baca email user via Gmail\n"
+    "  [SHEETS: write spreadsheet=<id> sheet=<nama>]\n"
+    "  [TELEGRAM: chat_id=<id> pesan=\"<teks>\"]\n"
+    "  [SLACK: channel=<nama> pesan=\"<teks>\"]\n\n"
+    "ATURAN ALAT (WAJIB):\n"
+    "a. Butuh nilai yang mengandung spasi? WAJIB apit tanda kutip, "
+    "contoh: pesan=\"Halo dunia\". Tanpa kutip, teks setelah spasi "
+    "diabaikan.\n"
+    "b. Panggil [VAULT: <provider>] DULU bila workflow butuh "
+    "kredensial, lalu tunggu user mengisi form sebelum lanjut.\n"
+    "c. JANGAN pernah menampilkan JSON mentah ke pengguna.\n"
+    "d. Blok [ALAT: ...] di dalam ``` atau `inline code` TIDAK "
+    "dieksekusi - di sana itu contoh dokumentasi.\n"
+    "e. Setelah menulis blok alat, jelaskan singkat dalam Bahasa "
+    "Indonesia apa yang akan dilakukan.\n"
     # BUG FIX 2026-10-02 - aturan "cari dulu, jangan berasumsi". Tanpa ini
     # agen menjawab pertanyaan teknis langsung dari ingatan, padahal versi
     # library / CVE / error message berubah cepat dan sering keliru.
@@ -836,6 +871,55 @@ def _agentic_run_gateway(prompt: str, email: str, model_id: str,
                             "tools_dropped": tools_dropped,
                             "tool_call_rejected": True,
                             "tool_call_error": _gate[:200],
+                            "workflow": None,
+                        },
+                    }
+                # --- TEKSTUAL BERKURUNG (BUG FIX 2026-10-04) ------------------
+                # Format `[ALAT: args]`. Ini jalur UTAMA sekarang karena
+                # gateway tidak menerima native tools. Dicek SEBELUM parser
+                # XML, dan hanya bila tidak ada `tool_calls` terstruktur.
+                _bracket_calls = [] if calls else parse_textual_tools(_raw_text)
+                if _bracket_calls:
+                    print(f"[chat/gateway] bracket tool_call n="
+                          f"{len(_bracket_calls)} names="
+                          f"{[c['tool'] for c in _bracket_calls]}")
+                    for c in _bracket_calls:
+                        try:
+                            result = execute_textual_tool(c, email)
+                        except CredentialMissingError:
+                            raise  # -> endpoint merender form inline
+                        except Exception as exc:  # noqa: BLE001
+                            result = {"status": "error",
+                                      "message": f"{type(exc).__name__}: {exc}"[:300]}
+                        # Status ini harus sampai ke form, bukan ditampilkan
+                        # sebagai teks biasa.
+                        if isinstance(result, dict) and result.get("status") in (
+                                "requires_credential", "needs_oauth"):
+                            raise CredentialMissingError(
+                                str(result.get("provider") or ""))
+                        # Spec workflow masih dibutuhkan -> minta giliran
+                        # berikutnya, jangan mengarang node.
+                        if isinstance(result, dict) and result.get("status") == "needs_spec":
+                            print(f"[chat/gateway] needs_spec name={result.get('name')}")
+                    _clean = strip_textual_tools(_raw_text)
+                    usage = getattr(resp, "usage_metadata", None) or {}
+                    return {
+                        "reply": _clean or "Selesai.",
+                        "meta": {
+                            "model": cand,
+                            "requested_model": model_id,
+                            "latency_ms": int((time.time() - _t0) * 1000),
+                            "prompt_tokens": int(usage.get("input_tokens") or 0),
+                            "completion_tokens": int(usage.get("completion_tokens") or 0),
+                            "total_tokens": int(usage.get("total_tokens") or 0),
+                            "fallback": bool(cand != model_id),
+                            "fallback_reason": (_fallback_reason(last_err)
+                                                if cand != model_id and last_err is not None
+                                                else None),
+                            "gateway": True,
+                            "tools_dropped": tools_dropped,
+                            "textual_tool_calls": True,
+                            "bracket_tool_calls": [c["tool"] for c in _bracket_calls],
                             "workflow": None,
                         },
                     }
