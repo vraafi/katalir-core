@@ -158,5 +158,10 @@ def test_system_prompt_meminta_verifikasi_sebelum_menjawab():
 
 def test_kontrak_respons_chat_meneruskan_meta_apa_adanya():
     src = (pathlib.Path(ROOT) / "api_server.py").read_text(encoding="utf-8")
-    assert '"status": "success", "reply": reply, "session_id": session_id, "meta": meta' in src
+    # BUG FIX 2026-10-05: literal di atas dihapus karena endpoint tidak boleh
+    # lagi hardcode "status". Kontrak yang sebenarnya diuji di sini -
+    # meta diteruskan apa adanya - MASIH berlaku, hanya lewat `_response`.
+    assert ('_response = {"status": "success", "reply": reply,' in src
+            and '"session_id": session_id, "meta": meta}' in src)
+    assert '_response["status"] = _gw_status' in src
 

@@ -1732,7 +1732,29 @@ def chat(req: ChatRequest, authorization: str | None = Header(None)):
         meta["quota_fallback"] = True
         meta["quota_fallback_from"] = _q_fallback_from
 
-    return {"status": "success", "reply": reply, "session_id": session_id, "meta": meta}
+    # BUG FIX 2026-10-05: `status` TIDAK boleh di-hardcode "success".
+    # Terbukti di produksi: gateway sudah benar mengembalikan
+    # `requires_approval` (dibuktikan meta.bracket_tool_calls terisi), tapi
+    # baris ini menimpanya jadi "success" sehingga approval_token hilang
+    # tanpa jejak dan user tidak pernah melihat tombol Setujui.
+    #
+    # `requires_credential` tidak pernah lewat sini - ia naik sebagai
+    # CredentialMissingError dan ditangani jauh di atas - jadi bug ini
+    # hanya menimpa status baru, dan karena itu tidak kelihatan.
+    _response = {"status": "success", "reply": reply,
+                 "session_id": session_id, "meta": meta}
+    _gw_status = str(_run.get("status") or "success").strip()
+    if _gw_status and _gw_status != "success":
+        _response["status"] = _gw_status
+        # Teruskan field khusus status tersebut. Daftar ini disengaja
+        # (allowlist): field yang tidak disebut tidak ikut terbawa.
+        for _k in ("approval_token", "resume_token", "provider",
+                   "display_name", "icon", "fields", "tool", "args",
+                   "reason", "alignment", "expires_in", "message",
+                   "connect_url", "oauth_url", "name"):
+            if _k in _run:
+                _response[_k] = _run[_k]
+    return _response
 
 
 # ---------------------------------------------------------------------------
