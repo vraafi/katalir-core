@@ -498,8 +498,11 @@ def generate_workflow_json(spec_json: str, email: str = "") -> str:
     import json as _json
 
     import workflow_spec as _ws
+    from workflow_normalizer import normalize_workflow_payload as _norm
 
-    result = _ws.validate_spec(spec_json or "")
+    # BUG FIX 2026-10-04: bentuk payload dari model sering berbeda (lihat
+    # workflow_normalizer.py). Normalisasi dulu supaya tidak ditolak.
+    result = _ws.validate_spec(_json.dumps(_norm(spec_json)) if spec_json else "")
     if result.get("ok"):
         spec = result.get("spec") or {}
         result = {
@@ -984,10 +987,13 @@ def _execute_tool_inner(name: str, args: dict, email: str) -> str:
             email=email,
         )
     if name == "generate_workflow_json":
-        return generate_workflow_json(
-            spec_json=args.get("spec_json", ""),
-            email=email,
-        )
+        # BUG FIX 2026-10-04: model mengirim payload di bawah kunci `workflow`,
+        # bukan `spec_json`. Kalau hanya `spec_json` yang dibaca, nilainya
+        # kosong dan validator menolak dengan "spec_json kosong".
+        _payload = (args.get("spec_json") or args.get("workflow")
+                    or args.get("draft") or args.get("spec")
+                    or args.get("workflow_json") or "")
+        return generate_workflow_json(spec_json=_payload, email=email)
     if name == "kirim_telegram_message":
         return kirim_telegram_message(
             chat_id=args.get("chat_id", ""),
