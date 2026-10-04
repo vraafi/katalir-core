@@ -196,7 +196,14 @@ def trigger_gmail_imap(
 
         results: list[dict] = []
         for uid in uids:
-            typ, payload = client.uid("FETCH", uid, "(BODY.PEEK[])")
+            # BUG FIX 2026-10-04: UID dari `UID SEARCH` datang sebagai BYTES
+            # (`b'12345'`). `imaplib.uid()` butuh string; kalau diberi bytes,
+            # imaplib merakit perintah yang rusak dan Gmail membalas
+            # `BAD Could not parse command`. Gejalanya: trigger selalu gagal
+            # padahal login dan SEARCH sudah berhasil.
+            # Bukti: traceback menunjuk baris ini, bukan baris SEARCH.
+            uid_s = uid.decode() if isinstance(uid, (bytes, bytearray)) else str(uid)
+            typ, payload = client.uid("FETCH", uid_s, "(BODY.PEEK[])")
             if typ != "OK" or not payload:
                 continue
             raw = b""
@@ -207,7 +214,6 @@ def trigger_gmail_imap(
                     break
             if not raw:
                 continue
-            uid_s = uid.decode() if isinstance(uid, bytes) else str(uid)
             results.append(parse_message(raw, uid=uid_s))
 
         return {
@@ -242,7 +248,34 @@ def parse_message(raw_bytes: bytes, uid: str = "") -> dict:
 
 
 def _decode_uid_list(resp: Any) -> list:
-    """Ambil daftar UID dari respons `SEARCH` IMAP."""
+    """Ambil daftar UID dari respons `SEARCH` IMAP, satu UID per elemen.
+
+    BUG FIX 2026-10-04 - akar masalah trigger selalu gagal.
+
+    imaplib mengembalikan `data` sebagai DAFTAR byte: `[b'3806 3807']`.
+    Versi lama menulis `resp[1] if isinstance(resp[1], list) else ...`, jadi
+    ketika `resp[1]` berupa list, isinya TIDAK dipecah dan yang dikembalikan
+    `[b'3806 3807']` - satu elemen berisi spasi.
+
+    Fel FETCH berikutnya jadi:
+        UID FETCH 3806 3807 (BODY.PEEK[])
+    yang greet-nya `BAD Could not parse command`.
+
+    Karena itu bug ini HANYA muncul saat ada 2+ email belum dibaca. Dengan satu
+    email, isinya kebetulan tanpa spasi sehingga tidak terlihat - itu sebabnya
+    tes manual satu-UID selalu lolos.
+    """
     if not resp or len(resp) < 2 or not resp[1]:
         return []
-    return resp[1] if isinstance(resp[1], list) else resp[1].split()
+    raw = resp[1]
+    out: list = []
+    if isinstance(raw, (list, tuple)):
+        for item in raw:
+            if isinstance(item, (bytes, bytearray)):
+                out.extend(bytes(item).split())
+            elif isinstance(item, str):
+                out.extend(item.split())
+        return out
+    if isinstance(raw, (bytes, bytearray)):
+        return bytes(raw).split()
+    return str(raw).split()

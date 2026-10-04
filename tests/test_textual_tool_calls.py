@@ -104,3 +104,107 @@ def test_dua_call_berurutan():
     assert calls[0]["name"] == "nexus:generate_workflow_json"
     assert calls[1]["name"] == "nexus:read_database"
     assert calls[1]["args"] == {"table": "users"}
+
+
+# ---------------------------------------------------------------------------
+# BUG FIX 2026-10-04: format Qwen3.8-27B yang dilaporkan user.
+#
+# Keluhan: JSON tampil mentah ke user, workflow tidak dibangun. Bukti nyata:
+#     <tool_call>
+#     <function=generate_workflow_json>
+#     {"name": "Ambil Data API & Kirim ke Telegram", "nodes": [...]}
+#     </function>
+#     </tool_call>
+#
+# Tiga bug yang ditemukan lewat pengujian:
+#   1. <function=NAME> tidak didukung -> call tidak terekstrak.
+#   2. pola non-greedy memotong JSON bersarang -> "nodes" hilang.
+#   3. strip() mengembalikan TEKS ASLI saat sisa kosong -> JSON tetap bocor
+#      meskipun parse-nya BERHASIL.
+# ---------------------------------------------------------------------------
+
+QWEN_USER_REAL = (
+    "<tool_call>\n"
+    "<function=generate_workflow_json>\n"
+    '{"name": "Ambil Data API & Kirim ke Telegram", "nodes": ['
+    '{"id":"t","kind":"trigger"},'
+    '{"id":"m","kind":"mcp","config":{"provider":"telegram","chat_id":"2109751369"}}]}'
+    "\n</function>\n"
+    "</tool_call>"
+)
+
+
+def test_qwen_function_wrapper_terekstrak():
+    """BUG 1: <function=NAME> harus menghasilkan tool call."""
+    calls = extract_textual_tool_calls(QWEN_USER_REAL)
+    assert len(calls) == 1, f"call tidak terekstrak: {calls}"
+    assert calls[0]["name"] == "generate_workflow_json"
+
+
+def test_nama_tool_bukan_nama_workflow():
+    """Field "name" di payload milik WORKFLOW, bukan nama tool.
+
+    Ini yang bikin versi pertama salah: tool terdeteksi bernama
+    "Ambil Data API & Kirim ke Telegram".
+    """
+    calls = extract_textual_tool_calls(QWEN_USER_REAL)
+    assert calls[0]["name"] != "Ambil Data API & Kirim ke Telegram"
+
+
+def test_json_bersarang_tidak_terpotong():
+    """BUG 2: "nodes" harus utuh, bukan terpotong di kurung kurawal pertama."""
+    calls = extract_textual_tool_calls(QWEN_USER_REAL)
+    nodes = calls[0]["args"].get("nodes") or []
+    assert len(nodes) == 2, f"JSON bersarang terpotong: {nodes}"
+
+
+def test_xml_tidak_bocor_ke_user_setelah_parse_berhasil():
+    """BUG 3: sebelum fix, strip() mengembalikan teks asli (JSON bocor)."""
+    cleaned = strip_textual_tool_calls(QWEN_USER_REAL)
+    assert "tool_call" not in cleaned
+    assert "function=" not in cleaned
+    assert cleaned == ""
+
+
+def test_teks_normal_tentang_tool_call_tetap_tersisa():
+    """K окружения teks di sekitar blok tool call harus tetap tampil."""
+    text = "Saya buat sekarang. " + QWEN_USER_REAL + " Sudah selesai."
+    calls = extract_textual_tool_calls(text)
+    assert len(calls) == 1
+    cleaned = strip_textual_tool_calls(text)
+    assert "Saya buat sekarang." in cleaned
+    assert "Sudah selesai." in cleaned
+    assert "tool_call" not in cleaned
+
+
+def test_hermes_tanpa_wrapper_juga_berjalan():
+    """Hermes: <tool_call>{"name":TOOL,"arguments":{...}}</tool_call>."""
+    text = ('<tool_call>{"name": "generate_workflow_json", '
+            '"arguments": {"spec_json": "{}"}}</tool_call>')
+    calls = extract_textual_tool_calls(text)
+    assert len(calls) == 1
+    assert calls[0]["name"] == "generate_workflow_json"
+    assert calls[0]["args"] == {"spec_json": "{}"}
+    assert strip_textual_tool_calls(text) == ""
+
+
+def test_json_di_code_fence_berjalan():
+    """Format fenced JSON (tanpa "<" sama sekali) harus tertangkap."""
+    text = '```json\n{"name":"generate_workflow_json","arguments":{"spec_json":"{}"}}\n```'
+    calls = extract_textual_tool_calls(text)
+    assert len(calls) == 1, f"fenced JSON tidak tertangkap: {calls}"
+    assert calls[0]["name"] == "generate_workflow_json"
+    assert "```" not in strip_textual_tool_calls(text)
+
+
+def test_blok_rusak_tidak_melempar_dan_tidak_menghapus_teks():
+    """Call rusak dibiarkan apa adanya - user tetap bisa baca balasannya."""
+    broken = "<tool_call>{ini bukan json"
+    assert extract_textual_tool_calls(broken) == []
+    assert "halo" in strip_textual_tool_calls("halo " + broken)
+
+
+def test_blok_berisi_teks_bukan_json_tidak_menghasilkan_call_palsu():
+    """Penjelasan biasa di dalam <tool_call> tidak boleh jadi tool call."""
+    text = "<tool_call>Saya tidak yakin, tolong konfirmasi dulu.</tool_call>"
+    assert extract_textual_tool_calls(text) == []

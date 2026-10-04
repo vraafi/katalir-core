@@ -51,6 +51,54 @@ _QWEN = re.compile(
     r"<tool_call>\s*(\{.*?\})\s*</tool_call>", re.DOTALL
 )
 
+# BUG FIX 2026-10-04: dua bug nyata di parser Qwen.
+#
+# BUG 1 - <function=NAME> tidak didukung sama sekali.
+#   Output nyata Qwen3.8-27B (dilaporkan user):
+#       <tool_call>
+#       <function=generate_workflow_json>
+#       {"name": "...", "nodes": [...]}
+#       </function>
+#       </tool_call>
+#   Regex lama hanya cocokkan {...} langsung di dalam <tool_call>, jadi
+#   tidak cocok -> call TIDAK diekstrak dan XML mentah tampil ke user.
+#
+# BUG 2 - non-greedy memotong JSON bersarang.
+#   Pola lama berhenti di kurung kurawal PERTAMA. Untuk payload workflow
+#   {"name":"...","nodes":[{"id":...}]} itu menghasilkan {"name":"..."}
+#   saja -> spec_json hilang -> draf ditolak.
+#   _scan_balanced_json mengambil sampai kurung kurawal SEIMBANG.
+def _scan_balanced_json(text: str, start: int):
+    """Ambil objek JSON mulai text[start] == "{" sampai kurung SEIMBANG.
+
+    Mengembalikan (payload, index_sepanjang_hasil) atau None kalau tidak
+    pernah tertutup. Menghormati string yang memuat kurung kurawal agar
+    payload tidak terpotus.
+    """
+    depth = 0
+    in_str = False
+    esc = False
+    for i in range(start, len(text)):
+        ch = text[i]
+        if in_str:
+            if esc:
+                esc = False
+            elif ch == chr(92):
+                esc = True
+            elif ch == chr(34):
+                in_str = False
+            continue
+        if ch == chr(34):
+            in_str = True
+        elif ch == "{":
+            depth += 1
+        elif ch == "}":
+            depth -= 1
+            if depth == 0:
+                return text[start:i + 1], i + 1
+    return None
+
+
 __all__ = ["extract_textual_tool_calls", "strip_textual_tool_calls"]
 
 
@@ -135,7 +183,70 @@ def _match_all(text: str) -> tuple[list[dict], str]:
         return ""
     rest = _VLLM.sub(_vllm_sub, rest)
 
-    # 4) Qwen3-Coder
+    # 4a) Qwen3 dengan <function=NAME> (BUG FIX 2026-10-04, bug 1).
+    #     Satu blok <tool_call> bisa memuat satu atau lebih <function=NAME>.
+    _FN_BLOCK = re.compile(
+        r"<\u200b?\s*tool_call\s*>(.*?)<\s*/\s*\u200b?\s*tool_call\s*>",
+        re.DOTALL,
+    )
+
+    def _fn_name(name: str, payload: str) -> None:
+        """`name` = nama tool dari <function=NAME>, "" = bentuk Hermes.
+
+        BUG FIX 2026-10-04: kalau `name` sudah diketahui dari
+        <function=NAME>, payload adalah ARGMEN langsung - jadi field "name"
+        di dalamnya milik WORKFLOW ("Ambil Data API & Kirim ke Telegram"),
+        BUKAN nama tool. Versi lama salah membacanya sebagai nama tool.
+        """
+        obj = _loads_lenient(payload)
+        if obj is None:
+            return
+        if name:
+            calls.append({"name": name, "args": obj})
+            return
+        # Bentuk Hermes: {"name": TOOL, "arguments": {...}}
+        tool = str(obj.get("name") or "").strip()
+        if not tool:
+            return
+        raw = obj.get("arguments", obj.get("parameters", {}))
+        args = raw if isinstance(raw, dict) else _loads_lenient(str(raw))
+        calls.append({"name": tool, "args": args or {}})
+
+    def _fn_block_sub(m: re.Match) -> str:
+        body = m.group(1)
+        consumed = False
+        # Ambil semua <function=NAME>...</function> di dalam blok.
+        pos = 0
+        for fm in re.finditer(r"<\s*function\s*=\s*([\w.\-]+)\s*>(.*?)"
+                             r"<\s*/\s*function\s*>", body, re.DOTALL):
+            name = fm.group(1)
+            raw = fm.group(2).strip()
+            brace = raw.find("{")
+            if brace >= 0:
+                got = _scan_balanced_json(raw, brace)
+                if got:
+                    _fn_name(name, got[0])
+                    consumed = True
+                    continue
+            if raw:
+                parsed = _loads_lenient(raw)
+                if parsed is not None:
+                    _fn_name(name, raw)
+                    consumed = True
+        if consumed:
+            return ""
+        # Tanpa <function=NAME>: cari objek JSON pertama (Hermes).
+        brace = body.find("{")
+        if brace >= 0:
+            got = _scan_balanced_json(body, brace)
+            if got:
+                _fn_name("", got[0])
+                return ""
+        return m.group(0)
+
+    rest = _FN_BLOCK.sub(_fn_block_sub, rest)
+
+    # 4b) Qwen3-Coder lama: <tool_call>{...}</tool_call> tanpa wrapper.
     def _qwen_sub(m: re.Match) -> str:
         try:
             obj = json.loads(m.group(1))
@@ -150,6 +261,30 @@ def _match_all(text: str) -> tuple[list[dict], str]:
         return ""
     rest = _QWEN.sub(_qwen_sub, rest)
 
+    # 4c) JSON di dalam code fence (cline PR #11272).
+    _FENCED = re.compile(r"```(?:json|tool_call)?\s*\n(.*?)```", re.DOTALL)
+
+    def _fenced_sub(m: re.Match) -> str:
+        body = m.group(1).strip()
+        brace = body.find("{")
+        if brace < 0:
+            return m.group(0)
+        got = _scan_balanced_json(body, brace)
+        if not got:
+            return m.group(0)
+        obj = _loads_lenient(got[0])
+        if not obj:
+            return m.group(0)
+        tool = str(obj.get("name") or "").strip()
+        raw = obj.get("arguments", obj.get("parameters", {}))
+        args = raw if isinstance(raw, dict) else _loads_lenient(str(raw))
+        if tool:
+            calls.append({"name": tool, "args": args or {}})
+            return ""
+        return m.group(0)
+
+    rest = _FENCED.sub(_fenced_sub, rest)
+
     return calls, rest
 
 
@@ -158,16 +293,37 @@ def extract_textual_tool_calls(text: str) -> list[dict]:
 
     Mengembalikan list `{"name": str, "args": dict}`. Kosong bila tidak ada.
     """
-    if not text or "<" not in text:
+    # Guard awal: hanya lewati bila memang tidak ada penanda sama sekali.
+    # Dulu hanya "<" yang dicek, padahal JSON di dalam code fence tidak punya
+    # "<" sama sekali -> parser tidak pernah sempat jalan.
+    if not text or ("<" not in text and "{" not in text):
         return []
     calls, _ = _match_all(text)
     return calls
 
 
 def strip_textual_tool_calls(text: str) -> str:
-    """Buang blok tool-call dari teks supaya JSON mentah tidak tampil ke user."""
+    """Buang blok tool-call dari teks supaya JSON mentah tidak tampil ke user.
+
+    BUG FIX 2026-10-04, bug 3 - kebocoran JSON ke user.
+    Versi lama: `return out or text.strip()`.—when SELURUH balasan model adalah
+    satu tool call, `rest` jadi kosong, `out` falsy, lalu fungsi mengembalikan
+    TEKS ASLI. Akibatnya parse-nya BERHASIL tapi user tetap melihat JSON/XML
+    mentah persis keluhan yang dilaporkan. Contoh nyata:
+
+        HERMES = '<tool_call>{"name":...}</tool_call>'
+        extract -> [call]        (berhasil)
+        strip   -> teks aslinya  ( bocor )
+
+    Perbaikan: kalau ada call yang berhasil diekstrak, sisa yang kosong itu
+    memang jawaban yang benar - kembalikan "". `text.strip()` hanya dipakai
+    sebagai fallback saat TIDAK ada call sama sekali.
+    """
     if not text:
         return ""
-    _, rest = _match_all(text)
+    calls, rest = _match_all(text)
     out = rest.strip()
-    return out or text.strip()
+    if calls:
+        # Ada call yang diproses: sisa kosong = tidak ada teks lain untuk user.
+        return out
+    return text.strip()
