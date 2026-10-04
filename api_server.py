@@ -38,6 +38,10 @@ from textual_tool_calls import (  # BUG FIX 2026-10-02: parser tool-call TEKS
     extract_textual_tool_calls,
     strip_textual_tool_calls,
 )
+from tool_call_parser import (  # BUG FIX 2026-10-04: gerbang fail-closed
+    ToolCallParseError,
+    parse_tool_call,
+)
 import execution_engine as engine
 from tools import CredentialMissingError
 from google import genai
@@ -785,8 +789,58 @@ def _agentic_run_gateway(prompt: str, email: str, model_id: str,
                 # JSON alih-alih workflow di canvas (bug "tool call tidak
                 # dieksekusi"). Bukti reproduksi: google/gemma-4-31b-it.
                 textual = []
+                # --- GERBANG FAIL-CLOSED (BUG FIX 2026-10-04) -----------------
+                # Gateway production memb-drop `tools` (bukti: HTTP 500 saat
+                # payload tools dikirim), jadi semua panggilan datang sebagai TEKS.
+                # `extract_textual_tool_calls` bersifat LENIENT: ia mengambil
+                # apa pun yang menyerupai call. Itu deveriam tidak dieksekusi
+                # bila bentuknya rusak.
+                # `tool_call_parser.parse_tool_call` bersifat KAKAT: bentuk
+                # ambigu/rusak -> ToolCallParseError (jangan dieksekusi).
+                #
+                # Aturan yang dipakai di sini:
+                #   * "ambigu" (ada >1 blok) = multi-call yang SAH -> tetap
+                #     lanjut lewat jalur lenient yang sudah terbukti di produksi.
+                #     Memblokirnya akan merusak alur yang hari ini bekerja.
+                #   * error lain (JSON rusak, blok tanpa argumen, data setelah
+                #     code fence) = TIDAK SAH -> stop, jangan eksekusi apa pun,
+                #     dan jangan tampilkan JSON mentah ke user.
+                _raw_text = _content_text(resp)
+                _gate = ""
                 if not calls:
-                    textual = extract_textual_tool_calls(_content_text(resp))
+                    try:
+                        parse_tool_call(_raw_text)
+                    except ToolCallParseError as _exc:
+                        if not str(_exc).startswith("ambigu"):
+                            _gate = str(_exc)
+                    except Exception:  # noqa: BLE001 - gerbang tidak boleh mematikan alur
+                        _gate = ""
+                if _gate:
+                    print(f"[chat/gateway] fail-closed tool_call: {_gate[:120]}")
+                    return {
+                        "reply": (
+                            "Saya menghasilkan panggilan alat yang tidak "
+                            "berbentuk benar sehingga tidak saya jalankan "
+                            "(fail-closed). Mohon ulangi permintaan; "
+                            "tidak ada credential yang diubah."
+                        ),
+                        "meta": {
+                            "model": cand,
+                            "requested_model": model_id,
+                            "latency_ms": int((time.time() - _t0) * 1000),
+                            "prompt_tokens": 0,
+                            "completion_tokens": 0,
+                            "total_tokens": 0,
+                            "fallback": bool(cand != model_id),
+                            "gateway": True,
+                            "tools_dropped": tools_dropped,
+                            "tool_call_rejected": True,
+                            "tool_call_error": _gate[:200],
+                            "workflow": None,
+                        },
+                    }
+                if not calls:
+                    textual = extract_textual_tool_calls(_raw_text)
                 if textual:
                     print(f"[chat/gateway] textual tool_call n={len(textual)} "
                           f"names={[c['name'] for c in textual]}")
@@ -804,6 +858,11 @@ def _agentic_run_gateway(prompt: str, email: str, model_id: str,
                             raise  # -> endpoint ubah jadi needs_credential
                         except Exception as exc:  # noqa: BLE001 - alat gagal
                             result = f"Gagal menjalankan {name}: {exc}"
+                        # `requires_credential` (dari check_credential / broker
+                        # secret://) harus PERNAH sampai ke form inline; tanpa
+                        # cabang ini, form tidak pernah muncul.
+                        if isinstance(result, dict) and result.get("status") == "requires_credential":
+                            raise CredentialMissingError(str(result.get("provider") or ""))
                         if isinstance(result, dict) and result.get("status") == "needs_oauth":
                             raise CredentialMissingError(str(result.get("provider") or ""))
                         if name == "generate_workflow_json":
@@ -848,6 +907,10 @@ def _agentic_run_gateway(prompt: str, email: str, model_id: str,
                         raise  # -> endpoint ubah jadi needs_credential
                     except Exception as exc:  # noqa: BLE001 - alat gagal
                         result = f"Gagal menjalankan {name}: {exc}"
+                    if isinstance(result, dict) and result.get("status") == "requires_credential":
+                        # BUG FIX 2026-10-04: sama seperti jalur TEKS, status ini
+                        # harus diubah jadi form inline oleh endpoint.
+                        raise CredentialMissingError(str(result.get("provider") or ""))
                     if isinstance(result, dict) and result.get("status") == "needs_oauth":
                         # Task 1C: `tools.execute_tool` MENGEMBALIKAN sinyal OAuth
                         # (bukan melempar) untuk provider ber-OAuth. Teruskan ke

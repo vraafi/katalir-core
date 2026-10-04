@@ -679,6 +679,37 @@ _http_declaration = types.FunctionDeclaration(
 )
 
 
+# BUG FIX 2026-10-04: sebelumnya tidak ada tool untuk MENANYAKAN status
+# kredensial. Tanpa itu, model tidak pernah tahu mana yang sudah tersimpan,
+# dan hanya bisa menebak - sehingga vault form tidak pernah muncul.
+# Fungsi `credential_forms.check_credential` sudah lengkap; yang kurang
+# hanyalah deklarasi supaya bisa dipanggil model.
+_check_credential_declaration = types.FunctionDeclaration(
+    name="check_credential",
+    description=(
+        "Cek apakah kredensial pengguna untuk sebuah provider sudah "
+        "tersimpan di vault. PANGGIL INI SEBELUM generate_workflow_json "
+        "untuk setiap provider yang akan dipakai workflow "
+        "(gmail_imap, google_sheets, telegram, slack, supabase). "
+        "Status yang dikembalikan: 'ok' (sudah ada, lanjutkan), "
+        "'requires_credential' (sistem akan memunculkan form - BERHENTI, "
+        "jangan lanjutkan dan jangan menebak kredensial), "
+        "'requires_oauth' (user harus menyambungkan akun - tunjukkan "
+        "tombol connect), atau 'unknown_provider'."
+    ),
+    parameters=types.Schema(
+        type=types.Type.OBJECT,
+        properties={
+            "provider": types.Schema(
+                type=types.Type.STRING,
+                enum=["gmail_imap", "google_sheets", "telegram",
+                      "slack", "supabase"],
+                description="Provider yang ingin dicek status kredensialnya.",
+            ),
+        },
+        required=["provider"],
+    ),
+)
 _generate_workflow_declaration = types.FunctionDeclaration(
     name="generate_workflow_json",
     description=(
@@ -806,6 +837,7 @@ TOOL_DECLARATIONS = [
         _kirim_email_declaration,
         _agenda_calendar_declaration,
         _generate_workflow_declaration,
+        _check_credential_declaration,
         _telegram_declaration,
         _slack_declaration,
         _http_declaration,
@@ -943,6 +975,21 @@ def execute_tool(name: str, args: dict, email: str) -> str | dict:
         ValueError: alat tidak dikenal.
     """
     try:
+        # BUG FIX 2026-10-04: credential TIDAK lagi perlu masuk ke konteks LLM.
+        # Model menulis `secret://provider/field`; broker me-resolve-nya di sini,
+        # tepat sebelum handler dijalankan, jadi nilai asli tidak pernah menyentuh
+        # prompt/respons/log. Argumen tanpa `secret://` tidak tersentuh.
+        from vault_broker import (CredentialMissingError as _VaultMissing,
+                                  resolve_secrets_in_args)
+        try:
+            args = resolve_secrets_in_args(args or {}, email)
+        except _VaultMissing as exc:
+            _trace(f"vault_ref_missing provider={exc.provider}")
+            return {"status": "requires_credential", "provider": exc.provider,
+                    "message": str(exc)}
+        except ValueError as exc:  # SecretRefError juga turunan ValueError
+            _trace(f"vault_ref_invalid {str(exc)[:60]}")
+            return {"status": "error", "message": f"Referensi secret tidak valid: {exc}"}
         return _execute_tool_inner(name, args, email)
     except CredentialMissingError as exc:
         oauth_out = _needs_oauth_result(exc.provider_name)
@@ -952,8 +999,32 @@ def execute_tool(name: str, args: dict, email: str) -> str | dict:
         return oauth_out
 
 
+def check_credential_tool(provider: str, email: str = "") -> str:
+    """Alat `check_credential`: status kredensial satu provider.
+
+    Mengembalikan JSON string berisi `status`:
+      * `ok`                 -> sudah tersimpan, proceed.
+      * `requires_credential`-> inline form + resume_token (sudah disertakan).
+      * `requires_oauth`     -> user harus menyambungkan akun.
+      * `unknown_provider`   -> nama provider tidak dikenal.
+
+    Tidak pernah melempar: model perlu bisa membaca status lalu berhenti.
+    """
+    from credential_forms import check_credential as _check
+    try:
+        result = _check(provider, email)
+    except Exception as exc:  # noqa: BLE001 - kegagalan = "belum tahu", bukan crash
+        _trace(f"check_credential_error provider={provider} {type(exc).__name__}")
+        return _json.dumps({"status": "error", "provider": provider,
+                            "message": "Gagal memeriksa status kredensial."})
+    _trace(f"check_credential provider={provider} status={result.get('status')}")
+    return _json.dumps(result, ensure_ascii=False)
+
+
 def _execute_tool_inner(name: str, args: dict, email: str) -> str:
     """Badan dispatcher (dipisah supaya `execute_tool` bisa menangkap kredensial)."""
+    if name == "check_credential":
+        return check_credential_tool(provider=args.get("provider", ""), email=email)
     if name == "send_whatsapp_message":
         return send_whatsapp_message(
             pesan=args.get("pesan", ""),
