@@ -935,6 +935,25 @@ def _agentic_run_gateway(prompt: str, email: str, model_id: str,
                         # berikutnya, jangan mengarang node.
                         if isinstance(result, dict) and result.get("status") == "needs_spec":
                             print(f"[chat/gateway] needs_spec name={result.get('name')}")
+                        # BUG FIX 2026-10-05: `requires_approval` (policy gate
+                        # + intent-alignment) TIDAK boleh swallowed. Terbukti
+                        # di produksi: model menulis [VAULT: ...], gate
+                        # mengembalikan requires_approval, dan jalur ini
+                        # berdiam saja sehingga user melihat `success`
+                        # padahal tidak ada yang dieksekusi maupun diminta.
+                        if isinstance(result, dict) and result.get("status") in (
+                                "requires_approval", "denied"):
+                            _clean0 = strip_textual_tools(_raw_text)
+                            return {**result, "reply": _clean0 or "",
+                                    "meta": {"model": cand,
+                                             "requested_model": model_id,
+                                             "latency_ms": int((time.time() - _t0) * 1000),
+                                             "fallback": bool(cand != model_id),
+                                             "gateway": True,
+                                             "tools_dropped": tools_dropped,
+                                             "bracket_tool_calls": [
+                                                 c["tool"] for c in _bracket_calls],
+                                             "workflow": None}}
                     _clean = strip_textual_tools(_raw_text)
                     usage = getattr(resp, "usage_metadata", None) or {}
                     return {
@@ -1025,6 +1044,19 @@ def _agentic_run_gateway(prompt: str, email: str, model_id: str,
                         raise  # -> endpoint ubah jadi needs_credential
                     except Exception as exc:  # noqa: BLE001 - alat gagal
                         result = f"Gagal menjalankan {name}: {exc}"
+                    if isinstance(result, dict) and result.get("status") in (
+                            "requires_approval", "denied"):
+                        # BUG FIX 2026-10-05: sama seperti jalur TEKS, status ini
+                        # tidak boleh swallowed - user harus melihat tombol
+                        # Setujui atau alasan penolakan.
+                        return {"reply": "", **result,
+                                "meta": {"model": cand,
+                                         "requested_model": model_id,
+                                         "latency_ms": int((time.time() - _t0) * 1000),
+                                         "fallback": bool(cand != model_id),
+                                         "gateway": True,
+                                         "tools_dropped": tools_dropped,
+                                         "workflow": workflow_out}}
                     if isinstance(result, dict) and result.get("status") == "requires_credential":
                         # BUG FIX 2026-10-04: sama seperti jalur TEKS, status ini
                         # harus diubah jadi form inline oleh endpoint.

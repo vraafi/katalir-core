@@ -125,3 +125,19 @@ def test_defense_lama_tetap_ada():
     src_s = open("api_server.py", encoding="utf-8").read()
     assert "sanitize_tool_result" in src_s
     assert "sanitize_user_input" in src_s
+
+def test_api_server_tidak_menelan_requires_approval():
+    """BUG NYATA 5 Okt 2026: jalur bracket/XML tidak menangani
+    `requires_approval`, jadi hasilnya `success` padahal tidak ada yang
+    dieksekusi DAN tidak ada tombol Setujui. Test ini mengunci kedua jalur."""
+    src = open("api_server.py", encoding="utf-8").read()
+    assert src.count('"requires_approval", "denied"') >= 2, (
+        "kedua jalur (bracket + XML) harus meneruskan requires_approval")
+
+
+def test_frontend_menangani_requires_approval():
+    src = open("nexus-frontend/src/features/chat/hooks/useChat.ts", encoding="utf-8").read()
+    assert 'data.status === "requires_approval"' in src
+    assert '"approval_prompt"' in src
+    src2 = open("nexus-frontend/src/features/chat/thread.tsx", encoding="utf-8").read()
+    assert 'msg.type === "approval_prompt"' in src2
