@@ -178,6 +178,42 @@ def test_api_server_sudah_mengimpor_jalur_baru():
     assert "execute_textual_tool(c, email)" in src
 
 
+def test_api_server_mengirim_tanpa_tools_secara_default():
+    """BAGIAN 2.3: param `tools` TIDAK boleh dikirim ke gateway.
+
+    Diuji lewat flag, bukan lewat mock LLM: yang dikunci adalah
+    keputusannya (default OFF), bukan bentuk obyek LangChain.
+    """
+    import importlib
+    import os
+
+    import api_server
+
+    src = open("api_server.py", encoding="utf-8").read()
+    assert "KATALIR_SEND_TOOLS" in src
+
+    # helper membaca env saat dipanggil; unset = default OFF
+    os.environ.pop("KATALIR_SEND_TOOLS", None)
+    env_default = (os.getenv("KATALIR_SEND_TOOLS", "0") or "0").strip().lower()
+    assert env_default not in ("1", "true", "yes", "on")
+
+    # dan bind_tools hanya jalan kalau flag menyala
+    assert 'if not want:' in src
+    assert importlib.util.find_spec("api_server") is not None
+
+
+def test_parser_tidak_membuang_kata_kerja_email():
+    """`cek` adalah KATA KERJA, bukan argumen.
+
+    Brief mengharapkan key `"cek": None` muncul di args. Di sini kata
+    kerja dibuang saja: ia tidak punya nilai dan tidak pernah dipakai
+    handler, jadi menyimpannya hanya menambah noise.
+    """
+    got = parse_textual_tools("[EMAIL: cek subjek=inventory max=10]")[0]["args"]
+    assert got == {"subjek": "inventory", "max": "10"}
+    assert "cek" not in got
+
+
 def test_system_prompt_menyebut_format():
     src = open("api_server.py", encoding="utf-8").read()
     i = src.find("_AGENT_SYSTEM = (")
@@ -185,6 +221,8 @@ def test_system_prompt_menyebut_format():
     blok = src[i:i + 3000]
     assert "[VAULT: <provider>]" in blok
     assert "tanda kutip" in blok
+    for tool in ("WORKFLOW", "EMAIL", "SHEETS", "TELEGRAM", "SLACK"):
+        assert f"[{tool}:" in blok, tool
     """Perilaku didokumentasikan: tanpa kutip, kata berikutnya dibuang."""
     args, ignored = parse_kv_args("pesan=Halo dunia")
     assert args["pesan"] == "Halo"

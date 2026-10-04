@@ -744,8 +744,30 @@ def _agentic_run_gateway(prompt: str, email: str, model_id: str,
     from langchain_core.messages import HumanMessage, SystemMessage, ToolMessage
     from langchain_openai import ChatOpenAI
 
+    def _send_tools_param() -> bool:
+        """Apakah native `tools` perlu dikirim ke gateway?
+
+        DEFAULT: TIDAK (BAGIAN 2.3 - "JANGAN kirim parameter `tools`").
+
+        Alasannya terukur, bukan tebakan: gateway menjawab HTTP 500 polos
+        begitu payload `tools` disisipkan ke model produksi, sementara
+        tanpa `tools` balas 200 (diperiksa langsung ke
+        /v1/chat/completions). Akibatnya setiap request membuang satu
+        round-trip 500 plus retry sebelum balasan pertama.
+
+        Katalir tidak memerlukan native tool calling karena sudah punya
+        jalur TEKS berformat `[ALAT: args]` yang model-agnostic (lihat
+        `textual_tool_parser.py`). Jadi jalur native dimatikan sejak
+        awal, bukan ditunggu sampai gagal.
+
+        Set KATALIR_SEND_TOOLS=1 hanya kalau hulu berubah dan memang
+        menerima `tools`. Jalur teks tetap berfungsi sebagai cadangan.
+        """
+        return (os.getenv("KATALIR_SEND_TOOLS", "0") or "0").strip().lower() in (
+            "1", "true", "yes", "on")
+
     def _bound(model_name: str, timeout: float | None = None,
-               with_tools: bool = True):
+               with_tools: bool | None = None):
         llm = ChatOpenAI(
             model=model_name,
             api_key=gw_key,
@@ -758,9 +780,10 @@ def _agentic_run_gateway(prompt: str, email: str, model_id: str,
             timeout=timeout or _gateway_attempt_timeout_sec(),
             max_retries=0,
         )
-        if not with_tools:
-            # Retry tanpa tools: sebagian kandidat hulu menolak payload
-            # ber-tools dengan 500 polos (lihat `_tools_unsupported`).
+        want = _send_tools_param() if with_tools is None else with_tools
+        if not want:
+            # Jalur utama: TANPA `tools`. Panggilan alat lewat TEKS
+            # ([ALAT: args]) yang di-parse di bawah.
             return llm
         try:
             return llm.bind_tools(tools.TOOL_SCHEMAS_OPENAI)

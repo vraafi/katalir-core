@@ -92,6 +92,11 @@ class _Fake:
 
 def _run(monkeypatch, prompt, spec):
     import langchain_openai
+    # Test ini sengaja menguji jalur NATIVE (`tool_calls` terstruktur),
+    # jadi jalur native dinyalakan lewat flag. Default produksi adalah MATI
+    # karena gateway menolak payload `tools` dengan 500 (lihat
+    # `_send_tools_param` di api_server.py).
+    monkeypatch.setenv("KATALIR_SEND_TOOLS", "1")
     fake = _Fake(spec)
     monkeypatch.setattr(langchain_openai, "ChatOpenAI", lambda **kw: fake)
     out = srv._agentic_run_gateway(

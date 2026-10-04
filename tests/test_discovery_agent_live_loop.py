@@ -68,6 +68,9 @@ def _run(monkeypatch, args) -> dict:
     import langchain_openai
 
     fake = _FakeModel(args)
+    # Jalur native diuji di sini; nyalakan lewat flag (default produksi MATI,
+    # gateway menolak payload `tools` dengan HTTP 500).
+    monkeypatch.setenv("KATALIR_SEND_TOOLS", "1")
     monkeypatch.setattr(langchain_openai, "ChatOpenAI", lambda **kwargs: fake)
     out = srv._agentic_run_gateway(
         prompt="bikin workflow kirim telegram tiap jam 9",
