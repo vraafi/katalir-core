@@ -9,6 +9,8 @@ Case yang diuji di sini termasuk kasus yang TIDAK ada di brief:
     sendiri berisi contoh `[ALAT: ...]`, jadi model bisa menyalinnya.
 """
 
+import json
+
 import pytest
 
 from textual_tool_handlers import execute_textual_tool
@@ -140,9 +142,22 @@ def test_handler_vault_menghasilkan_status():
 
 
 def test_handler_vault_provider_asing():
+    """Provider yang tidak dikenal harus DITOLAK.
+
+    CATATAN PERUBAHAN (2026-10-04): sebelumnya assertion ini persis
+    `== "unknown_provider"`. Setelah allowlist argumen dipasang SEBELUM
+    handler, enum yang tidak dikenal kini ditolak lebih dulu, jadi
+    status-nya "denied". Keduanya menolak - tidak ada yang membocorkan -
+    hanya lapisan yang menolak yang berbeda.
+
+    Assertion sengaja ditulis sebagai "ditolak", bukan pesan spesifik,
+    karena yang dikunci di sini adalah sifat keamanan (provider asing
+    tidak pernah dieksekusi), bukan kalimat balasannya.
+    """
     r = execute_textual_tool({"tool": "VAULT", "args": {"provider": "ngetah"}},
                              "handler-test@katalir.test")
-    assert r["status"] == "unknown_provider"
+    assert r["status"] in ("denied", "unknown_provider")
+    assert "ngetah" in json.dumps(r) or r["status"] == "denied"
 
 
 def test_handler_workflow_tidak_mengarang():

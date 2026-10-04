@@ -237,6 +237,20 @@ def execute_textual_tool(call: dict, user_email: str,
     if not isinstance(args, dict):
         return {"status": "error", "message": "Argumen tidak valid."}
 
+    # Allowlist per-field DIJALANKAN lebih dulu (OWASP ASI02). Ini yang
+    # menutup kelas serangan yang tidak bisa ditutup blacklist: field yang
+    # tidak dikenal ditolak tanpa perlu menebak apakah berbahaya.
+    try:
+        from argument_validator import validate_args as _validate_args
+        ok, why = _validate_args(tool, args)
+    except Exception as exc:  # noqa: BLE001 - validator gagal = jangan lewati
+        _audit(tool, args, Disposition.DENY, f"validator error: {exc}", user_email)
+        return {"status": "denied", "tool": tool,
+                "reason": "Validasi argumen gagal."}
+    if not ok:
+        _audit(tool, args, Disposition.DENY, f"argumen: {why}", user_email)
+        return {"status": "denied", "tool": tool, "reason": why}
+
     # GatePolicy override diuji lewat monkeypatch; defaultnya None.
     gate = _gate_override if _gate_override is not None else _default_gate
     if gate is not None:
@@ -258,7 +272,18 @@ def execute_textual_tool(call: dict, user_email: str,
                         "provider": missing,
                         "reason": "Kredensial belum tersimpan."}
             _audit(tool, args, disposition, reason, user_email)
-            return {"status": "requires_approval", "tool": tool, "reason": reason}
+            try:
+                from approval_flow import (APPROVAL_TTL_S,
+                                           issue_approval_token)
+                tok = issue_approval_token(user_email, tool, args)
+            except Exception:  # noqa: BLE001 - tanpa token user tak bisa setuju
+                _audit(tool, args, disposition, "token gagal diterbitkan",
+                       user_email)
+                return {"status": "denied", "tool": tool,
+                        "reason": "Persetujuan tidak tersedia saat ini."}
+            return {"status": "requires_approval", "tool": tool,
+                    "reason": reason, "approval_token": tok,
+                    "expires_in": APPROVAL_TTL_S}
 
     try:
         return handler(args, user_email)

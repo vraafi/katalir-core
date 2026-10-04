@@ -47,6 +47,10 @@ from textual_tool_parser import (  # BUG FIX 2026-10-04: jalur utama
     strip_textual_tools,
 )
 from textual_tool_handlers import execute_textual_tool
+from sanitize import (  # BUG FIX 2026-10-04: sanitasi konten masuk model
+    sanitize_tool_result,
+    sanitize_user_input,
+)
 import execution_engine as engine
 from tools import CredentialMissingError
 from google import genai
@@ -811,7 +815,11 @@ def _agentic_run_gateway(prompt: str, email: str, model_id: str,
         # riwayat, model "amnesia" dan mengabaikan hal yang sudah dibahas user.
         messages: list[Any] = [SystemMessage(content=_AGENT_SYSTEM)]
         messages.extend(_to_lc_history(history))
-        messages.append(HumanMessage(content=prompt))
+        messages.append(HumanMessage(
+                    # BUG FIX 2026-10-04: control token chat-template dan
+                    # zero-width dihapus sebelum masuk model. Tanpa ini,
+                    # penyang dapat menyamarkan nama alat lewat U+200B.
+                    content=sanitize_user_input(prompt)))
         _t0 = time.time()
         tools_dropped = False
         # FASE 2.1 -> 2.2: spec workflow yang DITERIMA alat disimpan di sini dan
@@ -1036,7 +1044,14 @@ def _agentic_run_gateway(prompt: str, email: str, model_id: str,
                             waf_stalled = True
                             break
                     messages.append(ToolMessage(
-                        content=str(result),
+                        # BUG FIX 2026-10-04 (CRITICAL): hasil tool berasal dari
+                        # LUAR (body email, isi sel, respons API) dan kembali ke
+                        # konteks model. Tanpa sanitasi, email berisi
+                        # "[VAULT: supabase]" bisa membuat model menuliskannya
+                        # - lalu dieksekusi parser. Netralkan polanya sebelum
+                        # masuk konteks; data tetap terbaca, tapi tidak punya
+                        # daya sebagai perintah.
+                        content=sanitize_tool_result(result),
                         tool_call_id=str((call or {}).get("id") or name),
                     ))
                 resp = chat_model.invoke(messages)
@@ -2750,6 +2765,68 @@ def chat_resume(req: ChatResumeRequest, authorization: str | None = Header(None)
         "retry_hint": "resend_last_prompt",
         "secure_note": "Credential disimpan terenkripsi di vault Anda.",
     }
+# ---------------------------------------------------------------------------
+# POST /chat/approve - keputusan user atas tool yang butuh persetujuan
+# ---------------------------------------------------------------------------
+class ApproveRequest(BaseModel):
+    """Body untuk /chat/approve.
+
+    Sengaja TIDAK punya field `tool`/`args`: argumen diambil dari dalam
+    token bertanda tangan, bukan dari client. Kalau client boleh memilih
+    argumen sendiri, persetujuan kehilangan makna - user menyetujui satu
+    pesan, lalu server mengirim pesan lain.
+    """
+
+    approval_token: str
+    decision: str  # "approve" | "deny"
+
+
+@app.post("/chat/approve")
+def approve_tool_call(req: ApproveRequest,
+                      authorization: str | None = Header(None)):
+    """Eksekusi atau tolak panggilan tool yang menunggu persetujuan user.
+
+    Keamanan:
+      * user target dari JWT, bukan dari body;
+      * token wajib milik akun ini dan belum kedaluwarsa (HMAC);
+      * argumen diambil dari token, bukan dari client;
+      * gate + allowlist argumen dijalankan ULANG saat persetujuan -
+        kondisi bisa saja berubah antara meminta dan menyetujui.
+    """
+    user = security.get_current_user(authorization)
+    from approval_flow import verify_approval_token
+
+    decision = str(req.decision or "").strip().lower()
+    if decision not in ("approve", "deny"):
+        raise HTTPException(400, "Decision harus 'approve' atau 'deny'.")
+
+    try:
+        payload = verify_approval_token(req.approval_token, user["email"])
+    except ValueError as exc:
+        raise HTTPException(400, str(exc))
+
+    tool = payload["tool"]
+    args = payload.get("args") or {}
+
+    if decision == "deny":
+        return {"status": "denied", "tool": tool,
+                "message": "Panggilan dibatalkan oleh Anda."}
+
+    # Verifikasi ulang: jangan percaya begitu saja apa yang disimpan 5 menit
+    # lalu. Kredensial bisa saja sudah berubah/kedaluwarsa di antara itu.
+    from argument_validator import validate_args as _validate_args
+    ok, why = _validate_args(tool, args)
+    if not ok:
+        raise HTTPException(400, f"Argumen tidak lagi valid: {why}")
+
+    from textual_tool_handlers import execute_textual_tool as _exec
+    result = _exec({"tool": tool, "args": args}, user["email"])
+    if isinstance(result, dict) and result.get("status") in (
+            "requires_approval", "denied"):
+        # Menahan dua kali berturut-turut = kondisi berubah; jangan dipaksa.
+        raise HTTPException(409, f"Panggilan tidak dapat dijalankan: "
+                                 f"{result.get('reason') or result.get('status')}")
+    return {"status": "executed", "tool": tool, "result": result}
 
 
 @app.delete("/api/vault/{provider}")
