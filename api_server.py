@@ -3115,7 +3115,11 @@ def approve_tool_call(req: ApproveRequest,
         raise HTTPException(400, f"Argumen tidak lagi valid: {why}")
 
     from textual_tool_handlers import execute_textual_tool as _exec
-    result = _exec({"tool": tool, "args": args}, user["email"])
+    # `approved=True`: user SUDAH menekan "Setujui" untuk token ini, jadi gate
+    # tidak boleh meminta persetujuan lagi (kalau tidak, selalu 409 dan
+    # persetujuan tidak pernah selesai). DENY + validasi argumen tetap jalan
+    # di dalam `execute_textual_tool`.
+    result = _exec({"tool": tool, "args": args}, user["email"], approved=True)
     if isinstance(result, dict) and result.get("status") in (
             "requires_approval", "denied"):
         # Menahan dua kali berturut-turut = kondisi berubah; jangan dipaksa.

@@ -372,3 +372,98 @@ def test_http_request_backtick_tetap_deny():
     from tool_policy_gate import Disposition, validate_call
     d, _ = validate_call("http_request", {"url": "x `whoami`"})
     assert d is Disposition.DENY, d
+
+
+# ---------------------------------------------------------------------------
+# BUG #1 lanjutan (3) — JALUR PERSETUJUAN BUNTU (defect #3, 6 Okt 2026).
+#
+# Setelah user menekan "Setujui", `/chat/approve` memanggil
+# `execute_textual_tool(..., approved=True)`. Dua cacat ditemukan lewat
+# reproduksi nyata:
+#
+#   (a) Token dari jalur Gemini-langsung memakai nama NATIVE
+#       (`kirim_telegram_message`), sedangkan `HANDLERS` hanya mengenal nama
+#       kanonik (`TELEGRAM`) -> "Tool tidak dikenal", persetujuan MUSTAHIL.
+#   (b) Saat `approved=True`, seluruh cabang REQUIRE_APPROVAL dilewati -
+#       termasuk cek kredensial. Akibatnya handler dipanggil tanpa kredensial,
+#       `CredentialMissingError` naik TAK TERTANGKAP -> HTTP 500.
+#
+# Perbaikan: normalisasi nama native->kanonik SEBELUM lookup handler, dan cek
+# kredensial dijalankan LEBIH DULU tanpa syarat `approved` (hanya penerbitan
+# token yang dilewati saat approved=True).
+# ---------------------------------------------------------------------------
+
+
+def test_native_name_dinormalkan_ke_kanonik():
+    """Nama native harus lolos lookup handler (bukan 'Tool tidak dikenal')."""
+    from textual_tool_handlers import NATIVE_TO_TEXTUAL
+    assert NATIVE_TO_TEXTUAL.get("KIRIM_TELEGRAM_MESSAGE") == "TELEGRAM"
+    assert NATIVE_TO_TEXTUAL.get("KIRIM_SLACK_MESSAGE") == "SLACK"
+    assert NATIVE_TO_TEXTUAL.get("KIRIM_EMAIL_GMAIL") == "EMAIL"
+    assert NATIVE_TO_TEXTUAL.get("TRIGGER_GMAIL_IMAP") == "EMAIL"
+    assert NATIVE_TO_TEXTUAL.get("WRITE_SHEETS_DYNAMIC") == "SHEETS"
+
+
+def test_approved_true_tanpa_kredensial_tidak_meledak(monkeypatch):
+    """approved=True + kredensial hilang -> requires_credential, BUKAN 500."""
+    import textual_tool_handlers as th
+    monkeypatch.setattr(th, "_missing_provider", lambda tool, email: "telegram")
+    out = th.execute_textual_tool(
+        {"tool": "kirim_telegram_message",
+         "args": {"chat_id": "123", "pesan": "halo"}},
+        USER, approved=True)
+    assert out.get("status") == "requires_credential", out
+    assert out.get("provider") == "telegram", out
+
+
+def test_approved_false_tanpa_kredensial_juga_requires_credential(monkeypatch):
+    """approved=False tetap minta kredensial lebih dulu (urutan lama dijaga)."""
+    import textual_tool_handlers as th
+    monkeypatch.setattr(th, "_missing_provider", lambda tool, email: "telegram")
+    out = th.execute_textual_tool(
+        {"tool": "TELEGRAM", "args": {"chat_id": "123", "pesan": "halo"}},
+        USER, approved=False)
+    assert out.get("status") == "requires_credential", out
+
+
+def test_approved_true_dengan_kredensial_benar_benar_eksekusi(monkeypatch):
+    """Jalur bahagia: approved=True + kredensial ada -> handler dipanggil."""
+    import textual_tool_handlers as th
+    monkeypatch.setattr(th, "_missing_provider", lambda tool, email: "")
+    sent = {}
+
+    def fake_handler(args, user_email):
+        sent["args"] = args
+        sent["email"] = user_email
+        return {"status": "success", "message": "terkirim"}
+
+    monkeypatch.setitem(th.HANDLERS, "TELEGRAM", fake_handler)
+    out = th.execute_textual_tool(
+        {"tool": "kirim_telegram_message",
+         "args": {"chat_id": "123", "pesan": "halo"}},
+        USER, approved=True)
+    assert out.get("status") == "success", out
+    assert sent["args"] == {"chat_id": "123", "pesan": "halo"}, sent
+    assert sent["email"] == USER, sent
+
+
+def test_approved_true_tidak_menerbitkan_token_lagi(monkeypatch):
+    """Saat approved=True gate TIDAK boleh mengembalikan requires_approval."""
+    import textual_tool_handlers as th
+    monkeypatch.setattr(th, "_missing_provider", lambda tool, email: "")
+    monkeypatch.setitem(th.HANDLERS, "SLACK",
+                        lambda a, e: {"status": "success"})
+    out = th.execute_textual_tool(
+        {"tool": "KIRIM_SLACK_MESSAGE",
+         "args": {"channel": "#umum", "pesan": "halo"}},
+        USER, approved=True)
+    assert out.get("status") != "requires_approval", out
+    assert "approval_token" not in out, out
+
+
+def test_deny_tetap_deny_walau_approved_true():
+    """Kontrol keamanan: DENY tidak boleh dilunakkan oleh approved=True."""
+    from tool_policy_gate import Disposition, validate_call
+    d, _ = validate_call("kirim_telegram_message",
+                         {"chat_id": "1", "pesan": "x /etc/passwd"})
+    assert d is Disposition.DENY, d

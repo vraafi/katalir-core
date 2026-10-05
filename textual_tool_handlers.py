@@ -191,6 +191,25 @@ HANDLERS = {
 }
 
 
+#: Nama alat NATIVE (function-call Gemini) -> nama TEKSTUAL kanonik.
+#:
+#: BUG FIX 2026-10-06 (approval card tidak bisa dieksekusi):
+#: `_direct_policy_gate` menerbitkan `approval_token` dengan nama NATIVE
+#: (`kirim_telegram_message`). Saat user menekan "Setujui", `/chat/approve`
+#: memanggil `execute_textual_tool` dengan nama itu — dan `HANDLERS` hanya
+#: mengenal nama TEKSTUAL (`TELEGRAM`), sehingga muncul
+#: "Tool tidak dikenal: KIRIM_TELEGRAM_MESSAGE" dan persetujuan GAGAL.
+#: Peta ini menormalkan nama native ke kanonik SEBELUM lookup handler, jadi
+#: satu token bisa dieksekusi lewat jalur yang sama dengan jalur gateway.
+NATIVE_TO_TEXTUAL = {
+    "KIRIM_TELEGRAM_MESSAGE": "TELEGRAM",
+    "KIRIM_SLACK_MESSAGE": "SLACK",
+    "KIRIM_EMAIL_GMAIL": "EMAIL",
+    "TRIGGER_GMAIL_IMAP": "EMAIL",
+    "WRITE_SHEETS_DYNAMIC": "SHEETS",
+}
+
+
 #: Alat tekstual -> provider yang harus dikredensialkan lebih dulu.
 _TOOL_PROVIDER = {"TELEGRAM": "telegram", "SLACK": "slack",
                    "EMAIL": "gmail_imap", "SHEETS": "google_sheets"}
@@ -233,7 +252,8 @@ def _missing_provider(tool: str, user_email: str = "") -> str:
 
 def execute_textual_tool(call: dict, user_email: str,
                          policy_context: dict | None = None,
-                         user_message: str = "") -> dict:
+                         user_message: str = "",
+                         approved: bool = False) -> dict:
     """Jalankan satu call hasil `parse_textual_tools`.
 
     Bentuk call yang tidak dikenal DITOLAK diam (return error), bukan
@@ -245,8 +265,19 @@ def execute_textual_tool(call: dict, user_email: str,
     `[TELEGRAM: chat_id=... pesan=...]` untuk mengirim data ke luar.
     Gate bersifat deterministik (murni, tanpa LLM), jadi keputusan tidak
     bergantung pada kesetiaan model.
+
+    Args:
+        approved: dipakai OLEH `/chat/approve` setelah user menekan
+            "Setujui". Menandai bahwa REQUIRE_APPROVAL sudah dipenuhi, jadi
+            gate TIDAK meminta persetujuan kedua (kalau tidak, persetujuan
+            tidak akan pernah selesai - 409 terus). DENY dan validasi
+            argumen TETAP dijalankan.
     """
     tool = str((call or {}).get("tool") or "").upper()
+    # BUG FIX 2026-10-06: token approval dari jalur Gemini langsung memakai
+    # nama NATIVE (`kirim_telegram_message`). Tanpa normalisasi ini,
+    # `/chat/approve` mengeksekusinya gagal ("Tool tidak dikenal").
+    tool = NATIVE_TO_TEXTUAL.get(tool, tool)
     handler = HANDLERS.get(tool)
     if handler is None:
         return {"status": "error",
@@ -310,25 +341,38 @@ def execute_textual_tool(call: dict, user_email: str,
             # dia belum punya kredensial - menyetujui tidak akan membuat
             # apa pun berhasil. Ini urutan yang salah dan ditemukan oleh
             # tes `test_handler_kredensial_hilang_tidak_ditelan`.
+            #
+            # BUG FIX 2026-10-06 (defect #3): cek kredensial HARUS jalan
+            # juga saat `approved=True`. Sebelumnya pemeriksaan ini berada
+            # di dalam `and not approved`, sehingga setelah user menekan
+            # "Setujui" gate terlewat, handler langsung dipanggil, dan
+            # `CredentialMissingError` naik tak tertangkap -> HTTP 500.
+            # Yang boleh dilewati saat `approved` hanyalah PENERBITAN TOKEN
+            # approval (tidak perlu minta izin dua kali); kelayakan
+            # eksekusi (kredensial) tetap divalidasi.
             missing = _missing_provider(tool, user_email)
             if missing:
                 _audit(tool, args, disposition, reason, user_email)
                 return {"status": "requires_credential",
                         "provider": missing,
                         "reason": "Kredensial belum tersimpan."}
-            _audit(tool, args, disposition, reason, user_email)
-            try:
-                from approval_flow import (APPROVAL_TTL_S,
-                                           issue_approval_token)
-                tok = issue_approval_token(user_email, tool, args)
-            except Exception:  # noqa: BLE001 - tanpa token user tak bisa setuju
-                _audit(tool, args, disposition, "token gagal diterbitkan",
-                       user_email)
-                return {"status": "denied", "tool": tool,
-                        "reason": "Persetujuan tidak tersedia saat ini."}
-            return {"status": "requires_approval", "tool": tool,
-                    "reason": reason, "approval_token": tok,
-                    "expires_in": APPROVAL_TTL_S}
+            if approved:
+                # Sudah disetujui user; jangan minta approval kedua.
+                pass
+            else:
+                _audit(tool, args, disposition, reason, user_email)
+                try:
+                    from approval_flow import (APPROVAL_TTL_S,
+                                               issue_approval_token)
+                    tok = issue_approval_token(user_email, tool, args)
+                except Exception:  # noqa: BLE001 - tanpa token user tak bisa setuju
+                    _audit(tool, args, disposition, "token gagal diterbitkan",
+                           user_email)
+                    return {"status": "denied", "tool": tool,
+                            "reason": "Persetujuan tidak tersedia saat ini."}
+                return {"status": "requires_approval", "tool": tool,
+                        "reason": reason, "approval_token": tok,
+                        "expires_in": APPROVAL_TTL_S}
 
     try:
         return handler(args, user_email)
