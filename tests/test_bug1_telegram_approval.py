@@ -467,3 +467,61 @@ def test_deny_tetap_deny_walau_approved_true():
     d, _ = validate_call("kirim_telegram_message",
                          {"chat_id": "1", "pesan": "x /etc/passwd"})
     assert d is Disposition.DENY, d
+
+
+def test_approve_endpoint_normalkan_nama_native_sebelum_validasi(monkeypatch):
+    """Defect #4 (6 Okt 2026, bukti live): /chat/approve memvalidasi ulang
+    argumen dengan nama ASLI dari token (`KIRIM_TELEGRAM_MESSAGE`),
+    sedangkan `argument_validator` hanya punya skema kanonik -> HTTP 400
+    "tidak punya skema argumen" dan persetujuan buntu lagi.
+
+    Uji ini memanggil `approve_tool_call` sungguhan dengan payload token
+    native; handler kanonik harus menerima eksekusi.
+    """
+    import api_server
+    import approval_flow
+    import textual_tool_handlers as th
+
+    monkeypatch.setattr(
+        api_server.security, "get_current_user",
+        lambda auth: {"email": USER})
+
+    monkeypatch.setattr(
+        approval_flow, "verify_approval_token",
+        lambda tok, email: {"tool": "KIRIM_TELEGRAM_MESSAGE",
+                            "args": {"chat_id": "123", "pesan": "halo"}})
+
+    # Kredensial anggap ada; handler palsu menangkap eksekusi kanonik.
+    monkeypatch.setattr(th, "_missing_provider", lambda tool, email: "")
+    seen = {}
+    monkeypatch.setitem(
+        th.HANDLERS, "TELEGRAM",
+        lambda a, e: (seen.update(tool=a, email=e) or
+                      {"status": "success", "message": "terkirim"}))
+
+    req = api_server.ApproveRequest(approval_token="x", decision="approve")
+    out = api_server.approve_tool_call(req, authorization="Bearer dummy")
+    assert out.get("status") == "executed", out
+    assert out.get("tool") == "TELEGRAM", out
+    assert seen.get("tool") == {"chat_id": "123", "pesan": "halo"}, seen
+
+
+def test_approve_endpoint_tetap_tolak_argumen_invalid(monkeypatch):
+    """Normalisasi tidak boleh melemahkan validasi ulang argumen."""
+    import api_server
+    import approval_flow
+    import pytest as _pytest
+
+    monkeypatch.setattr(
+        api_server.security, "get_current_user",
+        lambda auth: {"email": USER})
+    monkeypatch.setattr(
+        approval_flow, "verify_approval_token",
+        lambda tok, email: {"tool": "KIRIM_TELEGRAM_MESSAGE",
+                            "args": {"chat_id": "123",
+                                     "pesan": "x" * 99999}})
+
+    req = api_server.ApproveRequest(approval_token="x", decision="approve")
+    with _pytest.raises(Exception) as ei:
+        api_server.approve_tool_call(req, authorization="Bearer dummy")
+    assert "Argumen tidak lagi valid" in str(ei.value), ei.value

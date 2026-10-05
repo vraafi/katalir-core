@@ -3103,6 +3103,17 @@ def approve_tool_call(req: ApproveRequest,
     tool = payload["tool"]
     args = payload.get("args") or {}
 
+    # BUG FIX 2026-10-06 (defect #4): token dari jalur Gemini-langsung
+    # memuat nama NATIVE (`kirim_telegram_message`). Validasi ulang di bawah
+    # memakai `argument_validator` yang hanya punya skema untuk nama
+    # kanonik (`TELEGRAM`) -> "tidak punya skema argumen" + HTTP 400, dan
+    # persetujuan kembali buntu. Normalkan ke nama kanonik SEKARANG,
+    # sebelum validasi & eksekusi. (`execute_textual_tool` juga menormalkan;
+    # idempoten.) Verifikasi token sendiri SUDAH selesai di atas dengan
+    # nama asli dari payload, jadi ini tidak melemahkan pemeriksaan.
+    from textual_tool_handlers import NATIVE_TO_TEXTUAL
+    tool = NATIVE_TO_TEXTUAL.get(str(tool).upper(), tool)
+
     if decision == "deny":
         return {"status": "denied", "tool": tool,
                 "message": "Panggilan dibatalkan oleh Anda."}
