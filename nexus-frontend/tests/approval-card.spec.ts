@@ -136,6 +136,10 @@ interface ApproveControl {
   failDetail?: string;
   /** Body mentah yang benar-benar dikirim client (untuk assertion kontrak). */
   sentBody?: Record<string, unknown>;
+  /** Payload `result` untuk jawaban approve. Default: objek hasil telegram.
+   *  Bentuk bervariasi di backend (string / {message} / dict polos / null),
+   *  dan formatter UI harus menangani semuanya tanpa teks kosong. */
+  approveResult?: unknown;
 }
 
 async function stubApi(page: Page, control: ApproveControl = {}) {
@@ -212,10 +216,18 @@ async function stubApi(page: Page, control: ApproveControl = {}) {
       control.sentBody = JSON.parse(req.postData() || "{}") as Record<string, unknown>;
       if (control.failDetail) return json(400, { detail: control.failDetail });
       const decision = control.sentBody?.decision;
-      return json(200, {
-        status: decision === "approve" ? "executed" : "denied",
-        tool: "TELEGRAM",
-      });
+      if (decision === "approve") {
+        return json(200, {
+          status: "executed",
+          tool: "TELEGRAM",
+          result:
+            "approveResult" in control
+              ? control.approveResult
+              : { status: "success", delivered: true, message_id: "tg-9001", chat_id: POLICY_ARGS.chat_id },
+        });
+      }
+      // Backend tidak mengembalikan `result` untuk deny - hanya status + tool.
+      return json(200, { status: "denied", tool: "TELEGRAM", message: "Panggilan dibatalkan oleh Anda." });
     }
 
     if (path === "/preferences" && req.method() === "PUT") return json(200, { status: "success", prefs: {} });
@@ -279,6 +291,14 @@ test("intent-alignment: kartu muncul untuk tool yang tidak selaras dengan pesan"
   await expect(card).toContainText("VAULT");
   await expect(card).toContainText("tidak selaras");
   await expect(card.getByTestId("approval-args")).toContainText("supabase");
+  // FIX 2026-10-05: alignment sebelumnya diteruskan tapi tidak pernah dirender.
+  // User harus bisa membedakan "policy gate minta izin" dari "pola ini tidak
+  // kamu minta" (pemeriksaan intent-alignment).
+  const align = card.getByTestId("approval-alignment");
+  await expect(align).toBeVisible();
+  await expect(align).toContainText("tidak terlihat diminta");
+  // Rincian tetap di balik <details>: kartu tidak membengkak hanya karena info.
+  await expect(align.locator("p")).toBeHidden();
 
   await page.screenshot({ path: shot("intent"), fullPage: true });
   console.log(`SHOT=${SHOT}-intent.png`);
@@ -306,6 +326,62 @@ test("Setujui: hanya token + keputusan yang dikirim, kartu jadi 'dijalankan'", a
   console.log(`SHOT=${SHOT}-approved.png`);
 });
 
+/** Kirim prompt telegram lalu klik Setujui. */
+async function approveTelegram(page: Page, control: ApproveControl) {
+  await stubApi(page, control);
+  await sendPrompt(page, "kirim laporan ini ke telegram sekarang");
+  const card = await awaitApprovalCard(page);
+  await card.getByTestId("approval-approve").click();
+}
+
+test("hasil tool (objek): output /chat/approve tampil di kartu tool_result", async ({ page }) => {
+  test.setTimeout(120000);
+  await approveTelegram(page, {});
+
+  // Kartu hasil harus MUNCUL - ini yang dulu hilang: output dibuang di
+  // ApprovalCard, user cuma melihat "disetujui dan dijalankan" tanpa isi.
+  const result = page.getByTestId("tool-result-card").last();
+  await expect(result).toBeVisible({ timeout: 15000 });
+  await expect(result).toHaveAttribute("data-tool-status", "executed");
+  await expect(result).toContainText("TELEGRAM selesai dijalankan.");
+  // Output ditampilkan apa adanya (dict tanpa `message` -> JSON rapi).
+  const out = result.getByTestId("tool-result-output");
+  await expect(out).toContainText('"message_id": "tg-9001"');
+  await expect(out).toContainText('"delivered": true');
+  // Tanda terima persetujuan tetap ada di atasnya.
+  await expect(page.getByTestId("approval-done").last()).toContainText("disetujui dan dijalankan");
+
+  await page.screenshot({ path: shot("tool-result"), fullPage: true });
+  console.log(`SHOT=${SHOT}-tool-result.png`);
+});
+
+test("hasil tool (string): teks dari server dipakai apa adanya", async ({ page }) => {
+  test.setTimeout(120000);
+  await approveTelegram(page, { approveResult: "Laporan terkirim ke -1001234567890." });
+
+  const out = page.getByTestId("tool-result-output").last();
+  await expect(out).toBeVisible({ timeout: 15000 });
+  await expect(out).toHaveText("Laporan terkirim ke -1001234567890.");
+});
+
+test("hasil tool ({message}): memakai pesan manusiawi, bukan JSON mentah", async ({ page }) => {
+  test.setTimeout(120000);
+  await approveTelegram(page, { approveResult: { message: "Pesan terkirim ke kanal laporan.", status: "success" } });
+
+  const out = page.getByTestId("tool-result-output").last();
+  await expect(out).toBeVisible({ timeout: 15000 });
+  await expect(out).toHaveText("Pesan terkirim ke kanal laporan.");
+});
+
+test("hasil tool kosong: pesan eksplisit, bukan kartu kosong", async ({ page }) => {
+  test.setTimeout(120000);
+  await approveTelegram(page, { approveResult: null });
+
+  const out = page.getByTestId("tool-result-output").last();
+  await expect(out).toBeVisible({ timeout: 15000 });
+  await expect(out).toHaveText("Tool dijalankan (tidak ada output).");
+});
+
 test("Tolak: keputusan deny terkirim, kartu jadi 'dibatalkan'", async ({ page }) => {
   test.setTimeout(120000);
   const control: ApproveControl = {};
@@ -318,6 +394,10 @@ test("Tolak: keputusan deny terkirim, kartu jadi 'dibatalkan'", async ({ page })
   await expect(done).toBeVisible({ timeout: 15000 });
   await expect(done).toContainText("TELEGRAM dibatalkan.");
   expect(control.sentBody).toEqual({ approval_token: STUB_TOKEN, decision: "deny" });
+  // Tidak ada kartu tool_result untuk deny: backend tidak mengembalikan
+  // `result`, dan tanda terima "dibatalkan" sudah cukup - bubble kedua hanya
+  // akan mengulang informasi yang sama.
+  await expect(page.getByTestId("tool-result-card")).toHaveCount(0);
 
   await page.screenshot({ path: shot("denied"), fullPage: true });
   console.log(`SHOT=${SHOT}-denied.png`);

@@ -13,7 +13,7 @@ import { QueryProvider } from "@/features/builder/provider";
 import { I18nProvider } from "@/i18n/context";
 import { apiFetch } from "@/lib/api";
 import { useI18n } from "@/i18n/context";
-import { useSessionsQuery, useMessagesQuery, useSendChatMutation, useDeleteSessionMutation, useModelsQuery, resolveInterruptedSession, type ChatModelItem } from "@/features/chat/hooks/useChat";
+import { useSessionsQuery, useMessagesQuery, useSendChatMutation, useDeleteSessionMutation, useModelsQuery, resolveInterruptedSession, formatToolResult, type ChatModelItem } from "@/features/chat/hooks/useChat";
 import type { ChatMessage } from "@/features/chat/hooks/useChat";
 import { useQueryClient } from "@tanstack/react-query";
 import { chatKeys } from "@/lib/query-keys";
@@ -510,6 +510,19 @@ function ChatApp() {
           original: m.original ?? "",
         };
       }
+      // Hasil tool setelah keputusan (FIX 2026-10-05). Tanpa cabang ini kartu
+      // tool_result jatuh ke `return null` di bawah - bug yang sama persis
+      // dengan kartu persetujuan: pesannya ada di cache, tidak pernah tampil.
+      if (m.type === "tool_result") {
+        return {
+          key: `toolres-${m.id ?? m._localId ?? m.tool ?? "result"}`,
+          role: "system",
+          type: "tool_result",
+          tool: m.tool,
+          content: m.content,
+          status: m.toolStatus ?? "executed",
+        };
+      }
       if (m.type === "error" && m.original !== undefined) {
         // BUG FIX 2026-10-01: teruskan `localId` + `clientRequestId` ke Msg
         // supaya `onRetry` bisa (a) menghapus HANYA kartu error ini, bukan
@@ -780,6 +793,43 @@ function ChatApp() {
       // bersihkan kalau masih milik kiriman ini (retry beruntun).
       if (activeReqIdRef.current === clientRequestId) activeReqIdRef.current = null;
     }
+  }
+
+  /** FIX 2026-10-05: kartu hasil tool setelah keputusan persetujuan.
+   *
+   *  Sebelumnya output /chat/approve DIBUANG di ApprovalCard: user menyetujui,
+   *  tool benar-benar dieksekusi di server ({status:"executed", result}), dan
+   *  satu-satunya umpan balik adalah "TELEGRAM disetujui dan dijalankan." -
+   *  tanpa isi. Kartu tool_result menampilkan output itu apa adanya.
+   *
+   *  Keputusan TOLAK sengaja tidak menambah bubble: server tidak mengembalikan
+   *  `result` untuk deny, dan kartu persetujuan sudah berubah menjadi tanda
+   *  terima "dibatalkan" - bubble kedua hanya mengulang informasi yang sama.
+   *
+   *  Ditulis ke cache dengan pola kartu persetujuan: layer render hanya
+   *  meneruskan entri ber-`_localId`, jadi tanpa itu kartunya dibuang sebelum
+   *  sempat tampil (bug yang baru saja diperbaiki di cabang approval_prompt).
+   */
+  function handleApprovalDecision(
+    approvalMsg: Extract<Msg, { type: "approval_prompt" }>,
+    info: { approved: boolean; result?: unknown },
+  ) {
+    if (!info.approved) return;
+    const stamp = Date.now();
+    const key = chatKeys.messages(sessionId ?? "__pending__");
+    qc.setQueryData<ChatMessage[]>(key, (old) => [
+      ...(old ?? []),
+      {
+        id: `local-toolresult-${stamp}`,
+        _localId: `local-toolresult-${stamp}-${Math.random().toString(36).slice(2, 7)}`,
+        role: "system" as const,
+        content: formatToolResult(info.result),
+        type: "tool_result" as const,
+        tool: approvalMsg.tool,
+        toolStatus: "executed" as const,
+        original: approvalMsg.original,
+      },
+    ]);
   }
 
   /** Tombol "Coba Lagi" pada kartu error.
@@ -1082,6 +1132,7 @@ return (
                 onOauthConnect: connectOauth,
                 oauthBusy,
                 onRetry: retryMessage,
+                onApprovalDecision: handleApprovalDecision,
               }}
               runReports={runReports}
               draftRunning={runPending}

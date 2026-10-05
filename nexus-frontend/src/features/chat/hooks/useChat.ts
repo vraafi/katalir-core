@@ -51,8 +51,9 @@ export interface ChatMessage {
   created_at?: string;
   /** Tag optimistic lokal (pattern openclaw #14859) — tidak dikirim ke server. */
   _localId?: string;
-  /** Kartu form kredensial / kartu OAuth / kartu error kontekstual (system message khusus). */
-  type?: "credential_form" | "oauth_prompt" | "approval_prompt" | "error";
+  /** Kartu form kredensial / kartu OAuth / kartu persetujuan / kartu error /
+   *  hasil tool (system message khusus). */
+  type?: "credential_form" | "oauth_prompt" | "approval_prompt" | "error" | "tool_result";
   /** BUG FIX 2026-10-03 (cancel context loss): giliran yang user hentikan
    *  dengan tombol Stop. Pesan user TIDAK dihapus — ditandai supaya konteks
    *  tetap terbawa ke giliran berikutnya. Lihat `useSendChatMutation.onError`. */
@@ -76,12 +77,42 @@ export interface ChatMessage {
   reason?: string;
   alignment?: string;
   approvalToken?: string;
+  /** FIX 2026-10-05: output /chat/approve sebelumnya DIBUANG - user menyetujui
+   *  tool tapi tidak pernah melihat apa yang sebenarnya terjadi. Kartu
+   *  tool_result menampilkan output itu; `toolStatus` membedakan eksekusi
+   *  berhasil dari keputusan batal (yang tidak punya output untuk ditampilkan). */
+  toolStatus?: "executed" | "denied";
   /** Metadata model (transparansi): model, latency, tokens, fallback. */
   meta?: ChatMeta;
   /** BUG FIX 2026-10-01: kunci idempotensi kiriman logis. Disimpan pada kartu
    *  error agar `retry` mengirim UUID yang SAMA — kalau di-regenerate, backend
    *  tidak bisa melakukan dedup dan pesan user ter-insert GANDUL tiap retry. */
   clientRequestId?: string;
+}
+
+/**
+ * Format output `/chat/approve` untuk kartu tool_result (2026-10-05).
+ *
+ * Kontrak: `execute_textual_tool` bisa mengembalikan string, dict dengan
+ * `message`, dict polos, atau null. User WAJIB melihat apa yang terjadi setelah
+ * menyetujui - fungsi ini memastikan tidak ada bentuk output yang jatuh ke
+ * teks kosong.
+ */
+export function formatToolResult(result: unknown): string {
+  if (result == null) return "Tool dijalankan (tidak ada output).";
+  if (typeof result === "string") {
+    const s = result.trim();
+    return s || "Tool dijalankan (tidak ada output).";
+  }
+  if (typeof result === "object") {
+    const o = result as Record<string, unknown>;
+    if (typeof o.message === "string" && o.message.trim()) return o.message;
+    if (typeof o.detail === "string" && o.detail.trim()) return o.detail;
+    if (Object.keys(o).length === 0) return "Tool dijalankan (tidak ada output).";
+    return JSON.stringify(o, null, 2);
+  }
+  const s = String(result).trim();
+  return s || "Tool dijalankan (tidak ada output).";
 }
 
 async function fetchSessions(email: string): Promise<SessionItem[]> {

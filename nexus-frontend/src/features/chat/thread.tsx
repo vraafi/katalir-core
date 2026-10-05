@@ -6,7 +6,7 @@
  * pemilik state & logika; file ini hanya render. Diekstrak dari page.tsx
  * (bukan ditulis ulang) supaya perilaku identik.
  */
-import { AlertCircle, AlertTriangle, Bot, RotateCcw, Sparkles } from "lucide-react";
+import { AlertCircle, AlertTriangle, Bot, Check, RotateCcw, Sparkles } from "lucide-react";
 import { motion } from "motion/react";
 import { ApprovalCard } from "@/components/ApprovalCard";
 import { Button } from "@/components/ui/button";
@@ -71,6 +71,17 @@ export type Msg =
       alignment?: string;
       approvalToken?: string;
       original: string;
+    }
+  | {
+      /* HASIL tool setelah keputusan (2026-10-05). Output /chat/approve
+       * sebelumnya DIBUANG di ApprovalCard: user menyetujui, tool berjalan,
+       * dan output-nya tidak pernah tampil. Kartu ini menampilkannya. */
+      key: string;
+      role: "system";
+      type: "tool_result";
+      tool?: string;
+      content: string;
+      status: "executed" | "denied";
     }
   | {
       /* Task 1C: provider ber-OAuth — bukan form token, tapi tombol Connect. */
@@ -212,6 +223,7 @@ export function Message({
   onOauthConnect,
   oauthBusy = false,
   onRetry,
+  onApprovalDecision,
   draftRunning = false,
   onOpenCanvas,
   onRunDraft,
@@ -227,6 +239,12 @@ export function Message({
   onOauthConnect: (provider: string, connectUrl?: string, resume?: string) => void;
   oauthBusy?: boolean;
   onRetry: (m: { content: string; original: string; localId?: string; clientRequestId?: string }) => void;
+  /** FIX 2026-10-05: keputusan persetujuan + hasil /chat/approve. Diteruskan
+   *  ke ChatApp yang menaruh kartu tool_result di cache percakapan. */
+  onApprovalDecision: (
+    m: Extract<Msg, { type: "approval_prompt" }>,
+    info: { approved: boolean; result?: unknown },
+  ) => void;
   /** FASE 5: draf sedang dijalankan (tombol "Jalankan Langsung" disabled). */
   draftRunning?: boolean;
   onOpenCanvas: (wf: AgentWorkflow) => void;
@@ -282,6 +300,7 @@ export function Message({
               reason={msg.reason}
               alignment={msg.alignment}
               approvalToken={msg.approvalToken}
+              onDecision={(info) => onApprovalDecision(msg, info)}
             />
           ) : (
             <div className="w-80" data-testid="approval-expired">
@@ -290,6 +309,25 @@ export function Message({
               </p>
             </div>
           )
+        ) : msg.role === "system" && msg.type === "tool_result" ? (
+          // FIX 2026-10-05: output /chat/approve sebelumnya dibuang di
+          // ApprovalCard. Kartu ini menampilkan HASILNYA apa adanya - keputusan
+          // tanpa output tidak bermakna karena user tidak tahu apa yang
+          // benar-benar terjadi.
+          <div className="w-80" data-testid="tool-result-card" data-tool-status={msg.status}>
+            <div className="flex items-center gap-2 text-sm font-medium text-fg">
+              <Check size={15} strokeWidth={2} aria-hidden className="text-success" />
+              <span>{msg.tool ?? "Tool"} selesai dijalankan.</span>
+            </div>
+            {msg.content ? (
+              <pre
+                data-testid="tool-result-output"
+                className="mt-2 max-h-56 overflow-auto whitespace-pre-wrap rounded border border-border bg-surface-muted p-2 font-mono text-[11px] leading-relaxed text-fg-muted"
+              >
+                {msg.content}
+              </pre>
+            ) : null}
+          </div>
         ) : msg.role === "system" && msg.type === "oauth_prompt" ? (
           <OAuthConnectCard
             provider={msg.provider}
@@ -376,6 +414,11 @@ export function Thread({
     onOauthConnect?: (p: string, connectUrl?: string, resume?: string) => void;
     oauthBusy?: boolean;
     onRetry: (m: { content: string; original: string; localId?: string; clientRequestId?: string }) => void;
+    /** FIX 2026-10-05: keputusan persetujuan + hasil eksekusi (lihat Message). */
+    onApprovalDecision: (
+      m: Extract<Msg, { type: "approval_prompt" }>,
+      info: { approved: boolean; result?: unknown },
+    ) => void;
   };
   /** FASE 5 (B2): laporan eksekusi TERSTRUKTUR dari state lokal. */
   runReports?: { id: string; report: ExecutionReport }[];
@@ -403,6 +446,7 @@ export function Thread({
             onOauthConnect={handlers.onOauthConnect ?? (() => {})}
             oauthBusy={handlers.oauthBusy ?? false}
             onRetry={handlers.onRetry}
+            onApprovalDecision={handlers.onApprovalDecision}
             draftRunning={draftRunning}
             onOpenCanvas={openCanvas}
             onRunDraft={runDraft}

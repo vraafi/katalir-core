@@ -180,16 +180,23 @@ E2E_BASE_URL=https://proyek-agent.pages.dev E2E_SHOT_PREFIX=approval-card-live \
 Screenshot run live disimpan terpisah (`approval-card-live-*.png`, tujuh berkas)
 supaya bukti build lokal dan bukti situs live tidak saling menimpa.
 
-Dua celah lain yang sengaja TIDAK dikerjakan sesi ini:
+Dua celah lain yang terbuka saat dokumen ini pertama ditulis — **keduanya
+sudah ditutup sesi yang sama** (kommit `fix(chat): render tool result +
+alignment after approval`):
 
 1. **Hasil tool tidak pernah tampil.** `POST /chat/approve` mengembalikan
    `{status: "executed", tool, result}`, tetapi `ApprovalCard` hanya membaca
    status HTTP dan menampilkan "TELEGRAM disetujui dan dijalankan." — `result`
-   dibuang. User menyetujui, tool jalan, dan output-nya tidak pernah ia lihat.
-2. **`alignment` diteruskan tapi tidak dirender.** Prop `alignment` ada di
-   `ApprovalCard` tetapi tidak dipakai di JSX, jadi user tidak bisa membedakan
-   "policy gate minta izin" dari "pola ini tidak kamu minta" — padahal
-   `reason` dari backend sudah membawa konteksnya.
+   dibuang. Sekarang keputusan diteruskan lewat `onDecision` ke ChatApp, yang
+   menaruh kartu `tool_result` di cache percakapan (format: string / `{message}`
+   / dict JSON rapi / pesan eksplisit bila kosong). Dikunci 4 tes formatter +
+   screenshot `approval-card-tool-result.png`. Keputusan TOLAK sengaja tidak
+   menambah bubble: backend tidak mengembalikan `result` untuk deny, dan kartu
+   persetujuan sudah menjadi tanda terima "dibatalkan".
+2. **`alignment` diteruskan tapi tidak dirender.** Sekarang tampil sebagai
+   `<details>` "Kenapa tool ini butuh persetujuan?" dengan bahasa manusia untuk
+   `not_aligned` — user bisa membedakan "policy gate minta izin" dari "pola ini
+   tidak kamu minta".
 
 ## Catatan harness
 

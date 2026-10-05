@@ -38,12 +38,16 @@ export interface ApprovalCardProps {
   /** "not_aligned" bila pemicunya intent-check. */
   alignment?: string;
   approvalToken: string;
-  onDecision?: (approved: boolean) => void;
+  /** FIX 2026-10-05: membawa HASIL eksekusi ke atas (ChatApp) supaya user
+   *  melihat output tool, bukan cuma "disetujui dan dijalankan". `result`
+   *  adalah field apa adanya dari response /chat/approve. */
+  onDecision?: (info: { approved: boolean; result?: unknown }) => void;
 }
 export function ApprovalCard({
   tool,
   args,
   reason,
+  alignment,
   approvalToken,
   onDecision,
 }: ApprovalCardProps) {
@@ -76,7 +80,7 @@ export function ApprovalCard({
         return;
       }
       setResult(approved ? "approved" : "denied");
-      onDecision?.(approved);
+      onDecision?.({ approved, result: (data as { result?: unknown }).result });
     } catch {
       setError("Tidak bisa menghubungi server. Coba lagi.");
       setBusy(null);
@@ -116,6 +120,22 @@ export function ApprovalCard({
       <CardContent>
         {reason ? (
           <p className="mb-2.5 text-footnote text-fg-muted">{reason}</p>
+        ) : null}
+
+        {alignment ? (
+          // FIX 2026-10-05: prop ini sebelumnya diteruskan tapi tidak pernah
+          // dirender, jadi user tidak bisa membedakan "policy gate minta izin"
+          // dari "pola ini tidak kamu minta" (intent-alignment).
+          <details data-testid="approval-alignment" className="mb-2.5">
+            <summary className="cursor-pointer text-footnote text-fg-muted">
+              Kenapa tool ini butuh persetujuan?
+            </summary>
+            <p className="mt-1.5 text-footnote text-fg-muted">
+              {alignment === "not_aligned"
+                ? "Pola tool pada balasan model tidak terlihat diminta di pesan Anda (pemeriksaan intent-alignment)."
+                : alignment}
+            </p>
+          </details>
         ) : null}
 
         <dl className="mb-2.5 flex items-center gap-2 text-sm">
