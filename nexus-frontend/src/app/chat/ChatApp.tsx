@@ -485,6 +485,31 @@ function ChatApp() {
       if (m.type === "oauth_prompt" && m.provider) {
         return { key: `oauth-${m.id ?? m._localId ?? m.provider}`, role: "system", type: "oauth_prompt", provider: m.provider, connectUrl: m.connectUrl };
       }
+      // Kartu persetujuan (BUG FIX 2026-10-05).
+      //
+      // Tanpa cabang ini pesan `approval_prompt` jatuh ke `return null` di
+      // bawah, jadi kartunya ADA di cache TanStack tetapi TIDAK PERNAH
+      // dirender: user melihat bubble user-nya hilang tanpa penjelasan, dan
+      // tool yang butuh persetujuan tidak bisa disetujui sama sekali.
+      // Gejalanya identik dengan bug form kredensial sebelumnya — `useChat`
+      // menaruh pesan system, layer render ini yang membuangnya.
+      //
+      // `approvalToken` WAJIB diteruskan: `thread.tsx` menampilkan catatan
+      // "Persetujuan tidak tersedia" bila tokennya tidak ada, dan tanpa token
+      // klik Setujui tidak bisa diverifikasi server.
+      if (m.type === "approval_prompt") {
+        return {
+          key: `appr-${m.id ?? m._localId ?? m.tool ?? "approval"}`,
+          role: "system",
+          type: "approval_prompt",
+          tool: m.tool,
+          toolArgs: m.toolArgs,
+          reason: m.reason,
+          alignment: m.alignment,
+          approvalToken: m.approvalToken,
+          original: m.original ?? "",
+        };
+      }
       if (m.type === "error" && m.original !== undefined) {
         // BUG FIX 2026-10-01: teruskan `localId` + `clientRequestId` ke Msg
         // supaya `onRetry` bisa (a) menghapus HANYA kartu error ini, bukan
