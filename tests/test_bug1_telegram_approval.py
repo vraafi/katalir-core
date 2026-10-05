@@ -332,3 +332,43 @@ def test_native_tool_provider_memeta_benar():
     assert api_server._native_tool_provider("trigger_gmail_imap") == "gmail_imap"
     assert api_server._native_tool_provider("write_sheets_dynamic") == "google_sheets"
     assert api_server._native_tool_provider("generate_workflow_json") == ""
+
+
+# ---------------------------------------------------------------------------
+# BUG #1 lanjutan (2) — DENY palsu pada spec workflow (jalur direct).
+#
+# Saat gate dipasang di jalur direct, spec workflow yang SAH memuat backtick/
+# markdown di nilai `pesan` jatuh ke DENY ("pola terlarang `...`") — padahal
+# `generate_workflow_json` hanya MENYIMPAN data, tidak mengeksekusi shell.
+# ---------------------------------------------------------------------------
+
+
+def test_workflow_spec_dengan_backtick_tidak_deny():
+    """Backtick di dalam nilai `pesan` adalah isi sah, bukan injeksi."""
+    from tool_policy_gate import Disposition, validate_call
+    spec = '{"nodes":[{"config":{"pesan":"kirim `laporan` harian"}}]}'
+    d, why = validate_call("generate_workflow_json", {"spec": spec})
+    assert d is Disposition.ALLOW, why
+
+
+def test_workflow_spec_traversal_tetap_deny():
+    """Exemption data-only TIDAK boleh memaafkan path traversal."""
+    from tool_policy_gate import Disposition, validate_call
+    d, why = validate_call("generate_workflow_json",
+                           {"spec": '{"u":"../../etc/passwd"}'})
+    assert d is Disposition.DENY, why
+
+
+def test_tool_pengirim_tetap_deny_backtick():
+    """Alat yang MENGIRIM data tetap kena aturan backtick (bukan data-only)."""
+    from tool_policy_gate import Disposition, validate_call
+    d, _ = validate_call("kirim_telegram_message",
+                         {"chat_id": "1", "pesan": "x `whoami`"})
+    # Disposisi bisa DENY (pola) atau REQUIRE_APPROVAL; yang penting BUKAN ALLOW.
+    assert d is not Disposition.ALLOW, d
+
+
+def test_http_request_backtick_tetap_deny():
+    from tool_policy_gate import Disposition, validate_call
+    d, _ = validate_call("http_request", {"url": "x `whoami`"})
+    assert d is Disposition.DENY, d

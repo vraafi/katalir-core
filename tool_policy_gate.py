@@ -83,6 +83,15 @@ EXTERNAL_SEND_TOOLS = frozenset({
 DENY_PREFIXES = ("delete_", "drop_", "execute_", "truncate_", "revoke_",
                  "admin_", "impersonate_", "reset_")
 
+#: Alat DATA-ONLY: hanya MENYIMPAN/MEMVALIDASI data, tidak menjalankan
+#: perintah shell apa pun. Untuk alat ini, pola injeksi SHELL di dalam nilai
+#: teks (backtick, `$(...)`, `;`/`|`) adalah isi sah, bukan serangan — spec
+#: workflow sering memuat markdown. Pola path-traversal/SQL/kredensial TETAP
+#: berlaku (lihat `_DATA_SAFE_PATTERNS`).
+DATA_ONLY_TOOLS = frozenset({
+    "GENERATE_WORKFLOW_JSON", "WORKFLOW",
+})
+
 #: Batas keras per giliran (anti loop injection / DoS).
 MAX_CALLS_PER_TURN = 5
 MAX_ARG_BYTES = 4096
@@ -119,6 +128,23 @@ _DENY_PATTERNS = (
     re.compile(r"(--|#)\s*$", re.I),
     re.compile(r";\s*(drop|delete|update|insert|truncate)\b", re.I),
     re.compile(r"^\s*-{1,2}[a-z]+\s+http", re.I),
+)
+
+#: Subset pola yang TETAP berlaku untuk alat data-only.
+#:
+#: Alat data-only tidak mengeksekusi apa pun, jadi pola injeksi SHELL
+#: (backtick, `$(...)`, `;`/`|`, `${VAR}`, flag CLI) tidak relevan dan
+#: menghasilkan DENY palsu pada spec workflow yang sah. Yang tetap
+#: berbahaya walau hanya disimpan: path traversal, akses berkas sistem,
+#: dan pola SQL (spec bisa dipakai di langkah berikutnya).
+_DATA_SAFE_PATTERNS = (
+    re.compile(r"\.\./", re.I),
+    re.compile(r"\.\.\\", re.I),
+    re.compile(r"/etc/(passwd|shadow)", re.I),
+    re.compile(r"\bselect\b.+\bfrom\b", re.I | re.S),
+    re.compile(r"\b(insert|update|delete|drop|truncate)\b.+\b(into|set|from|table)\b",
+               re.I | re.S),
+    re.compile(r";\s*(drop|delete|update|insert|truncate)\b", re.I),
 )
 
 
@@ -161,8 +187,19 @@ def validate_call(tool: str, args: dict, user_context: dict | None = None
         return Disposition.DENY, f"Alat '{name}' tidak ada di allowlist."
 
     # -- 2. DENY: pola berbahaya di argumen
+    # BUG FIX 2026-10-06 (false positive di jalur direct): `generate_workflow_json`
+    # membawa SPEC JSON yang sah memuat backtick/markdown di dalam nilai
+    # (`pesan`, `isi`). Pola injeksi shell (`\`...\``, `$(...)`, `;`/`|`) dibuat
+    # untuk alat yang MENJALANKAN sesuatu, bukan untuk alat yang hanya
+    # MENYIMPAN data. Jalur gateway dulu tak pernah terkena karena spec
+    # workflow tiba lewat jalur tekstual terpisah; begitu gate dipasang di
+    # jalur direct, spec JSON yang sah jadi DENY palsu.
+    # Untuk alat data-only: lewati subset pola SHELL, tetap jalankan pola
+    # path-traversal / SQL / kredensial (yang tetap relevan untuk data).
     flat = _flatten(args)
-    for pat in _DENY_PATTERNS:
+    _patterns = (_DATA_SAFE_PATTERNS if name in DATA_ONLY_TOOLS
+                 else _DENY_PATTERNS)
+    for pat in _patterns:
         if pat.search(flat):
             return Disposition.DENY, (
                 f"Argumen memuat pola terlarang ({pat.pattern[:32]}).")
