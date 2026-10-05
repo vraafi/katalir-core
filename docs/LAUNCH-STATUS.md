@@ -100,11 +100,13 @@ daa2a0c  feat(vault): gerbang fail-closed + tool check_credential + broker secre
 | Hasil tool tampil setelah Setujui | ✅ | 4 tes formatter (objek / string / `{message}` / kosong) + screenshot `tool-result` |
 | `alignment` dirender | ✅ | `<details data-testid="approval-alignment">` — tes intent-alignment lulus |
 | Form kredensial (vault) | ✅ | tes `requires_credential: kartu form kredensial tetap dirender` lulus **di situs live** |
-| **Kartu bertahan setelah refresh (Bug #3)** | ⚠️ build lokal ✅ / live ❌ | `card-persistence.spec.ts` **2/2 lulus** terhadap `out/` produksi; **1/2 gagal** di situs live karena deploy belum memuat fix (§4b) |
+| **Kartu bertahan setelah refresh (Bug #3)** | ✅ lokal + LIVE | `card-persistence.spec.ts` **2/2 lulus** terhadap `out/` produksi **dan** `https://proyek-agent.pages.dev` (§4b) |
 | **Decoder `decodePersistedCard`** | ✅ 7/7 | `card-persistence.unit.spec.ts` — pemetaan field, `_localId` wajib, baris biasa aman |
 | Kontrak keamanan `/chat/approve` | ✅ | body persis `{approval_token, decision}`; client tidak mengirim ulang tool/args |
 | Jalur tetangga tidak rusak | ✅ | `success` bubble + `denied` → error-card, keduanya lulus |
-| Suite backend (pytest) | ✅ 714 passed | lihat §5 |
+| **Fix Bug #1 (approval Telegram)** | ✅ kode + harness | parser tidak membuang field; alias `text/message`→`pesan`. 3/3 skenario `requires_approval` + token. **Backend produksi belum redeploy** (§4g) |
+| **Fix Bug #2 (discovery over-asking)** | ✅ kode + harness | 5/5 prompt alur-jelas membangun workflow dgn placeholder. **Backend produksi belum redeploy** (§4g) |
+| Suite backend (pytest) | ✅ 737 passed | lihat §5 |
 
 ---
 
@@ -169,29 +171,37 @@ bersama.
 lingkungan tanpa kredensial. Yang **sudah** hijau adalah suite kartu lewat
 `playwright.approval.config.ts` (stub per-path, tanpa backend).
 
-### 4b. Fix Bug #3 BELUM ter-deploy ke situs live
+### 4b. Fix Bug #3 — SUDAH ter-deploy & TERBUKTI di situs live (6 Okt 2026)
 
-Dijalankan terhadap `https://proyek-agent.pages.dev`: **1/2 gagal**. Buktinya
-diambil langsung dari bundel yang disajikan situs:
+Dijalankan terhadap `https://proyek-agent.pages.dev`: **2/2 lulus** (spec
+persistensi) dan **15/15 lulus** (suite kartu penuh). Buktinya diambil
+langsung dari bundel yang disajikan situs:
 
 ```
-live chunk: page-6eb4f85538eda943.js (69.193 B)
-__katalir_card     0        <- sentinel kartu TIDAK ada
-srv-card           0        <- decoder TIDAK ada
-approval-card      1        <- fix sesi sebelumnya ADA
+live chunk: page-fd95553c83308fb4.js (70.311 B)
+__katalir_card     1        <- sentinel kartu ADA
+srv-card           1        <- decoder ADA
+credential_form    1        <- form kredensial ADA
 ```
 
-Ini **bukan bug kode**: build lokal dari source yang sama lulus 15/15. Yang
-perlu dilakukan: deploy `out/` hasil sesi ini ke Cloudflare Pages, lalu
-jalankan ulang spec dengan `E2E_BASE_URL`.
+Screenshot bukti: `docs/marketing/screenshots/card-persistence-after-reload.png`
+(kartu kredensial dirender ulang SETELAH refresh, pada situs produksi, murni
+dari baris `role="system"` yang dipersist server).
+
+Deploy dilakukan lewat `_deploy_pages.py` (wrangler direct upload). Hash chunk
+berubah antar-deploy (`page-27addee031fc38d6.js` → `page-fd95553c83308fb4.js`)
+karena build id berubah, tetapi penanda Bug #3 tetap ada di keduanya
+(diverifikasi dengan `grep` pada bundel live, bukan hanya nama file).
 
 ### 4c. Verifikasi UI melawan backend produksi dengan sesi nyata TERBLOKIR
 
 Refresh token `.autonomous_session.json` sudah dicabut dan password grant
 untuk user otonom ditolak — kredensial test account berubah sejak 2 Okt.
-Sebagai gantinya: spec stub per-path terhadap build produksi dan situs live.
-Konsekuensinya, yang dibuktikan adalah **rantai render + kontrak data**, bukan
-integrasi end-to-end dengan Supabase hidup.
+
+**DIPERBARUI 6 Okt 2026:** akun E2E tetap (`nexus-frontend/_e2e_user.json`)
+BERHASIL di-grant ulang lewat `grant_type=password`, jadi probe `POST /chat`
+ke backend produksi sekarang bisa dilakukan dengan JWT sah. Hasil probe
+justru mengungkap temuan penting — lihat §4g.
 
 ### 4d. Keputusan sengaja, bukan bug
 
@@ -202,16 +212,55 @@ integrasi end-to-end dengan Supabase hidup.
   melewatinya. Ditunda, bukan cacat yang tak disadari.
 - Investigasi gateway 500 dan wiring `qwen_param_parser.py` sengaja ditunda.
 
-### 4e. Bug #2 belum diuji terhadap LLM sungguhan
+### 4e. Bug #2 — dibuktikan di harness (5/5), BELUM di backend produksi
 
-Butuh kredensial gateway yang masih hidup. Yang dibuktikan: aturan + placeholder
-ada di prompt, dan tes regresi mencegah aturannya hilang saat prompt diedit.
+Uji harness `_bug2_evidence.py` lewat `_agentic_run_gateway` dengan model
+palsu: **5/5 prompt beralur-jelas membangun workflow** dengan placeholder
+`{{chat_id}}` diteruskan ke canvas, tanpa over-asking. Prompt sistem memuat
+`ATURAN BUILD WORKFLOW` + placeholder (dikunci test).
+
+NAMUN probe backend produksi menunjukkan perilaku LAMA (lihat §4g).
 
 ### 4f. Catatan hash chunk
 
-Build lokal sesi ini `page-27addee031fc38d6.js` (70.277 B) **berbeda** dari
-chunk live `page-6eb4f85538eda943.js` (69.193 B) — dan kali ini **isinya memang
-berbeda**, bukan sekadar nama. Selisih +1.084 B adalah decoder + persistensi
+Build lokal `page-27addee031fc38d6.js` (70.277 B) disajikan sebagai
+`page-fd95553c83308fb4.js` (70.311 B) di live. Selisih kecil berasal dari
+build id/metadata; penanda Bug #3 (`__katalir_card`, `srv-card`,
+`credential_form`) ada di KEDUANYA. Yang penting: bundel lokal dan live
+sekarang setara secara fungsional (dulu live `page-6eb4f85538eda943.js`
+69.193 B TANPA penanda apa pun).
+
+### 4g. TEMUAN KRITIS — backend produksi BELUM punya fix Bug #1/#2 (6 Okt 2026)
+
+Probe `POST /chat` ke `web-production-dc90b.up.railway.app` dengan JWT sah
+(akun E2E, §4c) menunjukkan backend produksi masih berperilaku seperti SEBELUM
+fix:
+
+```
+prompt : "setiap pagi jam 7 ambil data dari API lalu kirim ke telegram"
+status : success
+workflow: TIDAK ADA
+reply  : "Baik, saya bisa bantu membuatkan workflow tersebut. Untuk
+          memulainya, saya butuh beberapa informasi: 1. URL API mana ...
+          2. Chat ID Telegram ... 3. Data spesifik apa ..."
+```
+
+Itu **persis gejala Bug #2** (over-asking; alur jelas tapi agen menahan diri).
+Kode fix sudah ADA di `main` (`f8b8cba`) dan sudah ter-push
+(`git ls-remote` → `f8b8cbae`), tetapi Railway belum menjalankan ulang
+build/deploy.
+
+**PENGHALANG deploy:** token akun Railway yang dipakai skrip lama
+(`RAILWAY_akun`) sudah TIDAK ADA di `.env`. Yang tersisa hanya
+`RAILWAY_TOKEN`/`RAILWAY_API_TOKEN` (token project 36 karakter) dan keduanya
+menjawab `Not Authorized` untuk query akun — jadi redeploy tidak bisa
+dipicu dari sini. Railway biasanya auto-deploy saat push, tetapi tidak
+terjadi dalam ~10 menit setelah `f8b8cba` ter-push.
+
+**YANG DIBUTUHKAN:** picu redeploy service `web` pada project
+`sunny-vibrancy` (environment `production`) lewat dashboard Railway, atau
+pulihkan `RAILWAY_akun` di `.env`. Setelah itu jalankan ulang probe §4g:
+`workflow` harus `ADA` dan `reply` tidak boleh bertanya-tanya lagi.
 kartu yang belum ter-deploy (§4b). Catatan lama di sesi pertama ("ukuran
 identik, hanya nama berbeda") berlaku untuk build 5 Okt pagi, bukan yang ini.
 
@@ -220,16 +269,23 @@ identik, hanya nama berbeda") berlaku untuk build 5 Okt pagi, bukan yang ini.
 ## 5. Test & verifikasi (ringkas)
 
 ```
-pytest tests/ -q                                     -> 714 passed  (Python 3.12 sistem)
+pytest tests/ -q                                     -> 737 passed  (Python 3.12 sistem; +23 tes regresi 6 Okt)
 npx playwright test -c playwright.unit.config.ts      ->   7 passed  (decodePersistedCard)
 npx playwright test -c playwright.approval.config.ts  ->  15 passed  (production build lokal)
   ├─  13 approval-card
   └─   2 card-persistence (Bug #3: kartu bertahan setelah refresh)
 E2E_BASE_URL=https://proyek-agent.pages.dev \
   npx playwright test -c playwright.approval.config.ts \
-    tests/card-persistence.spec.ts                    -> 1 FAILED   (live belum ter-deploy, §4b)
+    -o <dir-luar-repo>                                ->  15 passed  (LIVE, 6 Okt — Bug #3 ter-deploy)
+_agentic_run_gateway (harness, model palsu)           -> 5/5 prompt workflow membangun (§4e)
+_bug1_evidence.py (rantai teks nyata)                 -> 3/3 skenario requires_approval + token
 npx playwright test --list -c playwright.config.ts     -> 514 tes / 44 berkas
 ```
+
+Catatan: jalankan Playwright dengan `-o <dir di luar repo>`. Bila
+`test-results/` diarahkan ke dalam repo, langkah pembersihan bawaan Playwright
+menghapus >50 berkas dalam satu giliran dan tertahan shim safe-delete
+(`SAFE_DELETE_BULK_CONFIRM_REQUIRED`).
 
 ---
 
