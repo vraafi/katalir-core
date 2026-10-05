@@ -198,6 +198,35 @@ alignment after approval`):
    `not_aligned` — user bisa membedakan "policy gate minta izin" dari "pola ini
    tidak kamu minta".
 
+## Pembaruan sesi yang sama: hasil tool + alignment (kommit `415c5b1`)
+
+Kedua celah di atas ditutup di hari yang sama, lalu di-deploy ulang:
+
+```
+kommit + push      : 0a87f03..415c5b1  main -> main (HEAD == origin/main)
+deploy frontend    : EXIT=0, chunk live berubah
+                     page-13bab09d2d8dae02.js -> page-dc3e7d8eb0b7ff3c.js
+spec lokal         : 13 passed (38.3s)  - production build, port 3000
+spec situs live    : 13 passed (33.1s)  - proyek-agent.pages.dev
+tsc --noEmit       : 0 error
+pytest tests/ -q   : 706 passed, 1 warning (108.33s)
+katalir.de5.net    : HTTP 200
+```
+
+Screenshot baru: `approval-card-tool-result.png` (lokal) dan
+`approval-card-live-tool-result.png` (situs live). Galeri diperbarui:
+`approval-card-gallery.html` kini menampung 11 bukti (3 live + 8 lokal).
+
+**Verifikasi UI melawan backend produksi dengan sesi nyata: TERBLOKIR.**
+Refresh token `.autonomous_session.json` sudah dicabut (`refresh_token_not_found`)
+dan password grant untuk user otonom menolak (`invalid_credentials`) — kredensial
+test account berubah sejak 2 Okt. Sesuai kontrak laporan: ini dilaporkan, bukan
+dipalsukan. Yang ditempuh sebagai gantinya: spec stub per-path terhadap build
+dan situs live (13/13), karena bentuk response `/chat/approve` di produksi
+(`{status:"executed", tool, result}`) sudah pernah dibuktikan sesi sebelumnya.
+User perlu memperbarui kredensial test account bila ingin bukti end-to-end
+yang benar-benar menyentuh backend.
+
 ## Catatan harness
 
 `playwright.config.ts` (harness resmi) TIDAK punya `testMatch`, jadi
