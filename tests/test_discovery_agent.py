@@ -51,6 +51,24 @@ def test_prompt_meminta_klarifikasi_sebelum_membangun():
     assert "JANGAN langsung membangun" in p or "jangan langsung" in p.lower()
 
 
+def test_prompt_membangun_langsung_dengan_placeholder():
+    """REGRESI 2026-10-06: agen bertanya 'berapa chat_id?' padahal alur jelas.
+
+    Aturan build-workflow harus: (a) membangun langsung saat alur sudah jelas,
+    (b) memakai placeholder {{...}} untuk nilai teknis yang belum disebut,
+    (c) hanya bertanya saat INTENSI ambigu - bukan karena satu nilai kosong.
+    Tanpa aturan ini, MODE DISCOVERY membuat agen menahan diri terus dan
+    workflow tidak pernah dibangun.
+    """
+    p = srv._AGENT_SYSTEM
+    assert "ATURAN BUILD WORKFLOW" in p
+    assert "PLACEHOLDER" in p
+    assert "{{chat_id}}" in p and "{{url}}" in p
+    assert "LANGSUNG bangun workflow" in p
+    # Pemisahan eksplisit: kekurangan satu nilai teknis != alasan bertanya.
+    assert "Kekurangan satu nilai teknis BUKAN alasan bertanya" in p
+
+
 def test_prompt_wajib_lewat_alat_bukan_json_di_chat():
     p = srv._AGENT_SYSTEM
     assert "generate_workflow_json" in p

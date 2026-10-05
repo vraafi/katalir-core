@@ -123,12 +123,95 @@ async function fetchSessions(email: string): Promise<SessionItem[]> {
   return (data?.sessions as SessionItem[]) ?? [];
 }
 
+/**
+ * BUG FIX 2026-10-06 (vault hilang saat navigasi / refresh).
+ *
+ * Backend mempersist kartu (form kredensial / approval / oauth) sebagai baris
+ * `role="system"` berisi envelope JSON `{__katalir_card, ...}` supaya kartunya
+ * BERTAHAN saat user pindah sesi atau me-refresh. Sebelumnya kartu hanya hidup
+ * di cache klien (TanStack `_localId`) dan lenyap begitu saja - gejala "vault
+ * Telegram muncul lalu hilang" (sementara konfirmasi Supabase yang berupa teks
+ * biasa tetap ada, sehingga terlihat tidak konsisten).
+ *
+ * Fungsi ini mengubah envelope itu kembali menjadi ChatMessage bertipe. Ia
+ * TIDAK mengubah baris biasa (role user/assistant) apa adanya.
+ *
+ * Catatan: `_localId` sengaja diisi supaya kartu lolos filter `overlay` di
+ * `ChatApp` (layer itu hanya meneruskan entri ber-`_localId`) - sehingga
+ * kartu ikut dirender tanpa cabang render baru. `messagesData` memakai query
+ * key yang sama dengan `activeKey`, jadi tidak ada duplikasi.
+ */
+export function decodePersistedCard(m: ChatMessage): ChatMessage {
+  if (!m || m.role !== "system" || typeof m.content !== "string") return m;
+  const text = m.content.trim();
+  if (!text.startsWith("{")) return m;
+  let env: Record<string, unknown>;
+  try {
+    env = JSON.parse(text) as Record<string, unknown>;
+  } catch {
+    return m; // bukan JSON -> perlakukan sebagai pesan biasa
+  }
+  const kind = env && typeof env === "object" ? String(env.__katalir_card ?? "") : "";
+  if (!kind) return m;
+  const localId = `srv-card-${m.id ?? kind}`;
+  const base = { id: m.id, _localId: localId, role: "system" as const, content: "" };
+  if (kind === "credential_form") {
+    return {
+      ...base,
+      type: "credential_form",
+      provider: env.provider as string,
+      displayName: env.display_name as string,
+      icon: env.icon as string,
+      fields: (env.fields as CredentialField[] | undefined) ?? [],
+      resumeToken: env.resume_token as string,
+      original: (env.original as string | undefined) ?? "",
+    };
+  }
+  if (kind === "oauth_prompt") {
+    return {
+      ...base,
+      type: "oauth_prompt",
+      provider: env.provider as string,
+      displayName: env.display_name as string,
+      icon: env.icon as string,
+      connectUrl:
+        (env.connect_url as string | undefined) ??
+        (env.oauth_url as string | undefined),
+      resumeToken: env.resume_token as string,
+      original: (env.original as string | undefined) ?? "",
+    };
+  }
+  if (kind === "approval_prompt") {
+    return {
+      ...base,
+      type: "approval_prompt",
+      tool: env.tool as string,
+      toolArgs: (env.toolArgs as Record<string, unknown> | undefined) ?? {},
+      reason: env.reason as string,
+      alignment: env.alignment as string,
+      approvalToken: env.approval_token as string,
+      original: (env.original as string | undefined) ?? "",
+    };
+  }
+  if (kind === "error") {
+    return {
+      ...base,
+      type: "error",
+      content: (env.content as string | undefined) ?? "",
+      original: (env.original as string | undefined) ?? "",
+    };
+  }
+  return m;
+}
+
 async function fetchMessages(sessionId: string): Promise<ChatMessage[]> {
   if (!sessionId) return [];
   const res = await apiFetch(`/messages/${sessionId}`);
   if (!res.ok) return [];
   const data = await res.json();
-  return (data?.messages as ChatMessage[]) ?? [];
+  const rows = (data?.messages as ChatMessage[]) ?? [];
+  // Kartu yang dipersist server didekode kembali menjadi ChatMessage bertipe.
+  return rows.map(decodePersistedCard);
 }
 
 /** useQuery sessions — staleTime 1 minuut, refetchOnWindowFocus=true. */

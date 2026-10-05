@@ -196,19 +196,36 @@ _TOOL_PROVIDER = {"TELEGRAM": "telegram", "SLACK": "slack",
                    "EMAIL": "gmail_imap", "SHEETS": "google_sheets"}
 
 
-def _missing_provider(tool: str) -> str:
+def _missing_provider(tool: str, user_email: str = "") -> str:
     """Nama provider bila kredensialnya belum ada, else "".
 
     Dipakai supaya credential dicek sebelum approval: tidak ada gunanya
     meminta persetujuan untuk alat yang tidak bisa jalan karena kredensial
     belum tersimpan.
+
+    BUG FIX 2026-10-06 (approval card tidak pernah muncul): versi lama
+    memanggil `check_credential(provider, "")` dengan email KOSONG. Karena
+    vault menyimpan per-user, cek itu SELALU melaporkan "belum ada" untuk
+    SETIAP user - termasuk user yang sudah menyimpan kredensialnya. Akibatnya
+    TELEGRAM/SLACK/EMAIL/SHEETS selalu jatuh ke `requires_credential` dan
+    approval card TIDAK PERNAH tampil. Tes lama menyembunyikannya karena
+    selalu men-monkeypatch `_missing_provider`.
+
+    `user_email` WAJIB diteruskan dari pemanggil. Bila kosong, kita sengaja
+    TIDAK menyimpulkan "hilang" (lebih baik menampilkan approval daripada
+    memaksa user mengisi ulang kredensial yang sudah ada); keputusan approval
+    tetap diambil gate.
     """
     provider = _TOOL_PROVIDER.get(str(tool or "").upper())
     if not provider:
         return ""
+    if not str(user_email or "").strip():
+        # Tanpa identitas user, cek kredensial tidak bermakna (vault per-user).
+        # Jangan mengklaim "hilang" - serahkan ke gate approval.
+        return ""
     try:
         import credential_forms
-        status = credential_forms.check_credential(provider, "")["status"]
+        status = credential_forms.check_credential(provider, user_email)["status"]
     except Exception:  # noqa: BLE001 - gagal cek = perlakukan "belum tahu"
         return ""
     return "" if status == "ok" else provider
@@ -293,7 +310,7 @@ def execute_textual_tool(call: dict, user_email: str,
             # dia belum punya kredensial - menyetujui tidak akan membuat
             # apa pun berhasil. Ini urutan yang salah dan ditemukan oleh
             # tes `test_handler_kredensial_hilang_tidak_ditelan`.
-            missing = _missing_provider(tool)
+            missing = _missing_provider(tool, user_email)
             if missing:
                 _audit(tool, args, disposition, reason, user_email)
                 return {"status": "requires_credential",

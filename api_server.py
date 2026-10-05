@@ -465,15 +465,19 @@ _AGENT_SYSTEM = (
     # Tanpa aturan ini, model langsung menebak isi workflow dan hasilnya salah
     # (provider/jadwal/field karangan). Jadi klarifikasi dulu, baru bangun.
     "MODE DISCOVERY (membangun workflow baru):\n"
-    "1. Bila pengguna meminta membuat/mengubah workflow dan detailnya belum "
-    "lengkap, JANGAN langsung membangun. Ajukan 2-5 pertanyaan klarifikasi "
-    "yang paling menentukan, dalam daftar bernomor, singkat, dan sebutkan "
-    "pilihan bila ada (contoh: 'Mau dijalankan tiap jam berapa?').\n"
-    "2. Tanyakan hanya yang belum jelas: pemicu/jadwal, aksi yang diinginkan, "
-    "provider tujuan (telegram/gmail/google_sheets/slack/http), dan data yang "
-    "dipindahkan antar langkah. Untuk node mcp, TUJUAN harus disebut pengguna "
-    "(chat_id Telegram, channel Slack, atau URL HTTP) — tanyakan bila belum ada, "
-    "karena tanpa itu workflow tidak bisa dijalankan.\n"
+    "1. Bila pengguna meminta membuat/mengubah workflow dan INTENSI-nya masih "
+    "ambigu (tidak jelas mau apa, atau antar-node tidak nyambung), JANGAN "
+    "langsung membangun: ajukan 2-5 pertanyaan klarifikasi yang paling "
+    "menentukan, dalam daftar bernomor, singkat, dan sebutkan pilihan bila ada "
+    "(contoh: 'Mau dijalankan tiap jam berapa?'). Kekurangan SATU nilai teknis "
+    "(chat_id, URL, channel) BUKAN alasan menahan — lihat ATURAN BUILD "
+    "WORKFLOW di bawah.\n"
+    "2. Tanyakan hanya bila INTENSI belum jelas: pemicu/jadwal, aksi yang "
+    "diinginkan, provider tujuan (telegram/gmail/google_sheets/slack/http), dan "
+    "data yang dipindahkan antar langkah. Untuk node mcp, bila user BELUM "
+    "menyebut TUJUAN (chat_id Telegram, channel Slack, atau URL HTTP), JANGAN "
+    "menahannya dengan pertanyaan: isi dengan PLACEHOLDER berkurung ganda "
+    "(contoh chat_id=\"{{chat_id}}\") supaya user bisa mengisinya di kanvas.\n"
     "3. Maksimal satu putaran pertanyaan per pesan pengguna. Bila jawabannya "
     "sudah cukup, atau pengguna bilang 'langsung buat'/'terserah kamu', "
     "berhenti bertanya dan lanjut membangun. Bila pengguna tetap belum "
@@ -487,7 +491,9 @@ _AGENT_SYSTEM = (
     "google_sheets: {provider, spreadsheet_id, range_data} · whatsapp: "
     "{provider, nomor_tujuan, pesan} · google_calendar: {provider, nama_acara, waktu}. "
     "`pesan`/`isi` boleh memakai teks permintaan pengguna; `chat_id`/`url`/"
-    "`channel` TIDAK boleh dikarang — kalau belum disebut, tanya dulu.\n"
+    "`channel` TIDAK boleh dikarang dengan nilai palsu — kalau belum disebut, "
+    "isi PLACEHOLDER (contoh chat_id=\"{{chat_id}}\", url=\"{{url}}\", "
+    "channel=\"{{channel}}\"), JANGAN bertanya dan JANGAN menunda workflow.\n"
     "4b. MEMBUAT SPREADSHEET: kamu BISA membuat Google Spreadsheet baru sendiri "
     "lewat alat `buat_google_spreadsheet` (parameter `title`, opsional "
     "`sheet_name` dan `sheet_names`). Jika pengguna meminta spreadsheet, lembar "
@@ -508,6 +514,28 @@ _AGENT_SYSTEM = (
     "langkah perbaikannya (mis. token salah/kedaluwarsa). JANGAN mengaku "
     "berhasil, JANGAN menyembunyikan penyebab, dan JANGAN menyebutnya "
     "'kesalahan server' bila penyebabnya penolakan dari provider.\n"
+    # BUG FIX 2026-10-06 (discovery over-asking): user melaporkan agen bertanya
+    # "berapa chat_id?" untuk permintaan yang alurnya sudah jelas, dan workflow
+    # TIDAK pernah dibangun. Aturan di bawah memisahkan "intensi ambigu" (wajib
+    # tanya) dari "satu nilai teknis kosong" (wajib bangun + placeholder) -
+    # sebelumnya keduanya diperlakukan sama sehingga agen menahan diri terus.
+    "ATURAN BUILD WORKFLOW (WAJIB):\n"
+    "a. Bila permintaan user SUDAH menyebut alur yang jelas - terutama bila "
+    "menyebut >=2 node/langkah (mis. 'setiap pagi ambil data lalu kirim ke "
+    "telegram'), atau menyebut pemicu + aksi - LANGSUNG bangun workflow lewat "
+    "`generate_workflow_json`. JANGAN masuk mode klarifikasi.\n"
+    "b. Nilai teknis yang belum disebut (chat_id Telegram, channel Slack, URL "
+    "HTTP, email tujuan, spreadsheet_id) TIDAK perlu ditanyakan: isi dengan "
+    "PLACEHOLDER berkurung ganda, contoh chat_id=\"{{chat_id}}\", "
+    "url=\"{{url}}\", channel=\"{{channel}}\", spreadsheet_id=\"{{spreadsheet_id}}\". "
+    "User mengisinya di kanvas nanti.\n"
+    "c. Tanya HANYA bila INTENSI-nya ambigu - tidak jelas mau apa, atau antar "
+    "node tidak nyambung. Kekurangan satu nilai teknis BUKAN alasan bertanya.\n"
+    "d. Jangan mengulang pertanyaan yang sama. Bila user sudah bilang "
+    "'langsung buat' / 'terserah' / 'yang penting jalan', bangun SEKARANG "
+    "dengan placeholder.\n"
+    "e. Setelah membangun, rangkum singkat (berapa node, alur besarnya) dan "
+    "sebutkan placeholder mana yang perlu diisi user di kanvas.\n"
 )
 
 
@@ -1520,6 +1548,38 @@ def _quota_exhausted_message(info: dict, tier: str) -> str:
     )
 
 
+#: Sentinel envelope kartu di `chat_messages.content` (role="system").
+#: BUG FIX 2026-10-06 (vault hilang saat navigasi): kartu form kredensial /
+#: approval hanya hidup di cache klien (TanStack `_localId`), jadi HILANG saat
+#: user pindah sesi / refresh. Baris `role="system"` dengan envelope JSON
+#: membuatnya bertahan. Baris ini AMAN:
+#:   * `load_history` hanya mengirim role user/assistant -> tidak jadi konteks;
+#:   * `get_last_assistant_reply` memfilter role=assistant -> bukan "balasan";
+#:   * index unik client_request_id bersifat partial (role='user') -> tidak bentrok.
+_CARD_SENTINEL = "__katalir_card"
+
+
+def _persist_card(user_email: str, session_id: str, user_id: str | None,
+                  req_id: str | None, card: dict) -> None:
+    """Simpan satu kartu (credential_form / approval_prompt / oauth_prompt).
+
+    Tidak pernah melempar: gagal menyimpan kartu BUKAN alasan menggagalkan
+    giliran chat yang sudah berhasil dihitung. Dedup by client_request_id
+    supaya retry tidak menumpuk kartu ganda.
+    """
+    try:
+        if req_id:
+            existing = db.find_card_message_by_request(req_id)
+            if existing:
+                return
+        payload = {_CARD_SENTINEL: card.get("type") or card.get("__katalir_card"), **card}
+        db.add_message(user_email, session_id, "system",
+                       json.dumps(payload, ensure_ascii=False),
+                       auth_id=user_id, client_request_id=req_id)
+    except Exception as exc:  # noqa: BLE001 - persist kartu bersifat best-effort
+        print(f"[persist_card] {type(exc).__name__}: {str(exc)[:200]}")
+
+
 @app.post("/chat")
 def chat(req: ChatRequest, authorization: str | None = Header(None)):
     """Proses prompt via Agentic Loop + persist pesan ke session.
@@ -1663,8 +1723,14 @@ def chat(req: ChatRequest, authorization: str | None = Header(None)):
         _prov = str(e.provider_name or "").strip().lower()
         if _cf.has_inline_form(_prov):
             try:
-                return _cf.build_requires_credential(
+                _card = _cf.build_requires_credential(
                     _prov, user_email, session_id=session_id)
+                # BUG FIX 2026-10-06 (vault hilang saat navigasi): persist kartu
+                # supaya form tetap ada setelah user pindah sesi / refresh.
+                _persist_card(user_email, session_id, user_id, req_id,
+                              {**dict(_card), "type": "credential_form",
+                               "original": req.prompt})
+                return _card
             except ValueError:
                 pass  # form hilang/berubah -> jatuh ke jalur lama di bawah
 
@@ -1677,11 +1743,22 @@ def chat(req: ChatRequest, authorization: str | None = Header(None)):
                     _prov, user_email, session_id=session_id)
                 _rq["status"] = "requires_oauth"
                 _rq["connect_url"] = _rq.get("oauth_url")
+                _persist_card(user_email, session_id, user_id, req_id,
+                              {**dict(_rq), "type": "oauth_prompt",
+                               "original": req.prompt})
                 return _rq
             except ValueError:
                 pass
 
         connect_url = _oauth_providers.get(_prov)
+        # BUG FIX 2026-10-06 (vault hilang saat navigasi): persist kartu supaya
+        # bertahan saat user pindah sesi / refresh. `_persist_card` ditulis
+        # SEBELUM literal return agar bentuk kontrak respons tidak berubah.
+        _persist_card(user_email, session_id, user_id, req_id,
+                      {"type": "oauth_prompt" if connect_url else "credential_form",
+                       "provider": e.provider_name,
+                       "connect_url": connect_url,
+                       "original": req.prompt})
         return {
             "status": "needs_oauth" if connect_url else "needs_credential",
             "provider": e.provider_name,
@@ -1702,15 +1779,18 @@ def chat(req: ChatRequest, authorization: str | None = Header(None)):
         traceback.print_exc()  # full stack ke Railway log (Fase 2b)
         raise HTTPException(500, f"Terjadi kesalahan internal: {type(exc).__name__}: {exc}")
 
-    # Simpan balasan AI
-    try:
-        db.add_message(user_email, session_id, "assistant", reply, auth_id=user_id, client_request_id=req_id)
-    except HTTPException:
-        raise
-    except Exception as exc:  # noqa: BLE001
-        import traceback
-        traceback.print_exc()
-        raise HTTPException(500, f"Gagal menyimpan balasan: {type(exc).__name__}: {exc}")
+    # Simpan balasan AI.
+    # Lewati balasan KOSONG: giliran kartu (approval/denied) tidak punya teks,
+    # dan baris assistant kosong hanya menjadi bubble hampa setelah reload.
+    if str(reply or "").strip():
+        try:
+            db.add_message(user_email, session_id, "assistant", reply, auth_id=user_id, client_request_id=req_id)
+        except HTTPException:
+            raise
+        except Exception as exc:  # noqa: BLE001
+            import traceback
+            traceback.print_exc()
+            raise HTTPException(500, f"Gagal menyimpan balasan: {type(exc).__name__}: {exc}")
 
     # ---- CATAT KUOTA (setelah jawaban BENAR-BENAR tersimpan) ---------------
     # Yang dihitung = model yang benar-benar dipakai (`meta.model`), bukan yang
@@ -1754,6 +1834,24 @@ def chat(req: ChatRequest, authorization: str | None = Header(None)):
                    "connect_url", "oauth_url", "name"):
             if _k in _run:
                 _response[_k] = _run[_k]
+        # BUG FIX 2026-10-06 (vault hilang saat navigasi): persist kartu
+        # approval/denied supaya bertahan saat user pindah sesi / refresh.
+        # Sebelumnya kartu hanya hidup di cache klien dan lenyap begitu saja.
+        if _gw_status == "requires_approval":
+            _persist_card(user_email, session_id, user_id, req_id,
+                          {"type": "approval_prompt",
+                           "tool": _response.get("tool"),
+                           "toolArgs": _response.get("args") or {},
+                           "reason": _response.get("reason"),
+                           "alignment": _response.get("alignment"),
+                           "approval_token": _response.get("approval_token"),
+                           "original": req.prompt})
+        elif _gw_status == "denied":
+            _persist_card(user_email, session_id, user_id, req_id,
+                          {"type": "error",
+                           "content": (_response.get("reason")
+                                       or "Permintaan ditolak oleh keamanan."),
+                           "original": req.prompt})
     return _response
 
 

@@ -391,6 +391,33 @@ def find_user_message_by_request(client_request_id):
         return None
 
 
+def find_card_message_by_request(client_request_id):
+    """Sudah ada KARTU (role=system) untuk kiriman logis ini?
+
+    BUG FIX 2026-10-06 (vault hilang saat navigasi). Kartu form kredensial /
+    approval dipersist sebagai baris `role="system"` supaya bertahan saat user
+    pindah sesi atau refresh. Index unik `client_request_id` bersifat PARTIAL
+    (hanya role='user'), jadi retry bisa menulis kartu ganda; helper ini
+    dipakai untuk mencegahnya. Kembalikan baris pertama atau None.
+    """
+    if not is_configured() or not client_request_id or not _request_key_enabled():
+        return None
+    try:
+        wc = _get_write_client()
+        res = _wrap_write(
+            lambda: wc.table("chat_messages")
+            .select("id, session_id, role, content")
+            .eq("client_request_id", client_request_id)
+            .eq("role", "system")
+            .limit(1).execute(),
+            "chat_messages.card_find",
+        )
+        return (res.data or [None])[0]
+    except Exception as exc:
+        print(f"[find_card_message_by_request] {type(exc).__name__}: {str(exc)[:200]}")
+        return None
+
+
 def get_last_assistant_reply(session_id, client_request_id=None):
     """Reply assistant terakhir untuk sesi — dipakai saat deteksi kiriman yg sudah
     diproses, supaya retry mengembalikan reply yg sama (TANPA menjalankan ulang loop).

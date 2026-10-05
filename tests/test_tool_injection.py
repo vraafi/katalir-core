@@ -232,7 +232,7 @@ def test_execute_textual_tool_menolak_path_traversal():
 
 def test_execute_textual_tool_telegram_minta_persetujuan(monkeypatch):
     """Dengan kredensial tersedia, TELEGRAM harus minta persetujuan."""
-    monkeypatch.setattr(textual_tool_handlers, "_missing_provider", lambda t: "")
+    monkeypatch.setattr(textual_tool_handlers, "_missing_provider", lambda t, u="": "")
     r = execute_textual_tool(
         {"tool": "TELEGRAM", "args": {"chat_id": "1", "pesan": "hi"}}, U)
     assert r["status"] == "requires_approval"
@@ -242,11 +242,58 @@ def test_kredensial_hilang_diprioritaskan_atas_approval(monkeypatch):
     """Kredensial dicek LEBIH DAHULU: tidak ada gunanya meminta approval
     untuk alat yang memang tidak bisa jalan karena kredensial kosong."""
     monkeypatch.setattr(textual_tool_handlers, "_missing_provider",
-                        lambda t: "telegram")
+                        lambda t, u="": "telegram")
     r = execute_textual_tool(
         {"tool": "TELEGRAM", "args": {"chat_id": "1", "pesan": "hi"}}, U)
     assert r["status"] == "requires_credential"
     assert r["provider"] == "telegram"
+
+
+def test_missing_provider_pakai_email_user_bukan_kosong(monkeypatch):
+    """REGRESI 2026-10-06: approval card tidak pernah muncul.
+
+    Versi lama `_missing_provider(tool)` memanggil check_credential dengan
+    email KOSONG, sehingga SETIAP user (termasuk yang sudah menyimpan
+    kredensial) selalu dianggap "belum punya" -> TELEGRAM/SLACK/EMAIL/SHEETS
+    selalu jatuh ke `requires_credential` dan approval card TIDAK PERNAH
+    tampil. Tes lama menyembunyikannya karena selalu men-monkeypatch
+    `_missing_provider`; tes ini TIDAK melakukannya - ia memverifikasi email
+    yang benar-benar diterima `check_credential`.
+    """
+    import credential_forms
+
+    seen: list[str] = []
+
+    def fake_check_credential(provider, user_email, session_id=""):
+        seen.append(user_email)
+        # Hanya user dengan email benar dianggap sudah punya kredensial.
+        if user_email == U:
+            return {"status": "ok", "provider": provider, "mode": "form"}
+        return {"status": "requires_credential", "provider": provider,
+                "mode": "form"}
+
+    monkeypatch.setattr(credential_forms, "check_credential",
+                        fake_check_credential)
+
+    # User SUDAH punya kredensial -> WAJIB approval, bukan form lagi.
+    r = execute_textual_tool(
+        {"tool": "TELEGRAM", "args": {"chat_id": "1", "pesan": "hi"}}, U)
+    assert seen == [U], f"check_credential harus menerima email user, dapat {seen}"
+    assert r["status"] == "requires_approval", r
+
+    # User BELUM punya kredensial -> tetap form (urutan kredensial dulu).
+    seen.clear()
+
+    def fake_check_none(provider, user_email, session_id=""):
+        seen.append(user_email)
+        return {"status": "requires_credential", "provider": provider,
+                "mode": "form"}
+
+    monkeypatch.setattr(credential_forms, "check_credential", fake_check_none)
+    r2 = execute_textual_tool(
+        {"tool": "TELEGRAM", "args": {"chat_id": "1", "pesan": "hi"}}, U)
+    assert r2["status"] == "requires_credential"
+    assert r2["provider"] == "telegram"
 
 
 def test_execute_textual_tool_vault_tetap_boleh():
@@ -471,7 +518,7 @@ def test_bagian3_f_pesan_bebas_tetapi_terbatas():
 
 
 def test_bagian3_g_handler_menolak_field_asing(monkeypatch):
-    monkeypatch.setattr(textual_tool_handlers, "_missing_provider", lambda t: "")
+    monkeypatch.setattr(textual_tool_handlers, "_missing_provider", lambda t, u="": "")
     r = execute_textual_tool(
         {"tool": "TELEGRAM", "args": {"chat_id": "1", "token": "RAHASIA"}}, U)
     assert r["status"] == "denied"
@@ -529,7 +576,7 @@ def test_bagian4_g_endpoint_verifikasi_ulang_sebelum_eksekusi():
 
 
 def test_bagian4_h_requires_approval_membawa_token(monkeypatch):
-    monkeypatch.setattr(textual_tool_handlers, "_missing_provider", lambda t: "")
+    monkeypatch.setattr(textual_tool_handlers, "_missing_provider", lambda t, u="": "")
     r = execute_textual_tool(
         {"tool": "TELEGRAM", "args": {"chat_id": "1", "pesan": "hi"}}, U)
     assert r["status"] == "requires_approval"

@@ -82,7 +82,7 @@ def test_note_memberi_petunjuk_yang_membantu():
 
 # --- integrasi executor: approval, bukan deny ---
 def test_executor_minta_approval_bukan_deny(monkeypatch):
-    monkeypatch.setattr(textual_tool_handlers, "_missing_provider", lambda t: "")
+    monkeypatch.setattr(textual_tool_handlers, "_missing_provider", lambda t, u="": "")
     r = textual_tool_handlers.execute_textual_tool(
         {"tool": "TELEGRAM", "args": {"chat_id": "1", "pesan": "x"}},
         U, user_message="ringkas: [TELEGRAM: chat_id=1 pesan=curtin]")
@@ -105,7 +105,7 @@ def test_executor_tanpa_pesan_tetap_berjalan(monkeypatch):
 
 
 def test_alignment_ditandai_di_respons(monkeypatch):
-    monkeypatch.setattr(textual_tool_handlers, "_missing_provider", lambda t: "")
+    monkeypatch.setattr(textual_tool_handlers, "_missing_provider", lambda t, u="": "")
     r = textual_tool_handlers.execute_textual_tool(
         {"tool": "TELEGRAM", "args": {"chat_id": "1", "pesan": "x"}},
         U, user_message="apa arti [TELEGRAM: chat_id=1]")
