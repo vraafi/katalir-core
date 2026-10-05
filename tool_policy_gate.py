@@ -33,16 +33,50 @@ TEXTUAL_TOOLS = frozenset({
 })
 
 #: Nama alat native (dipanggil lewat `tools.execute_tool`) yang diizinkan.
+#: CATATAN (6 Okt 2026): disamakan dengan `TOOL_DECLARATIONS` di `tools.py`
+#: (13 deklarasi). Sebelumnya daftar ini hanya 9 -> 4 alat nyata
+#: (`send_whatsapp_message`, `kirim_email_gmail`, `tambah_agenda_calendar`,
+#: `buat_google_spreadsheet`) jatuh ke "tidak ada di allowlist" -> DENY total
+#: bila gate benar-benar dijalankan. Dengan gate kini aktif di jalur direct,
+#: ketidaksinkronan itu akan memblokir alat yang sah.
 NATIVE_TOOLS = frozenset({
     "check_credential",
     "generate_workflow_json",
     "kirim_telegram_message",
     "kirim_slack_message",
+    "kirim_email_gmail",
+    "send_whatsapp_message",
     "trigger_gmail_imap",
     "write_sheets_dynamic",
+    "buat_google_spreadsheet",
+    "tambah_agenda_calendar",
     "baca_google_sheets",
     "http_request",
     "web_search",
+})
+
+#: Alat yang MENGIRIM DATA KE PIHAK LUAR -> wajib persetujuan user.
+#:
+#: BUG FIX 2026-10-06 (approval card tidak pernah muncul di produksi):
+#: sebelumnya baris REQUIRE_APPROVAL hanya membandingkan nama TEKSTUAL
+#: (`("TELEGRAM", "SLACK")`). Model di jalur Gemini langsung memanggil nama
+#: NATIVE (`kirim_telegram_message`), yang setelah `_tool_name()` menjadi
+#: `KIRIM_TELEGRAM_MESSAGE` dan TIDAK cocok -> jatuh ke `ALLOW`, lalu
+#: `_agentic_run_direct` mengeksekusinya tanpa kartu persetujuan.
+#:
+#: Perbaikan ini SENGAJA hanya menyamakan nama native dengan pasangan
+#: TEKSTUAL-nya yang SUDAH `REQUIRE_APPROVAL` (TELEGRAM, SLACK). Disposisi
+#: alat tekstual lain (EMAIL, SHEETS) TIDAK diubah: itu keputusan keamanan
+#: terpisah yang sudah dikunci `tests/test_tool_injection.py`
+#: (`test_vektor7_d_subjek_normal_boleh` menuntut EMAIL normal = ALLOW).
+#: Mengubahnya di sini = memperlebar scope Bug #1 dan memecah kontrak lama.
+#: (Celah EMAIL/SHEETS dicatat sebagai temuan terpisah, bukan diperbaiki
+#: diam-diam di commit ini.)
+EXTERNAL_SEND_TOOLS = frozenset({
+    # tekstual (bracket) — hanya yang memang sudah REQUIRE_APPROVAL
+    "TELEGRAM", "SLACK",
+    # native (function-call Gemini) — pasangan dari TELEGRAM/SLACK
+    "KIRIM_TELEGRAM_MESSAGE", "KIRIM_SLACK_MESSAGE",
 })
 
 #: Prefix yang SELALU ditolak, apa pun konteksnya.
@@ -150,7 +184,10 @@ def validate_call(tool: str, args: dict, user_context: dict | None = None
             return Disposition.DENY, f"Argumen '{k}' mencoba menunjuk identitas lain."
 
     # -- 5. REQUIRE_APPROVAL: alat yang mengirim data ke luar
-    if name in ("TELEGRAM", "SLACK"):
+    # BUG FIX 2026-10-06: bandingkan terhadap SATU himpunan yang memuat
+    # bentuk tekstual maupun native. Nama sudah di-upper oleh `_tool_name()`,
+    # jadi cukup bandingkan `name` langsung.
+    if name in EXTERNAL_SEND_TOOLS:
         return (Disposition.REQUIRE_APPROVAL,
                 f"'{name}' mengirim data ke pihak luar; perlu persetujuan user.")
 
@@ -188,6 +225,7 @@ TURN_BUDGET = TurnBudget()
 __all__ = [
     "DENY_PREFIXES",
     "Disposition",
+    "EXTERNAL_SEND_TOOLS",
     "MAX_ARG_BYTES",
     "MAX_ARGS_PER_CALL",
     "MAX_CALLS_PER_TURN",

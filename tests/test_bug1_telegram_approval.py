@@ -183,3 +183,152 @@ def test_field_message_juga_menghasilkan_approval():
     res = _run_chain({"chat_id": "123", "message": "halo"}, has_credential=True)
     assert res.get("status") == "requires_approval", res
     assert res.get("approval_token"), res
+
+
+# ---------------------------------------------------------------------------
+# BUG #1 LANJUTAN (6 Okt 2026) — jalur GEMINI LANGSUNG tidak punya gerbang.
+#
+# Reproduksi produksi (log deployment 85f5b190):
+#   [chat/direct] tool_call name=kirim_telegram_message
+#   [api_server] tool kirim_telegram_message gagal: Telegram 404
+#
+# Model memanggil nama NATIVE, dan `_agentic_run_direct` mengeksekusinya
+# LANGSUNG lewat `tools.execute_tool` — tanpa `tool_policy_gate`. Dua cacat:
+#   (1) gate hanya cocokkan nama TEKSTUAL ("TELEGRAM"), bukan native
+#       ("kirim_telegram_message") -> jatuh ke ALLOW;
+#   (2) jalur direct tidak memanggil gate sama sekali.
+# Tes di bawah mengunci perbaikan keduanya.
+# ---------------------------------------------------------------------------
+
+
+def test_gate_nama_native_telegram_wajib_approval():
+    """`kirim_telegram_message` harus REQUIRE_APPROVAL, bukan ALLOW."""
+    from tool_policy_gate import Disposition, validate_call
+    d, _ = validate_call("kirim_telegram_message", {"chat_id": "123"})
+    assert d is Disposition.REQUIRE_APPROVAL, d
+
+
+def test_gate_nama_native_slack_wajib_approval():
+    from tool_policy_gate import Disposition, validate_call
+    d, _ = validate_call("kirim_slack_message", {"channel": "#x"})
+    assert d is Disposition.REQUIRE_APPROVAL, d
+
+
+def test_gate_nama_native_sheets_dan_gmail_tetap_sesuai_pasangan_tekstual():
+    """Nama native harus mengikuti disposisi pasangan TEKSTUAL-nya.
+
+    `EMAIL`/`SHEETS` tekstual = ALLOW (kontrak lama, dikunci
+    `test_tool_injection.py`), jadi nama native-nya pun ALLOW. Yang penting
+    adalah TIDAK ada nama native yang jatuh ke DENY karena lupa didaftarkan
+    di `NATIVE_TOOLS`.
+    """
+    from tool_policy_gate import Disposition, validate_call
+    assert validate_call("write_sheets_dynamic", {})[0] is Disposition.ALLOW
+    assert validate_call("trigger_gmail_imap", {})[0] is Disposition.ALLOW
+    assert validate_call("kirim_email_gmail", {})[0] is Disposition.ALLOW
+
+
+def test_gate_semua_tool_native_terdaftar_tidak_ada_deny_karena_lupa():
+    """Setiap deklarasi native di `tools.py` harus dikenali gate.
+
+    Regresi nyata: `NATIVE_TOOLS` hanya memuat 9 dari 13 deklarasi, sehingga
+    `send_whatsapp_message` dkk. akan DENY ("tidak ada di allowlist") begitu
+    gate benar-benar dijalankan di jalur direct.
+    """
+    import tools as T
+    from tool_policy_gate import Disposition, validate_call
+    names = []
+    for d in T.TOOL_DECLARATIONS:
+        for f in (getattr(d, "function_declarations", None) or []):
+            names.append(f.name)
+    assert len(names) >= 13, names
+    for n in names:
+        disp, reason = validate_call(n, {})
+        assert disp is not Disposition.DENY, (n, reason)
+
+
+def test_gate_tesktual_dan_native_konsisten():
+    """Bentuk tekstual dan native harus memberi keputusan yang SAMA."""
+    from tool_policy_gate import Disposition, validate_call
+    pairs = [("TELEGRAM", "kirim_telegram_message"),
+             ("SLACK", "kirim_slack_message")]
+    for textual, native in pairs:
+        a, _ = validate_call(textual, {"chat_id": "1"})
+        b, _ = validate_call(native, {"chat_id": "1"})
+        assert a is Disposition.REQUIRE_APPROVAL, (textual, a)
+        assert b is Disposition.REQUIRE_APPROVAL, (native, b)
+
+
+def test_gate_tool_tidak_terkait_tetap_allow():
+    """Perbaikan tidak boleh melebarkan izin tool yang bukan pengirim data."""
+    from tool_policy_gate import Disposition, validate_call
+    for t in ("check_credential", "generate_workflow_json", "web_search",
+              "baca_google_sheets", "VAULT"):
+        d, _ = validate_call(t, {})
+        assert d is Disposition.ALLOW, (t, d)
+
+
+def test_direct_policy_gate_approval_dengan_kredensial():
+    """Jalur direct: kredensial ada -> requires_approval + token."""
+    import api_server
+
+    with patch("credential_forms.check_credential",
+               lambda p, e: {"status": "ok", "provider": p}):
+        out = api_server._direct_policy_gate(
+            "kirim_telegram_message", {"chat_id": "123", "pesan": "halo"},
+            USER, "kirim ke telegram chat 123 pesan halo")
+
+    assert out is not None, "gate harus memblokir eksekusi langsung"
+    assert out.get("status") == "requires_approval", out
+    assert out.get("approval_token"), out
+    assert out.get("tool") == "kirim_telegram_message", out
+
+
+def test_direct_policy_gate_credential_dulu_bukan_approval():
+    """Kredensial belum ada -> CredentialMissingError, BUKAN approval.
+
+    Sengaja MELEMPAR (bukan mengembalikan dict): endpoint menangkapnya dan
+    menyusun kartu form lengkap (fields/display_name/resume_token). Kalau
+    dikembalikan sebagai dict parsial, form tampil kosong.
+    """
+    import api_server
+    from tools import CredentialMissingError
+
+    with patch("credential_forms.check_credential",
+               lambda p, e: {"status": "missing", "provider": p}):
+        try:
+            api_server._direct_policy_gate(
+                "kirim_telegram_message", {"chat_id": "123", "pesan": "halo"},
+                USER, "kirim ke telegram chat 123 pesan halo")
+            raised = False
+        except CredentialMissingError as exc:
+            raised = True
+            assert exc.provider_name == "telegram", exc.provider_name
+
+    assert raised, "harus melempar CredentialMissingError"
+
+
+def test_direct_policy_gate_allow_tool_aman():
+    """Tool yang tidak mengirim data ke luar tidak diblokir."""
+    import api_server
+    out = api_server._direct_policy_gate(
+        "generate_workflow_json", {}, USER, "buat workflow")
+    assert out is None, out
+
+
+def test_direct_policy_gate_deny_pola_berbahaya():
+    """Pola berbahaya tetap DENY di jalur direct."""
+    import api_server
+    out = api_server._direct_policy_gate(
+        "http_request", {"url": "http://x/../../etc/passwd"}, USER, "ambil")
+    assert out is not None, out
+    assert out.get("status") == "denied", out
+
+
+def test_native_tool_provider_memeta_benar():
+    import api_server
+    assert api_server._native_tool_provider("kirim_telegram_message") == "telegram"
+    assert api_server._native_tool_provider("kirim_slack_message") == "slack"
+    assert api_server._native_tool_provider("trigger_gmail_imap") == "gmail_imap"
+    assert api_server._native_tool_provider("write_sheets_dynamic") == "google_sheets"
+    assert api_server._native_tool_provider("generate_workflow_json") == ""

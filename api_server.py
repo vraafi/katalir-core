@@ -223,19 +223,49 @@ def _warm_gateway_roster() -> None:
         print(f"[api_server] warm-up roster dilewati: {exc}")
 
 
+#: Preferensi model default bila user TIDAK memilih model.
+#:
+#: BUG FIX 2026-10-06 (Bug #2 — discovery over-asking di produksi):
+#: `_default_model_id()` dulu mengembalikan `roster[0]`. Roster
+#: `probe_roster()` diurutkan (provider, id), jadi urutan itu KEBETULAN
+#: menaruh `gemini-2.5-flash-lite` di depan — model TERLEMAH. Bukti empiris
+#: (harness `_bug2_loop.py`, prompt nyata):
+#:   * gemini-2.5-flash      -> [check_credential, generate_workflow_json]  (membangun)
+#:   * gemini-2.5-flash-lite  -> [check_credential] lalu BERTANYA URL/metode (tidak membangun)
+#: Jadi model default menentukan apakah ATURAN BUILD WORKFLOW dipatuhi.
+#: Daftar di bawah memilih default secara SADAR (kuat dulu), bukan dari
+#: urutan alfabetis. Entri yang tidak ada di roster dilewati.
+DEFAULT_MODEL_PREFERENCE = (
+    "gemini-2.5-flash",
+    "gemini-3.5-flash-lite",
+    "gemini-2.5-flash-lite",
+    "qwen/qwen3.8-27b",
+    "moonshotai/kimi-k3",
+)
+
+
 def _default_model_id() -> str:
     """Default server: model roster gateway bila gateway aktif.
 
     Tanpa ini default legacy `gemma-4-31b-it` (id Gemini-only, tak ada di
     roster) diarahkan ke gateway -> 404; sebaliknya id gateway
     (`qwen/qwen3.8-27b`) tidak dikenal genai.Client.
+
+    Urutan pemilihan (BUG FIX 2026-10-06, lihat `DEFAULT_MODEL_PREFERENCE`):
+      1. `AGENT_MODEL` env (operator override) - selalu menang bila ada di roster;
+      2. preferensi kapabilitas (kuat -> lemah) yang ADA di roster;
+      3. fallback terakhir: entri pertama roster (perilaku lama).
     """
     gw = _gateway_target()
     if gw and gw[2]:
         env_default = (os.getenv("AGENT_MODEL") or "").strip()
         if env_default and env_default in gw[2]:
             return env_default
-        return gw[2][0]
+        _roster = list(gw[2])
+        for _pref in DEFAULT_MODEL_PREFERENCE:
+            if _pref in _roster:
+                return _pref
+        return _roster[0]
     return os.getenv("AGENT_MODEL", "gemma-4-31b-it")
 
 
@@ -1210,6 +1240,98 @@ def _gateway_attempt_timeout_sec() -> float:
 # ---------------------------------------------------------------------------
 # AGENTIC LOOP (setara _agentic_run, bebas dari Streamlit)
 # ---------------------------------------------------------------------------
+def _direct_policy_gate(name: str, args: dict, email: str, prompt: str
+                        ) -> dict | None:
+    """Gerbang kebijakan untuk jalur Gemini LANGSUNG (`_agentic_run_direct`).
+
+    Mengembalikan `None` bila panggilan boleh dieksekusi apa adanya; atau
+    sebuah dict respons final (`requires_approval` / `denied`) yang harus
+    dikembalikan pengganti hasil tool.
+
+    Kenapa perlu: gerbang `tool_policy_gate` sebelumnya HANYA dipasang di
+    jalur gateway (lewat `execute_textual_tool`). Bila user tidak memilih
+    model, `/chat` selalu mengambil jalur Gemini langsung, dan di sana alat
+    dieksekusi tanpa gerbang -> tidak ada kartu persetujuan untuk alat yang
+    mengirim data ke luar (Bug #1 di produksi, terbukti dari log
+    `[chat/direct] tool_call name=kirim_telegram_message` diikuti eksekusi).
+
+    Urutan keputusan mengikuti `execute_textual_tool`: kredensial dicek
+    LEBIH DAHULU daripada approval, supaya user tidak diberi tombol
+    "Setujui" untuk alat yang tetap tak bisa jalan tanpa kredensial.
+    """
+    try:
+        from tool_policy_gate import Disposition, validate_call
+        disposition, reason = validate_call(
+            name, args or {}, {"email": email})
+    except Exception as exc:  # noqa: BLE001 - gate gagal = jangan lewati
+        print(f"[chat/direct] policy gate error: {type(exc).__name__}: {exc}")
+        return None
+
+    if disposition is Disposition.ALLOW:
+        return None
+    if disposition is Disposition.DENY:
+        print(f"[chat/direct] policy DENY name={name}: {reason[:80]}")
+        return {"status": "denied",
+                "reply": f"Permintaan tidak dijalankan: {reason}",
+                "meta": {"policy": "deny", "reason": reason,
+                         "bracket_tool_calls": [name]}}
+
+    # REQUIRE_APPROVAL
+    # Kredensial dulu: tanpa kredensial, "Setujui" tidak akan membuat apa pun
+    # berhasil. Dipetakan dari nama native maupun tekstual.
+    #
+    # Bila kredensial belum ada, LEMPAR `CredentialMissingError` (jangan
+    # kembalikan dict sendiri): endpoint sudah menangkapnya dan menyusun kartu
+    # form lengkap (`display_name`, `icon`, `fields`, `resume_token`) lewat
+    # `credential_forms.build_requires_credential`. Mengembalikan dict parsial
+    # di sini akan membuat form tampil KOSONG di frontend.
+    from credential_forms import check_credential
+    _prov = _native_tool_provider(name)
+    if _prov:
+        try:
+            _status = check_credential(_prov, email)["status"]
+        except Exception as exc:  # noqa: BLE001 - gagal cek = serahkan ke gate
+            print(f"[chat/direct] cek kredensial gagal: {type(exc).__name__}: {exc}")
+            _status = "ok"
+        if _status != "ok":
+            print(f"[chat/direct] requires_credential provider={_prov}")
+            raise CredentialMissingError(_prov)
+
+    try:
+        from approval_flow import APPROVAL_TTL_S, issue_approval_token
+        tok = issue_approval_token(email, name, args or {})
+    except Exception as exc:  # noqa: BLE001 - tanpa token user tak bisa setuju
+        print(f"[chat/direct] token approval gagal: {type(exc).__name__}: {exc}")
+        return {"status": "denied",
+                "reply": "Persetujuan tidak tersedia saat ini.",
+                "meta": {"bracket_tool_calls": [name]}}
+    print(f"[chat/direct] requires_approval name={name}")
+    return {"status": "requires_approval", "tool": name, "args": args or {},
+            "reason": reason, "approval_token": tok,
+            "expires_in": APPROVAL_TTL_S, "reply": "",
+            "meta": {"bracket_tool_calls": [name]}}
+
+
+def _native_tool_provider(name: str) -> str:
+    """Nama provider kredensial untuk nama alat NATIVE (function-call).
+
+    `textual_tool_handlers._TOOL_PROVIDER` hanya mengenal nama TEKSTUAL
+    (`TELEGRAM`, `SLACK`, ...). Jalur langsung menerima nama native
+    (`kirim_telegram_message`), jadi peta ini melengkapinya. Mengembalikan
+    "" bila alat tidak butuh kredensial (mis. `generate_workflow_json`).
+    """
+    return {
+        "KIRIM_TELEGRAM_MESSAGE": "telegram",
+        "KIRIM_SLACK_MESSAGE": "slack",
+        "KIRIM_EMAIL_GMAIL": "gmail",
+        "SEND_WHATSAPP_MESSAGE": "whatsapp",
+        "TRIGGER_GMAIL_IMAP": "gmail_imap",
+        "WRITE_SHEETS_DYNAMIC": "google_sheets",
+        "BUAT_GOOGLE_SPREADSHEET": "google_sheets",
+        "TAMBAH_AGENDA_CALENDAR": "google_calendar",
+    }.get(str(name or "").strip().upper(), "")
+
+
 def _agentic_run_direct(prompt: str, email: str, model: str | None = None,
                         user_tier: str = "free",
                         history: list[dict] | None = None) -> dict:
@@ -1438,6 +1560,17 @@ def _agentic_run_direct(prompt: str, email: str, model: str | None = None,
             # penyebabnya kepada user (jalur gateway sudah berperilaku begitu).
             # JEJAK: berapa kali agen meminta tool (jalur Gemini langsung).
             print(f"[chat/direct] tool_call name={name}")
+            # BUG FIX 2026-10-06 (approval card tidak pernah muncul di jalur
+            # Gemini langsung): jalur ini dulu mengeksekusi alat LANGSUNG lewat
+            # `tools.execute_tool`, TANPA `tool_policy_gate` sama sekali.
+            # Akibatnya alat pengirim data ke luar (TELEGRAM/SLACK/EMAIL/SHEETS,
+            # termasuk nama native `kirim_telegram_message`) benar-benar
+            # terkirim tanpa kartu persetujuan - persis gejala Bug #1 di
+            # produksi. Gate deterministik yang sama yang dipakai jalur gateway
+            # sekarang dijalankan di sini SEBELUM eksekusi.
+            _gate = _direct_policy_gate(name, args, email, prompt)
+            if _gate is not None:
+                return _gate
             try:
                 tool_result = tools.execute_tool(name, args, email)
                 tool_status = "success"
