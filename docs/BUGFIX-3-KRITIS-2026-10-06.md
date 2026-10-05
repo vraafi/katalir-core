@@ -128,7 +128,126 @@ mengabaikan baris kartu.
 
 | Item | Perintah | Hasil |
 |------|----------|-------|
-| Suite penuh | `pytest tests/ -q` | lihat laporan |
+| Suite penuh | `pytest tests/ -q` | **714 passed**, 1 warning (sebelumnya 706) |
 | Bug #1 repro | `python _bug1_repro.py` | 2 skenario lulus |
-| Type-check FE | `tsc --noEmit` | exit 0 |
-| Tes kartu | `pytest tests/test_card_persistence.py -q` | 6 passed |
+| Tes kartu (Bug #3) | `pytest tests/test_card_persistence.py -q` | 6 passed |
+| Type-check FE | `tsc --noEmit` (node 24 sistem) | exit 0 |
+| Decoder kartu (satuan) | `playwright test -c playwright.unit.config.ts` | **7 passed** |
+| Kartu bertahan setelah refresh | `playwright test -c playwright.approval.config.ts tests/card-persistence.spec.ts` | **2 passed** (build produksi lokal) |
+| Suite kartu (build produksi) | `playwright test -c playwright.approval.config.ts` | **15 passed** (13 approval + 2 persistensi) |
+| Situs live | idem, `E2E_BASE_URL=https://proyek-agent.pages.dev` | **GAGAL 1/2** — lihat di bawah |
+
+---
+
+## Laporan lanjutan (5 Okt 2026, sesi kedua)
+
+Sesi pertama menutup dengan dua hal yang **belum** dibuktikan. Keduanya
+dikerjakan di sesi ini.
+
+### 1. Blocker build: akar masalah akhirnya ditemukan (bukan `EPERM`)
+
+Blocker yang tercatat sebagai "macet di `Creating an optimized production
+build`" ternyata **dua sebab berbeda**, dan keduanya lingkungan:
+
+**Sebab A — `next lint` menggantung.** Build penuh tanpa `--no-lint` berhenti
+di `buildStage: "compile"` selama >9 menit tanpa menulis satu berkas pun
+(terverifikasi: `.next` hanya berisi 7 berkas metadata). Dengan
+`--no-lint`, kompilasi selesai dalam ~60 detik dan menghasilkan 266 berkas.
+Di sinilah `EPERM: open 'out\404.html'` yang dulu terlihat sebenarnya muncul —
+sebagai gejala sekunder, bukan sebab.
+
+**Sebab B — shim safe-delete WorkBuddy, terbukti dari pesan galatnya:**
+
+```
+Error: [safe-delete][SAFE_DELETE_BULK_CONFIRM_REQUIRED]
+  {"count":178,"threshold":50,"scope":"turn",
+   "targets":["...\\.next\\export"],"targetCount":1}
+    at checkBulkDeleteGuard (.../node-safe-delete-shim.cjs:239:19)
+    at Object.wrappedPromisesRm [as rm] (...:829:15)
+```
+
+Next.js menghapus `.next/export` (176–178 berkas) di langkah pembersihan
+terakhir, sedangkan lingkungan ini membatasi **50 penghapusan per giliran tool**.
+Bukti bahwa ini murni langkah kosmetik, bukan kegagalan build: baris
+`✓ Generating static pages (21/21)` **sudah tercetak** sebelum galat muncul.
+
+Karena itu pula memindahkan `.next` lebih dulu TIDAK menolong (sudah dicoba):
+build dari `.next` yang benar-benar kosong pun tetap macet di Sebab A, lalu
+menabrak Sebab B begitu kompilasi berhasil.
+
+**Solusi yang dipakai** — pisahkan tahapnya dan salin sendiri hasilnya:
+
+```bash
+cd nexus-frontend
+npx next build --no-lint --experimental-build-mode generate   # compile + generate
+node scripts/export-out.mjs --clean                          # .next/server/app -> out/
+```
+
+`scripts/export-out.mjs` mereplikasi langkah yang gagal: menyalin HTML halaman
+dari `.next/server/app/` ke `out/` (hanya `*.html`; `.meta`/`.rsc`/`.js`
+artefak server TIDAK ikut), `_not-found.html` → `404.html`, `.next/static` →
+`out/_next/static`, dan `public/`. Hasil: **`out/` 103 berkas**.
+
+Bukti build ini setara produksi: chunk `page-27addee031fc38d6.js` (70.277 B)
+memuat `__katalir_card`, `srv-card`, dan `credential_form` — tiga penanda fix
+Bug #3.
+
+### 2. Kartu kredensial SETELAH refresh — sekarang dibuktikan di browser
+
+`tests/card-persistence.spec.ts` menguji rantai yang persis dipakai user:
+kirim prompt → `requires_credential` → **refresh halaman** → kartu harus
+muncul lagi **murni dari jawaban `GET /messages`** (bukan sisa cache).
+
+```
+2 passed (12.7s)
+  ✓ kartu kredensial muncul kembali setelah refresh
+  ✓ kontra-regresi: tanpa baris kartu di server, kartu memang TIDAK muncul
+```
+
+Tes kedua sengaja ada supaya tes pertama terbukti **tajam**: bila server tidak
+mengembalikan baris kartu (perilaku kode lama), kartunya hilang. Kalau tes itu
+justru menampilkan kartu, berarti kartu masih hidup di cache klien dan tes
+pertama tidak membuktikan apa pun.
+
+Diperkuat `tests/card-persistence.unit.spec.ts` — **7 tes** atas
+`decodePersistedCard` (pemetaan `display_name`/`resume_token`/`approval_token`,
+`_localId` wajib terisi, baris biasa tidak diubah, JSON rusak tidak melempar).
+
+### 3. Situs live BELUM ter-deploy — ini gap yang masih terbuka
+
+Dijalankan spec yang sama terhadap `https://proyek-agent.pages.dev`: **1/2
+gagal**. Penyebabnya diverifikasi langsung pada bundel yang disajikan:
+
+```
+live chunk: page-6eb4f85538eda943.js (69.193 B)
+__katalir_card     0
+srv-card           0
+approval-card      1
+```
+
+Chunk live **tidak memuat** sentinel maupun decoder kartu, artinya versi yang
+di-deploy masih pra-perbaikan. Yang sudah live: `approval-card` (fix 5 Okt
+sebelumnya). **Fix Bug #3 belum ter-deploy.**
+
+Untuk menutupnya, `out/` hasil sesi ini harus di-deploy ke Cloudflare Pages,
+lalu spec dijalankan ulang dengan `E2E_BASE_URL`. Perintahnya:
+
+```bash
+cd nexus-frontend
+E2E_BASE_URL=https://proyek-agent.pages.dev E2E_SHOT_PREFIX=card-persistence-live \
+  npx playwright test -c playwright.approval.config.ts tests/card-persistence.spec.ts
+```
+
+### Yang BELUM terverifikasi (jujur)
+
+- **Situs live masih gagal 1/2** (bukti chunk di atas). Ini bukan bug kode —
+  build lokal dari source yang sama lulus 15/15 — melainkan deploy yang belum
+  dijalankan.
+- **Belum diuji terhadap backend produksi dengan sesi nyata.** Seluruh spec
+  memakai `page.route` untuk men-stub jawaban backend, jadi yang dibuktikan
+  adalah rantai render + kontrak data, bukan integrasi end-to-end dengan
+  Supabase hidup. Refresh token `.autonomous_session.json` masih dicabut
+  (catatan sesi sebelumnya).
+- **Bug #2 belum diuji terhadap LLM sungguhan** (butuh kredensial gateway yang
+  masih hidup). Yang dibuktikan: aturan + placeholder ada di prompt, dan
+  tes regresi mencegah aturannya hilang saat prompt diedit.

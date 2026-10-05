@@ -30,7 +30,10 @@ const BASE_URL = process.env.E2E_BASE_URL || `http://127.0.0.1:${PORT}`;
 
 export default defineConfig({
   testDir: "./tests",
-  testMatch: /approval-card\.spec\.ts/,
+  // Dua spec memakai harness yang sama (stub `page.route`, tanpa backend):
+  //   * approval-card.spec.ts     — tiga status baru + tetangga terdekatnya
+  //   * card-persistence.spec.ts  — Bug #3: kartu bertahan setelah refresh
+  testMatch: /(approval-card|card-persistence)\.spec\.ts/,
   timeout: 120000,
   reporter: [["line"]],
   use: {
