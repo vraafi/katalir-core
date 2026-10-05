@@ -21,6 +21,19 @@ Field `pesan` (isi pesan Telegram/Slack) SENGAJA tanpa `pattern`:
 isinya bebas. Persempitan pola di sini akan merusak kegunaan (pesan
 sah bisa berisi tanda baca apa saja). Field pesan tetap dilindungi
 oleh batas panjang, gate, dan persetujuan pengguna - bukan oleh pola.
+
+CATATAN SOAL ALIAS (BUG FIX 2026-10-06)
+--------------------------------------
+Diagnosis Bug #1 (kartu persetujuan Telegram tidak muncul) menemukan
+bahwa model sering memakai nama field LAIN untuk maksud yang sama:
+`text`/`message`/`msg` untuk isi pesan, `to`/`chat` untuk tujuan.
+Dulu nama-nama itu langsung DITOLAK sebagai "field tidak diizinkan",
+sehingga pengguna melihat kartu error - bukan kartu persetujuan.
+
+Alias di bawah ini memetakan nama umum ke field kanonik SEBELUM
+validasi. Ini TIDAK melemahkan allowlist: hasil pemetaan tetap
+divalidasi dengan aturan field kanonik yang sama (pattern, panjang,
+enum). Yang berubah hanya nama yang diterima - bukan aturan isinya.
 """
 
 from __future__ import annotations
@@ -83,6 +96,74 @@ ARG_SCHEMAS: dict[str, dict[str, dict]] = {
     },
 }
 
+#: Alias nama-field -> nama kanonik, per-alat. Hanya nama YANG BERBEDA
+#: yang perlu didaftarkan; nama kanonik selalu diterima apa adanya.
+#:
+#: Prinsip: alias memetakan MAKSUD yang sama, bukan memperluas izin.
+#: Setelah dipetakan, nilai tetap divalidasi dengan aturan field
+#: kanonik (pattern/panjang/enum) - jadi `text="..."` untuk TELEGRAM
+#: tetap tunduk pada max_length=4000 milik `pesan`.
+ARG_ALIASES: dict[str, dict[str, str]] = {
+    "TELEGRAM": {
+        "text": "pesan",
+        "message": "pesan",
+        "msg": "pesan",
+        "body": "pesan",
+        "to": "chat_id",
+        "chat": "chat_id",
+        "chatid": "chat_id",
+        "chatId": "chat_id",
+    },
+    "SLACK": {
+        "text": "pesan",
+        "message": "pesan",
+        "msg": "pesan",
+        "body": "pesan",
+        "channel_id": "channel",
+        "channelId": "channel",
+    },
+    "EMAIL": {
+        "subject": "subjek",
+        "limit": "max",
+        "unread": "unread_only",
+        "folder": "mailbox",
+    },
+    "SHEETS": {
+        "spreadsheet_id": "spreadsheet",
+        "sheet_name": "sheet",
+        "sheetName": "sheet",
+    },
+    "WORKFLOW": {
+        "workflow": "name",
+        "workflow_name": "name",
+    },
+    "VAULT": {
+        "service": "provider",
+    },
+}
+
+
+def normalize_aliases(tool: str, args: dict) -> dict:
+    """Petakan nama-field alias ke nama kanonik.
+
+    Tidak mengubah nilai. Nama kanonik menang bila keduanya ada
+    (mis. `{pesan, text}` -> `pesan` dipertahankan, `text` dibuang).
+    """
+    name = str(tool or "").upper()
+    aliases = ARG_ALIASES.get(name)
+    if not aliases or not isinstance(args, dict):
+        return dict(args) if isinstance(args, dict) else {}
+
+    schema = ARG_SCHEMAS.get(name, {})
+    out: dict = {}
+    for key, value in args.items():
+        canonical = key if key in schema else aliases.get(key, key)
+        # Nama kanonik eksplisit tidak boleh ditimpa oleh alias.
+        if canonical in out:
+            continue
+        out[canonical] = value
+    return out
+
 
 def validate_args(tool: str, args: dict) -> tuple[bool, str]:
     """Return (valid, alasan). DENY by default per field."""
@@ -93,6 +174,13 @@ def validate_args(tool: str, args: dict) -> tuple[bool, str]:
 
     if not isinstance(args, dict):
         return False, "Argumen harus object."
+
+    # 0. Petakan alias ke nama kanonik (lihat ARG_ALIASES).
+    #    Dilakukan SEBELUM cek field-tak-dikenal, supaya model yang
+    #    memakai nama umum tidak langsung ditolak. Nilai tetap
+    #    divalidasi aturan kanonik di bawah - izin tidak melebar.
+    if name in ARG_ALIASES:
+        args = normalize_aliases(name, args)
 
     # 1. Field tak dikenal -> DENY (bagian paling penting dari allowlist)
     for key in args:
@@ -141,4 +229,4 @@ def validate_args(tool: str, args: dict) -> tuple[bool, str]:
     return True, "OK"
 
 
-__all__ = ["ARG_SCHEMAS", "validate_args"]
+__all__ = ["ARG_SCHEMAS", "ARG_ALIASES", "normalize_aliases", "validate_args"]

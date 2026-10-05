@@ -150,8 +150,22 @@ def parse_textual_tools(content: str) -> list[dict]:
             head = raw_args.split(None, 1)
             body = head[1] if (head and "=" not in head[0]) else raw_args
             kv, _ignored = parse_kv_args(body)
-            allowed = ALLOWED_KEYS.get(tool, frozenset())
-            args = {k: v for k, v in kv.items() if k in allowed}
+            # BUG FIX 2026-10-06 (approval card Telegram tidak muncul):
+            # field yang TIDAK dikenal JANGAN dibuang diam-diam.
+            #
+            # Versi lama menyaring `k in allowed` lalu `if not args: continue`.
+            # Akibatnya `[TELEGRAM: chat_id=123 text="halo"]` (model memakai
+            # `text` alih-alih `pesan`) menghasilkan `args={"chat_id":"123"}`
+            # dan `pesan` HILANG tanpa peringatan apa pun - parser menelan
+            # datanya, lalu alat dijalankan dengan argumen tidak lengkap.
+            # Dari sisi user gejalanya: persetujuan tidak pernah muncul, atau
+            # terkirim tanpa isi, dan tidak ada error yang bisa ditelusuri.
+            #
+            # Sekarang SELURUH field diteruskan apa adanya. Yang menilai
+            # adalah `argument_validator` (allowlist per-alat), yang memang
+            # dirancang untuk menolak field asing dengan alasan eksplisit -
+            # bukan menyembunyikannya.
+            args = dict(kv)
             if not args:
                 continue
 

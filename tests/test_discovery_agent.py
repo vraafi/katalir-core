@@ -107,6 +107,32 @@ def test_alat_menyertakan_owner_tapi_tidak_membocorkan_apa_pun():
         assert leak not in blob, leak
 
 
+def test_handler_workflow_tidak_mengarang_spec():
+    """REGRESI BUG #2 (2026-10-06): `[WORKFLOW: nama]` harus MINTA spec.
+
+    Handler ini hanya menerima NAMA, bukan spec lengkap. Kalau ia mengarang
+    node di sini, agen akan menyajikan workflow PALSU yang "terlihat
+    berhasil" - jauh lebih buruk daripada mengakui butuh spec. Kontraknya:
+    kembalikan status="needs_spec" supaya pemanggil meminta spec di giliran
+    berikutnya. Dikunci di sini karena perubahan format di masa depan mudah
+    menghapusnya tanpa error apa pun.
+    """
+    from textual_tool_handlers import _handle_workflow
+
+    out = _handle_workflow({"name": "inventory_email_to_sheets"}, "u@k.id")
+    assert out["status"] == "needs_spec", out
+    assert out["name"] == "inventory_email_to_sheets"
+    # Tidak boleh ada node/spec karangan.
+    assert "nodes" not in out and "spec" not in out
+
+
+def test_handler_workflow_nama_kosong_adalah_error():
+    from textual_tool_handlers import _handle_workflow
+
+    out = _handle_workflow({}, "u@k.id")
+    assert out["status"] == "error", out
+
+
 def test_jembatan_ke_canvas_hanya_untuk_draf_yang_diterima():
     """`_accepted_workflow` = satu-satunya pintu spec masuk ke respons /chat."""
     accepted = json.dumps({"ok": True, "spec": {"name": "n", "nodes": [], "edges": []}})

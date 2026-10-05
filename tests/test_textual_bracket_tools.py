@@ -85,10 +85,31 @@ def test_nama_tool_tidak_dikenal_tidak_dieksekusi():
     assert parse_textual_tools("[VAULTX: gmail_imap]") == []
 
 
-def test_key_di_luar_daftar_ditolak():
-    """Model tidak boleh mengarang parameter (mis. `token=` di TELEGRAM)."""
+def test_key_di_luar_daftar_tidak_dibuang_diam_diam():
+    """Model mengarang parameter (mis. `token=`) -> JANGAN ditelan diam-diam.
+
+    BUG FIX 2026-10-06: dulu parser menyaring field yang tidak ada di
+    ALLOWED_KEYS, sehingga `[TELEGRAM: chat_id=1 token=RAHASIA pesan=hi]`
+    menjadi `{chat_id, pesan}` - `token` HILANG tanpa jejak. Itu berbahaya:
+    (a) model yang memakai nama lain (`text` alih-alih `pesan`) kehilangan
+    data secara senyap, dan (b) field berbahaya bisa hilang sebelum sempat
+    dicatat. Parser sekarang meneruskan apa adanya; penilaian pindah ke
+    `argument_validator` (allowlist per-alat) yang menolaknya dengan alasan
+    eksplisit. Yang penting di sini: field asing TIDAK lagi dibuang diam-diam.
+    """
     got = parse_textual_tools("[TELEGRAM: chat_id=1 token=RAHASIA pesan=hi]")
-    assert got == [] or "token" not in got[0]["args"]
+    assert len(got) == 1, got
+    assert "token" in got[0]["args"], got  # diteruskan, bukan disembunyikan
+
+
+def test_field_asing_ditolak_validator_bukan_parser():
+    """Lapisan penolakan ada di validator: field asing -> (False, alasan)."""
+    from argument_validator import validate_args
+
+    ok, reason = validate_args("TELEGRAM",
+                               {"chat_id": "1", "token": "RAHASIA", "pesan": "hi"})
+    assert ok is False
+    assert "token" in reason
 
 
 def test_argumen_kosong_tidak_dieksekusi():
