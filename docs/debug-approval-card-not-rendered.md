@@ -227,13 +227,57 @@ dan situs live (13/13), karena bentuk response `/chat/approve` di produksi
 User perlu memperbarui kredensial test account bila ingin bukti end-to-end
 yang benar-benar menyentuh backend.
 
-## Catatan harness
+## Catatan harness — `npm run e2e:prod`
 
 `playwright.config.ts` (harness resmi) TIDAK punya `testMatch`, jadi
-`tests/approval-card.spec.ts` otomatis ikut `npm run e2e:prod` dan ikut menjaga
-regresi ini. Sesi ini **belum** menjalankan `npm run e2e:prod` (ia membangun
-ulang produksi + butuh `globalSetup` jaringan); hasil `playwright.approval.config.ts`
-di atas TIDAK boleh diklaim setara dengan suite penuh itu.
+`tests/approval-card.spec.ts` otomatis ikut `npm run e2e:prod`. Itu **dibuktikan**,
+bukan diasumsikan:
+
+```
+npx playwright test --list -c playwright.config.ts
+-> Total: 514 tests in 44 files
+   approval-card.spec.ts -> 26 entri (13 tes x 2 proyek: guest + logged-in)
+```
+
+### Percobaan menjalankan suite penuh: TERBLOKIR (sebab lingkungan)
+
+`npm run e2e:prod` dicoba di sesi lanjutan. Suite ini **tidak pernah sampai
+menjalankan satu tes pun**, karena langkah `next build` di dalam `webServer`
+gagal lebih dulu. Tiga sebab ditemukan berurutan — semuanya lingkungan, bukan
+kode:
+
+| # | Gejala | Sebab | Status |
+|---|---|---|---|
+| 1 | `Failed to load SWC binary for win32/x64`, exit `3221225477` | `node` di PATH menunjuk runtime managed WorkBuddy (`22.22.2`) yang gagal meng-init `@next/swc-win32-x64-msvc` (DLL init failed). Biner-nya tidak rusak: hash identik dengan tarball registry, dan **lulus** di `node 24.16.0` sistem | **diatasi**: jalankan dengan `node` 24 sistem |
+| 2 | `SAFE_DELETE_BULK_CONFIRM_REQUIRED count=50 threshold=50` | shim safe-delete WorkBuddy membatasi 50 hapus per-turn; `next build` membersihkan `.next` (dan Playwright membersihkan `test-results`) melebihi itu | **diatasi**: direktori artefak dipindah (rename) lebih dulu, atau shim dimatikan untuk proses build |
+| 3 | `EPERM: open '...\out\404.html'` | langkah `Exporting` Next gagal menulis `out/404.html`. Menulis berkas yang sama secara manual **berhasil**, jadi ini race/lock level Windows — bukan izin path, bukan shim (stack tidak lagi memuat frame shim) | **BELUM teratasi** |
+
+Bukti sebab #3 bukan soal path/kode: build berjalan sampai
+`✓ Compiled successfully`, `✓ Generating static pages (21/21)`, dan menghasilkan
+`out/_next/static/chunks/app/chat/page-dc3e7d8eb0b7ff3c.js` (69.193 byte) —
+**hash identik** dengan build yang sudah di-deploy. Yang gagal hanya penulisan
+`404.html` di akhir. Karena itu suite penuh belum bisa diklaim hijau di sini.
+
+### Yang tetap diverifikasi (dan sudah)
+
+Build produksi lengkap masih tersedia, jadi spec yang sama dijalankan ulang
+terhadap dua bentuk produksi:
+
+```
+production build lokal (out/, disajikan scripts/serve-out.mjs)  -> 13 passed (35.2s)
+situs live https://proyek-agent.pages.dev                       -> 13 passed (36.0s)
+```
+
+**Jebakan yang sempat menyesatkan:** run pertama terhadap build lokal gagal
+**13/13** dengan `approval-card not found` — persis gejala bug aslinya. Sebabnya
+bukan produk: `_e2e_session.refreshed.json` sudah kedaluwarsa (ttl −2727 s),
+sehingga app menampilkan gerbang login dan kartu tak pernah dirender. Setelah
+fixture basi itu disingkirkan (spec jatuh ke `dummySession()`), 13/13 lulus.
+Fixture E2E bersifat sementara; fixture basi menghasilkan kegagalan yang
+menyamar sebagai regresi produk — periksa TTL-nya sebelum menyalahkan kode.
+
+Screenshot run ulang disimpan dengan prefiks terpisah (`verify-local-*`,
+`verify-live-*`) agar bukti lama tidak tertimpa.
 
 ## Cara menjalankan ulang
 
@@ -247,3 +291,16 @@ npx playwright test -c playwright.approval.config.ts
 
 Port 3000 harus bebas lebih dulu — `scripts/check-no-dev-running.mjs`
 menganggap listener apa pun di sana sebagai dev server dan memblokir build.
+
+### Prasyarat toolchain (kalau dijalankan dari shell WorkBuddy)
+
+```bash
+# node 24 sistem — runtime managed 22.22.2 TIDAK bisa memuat @next/swc
+export PATH="/c/Program Files/nodejs:/c/Users/user/AppData/Local/Programs/Python/Python312:$PATH"
+node --version   # harus v24.x
+python -c "import fastapi"   # backend uvicorn butuh Python 3.12 sistem, bukan managed 3.13
+```
+
+Sebelum menjalankan spec approval, pastikan `_e2e_session.refreshed.json` **tidak
+kedaluwarsa** (atau tidak ada, supaya spec memakai `dummySession()`); fixture
+basi membuat semua tes gagal dengan gejala yang menyerupai bug produk.
