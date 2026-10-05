@@ -29,20 +29,26 @@ menghormati override `AGENT_MODEL` bila ada di roster, dan jatuh ke
 import api_server
 
 
-def test_preferensi_tidak_memilih_model_terlemah_dulu():
-    """`gemini-2.5-flash-lite` harus berada SETELAH model yang lebih kuat."""
+def test_preferensi_model_lulus_dua_bug_berada_di_depan():
+    """`gemini-3.5-flash-lite` harus paling depan.
+
+    Itu satu-satunya model roster yang LULUS dua perilaku sekaligus
+    (matriks `_model_matrix.py`): memanggil `kirim_telegram_message` (Bug#1)
+    DAN `generate_workflow_json` (Bug#2).
+    """
     pref = api_server.DEFAULT_MODEL_PREFERENCE
-    assert "gemini-2.5-flash-lite" in pref
-    # Model kuat harus mendahului varian lite di daftar preferensi.
-    assert pref.index("gemini-2.5-flash") < pref.index("gemini-2.5-flash-lite")
+    assert pref[0] == "gemini-3.5-flash-lite", pref
+    # `gemini-2.5-flash-lite` (gagal Bug#2) harus berada di belakang.
+    assert pref.index("gemini-3.5-flash-lite") < pref.index("gemini-2.5-flash-lite")
 
 
-def test_default_memilih_kuat_bila_tersedia(monkeypatch):
-    roster = ["gemini-2.5-flash-lite", "gemini-2.5-flash", "allam-2-7b"]
+def test_default_memilih_model_yang_lulus_dua_bug(monkeypatch):
+    roster = ["gemini-2.5-flash-lite", "gemini-2.5-flash",
+              "gemini-3.5-flash-lite", "allam-2-7b"]
     monkeypatch.setattr(api_server, "_gateway_target",
                         lambda: ("http://gw", "k", roster))
     monkeypatch.delenv("AGENT_MODEL", raising=False)
-    assert api_server._default_model_id() == "gemini-2.5-flash"
+    assert api_server._default_model_id() == "gemini-3.5-flash-lite"
 
 
 def test_default_env_override_menang(monkeypatch):

@@ -225,21 +225,28 @@ def _warm_gateway_roster() -> None:
 
 #: Preferensi model default bila user TIDAK memilih model.
 #:
-#: BUG FIX 2026-10-06 (Bug #2 — discovery over-asking di produksi):
+#: BUG FIX 2026-10-06 (Bug #1 & #2 di produksi):
 #: `_default_model_id()` dulu mengembalikan `roster[0]`. Roster
 #: `probe_roster()` diurutkan (provider, id), jadi urutan itu KEBETULAN
-#: menaruh `gemini-2.5-flash-lite` di depan — model TERLEMAH. Bukti empiris
-#: (harness `_bug2_loop.py`, prompt nyata):
-#:   * gemini-2.5-flash      -> [check_credential, generate_workflow_json]  (membangun)
-#:   * gemini-2.5-flash-lite  -> [check_credential] lalu BERTANYA URL/metode (tidak membangun)
-#: Jadi model default menentukan apakah ATURAN BUILD WORKFLOW dipatuhi.
-#: Daftar di bawah memilih default secara SADAR (kuat dulu), bukan dari
-#: urutan alfabetis. Entri yang tidak ada di roster dilewati.
+#: menaruh `gemini-2.5-flash-lite` di depan.
+#:
+#: Model default harus lulus DUA perilaku sekaligus. Hasil matriks empiris
+#: (`_model_matrix.py`, prompt + alat NYATA, 6 Okt 2026):
+#:
+#:   model                    Bug#1 (kirim telegram)   Bug#2 (build workflow)
+#:   gemini-3.5-flash-lite    kirim_telegram_message   generate_workflow_json  <-- LULUS 2/2
+#:   gemini-2.5-flash         (tidak ada panggilan)    generate_workflow_json
+#:   gemini-2.5-flash-lite    kirim_telegram_message   BERTANYA (tidak build)
+#:
+#: Penting: `gemini-2.5-flash` LEBIH BAIK di Bug#2 tapi GAGAL di Bug#1
+#: (mengembalikan teks kosong tanpa panggilan alat -> user melihat
+#: "Tugas selesai dieksekusi" padahal tidak ada yang dijalankan). Karena itu
+#: `gemini-3.5-flash-lite` sengaja diletakkan DI DEPAN: satu-satunya model
+#: roster yang lulus kedua perilaku.
 DEFAULT_MODEL_PREFERENCE = (
-    "gemini-2.5-flash",
     "gemini-3.5-flash-lite",
+    "gemini-2.5-flash",
     "gemini-2.5-flash-lite",
-    "qwen/qwen3.8-27b",
     "moonshotai/kimi-k3",
 )
 
