@@ -12,6 +12,27 @@ from mcp.client.streamable_http import streamablehttp_client
 
 TOKEN_ENV = "AGENTGATEWAY_TOKEN"
 
+# `initialize` is fanned out by the gateway to every registered stdio target,
+# and those are npx/uvx processes that cold-start. Measured against the live
+# gateway: 13.2s for a cold `initialize`, and >5s even when warm. The old
+# hard-coded 5s budget therefore reported a perfectly healthy gateway as
+# "unreachable" (regression observed on production /mcp/gateway/health while
+# list_tools/call_tool kept working). Overridable for tests and tuning.
+HEALTH_TIMEOUT_ENV = "MCP_GATEWAY_HEALTH_TIMEOUT"
+DEFAULT_HEALTH_TIMEOUT = 30.0
+
+
+def health_timeout() -> float:
+    """Timeout (detik) untuk probe health gateway; default 30s."""
+    raw = (os.getenv(HEALTH_TIMEOUT_ENV) or "").strip()
+    if not raw:
+        return DEFAULT_HEALTH_TIMEOUT
+    try:
+        value = float(raw)
+    except ValueError:
+        return DEFAULT_HEALTH_TIMEOUT
+    return value if value > 0 else DEFAULT_HEALTH_TIMEOUT
+
 def _headers() -> dict[str, str]:
     """Auth headers for the agentgateway native apiKey policy.
 
@@ -64,10 +85,19 @@ class GatewayClient:
     def list_tools_sync(self): return asyncio.run(self.list_tools())
     def call_tool_sync(self,name,args): return asyncio.run(self.call_tool(name,args))
     async def health(self):
+        """True bila gateway menjawab `initialize` (200/202).
+
+        Timeout sengaja longgar (lihat DEFAULT_HEALTH_TIMEOUT): gateway
+        meneruskan `initialize` ke SEMUA target stdio (npx/uvx) yang cold-start,
+        dan itu terukur 13,2 detik di produksi. Dengan budget lama 5 detik,
+        gateway yang sehat dilaporkan "unreachable" — regresi yang tertangkap
+        di /mcp/gateway/health sementara list_tools/call_tool tetap normal.
+        Nilai bisa diatur via MCP_GATEWAY_HEALTH_TIMEOUT.
+        """
         import httpx
         payload={"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-03-26","capabilities":{},"clientInfo":{"name":"health","version":"1"}}}
         try:
-            async with httpx.AsyncClient(timeout=5) as client:
+            async with httpx.AsyncClient(timeout=health_timeout()) as client:
                 response=await client.post(self.mcp_url,json=payload,headers={**_headers(),"Content-Type":"application/json","Accept":"application/json, text/event-stream"})
                 return response.status_code in (200, 202)
         except Exception:

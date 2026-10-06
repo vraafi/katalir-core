@@ -1,0 +1,946 @@
+{
+  "server_info": {
+    "name": "agentgateway",
+    "version": "1.5.0"
+  },
+  "tools": {
+    "everything_echo": {
+      "description": "Echoes back the input string",
+      "input_schema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "properties": {
+          "message": {
+            "description": "Message to echo",
+            "type": "string"
+          }
+        },
+        "required": [
+          "message"
+        ],
+        "type": "object"
+      }
+    },
+    "everything_get-annotated-message": {
+      "description": "Demonstrates how annotations can be used to provide metadata about content.",
+      "input_schema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "properties": {
+          "includeImage": {
+            "default": false,
+            "description": "Whether to include an example image",
+            "type": "boolean"
+          },
+          "messageType": {
+            "description": "Type of message to demonstrate different annotation patterns",
+            "enum": [
+              "error",
+              "success",
+              "debug"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "messageType"
+        ],
+        "type": "object"
+      }
+    },
+    "everything_get-env": {
+      "description": "Returns all environment variables, helpful for debugging MCP server configuration",
+      "input_schema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "properties": {},
+        "type": "object"
+      }
+    },
+    "everything_get-resource-links": {
+      "description": "Returns up to ten resource links that reference different types of resources",
+      "input_schema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "properties": {
+          "count": {
+            "default": 3,
+            "description": "Number of resource links to return (1-10)",
+            "maximum": 10,
+            "minimum": 1,
+            "type": "number"
+          }
+        },
+        "type": "object"
+      }
+    },
+    "everything_get-resource-reference": {
+      "description": "Returns a resource reference that can be used by MCP clients",
+      "input_schema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "properties": {
+          "resourceId": {
+            "default": 1,
+            "description": "ID of the text resource to fetch",
+            "type": "number"
+          },
+          "resourceType": {
+            "default": "Text",
+            "enum": [
+              "Text",
+              "Blob"
+            ],
+            "type": "string"
+          }
+        },
+        "type": "object"
+      }
+    },
+    "everything_get-structured-content": {
+      "description": "Returns structured content along with an output schema for client data validation",
+      "input_schema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "properties": {
+          "location": {
+            "description": "Choose city",
+            "enum": [
+              "New York",
+              "Chicago",
+              "Los Angeles"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "location"
+        ],
+        "type": "object"
+      }
+    },
+    "everything_get-sum": {
+      "description": "Returns the sum of two numbers",
+      "input_schema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "properties": {
+          "a": {
+            "description": "First number",
+            "type": "number"
+          },
+          "b": {
+            "description": "Second number",
+            "type": "number"
+          }
+        },
+        "required": [
+          "a",
+          "b"
+        ],
+        "type": "object"
+      }
+    },
+    "everything_get-tiny-image": {
+      "description": "Returns a tiny MCP logo image.",
+      "input_schema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "properties": {},
+        "type": "object"
+      }
+    },
+    "everything_gzip-file-as-resource": {
+      "description": "Compresses a single file using gzip compression. Depending upon the selected output type, returns either the compressed data as a gzipped resource or a resource link, allowing it to be downloaded in a subsequent request during the current session.",
+      "input_schema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "properties": {
+          "data": {
+            "default": "https://raw.githubusercontent.com/modelcontextprotocol/servers/refs/heads/main/README.md",
+            "description": "URL or data URI of the file content to compress",
+            "format": "uri",
+            "type": "string"
+          },
+          "name": {
+            "default": "README.md.gz",
+            "description": "Name of the output file",
+            "type": "string"
+          },
+          "outputType": {
+            "default": "resourceLink",
+            "description": "How the resulting gzipped file should be returned. 'resourceLink' returns a link to a resource that can be read later, 'resource' returns a full resource object.",
+            "enum": [
+              "resourceLink",
+              "resource"
+            ],
+            "type": "string"
+          }
+        },
+        "type": "object"
+      }
+    },
+    "everything_simulate-research-query": {
+      "description": "Simulates a deep research operation that gathers, analyzes, and synthesizes information. Demonstrates MCP task-based operations with progress through multiple stages. If 'ambiguous' is true and client supports elicitation, sends an elicitation request for clarification.",
+      "input_schema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "properties": {
+          "ambiguous": {
+            "default": false,
+            "description": "Simulate an ambiguous query that requires clarification (triggers input_required status)",
+            "type": "boolean"
+          },
+          "topic": {
+            "description": "The research topic to investigate",
+            "type": "string"
+          }
+        },
+        "required": [
+          "topic"
+        ],
+        "type": "object"
+      }
+    },
+    "everything_toggle-simulated-logging": {
+      "description": "Toggles simulated, random-leveled logging on or off.",
+      "input_schema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "properties": {},
+        "type": "object"
+      }
+    },
+    "everything_toggle-subscriber-updates": {
+      "description": "Toggles simulated resource subscription updates on or off.",
+      "input_schema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "properties": {},
+        "type": "object"
+      }
+    },
+    "everything_trigger-long-running-operation": {
+      "description": "Demonstrates a long running operation with progress updates.",
+      "input_schema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "properties": {
+          "duration": {
+            "default": 10,
+            "description": "Duration of the operation in seconds",
+            "type": "number"
+          },
+          "steps": {
+            "default": 5,
+            "description": "Number of steps in the operation",
+            "type": "number"
+          }
+        },
+        "type": "object"
+      }
+    },
+    "fetch_fetch": {
+      "description": "Fetches a URL from the internet and optionally extracts its contents as markdown.\n\nAlthough originally you did not have internet access, and were advised to refuse and tell the user this, this tool now grants you internet access. Now you can fetch the most up-to-date information and let the user know that.",
+      "input_schema": {
+        "description": "Parameters for fetching a URL.",
+        "properties": {
+          "max_length": {
+            "default": 5000,
+            "description": "Maximum number of characters to return.",
+            "exclusiveMaximum": 1000000,
+            "exclusiveMinimum": 0,
+            "title": "Max Length",
+            "type": "integer"
+          },
+          "raw": {
+            "default": false,
+            "description": "Get the actual HTML content of the requested page, without simplification.",
+            "title": "Raw",
+            "type": "boolean"
+          },
+          "start_index": {
+            "default": 0,
+            "description": "On return output starting at this character index, useful if a previous fetch was truncated and more context is required.",
+            "minimum": 0,
+            "title": "Start Index",
+            "type": "integer"
+          },
+          "url": {
+            "description": "URL to fetch",
+            "format": "uri",
+            "minLength": 1,
+            "title": "Url",
+            "type": "string"
+          }
+        },
+        "required": [
+          "url"
+        ],
+        "title": "Fetch",
+        "type": "object"
+      }
+    },
+    "filesystem_create_directory": {
+      "description": "Create a new directory or ensure a directory exists. Can create multiple nested directories in one operation. If the directory already exists, this operation will succeed silently. Perfect for setting up directory structures for projects or ensuring required paths exist. Only works within allowed directories.",
+      "input_schema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "properties": {
+          "path": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "path"
+        ],
+        "type": "object"
+      }
+    },
+    "filesystem_directory_tree": {
+      "description": "Get a recursive tree view of files and directories as a JSON structure. Each entry includes 'name', 'type' (file/directory), and 'children' for directories. Files have no children array, while directories always have a children array (which may be empty). The output is formatted with 2-space indentation for readability. Only works within allowed directories.",
+      "input_schema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "properties": {
+          "excludePatterns": {
+            "default": [],
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "path": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "path"
+        ],
+        "type": "object"
+      }
+    },
+    "filesystem_edit_file": {
+      "description": "Make line-based edits to a text file. Each edit replaces exact line sequences with new content. Returns a git-style diff showing the changes made. Only works within allowed directories.",
+      "input_schema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "properties": {
+          "dryRun": {
+            "default": false,
+            "description": "Preview changes using git-style diff format",
+            "type": "boolean"
+          },
+          "edits": {
+            "items": {
+              "properties": {
+                "newText": {
+                  "description": "Text to replace with",
+                  "type": "string"
+                },
+                "oldText": {
+                  "description": "Text to search for - must match exactly",
+                  "type": "string"
+                }
+              },
+              "required": [
+                "oldText",
+                "newText"
+              ],
+              "type": "object"
+            },
+            "type": "array"
+          },
+          "path": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "path",
+          "edits"
+        ],
+        "type": "object"
+      }
+    },
+    "filesystem_get_file_info": {
+      "description": "Retrieve detailed metadata about a file or directory. Returns comprehensive information including size, creation time, last modified time, permissions, and type. This tool is perfect for understanding file characteristics without reading the actual content. Only works within allowed directories.",
+      "input_schema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "properties": {
+          "path": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "path"
+        ],
+        "type": "object"
+      }
+    },
+    "filesystem_list_allowed_directories": {
+      "description": "Returns the list of directories that this server is allowed to access. Subdirectories within these allowed directories are also accessible. Use this to understand which directories and their nested paths are available before trying to access files.",
+      "input_schema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "properties": {},
+        "type": "object"
+      }
+    },
+    "filesystem_list_directory": {
+      "description": "Get a detailed listing of all files and directories in a specified path. Results clearly distinguish between files and directories with [FILE] and [DIR] prefixes. This tool is essential for understanding directory structure and finding specific files within a directory. Only works within allowed directories.",
+      "input_schema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "properties": {
+          "path": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "path"
+        ],
+        "type": "object"
+      }
+    },
+    "filesystem_list_directory_with_sizes": {
+      "description": "Get a detailed listing of all files and directories in a specified path, including sizes. Results clearly distinguish between files and directories with [FILE] and [DIR] prefixes. This tool is useful for understanding directory structure and finding specific files within a directory. Only works within allowed directories.",
+      "input_schema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "properties": {
+          "path": {
+            "type": "string"
+          },
+          "sortBy": {
+            "default": "name",
+            "description": "Sort entries by name or size",
+            "enum": [
+              "name",
+              "size"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "path"
+        ],
+        "type": "object"
+      }
+    },
+    "filesystem_move_file": {
+      "description": "Move or rename files and directories. Can move files between directories and rename them in a single operation. If the destination exists, the operation will fail. Works across different directories and can be used for simple renaming within the same directory. Both source and destination must be within allowed directories.",
+      "input_schema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "properties": {
+          "destination": {
+            "type": "string"
+          },
+          "source": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "source",
+          "destination"
+        ],
+        "type": "object"
+      }
+    },
+    "filesystem_read_file": {
+      "description": "Read the complete contents of a file as text. DEPRECATED: Use read_text_file instead.",
+      "input_schema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "properties": {
+          "head": {
+            "description": "If provided, returns only the first N lines of the file",
+            "type": "number"
+          },
+          "path": {
+            "type": "string"
+          },
+          "tail": {
+            "description": "If provided, returns only the last N lines of the file",
+            "type": "number"
+          }
+        },
+        "required": [
+          "path"
+        ],
+        "type": "object"
+      }
+    },
+    "filesystem_read_media_file": {
+      "description": "Read a file and return it as a base64-encoded content block with its MIME type. Image and audio files are returned as image/audio content; any other file type is returned as an embedded resource. Only works within allowed directories.",
+      "input_schema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "properties": {
+          "path": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "path"
+        ],
+        "type": "object"
+      }
+    },
+    "filesystem_read_multiple_files": {
+      "description": "Read the contents of multiple files simultaneously. This is more efficient than reading files one by one when you need to analyze or compare multiple files. Each file's content is returned with its path as a reference. Failed reads for individual files won't stop the entire operation. Only works within allowed directories.",
+      "input_schema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "properties": {
+          "paths": {
+            "description": "Array of file paths to read. Each path must be a string pointing to a valid file within allowed directories.",
+            "items": {
+              "type": "string"
+            },
+            "minItems": 1,
+            "type": "array"
+          }
+        },
+        "required": [
+          "paths"
+        ],
+        "type": "object"
+      }
+    },
+    "filesystem_read_text_file": {
+      "description": "Read the complete contents of a file from the file system as text. Handles various text encodings and provides detailed error messages if the file cannot be read. Use this tool when you need to examine the contents of a single file. Use the 'head' parameter to read only the first N lines of a file, or the 'tail' parameter to read only the last N lines of a file. Operates on the file as text regardless of extension. Only works within allowed directories.",
+      "input_schema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "properties": {
+          "head": {
+            "description": "If provided, returns only the first N lines of the file",
+            "type": "number"
+          },
+          "path": {
+            "type": "string"
+          },
+          "tail": {
+            "description": "If provided, returns only the last N lines of the file",
+            "type": "number"
+          }
+        },
+        "required": [
+          "path"
+        ],
+        "type": "object"
+      }
+    },
+    "filesystem_search_files": {
+      "description": "Recursively search for files and directories matching a pattern. The patterns should be glob-style patterns that match paths relative to the working directory. Use pattern like '*.ext' to match files in current directory, and '**/*.ext' to match files in all subdirectories. Returns full paths to all matching items. Great for finding files when you don't know their exact location. Only searches within allowed directories.",
+      "input_schema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "properties": {
+          "excludePatterns": {
+            "default": [],
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "path": {
+            "type": "string"
+          },
+          "pattern": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "path",
+          "pattern"
+        ],
+        "type": "object"
+      }
+    },
+    "filesystem_write_file": {
+      "description": "Create a new file or completely overwrite an existing file with new content. Use with caution as it will overwrite existing files without warning. Handles text content with proper encoding. Only works within allowed directories.",
+      "input_schema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "properties": {
+          "content": {
+            "type": "string"
+          },
+          "path": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "path",
+          "content"
+        ],
+        "type": "object"
+      }
+    },
+    "memory_add_observations": {
+      "description": "Add new observations to existing entities in the knowledge graph",
+      "input_schema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "properties": {
+          "observations": {
+            "items": {
+              "properties": {
+                "contents": {
+                  "description": "An array of observation contents to add",
+                  "items": {
+                    "type": "string"
+                  },
+                  "type": "array"
+                },
+                "entityName": {
+                  "description": "The name of the entity to add the observations to",
+                  "type": "string"
+                }
+              },
+              "required": [
+                "entityName",
+                "contents"
+              ],
+              "type": "object"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "observations"
+        ],
+        "type": "object"
+      }
+    },
+    "memory_create_entities": {
+      "description": "Create multiple new entities in the knowledge graph",
+      "input_schema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "properties": {
+          "entities": {
+            "items": {
+              "properties": {
+                "entityType": {
+                  "description": "The type of the entity",
+                  "type": "string"
+                },
+                "name": {
+                  "description": "The name of the entity",
+                  "type": "string"
+                },
+                "observations": {
+                  "description": "An array of observation contents associated with the entity",
+                  "items": {
+                    "type": "string"
+                  },
+                  "type": "array"
+                }
+              },
+              "required": [
+                "name",
+                "entityType",
+                "observations"
+              ],
+              "type": "object"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "entities"
+        ],
+        "type": "object"
+      }
+    },
+    "memory_create_relations": {
+      "description": "Create multiple new relations between entities in the knowledge graph. Relations should be in active voice",
+      "input_schema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "properties": {
+          "relations": {
+            "items": {
+              "properties": {
+                "from": {
+                  "description": "The name of the entity where the relation starts",
+                  "type": "string"
+                },
+                "relationType": {
+                  "description": "The type of the relation",
+                  "type": "string"
+                },
+                "to": {
+                  "description": "The name of the entity where the relation ends",
+                  "type": "string"
+                }
+              },
+              "required": [
+                "from",
+                "to",
+                "relationType"
+              ],
+              "type": "object"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "relations"
+        ],
+        "type": "object"
+      }
+    },
+    "memory_delete_entities": {
+      "description": "Delete multiple entities and their associated relations from the knowledge graph",
+      "input_schema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "properties": {
+          "entityNames": {
+            "description": "An array of entity names to delete",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "entityNames"
+        ],
+        "type": "object"
+      }
+    },
+    "memory_delete_observations": {
+      "description": "Delete specific observations from entities in the knowledge graph",
+      "input_schema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "properties": {
+          "deletions": {
+            "items": {
+              "properties": {
+                "entityName": {
+                  "description": "The name of the entity containing the observations",
+                  "type": "string"
+                },
+                "observations": {
+                  "description": "An array of observations to delete",
+                  "items": {
+                    "type": "string"
+                  },
+                  "type": "array"
+                }
+              },
+              "required": [
+                "entityName",
+                "observations"
+              ],
+              "type": "object"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "deletions"
+        ],
+        "type": "object"
+      }
+    },
+    "memory_delete_relations": {
+      "description": "Delete multiple relations from the knowledge graph",
+      "input_schema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "properties": {
+          "relations": {
+            "description": "An array of relations to delete",
+            "items": {
+              "properties": {
+                "from": {
+                  "description": "The name of the entity where the relation starts",
+                  "type": "string"
+                },
+                "relationType": {
+                  "description": "The type of the relation",
+                  "type": "string"
+                },
+                "to": {
+                  "description": "The name of the entity where the relation ends",
+                  "type": "string"
+                }
+              },
+              "required": [
+                "from",
+                "to",
+                "relationType"
+              ],
+              "type": "object"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "relations"
+        ],
+        "type": "object"
+      }
+    },
+    "memory_open_nodes": {
+      "description": "Open specific nodes in the knowledge graph by their names",
+      "input_schema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "properties": {
+          "names": {
+            "description": "An array of entity names to retrieve",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "names"
+        ],
+        "type": "object"
+      }
+    },
+    "memory_read_graph": {
+      "description": "Read the entire knowledge graph",
+      "input_schema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "properties": {},
+        "type": "object"
+      }
+    },
+    "memory_search_nodes": {
+      "description": "Search for nodes in the knowledge graph based on a query",
+      "input_schema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "properties": {
+          "query": {
+            "description": "The search query to match against entity names, types, and observation content",
+            "type": "string"
+          }
+        },
+        "required": [
+          "query"
+        ],
+        "type": "object"
+      }
+    },
+    "openconnector_execute_action": {
+      "description": "Execute one local provider action by id with a JSON input object. Call get_action_guide first if the input shape is unclear.",
+      "input_schema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "properties": {
+          "actionId": {
+            "description": "Full action id, for example hackernews.get_item.",
+            "type": "string"
+          },
+          "connectionName": {
+            "description": "Optional named connection. Omit it to use the default connection.",
+            "minLength": 1,
+            "type": "string"
+          },
+          "input": {
+            "additionalProperties": {},
+            "default": {},
+            "description": "Action input object matching the selected action guide.",
+            "propertyNames": {
+              "type": "string"
+            },
+            "type": "object"
+          }
+        },
+        "required": [
+          "actionId"
+        ],
+        "type": "object"
+      }
+    },
+    "openconnector_get_action_guide": {
+      "description": "Return one action's compact markdown guide, including an execute_action example and input parameters.",
+      "input_schema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "properties": {
+          "actionId": {
+            "description": "Full action id, for example github.get_current_user.",
+            "type": "string"
+          },
+          "connectionName": {
+            "description": "Optional named connection. Omit it to use the default connection.",
+            "minLength": 1,
+            "type": "string"
+          }
+        },
+        "required": [
+          "actionId"
+        ],
+        "type": "object"
+      }
+    },
+    "openconnector_list_apps": {
+      "description": "List available provider apps with connection and action counts.",
+      "input_schema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "properties": {
+          "query": {
+            "description": "Optional case-insensitive app name, service, category, or auth filter.",
+            "type": "string"
+          }
+        },
+        "type": "object"
+      }
+    },
+    "openconnector_list_connections": {
+      "description": "List configured provider connections and their safe account profiles, optionally filtered by service id.",
+      "input_schema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "properties": {
+          "service": {
+            "description": "Optional provider service id such as github, gmail, or notion.",
+            "type": "string"
+          }
+        },
+        "type": "object"
+      }
+    },
+    "openconnector_search_actions": {
+      "description": "Search catalog actions by query and optional provider service id. Use this before requesting an action guide.",
+      "input_schema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "properties": {
+          "limit": {
+            "default": 20,
+            "description": "Maximum number of actions to return.",
+            "maximum": 50,
+            "minimum": 1,
+            "type": "integer"
+          },
+          "query": {
+            "description": "Optional case-insensitive search text matched against action id, name, description, and scopes.",
+            "type": "string"
+          },
+          "service": {
+            "description": "Optional provider service id such as github, gmail, hackernews, or notion.",
+            "type": "string"
+          }
+        },
+        "type": "object"
+      }
+    },
+    "time_convert_time": {
+      "description": "Convert time between timezones",
+      "input_schema": {
+        "properties": {
+          "source_timezone": {
+            "description": "Source IANA timezone name (e.g., 'America/New_York', 'Europe/London'). Use 'Etc/UTC' as local timezone if no source timezone provided by the user.",
+            "type": "string"
+          },
+          "target_timezone": {
+            "description": "Target IANA timezone name (e.g., 'Asia/Tokyo', 'America/San_Francisco'). Use 'Etc/UTC' as local timezone if no target timezone provided by the user.",
+            "type": "string"
+          },
+          "time": {
+            "description": "Time to convert in 24-hour format (HH:MM)",
+            "type": "string"
+          }
+        },
+        "required": [
+          "source_timezone",
+          "time",
+          "target_timezone"
+        ],
+        "type": "object"
+      }
+    },
+    "time_get_current_time": {
+      "description": "Get current time in a specific timezone",
+      "input_schema": {
+        "properties": {
+          "timezone": {
+            "description": "IANA timezone name (e.g., 'America/New_York', 'Europe/London'). Use 'Etc/UTC' as local timezone if no timezone provided by the user.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "timezone"
+        ],
+        "type": "object"
+      }
+    }
+  },
+  "version": 1
+}

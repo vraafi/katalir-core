@@ -95,6 +95,52 @@ def _args_calendar(cfg: dict, params: dict, email: str) -> dict:
             "email": email}
 
 
+def _gateway_arguments(cfg: dict, params: dict) -> dict:
+    """Argumen tool MCP: `config.arguments` (dict ATAU JSON string).
+
+    Bila node tidak menyebut argumen, pakai input node sebelumnya apa adanya —
+    itu perilaku wajar MCP ("Agent menulis pesan -> tool echo menggemakannya")
+    dan lebih jujur daripada mengarang field tertentu yang skema tool-nya tidak
+    kita ketahui.
+    """
+    raw = cfg.get("arguments")
+    if raw is None:
+        raw = cfg.get("args")
+    if isinstance(raw, dict):
+        return dict(raw)
+    if isinstance(raw, str) and raw.strip():
+        import json
+        try:
+            parsed = json.loads(raw)
+        except json.JSONDecodeError:
+            # Bukan JSON: kirim sebagai field `message`, konvensi paling umum,
+            # tapi jangan sembunyikan bentuk aslinya.
+            return {"message": raw}
+        return parsed if isinstance(parsed, dict) else {"value": parsed}
+    upstream = {k: v for k, v in (params or {}).items()
+                if not str(k).startswith("_")}
+    return upstream
+
+
+def _args_gateway(cfg: dict, params: dict, email: str) -> dict:
+    return {"tool": _pick(cfg, params, "tool", "tool_name", "mcp_tool"),
+            "arguments": _gateway_arguments(cfg, params)}
+
+
+def _gateway_call_tool(tool: str, arguments: dict | None = None) -> dict:
+    """Panggil satu tool di agentgateway (MCP streamable HTTP).
+
+    Sengaja TIDAK menelan kegagalan: `run()` sudah memetakan exception menjadi
+    `status=error` yang eksplisit, dan itu yang membuat node MCP gagal-terbaca
+    alih-alih dilaporkan "completed" palsu.
+    """
+    from mcp_gateway.client import GatewayClient
+    if not str(tool or "").strip():
+        raise ValueError("nama tool MCP kosong")
+    result = GatewayClient().call_tool_sync(str(tool), arguments or {})
+    return {"tool": str(tool), "result": result}
+
+
 
 @dataclass(frozen=True)
 class ProviderSpec:
@@ -104,6 +150,11 @@ class ProviderSpec:
     build_args: Callable[[dict, dict, str], dict]
     summary: str
     required: tuple[str, ...] = ()   # field config WAJIB (lihat REQUIRED_CONFIG)
+    # Label tool untuk laporan langkah. Provider biasa memakai nama fungsi, tapi
+    # jembatan MCP harus melaporkan NAMA TOOL MCP ("everything_echo"), bukan
+    # nama fungsi Python-nya ("_gateway_call_tool") - itu yang dibaca user di
+    # laporan eksekusi.
+    tool_label: Callable[[Any], str] | None = None
 
 
 # Field TUJUAN/struktur yang HARUS ada di config node agar bisa dijalankan.
@@ -117,6 +168,8 @@ REQUIRED_CONFIG: dict[str, tuple[str, ...]] = {
     "google_sheets": ("spreadsheet_id",),
     "whatsapp": ("nomor_tujuan",),
     "google_calendar": ("nama_acara", "waktu"),
+    # Tool MCP gateway: nama tool WAJIB; argumen opsional (boleh dari node hulu).
+    "gateway": ("tool",),
 }
 
 # Field KONTEN: boleh datang dari config node ATAU dari node sebelumnya
@@ -145,6 +198,7 @@ FIELD_ALIASES: dict[str, tuple[str, ...]] = {
     "nomor_tujuan": ("nomor_tujuan", "to", "phone"),
     "nama_acara": ("nama_acara", "title", "acara"),
     "waktu": ("waktu", "start", "when"),
+    "tool": ("tool", "tool_name", "mcp_tool"),
 }
 
 
@@ -165,6 +219,15 @@ PROVIDERS: dict[str, ProviderSpec] = {
     "google_calendar": ProviderSpec("google_calendar", tools.tambah_agenda_calendar,
                                     "google_calendar", _args_calendar,
                                     "Tambah agenda kalender"),
+    # Bridge ke katalog MCP agentgateway (44 tool live: everything/fetch/memory/
+    # filesystem/time/openconnector). Kredensial BUKAN milik vault user —
+    # autentikasi gateway dari env server (AGENTGATEWAY_TOKEN), jadi credential
+    # sengaja kosong supaya tidak memunculkan alur isi-kredensial yang salah.
+    "gateway": ProviderSpec("gateway", _gateway_call_tool, "",
+                            _args_gateway,
+                            "Panggil tool MCP apa pun dari katalog agentgateway",
+                            tool_label=lambda out: str(
+                                (out or {}).get("tool") or "").strip()),
 }
 
 # Sinonim: model kadang menulis "sheet"/"gcal"/"wa". Dipetakan, bukan ditolak.
@@ -175,6 +238,11 @@ ALIASES = {
     "wa": "whatsapp", "whatsapp_cloud": "whatsapp",
     "mail": "gmail", "email": "gmail",
     "telegram_bot": "telegram", "tg": "telegram",
+    # Nama lain untuk jembatan MCP. "mcp" SENGAJA tidak dipetakan: kunci itu
+    # plausibel berisi NAMA TOOL, dan memetakannya ke provider akan mengubah
+    # error "provider tak dikenal" yang sudah dikunci test.
+    "mcp_gateway": "gateway", "agentgateway": "gateway",
+    "mcp_tool": "gateway",
 }
 
 
@@ -236,6 +304,18 @@ def build_args(provider: str, cfg: dict | None, params: dict | None,
     return spec.build_args(cfg or {}, params or {}, email) if spec else {}
 
 
+def _tool_label(spec: "ProviderSpec", out: Any) -> str:
+    """Nama tool untuk laporan: label khusus provider bila ada, else nama fungsi."""
+    if spec.tool_label is not None:
+        try:
+            label = (spec.tool_label(out) or "").strip()
+            if label:
+                return label
+        except Exception:  # noqa: BLE001 - label tidak boleh menjatuhkan eksekusi
+            pass
+    return spec.fn.__name__
+
+
 def run(provider: str, cfg: dict | None, params: dict | None,
         email: str = "") -> dict:
     """Jalankan provider. SELALU mengembalikan dict (tidak pernah melempar).
@@ -269,7 +349,7 @@ def run(provider: str, cfg: dict | None, params: dict | None,
                 "tool": spec.fn.__name__,
                 "error": f"[{type(exc).__name__}] {exc}"}
     return {"status": "success", "provider": provider,
-            "tool": spec.fn.__name__, "result": out}
+            "tool": _tool_label(spec, out), "result": out}
 
 
 async def run_async(provider: str, cfg: dict | None, params: dict | None,

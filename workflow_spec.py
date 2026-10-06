@@ -53,6 +53,12 @@ KNOWN_PROVIDERS = (
     "slack",
     "http",
     "whatsapp",
+    # 2026-10-06: jembatan katalog MCP agentgateway. Test
+    # tests/test_n8n_ai_comparison.py::test_required_config_ada_per_provider
+    # mengunci daftar ini agar sama dengan kunci REQUIRED_CONFIG — menambah
+    # provider di satu sisi tanpa sisi lain membuat draf lolos validasi lalu
+    # gagal saat eksekusi.
+    "gateway",
 )
 
 

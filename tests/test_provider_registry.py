@@ -31,9 +31,11 @@ def _patch_provider(monkeypatch, name: str, fake) -> None:
 # ---------------------------------------------------------------------------
 # Registry & resolusi nama
 # ---------------------------------------------------------------------------
-def test_tujuh_provider_terdaftar():
+def test_delapan_provider_terdaftar():
+    """7 provider native + 1 jembatan MCP gateway (ditambah 2026-10-06)."""
     assert set(pr.PROVIDERS) == {"telegram", "slack", "http", "gmail",
-                                 "google_sheets", "whatsapp", "google_calendar"}
+                                 "google_sheets", "whatsapp", "google_calendar",
+                                 "gateway"}
     listed = {p["name"] for p in pr.list_providers()}
     assert listed == set(pr.PROVIDERS)
 
@@ -234,3 +236,118 @@ def test_owner_email_sampai_ke_orchestrator():
     graph = ee.FlowGraph(nodes=[_node({"provider": "telegram"})], edges=[])
     assert ee.StatefulOrchestrator(graph, owner_email="verdi@k.id").owner_email == "verdi@k.id"
     assert ee.StatefulOrchestrator(graph).owner_email == ""
+
+
+# ---------------------------------------------------------------------------
+# Jembatan MCP gateway (2026-10-06)
+#
+# Sebelum ini node MCP TIDAK BISA memanggil tool MCP sungguhan: katalog
+# agentgateway (44 tool) hanya terjangkau lewat HTTP /mcp/gateway/*, dan node
+# mcp dengan tool asing jatuh ke jalur lama (web_search/http_request). Terbukti
+# live: prompt "pakai MCP tool echo" menghasilkan node mcp ber-provider http
+# dengan URL placeholder "https://api.example.com/echo".
+# ---------------------------------------------------------------------------
+def test_alias_gateway_dikenali():
+    assert pr.resolve({"provider": "gateway"}) == "gateway"
+    assert pr.resolve({"provider": "agentgateway"}) == "gateway"
+    assert pr.resolve({"provider": "MCP_GATEWAY"}) == "gateway"
+
+
+def test_kunci_mcp_tidak_dipetakan_ke_gateway():
+    """`mcp` bisa berisi NAMA TOOL; memetakannya mengubah error tak-dikenal."""
+    assert pr.resolve({"mcp": "everything_echo"}) == "everything_echo"
+
+
+def test_gateway_tool_wajib_di_config():
+    out = pr.run("gateway", {"provider": "gateway"}, {}, "u@k.id")
+    assert out["status"] == "needs_configuration"
+    assert out["missing"] == ["tool"]
+    assert pr.missing_required("gateway", {"tool": "everything_echo"}) == []
+
+
+def test_gateway_adapter_mengambil_nama_dan_argumen():
+    args = pr.build_args("gateway",
+                         {"provider": "gateway", "tool": "everything_echo",
+                          "arguments": {"message": "halo"}}, {}, "u@k.id")
+    assert args == {"tool": "everything_echo", "arguments": {"message": "halo"}}
+    # alias tool_name juga diterima
+    args2 = pr.build_args("gateway", {"tool_name": "filesystem_list_directory"}, {}, "u@k.id")
+    assert args2["tool"] == "filesystem_list_directory"
+
+
+def test_gateway_arguments_json_string_diparse():
+    args = pr.build_args("gateway",
+                         {"tool": "everything_echo",
+                          "arguments": '{"message": "dari json"}'}, {}, "u@k.id")
+    assert args["arguments"] == {"message": "dari json"}
+
+
+def test_gateway_arguments_bukan_json_jadi_message():
+    args = pr.build_args("gateway",
+                         {"tool": "everything_echo", "arguments": "teks biasa"},
+                         {}, "u@k.id")
+    assert args["arguments"] == {"message": "teks biasa"}
+
+
+def test_gateway_tanpa_arguments_pakai_input_node_hulu():
+    args = pr.build_args("gateway", {"tool": "everything_echo"},
+                         {"reply": "ringkasan agent", "_from": "agent"}, "u@k.id")
+    assert args["arguments"] == {"reply": "ringkasan agent"}
+    assert "_from" not in args["arguments"]
+
+
+def test_gateway_call_tool_benar_benar_dipanggil(monkeypatch):
+    """run('gateway', ...) harus memanggil GatewayClient dengan tool+args itu."""
+    seen = {}
+
+    class _FakeClient:
+        def call_tool_sync(self, name, args):
+            seen.update(tool=name, args=args)
+            return {"content": [{"type": "text", "text": "Echo: halo"}]}
+
+    import mcp_gateway.client as gwc
+    monkeypatch.setattr(gwc, "GatewayClient", _FakeClient)
+
+    out = pr.run("gateway", {"provider": "gateway", "tool": "everything_echo",
+                             "arguments": {"message": "halo"}}, {}, "u@k.id")
+    assert out["status"] == "success", out
+    assert seen == {"tool": "everything_echo", "args": {"message": "halo"}}
+    assert out["result"]["result"]["content"][0]["text"] == "Echo: halo"
+    # Laporan langkah harus menyebut NAMA TOOL MCP, bukan "_gateway_call_tool".
+    assert out["tool"] == "everything_echo"
+
+
+def test_gateway_error_transport_jadi_status_error(monkeypatch):
+    """Gateway mati tidak boleh menjatuhkan pipeline, tapi juga tidak 'sukses'."""
+    class _Boom:
+        def call_tool_sync(self, name, args):
+            raise RuntimeError("AGENTGATEWAY_URL belum dikonfigurasi")
+
+    import mcp_gateway.client as gwc
+    monkeypatch.setattr(gwc, "GatewayClient", _Boom)
+    out = pr.run("gateway", {"provider": "gateway", "tool": "everything_echo"},
+                 {}, "u@k.id")
+    assert out["status"] == "error"
+    assert "AGENTGATEWAY_URL" in out["error"]
+
+
+def test_exec_mcp_merutekan_ke_gateway(monkeypatch):
+    """Node mcp dengan provider=gateway harus lewat jalur provider, bukan web_search."""
+    seen: dict = {}
+
+    async def fake_run_async(provider, cfg, params, email):
+        seen.update(provider=provider, cfg=cfg)
+        return {"status": "success", "provider": provider,
+                "tool": "everything_echo",
+                "result": {"content": [{"type": "text", "text": "Echo: halo"}]}}
+
+    monkeypatch.setattr(pr, "run_async", fake_run_async)
+    out = asyncio.run(_orch()._exec_mcp(
+        _node({"provider": "gateway", "tool": "everything_echo",
+               "arguments": {"message": "halo"}}),
+        {"instruction": "halo"}))
+    assert out["type"] == "mcp.call"
+    assert out["provider"] == "gateway"
+    assert out["tool"] == "everything_echo"
+    assert seen["provider"] == "gateway"
+    assert out["tool"] != "web_search", "masih jatuh ke web_search"
