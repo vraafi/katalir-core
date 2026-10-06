@@ -391,3 +391,27 @@ Catatan: berkas bukti berprefix `_` dan/atau di `_mcp_evidence_*.txt` adalah art
 4. **`.env` lokal** masih menunjuk quick tunnel mati — perbarui agar dev lokal setara produksi.
 5. **Compliance 2026-07-28** (§6.3): jangan klaim compliant; ikuti urutan upgrade gateway → SDK.
 6. Pertimbangkan marker `@pytest.mark.live` untuk `test_e2e_live.py` dan `test_browser_e2e.py` (butuh layanan eksternal) supaya suite lebih hijau.
+
+---
+
+## 13. KONDISI AKHIR (diverifikasi ±07:40 WIB)
+
+```
+========== VPS ==========
+agentgateway=active
+guard_timer=active           (jadwal berikutnya 00:37:56 UTC)
+mcp_stdio_procs=39           (di bawah ambang 60 -> guard tidak restart)
+mem_available_MB=1058        (sebelum mitigasi: 7 MB)
+load=0.08 0.63 7.55          (sebelum mitigasi: 55.57)
+latency initialize = http=200 dalam 8.6 s   (sebelum mitigasi: >120 s timeout)
+guard log: 00:35:56 ok procs=39 mem_available_MB=1073
+
+========== PRODUKSI ==========
+https://web-production-dc90b.up.railway.app/health -> HTTP 200
+https://proyek-agent.pages.dev                    -> HTTP 200
+```
+
+Kebocoran proses **masih ada** (39 proses sisa, bukan 0) — guard hanya menjaganya di bawah ambang, tepat seperti yang dirancang. Perbaikan akarnya tetap naik versi agentgateway (§8.4).
+
+**Commit:** `6524931` (kode + test + laporan), `52a77eb` (screenshot bukti). **Belum di-push.**
+
