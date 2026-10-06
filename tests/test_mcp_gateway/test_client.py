@@ -94,8 +94,9 @@ def test_health_timeout_env_tidak_valid_kembali_ke_default(monkeypatch, bad):
 
 
 class _FakeResponse:
-    def __init__(self, status_code):
+    def __init__(self, status_code, headers=None):
         self.status_code = status_code
+        self.headers = headers if headers is not None else {}
 
 
 class _FakeAsyncClient:
@@ -108,6 +109,7 @@ class _FakeAsyncClient:
 
     last: dict = {}
     scenario: dict = {}
+    calls: list = []
 
     def __init__(self, timeout=None, **kwargs):
         _FakeAsyncClient.last = {"timeout": timeout, "kwargs": kwargs}
@@ -121,12 +123,21 @@ class _FakeAsyncClient:
     async def post(self, url, json=None, headers=None):
         _FakeAsyncClient.last["url"] = url
         _FakeAsyncClient.last["headers"] = headers or {}
+        _FakeAsyncClient.calls.append(("POST", url, headers or {}))
         if _FakeAsyncClient.scenario.get("raise"):
             raise RuntimeError("koneksi ditolak")
-        return _FakeResponse(_FakeAsyncClient.scenario.get("status", 200))
+        return _FakeResponse(_FakeAsyncClient.scenario.get("status", 200),
+                             _FakeAsyncClient.scenario.get("headers"))
+
+    async def request(self, method, url, headers=None, **kwargs):
+        _FakeAsyncClient.calls.append((method, url, headers or {}))
+        if _FakeAsyncClient.scenario.get("delete_raises"):
+            raise RuntimeError("DELETE gagal")
+        return _FakeResponse(202)
 
 
-def _health_with(monkeypatch, status=200, raise_=False, timeout_env=None):
+def _health_with(monkeypatch, status=200, raise_=False, timeout_env=None,
+                 resp_headers=None, delete_raises=False):
     import asyncio
     import httpx
     import mcp_gateway.client as mod
@@ -136,30 +147,35 @@ def _health_with(monkeypatch, status=200, raise_=False, timeout_env=None):
         monkeypatch.setenv("MCP_GATEWAY_HEALTH_TIMEOUT", timeout_env)
     monkeypatch.setattr(httpx, "AsyncClient", _FakeAsyncClient)
     _FakeAsyncClient.last = {}
-    _FakeAsyncClient.scenario = {"status": status, "raise": raise_}
+    _FakeAsyncClient.calls = []
+    _FakeAsyncClient.scenario = {"status": status, "raise": raise_,
+                                 "headers": resp_headers,
+                                 "delete_raises": delete_raises}
     client = mod.GatewayClient(url="https://gateway.example.com")
-    return asyncio.run(client.health())
+    result = asyncio.run(client.health())
+    return result, list(_FakeAsyncClient.calls)
 
 
 def test_health_pakai_timeout_hasil_konfigurasi(monkeypatch):
     """Health WAJIB memakai health_timeout(), bukan angka keras."""
-    assert _health_with(monkeypatch, status=200, timeout_env="42") is True
+    ok, _ = _health_with(monkeypatch, status=200, timeout_env="42")
+    assert ok is True
     assert _FakeAsyncClient.last["timeout"] == 42.0
 
 
 def test_health_true_untuk_200_dan_202(monkeypatch):
-    assert _health_with(monkeypatch, status=200) is True
-    assert _health_with(monkeypatch, status=202) is True
+    assert _health_with(monkeypatch, status=200)[0] is True
+    assert _health_with(monkeypatch, status=202)[0] is True
 
 
 def test_health_false_untuk_status_error(monkeypatch):
-    assert _health_with(monkeypatch, status=401) is False
-    assert _health_with(monkeypatch, status=503) is False
+    assert _health_with(monkeypatch, status=401)[0] is False
+    assert _health_with(monkeypatch, status=503)[0] is False
 
 
 def test_health_false_saat_koneksi_gagal(monkeypatch):
     """Kegagalan transport tetap False - hanya timeout-nya yang diperbaiki."""
-    assert _health_with(monkeypatch, raise_=True) is False
+    assert _health_with(monkeypatch, raise_=True)[0] is False
 
 
 def test_health_kirim_kredensial_di_header(monkeypatch):
@@ -167,3 +183,52 @@ def test_health_kirim_kredensial_di_header(monkeypatch):
     headers = _FakeAsyncClient.last["headers"]
     assert headers["Authorization"] == "Bearer tok"
     assert "tok" not in _FakeAsyncClient.last["url"]
+
+
+# ---------------------------------------------------------------------------
+# health() WAJIB menutup sesinya (kebocoran proses di gateway)
+#
+# Terukur di produksi 2026-10-06: setiap `GET /mcp/gateway/health` menambah
+# TEPAT 13 proses target stdio yang tidak pernah direap (~330 MB). 3 pemeriksaan
+# -> mcp_procs 26 -> 65, mem_available 1211 -> 303 MB. Sebabnya probe ini
+# mengirim `initialize` tanpa `DELETE`.
+# ---------------------------------------------------------------------------
+
+
+def test_health_menutup_sesi_bila_gateway_memberi_session_id(monkeypatch):
+    ok, calls = _health_with(monkeypatch, status=200,
+                             resp_headers={"mcp-session-id": "sess-123"})
+    assert ok is True
+    methods = [c[0] for c in calls]
+    assert "DELETE" in methods, "sesi tidak ditutup -> gateway tidak mereap target stdio"
+    delete = next(c for c in calls if c[0] == "DELETE")
+    assert delete[2].get("Mcp-Session-Id") == "sess-123"
+
+
+def test_health_menutup_sesi_untuk_header_title_case(monkeypatch):
+    _, calls = _health_with(monkeypatch, status=200,
+                            resp_headers={"Mcp-Session-Id": "sess-abc"})
+    assert any(c[0] == "DELETE" and c[2].get("Mcp-Session-Id") == "sess-abc"
+               for c in calls)
+
+
+def test_health_tanpa_session_id_tidak_mengirim_delete(monkeypatch):
+    _, calls = _health_with(monkeypatch, status=200, resp_headers={})
+    assert not any(c[0] == "DELETE" for c in calls)
+
+
+def test_health_tetap_true_walau_delete_gagal(monkeypatch):
+    """Kegagalan menutup sesi tidak boleh mengubah hasil probe."""
+    ok, calls = _health_with(monkeypatch, status=200,
+                             resp_headers={"mcp-session-id": "s"},
+                             delete_raises=True)
+    assert ok is True
+    assert any(c[0] == "DELETE" for c in calls)
+
+
+def test_health_false_tidak_mengirim_delete(monkeypatch):
+    """Gateway membalas 401 -> tidak ada sesi yang perlu ditutup."""
+    ok, calls = _health_with(monkeypatch, status=401,
+                             resp_headers={"mcp-session-id": "s"})
+    assert ok is False
+    assert not any(c[0] == "DELETE" for c in calls)

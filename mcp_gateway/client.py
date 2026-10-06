@@ -93,12 +93,44 @@ class GatewayClient:
         gateway yang sehat dilaporkan "unreachable" — regresi yang tertangkap
         di /mcp/gateway/health sementara list_tools/call_tool tetap normal.
         Nilai bisa diatur via MCP_GATEWAY_HEALTH_TIMEOUT.
+
+        SESI WAJIB DITUTUP (perbaikan 2026-10-06). Terukur di produksi:
+        setiap `GET /mcp/gateway/health` menambah **tepat 13 proses** target
+        stdio yang tidak pernah direap, dan ~330 MB memori (3 pemeriksaan:
+        mcp_procs 26 -> 65, mem_available 1211 -> 303 MB). Sebabnya: probe ini
+        mengirim `initialize` lalu selesai tanpa `DELETE`, sedangkan gateway
+        men-spawn satu set target PER SESI dan hanya mereapnya saat sesi
+        ditutup. Karena endpoint kesehatan biasanya dipanggil berkala (load
+        balancer / uptime monitor), kebocorannya menumpuk tanpa ada pengguna
+        yang menyentuh MCP — dan guard VPS lalu me-restart gateway (yang
+        menyebabkan 503). Sekarang sesi ditutup eksplisit.
         """
         import httpx
         payload={"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-03-26","capabilities":{},"clientInfo":{"name":"health","version":"1"}}}
+        headers={**_headers(),"Content-Type":"application/json","Accept":"application/json, text/event-stream"}
+        session_id = None
+        ok = False
         try:
             async with httpx.AsyncClient(timeout=health_timeout()) as client:
-                response=await client.post(self.mcp_url,json=payload,headers={**_headers(),"Content-Type":"application/json","Accept":"application/json, text/event-stream"})
-                return response.status_code in (200, 202)
+                response=await client.post(self.mcp_url,json=payload,headers=headers)
+                ok = response.status_code in (200, 202)
+                hdrs = getattr(response, "headers", None) or {}
+                session_id = hdrs.get("mcp-session-id") or hdrs.get("Mcp-Session-Id")
         except Exception:
             return False
+
+        if ok and session_id:
+            # Tutup sesi supaya gateway mereap target stdio-nya. Hanya dilakukan
+            # bila `initialize` BERHASIL: probe yang gagal (401/503) tidak
+            # membuat sesi, jadi DELETE hanya menambah trafik tepat saat gateway
+            # sedang bermasalah. Kegagalan di sini TIDAK boleh mengubah hasil
+            # probe: status kesehatan sudah ditentukan jawaban `initialize`.
+            try:
+                async with httpx.AsyncClient(timeout=10) as client:
+                    await client.request(
+                        "DELETE", self.mcp_url,
+                        headers={**headers, "Mcp-Session-Id": session_id},
+                    )
+            except Exception:
+                pass
+        return ok
