@@ -138,9 +138,27 @@ def _loads_lenient(raw: str) -> dict | None:
 
 
 def _match_all(text: str) -> tuple[list[dict], str]:
-    """Kumpulkan call dari `text`; kembalikan (calls, sisa_teks_bersih)."""
+    """Kumpulkan call dari `text`; kembalikan (calls, sisa_teks_bersih).
+
+    PREFILTER (2026-10-06): tiap format punya penanda literal yang WAJIB ada,
+    jadi pass yang penandanya tidak ada bisa dilewati tanpa regex sama sekali.
+    Ini kasus tersering — mayoritas balasan model tidak memuat tool call —
+    sehingga yang tadinya 5 pemindaian regex atas seluruh teks menjadi beberapa
+    pemeriksaan substring.
+
+    CATATAN: brief menyarankan deteksi lewat "2 karakter pertama" teks. Itu
+    TIDAK dipakai karena tidak benar: balasan model umumnya berisi prosa lebih
+    dulu, dan tool call-nya ada di tengah/akhir; memutuskan berdasarkan awal
+    teks akan melewatkan call yang sah. Penanda literal di bawah ini kebal
+    terhadap urutan tersebut (True/False-nya sama dengan menjalankan regex).
+    """
     calls: list[dict] = []
     rest = text
+
+    has_gemma = "<|tool_call>" in text
+    has_vllm = "<start_function_call>" in text
+    has_xml = "<tool_call>" in text
+    has_fence = "```" in text
 
     # 1) Gemma 4 lengkap
     def _gemma_sub(m: re.Match) -> str:
@@ -152,20 +170,22 @@ def _match_all(text: str) -> tuple[list[dict], str]:
             "args": args,
         })
         return ""
-    rest = _GEMMA.sub(_gemma_sub, rest)
+    if has_gemma:
+        rest = _GEMMA.sub(_gemma_sub, rest)
 
     # 2) Gemma 4 terpotong (tanpa tag penutup) — ambil sampai call terakhir.
-    m = _GEMMA_TRUNC.search(rest)
-    if m and not calls:
-        # `.*$` menyertakan tanda kurung penutup argumen; buang supaya sisa
-        # itu JSON yang valid, bukan `...)`.
-        args = _loads_lenient(m.group("args").rstrip().rstrip(")"))
-        if args is not None:
-            calls.append({
-                "name": f"{m.group('ns')}:{m.group('name')}",
-                "args": args,
-            })
-            rest = rest[: m.start()]
+    if has_gemma:
+        m = _GEMMA_TRUNC.search(rest)
+        if m and not calls:
+            # `.*$` menyertakan tanda kurung penutup argumen; buang supaya sisa
+            # itu JSON yang valid, bukan `...)`.
+            args = _loads_lenient(m.group("args").rstrip().rstrip(")"))
+            if args is not None:
+                calls.append({
+                    "name": f"{m.group('ns')}:{m.group('name')}",
+                    "args": args,
+                })
+                rest = rest[: m.start()]
 
     # 3) vLLM Gemma
     def _vllm_sub(m: re.Match) -> str:
@@ -181,7 +201,8 @@ def _match_all(text: str) -> tuple[list[dict], str]:
             return m.group(0)
         calls.append({"name": m.group("name"), "args": args})
         return ""
-    rest = _VLLM.sub(_vllm_sub, rest)
+    if has_vllm:
+        rest = _VLLM.sub(_vllm_sub, rest)
 
     # 4a) Qwen3 dengan <function=NAME> (BUG FIX 2026-10-04, bug 1).
     #     Satu blok <tool_call> bisa memuat satu atau lebih <function=NAME>.
@@ -244,7 +265,12 @@ def _match_all(text: str) -> tuple[list[dict], str]:
                 return ""
         return m.group(0)
 
-    rest = _FN_BLOCK.sub(_fn_block_sub, rest)
+    # Prefilter cukup `<tool_call>`: blok ini menangani DUA bentuk — ber-
+    # `<function=NAME>` maupun Hermes (`{"name":...,"arguments":...}`) yang tidak
+    # punya `<function=` sama sekali. Menambahkan syarat `has_fn` di sini akan
+    # melewatkan bentuk Hermes.
+    if has_xml:
+        rest = _FN_BLOCK.sub(_fn_block_sub, rest)
 
     # 4b) Qwen3-Coder lama: <tool_call>{...}</tool_call> tanpa wrapper.
     def _qwen_sub(m: re.Match) -> str:
@@ -259,7 +285,7 @@ def _match_all(text: str) -> tuple[list[dict], str]:
         args = raw_args if isinstance(raw_args, dict) else _loads_lenient(str(raw_args))
         calls.append({"name": name, "args": args or {}})
         return ""
-    rest = _QWEN.sub(_qwen_sub, rest)
+    rest = _QWEN.sub(_qwen_sub, rest) if has_xml else rest
 
     # 4c) JSON di dalam code fence (cline PR #11272).
     _FENCED = re.compile(r"```(?:json|tool_call)?\s*\n(.*?)```", re.DOTALL)
@@ -283,7 +309,7 @@ def _match_all(text: str) -> tuple[list[dict], str]:
             return ""
         return m.group(0)
 
-    rest = _FENCED.sub(_fenced_sub, rest)
+    rest = _FENCED.sub(_fenced_sub, rest) if has_fence else rest
 
     return calls, rest
 

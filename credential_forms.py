@@ -318,8 +318,8 @@ def save_vault_credential(user_email: str, vault_provider: str,
         raise ValueError("Gagal menyimpan credential ke vault.")
 
 
-def load_vault_credential(user_email: str, vault_provider: str) -> dict | None:
-    """Baca credential multi-field dari vault. None bila belum ada / rusak."""
+def load_vault_credential_uncached(user_email: str, vault_provider: str) -> dict | None:
+    """Baca credential multi-field dari vault (DB + dekripsi + parse). None bila belum ada."""
     import database as db
     import vault_security as vs
 
@@ -331,6 +331,18 @@ def load_vault_credential(user_email: str, vault_provider: str) -> dict | None:
     except Exception:  # noqa: BLE001 - vault rusak/rotasi kunci
         return None
     return data if isinstance(data, dict) else None
+
+
+def load_vault_credential(user_email: str, vault_provider: str) -> dict | None:
+    """Versi ber-cache dari pembacaan vault.
+
+    Urutan aslinya (query Supabase + Fernet decrypt + JSON parse) dijalankan
+    berkali-kali dalam satu alur — lihat `vault_cache`. Cache di-invalidate saat
+    kredensial disimpan/dihapus, jadi user yang baru mengisi form langsung
+    terlihat statusnya.
+    """
+    import vault_cache
+    return vault_cache.load_vault_credential_cached(user_email, vault_provider)
 
 
 def has_credential(user_email: str, provider: str) -> bool:

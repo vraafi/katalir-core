@@ -30,6 +30,7 @@ load_repo_env()
 
 import database as db
 import gemini_key_pool
+import mcp_tool_cache
 import model_discovery as md
 import workflow_autofix as _wf_autofix
 import security
@@ -449,54 +450,25 @@ from credential_forms import credential_catalog as _credential_catalog
 # KENAPA TIDAK DIAMBIL LANGSUNG DI SINI: `initialize` ke gateway terukur
 # 8-13 detik (fan-out ke target stdio npx/uvx). System prompt dibangun pada
 # SETIAP request, jadi pengambilan sinkron akan menambah belasan detik ke setiap
-# chat. Karena itu cache diisi oleh THREAD LATAR; request hanya membaca cache
-# dan boleh mendapat string kosong pada detik-detik pertama setelah cold start.
-_MCP_CATALOG: dict[str, Any] = {"ts": 0.0, "text": ""}
-_MCP_CATALOG_TTL = 300.0
-_MCP_CATALOG_LOCK = threading.Lock()
-_MCP_CATALOG_BUSY = False
-
-
-def _refresh_mcp_catalog() -> None:
-    """Isi cache katalog (dijalankan di thread latar; tidak pernah melempar)."""
-    global _MCP_CATALOG_BUSY
-    try:
-        from mcp_gateway.client import GatewayClient
-        tools = GatewayClient().list_tools_sync()
-        names = [str(t.get("name") or "") for t in tools if t.get("name")]
-        if names:
-            text = (
-                "\nKATALOG TOOL MCP (nama PERSIS seperti ini, "
-                f"{len(names)} tool tersedia):\n"
-                + ", ".join(names)
-                + "\n"
-            )
-        else:
-            text = ""
-        with _MCP_CATALOG_LOCK:
-            _MCP_CATALOG["text"] = text
-            _MCP_CATALOG["ts"] = time.time()
-    except Exception:  # noqa: BLE001 - gateway mati tidak boleh mematikan chat
-        with _MCP_CATALOG_LOCK:
-            _MCP_CATALOG["ts"] = time.time()   # backoff sebelum coba lagi
-    finally:
-        with _MCP_CATALOG_LOCK:
-            _MCP_CATALOG_BUSY = False
-
-
+# chat. Karena itu pembacaan HANYA dari cache, dan refresh dijalankan di thread
+# latar (`mcp_tool_cache.refresh_async`). Cache-nya dipakai bersama endpoint
+# `/mcp/gateway/servers` supaya hanya ada SATU sumber kebenaran, dan supaya satu
+# refresh melayani chat + UI sekaligus (tiap panggilan gateway membuat sesi baru
+# yang men-spawn satu set proses stdio di VPS).
 def mcp_gateway_catalog_text() -> str:
-    """Teks katalog dari cache; picu refresh latar bila sudah basi. Tak memblokir."""
-    global _MCP_CATALOG_BUSY
-    now = time.time()
-    with _MCP_CATALOG_LOCK:
-        fresh = (now - float(_MCP_CATALOG["ts"])) < _MCP_CATALOG_TTL
-        text = str(_MCP_CATALOG["text"])
-        need = (not fresh) and not _MCP_CATALOG_BUSY
-        if need:
-            _MCP_CATALOG_BUSY = True
-    if need:
-        threading.Thread(target=_refresh_mcp_catalog, daemon=True).start()
-    return text
+    """Teks katalog dari cache bersama; picu refresh latar bila basi. Tak memblokir."""
+    if not mcp_tool_cache.is_fresh():
+        mcp_tool_cache.refresh_async()
+    names = [str(t.get("name") or "") for t in mcp_tool_cache.cached_tools()
+             if t.get("name")]
+    if not names:
+        return ""
+    return (
+        "\nKATALOG TOOL MCP (nama PERSIS seperti ini, "
+        f"{len(names)} tool tersedia):\n"
+        + ", ".join(names)
+        + "\n"
+    )
 
 
 _AGENT_SYSTEM = (
@@ -2394,13 +2366,26 @@ async def mcp_gateway_health(authorization: str | None = Header(None)):
         return {"status": "unreachable"}
 
 @app.get("/mcp/gateway/servers")
-def mcp_gateway_servers(authorization: str | None = Header(None)):
-    from mcp_gateway.client import GatewayClient
+def mcp_gateway_servers(authorization: str | None = Header(None), refresh: int = 0):
+    """Katalog tool MCP gateway — dilayani dari cache, BUKAN 503 saat gateway gagal.
+
+    Sebelumnya endpoint ini memanggil gateway pada SETIAP request (8-13 detik)
+    dan membalas 503 begitu gateway tidak bisa dihubungi. Terbukti di produksi:
+    saat guard VPS me-restart agentgateway, satu panggilan langsung 503 —
+    padahal daftar tool hampir tidak pernah berubah. Sekarang:
+      * cache segar (< TTL) -> dilayani seketika, tanpa menyentuh gateway;
+      * gateway gagal tetapi ada cache -> balas 200 dengan `source="stale"`;
+      * hanya 503 bila memang belum ada data sama sekali.
+    `?refresh=1` memaksa pengambilan ulang dari gateway.
+    """
     security.get_current_user(authorization)
-    try:
-        return {"tools": GatewayClient().list_tools_sync()}
-    except Exception as exc:  # noqa: BLE001
-        raise HTTPException(503, f"Gateway tidak tersedia: {type(exc).__name__}")
+    out = mcp_tool_cache.get_tools(force_refresh=bool(refresh))
+    if out["source"] == "none":
+        raise HTTPException(503, f"Gateway tidak tersedia: {out['error']}")
+    return {"tools": out["tools"], "source": out["source"],
+            "age_s": round(float(out["age_s"]), 1),
+            "warning": (f"data cache; gateway gagal: {out['error']}"
+                        if out["source"] == "stale" else "")}
 
 class GatewayCallRequest(BaseModel):
     server_id: str | None = None

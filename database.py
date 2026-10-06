@@ -710,11 +710,13 @@ def vault_save(email: str, provider: str, encrypted_key: str) -> bool:
                 c.table("user_vault").insert({"email": email,
                                               "provider": provider,
                                               "encrypted_key": encrypted_key}).execute()
+            _invalidate_vault_cache(email, provider)
             return True
     except Exception:
         pass
     # Fallback in-memory (ei persist restartin yli, vain demo).
     _LVAULT.setdefault(email, {})[provider] = encrypted_key
+    _invalidate_vault_cache(email, provider)
     return True
 
 
@@ -753,7 +755,22 @@ def vault_delete(email: str, provider: str) -> bool:
         print(f"[database] vault_delete gagal ({type(exc).__name__})")
     _LVAULT.get(email, {}).pop(provider, None)
     _LINT.pop((email, provider), None)
+    _invalidate_vault_cache(email, provider)
     return removed
+
+
+def _invalidate_vault_cache(email: str, provider: str) -> None:
+    """Buang cache kredensial user ini.
+
+    WAJIB dipanggil setiap kali vault berubah: tanpa ini user yang baru mengisi
+    form kredensial masih terlihat "belum terhubung" sampai TTL cache habis.
+    Kegagalan invalidasi tidak boleh menggagalkan operasi vault.
+    """
+    try:
+        import vault_cache
+        vault_cache.invalidate(email, provider)
+    except Exception:  # noqa: BLE001
+        pass
 
 
 def vault_list(email: str) -> list[dict]:
