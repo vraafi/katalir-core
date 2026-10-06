@@ -28,8 +28,8 @@ Setiap entri punya bukti mentah; berkas berprefix `_ops_*` = artefak audit (giti
 | VPS proses MCP terlantar | 0-13 (sebelumnya memuncak di 138 → RAM habis) |
 | VPS memori tersedia | 1.436-1.845 MB (sebelumnya 7 MB) |
 | VPS load | 0,0-0,4 (sebelumnya 55) |
-| pytest | 947 passed |
-| Commit aktif Railway | `94e27c4` (deployment `9c3a2750` SUCCESS) |
+| pytest | 952 passed |
+| Commit aktif Railway | `1503641` (deployment `de92a6be` SUCCESS) |
 
 ---
 
@@ -94,6 +94,18 @@ Setiap entri punya bukti mentah; berkas berprefix `_ops_*` = artefak audit (giti
   `127.0.0.1` dan `169.254.169.254`. Diperiksa lebih dalam: `tools.http_request`
   **menolaknya**, jadi bukan celah yang bisa dieksploitasi — tetapi gerbang harus
   gagal-tertutup lebih dulu. Diperbaiki → **20/20 diblokir**.
+
+### 02:5x UTC — TEMUAN TERBESAR: probe kesehatan kita sendiri yang bocor
+- Diukur: **setiap `GET /mcp/gateway/health` menambah TEPAT 13 proses** dan ~330 MB.
+  3 pemeriksaan: `mcp_procs 26 -> 39 -> 52 -> 65`,
+  `mem_available 1211 -> 884 -> 555 -> 303 MB`.
+- Sebabnya `mcp_gateway/client.py::health()`: kirim `initialize`, **tanpa `DELETE`**.
+  Gateway men-spawn satu set target per sesi dan hanya mereap saat sesi ditutup.
+  Endpoint kesehatan dipanggil berkala -> bocor menumpuk tanpa pengguna menyentuh
+  MCP -> guard menembus 60 proses -> restart -> 503. Lingkaran setan yang akhirnya putus.
+- Perbaikan: `health()` mengirim `DELETE` memakai `Mcp-Session-Id` dari jawaban
+  (hanya bila `initialize` berhasil). Sesudah deploy: **`DELTA = +0`** untuk 3
+  pemeriksaan, memori stabil ~1840 MB.
 
 ### 02:4x UTC — Verifikasi & deploy
 - pytest final: **947 passed** (12 failed + 2 error = 13 pra-eksisting/lingkungan).

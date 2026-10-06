@@ -1,0 +1,111 @@
+{
+  "frontend": {
+    "/.env": {
+      "code": 404,
+      "body_len": 0
+    },
+    "/.env.local": {
+      "code": 404,
+      "body_len": 0
+    },
+    "/.env.production": {
+      "code": 404,
+      "body_len": 0
+    },
+    "/.git/config": {
+      "code": 404,
+      "body_len": 0
+    },
+    "/.git/HEAD": {
+      "code": 404,
+      "body_len": 0
+    },
+    "/config.json": {
+      "code": 404,
+      "body_len": 0
+    },
+    "/secrets.json": {
+      "code": 404,
+      "body_len": 0
+    },
+    "/api/keys": {
+      "code": 404,
+      "body_len": 0
+    },
+    "/debug": {
+      "code": 404,
+      "body_len": 0
+    },
+    "/actuator/env": {
+      "code": 404,
+      "body_len": 0
+    },
+    "/server-status": {
+      "code": 404,
+      "body_len": 0
+    },
+    "/wp-admin": {
+      "code": 404,
+      "body_len": 0
+    },
+    "/.aws/credentials": {
+      "code": 404,
+      "body_len": 0
+    }
+  },
+  "backend": {
+    "/.env": {
+      "code": 404,
+      "body_len": 0
+    },
+    "/.env.local": {
+      "code": 404,
+      "body_len": 0
+    },
+    "/.env.production": {
+      "code": 404,
+      "body_len": 0
+    },
+    "/.git/config": {
+      "code": 404,
+      "body_len": 0
+    },
+    "/.git/HEAD": {
+      "code": 404,
+      "body_len": 0
+    },
+    "/config.json": {
+      "code": 404,
+      "body_len": 0
+    },
+    "/secrets.json": {
+      "code": 404,
+      "body_len": 0
+    },
+    "/api/keys": {
+      "code": 404,
+      "body_len": 0
+    },
+    "/debug": {
+      "code": 404,
+      "body_len": 0
+    },
+    "/actuator/env": {
+      "code": 404,
+      "body_len": 0
+    },
+    "/server-status": {
+      "code": 404,
+      "body_len": 0
+    },
+    "/wp-admin": {
+      "code": 404,
+      "body_len": 0
+    },
+    "/.aws/credentials": {
+      "code": 404,
+      "body_len": 0
+    }
+  },
+  "exposed_200": []
+}

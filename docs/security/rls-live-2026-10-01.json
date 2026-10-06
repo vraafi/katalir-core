@@ -1,0 +1,126 @@
+{
+ "rowsecurity": [
+  {
+   "tablename": "chat_messages",
+   "rowsecurity": true
+  },
+  {
+   "tablename": "chat_sessions",
+   "rowsecurity": true
+  },
+  {
+   "tablename": "community_earnings",
+   "rowsecurity": true
+  },
+  {
+   "tablename": "community_integrations",
+   "rowsecurity": true
+  },
+  {
+   "tablename": "execution_logs",
+   "rowsecurity": true
+  },
+  {
+   "tablename": "executions",
+   "rowsecurity": true
+  },
+  {
+   "tablename": "payment_events",
+   "rowsecurity": true
+  },
+  {
+   "tablename": "roster_cache",
+   "rowsecurity": true
+  },
+  {
+   "tablename": "user_balances",
+   "rowsecurity": true
+  },
+  {
+   "tablename": "user_integrations",
+   "rowsecurity": true
+  },
+  {
+   "tablename": "user_mcp_instances",
+   "rowsecurity": true
+  },
+  {
+   "tablename": "user_preferences",
+   "rowsecurity": true
+  },
+  {
+   "tablename": "user_usage",
+   "rowsecurity": true
+  },
+  {
+   "tablename": "user_vault",
+   "rowsecurity": true
+  },
+  {
+   "tablename": "users",
+   "rowsecurity": true
+  },
+  {
+   "tablename": "workflows",
+   "rowsecurity": true
+  }
+ ],
+ "policies": [
+  {
+   "tablename": "community_earnings",
+   "policyname": "community_earnings_own_read",
+   "cmd": "SELECT",
+   "roles": "{public}",
+   "qual": "(developer_id = auth.uid())",
+   "with_check": ""
+  },
+  {
+   "tablename": "community_integrations",
+   "policyname": "community_integrations_own_update",
+   "cmd": "UPDATE",
+   "roles": "{public}",
+   "qual": "(developer_id = auth.uid())",
+   "with_check": "((developer_id = auth.uid()) AND (status <> 'approved'::text))"
+  },
+  {
+   "tablename": "community_integrations",
+   "policyname": "community_integrations_own_write",
+   "cmd": "INSERT",
+   "roles": "{public}",
+   "qual": "",
+   "with_check": "(developer_id = auth.uid())"
+  },
+  {
+   "tablename": "community_integrations",
+   "policyname": "community_integrations_public_read",
+   "cmd": "SELECT",
+   "roles": "{public}",
+   "qual": "(status = 'approved'::text)",
+   "with_check": ""
+  },
+  {
+   "tablename": "user_mcp_instances",
+   "policyname": "users manage own mcp instances",
+   "cmd": "ALL",
+   "roles": "{public}",
+   "qual": "(auth.uid() = user_id)",
+   "with_check": "(auth.uid() = user_id)"
+  },
+  {
+   "tablename": "user_preferences",
+   "policyname": "user_own_prefs",
+   "cmd": "ALL",
+   "roles": "{public}",
+   "qual": "(user_email = (auth.jwt() ->> 'email'::text))",
+   "with_check": "(user_email = (auth.jwt() ->> 'email'::text))"
+  },
+  {
+   "tablename": "workflows",
+   "policyname": "workflows_owner_all",
+   "cmd": "ALL",
+   "roles": "{public}",
+   "qual": "(auth.uid() = user_id)",
+   "with_check": "(auth.uid() = user_id)"
+  }
+ ]
+}

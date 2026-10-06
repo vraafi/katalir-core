@@ -1,0 +1,107 @@
+{
+  "results": [
+    {
+      "method": "GET",
+      "path": "/me",
+      "code": 401,
+      "body_len": 55
+    },
+    {
+      "method": "GET",
+      "path": "/preferences",
+      "code": 401,
+      "body_len": 55
+    },
+    {
+      "method": "GET",
+      "path": "/quota",
+      "code": 401,
+      "body_len": 55
+    },
+    {
+      "method": "GET",
+      "path": "/analytics",
+      "code": 401,
+      "body_len": 55
+    },
+    {
+      "method": "GET",
+      "path": "/sessions",
+      "code": 401,
+      "body_len": 55
+    },
+    {
+      "method": "GET",
+      "path": "/api/vault/list",
+      "code": 401,
+      "body_len": 55
+    },
+    {
+      "method": "GET",
+      "path": "/workflows",
+      "code": 401,
+      "body_len": 55
+    },
+    {
+      "method": "GET",
+      "path": "/integrations",
+      "code": 405,
+      "body_len": 31
+    },
+    {
+      "method": "GET",
+      "path": "/community/my-earnings",
+      "code": 401,
+      "body_len": 55
+    },
+    {
+      "method": "GET",
+      "path": "/mcp/my-instances",
+      "code": 401,
+      "body_len": 55
+    },
+    {
+      "method": "GET",
+      "path": "/mcp/gateway/servers",
+      "code": 401,
+      "body_len": 55
+    },
+    {
+      "method": "POST",
+      "path": "/chat",
+      "code": 422,
+      "body_len": 112
+    },
+    {
+      "method": "POST",
+      "path": "/api/vault/save",
+      "code": 401,
+      "body_len": 55
+    },
+    {
+      "method": "POST",
+      "path": "/workflows",
+      "code": 401,
+      "body_len": 55
+    },
+    {
+      "method": "POST",
+      "path": "/integrations",
+      "code": 422,
+      "body_len": 106
+    },
+    {
+      "method": "POST",
+      "path": "/mcp/install",
+      "code": 422,
+      "body_len": 108
+    },
+    {
+      "method": "GET",
+      "path": "/models",
+      "code": 401,
+      "body_len": 55
+    }
+  ],
+  "unauthenticated_200": []
+}

@@ -16,11 +16,11 @@ Basis commit: `cb9b7a6` → **`94e27c4`** (semua di-push, deployment `9c3a2750` 
 
 | Task | Status | Bukti | Catatan |
 |---|---|---|---|
-| **Task 1: VPS leak fix** | ⚠️ **sebagian** | `REAPED=44`, `procs=0`, mem 750→1852 MB; guard v2 aktif | **Upgrade 1.6.0 DIBATALKAN dengan alasan** — changelog tidak memuat perbaikan leak. Akar masalah ditemukan & dimitigasi presisi. Lihat §Task 1. |
-| **Task 2: Chaos test** | ✅ | `docs/chaos-test-results-2026-10-06.md`; 20/20 security blocked; 8/10 workflow | 4 temuan, 2 diperbaiki malam ini (F1, F3) |
-| **Task 3: Performance** | ✅ | 3 modul + 44 test baru | vault 54,3→5,8 ms; parser 1,5→0,1 ms; katalog 11 s→ms + 503→stale |
+| **Task 1: VPS leak fix** | ✅ **akar masalah diperbaiki** | health probe `DELTA = +0` (sebelumnya **+13/probe**); reaper `REAPED=44`; guard v2 aktif | **Upgrade 1.6.0 DIBATALKAN dengan alasan.** Penyebab sebenarnya ditemukan: `GET /mcp/gateway/health` bocor 13 proses tiap panggilan. Diperbaiki di `1503641`. Lihat §Task 1. |
+| **Task 2: Chaos test** | ✅ | `docs/chaos-test-results-2026-10-06.md`; 20/20 security blocked; 8/10 workflow | 4 temuan, 3 diperbaiki malam ini (F1, F3, F4) |
+| **Task 3: Performance** | ✅ | 3 modul + 49 test baru | vault 54,3→5,8 ms; parser 1,5→0,1 ms; katalog 11 s→ms + 503→stale |
 | **Task 4: Monitoring** | ✅ (bukan loop 8 jam) | `docs/overnight-log-2026-10-06.md`; `_ops_monitor.py` | 3/3 cek produksi OK; tidak ada anomali perlu rollback |
-| **Task 5: Test failures** | ✅ (target terlampaui) | pytest **947 passed** (baseline 833) | Target "-20 dari 43" → **-32 tercapai** lewat akar masalah, bukan menambal test |
+| **Task 5: Test failures** | ✅ (target terlampaui) | pytest **952 passed** (baseline 833) | Target "-20 dari 43" → **-32 tercapai** lewat akar masalah, bukan menambal test |
 | **Task 6: Launch playbook** | ✅ | `docs/marketing/product-hunt/launch-day-playbook-2026-10-07.md` | Timeline, template respons, thread sosial, prosedur darurat |
 
 ---
@@ -48,15 +48,17 @@ secara harfiah.
 |---|---|
 | `222c234` | `perf(mcp,vault,parser)`: cache kredensial + cache katalog MCP (stale-fallback) + prefilter parser |
 | `94e27c4` | `fix(security)`: gerbang tolak SSRF host internal/metadata |
+| `bdd4299` | `docs(overnight)`: chaos results, log pemantauan, playbook, laporan akhir |
+| `1503641` | `fix(mcp)`: `health()` wajib menutup sesi (bocor 13 proses / probe) |
 
 (Commit sesi sebelumnya yang juga sudah live: `6524931`, `52a77eb`, `14f9af5`,
 `f62f193`, `c1c86ca`, `936a472`, `cb9b7a6`.)
 
-Deployment: `10e506e0` → `d397307c` → `4515de3c` → **`9c3a2750` (aktif, `94e27c4`)** — semua SUCCESS.
+Deployment: `10e506e0` → `d397307c` → `4515de3c` → `9c3a2750` → `4b0e3ad9` → **`de92a6be` (aktif, `1503641`)** — semua SUCCESS.
 
 ---
 
-## Task 1 — mengapa upgrade agentgateway DIBATALKAN
+## Task 1 — akar masalah DITEMUKAN dan diperbaiki
 
 Brief meminta upgrade 1.5.0 → 1.6.0 dengan alasan *"1.6.0 punya
 `statefulMode: stateless` yang fix leak"*. Saya memeriksa sebelum melakukannya:
@@ -67,37 +69,69 @@ Brief meminta upgrade 1.5.0 → 1.6.0 dengan alasan *"1.6.0 punya
    reap untuk target stdio. Bagian MCP-nya hanya: data CEL, override `serverInfo`,
    SSE keep-alive, batas ukuran request.
 3. **Premisnya juga salah**: gateway 1.5.0 **sudah mereap** anak stdio saat sesi
-   ditutup benar — `delta_per_sesi = 0` pada 3 sesi berurutan.
+   ditutup benar — `delta_per_sesi = 0` pada 3 sesi berurutan
+   (`initialize` → `tools/list` → `DELETE`).
 
 Karena itu saya **tidak** mengganti binary gateway yang sedang melayani produksi
 malam sebelum launch, tanpa bukti manfaat dan dengan breaking changes yang
-terdokumentasi. Sebagai gantinya, akar masalah sebenarnya diperbaiki:
+terdokumentasi. Sebagai gantinya akar masalahnya saya cari, dan ketemu.
 
-**Akar masalah:** sesi MCP yang **tidak pernah ditutup** meninggalkan satu set
-lengkap target stdio (5 pembungkus + anak ≈ 10-13 proses) sebagai anak
+### Penyebab sebenarnya #1 — probe kesehatan kita sendiri (temuan terbesar malam ini)
+
+**Setiap `GET /mcp/gateway/health` membocorkan tepat 13 proses dan ~330 MB.**
+
+```
+SEBELUM perbaikan (mcp_procs / mem_available):
+  awal 26 / 1211 MB  ->  #1 39 / 884 MB  ->  #2 52 / 555 MB  ->  #3 65 / 303 MB
+  DELTA = +39 proses untuk 3 pemeriksaan  (~13,0 per pemeriksaan)
+```
+
+Sebabnya: `mcp_gateway/client.py::health()` mengirim `initialize` lewat httpx lalu
+**selesai tanpa `DELETE`**. Gateway men-spawn satu set target stdio **per sesi** dan
+hanya mereapnya saat sesi ditutup. Karena endpoint kesehatan biasanya dipanggil
+**berkala** (load balancer, uptime monitor), kebocorannya menumpuk tanpa ada
+pengguna yang menyentuh MCP — lalu guard menembus ambang 60 proses dan
+me-restart gateway, yang **menyebabkan 503**.
+
+**Perbaikan (`1503641`)**: `health()` membaca header `Mcp-Session-Id` dari jawaban
+`initialize` lalu mengirim `DELETE`. DELETE hanya dikirim bila `initialize`
+BERHASIL (probe gagal tidak membuat sesi, jadi tidak menambah trafik tepat saat
+gateway bermasalah), dan kegagalan DELETE tidak mengubah hasil probe.
+
+**Bukti sesudah perbaikan (produksi, 3 pemeriksaan):**
+```
+awal 0 / 1849 MB  ->  #1 0 / 1844 MB  ->  #2 0 / 1846 MB  ->  #3 0 / 1848 MB
+DELTA = +0 proses untuk 3 pemeriksaan  (~0,0 per pemeriksaan)
+```
+
+### Penyebab sebenarnya #2 — sesi terlantar dari klien mana pun (mitigasi)
+
+Sesi MCP yang **tidak pernah ditutup** (klien timeout/mati, atau skrip diagnostik
+yang hanya `initialize`) meninggalkan satu set lengkap target stdio sebagai anak
 agentgateway, dan agentgateway 1.5.0 tidak punya GC untuk sesi menganggur.
 Terukur: 4 set berumur 12/18/24/29 menit sekaligus, memuncak 138 proses → RAM
 tersisa 7 MB → load 55.
 
-**Perbaikan (guard v2, berbasis reaper):**
-* Membunuh **hanya** set terlantar (anak langsung agentgateway, umur > 10 menit).
-  Set yang masih melayani tidak disentuh — beda dengan guard v1 yang me-restart
-  service dan terbukti menyebabkan 503.
-* Restart service dipertahankan sebagai jaring terakhir (procs > 60 atau mem < 200 MB).
-* **Terbukti**: 2 sesi sengaja ditelantarkan → 32 proses; reaper → `REAPED=44`,
-  `procs=0`, memori 750 → 1.852 MB; sesi MCP berikutnya tetap melayani 44 tool.
-* Guard v1 disimpan di `agentgateway-guard.sh.v1.bak` untuk rollback.
+**Guard v2 (reaper)** membunuh **hanya** set terlantar (anak langsung
+agentgateway, umur > 10 menit) — set yang masih melayani tidak disentuh. Guard v1
+me-restart service dan terbukti menyebabkan 503 (restart 01:26:59 → `/mcp/gateway/servers`
+membalas 503). Restart tetap ada sebagai jaring terakhir (procs > 60 atau mem < 200 MB).
 
-**Rekomendasi pasca-launch:** uji 1.6.0 di lingkungan terpisah, ukur apakah
-jumlah proses setelah 100 sesi lebih baik. Bila tidak, pertahankan reaper dan
-naikkan `IDLE_MINUTES` sesuai pola trafik nyata.
+**Terbukti**: 2 sesi sengaja ditelantarkan → 32 proses; reaper → `REAPED=44`,
+`procs=0`, memori 750 → 1.852 MB; sesi MCP berikutnya tetap melayani 44 tool.
+Guard v1 disimpan di `/opt/agentgateway/agentgateway-guard.sh.v1.bak`.
+
+### Rekomendasi pasca-launch
+Uji 1.6.0 di lingkungan terpisah, ukur jumlah proses setelah 100 sesi. Bila tidak
+lebih baik, pertahankan reaper dan sesuaikan `IDLE_MINUTES` dengan pola trafik
+nyata.
 
 ---
 
 ## Task 5 — dari 43 kegagalan menjadi 13
 
 Baseline sesi sebelumnya: **43 failed / 833 passed** (commit `065fc73`).
-Sekarang: **12 failed + 2 error / 947 passed**.
+Sekarang: **12 failed + 2 error / 952 passed**.
 
 Target brief "perbaiki minimal 20 dari 43" → **32 kegagalan hilang**, dan
 diperoleh dengan **memperbaiki akar masalah, bukan mengubah test**:

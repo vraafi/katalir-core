@@ -11,7 +11,7 @@ Ringkasan: **4 temuan nyata**, 1 di antaranya sudah diperbaiki malam ini.
 | F1 | Gerbang kebijakan meloloskan SSRF ke host internal/metadata | sedang (pertahanan-berlapis) | **DIPERBAIKI** (`94e27c4`) |
 | F2 | Burst request menghabiskan kuota RPM semua kunci → 503 ~49-60 s | sedang (operasional) | dilaporkan + mitigasi di playbook |
 | F3 | `GET /mcp/gateway/servers` 503 saat gateway tidak bisa dihubungi / guard restart | **tinggi** (user-visible) | **DIPERBAIKI** (`222c234`) |
-| F4 | VPS: set proses stdio tertinggal dari sesi MCP yang tidak ditutup | tinggi (kapasitas) | **DIPERBAIKI** (reaper, §Task 1) |
+| F4 | **`GET /mcp/gateway/health` bocor 13 proses + ~330 MB tiap panggilan** (initialize tanpa DELETE) | **kritis** (kapasitas, berulang) | **DIPERBAIKI** (`1503641`) |
 
 ---
 
