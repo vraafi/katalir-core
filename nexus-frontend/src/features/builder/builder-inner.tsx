@@ -337,7 +337,11 @@ export function BuilderInner() {
         </aside>
       )}
 
-      {/* Mobile: palette bottom-sheet (drag-up) + panel konfigurasi sebagai sheet. */}
+      {/* Mobile: palette bottom-sheet (drag-up) + panel konfigurasi sebagai sheet.
+          `lg:hidden` WAJIB: tanpa itu sheet ini juga terbuka di desktop,
+          menduplikasi ConfigPanel di samping `config-aside` DAN memasang
+          overlay gelap `bg-black/40` di atas kanvas (bug pra-eksisting yang
+          terlihat di screenshot). Komentar di atas sudah menyebut "Mobile". */}
       <PaletteSheet
         onAddNode={addNode}
         onClear={() => {
@@ -356,6 +360,8 @@ export function BuilderInner() {
         side="bottom"
         title="Konfigurasi Node"
         description={selectedNode ? (selectedNode.data?.label ?? selectedNode.data?.kind) : undefined}
+        className="lg:hidden"
+        overlayClassName="lg:hidden"
       >
         {selectedNode && (
           <div data-testid="config-panel-host">

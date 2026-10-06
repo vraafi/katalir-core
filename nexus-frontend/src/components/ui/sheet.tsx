@@ -12,6 +12,8 @@ export function Sheet({
   description,
   children,
   side = "right",
+  className,
+  overlayClassName,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -19,11 +21,25 @@ export function Sheet({
   description?: string;
   children: React.ReactNode;
   side?: "right" | "bottom";
+  /**
+   * Kelas tambahan untuk panel (Content). Dipakai pemanggil yang ingin
+   * membatasi sheet ke breakpoint tertentu, mis. `lg:hidden` untuk sheet yang
+   * hanya relevan di ponsel.
+   */
+  className?: string;
+  /** Kelas tambahan untuk overlay — pasangan `className`, karena overlay gelap
+   *  juga harus disembunyikan bila panelnya disembunyikan. */
+  overlayClassName?: string;
 }) {
   return (
     <DialogPrimitive.Root open={open} onOpenChange={onOpenChange} modal={false}>
       <DialogPrimitive.Portal>
-        <DialogPrimitive.Overlay className="fixed inset-0 z-[70] bg-black/40 backdrop-blur-sm data-[state=open]:animate-fade-in" />
+        <DialogPrimitive.Overlay
+          className={cn(
+            "fixed inset-0 z-[70] bg-black/40 backdrop-blur-sm data-[state=open]:animate-fade-in",
+            overlayClassName
+          )}
+        />
         <DialogPrimitive.Content
           role="dialog"
           aria-modal="true"
@@ -33,7 +49,8 @@ export function Sheet({
             side === "right" &&
               "inset-y-0 right-0 h-full w-full max-w-md border-l border-border p-6",
             side === "bottom" &&
-              "inset-x-0 bottom-0 max-h-[85vh] rounded-t-lg border-t border-border p-6"
+              "inset-x-0 bottom-0 max-h-[85vh] rounded-t-lg border-t border-border p-6",
+            className
           )}
         >
           <div className="mb-4 flex items-start justify-between gap-4">

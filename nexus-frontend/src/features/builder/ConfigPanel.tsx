@@ -2,9 +2,10 @@
 
 import { useState } from "react";
 import { motion } from "motion/react";
-import { Check, Copy } from "lucide-react";
+import { Check, Copy, Loader2 } from "lucide-react";
 import dynamic from "next/dynamic";
 import { META, type FlowNode } from "./types";
+import { useMcpTools } from "./useMcpTools";
 import { springPanel } from "@/components/motion";
 
 /**
@@ -65,6 +66,45 @@ export function ConfigPanel({
   const Icon = meta.Icon;
   const cfg = data?.config ?? {};
   const [copied, setCopied] = useState(false);
+
+  // Katalog tool MCP hanya diambil untuk node mcp (node trigger/agent tidak
+  // butuh), dan di-cache di modul supaya berpindah node tidak memicu fetch
+  // 13 detik lagi.
+  const { tools: gatewayTools, state: toolsState, reload: reloadTools } = useMcpTools(kind === "mcp");
+  const knownToolNames = new Set<string>([
+    "web_search",
+    "http_request",
+    ...gatewayTools.map((t) => t.name),
+  ]);
+  const isGatewayTool = Boolean(cfg.tool) && gatewayTools.some((t) => t.name === cfg.tool);
+
+  /**
+   * Pilih tool: set `tool`, lalu tentukan JALUR EKSEKUSINYA lewat `provider`.
+   *
+   * Ini bagian yang membuat pilihan user benar-benar berjalan: node mcp dengan
+   * provider `gateway` dirutekan ke jembatan katalog MCP
+   * (`provider_registry`), sedangkan tool bawaan tetap di jalur lama.
+   * `provider: ""` aman — pembaca config memperlakukan string kosong sebagai
+   * "tidak disebut", sama seperti key yang tidak ada.
+   */
+  function onPickTool(name: string) {
+    setNodeCfg("tool", name);
+    setNodeCfg("provider", gatewayTools.some((t) => t.name === name) ? "gateway" : "");
+  }
+
+  /**
+   * Parameter ditulis ke DUA key — dan itu disengaja:
+   *  - `arguments` dibaca jembatan gateway (dict ATAU JSON string; teks biasa
+   *    diperlakukan sebagai {"message": teks}),
+   *  - `tool_param` dibaca jalur tool bawaan (`execution_engine._exec_mcp`).
+   *
+   * Sebelumnya field ini hanya menulis `param`, yang **tidak dibaca siapa pun**
+   * (bug pra-eksisting: user mengetik parameter, eksekusi mengabaikannya).
+   */
+  function setParam(v: string) {
+    setNodeCfg("arguments", v);
+    setNodeCfg("tool_param", v);
+  }
 
   async function copyWebhook() {
     if (!workflowId) return;
@@ -217,16 +257,76 @@ export function ConfigPanel({
             <span style={LABEL_STYLE} className={LABEL_CLS}>
               Nama Tool (MCP)
             </span>
-            <select
-              className={FIELD_CLS}
-              style={FIELD_STYLE}
-              value={cfg.tool ?? ""}
-              onChange={(e) => setNodeCfg("tool", e.target.value)}
-            >
-              <option value="">-- Pilih tool --</option>
-              <option value="web_search">web_search</option>
-              <option value="http_request">http_request</option>
-            </select>
+            {toolsState === "loading" ? (
+              <p
+                className="mt-1 flex items-center gap-2 text-[11px]"
+                style={LABEL_STYLE}
+                data-testid="mcp-tools-loading"
+                role="status"
+                aria-live="polite"
+              >
+                <Loader2 size={12} className="animate-spin" aria-hidden />
+                Memuat katalog tool MCP…
+              </p>
+            ) : toolsState === "error" ? (
+              <div
+                className="mt-1 rounded-md border p-2 text-[11px] leading-snug"
+                style={{
+                  borderColor: "var(--node-warning-color, #f59e0b)",
+                  color: "var(--node-warning-color, #f59e0b)",
+                }}
+                data-testid="mcp-tools-error"
+                role="alert"
+              >
+                Gagal memuat tools. Coba refresh.
+                <button
+                  type="button"
+                  onClick={() => { void reloadTools(); }}
+                  className="ml-2 rounded border px-2 py-0.5 text-[11px] font-semibold"
+                  style={{ borderColor: "var(--node-warning-color, #f59e0b)" }}
+                  data-testid="mcp-tools-retry"
+                >
+                  Muat ulang
+                </button>
+              </div>
+            ) : (
+              <select
+                className={FIELD_CLS}
+                style={FIELD_STYLE}
+                value={cfg.tool ?? ""}
+                onChange={(e) => onPickTool(e.target.value)}
+                data-testid="mcp-tool-select"
+                data-gateway-tools={gatewayTools.length}
+              >
+                <option value="">-- Pilih tool --</option>
+                {/* Tool bawaan mesin (tanpa provider): tetap ada supaya workflow
+                    lama yang memakainya tidak kehilangan pilihannya. */}
+                <optgroup label="Bawaan (tanpa gateway)">
+                  <option value="web_search">web_search</option>
+                  <option value="http_request">http_request</option>
+                </optgroup>
+                {gatewayTools.length > 0 && (
+                  <optgroup label={`Katalog MCP gateway (${gatewayTools.length})`}>
+                    {gatewayTools.map((t) => (
+                      <option key={t.name} value={t.name} data-tool-source="gateway">
+                        {t.name}
+                      </option>
+                    ))}
+                  </optgroup>
+                )}
+                {/* Pilihan tersimpan yang tidak ada di katalog (mis. gateway
+                    sedang tidak dapat dijangkau) tetap ditampilkan, jangan
+                    sampai config user diam-diam hilang. */}
+                {cfg.tool && !knownToolNames.has(cfg.tool) && (
+                  <option value={cfg.tool}>{cfg.tool} (tidak di katalog)</option>
+                )}
+              </select>
+            )}
+            <span className={HINT_CLS} style={HINT_STYLE}>
+              {isGatewayTool
+                ? `Dijalankan lewat gateway MCP (provider=gateway, ${gatewayTools.length} tool tersedia).`
+                : "Tool bawaan dijalankan langsung oleh mesin Katalir."}
+            </span>
           </label>
           <label className="block">
             <span style={LABEL_STYLE} className={LABEL_CLS}>
@@ -234,10 +334,10 @@ export function ConfigPanel({
             </span>
             <div className="mt-1">
               <ExpressionEditor
-                value={cfg.param ?? ""}
-                placeholder="Query / JSON parameter... ketik {{ untuk variabel"
+                value={cfg.arguments ?? cfg.param ?? ""}
+                placeholder="JSON argumen (mis. {&quot;message&quot;: &quot;halo&quot;}) atau teks biasa... ketik {{ untuk variabel"
                 minHeight="80px"
-                onChange={(v) => setNodeCfg("param", v)}
+                onChange={(v) => setParam(v)}
               />
             </div>
           </label>

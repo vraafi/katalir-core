@@ -36,6 +36,32 @@ const MCP_TOOL = "everything_echo";
 const WF_NAME = "MCP Echo Harian";
 
 /**
+ * 44 nama tool MCP hasil `GET /mcp/gateway/servers` di produksi.
+ * Di-hardcode supaya spec deterministik (tidak bergantung gateway hidup) dan
+ * sekaligus mengunci bahwa UI memang menampilkan katalog sebesar itu.
+ */
+const GATEWAY_TOOLS = [
+  "everything_echo", "everything_get-annotated-message", "everything_get-env",
+  "everything_get-resource-links", "everything_get-resource-reference",
+  "everything_get-structured-content", "everything_get-sum",
+  "everything_get-tiny-image", "everything_gzip-file-as-resource",
+  "everything_toggle-simulated-logging", "everything_toggle-subscriber-updates",
+  "everything_trigger-long-running-operation", "everything_simulate-research-query",
+  "fetch_fetch", "memory_create_entities", "memory_create_relations",
+  "memory_add_observations", "memory_delete_entities", "memory_delete_observations",
+  "memory_delete_relations", "memory_read_graph", "memory_search_nodes",
+  "memory_open_nodes", "filesystem_read_file", "filesystem_read_text_file",
+  "filesystem_read_media_file", "filesystem_read_multiple_files",
+  "filesystem_write_file", "filesystem_edit_file", "filesystem_create_directory",
+  "filesystem_list_directory", "filesystem_list_directory_with_sizes",
+  "filesystem_directory_tree", "filesystem_move_file", "filesystem_search_files",
+  "filesystem_get_file_info", "filesystem_list_allowed_directories",
+  "time_get_current_time", "time_convert_time", "openconnector_list_apps",
+  "openconnector_list_connections", "openconnector_search_actions",
+  "openconnector_get_action_guide", "openconnector_execute_action",
+];
+
+/**
  * Payload `meta.workflow` persis seperti yang dipulangkan backend.
  *
  * `config` hanya boleh string/number/boolean (`parseAgentWorkflow` membuang
@@ -118,13 +144,19 @@ async function seed(page: Page) {
 }
 
 function isApi(req: Request): boolean {
-  return /^\/(chat|sessions|workflows|executions|preferences|api\/vault)/.test(
+  // `/mcp/...` WAJIB ikut: endpoint katalog tool gateway ada di prefix itu.
+  // Tanpa ini, fetch katalog lolos ke backend SUNGGUHAN
+  // (`NEXT_PUBLIC_API_URL` di-bake saat build) dan dijawab 401 -> panel
+  // menampilkan state error, bukan daftar tool (kegagalan run pertama).
+  return /^\/(chat|sessions|workflows|executions|preferences|api\/vault|mcp)/.test(
     new URL(req.url()).pathname,
   );
 }
 
 /** Stub backend: hanya jawaban yang dibutuhkan rantai render MCP. */
-async function stubApi(page: Page) {
+type Captured = { savedFlow?: { nodes?: Array<{ id: string; data?: { config?: Record<string, string> } }> } };
+
+async function stubApi(page: Page, captured: Captured = {}) {
   await page.route("**/*", async (route: Route) => {
     const req = route.request();
     if (!isApi(req)) return route.continue();
@@ -134,8 +166,27 @@ async function stubApi(page: Page) {
 
     if (path === "/sessions") return json(200, { sessions: [] });
     if (path === "/workflows" && req.method() === "GET") return json(200, { workflows: [] });
+    if (path === "/workflows" && req.method() === "POST") {
+      // Simpan payload apa adanya supaya test bisa MEMBUKTIKAN config yang
+      // benar-benar dikirim klien (bukan sekadar teks di layar).
+      const body = JSON.parse(req.postData() || "{}") as { flow_data?: Captured["savedFlow"] };
+      captured.savedFlow = body.flow_data ?? {};
+      return json(201, { workflow: { id: "wf-stub" }, updated: false });
+    }
     if (path === "/executions") return json(200, { executions: [] });
     if (path === "/preferences") return json(200, { preferences: {} });
+
+    // Katalog tool MCP gateway — endpoint NYATA (bukan /mcp/gateway/tools).
+    if (path === "/mcp/gateway/servers" && req.method() === "GET") {
+      return json(200, {
+        tools: GATEWAY_TOOLS.map((name) => ({
+          name,
+          title: name,
+          description: `Tool MCP ${name}`,
+          inputSchema: { type: "object", properties: {} },
+        })),
+      });
+    }
 
     if (path === "/chat" && req.method() === "POST") {
       return json(200, {
@@ -211,3 +262,80 @@ test("node MCP dari backend dirender di UI dan termuat ke kanvas", async ({ page
 
   await page.screenshot({ path: shot("canvas-node"), fullPage: true });
 });
+
+/**
+ * Pemilih tool MCP: katalog gateway harus muncul di ConfigPanel dan memilih
+ * sebuah tool harus MENGARAHKAN node ke jalur gateway (`provider=gateway`).
+ *
+ * Sebelum perbaikan, `<select>` di ConfigPanel hanya berisi DUA opsi hardcoded
+ * (`web_search`, `http_request`) sehingga 44 tool MCP yang benar-benar hidup di
+ * produksi tidak bisa dipilih user sama sekali.
+ */
+test("pemilih tool MCP menampilkan katalog gateway dan menyetel provider=gateway", async ({ page }) => {
+  test.setTimeout(180000);
+  mkdirSync(SHOTS, { recursive: true });
+
+  // Draf dimuat langsung dari localStorage supaya test ini tidak bergantung
+  // pada alur /chat (fokusnya panel konfigurasi).
+  await page.addInitScript(
+    (kv: { onb: string; locale: string; pending: string }) => {
+      try {
+        window.localStorage.setItem("katalir.onboarding.v1", kv.onb);
+        window.localStorage.setItem("katalir.locale.v1", kv.locale);
+        window.localStorage.setItem("katalir.workflow.pending.v1", kv.pending);
+      } catch { /* abaikan */ }
+    },
+    { onb: "done", locale: "id", pending: JSON.stringify(mcpWorkflow()) },
+  );
+  await seed(page);
+  await stubApi(page);
+
+  await page.goto("/builder", { waitUntil: "domcontentloaded" });
+  await page.waitForSelector(".react-flow", { timeout: 60000 });
+  await page.waitForTimeout(4000);
+
+  // Pilih node MCP -> ConfigPanel terbuka.
+  await page.locator('.react-flow__node[data-id="mcp-1"]').first().click();
+
+  // ConfigPanel dirender DUA kali (aside desktop `lg:flex` + Sheet mobile),
+  // jadi semua pencarian di-scope ke aside supaya tidak kena strict mode.
+  const panel = page.getByTestId("config-aside");
+  await expect(panel).toBeVisible({ timeout: 30000 });
+  const select = panel.getByTestId("mcp-tool-select");
+  await expect(select).toBeVisible({ timeout: 30000 });
+
+  // 1) Katalog dimuat dari endpoint gateway (bukan daftar hardcoded).
+  await expect(select).toHaveAttribute("data-gateway-tools", String(GATEWAY_TOOLS.length));
+  const gatewayOptions = select.locator('option[data-tool-source="gateway"]');
+  const optionCount = await gatewayOptions.count();
+  console.log("GATEWAY_OPTIONS=" + optionCount);
+  expect(optionCount).toBe(GATEWAY_TOOLS.length);
+
+  // 2) Tool MCP nyata ada di daftar.
+  const values = await gatewayOptions.evaluateAll((os) =>
+    os.map((o) => (o as HTMLOptionElement).value));
+  expect(values).toContain(MCP_TOOL);
+  console.log("SELECT_FIRST_5=" + JSON.stringify(values.slice(0, 5)));
+
+  // 3) Memilih tool MCP mengarahkan node ke jalur gateway.
+  await select.selectOption(MCP_TOOL);
+  await page.waitForTimeout(600);
+  await expect(select).toHaveValue(MCP_TOOL);
+
+  await page.screenshot({ path: shot("tool-selector"), fullPage: true });
+
+  // 4) BUKTI TERKUAT: payload yang benar-benar disimpan ke backend memuat
+  //    provider=gateway + tool=everything_echo (dibaca dari POST /workflows).
+  const captured: Captured = {};
+  await page.unrouteAll({ behavior: "ignoreErrors" });
+  await stubApi(page, captured);
+  await page.getByRole("button", { name: /Simpan Alur/i }).first().click();
+  await page.waitForTimeout(3500);
+
+  const mcpNode = (captured.savedFlow?.nodes ?? []).find((n) => n.id === "mcp-1");
+  console.log("SAVED_MCP_CONFIG=" + JSON.stringify(mcpNode?.data?.config ?? null));
+  expect(mcpNode, "node mcp tidak ada di payload simpan").toBeTruthy();
+  expect(mcpNode!.data!.config!.provider).toBe("gateway");
+  expect(mcpNode!.data!.config!.tool).toBe(MCP_TOOL);
+});
+
