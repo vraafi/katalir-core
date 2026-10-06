@@ -50,11 +50,15 @@ secara harfiah.
 | `94e27c4` | `fix(security)`: gerbang tolak SSRF host internal/metadata |
 | `bdd4299` | `docs(overnight)`: chaos results, log pemantauan, playbook, laporan akhir |
 | `1503641` | `fix(mcp)`: `health()` wajib menutup sesi (bocor 13 proses / probe) |
+| `2e8e7c3` | `docs(overnight)`: catat temuan & perbaikan kebocoran health probe |
+| `2a683c4` | `chore`: kembalikan 13 berkas sesi lain ke untracked (kesalahan `git add docs/`) |
 
 (Commit sesi sebelumnya yang juga sudah live: `6524931`, `52a77eb`, `14f9af5`,
 `f62f193`, `c1c86ca`, `936a472`, `cb9b7a6`.)
 
-Deployment: `10e506e0` → `d397307c` → `4515de3c` → `9c3a2750` → `4b0e3ad9` → **`de92a6be` (aktif, `1503641`)** — semua SUCCESS.
+Deployment: `10e506e0` → `d397307c` → `4515de3c` → `9c3a2750` → `4b0e3ad9` → `de92a6be` → **`bea93525` (aktif, `2a683c4`)** — semua SUCCESS.
+
+Kode yang memengaruhi perilaku produksi ada di `1503641` (di-deploy sebagai `de92a6be`); dua commit sesudahnya hanya dokumen/chore.
 
 ---
 
@@ -120,6 +124,24 @@ membalas 503). Restart tetap ada sebagai jaring terakhir (procs > 60 atau mem < 
 **Terbukti**: 2 sesi sengaja ditelantarkan → 32 proses; reaper → `REAPED=44`,
 `procs=0`, memori 750 → 1.852 MB; sesi MCP berikutnya tetap melayani 44 tool.
 Guard v1 disimpan di `/opt/agentgateway/agentgateway-guard.sh.v1.bak`.
+
+### Atribusi restart guard (bukti tambahan)
+
+```
+00:18:50  DEGRADED procs=134  mem=8 MB    -> restart   (insiden awal; guard v1 dipasang)
+00:18:50  DEGRADED procs=134  mem=179 MB  -> restart   (eksekusi ganda saat pemasangan)
+01:26:59  DEGRADED procs=65   mem=408 MB  -> restart   (penyebab 503 yang saya temukan)
+01:52:40  DEGRADED procs=65   mem=333 MB  -> restart   <- TEPAT saat uji kebocoran
+                                                          health PRA-perbaikan
+                                                          (26 + 3x13 = 65 proses)
+```
+Restart ke-4 terjadi **persis** ketika uji `_ops_14_health_leak.py` dijalankan
+sebelum perbaikan: 3 pemeriksaan kesehatan × 13 proses = +39, dari 26 menjadi 65
+— melewati ambang 60 dan memicu restart. Ini bukti tidak langsung yang
+memperkuat temuan: **probe kesehatan sendiri yang menjatuhkan gateway.**
+
+Sejak perbaikan `1503641` di-deploy (~08:58 WIB): **tidak ada restart baru** dan
+`mcp_procs` tetap **0**.
 
 ### Rekomendasi pasca-launch
 Uji 1.6.0 di lingkungan terpisah, ukur jumlah proses setelah 100 sesi. Bila tidak
