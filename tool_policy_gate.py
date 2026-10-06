@@ -128,6 +128,21 @@ _DENY_PATTERNS = (
     re.compile(r"(--|#)\s*$", re.I),
     re.compile(r";\s*(drop|delete|update|insert|truncate)\b", re.I),
     re.compile(r"^\s*-{1,2}[a-z]+\s+http", re.I),
+    # --- SSRF (2026-10-06) --------------------------------------------------
+    # TEMUAN chaos test: `validate_call("http_request", {"url":
+    # "http://169.254.169.254/latest/meta-data/"})` mengembalikan **ALLOW**.
+    # Alatnya sendiri (`tools.http_request`) memang sudah menolak host
+    # internal/loopback, jadi ini BUKAN celah yang bisa dieksploitasi — tetapi
+    # gerbang seharusnya gagal-tertutup LEBIH DULU: penolakan di lapisan alat
+    # muncul sebagai error runtime, bukan sebagai keputusan kebijakan.
+    # Pola ini hanya ditambahkan ke daftar PENUH, bukan ke `_DATA_SAFE_PATTERNS`:
+    # alat data-only boleh memuat teks apa pun (mis. spec workflow yang
+    # menyebut "localhost" sebagai dokumentasi) tanpa DENY palsu.
+    re.compile(r"https?://(?:localhost|127\.|0\.0\.0\.0|\[::1\]|10\.|192\.168\.|"
+               r"172\.(?:1[6-9]|2\d|3[01])\.|169\.254\.)", re.I),
+    # Skema selain http/https (file://, gopher://, ...) tidak pernah sah untuk
+    # alat HTTP; menolaknya di gerbang menjaga perilaku tetap seragam.
+    re.compile(r"\b(?:file|gopher|dict|ftp|ldap|tftp)://", re.I),
 )
 
 #: Subset pola yang TETAP berlaku untuk alat data-only.
