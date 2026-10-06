@@ -437,6 +437,68 @@ class ExecuteRequest(BaseModel):
 # bisa dibaca, dan supaya menambah provider cukup mengubah registry.
 from credential_forms import credential_catalog as _credential_catalog
 
+
+# --- Katalog tool MCP gateway untuk system prompt (NON-BLOCKING) ------------
+# MASALAH YANG DIPERBAIKI (terbukti di produksi 2026-10-06): model tidak tahu
+# bahwa ada 44 tool MCP sungguhan di balik agentgateway. Permintaan "Buat
+# workflow yang pakai MCP tool echo" dijawab dengan node mcp ber-provider `http`
+# dan URL karangan (`https://echo.free.beeceptor.com`) — bukan tool
+# `everything_echo` yang benar-benar ada. Akibatnya jalur MCP tidak pernah
+# dipakai walau jembatannya sudah berfungsi.
+#
+# KENAPA TIDAK DIAMBIL LANGSUNG DI SINI: `initialize` ke gateway terukur
+# 8-13 detik (fan-out ke target stdio npx/uvx). System prompt dibangun pada
+# SETIAP request, jadi pengambilan sinkron akan menambah belasan detik ke setiap
+# chat. Karena itu cache diisi oleh THREAD LATAR; request hanya membaca cache
+# dan boleh mendapat string kosong pada detik-detik pertama setelah cold start.
+_MCP_CATALOG: dict[str, Any] = {"ts": 0.0, "text": ""}
+_MCP_CATALOG_TTL = 300.0
+_MCP_CATALOG_LOCK = threading.Lock()
+_MCP_CATALOG_BUSY = False
+
+
+def _refresh_mcp_catalog() -> None:
+    """Isi cache katalog (dijalankan di thread latar; tidak pernah melempar)."""
+    global _MCP_CATALOG_BUSY
+    try:
+        from mcp_gateway.client import GatewayClient
+        tools = GatewayClient().list_tools_sync()
+        names = [str(t.get("name") or "") for t in tools if t.get("name")]
+        if names:
+            text = (
+                "\nKATALOG TOOL MCP (nama PERSIS seperti ini, "
+                f"{len(names)} tool tersedia):\n"
+                + ", ".join(names)
+                + "\n"
+            )
+        else:
+            text = ""
+        with _MCP_CATALOG_LOCK:
+            _MCP_CATALOG["text"] = text
+            _MCP_CATALOG["ts"] = time.time()
+    except Exception:  # noqa: BLE001 - gateway mati tidak boleh mematikan chat
+        with _MCP_CATALOG_LOCK:
+            _MCP_CATALOG["ts"] = time.time()   # backoff sebelum coba lagi
+    finally:
+        with _MCP_CATALOG_LOCK:
+            _MCP_CATALOG_BUSY = False
+
+
+def mcp_gateway_catalog_text() -> str:
+    """Teks katalog dari cache; picu refresh latar bila sudah basi. Tak memblokir."""
+    global _MCP_CATALOG_BUSY
+    now = time.time()
+    with _MCP_CATALOG_LOCK:
+        fresh = (now - float(_MCP_CATALOG["ts"])) < _MCP_CATALOG_TTL
+        text = str(_MCP_CATALOG["text"])
+        need = (not fresh) and not _MCP_CATALOG_BUSY
+        if need:
+            _MCP_CATALOG_BUSY = True
+    if need:
+        threading.Thread(target=_refresh_mcp_catalog, daemon=True).start()
+    return text
+
+
 _AGENT_SYSTEM = (
     "Anda adalah Nexus Autonomous Agent. Rencanakan & lakukan tindakan dengan "
     "alat yang tersedia. Setelah eksekusi alat, rangkum hasil untuk pengguna "
@@ -531,6 +593,15 @@ _AGENT_SYSTEM = (
     "`channel` TIDAK boleh dikarang dengan nilai palsu — kalau belum disebut, "
     "isi PLACEHOLDER (contoh chat_id=\"{{chat_id}}\", url=\"{{url}}\", "
     "channel=\"{{channel}}\"), JANGAN bertanya dan JANGAN menunda workflow.\n"
+    # BUG FIX 2026-10-06: node mcp untuk TOOL MCP harus lewat gateway.
+    "4a. TOOL MCP (permintaan seperti \"pakai MCP tool echo\"): node mcp WAJIB "
+    "ber-config {provider: \"gateway\", tool: \"<nama PERSIS dari KATALOG TOOL "
+    "MCP>\", arguments: {\"...\"}}. JANGAN memakai provider \"http\" dan JANGAN "
+    "mengarang URL untuk permintaan tool MCP — itu mengubah tool MCP menjadi "
+    "panggilan web biasa sehingga tool yang diminta TIDAK pernah dipanggil. "
+    "Bila nama tool yang diminta tidak ada di katalog, katakan terus terang "
+    "tool itu tidak tersedia dan sebutkan yang mirip; jangan mengarang nama "
+    "maupun URL.\n"
     "4b. MEMBUAT SPREADSHEET: kamu BISA membuat Google Spreadsheet baru sendiri "
     "lewat alat `buat_google_spreadsheet` (parameter `title`, opsional "
     "`sheet_name` dan `sheet_names`). Jika pengguna meminta spreadsheet, lembar "
@@ -878,7 +949,9 @@ def _agentic_run_gateway(prompt: str, email: str, model_id: str,
         chat_model = _bound(cand, min(remaining, _gateway_attempt_timeout_sec()))
         # KONTEKS MULTI-TURN: system -> riwayat sesi -> prompt terbaru. Tanpa
         # riwayat, model "amnesia" dan mengabaikan hal yang sudah dibahas user.
-        messages: list[Any] = [SystemMessage(content=_AGENT_SYSTEM)]
+        messages: list[Any] = [
+            SystemMessage(content=_AGENT_SYSTEM + mcp_gateway_catalog_text())
+        ]
         messages.extend(_to_lc_history(history))
         messages.append(HumanMessage(
                     # BUG FIX 2026-10-04: control token chat-template dan
@@ -1447,7 +1520,7 @@ def _agentic_run_direct(prompt: str, email: str, model: str | None = None,
     client = _pool.client(cur_fp)
     config = types.GenerateContentConfig(
         temperature=0.1,
-        system_instruction=_AGENT_SYSTEM,
+        system_instruction=_AGENT_SYSTEM + mcp_gateway_catalog_text(),
         tools=tools.TOOL_DECLARATIONS,
         automatic_function_calling=types.AutomaticFunctionCallingConfig(disable=True),
     )
