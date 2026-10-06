@@ -48,6 +48,17 @@ batas,** tapi yang gagal adalah **silent LLM quota exhaustion**.
 
 ## Daftar Bug & Keterbatasan
 
+> **Status triase (diperbarui 2026-10-06, sebelum freeze launch):**
+>
+> | Bug | Status | Keterangan |
+> |---|---|---|
+> | BUG-1 | ⏳ belum ditriase | Dikerjakan berikutnya (align `_AGENT_SYSTEM`) |
+> | BUG-2 | ⏳ belum ditriase | Butuh keputusan: implementasi IF/branch vs jujur di prompt |
+> | BUG-3 | ⏳ belum ditriase | Placeholder `{{...}}` belum dievaluasi runtime |
+> | BUG-4 | ✅ **FALSE POSITIVE** | Body 503 tidak kosong — artefak harness. Rincian di bawah |
+> | BUG-5 | ⏳ belum ditriase | Rate limiting `/chat` |
+> | BUG-6 | ⏳ belum ditriase | Validasi `{{placeholder}}` saat save |
+
 ### BUG-1 (KRITIS) Model AI berhalusinasi arsitektur workflow
 
 `api_server.py` `_AGENT_SYSTEM` memodelkan workflow dengan kind `trigger`,
@@ -126,6 +137,36 @@ tanpa detail. Tanda di `api_server.py:1465` sudah ada fallback: `HTTP 503,
 Dampak: pengguna tidak tahu apakah LLM mati, cooldown, atau kredensial habis.
 Pengujian beruntun ini meyebabkan kuota habis setelah ~3 run karena burst
 paralel S4 (pejabat8/8 ok) membuat `pool exhausted`.
+
+> **TRIASE 2026-10-06 — FALSE POSITIVE (harness artifact).**
+>
+> Body 503 **tidak kosong**. Bukti:
+>
+> 1. Semua jalur 503 di `api_server.py` (baris 1453, 1465, 1541-1545, 1552)
+>    dan `database.py` (baris 119, 125) melempar
+>    `HTTPException(503, "<pesan>")` → FastAPI membalas
+>    `{"detail": "<pesan>"}`. Tidak ada `exception_handler` kustom di
+>    codebase yang membuang `detail`.
+> 2. Bukti produksi langsung sudah ada: `docs/chaos-test-results-2026-10-06.md`
+>    mencatat `503 | 7969ms | Semua kunci model ini sedang cooldown (kuota).`
+>    — pesan terbaca utuh dari body 503 yang sama.
+> 3. `reply: ""` di log harness adalah artefak: `_adv_s1s2s5_v2.py` hanya
+>    mencetak `j.get("reply")` — key `detail` tidak pernah dicetak. Body yang
+>    benar-benar kosong justru akan jatuh ke cabang `raw:` (json.loads("")
+>    gagal); log menampilkan `reply:` sehingga body PASTI JSON valid berisi.
+> 4. Klien produksi tetap menampilkan pesan: `useChat.ts:569` →
+>    `classifyHttpError(503)` → pesan "sibuk" + retry backoff 2s/5s
+>    (dikontrak `test_fallback_reason.py`, 6 passed).
+>
+> Regresi dijaga `tests/test_503_detail_contract.py` (scan sumber: tidak ada
+> `raise/return HTTPException(503)` tanpa pesan; perilaku `/chat`: `detail`
+> non-kosong). Harness `_adv_s1s2s5_v2.py` diperbaiki agar mencetak `detail`
+> untuk HTTP ≥ 400 sehingga kesalahan baca seperti ini tidak terulang.
+>
+> Sisa catatan valid (UX, bukan BUG-4): frontend memakai pesan generik dari
+> status code dan tidak meneruskan teks `detail` server, jadi user tetap
+> tidak bisa membedakan "cooldown kuota" vs "semua kunci 401" dari layar.
+> Perbaikan opsional, prioritas rendah.
 
 ---
 
@@ -264,6 +305,9 @@ POST /chat ×8 paralel, payload {"prompt":"halo, uji beban {i}"}
 3. **(KRITIS) [BUG #4] Balikkan 503 tanpa pesan.** `chat` endpoint harus selalu
    mengirim pesan `cooldown (kuota)`. Saat ini 503 kosong → user tidak tahu
    apakah LLM mati atau kredensial habis.
+   *(Triase 2026-10-06: sebagian FALSE POSITIVE — server sudah selalu
+   mengirim `detail` berisi pesan cooldown; yang hilang hanya tampilan
+   `detail` di frontend.)*
 
 4. **(TINGGI) Tambahkan rate limiting per JWT pada `/chat`** — saat ini
    `max_attempts=3` backoff 2/5s di client (lihat frontend `useChat`), tapi
