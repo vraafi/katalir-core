@@ -177,7 +177,10 @@ async function stubApi(page: Page, captured: Captured = {}) {
     if (path === "/preferences") return json(200, { preferences: {} });
 
     // Katalog tool MCP gateway — endpoint NYATA (bukan /mcp/gateway/tools).
+    // `E2E_REAL_GATEWAY=1` melewatkan stub ini sehingga UI memanggil backend
+    // produksi sungguhan (butuh sesi asli di _e2e_session.refreshed.json).
     if (path === "/mcp/gateway/servers" && req.method() === "GET") {
+      if (process.env.E2E_REAL_GATEWAY === "1") return route.continue();
       return json(200, {
         tools: GATEWAY_TOOLS.map((name) => ({
           name,
