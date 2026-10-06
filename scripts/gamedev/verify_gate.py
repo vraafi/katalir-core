@@ -22,7 +22,7 @@ import sys
 import urllib.error
 import urllib.request
 
-from dotenv import load_dotenv
+from dotenv_loader import load_repo_env
 
 MODEL = "gemini-2.5-flash"
 ENDPOINT = "https://generativelanguage.googleapis.com/v1/models/{model}:generateContent"
@@ -57,13 +57,22 @@ def read(path: str) -> str:
 
 
 def call_gemini_real(api_key: str, spec: str, output: str, timeout: int = 90) -> str:
-    url = ENDPOINT.format(model=MODEL) + "?key=" + api_key
+    # Kunci dikirim lewat header `x-goog-api-key`, BUKAN `?key=` di query string.
+    # Query string masuk ke access log, log proxy, dan bisa muncul di error
+    # message - artinya kunci bocor ke tempat yang tidak kita kendalikan.
+    # Guard `tests/test_key_in_header_not_url.py` menegakkan aturan ini.
+    url = ENDPOINT.format(model=MODEL)
     body = {
         "contents": [{"parts": [{"text": RUBRIC.format(spec=spec, output=output)}]}],
         "generationConfig": {"temperature": 0, "maxOutputTokens": 300},
     }
     req = urllib.request.Request(
-        url, data=json.dumps(body).encode("utf-8"), headers={"Content-Type": "application/json"}
+        url,
+        data=json.dumps(body).encode("utf-8"),
+        headers={
+            "Content-Type": "application/json",
+            "x-goog-api-key": api_key,
+        },
     )
     with urllib.request.urlopen(req, timeout=timeout) as resp:
         data = json.loads(resp.read().decode("utf-8"))
@@ -78,7 +87,7 @@ def main() -> int:
     ap.add_argument("--raw", action="store_true", help="cetak respons mentah")
     args = ap.parse_args()
 
-    load_dotenv()
+    load_repo_env()
     api_key = (os.getenv(args.key) or "").strip()
     if not api_key:
         print(f"VERDICT: FAIL: {args.key} kosong di .env")
