@@ -1,21 +1,24 @@
 """live_runner.py — LIVE #1: Trigger -> Telegram (API NYATA).
 
-Bedanya dengan `sandbox_runner.py` (mode mock): titik egress di sini menembak
-`https://api.telegram.org/bot<token>/sendMessage` yang sesungguhnya, memakai
-kredensial **TEST** (`TEST_TELEGRAM_*`), bukan kredensial produksi.
+MODE KREDENSIAL: **Opsi B (pragmatis)**
+--------------------------------------
+* **Bot token** : `TEST_TELEGRAM_BOT_TOKEN` bila ada; jika tidak, JATUH ke
+  `TELEGRAM_BOT_TOKEN` dari `.env` (bot produksi). Ini keputusan eksplisit
+  user: bot yang sama, grup yang berbeda.
+* **Chat ID**   : WAJIB `TEST_TELEGRAM_CHAT_ID`. Tidak ada fallback ke chat
+  produksi — itu diblokir keras oleh `assert_not_production_chat()`.
 
-Alur tetap sama (zero-trust):
+Jadi: bot produksi boleh dipakai, **tujuan kirim TIDAK boleh** chat produksi.
+
+Alur tetap zero-trust:
     config node -> ${auth.telegram_bot} -> resolve_for_egress -> Telegram API
                 -> mask_known_values -> redact_agent_output -> assert_no_leak
 
 FAIL-CLOSED
 -----------
-Skrip ini MENOLAK berjalan bila:
-  * `.env.test` tidak ada / variabel kosong / format salah,
-  * `config.yaml: live.enabled` belum `true`,
-  * nama variabel bukan `TEST_*` (dipaksa oleh `credential_proxy`).
-
-Nilai kredensial TIDAK PERNAH dicetak — hanya status dan bentuknya.
+Menolak berjalan bila: bot token tidak ada, `TEST_TELEGRAM_CHAT_ID` kosong,
+format salah, chat id == chat produksi, atau `live.enabled` belum true.
+Nilai kredensial TIDAK PERNAH dicetak.
 """
 
 from __future__ import annotations
@@ -23,6 +26,7 @@ from __future__ import annotations
 import argparse
 import asyncio
 import json
+import os
 import re
 import sys
 from pathlib import Path
@@ -34,22 +38,26 @@ for _p in (str(ROOT), str(SANDBOX)):
         sys.path.insert(0, _p)
 
 import agent_redactor as ar  # noqa: E402
+import canary_scan  # noqa: E402
 import credential_proxy as cp  # noqa: E402
 import sandbox_runner as sr  # noqa: E402
 from execution_engine import NodeKind  # noqa: E402
 
+ENV_FILE = ROOT / ".env"
 TEST_ENV_FILE = ROOT / ".env.test"
 CONFIG_FILE = SANDBOX / "config.yaml"
 
-#: Format yang diminta brief.
 BOT_TOKEN_RX = re.compile(r"^\d+:[A-Za-z0-9_-]+$")
 CHAT_ID_RX = re.compile(r"^-?\d+$")
 
 
-def load_env_test(path: Path = TEST_ENV_FILE) -> dict[str, str]:
-    """Parser .env minimalis (tanpa dependensi). Nilai tidak pernah di-log."""
+# ---------------------------------------------------------------------------
+# ENV
+# ---------------------------------------------------------------------------
+def load_env_file(path: Path) -> dict[str, str]:
+    """Parser .env minimalis. Nilai tidak pernah di-log."""
     if not path.exists():
-        raise SystemExit(f"[FAIL] {path} tidak ada.")
+        return {}
     out: dict[str, str] = {}
     for raw in path.read_text(encoding="utf-8", errors="ignore").splitlines():
         line = raw.strip()
@@ -60,29 +68,55 @@ def load_env_test(path: Path = TEST_ENV_FILE) -> dict[str, str]:
     return out
 
 
-def validate(env: dict[str, str]) -> list[str]:
-    """Kembalikan daftar masalah (kosong = valid). Tidak menyentuh nilai."""
-    problems: list[str] = []
-    token = env.get("TEST_TELEGRAM_BOT_TOKEN", "")
-    chat = env.get("TEST_TELEGRAM_CHAT_ID", "")
-    if not token:
-        problems.append("TEST_TELEGRAM_BOT_TOKEN kosong")
-    elif not BOT_TOKEN_RX.match(token):
-        problems.append("TEST_TELEGRAM_BOT_TOKEN format salah "
-                        "(harus \\d+:[A-Za-z0-9_-]+)")
-    if not chat:
-        problems.append("TEST_TELEGRAM_CHAT_ID kosong")
-    elif not CHAT_ID_RX.match(chat):
-        problems.append("TEST_TELEGRAM_CHAT_ID format salah (harus -?\\d+)")
-    return problems
+def load_all_env() -> dict[str, str]:
+    """Muat `.env` (produksi) lalu `.env.test` (menang) ke os.environ."""
+    merged: dict[str, str] = {}
+    for path in (ENV_FILE, TEST_ENV_FILE):
+        for key, value in load_env_file(path).items():
+            merged[key] = value
+            os.environ.setdefault(key, value)
+    return merged
 
 
+# ---------------------------------------------------------------------------
+# KREDENSIAL (Opsi B)
+# ---------------------------------------------------------------------------
+def get_telegram_bot_token() -> tuple[str, str]:
+    """(token, sumber). Prioritas TEST_, lalu bot produksi dari `.env`."""
+    token = (os.getenv("TEST_TELEGRAM_BOT_TOKEN") or "").strip()
+    if token:
+        return token, "TEST"
+    token = (os.getenv("TELEGRAM_BOT_TOKEN") or "").strip()
+    if token:
+        return token, "PRODUCTION_BOT"
+    raise cp.CredentialMissingError("telegram_bot")
+
+
+def get_telegram_chat_id() -> str:
+    """Chat ID TUJUAN — WAJIB TEST_. Tidak ada fallback produksi."""
+    chat_id = (os.getenv("TEST_TELEGRAM_CHAT_ID") or "").strip()
+    if not chat_id:
+        raise cp.CredentialMissingError("telegram_chat")
+    return chat_id
+
+
+def assert_not_production_chat(chat_id: str) -> None:
+    """Blokir bila tujuan kirim sama dengan chat produksi."""
+    prod_chat = (os.getenv("TELEGRAM_CHAT_ID") or "").strip()
+    if prod_chat and str(chat_id).strip() == prod_chat:
+        raise ValueError(
+            "BLOCKED: TEST_TELEGRAM_CHAT_ID sama dengan production! "
+            "Buat grup TEST baru.")
+
+
+# ---------------------------------------------------------------------------
+# LIVE MODE GATE
+# ---------------------------------------------------------------------------
 def live_enabled() -> bool:
     """Baca `live.enabled` dari config.yaml tanpa PyYAML.
 
     WAJIB melacak blok: berkas ini punya `canary: enabled: true` LEBIH DULU,
-    jadi pencarian "baris enabled pertama" akan keliru mengembalikan True dan
-    diam-diam mengaktifkan live mode.
+    jadi pencarian "baris enabled pertama" akan keliru mengembalikan True.
     """
     if not CONFIG_FILE.exists():
         return False
@@ -116,11 +150,16 @@ def set_live_enabled(value: bool) -> None:
     CONFIG_FILE.write_text("\n".join(out) + "\n", encoding="utf-8")
 
 
+# ---------------------------------------------------------------------------
+# EGRESS NYATA
+# ---------------------------------------------------------------------------
 class LiveTelegramEgress:
     """Egress NYATA ke Telegram. Satu-satunya tempat nilai asli muncul."""
 
     def __init__(self) -> None:
         self.sent: list[dict] = []
+        self.canary_seen_in_raw = False
+        self.canary_stripped = False
 
     async def __call__(self, orch, node, inp) -> dict:
         cfg = orch._resolve_cfg(node.data.config or {}, where=f"node '{node.id}'")
@@ -144,18 +183,26 @@ class LiveTelegramEgress:
             raise RuntimeError(
                 f"Telegram tidak terjangkau ({type(exc).__name__}).") from None
 
+        raw = r.json() if r.text else {}
         self.sent.append({"http": r.status_code,
-                          "ok": (r.json() or {}).get("ok") if r.text else None})
+                          "ok": (raw or {}).get("ok")})
         if r.status_code >= 400:
             raise RuntimeError(f"Telegram menolak permintaan (HTTP {r.status_code}).")
 
-        raw = r.json() or {}
-        safe = ar.redact_agent_output(cp.mask_known_values(raw))
+        # --- BAGIAN 4b: canary HARUS terlihat di hasil mentah ---
+        raw_blob = json.dumps(raw, default=str)
+        self.canary_seen_in_raw = ar.scan_canary(raw_blob)
+
+        # --- jalur pulang: mask nilai -> redact pola -> gerbang terakhir ---
+        masked = cp.mask_known_values(raw)
+        safe = ar.redact_agent_output(masked, raise_on_canary=False)
+        safe_blob = json.dumps(safe, default=str)
+        self.canary_stripped = not ar.scan_canary(safe_blob)
         cp.assert_no_leak(safe, where=f"output node '{node.id}'")
         return safe
 
 
-def build_live_graph():
+def build_live_graph(text: str):
     """Sama seperti TEST #1 mode mock, tetapi egress-nya Telegram NYATA."""
     g = sr.make_graph(
         [("t", {"kind": "trigger", "label": "webhook"}),
@@ -163,11 +210,10 @@ def build_live_graph():
              "op": "telegram_send",
              "token": "${auth.telegram_bot}",
              "chat_id": "${auth.telegram_chat}",
-             "text": "Katalir LIVE test — pesan ini dikirim oleh egress nyata "
-                     "ke grup TEST. {{t.context.text}}"}}),
+             "text": text}}),
          ],
         [("t", "tg")])
-    return g, {"text": "jika Anda melihat ini, LIVE #1 PASS."}
+    return g, {"text": "LIVE #1"}
 
 
 def main() -> int:
@@ -177,76 +223,104 @@ def main() -> int:
     args = ap.parse_args()
 
     print("=" * 74)
-    print("BAGIAN 1 — LIVE #1: Trigger -> Telegram (API NYATA)")
+    print("BAGIAN 3 — LIVE #1: Trigger -> Telegram (API NYATA, Opsi B)")
     print("=" * 74)
 
-    # 1a. .env.test
-    env = load_env_test()
-    print(f"\n[1a] {TEST_ENV_FILE.name} ditemukan, "
-          f"{len(env)} variabel terbaca")
-    print(f"     kunci: {sorted(env.keys())}")
+    load_all_env()
 
-    # 1b. validasi format
-    problems = validate(env)
-    if problems:
-        print("\n[1b] FORMAT/ISIAN BERMASALAH:")
-        for p in problems:
-            print(f"     - {p}")
-        print("\nFAIL-CLOSED: tidak menjalankan live test.")
+    # --- 1a/3a: .env.test + chat id ---
+    print(f"\n[1a] .env.test ada: {TEST_ENV_FILE.exists()}")
+    try:
+        chat_id = get_telegram_chat_id()
+    except cp.CredentialMissingError as exc:
+        print(f"\n[1a] BLOCKED: {exc}")
+        print("     Buat grup TEST, lalu tulis TEST_TELEGRAM_CHAT_ID ke .env.test")
         return 2
-    print("[1b] format OK: bot token cocok \\d+:[A-Za-z0-9_-]+, "
-          "chat id cocok -?\\d+")
 
-    # 1c. live mode
+    # --- 3b: bot token ---
+    try:
+        token, source = get_telegram_bot_token()
+    except cp.CredentialMissingError as exc:
+        print(f"\n[3b] BLOCKED: bot token tidak ada ({exc})")
+        return 2
+    print(f"[3b] bot token sumber : {source}")
+    print(f"     format token     : "
+          f"{'OK' if BOT_TOKEN_RX.match(token) else 'SALAH'}")
+    print(f"     chat id format   : "
+          f"{'OK' if CHAT_ID_RX.match(chat_id) else 'SALAH'}")
+    if not BOT_TOKEN_RX.match(token) or not CHAT_ID_RX.match(chat_id):
+        print("\nBLOCKED: format kredensial tidak sesuai.")
+        return 2
+
+    # --- 3c/3d: SAFEGUARD chat produksi ---
+    try:
+        assert_not_production_chat(chat_id)
+    except ValueError as exc:
+        print(f"\n[3c] {exc}")
+        return 2
+    print("[3c/3d] SAFEGUARD OK — chat tujuan BUKAN chat produksi")
+
+    # --- 3e: live mode ---
     if args.enable_live:
         set_live_enabled(True)
-        print("[1c] config.yaml live.enabled -> true")
     if not live_enabled():
-        print("\n[1c] live.enabled masih false. Jalankan dengan --enable-live "
-              "setelah user mengonfirmasi.")
+        print("\n[3e] live.enabled masih false — jalankan dengan --enable-live")
         return 3
-    print("[1c] live.enabled = true")
+    print("[3e] live.enabled = true")
 
-    # daftarkan kredensial TEST (menolak nama non-TEST_)
+    # --- 4a: canary ---
+    canary = cp.generate_canary()
+    print(f"[4a] canary dibuat : {canary}")
+
     cp.clear_store()
-    cp.put_test_credential("telegram_bot", env["TEST_TELEGRAM_BOT_TOKEN"],
-                           canary=True)
-    cp.put_test_credential("telegram_chat", env["TEST_TELEGRAM_CHAT_ID"],
-                           canary=True)
-    canary = cp.get_canary("telegram_bot")
-    print(f"[1c] kredensial TEST terdaftar: {cp.store_keys()}")
-    print(f"     canary aktif: {canary}")
+    cp.put_test_credential("telegram_bot", token, canary=False)
+    cp.put_test_credential("telegram_chat", chat_id, canary=False)
 
-    # 1d. jalankan LIVE #1
-    graph, trigger_input = build_live_graph()
+    import datetime
+    stamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    message = f"Katalir Live Test #1 — {stamp} — {canary}"
+
+    graph, trigger_input = build_live_graph(message)
     orch = sr.build_orch(graph, trigger_input)
     egress = LiveTelegramEgress()
     orch.EXECUTORS[NodeKind.MCP] = egress
 
-    print("\n[1d] menjalankan workflow (egress = api.telegram.org)...")
+    print(f"\n[3f] kirim pesan (len={len(message)}) ke grup TEST...")
     error = None
     try:
         asyncio.run(orch.run())
     except Exception as exc:  # noqa: BLE001
         error = f"{type(exc).__name__}: {exc}"
+    finally:
+        # 3i + LARANGAN: live mode TIDAK boleh tetap aktif setelah test.
+        set_live_enabled(False)
+        print("[3i] live.enabled -> false (kembali ke safe mode)")
 
     states = dict(orch.states)
-    print(f"     states   : {states}")
-    print(f"     egress   : {json.dumps(egress.sent)}")
-    if error:
-        print(f"     error    : {error}")
-    else:
-        print(f"     output   : {json.dumps(orch.outputs, default=str)[:280]}")
+    print(f"     states        : {states}")
+    print(f"     hasil egress  : {json.dumps(egress.sent)}")
+    print(f"     error         : {error}")
 
-    # 1f. canary scan
-    blob = json.dumps(orch.outputs, default=str)
-    canary_hit = ar.scan_canary(blob)
-    leaks = cp.leaking_keys(blob)
-    print(f"\n[1f] canary di output : {canary_hit} (harus False)")
-    print(f"     nilai kredensial bocor: {leaks} (harus [])")
+    # --- 4b-4e: canary ---
+    print("\n[4b] canary terlihat di hasil mentah : "
+          f"{egress.canary_seen_in_raw}")
+    print(f"     canary dibersihkan dari output  : {egress.canary_stripped}")
+
+    print("\n[4c] scan berkas lokal...")
+    local = canary_scan.scan_local()
+    print(f"     sandbox hits : {local['sandbox_hits']} (harus [])")
+
+    print("[4d/4e] scan execution_logs + chat_messages...")
+    dbres = canary_scan.scan_db()
+    db_hits: list = []
+    for key in ("execution_logs", "chat_messages"):
+        entry = dbres.get(key) or {}
+        db_hits.extend(entry.get("hits") or [])
+    print(f"     DB hits      : {db_hits} (harus [])")
 
     ok = (states.get("tg") == "completed" and error is None
-          and not canary_hit and not leaks
+          and egress.canary_seen_in_raw and egress.canary_stripped
+          and not local["sandbox_hits"] and not db_hits
           and any(s.get("http") == 200 for s in egress.sent))
     print("\n" + "-" * 74)
     print(f"VERDICT LIVE #1: {'PASS' if ok else 'FAIL'}")
