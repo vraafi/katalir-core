@@ -124,8 +124,7 @@ def _run_webhook(monkeypatch, mem=None, **kwargs):
     asyncio.run(api_server._run_webhook_dag(
         kwargs.get("workflow_id", "wf-b1"),
         kwargs.get("flow_data", {"nodes": [], "edges": []}),
-        kwargs.get("trigger_input", {"_execution_id": "EX-B1"}),
-        kwargs.get("owner_email", "user@test.dev")))
+        kwargs.get("trigger_input", {"_execution_id": "EX-B1"})))
     return calls, statuses
 
 
@@ -138,10 +137,19 @@ def test_b1_webhook_meneruskan_execution_id_ke_runner(monkeypatch):
         "status akhir harus ditulis pada id yang SAMA")
 
 
-def test_b1_webhook_meneruskan_owner_email(monkeypatch):
-    """Node MCP ber-kredensial butuh email pemilik untuk membaca token user."""
-    calls, _ = _run_webhook(monkeypatch, owner_email="pemilik@test.dev")
-    assert calls[0]["owner_email"] == "pemilik@test.dev"
+def test_b1_temuan_f6_webhook_tidak_meneruskan_owner_email(monkeypatch):
+    """F-6 (di luar brief, sengaja TIDAK diubah): webhook tidak kirim owner_email.
+
+    Konsekuensi yang harus diketahui sebelum launch: node MCP ber-kredensial
+    pada workflow webhook TIDAK bisa membaca token milik user, dan node agent
+    di jalur ini TIDAK termeter (kuota free tidak terpakai). Mengubahnya adalah
+    keputusan produk/billing, jadi perilakunya dikunci di sini supaya tidak
+    berubah diam-diam.
+    """
+    calls, _ = _run_webhook(monkeypatch)
+    assert calls[0]["execution_id"] == "EX-B1"
+    assert not calls[0]["owner_email"], (
+        "jalur webhook diharapkan tetap tanpa owner_email (lihat F-6)")
 
 
 def test_b1_status_mengikuti_hasil_runner_bukan_hardcode(monkeypatch):
@@ -155,7 +163,7 @@ def test_b1_status_mengikuti_hasil_runner_bukan_hardcode(monkeypatch):
     monkeypatch.setattr(api_server.db, "update_execution_status",
                         lambda eid, st: statuses.append((eid, st)))
     asyncio.run(api_server._run_webhook_dag(
-        "wf", {"nodes": [], "edges": []}, {"_execution_id": "EX-B1-ERR"}, ""))
+        "wf", {"nodes": [], "edges": []}, {"_execution_id": "EX-B1-ERR"}))
     assert statuses == [("EX-B1-ERR", "error")]
 
 
@@ -182,8 +190,7 @@ def test_b1_webhook_produksi_menghasilkan_log_pada_id_yang_sama(memdb, fast_heal
 
     asyncio.run(api_server._run_webhook_dag(
         "wf-b1-e2e", MCP_FLOW,
-        {"_execution_id": "EX-B1-E2E", "headers": {}, "body": {"x": 1}},
-        "user@test.dev"))
+        {"_execution_id": "EX-B1-E2E", "headers": {}, "body": {"x": 1}}))
 
     logs = [l for l in memdb.logs if l["execution_id"] == "EX-B1-E2E"]
     assert len(logs) >= 3, f"harus >=3 log pada id yang sama, dapat {len(logs)}"

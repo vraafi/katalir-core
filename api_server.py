@@ -3520,8 +3520,7 @@ def get_execution(execution_id: str, authorization: str | None = Header(None),
 #   sistem eksternal -> input_data node Trigger -> DAG async non-blocking.
 # ---------------------------------------------------------------------------
 async def _run_webhook_dag(workflow_id: str, flow_data: dict,
-                           trigger_input: dict,
-                           owner_email: str = "") -> None:
+                           trigger_input: dict) -> None:
     """Runner DAG untuk BackgroundTasks (tanpa create_task mentah).
 
     Menjalankan Trigger -> Agent -> MCP dan mempersist setiap langkah ke
@@ -3538,14 +3537,20 @@ async def _run_webhook_dag(workflow_id: str, flow_data: dict,
     # `GET /executions/{id}`) hanya di-set "completed" tanpa SATU pun langkah.
     # Akibatnya laporan eksekusi webhook selalu kosong walau workflow jalan.
     # Sekarang id yang SAMA diteruskan (persis seperti jalur /execute via
-    # `_spawn_execution`), dan `owner_email` ikut diteruskan supaya node MCP
-    # bisa membaca kredensial milik user (tanpa ini, workflow webhook yang
-    # mengirim Telegram/Slack tidak menemukan token user). Status akhir diambil
-    # dari hasil runner - bukan di-hardcode "completed".
+    # `_spawn_execution`), dan status akhir diambil dari hasil runner - bukan
+    # di-hardcode "completed".
+    #
+    # CATATAN (temuan F-6, di luar brief): jalur ini TIDAK meneruskan
+    # `owner_email`, berbeda dari `/execute`. Konsekuensinya node MCP
+    # ber-kredensial pada workflow webhook tidak bisa membaca token milik user,
+    # dan node agent pada jalur ini TIDAK termeter (kuota free tidak terpakai).
+    # Mengubahnya adalah keputusan produk/billing (bukan bagian dari perbaikan
+    # BUG-B1), jadi sengaja dibiarkan seperti semula dan dicatat untuk tindak
+    # lanjut.
     try:
         result = await engine.execute_workflow_async(
             workflow_id, flow_data, trigger_input,
-            execution_id=execution_id, owner_email=owner_email)
+            execution_id=execution_id)
         status = str((result or {}).get("status") or "completed")
         db.update_execution_status(execution_id, status)
     except Exception as exc:  # noqa: BLE001
@@ -3609,7 +3614,7 @@ async def webhook_trigger(workflow_id: str, request: Request,
     except Exception as exc:  # noqa: BLE001
         raise HTTPException(500, f"Gagal membuat eksekusi: {exc}")
     background.add_task(_run_webhook_dag, workflow_id, flow_data,
-                        trigger_input, str(user.get("email") or ""))
+                        trigger_input)
     return {"status": "queued", "execution_id": execution_id,
             "workflow_id": workflow_id}
 
