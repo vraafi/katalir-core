@@ -377,11 +377,22 @@ async def run_agent(
                 texts = [b.get("text", "") for b in raw
                          if isinstance(b, dict) and b.get("type") == "text"
                          and b.get("text")]
-                reply = "\n".join(texts).strip() or "[Agent tanpa respons tekstual]"
+                reply = "\n".join(texts).strip()
+                if not reply and raw:
+                    # Blok ADA tetapi tanpa teks (thinking-only) -> placeholder,
+                    # bukan kegagalan: model memang menjawab, hanya bentuknya
+                    # bukan teks.
+                    reply = "[Agent tanpa respons tekstual]"
             else:
-                reply = str(raw or "").strip() or "[Agent tanpa respons tekstual]"
+                reply = str(raw or "").strip()
             if not reply:
-                reply = "[Agent tanpa respons tekstual]"
+                # KONTEN KOSONG (mis. `content: null` dari gateway) = kandidat
+                # GAGAL, bukan "jawaban". Dulu ini dikembalikan sebagai sukses
+                # berisi placeholder, sehingga kandidat berikutnya TIDAK PERNAH
+                # dicoba dan node agent tercatat "completed" dengan jawaban
+                # kosong -- kelas kegagalan senyap yang sama dengan BUG-B3.
+                raise RuntimeError(
+                    f"{prov}/{model_name}: respons kosong (content:null)")
             # Bersihkan sisa blok thinking jika masih lolos (rapikan terminal).
             if isinstance(reply, str) and "{'type': 'thinking'" in reply:
                 import re as _re

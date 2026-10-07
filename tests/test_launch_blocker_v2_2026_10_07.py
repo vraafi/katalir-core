@@ -545,6 +545,47 @@ def test_opsic_gateway_sukses_tidak_pakai_cadangan(monkeypatch):
     assert used["pool"] == 0, "cadangan tidak boleh dipakai saat gateway sehat"
 
 
+def test_opsic_konten_kosong_dianggap_gagal_lalu_cadangan(monkeypatch):
+    """`content: null` dari gateway = kegagalan kandidat, BUKAN "success".
+
+    Dulu respons kosong dikembalikan sebagai sukses berisi placeholder,
+    sehingga kandidat berikutnya tidak pernah dicoba dan node agent tercatat
+    "completed" dengan jawaban kosong (kelas kegagalan senyap BUG-B3).
+    """
+    monkeypatch.setattr(ar, "gateway_config", lambda: ("https://gw.ok", "k"))
+    monkeypatch.setattr(ar, "gateway_models", lambda: ["m-null"])
+    monkeypatch.setattr(ar, "detect_provider", lambda: ("groq", "k"))
+
+    import langchain_openai
+
+    class _Resp:
+        content = None
+        usage_metadata = {}
+
+    class _Chat:
+        def __init__(self, *a, **k):
+            pass
+
+        def bind_tools(self, *a, **k):
+            return self
+
+        async def ainvoke(self, messages):
+            return _Resp()
+
+    monkeypatch.setattr(langchain_openai, "ChatOpenAI", _Chat)
+
+    async def _pool(*a, **k):
+        return {"reply": "dari-pool", "model": "gemini-2.5-flash"}
+
+    monkeypatch.setattr(ar, "_gemini_pool_reply", _pool)
+
+    res = asyncio.run(ar.run_agent("sys", {"context": {}},
+                                   config={"model": "universal"}))
+    assert res["status"] == "success", res
+    assert res["provider"] == "gemini_pool", res
+    assert res["reply"] == "dari-pool", res
+
+
 def test_opsic_anggaran_gateway_habis_langsung_cadangan(monkeypatch):
     """Anggaran fase gateway habis -> kandidat gateway dilewati, pakai cadangan."""
     monkeypatch.setattr(ar, "gateway_config", lambda: ("https://gw.ok", "k"))
