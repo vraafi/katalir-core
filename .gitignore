@@ -116,3 +116,6 @@ LOCAL.private.md
 # sengaja tidak di-commit agar repo tetap ringan. Lihat docs/evidence/.
 nexus-frontend/f6-shots/
 *.webm
+
+# Sandbox E2E: snapshot backup bisa memuat data produksi (teredaksi)
+tests/sandbox/backups/

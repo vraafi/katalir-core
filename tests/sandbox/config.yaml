@@ -1,0 +1,58 @@
+# Sandbox E2E test — Katalir (7 Okt 2026)
+# Zero-trust testing: mock default, live manual, credential via proxy.
+sandbox:
+  name: "katalir-e2e-test"
+  isolation: "network+credential"
+  timeout_seconds: 300
+
+credentials:
+  # HANYA variabel TEST_* yang boleh dibaca (dikodekan di credential_proxy).
+  source: ".env.test"
+  injection: "proxy"      # BUKAN "direct" — agent hanya lihat ${auth.X}
+  redaction: "strict"     # fail-closed: canary terdeteksi -> raise
+
+network:
+  # Mode mock: tidak ada koneksi keluar sama sekali (in-process ASGI).
+  # Mode live: hanya host di bawah ini yang boleh dihubungi.
+  mode: "mock"            # mock | live
+  allowed_hosts:
+    - "api.telegram.org"
+    - "sheets.googleapis.com"
+    - "api.github.com"
+    - "generativelanguage.googleapis.com"
+  blocked_hosts:
+    - "169.254.169.254"   # cloud metadata (SSRF)
+    - "metadata.google.internal"
+    - "127.0.0.1"
+    - "localhost"
+    - "10.0.0.0/8"
+    - "192.168.0.0/16"
+
+canary:
+  enabled: true
+  prefix: "KATALIR_TEST_CANARY_"
+  pattern: "KATALIR_TEST_CANARY_[A-Z0-9]{12}"
+  on_detect: "abort"      # abort = hentikan test, cabut kredensial
+
+mock:
+  # Server mock dijalankan in-process (httpx ASGITransport), tanpa port/network.
+  app: "tests/sandbox/mock_server.py"
+  transport: "asgi"
+  base_url: "http://sandbox.mock"
+
+live:
+  # Live mode OPSIONAL — hanya sebelum launch, dengan kredensial TEST.
+  # BLOKIR bila TEST_* tidak ada (jangan pakai kredensial produksi).
+  enabled: false
+  requires_env:
+    - "TEST_TELEGRAM_BOT_TOKEN"
+    - "TEST_TELEGRAM_CHAT_ID"
+    - "TEST_SHEETS_ID"
+    - "TEST_GITHUB_TOKEN"
+
+backup:
+  dir: "tests/sandbox/backups"
+  tag: "test-2026-10-07"
+  tables:
+    - "workflows"
+    - "execution_logs"
