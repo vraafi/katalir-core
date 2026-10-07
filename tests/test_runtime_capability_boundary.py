@@ -2,13 +2,17 @@
 
 Temuan BUG-1 (KRITIS): model AI mengaku membangun node IF / Split In
 Batches / Supervisor padahal runtime hanya punya `trigger|agent|mcp` dan
-menjalankannya linear. Tiga lapis perbaikan dikunci di sini:
+menjalankannya linear.
 
-1. PROMPT   - `_AGENT_SYSTEM` memuat blok BATAS KAPASITAS RUNTIME yang
-              memaksa kejujuran (tidak mengaku fitur yang tidak ada).
-2. VALIDASI - `workflow_spec.validate_spec` MENOLAK config mati
-              (`condition`, `batch_size`, `sub_workflow`, ...) yang tidak
-              pernah dibaca runner.
+TRIASE 2026-10-06 (kejujuran) lalu IMPLEMENTASI 2026-10-07 (brief 3-bug):
+runtime KINI benar-benar mendukung ketiganya, jadi lapisan berubah:
+
+1. PROMPT   - `_AGENT_SYSTEM` memuat blok KAPASITAS RUNTIME yang mengajari
+              skema nyata: condition/else_condition, batch_size, dan
+              role=supervisor + delegates. Tetap melarang label palsu.
+2. VALIDASI - `workflow_spec.validate_spec` MENERIMA config tersebut dan
+              memvalidasi BENTUKNYA (condition harus string, batch_size >= 1,
+              delegates harus menunjuk id nyata, sub_workflow tetap ditolak).
 3. RUNNER   - `_exec_agent` membaca `prompt` (yang ditulis canvas & model)
               sebelum `system_prompt`; sebelumnya instruksi di `prompt`
               TERSINGKIR dan diganti label node - silent failure turunan
@@ -25,23 +29,25 @@ import pytest
 # ---------------------------------------------------------------------------
 
 
-def test_prompt_menyebut_batas_kapasitas_runtime():
+def test_prompt_menyebut_kapasitas_runtime():
     api_server = pytest.importorskip("api_server")
     p = api_server._AGENT_SYSTEM
-    assert "BATAS KAPASITAS RUNTIME" in p
-    # Fitur yang TIDAK ada harus disebut eksplisit (S1/S2/S5).
-    for kata in ("IF", "Split In Batches", "Supervisor", "TIDAK ADA"):
+    assert "KAPASITAS RUNTIME" in p
+    # Fitur yang KINI didukung harus disebut beserta skema confignya
+    # (BUG #1/#3/#4, 7 Okt 2026).
+    for kata in ("condition", "batch_size", "supervisor", "delegates",
+                 "DELEGATE"):
         assert kata in p, f"prompt tidak menyebut {kata!r}"
-    # Instruksi kejujuran: jangan mengaku fitur yang tidak ada.
-    assert "BELUM tersedia" in p
+    # Kejujuran tetap: jangan memberi label palsu.
     assert "label palsu" in p
     # Kontrak config: instruksi agent = `prompt`, pemicu = `event_name`.
-    assert "config prompt" in p
     assert "event_name" in p
+    # sub_workflow tetap tidak didukung.
+    assert "sub_workflow" in p
 
 
 # ---------------------------------------------------------------------------
-# 2. VALIDASI: config mati ditolak dengan pesan yang bisa diperbaiki model
+# 2. VALIDASI: config BUG #1/#3/#4 diterima (bentuk divalidasi), bukan ditolak
 # ---------------------------------------------------------------------------
 import workflow_spec as ws  # noqa: E402
 
@@ -51,33 +57,79 @@ def _spec(nodes):
                        "edges": [{"source": "t", "target": "a"}]})
 
 
-def test_validator_menolak_condition_cabang():
-    """`condition` (S1) tidak boleh lolos - runner tidak pernah membacanya."""
+def test_validator_menerima_condition_cabang():
+    """`condition` (S1) kini DIDUKUNG runtime (BUG #1) - harus lolos."""
     res = ws.validate_spec(_spec([
         {"id": "t", "kind": "trigger", "config": {}},
         {"id": "a", "kind": "agent",
          "config": {"condition": "{{data.status}} == 'valid'", "prompt": "OK"}},
     ]))
-    assert res["ok"] is False, res
-    msg = " ".join(res["errors"])
-    assert "condition" in msg
-    assert "tidak didukung runtime" in msg
-    # Hint harus mengarah ke cara jujur, bukan sekadar "salah".
-    assert "prompt agent" in msg or "linear" in msg
+    assert res["ok"] is True, res
 
 
-def test_validator_menolak_batch_size_split():
-    """`batch_size` (S2) tidak boleh lolos - tidak ada loop iterasi."""
+def test_validator_menerima_batch_size_split():
+    """`batch_size` (S2) kini DIDUKUNG runtime (BUG #4) - harus lolos."""
     res = ws.validate_spec(_spec([
         {"id": "t", "kind": "trigger", "config": {}},
         {"id": "a", "kind": "agent", "config": {"batch_size": 1}},
+    ]))
+    assert res["ok"] is True, res
+
+
+def test_validator_menerima_role_supervisor():
+    """`role=supervisor` (S5) kini DIDUKUNG runtime (BUG #3) - harus lolos."""
+    res = ws.validate_spec(_spec([
+        {"id": "t", "kind": "trigger", "config": {}},
+        {"id": "a", "kind": "agent",
+         "config": {"role": "supervisor", "delegates": ["b"], "prompt": "koord"}},
+        {"id": "b", "kind": "agent", "config": {"prompt": "riset"}},
+    ]))
+    assert res["ok"] is True, res
+
+
+def test_validator_tolak_bentuk_condition_salah():
+    """Bentuk salah tetap ditolak (bukan silent failure saat eksekusi)."""
+    res = ws.validate_spec(_spec([
+        {"id": "t", "kind": "trigger", "config": {}},
+        {"id": "a", "kind": "agent", "config": {"condition": 123}},
+    ]))
+    assert res["ok"] is False, res
+    assert "condition" in " ".join(res["errors"])
+
+
+def test_validator_tolak_batch_size_nol():
+    res = ws.validate_spec(_spec([
+        {"id": "t", "kind": "trigger", "config": {}},
+        {"id": "a", "kind": "agent", "config": {"batch_size": 0}},
     ]))
     assert res["ok"] is False, res
     assert "batch_size" in " ".join(res["errors"])
 
 
+def test_validator_tolak_delegates_ke_id_tak_ada():
+    res = ws.validate_spec(_spec([
+        {"id": "t", "kind": "trigger", "config": {}},
+        {"id": "a", "kind": "agent",
+         "config": {"role": "supervisor", "delegates": ["hantu"]}},
+    ]))
+    assert res["ok"] is False, res
+    assert "hantu" in " ".join(res["errors"])
+
+
+def test_validator_tolak_sub_workflow():
+    """`sub_workflow` tetap tidak didukung -> ditolak dengan hint delegasi."""
+    res = ws.validate_spec(_spec([
+        {"id": "t", "kind": "trigger", "config": {}},
+        {"id": "a", "kind": "agent", "config": {"sub_workflow": "wf-2"}},
+    ]))
+    assert res["ok"] is False, res
+    msg = " ".join(res["errors"])
+    assert "sub_workflow" in msg
+    assert "delegasi" in msg or "supervisor" in msg
+
+
 def test_validator_draf_bersih_tetap_lolos():
-    """Spec tanpa config mati tidak terdampak (regresi positif)."""
+    """Spec tanpa config khusus tidak terdampak (regresi positif)."""
     res = ws.validate_spec(_spec([
         {"id": "t", "kind": "trigger", "config": {"type": "manual"}},
         {"id": "a", "kind": "agent", "config": {"prompt": "Rangkum data"}},

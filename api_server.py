@@ -617,33 +617,35 @@ _AGENT_SYSTEM = (
     "dengan placeholder.\n"
     "e. Setelah membangun, rangkum singkat (berapa node, alur besarnya) dan "
     "sebutkan placeholder mana yang perlu diisi user di kanvas.\n"
-    # --- TRIASE ADVERSARIAL 2026-10-06 (BUG-1 KRITIS) -----------------------
-    # Tanpa batas ini model mengaku membuat node IF / Split In Batches /
-    # Supervisor padahal runtime hanya punya trigger|agent|mcp dan
-    # menjalankannya linear (bukti: docs/security/adversarial-test-
-    # n8n-hardcore-user-2026-10-07.md, skenario S1/S2/S5).
-    "BATAS KAPASITAS RUNTIME (KEJUJURAN WAJIB):\n"
-    "Runtime Katalir HANYA punya 3 jenis node - trigger (manual/jadwal), "
-    "agent (satu langkah AI), dan mcp (satu tool/provider) - dan semua node "
-    "dieksekusi BERURUTAN sesuai edge (linear, tanpa percabangan). TIDAK ADA "
-    "node IF/kondisional/cabang, TIDAK ADA Split In Batches / loop per item, "
-    "TIDAK ADA sub-workflow atau Supervisor yang mendelegasikan ke agen lain, "
-    "dan TIDAK ADA node penghenti (stop-on-error).\n"
-    "a. Bila user meminta salah satu fitur di atas, katakan terus terang "
-    "fitur itu BELUM tersedia di Katalir, lalu tawarkan alternatif yang "
-    "didukung: logika 'jika' dijalankan DI DALAM prompt satu agent, satu "
-    "agent gabungan untuk beberapa tugas, atau rangkaian node linear.\n"
-    "b. JANGAN memberi label palsu. Menamai node agent IF, Split In Batches, "
-    "atau Supervisor TIDAK mengubah cara kerjanya - tetap agent biasa yang "
-    "dieksekusi berurutan.\n"
+    # --- KAPASITAS RUNTIME (diperbarui 2026-10-07, BUG #1/#3/#4) ------------
+    # Runtime KINI mendukung IF/kondisi, Split In Batches, dan delegasi
+    # multi-agent. Prompt harus mengajari SKEMA NYATA-nya supaya model tidak
+    # menebak (dulu model mengaku membuat node IF/Supervisor padahal hanya
+    # label — bukti docs/security/adversarial-test-n8n-hardcore-user-*.md).
+    "KAPASITAS RUNTIME (3 jenis node: trigger, agent, mcp):\n"
+    "1. KONDISI/IF - tambahkan config.condition (string ekspresi) pada node "
+    "apa pun. Node DILEWATI bila ekspresi tidak benar. Contoh: "
+    "config.condition = \"{{data.status}} == 'valid'\". Boleh juga "
+    "config.else_condition untuk cabang ELSE. Operator didukung: "
+    "== != > < >= <= , AND/OR/NOT, aritmatika dasar.\n"
+    "2. SPLIT IN BATCHES - tambahkan config.batch_size (bilangan bulat >= 1) "
+    "pada node agent/mcp. Node dijalankan SEKALI PER BATCH dengan konteks "
+    "TERISOLASI; tiap batch mengakses itemnya lewat {{item}} dan "
+    "{{batch}}. Contoh: config.batch_size = 1.\n"
+    "3. DELEGASI MULTI-AGENT - set config.role = 'supervisor' pada node "
+    "agent, dan sebut id agent target di config.delegates (list id). "
+    "Supervisor mendelegasikan tugas ke sub-agent lewat baris "
+    "[DELEGATE: agent_id=<id> task=\"<tugas>\"] lalu merangkai hasilnya.\n"
+    "a. Placeholder {{akar.segmen}} diresolv dari output node hulu "
+    "(contoh {{http_1.response.data.user.name}}); gagal resolv = node "
+    "error jujur, bukan string mentah. {{tanpa_titik}} = isi manual user.\n"
+    "b. JANGAN memberi label palsu. Menamai node 'IF'/'Supervisor' tanpa "
+    "config di atas TIDAK mengubah cara kerjanya.\n"
     "c. Ringkasan SETELAH membangun WAJIB mencerminkan node yang benar-"
-    "benar tersimpan (kind dan label apa adanya); bila user meminta fitur "
-    "yang tidak tersedia, katakan tidak tersedia - jangan diakui sudah "
-    "dibuat.\n"
-    "d. Jangan menulis config yang tidak dibaca runtime: condition, "
-    "batch_size, sub_workflow (tool generate_workflow_json MENOLAK kunci-"
-    "kunci itu). Instruksi agent ditulis di config prompt, pemicu di config "
-    "event_name.\n"
+    "benar tersimpan (kind, config kunci, dan label apa adanya).\n"
+    "d. Config yang didukung: condition, else_condition, batch_size, role, "
+    "delegates, prompt (instruksi agent), event_name (pemicu), provider/"
+    "tool (mcp). sub_workflow TIDAK didukung - pakai delegasi.\n"
 )
 
 
@@ -1858,6 +1860,18 @@ def chat(req: ChatRequest, authorization: str | None = Header(None)):
              f"{int(rate_limit.chat_limiter.window_sec)} detik per akun. "
              "Tunggu sebentar lalu coba lagi."),
             headers={"Retry-After": str(int(_rl_retry))},
+        )
+    # Tier kedua (brief 7 Okt, BAGIAN 6): batas per JAM untuk menahan pola
+    # pemakaian beruntun yang lolos dari window per-menit.
+    _rl_h_ok, _rl_h_retry = rate_limit.request_hourly_limiter.check(user_id)
+    if not _rl_h_ok:
+        raise HTTPException(
+            429,
+            ("Kuota permintaan per jam tercapai. Batas "
+             f"{rate_limit.request_hourly_limiter.max_calls} permintaan per "
+             f"{int(rate_limit.request_hourly_limiter.window_sec // 60)} menit "
+             "per akun. Coba lagi nanti."),
+            headers={"Retry-After": str(int(_rl_h_retry))},
         )
 
     # ---- KUOTA HARIAN (struktur bisnis final 2026-09-18) -------------------
@@ -3303,6 +3317,20 @@ def create_workflow(req: WorkflowCreateRequest, authorization: str | None = Head
         if not row:
             raise HTTPException(404, "Workflow tidak ditemukan.")
         return {"status": "success", "updated": True, "workflow": row}
+    # ---- RATE LIMIT PEMBUATAN WORKFLOW (brief 7 Okt, BAGIAN 6) -------------
+    # Hanya jalur INSERT (pembuatan BARU) yang dibatasi; UPDATE (autosave
+    # kanvas yang mengirim `id`) TIDAK dihitung - kalau dihitung, autosave
+    # normal akan langsung kena 429.
+    _wb_ok, _wb_retry = rate_limit.workflow_build_limiter.check(user["id"])
+    if not _wb_ok:
+        raise HTTPException(
+            429,
+            ("Terlalu banyak pembuatan workflow. Batas "
+             f"{rate_limit.workflow_build_limiter.max_calls} workflow baru per "
+             f"{int(rate_limit.workflow_build_limiter.window_sec)} detik. "
+             "Tunggu sebentar lalu coba lagi."),
+            headers={"Retry-After": str(int(_wb_retry))},
+        )
     try:
         row = db.create_workflow(user["id"], req.name, req.description, req.flow_data)
     except Exception as exc:  # noqa: BLE001

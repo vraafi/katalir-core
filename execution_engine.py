@@ -14,7 +14,9 @@
 # =============================================================================
 
 import asyncio
+import ast
 import json
+import operator
 import os
 import re
 import uuid
@@ -417,6 +419,30 @@ class PlaceholderResolutionError(ValueError):
     """
 
 
+def _split_placeholder_path(expr: str) -> list[str]:
+    """Pecah `http_1.items[0].id` -> ['http_1','items','0','id'].
+
+    Mendukung indeks array `[0]`, indeks negatif `[-1]`, indeks berantai
+    `[0][1]`, dan kunci berkutip `["nama"]` / `['nama']`. Tanpa ini, segmen
+    `items[0]` dianggap satu kunci dan selalu "tidak ditemukan" (bug yang
+    ditemukan saat bukti BAGIAN 1.3 brief 7 Okt).
+    """
+    segs: list[str] = []
+    for part in str(expr).split("."):
+        if not part:
+            continue
+        base = re.match(r"^([^\[\]]*)", part).group(1)
+        if base:
+            segs.append(base)
+        for idx in re.findall(r"\[([^\]]*)\]", part):
+            idx = idx.strip()
+            if len(idx) >= 2 and idx[0] == idx[-1] and idx[0] in ("'", '"'):
+                idx = idx[1:-1]          # kunci berkutip: items["nama"]
+            if idx != "":
+                segs.append(idx)
+    return segs
+
+
 def _dig(root: Any, segs: list[str]) -> Any:
     """Telusuri segmen titik pada dict/list; kembalikan _MISSING bila jalur tak ada."""
     cur = root
@@ -437,6 +463,113 @@ def _dig(root: Any, segs: list[str]) -> Any:
 
 
 # ---------------------------------------------------------------------------
+# EVALUASI KONDISI (BUG #1 — IF/percabangan)
+# ---------------------------------------------------------------------------
+class ConditionEvaluationError(ValueError):
+    """Ekspresi `config.condition` tidak valid / tidak bisa dievaluasi.
+
+    Ditandai di pesan supaya `self_healing.classify_error` bisa mengenalinya
+    sebagai kondisi non-sementara (payload identik tak akan pernah valid).
+    """
+
+
+#: Operator pembanding & aritmatika yang DIIZINKAN. Tidak ada atribut,
+#: subscript, call, comprehension, atau nama bebas — whitelist tertutup.
+_CMP_OPS = {
+    ast.Eq: operator.eq, ast.NotEq: operator.ne,
+    ast.Lt: operator.lt, ast.LtE: operator.le,
+    ast.Gt: operator.gt, ast.GtE: operator.ge,
+    ast.In: lambda a, b: a in b, ast.NotIn: lambda a, b: a not in b,
+    ast.Is: operator.is_, ast.IsNot: operator.is_not,
+}
+_BIN_OPS = {
+    ast.Add: operator.add, ast.Sub: operator.sub, ast.Mult: operator.mul,
+    ast.Div: operator.truediv, ast.Mod: operator.mod,
+    ast.FloorDiv: operator.floordiv, ast.Pow: operator.pow,
+}
+_UNARY_OPS = {ast.Not: operator.not_, ast.USub: operator.neg,
+              ast.UAdd: operator.pos}
+#: Nama yang boleh muncul sebagai literal (bukan variabel bebas).
+_ALLOWED_NAMES = {"true": True, "false": False, "null": None,
+                  "none": None, "yes": True, "no": False}
+
+
+def _safe_eval_node(node: ast.AST) -> Any:
+    """Evaluasi AST dengan whitelist tertutup. TIDAK memakai eval()/exec()."""
+    if isinstance(node, ast.Expression):
+        return _safe_eval_node(node.body)
+    if isinstance(node, ast.Constant):
+        return node.value
+    if isinstance(node, ast.Name):
+        key = node.id.lower()
+        if key in _ALLOWED_NAMES:
+            return _ALLOWED_NAMES[key]
+        raise ConditionEvaluationError(
+            f"ConditionEvaluationError: nama '{node.id}' tidak dikenal di "
+            f"ekspresi kondisi (hanya literal true/false/null yang boleh "
+            f"berdiri sendiri; nilai lain harus lewat {{placeholder}}).")
+    if isinstance(node, ast.BoolOp):
+        vals = [_safe_eval_node(v) for v in node.values]
+        if isinstance(node.op, ast.And):
+            return all(vals)
+        return any(vals)
+    if isinstance(node, ast.UnaryOp):
+        fn = _UNARY_OPS.get(type(node.op))
+        if fn is None:
+            raise ConditionEvaluationError(
+                "ConditionEvaluationError: operator unary tidak didukung.")
+        return fn(_safe_eval_node(node.operand))
+    if isinstance(node, ast.BinOp):
+        fn = _BIN_OPS.get(type(node.op))
+        if fn is None:
+            raise ConditionEvaluationError(
+                "ConditionEvaluationError: operator aritmatika tidak didukung.")
+        return fn(_safe_eval_node(node.left), _safe_eval_node(node.right))
+    if isinstance(node, ast.Compare):
+        left = _safe_eval_node(node.left)
+        for op, comp in zip(node.ops, node.comparators):
+            fn = _CMP_OPS.get(type(op))
+            if fn is None:
+                raise ConditionEvaluationError(
+                    "ConditionEvaluationError: operator pembanding tidak didukung.")
+            right = _safe_eval_node(comp)
+            if not fn(left, right):
+                return False
+            left = right
+        return True
+    if isinstance(node, (ast.List, ast.Tuple)):
+        return [_safe_eval_node(e) for e in node.elts]
+    raise ConditionEvaluationError(
+        f"ConditionEvaluationError: elemen '{type(node).__name__}' tidak "
+        f"diizinkan di ekspresi kondisi (hanya literal, pembanding, "
+        f"AND/OR/NOT, dan aritmatika dasar).")
+
+
+def evaluate_condition(expr: str) -> bool:
+    """Evaluasi ekspresi kondisi yang SUDAH diresolv (tanpa `{{...}}`).
+
+    Aman: memakai `ast.parse` + whitelist tertutup, TIDAK memakai `eval()`.
+    `simple_eval` tidak tersedia di lingkungan ini, jadi whitelist ini
+    menggantikannya dengan jaminan setara (tanpa akses nama/atribut/call).
+
+    Raises:
+        ConditionEvaluationError: sintaks tidak valid / elemen terlarang.
+    """
+    text = str(expr or "").strip()
+    if not text:
+        raise ConditionEvaluationError("ConditionEvaluationError: kondisi kosong.")
+    try:
+        tree = ast.parse(text, mode="eval")
+    except SyntaxError as exc:
+        raise ConditionEvaluationError(
+            f"ConditionEvaluationError: sintaks kondisi tidak valid "
+            f"({exc.msg}). Contoh: \"{{{{data.status}}}} == 'valid'\"."
+        ) from exc
+    return bool(_safe_eval_node(tree))
+
+
+
+# ---------------------------------------------------------------------------
 # STATE GRAPH ORCHESTRATOR
 # ---------------------------------------------------------------------------
 class StatefulOrchestrator:
@@ -451,7 +584,8 @@ class StatefulOrchestrator:
     def __init__(self, graph: FlowGraph, registry: Optional[MCPRegistry] = None,
                  trigger_input: Optional[dict] = None,
                  owner_email: str = "",
-                 healing_factory: Optional[Callable[[], Any]] = None):
+                 healing_factory: Optional[Callable[[], Any]] = None,
+                 reasoner: Optional[Callable[..., Awaitable[dict]]] = None):
         self.graph = graph
         self.registry = registry or get_registry()
         self.trigger_input = dict(trigger_input or {})
@@ -464,8 +598,16 @@ class StatefulOrchestrator:
         # menyuntikkan agent palsu (tanpa jaringan/LLM) tanpa mengubah
         # kode produksi. Default-nya constructs SelfHealingAgent sungguhan.
         self.healing_factory = healing_factory or (lambda: SelfHealingAgent())
+        # BUG #3 (delegasi multi-agent): `reasoner` injectable supaya test
+        # bisa menjalankan supervisor/sub-agent tanpa jaringan. Default:
+        # `agent_reasoner.run_agent` sungguhan (di-resolve lazy saat dipakai).
+        self._reasoner = reasoner
         self.states: dict[str, str] = {n.id: "pending" for n in graph.nodes}
         self.outputs: dict[str, dict] = {}
+        # BUG #3: node yang sudah dieksekusi LEWAT DELEGASI supervisor tidak
+        # boleh dijalankan ulang oleh mesin sebagai node mandiri (kalau tidak,
+        # sub-agent dieksekusi dua kali: sekali via delegasi, sekali linear).
+        self._delegated: set[str] = set()
         self._by_id = {n.id: n for n in graph.nodes}
         self._succs: dict[str, list[str]] = defaultdict(list)
         self._preds: dict[str, list[str]] = defaultdict(list)
@@ -474,8 +616,12 @@ class StatefulOrchestrator:
             self._preds[e.target].append(e.source)
 
     # --- RESOLUSI PLACEHOLDER {{...}} (adversarial BUG-3) ------------------
-    def _placeholder_roots(self) -> dict[str, Any]:
-        """Akar ekspresi: id node yang sudah dieksekusi + alias payload trigger."""
+    def _placeholder_roots(self, extra: Optional[dict] = None) -> dict[str, Any]:
+        """Akar ekspresi: id node yang sudah dieksekusi + alias payload trigger.
+
+        `extra` menimpa (overlay) akar untuk konteks TERISOLASI — dipakai
+        Split In Batches supaya tiap item hanya melihat datanya sendiri.
+        """
         roots: dict[str, Any] = dict(self.outputs)
         trig = next((n.id for n in self.graph.nodes
                      if n.data.kind == NodeKind.TRIGGER), None)
@@ -485,25 +631,35 @@ class StatefulOrchestrator:
         # `{{data.status}}` / `{{payload.x}}` tanpa tahu id trigger.
         for alias in ("input", "payload", "data"):
             roots.setdefault(alias, self.trigger_input)
+        if extra:
+            roots.update(extra)
         return roots
 
-    def _resolve_text(self, text: str, *, where: str) -> str:
+    def _resolve_text(self, text: str, *, where: str,
+                      extra_roots: Optional[dict] = None,
+                      quote_strings: bool = False) -> str:
         """Eval semua `{{akar.segmen..}}` dalam `text` terhadap konteks run.
 
         - `{{tanpa_titik}}`  -> placeholder isi-user, DIBIARKAN utuh (didesain).
         - `{{akar.x.y}}`     -> nilai diganti; tak bisa diganti -> NAIKKAN
                                 PlaceholderResolutionError (jujur, bukan diam).
+
+        Args:
+            quote_strings: dipakai oleh evaluasi KONDISI. Nilai string diberi
+                kutip (`'valid'`) supaya ekspresi seperti
+                `{{data.status}} == 'valid'` menjadi perbandingan yang sah,
+                bukan nama bebas yang error. Angka/bool tetap telanjang.
         """
         if not isinstance(text, str) or "{{" not in text:
             return text
-        roots = self._placeholder_roots()
+        roots = self._placeholder_roots(extra_roots)
         node_ids = {n.id for n in self.graph.nodes}
 
         def _sub(m) -> str:
             expr = m.group(1).strip()
             if "." not in expr:
                 return m.group(0)          # placeholder isi-user: jangan disentuh
-            segs = [s for s in expr.split(".") if s]
+            segs = _split_placeholder_path(expr)
             if not segs:
                 return m.group(0)
             head, path = segs[0], segs[1:]
@@ -532,21 +688,29 @@ class StatefulOrchestrator:
                     f"tidak ditemukan di output '{head}' (kunci tersedia: "
                     f"{keys}). Perbaiki referensi {{{{{expr}}}}} di {where}.")
             if isinstance(val, str):
+                if quote_strings:
+                    # Kutip nilai supaya perbandingan kondisi sah:
+                    # `{{data.status}} == 'valid'` -> `'valid' == 'valid'`.
+                    return "'" + val.replace("\\", "\\\\").replace("'", "\\'") + "'"
                 return val
             if val is None:
-                return ""
+                return "null" if quote_strings else ""
+            if isinstance(val, bool):
+                return ("true" if val else "false") if quote_strings \
+                    else json.dumps(val)
             return json.dumps(val, ensure_ascii=False)
 
         return _PLACEHOLDER_RX.sub(_sub, text)
 
-    def _resolve_cfg(self, cfg: dict, *, where: str) -> dict:
+    def _resolve_cfg(self, cfg: dict, *, where: str,
+                     extra_roots: Optional[dict] = None) -> dict:
         """Resolv semua string di config node (salinan baru, config asli utuh)."""
         if not cfg:
             return cfg
 
         def walk(v: Any) -> Any:
             if isinstance(v, str):
-                return self._resolve_text(v, where=where)
+                return self._resolve_text(v, where=where, extra_roots=extra_roots)
             if isinstance(v, dict):
                 return {k: walk(x) for k, x in v.items()}
             if isinstance(v, list):
@@ -555,10 +719,246 @@ class StatefulOrchestrator:
 
         return walk(cfg)
 
+    def _condition_gate(self, cfg: dict, node: FlowNode,
+                        extra_roots: Optional[dict] = None) -> Optional[str]:
+        """Kembalikan alasan SKIP bila node harus dilewati, atau None bila jalan.
+
+        Semantik (BUG #1):
+          - `condition`      : node hanya jalan bila ekspresi truthy (IF).
+          - `else_condition` : node hanya jalan bila ekspresi truthy (ELSE).
+        Bila keduanya ada, keduanya harus truthy. Placeholder diresolv dulu,
+        lalu dievaluasi dengan whitelist aman (tanpa eval()).
+        """
+        where = f"node '{node.id}'"
+        for key in ("condition", "else_condition"):
+            raw = cfg.get(key)
+            if raw is None or raw == "":
+                continue
+            if not isinstance(raw, str):
+                raise ConditionEvaluationError(
+                    f"ConditionEvaluationError: config.{key} pada node "
+                    f"'{node.id}' harus string, bukan {type(raw).__name__}.")
+            resolved = self._resolve_text(raw, where=where,
+                                          extra_roots=extra_roots,
+                                          quote_strings=True)
+            if not evaluate_condition(resolved):
+                return (f"kondisi '{key}' tidak terpenuhi: {resolved!r}")
+        return None
+
+    def _reason_fn(self):
+        """Reasoner efektif: yang disuntikkan test, atau `agent_reasoner.run_agent`.
+
+        Dipakai `_exec_agent` DAN `_exec_supervisor` supaya sub-agent yang
+        dipanggil lewat delegasi memakai jalur yang sama (dan bisa diuji
+        tanpa jaringan).
+        """
+        if self._reasoner is not None:
+            return self._reasoner
+        from agent_reasoner import run_agent as _real
+        return _real
+
+    # --- SPLIT IN BATCHES (BUG #4: isolasi multi-item) ----------------------
+    @staticmethod
+    def _extract_batch_items(inp: dict) -> Optional[list]:
+        """Cari array input untuk di-batch.
+
+        Menelusuri bersarang (kedalaman terbatas) karena array sering berada
+        di dalam output node hulu: `{"t": {"webhook_payload": {"items": [...]}}}`.
+        Kunci umum diprioritaskan, lalu list pertama yang ditemukan.
+        """
+        _KEYS = ("items", "batch", "array", "list", "rows", "data",
+                 "results", "payload", "webhook_payload", "context",
+                 "result", "output")
+
+        def search(obj: Any, depth: int) -> Optional[list]:
+            if depth > 4:
+                return None
+            if isinstance(obj, list):
+                return obj
+            if isinstance(obj, dict):
+                for k in _KEYS:
+                    if k in obj:
+                        v = obj[k]
+                        if isinstance(v, list):
+                            return v
+                        found = search(v, depth + 1)
+                        if found is not None:
+                            return found
+                for v in obj.values():
+                    if isinstance(v, list):
+                        return v
+                    if isinstance(v, dict):
+                        found = search(v, depth + 1)
+                        if found is not None:
+                            return found
+            return None
+
+        return search(inp, 0)
+
+    async def _run_batched(self, node: FlowNode, inp: dict,
+                           batch_size: int) -> dict:
+        """Jalankan node sekali per batch dengan konteks TERISOLASI.
+
+        Isolasi: tiap batch hanya melihat `{{item}}` dan `{{batch}}` miliknya
+        sendiri — jawaban batch B tidak bisa dipengaruhi batch A. `self.outputs`
+        sementara di-overlay per batch lalu dipulihkan (tidak ada state bocor
+        antar batch).
+        """
+        items = self._extract_batch_items(inp) or []
+        size = max(1, int(batch_size))
+        chunks = [items[i:i + size] for i in range(0, len(items), size)]
+        executor = self.EXECUTORS[node.data.kind]
+        results: list[dict] = []
+        saved = dict(self.outputs)
+        try:
+            for idx, chunk in enumerate(chunks):
+                # Konteks terisolasi: `item` (batch berukuran 1) / `batch`
+                # (list) hanya berisi potongan ini.
+                scope = {
+                    "item": chunk[0] if len(chunk) == 1 else chunk,
+                    "batch": chunk,
+                    "index": idx,
+                }
+                scoped_inp = {"_from": inp.get("_from", "trigger"),
+                              "item": scope["item"], "batch": chunk,
+                              "index": idx, "items": chunk}
+                out = await executor(self, node, scoped_inp,
+                                     _extra_roots=scope)
+                results.append({"index": idx, "size": len(chunk),
+                                "input": chunk, "output": out})
+                # Pulihkan outputs agar batch berikutnya tidak melihat output
+                # batch sebelumnya (isolasi).
+                self.outputs = dict(saved)
+        finally:
+            self.outputs = saved
+        return {"type": "batch.results", "batch_size": size,
+                "batch_count": len(chunks), "item_count": len(items),
+                "results": results}
+
+    # --- DELEGASI MULTI-AGENT (BUG #3) --------------------------------------
+    def _delegation_targets(self, node: FlowNode) -> list[str]:
+        """ID agent yang boleh didelegasikan (config.delegates, else semua agent)."""
+        cfg = node.data.config or {}
+        explicit = cfg.get("delegates") or cfg.get("delegate")
+        agent_ids = [n.id for n in self.graph.nodes
+                     if n.data.kind == NodeKind.AGENT and n.id != node.id]
+        if isinstance(explicit, (list, tuple)):
+            wanted = {str(x) for x in explicit}
+            return [i for i in agent_ids if i in wanted]
+        if isinstance(explicit, str) and explicit.strip():
+            return [i for i in agent_ids if i == explicit.strip()]
+        return agent_ids
+
+    async def _run_delegate(self, agent_id: str, task: str) -> dict:
+        """Jalankan satu sub-agent dengan `task` sebagai input; kembalikan hasil."""
+        target = self._by_id.get(agent_id)
+        if target is None or target.data.kind != NodeKind.AGENT:
+            return {"status": "error",
+                    "error": f"agent '{agent_id}' tidak ada / bukan node agent."}
+        sub_inp = {"_from": "delegate", "instruction": task, "task": task,
+                   "reply": task}
+        executor = self.EXECUTORS[NodeKind.AGENT]
+        out = await executor(self, target, sub_inp)
+        # Tandai sudah dieksekusi lewat delegasi supaya mesin tidak
+        # menjalankannya lagi sebagai node mandiri di gelombang berikutnya.
+        self._delegated.add(agent_id)
+        self.outputs[agent_id] = out or {"noop": True}
+        self.states[agent_id] = "completed"
+        return {"status": out.get("agent_status", "success"),
+                "agent_id": agent_id, "reply": out.get("instruction", ""),
+                "raw": out}
+
+    async def _exec_supervisor(self, node: FlowNode, inp: dict,
+                               cfg: dict, prompt: str) -> dict:
+        """Loop delegasi supervisor -> sub-agent -> supervisor (maks N putaran).
+
+        Protokol delegasi (dibaca dari balasan LLM, bukan dieksekusi):
+            [DELEGATE: agent_id=<id> task="<tugas>"]
+        atau JSON: {"delegate": [{"agent_id": "...", "task": "..."}]}
+        """
+        reason = self._reason_fn()
+        targets = self._delegation_targets(node)
+        roster = ", ".join(targets) if targets else "(tidak ada agent lain)"
+        sys_prompt = (
+            f"{prompt}\n\n"
+            "Kamu SUPERVISOR Agent. Kamu boleh mendelegasikan tugas ke agent "
+            f"lain. Agent yang tersedia: {roster}.\n"
+            "Untuk mendelegasikan, tulis SATU baris per tugas dengan format:\n"
+            '  [DELEGATE: agent_id=<id> task="<tugas spesifik>"]\n'
+            "Setelah menerima hasil delegasi, lanjutkan. Bila seluruh tugas "
+            "selesai, tulis jawaban akhir TANPA baris [DELEGATE]."
+        )
+        transcript: list[dict] = []
+        delegations: list[dict] = []
+        max_rounds = int((node.data.config or {}).get("max_delegations", 5) or 5)
+        reply = ""
+        for _round in range(max_rounds + 1):
+            turn_input = dict(inp)
+            if transcript:
+                turn_input["delegation_results"] = transcript
+                turn_input["instruction"] = (
+                    f"{prompt}\n\nHasil delegasi sejauh ini:\n"
+                    + json.dumps(transcript, ensure_ascii=False))
+            res = await reason(sys_prompt, turn_input, config=cfg)
+            if res.get("status") != "success":
+                return {"type": "agent.think", "role": "supervisor",
+                        "agent_status": res.get("status", "error"),
+                        "instruction": res.get("reply", ""),
+                        "agent_error": res.get("error"),
+                        "delegations": delegations, "usage": res.get("usage", {})}
+            reply = str(res.get("reply") or "")
+            directives = self._parse_delegations(reply, targets)
+            if not directives:
+                break
+            for agent_id, task in directives:
+                outcome = await self._run_delegate(agent_id, task)
+                record = {"agent_id": agent_id, "task": task,
+                          "status": outcome.get("status"),
+                          "reply": outcome.get("reply", "")}
+                transcript.append(record)
+                delegations.append(record)
+        return {"type": "agent.think", "role": "supervisor",
+                "received_from": inp.get("_from", "trigger"),
+                "instruction": reply, "delegations": delegations,
+                "delegated_count": len(delegations)}
+
+    @staticmethod
+    def _parse_delegations(reply: str,
+                           targets: list[str]) -> list[tuple[str, str]]:
+        """Parse direktif delegasi dari balasan supervisor (aman, tanpa exec)."""
+        text = str(reply or "")
+        out: list[tuple[str, str]] = []
+        # 1) Bentuk tekstual: [DELEGATE: agent_id=x task="..."]
+        for m in re.finditer(r"\[\s*DELEGATE\s*:(.*?)\]", text, re.I | re.S):
+            body = m.group(1)
+            aid = re.search(r"agent_id\s*=\s*['\"]?([\w.\-]+)", body, re.I)
+            task = re.search(r"task\s*=\s*['\"](.+?)['\"]", body, re.I | re.S)
+            if aid and task:
+                out.append((aid.group(1), task.group(1).strip()))
+        if out:
+            return out
+        # 2) Bentuk JSON: {"delegate": [{"agent_id","task"}]}
+        for m in re.finditer(r"\{.*\}", text, re.S):
+            try:
+                obj = json.loads(m.group(0))
+            except Exception:  # noqa: BLE001
+                continue
+            items = obj.get("delegate") if isinstance(obj, dict) else None
+            if isinstance(items, list):
+                for it in items:
+                    if isinstance(it, dict) and it.get("agent_id"):
+                        out.append((str(it["agent_id"]),
+                                    str(it.get("task", ""))))
+            if out:
+                return out
+        return out
+
     # --- executor registry (NodeKind -> async fn), sin if/else en el motor ---
-    async def _exec_trigger(self, node: FlowNode, inp: dict) -> dict:
+    async def _exec_trigger(self, node: FlowNode, inp: dict,
+                            _extra_roots: Optional[dict] = None) -> dict:
         cfg = self._resolve_cfg(node.data.config or {},
-                                where=f"node '{node.id}'")
+                                where=f"node '{node.id}'",
+                                extra_roots=_extra_roots)
         event = cfg.get("event_name") or node.data.label or "webhook"
         payload = dict(self.trigger_input or {})
         if node.data.kind == NodeKind.TRIGGER and inp:
@@ -571,9 +971,10 @@ class StatefulOrchestrator:
             out["context"] = payload
         return out
 
-    async def _exec_agent(self, node: FlowNode, inp: dict) -> dict:
+    async def _exec_agent(self, node: FlowNode, inp: dict,
+                          _extra_roots: Optional[dict] = None) -> dict:
         # Reasoning Agent nyata (LangChain Core) - baca System Prompt + input Trigger.
-        from agent_reasoner import run_agent as reason
+        reason = self._reason_fn()
 
         cfg = node.data.config or {}
         # BUG FIX 2026-10-06 (adversarial BUG-1, silent failure): canvas
@@ -587,7 +988,9 @@ class StatefulOrchestrator:
         # BUG-3: {{akar.x}} di instruksi diresolv dulu terhadap output node
         # hulu; gagal -> PlaceholderResolutionError (bukan literal verbatim
         # yang diam-diam dikirim ke LLM).
-        prompt = self._resolve_text(prompt, where=f"node '{node.id}'")
+        prompt = self._resolve_text(prompt, where=f"node '{node.id}'",
+                                    extra_roots=_extra_roots)
+
         import database as db
         owner = getattr(self, "owner_email", None) or cfg.get("owner_email") or ""
         _custom = str((cfg or {}).get("custom_api_key") or "").strip()
@@ -631,6 +1034,15 @@ class StatefulOrchestrator:
                 "message": "[Agent blocked] Saldo habis. Topup via Dodo Payments.",
                 "agent_status": "blocked_no_balance",
             }
+        # --- DELEGASI MULTI-AGENT (BUG #3) ----------------------------------
+        # Ditempatkan SETELAH resolusi vault + guard billing supaya supervisor
+        # memakai kunci BYOK user dan tetap tunduk gembok eksekusi. Tiap
+        # sub-agent yang dipanggil lewat `_run_delegate` melewati `_exec_agent`
+        # sendiri (meter + guard per pemanggilan LLM).
+        _role = str(cfg.get("role") or "").strip().lower()
+        if _role == "supervisor" or cfg.get("delegates") is not None:
+            return await self._exec_supervisor(node, inp, cfg, prompt)
+
         res = await reason(prompt, dict(inp), config=cfg)
         status = res.get("status", "success")
 
@@ -676,7 +1088,8 @@ class StatefulOrchestrator:
             "agent_error": res.get("error"),
         }
 
-    async def _exec_mcp(self, node: FlowNode, inp: dict) -> dict:
+    async def _exec_mcp(self, node: FlowNode, inp: dict,
+                        _extra_roots: Optional[dict] = None) -> dict:
         """Node MCP: `config.provider` -> registry native, lalu tool bawaan mesin.
 
         FASE 2.6: sebelumnya executor mengabaikan `config.provider` dan memilih
@@ -690,7 +1103,8 @@ class StatefulOrchestrator:
         # BUG-3: resolv {{akar.x}} di seluruh config sebelum provider
         # memakainya (chat_id/url/pesan) - config asli tidak dimutasi.
         cfg = self._resolve_cfg(node.data.config or {},
-                                where=f"node '{node.id}'")
+                                where=f"node '{node.id}'",
+                                extra_roots=_extra_roots)
         owner = (getattr(self, "owner_email", None)
                  or cfg.get("owner_email") or "")
         provider = provider_registry.resolve(cfg, inp)
@@ -730,7 +1144,8 @@ class StatefulOrchestrator:
     def _runnable(self, remaining: set[str]) -> list[str]:
         return [
             nid for nid in remaining
-            if all(self.states[p] == "completed" for p in self._preds[nid])
+            if nid not in self._delegated
+            and all(self.states[p] == "completed" for p in self._preds[nid])
         ]
     async def run(self, on_step: Optional[Callable] = None) -> list[ExecutionStep]:
         await self.registry.connect()
@@ -741,6 +1156,17 @@ class StatefulOrchestrator:
             raise RuntimeError("Workflow tidak memiliki node Trigger (titik awal wajib).")
 
         while remaining:
+            # Buang node yang sudah dieksekusi lewat delegasi supervisor
+            # (BUG #3) - kalau tidak, mesin menjalankannya lagi secara linear
+            # (eksekusi ganda). Node yang dibuang tetap membuka suksesornya.
+            _done = [n for n in remaining if n in self._delegated]
+            if _done:
+                for nid in _done:
+                    remaining.discard(nid)
+                    for t in self._succs[nid]:
+                        self.outputs.setdefault(t, {})
+                if not remaining:
+                    break
             wave = self._runnable(remaining)
             if not wave:
                 raise RuntimeError("Workflow tampak buntu - kemungkinan siklus atau node yatim.")
@@ -783,11 +1209,30 @@ class StatefulOrchestrator:
             if on_step:
                 await on_step(step)
             try:
+                raw_cfg = node.data.config or {}
+                # --- GERBANG KONDISI (BUG #1: IF/ELSE) -----------------------
+                skip_reason = self._condition_gate(raw_cfg, node)
+                if skip_reason:
+                    self.outputs[node_id] = {"skipped": True,
+                                             "reason": skip_reason}
+                    self.states[node_id] = "completed"
+                    step.status = "skipped"
+                    step.output = self.outputs[node_id]
+                    steps.append(step)
+                    if on_step:
+                        await on_step(step)
+                    return
                 executor = self.EXECUTORS[node.data.kind]
                 inps = {p: self.outputs.get(p, {}) for p in self._preds[node_id]}
                 inp = dict(inps)
                 inp["_from"] = next(iter(inps), "trigger")
-                out = await executor(self, node, inp)
+                # --- SPLIT IN BATCHES (BUG #4) ------------------------------
+                _bs = raw_cfg.get("batch_size", raw_cfg.get("split_in_batches"))
+                if _bs:
+                    size = 1 if isinstance(_bs, bool) else int(_bs)
+                    out = await self._run_batched(node, inp, size)
+                else:
+                    out = await executor(self, node, inp)
                 self.outputs[node_id] = out or {"noop": True}
                 self.states[node_id] = "completed"
                 step.status = "completed"

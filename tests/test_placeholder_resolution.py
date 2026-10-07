@@ -226,3 +226,33 @@ def test_save_ekspresi_alias_trigger_lolos():
     ]))
     assert res["ok"] is True, res
 
+
+
+# ---------------------------------------------------------------------------
+# 6. INDEKS ARRAY (brief 7 Okt 2026, BAGIAN 1.3) — ditemukan saat bukti mentah:
+#    `{{http_1.items[0].id}}` dianggap SATU kunci ("items[0]") dan selalu
+#    "tidak ditemukan". `_split_placeholder_path` memecahnya jadi
+#    ['http_1','items','0','id'].
+# ---------------------------------------------------------------------------
+
+
+def test_split_path_indeks_array():
+    assert ee._split_placeholder_path("http_1.items[0].id") == [
+        "http_1", "items", "0", "id"]
+    assert ee._split_placeholder_path("n.a[0][1]") == ["n", "a", "0", "1"]
+    assert ee._split_placeholder_path("n.a[-1].x") == ["n", "a", "-1", "x"]
+    assert ee._split_placeholder_path('n.a["nama"].x') == [
+        "n", "a", "nama", "x"]
+
+
+def test_resolve_indeks_array_end_to_end():
+    g = ee.FlowGraph(
+        nodes=[
+            {"id": "t", "data": {"kind": "trigger", "label": "M", "config": {}}},
+            {"id": "n1", "data": {"kind": "agent", "label": "A", "config": {}}},
+        ],
+        edges=[{"source": "t", "target": "n1"}])
+    orch = ee.StatefulOrchestrator(g)
+    orch.outputs = {"n1": {"items": [{"id": 101}, {"id": 202}]}}
+    assert orch._resolve_text("{{n1.items[0].id}}", where="tes") == "101"
+    assert orch._resolve_text("{{n1.items[-1].id}}", where="tes") == "202"

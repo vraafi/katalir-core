@@ -374,6 +374,24 @@ def execute_textual_tool(call: dict, user_email: str,
                         "reason": reason, "approval_token": tok,
                         "expires_in": APPROVAL_TTL_S}
 
+    # --- RATE LIMIT TOOL CALL (brief 7 Okt, BAGIAN 6) --------------------
+    # Maks 20 eksekusi tool per menit per user. Dihitung hanya saat benar-
+    # benar mengeksekusi handler (bukan saat gate minta approval), supaya
+    # percobaan yang belum dieksekusi tidak memakan slot.
+    try:
+        import rate_limit as _rl
+        _tc_ok, _tc_retry = _rl.tool_call_limiter.check(user_email or "-")
+    except Exception:  # noqa: BLE001 - limiter gagal jangan blokir eksekusi
+        _tc_ok, _tc_retry = True, 0.0
+    if not _tc_ok:
+        _audit(tool, args, Disposition.DENY, "rate limit tool call", user_email)
+        return {"status": "rate_limited", "tool": tool,
+                "error": "RATE_LIMIT",
+                "message": ("Terlalu banyak pemanggilan tool. Batas "
+                            f"{_rl.tool_call_limiter.max_calls} per "
+                            f"{int(_rl.tool_call_limiter.window_sec)} detik."),
+                "retry_after": int(_tc_retry)}
+
     try:
         return handler(args, user_email)
     finally:

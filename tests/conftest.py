@@ -63,3 +63,20 @@ def _bersihkan_event_loop_menggantung():
     if _ev._get_running_loop() is not None:
         _ev._set_running_loop(None)
     yield
+
+
+@pytest.fixture(autouse=True)
+def _reset_rate_limiter():
+    """Kosongkan SEMUA rate limiter sebelum tiap tes.
+
+    Rate limit bersifat in-memory per proses (rate_limit.py). Tanpa reset,
+    tes yang memanggil `/chat`, `/workflows` (INSERT), atau `execute_textual_tool`
+    berkali-kali dengan user yang sama bisa saling menabrak batas -> gagal
+    karena urutan, bukan logika. Reset juga membuat tes rate-limit deterministik.
+    """
+    try:
+        import rate_limit
+        rate_limit.reset_all()
+    except Exception:  # noqa: BLE001 - rate_limit opsional di beberapa tes
+        pass
+    yield

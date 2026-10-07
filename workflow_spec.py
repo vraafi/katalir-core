@@ -167,24 +167,63 @@ def validate_spec(raw: str) -> dict[str, Any]:
             errors.append(f"node mcp '{n.id}' (provider {prov}) belum lengkap: "
                           f"{', '.join(missing)} wajib ada di config")
 
-    # TRIASE ADVERSARIAL 2026-10-06 (BUG-1/BUG-6): config yang TIDAK pernah
-    # dibaca runner membuat "draf bohong" - node berlabel IF / batch /
-    # sub-workflow tersimpan tapi tetap dieksekusi linear tanpa error
-    # (silent failure by design). Tolak di sini supaya model jujur lewat
-    # repair loop, bukan mengaku bisa (bukti: skenario S1/S2/S5).
-    _DEAD_CONFIG_KEYS = (
-        "condition", "batch_size", "sub_workflow", "subworkflow",
-        "split_in_batches", "delegate", "delegation",
-    )
+    # BUG #1/#3/#4 (7 Okt 2026): runtime KINI mendukung IF/kondisi, Split In
+    # Batches, dan delegasi multi-agent — jadi config-config ini TIDAK lagi
+    # ditolak. Yang tersisa: validasi BENTUK, supaya model tidak menyimpan
+    # config yang salah tipe dan gagal saat eksekusi (silent failure).
+    # `sub_workflow` tetap ditolak: bukan fitur runtime; pakai delegasi
+    # (role=supervisor + delegates) sebagai gantinya.
+    _UNSUPPORTED_KEYS = ("sub_workflow", "subworkflow")
     for n in spec.nodes:
-        dead = [k for k in _DEAD_CONFIG_KEYS if k in (n.config or {})]
-        if dead:
+        cfg = n.config or {}
+        for key in _UNSUPPORTED_KEYS:
+            if key in cfg:
+                errors.append(
+                    f"node '{n.id}' memakai config '{key}' yang tidak "
+                    "didukung runtime. Untuk memanggil agent lain, pakai "
+                    "delegasi: set config.role='supervisor' pada node "
+                    "supervisor dan sebut id agent target di config.delegates."
+                )
+        cond = cfg.get("condition")
+        if cond is not None and not isinstance(cond, str):
             errors.append(
-                f"node '{n.id}' memakai config '{', '.join(dead)}' yang tidak "
-                "didukung runtime (tidak ada IF/cabang, Split In Batches, atau "
-                "sub-workflow). Hapus kunci itu; jalankan logika kondisi di "
-                "dalam prompt agent atau susun workflow linear berurutan."
-            )
+                f"node '{n.id}' config.condition harus string ekspresi "
+                f"(contoh: \"{{{{data.status}}}} == 'valid'\"), "
+                f"bukan {type(cond).__name__}.")
+        else_cond = cfg.get("else_condition")
+        if else_cond is not None and not isinstance(else_cond, str):
+            errors.append(
+                f"node '{n.id}' config.else_condition harus string ekspresi.")
+        bs = cfg.get("batch_size")
+        if bs is not None:
+            ok_bs = (isinstance(bs, bool) or
+                     (isinstance(bs, int) and not isinstance(bs, bool) and bs >= 1) or
+                     (isinstance(bs, str) and bs.strip().isdigit()))
+            if not ok_bs:
+                errors.append(
+                    f"node '{n.id}' config.batch_size harus bilangan bulat "
+                    f">= 1, bukan {bs!r}.")
+        role = cfg.get("role")
+        if role is not None and str(role).strip().lower() not in (
+                "supervisor", "worker"):
+            errors.append(
+                f"node '{n.id}' config.role harus 'supervisor' atau 'worker', "
+                f"bukan {role!r}.")
+        delegates = cfg.get("delegates")
+        if delegates is not None and not isinstance(delegates, (list, tuple, str)):
+            errors.append(
+                f"node '{n.id}' config.delegates harus list id agent atau "
+                f"string id agent.")
+        if isinstance(delegates, (list, tuple)):
+            for d in delegates:
+                if str(d) not in known:
+                    errors.append(
+                        f"node '{n.id}' config.delegates menyebut '{d}' yang "
+                        f"tidak ada di daftar nodes.")
+        if isinstance(delegates, str) and delegates.strip() and delegates.strip() not in known:
+            errors.append(
+                f"node '{n.id}' config.delegates menyebut '{delegates}' yang "
+                f"tidak ada di daftar nodes.")
 
     # TRIASE ADVERSARIAL 2026-10-06 (BUG-6): placeholder {{...}} dicek saat
     # SAVE, bukan baru ketahuan saat eksekusi:

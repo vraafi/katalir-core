@@ -566,7 +566,12 @@ export function useSendChatMutation() {
         if (res.ok && data.status === "success") {
           return { reply: data.reply as string, session_id: data.session_id as string | undefined, meta: data.meta as ChatMeta | undefined };
         }
-        const { message, retryable } = classifyHttpError(res.status);
+        // Teruskan `detail` server (mis. "kuota cooldown", "batas 5 workflow
+        // baru per 60 detik") supaya user tahu penyebabnya, bukan pesan generik.
+        const { message, retryable } = classifyHttpError(
+          res.status,
+          (data as { detail?: string } | null)?.detail,
+        );
         if (retryable && attempt < maxAttempts - 1) {
           await sleep(delays[attempt] ?? 2000);
           continue;

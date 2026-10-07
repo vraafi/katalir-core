@@ -144,3 +144,36 @@ DEFAULT_MAX_CALLS = int(_env_number("CHAT_RATE_LIMIT", 10))
 DEFAULT_WINDOW_SEC = _env_number("CHAT_RATE_WINDOW_SEC", 60.0)
 
 chat_limiter = SlidingWindowLimiter(DEFAULT_MAX_CALLS, DEFAULT_WINDOW_SEC)
+
+# ---------------------------------------------------------------------------
+# TIER TAMBAHAN (brief 7 Okt 2026, BAGIAN 6):
+#   * build workflow : maks 5 per menit per user
+#   * tool call      : maks 20 per menit per user
+#   * request        : maks 100 per jam per user (di atas limit 10/menit /chat)
+# Semua memakai kelas sliding-window yang sama; env `<= 0` menonaktifkan.
+# ---------------------------------------------------------------------------
+WORKFLOW_BUILD_LIMIT = int(_env_number("WORKFLOW_BUILD_RATE_LIMIT", 5))
+WORKFLOW_BUILD_WINDOW_SEC = _env_number("WORKFLOW_BUILD_RATE_WINDOW_SEC", 60.0)
+workflow_build_limiter = SlidingWindowLimiter(WORKFLOW_BUILD_LIMIT,
+                                              WORKFLOW_BUILD_WINDOW_SEC)
+
+TOOL_CALL_LIMIT = int(_env_number("TOOL_CALL_RATE_LIMIT", 20))
+TOOL_CALL_WINDOW_SEC = _env_number("TOOL_CALL_RATE_WINDOW_SEC", 60.0)
+tool_call_limiter = SlidingWindowLimiter(TOOL_CALL_LIMIT, TOOL_CALL_WINDOW_SEC)
+
+REQUEST_HOURLY_LIMIT = int(_env_number("REQUEST_HOURLY_RATE_LIMIT", 100))
+REQUEST_HOURLY_WINDOW_SEC = _env_number("REQUEST_HOURLY_RATE_WINDOW_SEC", 3600.0)
+request_hourly_limiter = SlidingWindowLimiter(REQUEST_HOURLY_LIMIT,
+                                              REQUEST_HOURLY_WINDOW_SEC)
+
+
+def all_limiters() -> list["SlidingWindowLimiter"]:
+    """Semua limiter global (dipakai test/fixture untuk reset antar-tes)."""
+    return [chat_limiter, workflow_build_limiter, tool_call_limiter,
+            request_hourly_limiter]
+
+
+def reset_all() -> None:
+    """Kosongkan hitungan SEMUA limiter (fixture tes)."""
+    for lim in all_limiters():
+        lim.reset()

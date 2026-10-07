@@ -94,14 +94,25 @@ def test_5xx_tidak_pernah_diterjemahkan_sebagai_tuduhan_tier():
     assert API_TS.exists(), f"modul penerjemah error hilang: {API_TS}"
     src = API_TS.read_text(encoding="utf-8")
 
-    busy = re.search(r'case 503:\s*return \{ message: "([^"]+)", retryable: (\w+) \}', src)
+    # 7 Okt 2026: pesan server (`detail`) kini DIPAKAI BILA ADA, dengan pesan
+    # per-status sebagai fallback -> bentuknya `message: serverMsg || "..."`.
+    # Regex dibuat toleran terhadap bentuk itu (dan tetap menangkap pesan
+    # fallback per-status yang menjadi kontrak asli tes ini).
+    _MSG = r'message:\s*(?:serverMsg\s*\|\|\s*)?"([^"]+)"'
+    busy = re.search(
+        rf'case 503:\s*return \{{\s*{_MSG}\s*,\s*retryable:\s*(\w+)\s*,?\s*\}}',
+        src)
     assert busy, "503 tidak punya pesan khusus di classifyHttpError (5xx tak diterjemahkan)"
     assert "sibuk" in busy.group(1), f"pesan 503 tidak menyebut sibuk: {busy.group(1)!r}"
     assert busy.group(2) == "true", "503 harus retryable (gateway transien)"
 
-    srv = re.search(r'case 500:\s*return \{ message: "([^"]+)", retryable: (\w+) \}', src)
+    srv = re.search(
+        rf'case 500:\s*return \{{\s*{_MSG}\s*,\s*retryable:\s*(\w+)\s*,?\s*\}}',
+        src)
     assert srv, "500 tidak punya pesan khusus di classifyHttpError"
     assert TIER_TEXT not in src and "tier" not in srv.group(1).lower(), (
         "error 5xx tidak boleh diterjemahkan sebagai masalah tier"
     )
+    # Kontrak baru (BAGIAN 5 brief 7 Okt): `detail` server diteruskan ke UI.
+    assert "detail" in src, "classifyHttpError harus menerima `detail` server"
 

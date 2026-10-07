@@ -44,18 +44,42 @@ export function classifyChatError(err: unknown): { message: string; retryable: b
   return { message: "Terjadi kesalahan. Coba lagi.", retryable: false };
 }
 
-export function classifyHttpError(status: number): { message: string; retryable: boolean } {
+/**
+ * Terjemahkan status HTTP menjadi pesan + keputusan retry.
+ *
+ * `detail` (opsional) = pesan spesifik dari server (body FastAPI `{detail}`).
+ * Untuk 429/503 pesan server lebih informatif (mis. "kuota cooldown", "batas
+ * 5 workflow baru per 60 detik", `Retry-After`) sehingga DIPAKAI BILA ADA;
+ * kalau kosong, jatuh ke pesan generik per-status (perilaku lama).
+ */
+export function classifyHttpError(
+  status: number,
+  detail?: string,
+): { message: string; retryable: boolean } {
+  const serverMsg = typeof detail === "string" ? detail.trim() : "";
   switch (status) {
     case 401:
       return { message: "Sesi habis. Silakan login ulang.", retryable: false };
     case 503:
-      return { message: "Server sedang sibuk. Coba lagi sebentar.", retryable: true };
+      return {
+        message: serverMsg || "Server sedang sibuk. Coba lagi sebentar.",
+        retryable: true,
+      };
     case 429:
-      return { message: "Model sedang sibuk. Coba lagi dalam 1 menit.", retryable: false };
+      return {
+        message: serverMsg || "Model sedang sibuk. Coba lagi dalam 1 menit.",
+        retryable: false,
+      };
     case 500:
-      return { message: "Server error. Tim kami sudah diberi tahu.", retryable: false };
+      return {
+        message: serverMsg || "Server error. Tim kami sudah diberi tahu.",
+        retryable: false,
+      };
     default:
-      return { message: `Server error (${status}).`, retryable: false };
+      return {
+        message: serverMsg || `Server error (${status}).`,
+        retryable: false,
+      };
   }
 }
 
