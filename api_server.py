@@ -32,6 +32,7 @@ import database as db
 import gemini_key_pool
 import mcp_tool_cache
 import model_discovery as md
+import rate_limit
 import workflow_autofix as _wf_autofix
 import security
 import tools
@@ -1839,6 +1840,25 @@ def chat(req: ChatRequest, authorization: str | None = Header(None)):
                     "session_id": prior["session_id"],
                 }
             prior_session = prior["session_id"]
+
+    # ---- RATE LIMIT PER USER (BUG-5, adversarial 2026-10-07) ---------------
+    # Diletakkan SETELAH early-return idempotensi (replay TIDAK memakan slot -
+    # sama rasionalnya dengan penempatan kuota di bawah) dan SEBELUM
+    # pemeriksaan kuota/write apa pun, supaya burst ditahan murah sebelum
+    # menyentuh DB maupun LLM. Bukti awal: burst 8 paralel -> 8/8 200 tanpa
+    # satu pun 429; 13 key / 27 RPM lalu kehabisan RPM -> 503 menyebar ke
+    # semua user. Limit in-memory per proses (lihat rate_limit.py - bila
+    # suatu saat di-scale >1 replica, store-nya harus terpusat).
+    _rl_ok, _rl_retry = rate_limit.chat_limiter.check(user_id)
+    if not _rl_ok:
+        raise HTTPException(
+            429,
+            ("Terlalu banyak permintaan percakapan. Batas "
+             f"{rate_limit.chat_limiter.max_calls} pesan per "
+             f"{int(rate_limit.chat_limiter.window_sec)} detik per akun. "
+             "Tunggu sebentar lalu coba lagi."),
+            headers={"Retry-After": str(int(_rl_retry))},
+        )
 
     # ---- KUOTA HARIAN (struktur bisnis final 2026-09-18) -------------------
     # Diletakkan SETELAH early-return idempotensi dan SEBELUM menulis pesan:

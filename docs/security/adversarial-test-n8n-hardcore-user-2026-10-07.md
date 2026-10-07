@@ -48,7 +48,7 @@ batas,** tapi yang gagal adalah **silent LLM quota exhaustion**.
 
 ## Daftar Bug & Keterbatasan
 
-> **Status triase (diperbarui 2026-10-06, sebelum freeze launch):**
+> **Status triase (diperbarui 2026-10-07 — semua bug terkecuali BUG-2 selesai):**
 >
 > | Bug | Status | Keterangan |
 > |---|---|---|
@@ -56,7 +56,7 @@ batas,** tapi yang gagal adalah **silent LLM quota exhaustion**.
 > | BUG-2 | ⚠️ sebagian | Pura-pura cabang ditutup (validator tolak `condition`); implementasi IF/branch = keputusan fitur pasca-launch |
 > | BUG-3 | ✅ **FIXED** | Mesin placeholder runtime (`_resolve_text`/`_resolve_cfg`) + save-time validation. Lihat rincian BUG-3 |
 > | BUG-4 | ✅ **FALSE POSITIVE** | Body 503 tidak kosong — artefak harness. Rincian di bawah |
-> | BUG-5 | ⏳ belum ditriase | Rate limiting `/chat` |
+> | BUG-5 | ✅ **FIXED** | Rate limiting `/chat` — sliding-window per user, 429 + `Retry-After`. Lihat rincian BUG-5 |
 > | BUG-6 | ✅ **FIXED** | Validasi placeholder saat save (warning isi-user + error akar tak dikenal); bagian "node error tidak berhenti" tercakup batas prompt BUG-1 |
 
 
@@ -244,6 +244,44 @@ Burst test 8 request **seluruh succeed** (median 16.7 s); tidak ada 429.
 Kasus sebelumnya produksi: 13 LLM key di 27 RPM → kelelahan RPM tanpa
 rabun rendah. Upaya fix (`F2`) tidak tersisa.
 
+> **TRIASE 2026-10-07 — FIXED.**
+>
+> 1. **Modul baru `rate_limit.py`** — `SlidingWindowLimiter`: sliding-window
+>    log (deque timestamp per key), thread-safe (`threading.Lock`, endpoint
+>    `/chat` sync di threadpool), tanpa dependensi eksternal (tanpa
+>    slowapi/Redis). Request yang DITOLAK tidak dicatat, jadi percobaan
+>    gagal beruntun tidak menunda pemulihan window. Sweep oportunis tiap 500
+>    check menghapus key mati (cegah pertumbuhan memori).
+> 2. **Pemasangan di `api_server.chat`** — `rate_limit.chat_limiter.check(user_id)`
+>    dengan key = **user id JWT** (bukan email). Diletakkan **SETELAH
+>    early-return idempotensi, SEBELUM kuota/DB-write**: replay idempoten
+>    tidak memakan slot (konsisten rasional penempatan kuota — replay tidak
+>    memanggil LLM), request baru dihitung lalu ditahan murah sebelum
+>    menyentuh DB maupun LLM. Melempar `HTTPException(429, "<pesan
+>    manusiawi>", headers={"Retry-After": <detik>})` — kontrak `detail`
+>    non-kosong dipertahankan (kompatibel test_503_detail_contract);
+>    frontend `classifyHttpError` sudah punya `case 429` (`retryable:false`,
+>    "Coba lagi dalam 1 menit") sehingga TIDAK perlu perubahan frontend.
+> 3. **Konfigurasi env**: `CHAT_RATE_LIMIT` (default **10** per user per
+>    window) dan `CHAT_RATE_WINDOW_SEC` (default **60**); `<= 0` =
+>    nonaktif (fail-open disengaja untuk E2E lokal); env rusak → jatuh ke
+>    default (tidak mematikan limit diam-diam).
+> 4. **Batas yang diketahui (jujur)**: in-memory per proses uvicorn — di
+>    Railway 1 replica ini global, tapi bila di-scale N replica limit jadi
+>    per-replica (N× lebih longgar) → butuh store terpusat (Redis) kalau
+>    perlu ketat global. Rate limit juga TIDAK dipasang di
+>    `/chat/approve|resume|interrupted` (di luar temuan S4; kandidat
+>    lanjutan).
+>
+> Regresi dijaga `tests/test_chat_rate_limit.py` (12 tes: mekanika sliding
+> window dengan jam tiruan, isolasi per-key, retry-after, env, + perilaku
+> `/chat` — 429 ber-detail + `Retry-After`, replay idempoten gratis,
+> perbedaan 429 kuota vs 429 rate limit). Regresi sekitar `/chat` juga
+> hijau: `test_503_detail_contract` (2), `test_daily_quota` (10),
+> `test_runtime_capability_boundary` + `test_chat_retry_no_data_loss` (12),
+> `test_placeholder_resolution` (15), `test_credential_forms_inline` +
+> `test_tool_injection` (99), `test_credential_multitenant_oauth` (12).
+
 ---
 
 ### BUG-6 (SEDANG) LLM placeholder `{{placeholder}}` tanpa validasi
@@ -402,6 +440,9 @@ POST /chat ×8 paralel, payload {"prompt":"halo, uji beban {i}"}
 4. **(TINGGI) Tambahkan rate limiting per JWT pada `/chat`** — saat ini
    `max_attempts=3` backoff 2/5s di client (lihat frontend `useChat`), tapi
    server tidak menghukum burst. Burst S4 tanpa 429 adalah bukti.
+   *(Triase 2026-10-07: DIPERBAIKI — sliding-window per user id JWT di
+   `rate_limit.py` + `api_server.chat`, 429 + `Retry-After`; lihat
+   rincian BUG-5.)*
 
 5. **(TINGGI) Implementasi sub-workflow / loop batch.** `agent.think`
    saat ini tidak dipanggil dengan konteks batch; `batch_size` disimpan
