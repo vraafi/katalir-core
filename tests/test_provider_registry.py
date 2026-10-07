@@ -11,6 +11,8 @@ import dataclasses
 import os
 import sys
 
+import pytest
+
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, ROOT)
 
@@ -153,10 +155,11 @@ def _node(config: dict):
                        data=ee.FlowNodeData(kind="mcp", label="Kirim", config=config))
 
 
-def _orch(owner: str = "u@katalir.id"):
+def _orch(owner: str = "u@katalir.id", client=None):
     import execution_engine as ee
     graph = ee.FlowGraph(nodes=[_node({"provider": "telegram"})], edges=[])
-    return ee.StatefulOrchestrator(graph, owner_email=owner)
+    registry = ee.MCPRegistry(client) if client is not None else None
+    return ee.StatefulOrchestrator(graph, registry=registry, owner_email=owner)
 
 
 async def _fake(seen: dict, provider: str, email: str) -> dict:
@@ -222,13 +225,41 @@ def test_validator_menolak_draf_mcp_tanpa_tujuan():
     assert any("chat_id" in e for e in res["errors"]), res
 
 
+class _OkClient:
+    """Klien MCP palsu: tool apa pun sukses (tanpa jaringan)."""
+
+    async def connect(self) -> None:
+        return None
+
+    async def list_tools(self) -> list:
+        return []
+
+    async def call_tool(self, name, params):
+        return {"status": "success", "tool": name, "results": []}
+
+
 def test_exec_mcp_tanpa_provider_tetap_kompatibel():
-    """Workflow lama (tool_name/web_search, tanpa provider) harus tetap jalan."""
-    out = asyncio.run(_orch()._exec_mcp(_node({"tool_name": "web_search"}),
-                                        {"query": ""}))
+    """Workflow lama (tool_name/web_search, tanpa provider) harus tetap jalan.
+
+    BUG-B2 (launch blocker): jalur lama pun WAJIB gagal-jujur. Versi lama
+    `_exec_mcp` mengembalikan dict `status=error` apa adanya, sehingga node
+    tercatat "completed" walau tool benar-benar gagal. Kontrak yang benar:
+    sukses -> hasil dikembalikan; gagal -> `ToolExecutionError` (node `error`).
+    """
+    import execution_engine as ee
+
+    orch = _orch(client=_OkClient())
+    out = asyncio.run(orch._exec_mcp(_node({"tool_name": "web_search"}),
+                                     {"query": "katalir automation"}))
     assert out["type"] == "mcp.call"
     assert out["tool"] == "web_search"
-    assert out["result"]["status"] == "error"   # query kosong -> gagal (jujur)
+    assert out["result"]["status"] == "success"
+
+    # Query kosong -> klien NYATA (tanpa jaringan) melaporkan status error ->
+    # harus MENAIKKAN, bukan diam-diam tercatat "completed" (inti BUG-B2).
+    with pytest.raises(ee.ToolExecutionError):
+        asyncio.run(_orch()._exec_mcp(_node({"tool_name": "web_search"}),
+                                      {"query": ""}))
 
 
 def test_owner_email_sampai_ke_orchestrator():

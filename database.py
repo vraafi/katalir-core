@@ -20,6 +20,7 @@
 #   fitur tetap jalan tanpa memaksa migration ke database produksi.
 
 import os
+import re
 from datetime import datetime, timedelta, timezone
 
 from dotenv_loader import load_repo_env
@@ -985,6 +986,98 @@ EXECUTION_LOG_COLUMNS = ("execution_id", "node_id", "node_type", "status",
                          "output_data", "error_message", "started_at",
                          "finished_at")
 
+# ---------------------------------------------------------------------------
+# F-2 (KEAMANAN KRITIS) - REDAKSI DATA SENSITIF DI execution_logs
+#   Temuan: webhook trigger menyalin SELURUH header HTTP ke trigger_input
+#   (`{"headers": {...}}`), termasuk `Authorization: Bearer <JWT 818 karakter>`.
+#   Payload node Trigger lalu dipersist apa adanya ke execution_logs.output_data
+#   sehingga token sesi user tersimpan sebagai teks biasa di DB.
+#   Redaksi berlaku di SATU titik (pembentukan baris log) supaya tidak ada jalur
+#   tulis yang terlewat; baris lama diperbaiki lewat UPDATE (TIDAK dihapus).
+# ---------------------------------------------------------------------------
+
+#: Kunci dict yang nilainya SELALU diganti utuh (case-insensitive).
+_SENSITIVE_KEYS = frozenset({
+    "authorization", "auth", "proxy-authorization", "cookie", "set-cookie",
+    "api_key", "apikey", "api-key", "x-api-key", "access_token",
+    "refresh_token", "id_token", "token", "bearer", "secret", "client_secret",
+    "password", "passwd", "private_key", "service_key", "service_role_key",
+    "supabase_service_key", "session_token", "webhook_secret", "signature",
+})
+
+#: Pola nilai sensitif di dalam string bebas (mis. pesan error, body webhook).
+_SECRET_PATTERNS: tuple[tuple["re.Pattern[str]", str], ...] = (
+    # JWT (3 segmen base64url dipisah titik) - kasus yang terbukti bocor.
+    (re.compile(r"eyJ[A-Za-z0-9_-]{4,}\.[A-Za-z0-9_-]{4,}\.[A-Za-z0-9_-]{4,}"),
+     "[REDACTED_JWT]"),
+    # "Bearer <token>" (Authorization header mentah).
+    (re.compile(r"(?i)\bbearer\s+[A-Za-z0-9._~+/=-]{8,}"),
+     "Bearer [REDACTED]"),
+    # Token bergaya provider umum.
+    (re.compile(r"\bsk-[A-Za-z0-9_-]{16,}"), "[REDACTED_API_KEY]"),
+    (re.compile(r"\bxox[baprs]-[A-Za-z0-9-]{10,}"), "[REDACTED_SLACK_TOKEN]"),
+    (re.compile(r"\bAKIA[0-9A-Z]{16}\b"), "[REDACTED_AWS_KEY]"),
+    (re.compile(r"\bgh[pousr]_[A-Za-z0-9]{20,}\b"), "[REDACTED_GITHUB_TOKEN]"),
+    # Telegram bot token: <bot_id>:<35-char secret>.
+    (re.compile(r"\b\d{6,12}:[A-Za-z0-9_-]{30,}\b"), "[REDACTED_BOT_TOKEN]"),
+    # Google OAuth refresh/access token.
+    (re.compile(r"\bya29\.[A-Za-z0-9._-]{20,}"), "[REDACTED_GOOGLE_TOKEN]"),
+)
+
+_REDACTED = "[REDACTED]"
+
+
+def redact_sensitive(value, *, _depth: int = 0):
+    """Salin `value` dengan semua data sensitif diganti penanda.
+
+    Murni & rekursif (dict/list/str). Kunci sensitif -> nilai diganti utuh;
+    string bebas -> pola token diganti di dalam teks. Tidak pernah memutasi
+    input. Kedalaman dibatasi supaya payload aneh/bersiklus tidak membekukan
+    server.
+    """
+    if _depth > 8:
+        return "[REDACTED_DEPTH]"
+    if isinstance(value, dict):
+        out: dict = {}
+        for k, v in value.items():
+            if isinstance(k, str) and k.strip().lower() in _SENSITIVE_KEYS:
+                out[k] = _REDACTED
+            else:
+                out[k] = redact_sensitive(v, _depth=_depth + 1)
+        return out
+    if isinstance(value, (list, tuple)):
+        return [redact_sensitive(v, _depth=_depth + 1) for v in value]
+    if isinstance(value, str):
+        text = value
+        for rx, repl in _SECRET_PATTERNS:
+            text = rx.sub(repl, text)
+        return text
+    return value
+
+
+def redact_sensitive_json(value):
+    """`redact_sensitive` untuk nilai yang disimpan sebagai kolom JSON."""
+    return redact_sensitive(value)
+
+
+def redact_log_row(row: dict) -> tuple[dict, bool]:
+    """Baris `execution_logs` -> (baris teredaksi, apakah berubah?).
+
+    Dipakai migrasi historis F-2: hanya baris yang MENGANDUNG data sensitif
+    yang perlu di-UPDATE; baris bersih tidak disentuh (hemat I/O dan tidak
+    mengubah timestamp). Baris TIDAK PERNAH dihapus -- jejak audit eksekusi
+    tetap utuh, hanya nilai rahasianya yang ditutup.
+    """
+    if not isinstance(row, dict):
+        return row, False
+    out = dict(row)
+    if "output_data" in out:
+        out["output_data"] = redact_sensitive(out["output_data"])
+    if isinstance(out.get("error_message"), str):
+        out["error_message"] = redact_sensitive(out["error_message"])
+    return out, out != row
+
+
 
 def execution_log_row(execution_id: str, node_id: str, step_kind: str,
                       status: str, payload: dict) -> dict:
@@ -994,6 +1087,10 @@ def execution_log_row(execution_id: str, node_id: str, step_kind: str,
     error dipromosikan ke kolomnya sendiri supaya bisa dicari/diindeks.
     """
     data = payload if isinstance(payload, dict) else {"output": payload}
+    # F-2: redaksi dilakukan DI SINI (titik tunggal pembentukan baris log) supaya
+    # tidak ada jalur tulis execution_logs yang terlewat -- baik itu node MCP,
+    # Trigger (payload webhook + header Authorization), maupun error_message.
+    data = redact_sensitive(data)
     row: dict = {
         "execution_id": execution_id,
         "node_id": node_id,
@@ -1053,7 +1150,8 @@ def append_execution_log(execution_id: str, node_id: str, step_kind: str, status
         print(f"[database] append_execution_log gagal ({type(exc).__name__}); "
               "disimpan di memori")
     _L_EXLOG.setdefault(execution_id, []).append(
-        {"node_id": node_id, "step_kind": step_kind, "status": status, "payload": payload or {}, "ts": _now()}
+        {"node_id": node_id, "step_kind": step_kind, "status": status,
+         "payload": redact_sensitive(payload or {}), "ts": _now()}
     )
 
 

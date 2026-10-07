@@ -15,6 +15,7 @@
 
 import asyncio
 import ast
+import datetime as _datetime
 import json
 import operator
 import os
@@ -282,6 +283,11 @@ _FREE_LIMIT = 10
 _PLUS_LIMIT = 30
 _PROFIT_MULT = 3.0
 _MIN_PLUS_BALANCE = 0.005
+# F-1: jatah kredit bulanan untuk tier FREE pada node agent. Ini yang membuat
+# "gratis" berarti sesuatu di kanvas: user tanpa baris `user_balances` tetap
+# boleh menjalankan node agent (batas efektifnya jendela 10 chat / 22 jam),
+# alih-alih diblokir "Saldo habis" karena saldo terbaca 0.
+_FREE_MONTHLY_CREDIT = 100.0
 
 _METER: dict[str, dict] = {}
 
@@ -293,8 +299,75 @@ class BillingBlocked(Exception):
         self.status_code = status_code
 
 
+class ToolExecutionError(RuntimeError):
+    """Tool/provider mengembalikan status GAGAL sebagai dict, bukan exception.
+
+    BUG-B2 (KRITIS - kegagalan senyap):
+    `provider_registry.run` sengaja TIDAK pernah melempar -- ia mengembalikan
+    `{"status": "error" | "needs_credential" | "needs_configuration"}`. Versi
+    lama `_exec_mcp` mengembalikan dict itu apa adanya, sehingga `_run_node`
+    mencatat node sebagai "completed" walau tool benar-benar gagal: eksekusi
+    "sukses" padahal tidak ada yang dikerjakan, `/analytics` tidak menghitung
+    error, dan kanvas tidak pernah memerah. Exception ini dinaikkan supaya node
+    ditandai `error`, eksekusi `error`, dan self-healing bisa mengklasifikasi
+    (404 -> abort, 5xx/network -> retry, credential -> escalate).
+
+    Pesan WAJIB memuat teks error penyedia (mis. "404", "500", "timeout",
+    "invalid JSON") supaya `self_healing.classify_error` memetakannya dengan
+    benar -- pola yang sama dengan `PlaceholderResolutionError`.
+    """
+
+
 def _now_ts() -> float:
     return _time.time()
+
+
+def _iso_from_ts(ts: Any) -> Optional[str]:
+    """Epoch detik (float) -> ISO 8601 UTC untuk kolom `timestamp` Supabase.
+
+    F-3: `last_reset_free`/`last_reset_plus` adalah kolom timestamp, tetapi
+    versi lama menulis epoch detik sebagai FLOAT. Postgres menolaknya dengan
+    `22007 invalid input syntax for type timestamp`; error itu ditelan
+    `except: pass`, jadi penghitung kuota gratis TIDAK PERNAH tersimpan dan
+    selalu reset tiap request. Di sini float dikonversi ke ISO 8601.
+    """
+    if ts is None:
+        return None
+    if isinstance(ts, str):
+        s = ts.strip()
+        return s or None          # sudah string (ISO) - teruskan apa adanya
+    try:
+        return _datetime.datetime.fromtimestamp(
+            float(ts), _datetime.timezone.utc).isoformat()
+    except (TypeError, ValueError, OSError, OverflowError):
+        return None
+
+
+def _ts_from_db(value: Any) -> Optional[float]:
+    """Nilai kolom timestamp Supabase -> epoch detik (float) untuk perbandingan.
+
+    `guard_execution` membandingkan `now - float(lr)`; kalau DB mengembalikan
+    string ISO, `float()` akan meledak. Normalisasi di sini menjaga satu
+    representasi internal (epoch detik) di seluruh mesin.
+    """
+    if value is None:
+        return None
+    if isinstance(value, (int, float)):
+        return float(value)
+    s = str(value).strip()
+    if not s:
+        return None
+    try:
+        return float(s)                       # epoch dalam bentuk string
+    except ValueError:
+        pass
+    try:
+        dt = _datetime.datetime.fromisoformat(s.replace("Z", "+00:00"))
+        if dt.tzinfo is None:
+            dt = dt.replace(tzinfo=_datetime.timezone.utc)
+        return dt.timestamp()
+    except ValueError:
+        return None
 
 
 def _meter_data(email: str) -> dict:
@@ -318,8 +391,8 @@ def _meter_load(email: str) -> dict:
             row = d[0]
             m["free_count"] = int(row.get("free_chat_count", 0) or 0)
             m["plus_count"] = int(row.get("plus_chat_count", 0) or 0)
-            m["last_reset_free"] = row.get("last_reset_free")
-            m["last_reset_plus"] = row.get("last_reset_plus")
+            m["last_reset_free"] = _ts_from_db(row.get("last_reset_free"))
+            m["last_reset_plus"] = _ts_from_db(row.get("last_reset_plus"))
             m["credit"] = float(row.get("credit_balance", 0) or 0)
     except Exception:
         pass
@@ -327,7 +400,19 @@ def _meter_load(email: str) -> dict:
 
 
 def _meter_save(email: str) -> None:
-    """Persist utilisasi ke Supabase (fire-and-forget, try-except)."""
+    """Persist utilisasi ke Supabase.
+
+    F-3 (KRITIS): dua cacat diperbaiki bersamaan.
+      1. `last_reset_free`/`last_reset_plus` ditulis sebagai FLOAT epoch,
+         padahal kolomnya `timestamp` -> Postgres menolak (22007) dan
+         penghitung kuota gratis tidak pernah tersimpan. Sekarang ditulis
+         sebagai ISO 8601 (lihat `_iso_from_ts`).
+      2. Kegagalan ditelan `except: pass`, sehingga cacat di atas tidak
+         terlihat selama berbulan-bulan. Sekarang kegagalan di-LOG dengan
+         jelas dan dinaikkan sebagai `MeterPersistenceError`; pemanggil boleh
+         memutuskan untuk tetap melanjutkan (metering tidak boleh membatalkan
+         pekerjaan user yang sudah jadi), tetapi TIDAK BOLEH senyap lagi.
+    """
     m = _METER.get(email)
     if not m:
         return
@@ -337,8 +422,8 @@ def _meter_save(email: str) -> None:
         row = {
             "free_chat_count": int(m.get("free_count", 0)),
             "plus_chat_count": int(m.get("plus_count", 0)),
-            "last_reset_free": m.get("last_reset_free"),
-            "last_reset_plus": m.get("last_reset_plus"),
+            "last_reset_free": _iso_from_ts(m.get("last_reset_free")),
+            "last_reset_plus": _iso_from_ts(m.get("last_reset_plus")),
             "credit_balance": float(m.get("credit", 0) or 0),
         }
         ex = cc.table("user_usage").select("email").eq("email", email).limit(1).execute()
@@ -346,8 +431,20 @@ def _meter_save(email: str) -> None:
             cc.table("user_usage").update(row).eq("email", email).execute()
         else:
             cc.table("user_usage").insert({"email": email, **row}).execute()
-    except Exception:
-        pass
+    except Exception as exc:  # noqa: BLE001
+        print(f"[meter] GAGAL menyimpan utilisasi '{email}': "
+              f"{type(exc).__name__}: {exc}")
+        raise MeterPersistenceError(email, exc) from exc
+
+
+class MeterPersistenceError(RuntimeError):
+    """Utilisasi user tidak bisa dipersist ke Supabase (F-3: jangan senyap)."""
+
+    def __init__(self, email: str, cause: Exception) -> None:
+        super().__init__(f"gagal menyimpan utilisasi '{email}': "
+                         f"{type(cause).__name__}: {cause}")
+        self.email = email
+        self.cause = cause
 
 
 def guard_execution(cfg: dict, owner: str) -> tuple[bool, int | None, str]:
@@ -1019,21 +1116,33 @@ class StatefulOrchestrator:
         if not _allowed:
             raise BillingBlocked(_code, _msg)
 
-        # Legacy fallback: blok bila saldo habis (solo gratis/plus tanpa BYOK).
-        try:
-            _bal = db.get_balance(owner) if (owner and not _custom) else None
-        except Exception:
-            _bal = None
-        if _custom:
-            _bal = None  # BYOK unmetered: passasi saldo check.
-        if owner and _bal is not None and _bal <= 0:
-            return {
-                "type": "agent.think",
-                "received_from": inp.get("_from", "trigger"),
-                "instruction": prompt,
-                "message": "[Agent blocked] Saldo habis. Topup via Dodo Payments.",
-                "agent_status": "blocked_no_balance",
-            }
+        # Legacy fallback: blok bila saldo habis -- HANYA untuk tier PLUS.
+        # F-1 (KONTRADIKSI GEMBOK, launch blocker): `guard_execution` MENGIZINKAN
+        # tier FREE (batas 10 chat / 22 jam), tetapi blok lama menuntut
+        # `get_balance > 0`. User gratis tidak punya baris `user_balances`
+        # sehingga `get_balance` mengembalikan 0.0 -> SELALU diblokir dengan
+        # "Saldo habis" walau gembok resminya mengizinkan: dua aturan yang
+        # bertentangan, dan user gratis tidak pernah bisa menjalankan node
+        # agent sama sekali. Paket gratis memberi jatah kredit bulanan untuk
+        # node agent (`_FREE_MONTHLY_CREDIT`); batas efektifnya adalah jendela
+        # 10 chat / 22 jam yang SUDAH ditegakkan `guard_execution`. Karena itu
+        # cek saldo hanya relevan untuk tier PLUS, yang memang membayar per
+        # pemakaian (dan `guard_execution` juga sudah mengembalikan 402 bila
+        # saldo Plus di bawah ambang).
+        _model_l = str((cfg or {}).get("model") or "universal").lower()
+        if owner and not _custom and _model_l == "deepseek-flash":
+            try:
+                _bal = db.get_balance(owner)
+            except Exception:
+                _bal = None
+            if _bal is not None and _bal <= 0:
+                return {
+                    "type": "agent.think",
+                    "received_from": inp.get("_from", "trigger"),
+                    "instruction": prompt,
+                    "message": "[Agent blocked] Saldo habis. Topup via Dodo Payments.",
+                    "agent_status": "blocked_no_balance",
+                }
         # --- DELEGASI MULTI-AGENT (BUG #3) ----------------------------------
         # Ditempatkan SETELAH resolusi vault + guard billing supaya supervisor
         # memakai kunci BYOK user dan tetap tunduk gembok eksekusi. Tiap
@@ -1067,7 +1176,15 @@ class StatefulOrchestrator:
                 _m["plus_count"] = int(_m.get("plus_count", 0)) + 1
             else:
                 _m["free_count"] = int(_m.get("free_count", 0)) + 1
-            _meter_save(owner)
+            try:
+                _meter_save(owner)
+            except MeterPersistenceError as _mexc:
+                # F-3: kegagalan persistensi TIDAK boleh membatalkan jawaban
+                # yang sudah jadi, tetapi juga TIDAK boleh senyap -- `_meter_save`
+                # sudah mencetak detailnya; di sini kita tandai node supaya
+                # terlihat di laporan (tanpa mengubah status sukses LLM).
+                print(f"[meter] node '{node.id}': utilisasi tidak tersimpan "
+                      f"({_mexc})")
         if status == "success":
             return {
                 "type": "agent.think",
@@ -1088,6 +1205,28 @@ class StatefulOrchestrator:
             "agent_error": res.get("error"),
         }
 
+    @staticmethod
+    def _raise_if_tool_failed(provider: str, result: Any) -> None:
+        """BUG-B2: status gagal dari tool/provider -> raise, JANGAN "completed".
+
+        Hanya dict ber-`status` yang diperiksa. Tool yang mengembalikan payload
+        mentah tanpa `status` (perilaku lama) dibiarkan lewat supaya tidak ada
+        regresi pada tool yang memang tidak punya konsep status.
+        """
+        if not isinstance(result, dict):
+            return
+        status = str(result.get("status") or "").strip().lower()
+        if not status or status == "success":
+            return
+        detail = (result.get("error") or result.get("message")
+                  or result.get("detail") or "")
+        if not detail and result.get("missing"):
+            detail = "config kurang: " + ", ".join(map(str, result["missing"]))
+        where = (f"provider '{provider}'" if provider
+                 else f"tool '{result.get('tool') or 'mcp'}'")
+        raise ToolExecutionError(
+            f"{where} status={status}: {detail or 'tanpa pesan'}")
+
     async def _exec_mcp(self, node: FlowNode, inp: dict,
                         _extra_roots: Optional[dict] = None) -> dict:
         """Node MCP: `config.provider` -> registry native, lalu tool bawaan mesin.
@@ -1099,6 +1238,9 @@ class StatefulOrchestrator:
           2. provider TAK dikenal -> payload error eksplisit (tidak menebak);
           3. tanpa provider -> jalur lama (web_search/http_request) demi
              kompatibilitas workflow yang sudah tersimpan.
+
+        BUG-B2: apa pun jalurnya, status GAGAL dinaikkan sebagai exception
+        supaya node benar-benar tercatat `error` (bukan "completed" palsu).
         """
         # BUG-3: resolv {{akar.x}} di seluruh config sebelum provider
         # memakainya (chat_id/url/pesan) - config asli tidak dimutasi.
@@ -1110,6 +1252,7 @@ class StatefulOrchestrator:
         provider = provider_registry.resolve(cfg, inp)
         if provider:
             result = await provider_registry.run_async(provider, cfg, inp, owner)
+            self._raise_if_tool_failed(provider, result)
             return {"type": "mcp.call", "provider": provider,
                     "tool": result.get("tool"), "result": result}
 
@@ -1133,6 +1276,7 @@ class StatefulOrchestrator:
         except Exception as exc:  # noqa: BLE001 - target mati tidak boleh crash pipeline
             result = {"status": "error", "tool": tool,
                       "error": f"[{type(exc).__name__}] {exc}"}
+        self._raise_if_tool_failed("", result)
         return {"type": "mcp.call", "tool": tool, "result": result}
 
     EXECUTORS: dict[NodeKind, Callable[[Any, FlowNode, dict], Awaitable[dict]]] = {

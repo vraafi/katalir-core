@@ -137,7 +137,16 @@ RULES: tuple[Rule, ...] = (
         re.compile(r"\b(ETIMEDOUT|ECONNRESET|ECONNREFUSED|EAI_AGAIN|"
                    r"connect(ion)? (reset|refused|timed? ?out)|"
                    r"timeout|temporary failure in name resolution|"
-                   r"\bdns\b|\bssl\b|network)\b", re.I),
+                   r"\bdns\b|\bssl\b|network|"
+                   # Nama exception httpx/requests berbentuk CamelCase
+                   # (ConnectTimeout, ReadTimeout, ConnectError, ...). Tanpa
+                   # alternatif ini, pesan `[RuntimeError] Permintaan HTTP
+                   # gagal (ConnectTimeout).` TIDAK cocok `\btimeout\b` (tidak
+                   # ada batas kata di dalam "ConnectTimeout") sehingga jatuh
+                   # ke `unknown`: hanya 2 percobaan padahal jelas transien.
+                   r"connect(?:timeout|error)|read(?:timeout|error)|"
+                   r"write(?:timeout|error)|pooltimeout|"
+                   r"remoteprotocolerror)\b", re.I),
         "retry", max_attempts=5, search=True,
         fix={"backoff_seconds": 1},
         reason="Masalah jaringan; sering pulih sendiri.",

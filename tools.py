@@ -351,6 +351,17 @@ def http_request(url: str, method: str = "GET", body: str = "",
     except Exception as exc:  # noqa: BLE001
         raise RuntimeError(f"Permintaan HTTP gagal ({type(exc).__name__}).")
     snippet = (r.text or "")[:400]
+    # BUG-B2 (KRITIS - kegagalan senyap): status >= 400 BUKAN "sukses".
+    # Versi lama mengembalikan string "HTTP 404 ..." seolah berhasil, sehingga
+    # node MCP tercatat "completed" padahal permintaannya gagal -- workflow
+    # "berhasil" tanpa mengerjakan apa pun. Sekarang dinaikkan sebagai error
+    # supaya mesin eksekusi menandai node `error` (dan self-healing bisa
+    # mengklasifikasi: 404 -> abort, 5xx -> retry). Pemanggil chat sudah
+    # menangkap exception tool dan mengembalikannya ke model sebagai hasil
+    # ber-status error, jadi perilaku percakapan tidak memburuk.
+    if r.status_code >= 400:
+        raise RuntimeError(
+            f"HTTP {r.status_code} dari {parsed.hostname}: {snippet}")
     return f"HTTP {r.status_code} dari {parsed.hostname}: {snippet}"
 
 

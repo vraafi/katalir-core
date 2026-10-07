@@ -1906,7 +1906,10 @@ def chat(req: ChatRequest, authorization: str | None = Header(None)):
         except Exception as exc:  # noqa: BLE001
             import traceback
             traceback.print_exc()  # full stack ke Railway log
-            raise HTTPException(500, f"Gagal membuat session: {type(exc).__name__}: {exc}")
+            print(f"[api_server] /chat gagal membuat session: "
+                  f"{type(exc).__name__}: {exc}")
+            raise HTTPException(
+                500, "Gagal memulai sesi percakapan. Silakan coba lagi.")
 
     # KONTEKS MULTI-TURN: muat riwayat sesi SEBELUM pesan baru disimpan, supaya
     # prompt yang sedang dikirim tidak ikut terkirim dua kali (sebagai riwayat
@@ -1923,7 +1926,10 @@ def chat(req: ChatRequest, authorization: str | None = Header(None)):
     except Exception as exc:  # noqa: BLE001
         import traceback
         traceback.print_exc()
-        raise HTTPException(500, f"Gagal menyimpan pesan: {type(exc).__name__}: {exc}")
+        print(f"[api_server] /chat gagal menyimpan pesan: "
+              f"{type(exc).__name__}: {exc}")
+        raise HTTPException(
+            500, "Gagal menyimpan pesan. Silakan coba lagi.")
 
     try:
         _run = _agentic_run_direct(req.prompt, user_email, model=_q_run_model,
@@ -2021,9 +2027,18 @@ def chat(req: ChatRequest, authorization: str | None = Header(None)):
     except HTTPException:
         raise
     except Exception as exc:  # noqa: BLE001
+        # F-4 (KEAMANAN - kebocoran 500): detail upstream (mis.
+        # "ClientError: 400 INVALID_ARGUMENT" dari Gemini, atau pesan kuota model
+        # internal) TIDAK boleh bocor ke klien. Versi lama menyisipkan
+        # `type(exc).__name__: exc` ke body 500, sehingga UI menampilkan pesan
+        # internal yang tidak bisa ditindaklanjuti user dan membocorkan
+        # struktur upstream. Stack lengkap tetap dicatat di log Railway untuk
+        # diagnosis; klien hanya menerima pesan generik yang aman.
         import traceback
         traceback.print_exc()  # full stack ke Railway log (Fase 2b)
-        raise HTTPException(500, f"Terjadi kesalahan internal: {type(exc).__name__}: {exc}")
+        print(f"[api_server] /chat gagal: {type(exc).__name__}: {exc}")
+        raise HTTPException(
+            500, "Terjadi kesalahan internal. Silakan coba lagi sebentar lagi.")
 
     # Simpan balasan AI.
     # Lewati balasan KOSONG: giliran kartu (approval/denied) tidak punya teks,
@@ -2036,7 +2051,10 @@ def chat(req: ChatRequest, authorization: str | None = Header(None)):
         except Exception as exc:  # noqa: BLE001
             import traceback
             traceback.print_exc()
-            raise HTTPException(500, f"Gagal menyimpan balasan: {type(exc).__name__}: {exc}")
+            print(f"[api_server] /chat gagal menyimpan balasan: "
+                  f"{type(exc).__name__}: {exc}")
+            raise HTTPException(
+                500, "Gagal menyimpan balasan. Silakan coba lagi.")
 
     # ---- CATAT KUOTA (setelah jawaban BENAR-BENAR tersimpan) ---------------
     # Yang dihitung = model yang benar-benar dipakai (`meta.model`), bukan yang
@@ -3502,7 +3520,8 @@ def get_execution(execution_id: str, authorization: str | None = Header(None),
 #   sistem eksternal -> input_data node Trigger -> DAG async non-blocking.
 # ---------------------------------------------------------------------------
 async def _run_webhook_dag(workflow_id: str, flow_data: dict,
-                           trigger_input: dict) -> None:
+                           trigger_input: dict,
+                           owner_email: str = "") -> None:
     """Runner DAG untuk BackgroundTasks (tanpa create_task mentah).
 
     Menjalankan Trigger -> Agent -> MCP dan mempersist setiap langkah ke
@@ -3510,14 +3529,28 @@ async def _run_webhook_dag(workflow_id: str, flow_data: dict,
     """
     import uuid as _uuid
 
-    execution_id = trigger_input.get("_execution_id") or str(_uuid.uuid4())
+    execution_id = str(trigger_input.get("_execution_id") or _uuid.uuid4())
+    # BUG-B1 (KRITIS) - EKSEKUSI HANTU:
+    # Versi lama menghitung `execution_id` di sini tetapi TIDAK meneruskannya ke
+    # runner. `execute_workflow_async` lalu membuat id BARU (uuid lain), sehingga
+    # seluruh `execution_logs` menempel di baris "hantu" itu, sementara baris
+    # `executions` yang di-pegang klien (dibuat `webhook_trigger`, di-poll lewat
+    # `GET /executions/{id}`) hanya di-set "completed" tanpa SATU pun langkah.
+    # Akibatnya laporan eksekusi webhook selalu kosong walau workflow jalan.
+    # Sekarang id yang SAMA diteruskan (persis seperti jalur /execute via
+    # `_spawn_execution`), dan `owner_email` ikut diteruskan supaya node MCP
+    # bisa membaca kredensial milik user (tanpa ini, workflow webhook yang
+    # mengirim Telegram/Slack tidak menemukan token user). Status akhir diambil
+    # dari hasil runner - bukan di-hardcode "completed".
     try:
-        await engine.execute_workflow_async(
-            workflow_id, flow_data, trigger_input)
-        db.update_execution_status(str(execution_id), "completed")
+        result = await engine.execute_workflow_async(
+            workflow_id, flow_data, trigger_input,
+            execution_id=execution_id, owner_email=owner_email)
+        status = str((result or {}).get("status") or "completed")
+        db.update_execution_status(execution_id, status)
     except Exception as exc:  # noqa: BLE001
         try:
-            db.update_execution_status(str(execution_id), "error")
+            db.update_execution_status(execution_id, "error")
         except Exception:  # noqa: BLE001
             pass
         print(f"[webhook] eksekusi {execution_id} gagal: {exc}")
@@ -3576,7 +3609,7 @@ async def webhook_trigger(workflow_id: str, request: Request,
     except Exception as exc:  # noqa: BLE001
         raise HTTPException(500, f"Gagal membuat eksekusi: {exc}")
     background.add_task(_run_webhook_dag, workflow_id, flow_data,
-                        trigger_input)
+                        trigger_input, str(user.get("email") or ""))
     return {"status": "queued", "execution_id": execution_id,
             "workflow_id": workflow_id}
 

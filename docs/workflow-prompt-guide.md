@@ -129,6 +129,16 @@ tidak bisa dijalankan. Validasi berjalan sebelum draf diterima.
 
 ## Batasan yang perlu diketahui
 
+- **Node `agent` BISA dijalankan oleh paket Free.** Paket gratis memberi jatah
+  kredit bulanan untuk node agent (100 kredit/bulan); batas yang benar-benar
+  berlaku adalah jendela **10 percakapan / 22 jam** yang ditegakkan
+  `execution_engine.guard_execution`. Sebelum perbaikan 7 Okt 2026 ada dua
+  aturan yang bertentangan — gembok resmi mengizinkan tier Free, tetapi cek
+  saldo lama menuntut `saldo > 0` sehingga user gratis (tanpa baris
+  `user_balances`, saldo terbaca 0.0) **selalu** ditolak `"Saldo habis"` dan
+  tidak pernah bisa memakai node agent sama sekali. Cek saldo kini hanya
+  berlaku untuk tier Plus (`model: deepseek-flash`), yang memang membayar per
+  pemakaian.
 - **Gmail trigger tersedia lewat IMAP + App Password**, bukan lewat OAuth.
   Jadi tidak perlu CASA. Ikuti kartu "Gmail" di halaman Pengaturan.
   Kalau OAuth Gmail (push notification) yang diinginkan, itu tetap butuh
