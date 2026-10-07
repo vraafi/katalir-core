@@ -64,16 +64,32 @@ class TestHybridCategoryLimits(unittest.TestCase):
         self.assertEqual(p.provider, "gmail",
                          "UI butuh tahu provider mana yang disambung ulang")
 
-    def test_network_retries_five_then_escalates(self):
-        plans = self._run("ETIMEDOUT contacting api", [1, 2, 3, 4, 5, 6])
+    def test_network_retries_three_then_escalates(self):
+        # S8 (7 Okt 2026): batas 5 -> 3 percobaan. Endpoint yang mati tidak
+        # menjadi hidup karena percobaan ke-4/5; retry berlebih hanya menambah
+        # latensi sampai eksekusi menggantung `pending`.
+        plans = self._run("ETIMEDOUT contacting api", [1, 2, 3, 4, 5])
         self.assertEqual([p.action for p in plans],
-                         ["retry"] * 5 + ["escalate"])
-        self.assertEqual(plans[-1].max_attempts, 5)
+                         ["retry"] * 3 + ["escalate", "escalate"])
+        self.assertEqual(plans[-1].max_attempts, 3)
 
-    def test_api_5xx_retries_five_then_escalates(self):
-        plans = self._run("503 Service Unavailable", [1, 2, 3, 4, 5, 6])
+    def test_api_5xx_retries_three_then_escalates(self):
+        plans = self._run("503 Service Unavailable", [1, 2, 3, 4, 5])
         self.assertEqual([p.action for p in plans],
-                         ["retry"] * 5 + ["escalate"])
+                         ["retry"] * 3 + ["escalate", "escalate"])
+
+    def test_connection_refused_fast_fails_after_two(self):
+        """Endpoint MENOLAK koneksi -> berhenti setelah 2 percobaan (S8).
+
+        `connection refused` deterministik: port tertutup tidak akan terbuka
+        sendiri. Retry berlebih hanya memperlambat tampilnya kegagalan.
+        """
+        plans = self._run("Connection refused contacting 127.0.0.1:9999",
+                          [1, 2, 3, 4])
+        self.assertEqual([p.action for p in plans],
+                         ["retry", "retry", "escalate", "escalate"])
+        self.assertEqual(plans[0].max_attempts, 2)
+        self.assertEqual(plans[0].category, "connection_refused")
 
     def test_unknown_retries_twice_then_escalates(self):
         plans = self._run("wibble: nobody predicted this", [1, 2, 3, 4])
@@ -93,10 +109,13 @@ class TestHybridCategoryLimits(unittest.TestCase):
                 self.assertTrue(p.suggestions, msg)
 
     def test_category_table_matches_required_contract(self):
+        # S8 (7 Okt 2026): semua kategori retry turun ke 3; endpoint yang
+        # menolak koneksi berhenti di 2.
         self.assertEqual(CATEGORIES["credential"], 0)
-        self.assertEqual(CATEGORIES["network"], 5)
-        self.assertEqual(CATEGORIES["api_5xx"], 5)
-        self.assertEqual(CATEGORIES["rate_limit"], 5)
+        self.assertEqual(CATEGORIES["network"], 3)
+        self.assertEqual(CATEGORIES["api_5xx"], 3)
+        self.assertEqual(CATEGORIES["rate_limit"], 3)
+        self.assertEqual(CATEGORIES["connection_refused"], 2)
         self.assertEqual(CATEGORIES["unknown"], 2)
 
 
@@ -107,23 +126,23 @@ class TestRateLimitBackoff(unittest.TestCase):
         async def go():
             return [(await agent.handle_failure(node_id="n", error="429 rate limit",
                                                 attempt=a)).delay_ms
-                    for a in range(1, 6)]
+                    for a in range(1, 4)]
         got = run(go())
         self.assertEqual(got, list(RATE_LIMIT_DELAYS_MS))
         for prev, nxt in zip(got, got[1:]):
             self.assertEqual(nxt, prev * 2, "backoff harus mengalikan dua")
 
-    def test_transient_backoff_starts_at_zero(self):
-        # Percobaan pertama tidak perlu jeda: kalau error-nya sesaat,
-        # menunggu sebelum mencoba hanya menambah latensi yang dirasakan
-        # user tanpa memperbaiki apa pun.
+    def test_transient_backoff_is_one_two_four(self):
+        # S8: backoff transient eksplisit 1s/2s/4s (dulu mulai 0 lalu
+        # (0,1,2,4,8)s). Mulai dari 1s memberi jeda nyata untuk error
+        # transien tanpa membuat endpoint mati menunggu terlalu lama.
         agent = SelfHealingAgent(search_enabled=False)
 
         async def go():
-            return (await agent.handle_failure(node_id="n",
-                                               error="503 Service Unavailable",
-                                               attempt=1)).delay_ms
-        self.assertEqual(run(go()), 0)
+            return [(await agent.handle_failure(
+                node_id="n", error="503 Service Unavailable", attempt=a)).delay_ms
+                for a in (1, 2, 3)]
+        self.assertEqual(run(go()), [1000, 2000, 4000])
 
     def test_no_delay_once_escalated(self):
         # Setelah 5 percobaan, plan-nya escalate -- bukan retry, jadi

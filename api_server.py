@@ -3520,7 +3520,8 @@ def get_execution(execution_id: str, authorization: str | None = Header(None),
 #   sistem eksternal -> input_data node Trigger -> DAG async non-blocking.
 # ---------------------------------------------------------------------------
 async def _run_webhook_dag(workflow_id: str, flow_data: dict,
-                           trigger_input: dict) -> None:
+                           trigger_input: dict,
+                           owner_email: str = "") -> None:
     """Runner DAG untuk BackgroundTasks (tanpa create_task mentah).
 
     Menjalankan Trigger -> Agent -> MCP dan mempersist setiap langkah ke
@@ -3540,17 +3541,22 @@ async def _run_webhook_dag(workflow_id: str, flow_data: dict,
     # `_spawn_execution`), dan status akhir diambil dari hasil runner - bukan
     # di-hardcode "completed".
     #
-    # CATATAN (temuan F-6, di luar brief): jalur ini TIDAK meneruskan
-    # `owner_email`, berbeda dari `/execute`. Konsekuensinya node MCP
-    # ber-kredensial pada workflow webhook tidak bisa membaca token milik user,
-    # dan node agent pada jalur ini TIDAK termeter (kuota free tidak terpakai).
-    # Mengubahnya adalah keputusan produk/billing (bukan bagian dari perbaikan
-    # BUG-B1), jadi sengaja dibiarkan seperti semula dan dicatat untuk tindak
-    # lanjut.
+    # F-6 (KEPUTUSAN PRODUK - Opsi A): jalur webhook KINI meneruskan
+    # `owner_email` pemilik workflow, sama seperti `/execute`.
+    #
+    # Sebelumnya `owner_email` sengaja TIDAK diteruskan. Konsekuensinya node MCP
+    # ber-kredensial user (Google Sheets/Gmail/Slack/…) pada workflow webhook
+    # TIDAK bisa me-resolve token pemiliknya -> integrasi webhook nyata (yang
+    # justru inti fitur ini) selalu gagal di node kredensial.
+    #
+    # Opsi A dipilih brief: "webhook tetap pakai credential owner". Efek
+    # sampingnya yang DISENGAJA: node agent pada workflow webhook ikut
+    # termeter atas kuota pemilik (gembok `guard_execution` berlaku) - itu
+    # memang perilaku "atas nama pemilik", bukan bug.
     try:
         result = await engine.execute_workflow_async(
             workflow_id, flow_data, trigger_input,
-            execution_id=execution_id)
+            execution_id=execution_id, owner_email=owner_email or "")
         status = str((result or {}).get("status") or "completed")
         db.update_execution_status(execution_id, status)
     except Exception as exc:  # noqa: BLE001
@@ -3613,8 +3619,10 @@ async def webhook_trigger(workflow_id: str, request: Request,
         db.create_execution(execution_id, workflow_id, flow_data)
     except Exception as exc:  # noqa: BLE001
         raise HTTPException(500, f"Gagal membuat eksekusi: {exc}")
+    # F-6 (Opsi A): teruskan email pemilik workflow supaya node MCP
+    # ber-kredensial bisa resolve token user di jalur webhook.
     background.add_task(_run_webhook_dag, workflow_id, flow_data,
-                        trigger_input)
+                        trigger_input, str(user.get("email") or ""))
     return {"status": "queued", "execution_id": execution_id,
             "workflow_id": workflow_id}
 

@@ -24,6 +24,7 @@ yang bandel tidak menyeret node lain ikut gagal.
 from __future__ import annotations
 
 import asyncio
+import os
 import re
 from dataclasses import dataclass, field
 from typing import Any, Optional
@@ -37,20 +38,39 @@ __all__ = [
     "MAX_ATTEMPTS",
     "RATE_LIMIT_DELAYS_MS",
     "TRANSIENT_DELAYS_MS",
+    "REFUSED_DELAYS_MS",
+    "HEALING_BUDGET_S",
 ]
 
-# Batas maksimum per KATEGORI, bukan satu angka global. Versi lama memakai
-# MAX_ATTEMPTS=3 untuk semua kategori, termasuk kategori yang paling layak
-# dicoba berulang (network, 5xx, rate limit).
-MAX_ATTEMPTS = 5
+# Anggaran WALL-CLOCK total per node untuk seluruh fase healing (S8). Batas
+# percobaan saja tidak cukup: satu percobaan bisa lambat (endpoint menggantung
+# di balik proxy), sehingga 3 percobaan tetap bisa melewati target. Bila
+# anggaran habis, healing berhenti dan node langsung `error` — lebih baik
+# gagal cepat dan jujur daripada menggantung `pending` tanpa batas.
+HEALING_BUDGET_S = float(os.getenv("HEALING_BUDGET_SEC", "30"))
+
+# Batas maksimum per KATEGORI, bukan satu angka global.
+#
+# PERUBAHAN 2026-10-07 (S8 - "healing endpoint mati terlalu lama"):
+# versi sebelumnya memakai 5 percobaan + backoff (0,1,2,4,8)s. Untuk endpoint
+# yang MATI (bukan sibuk), retry tidak akan pernah berhasil: 5 percobaan hanya
+# menambah latensi. Diukur di produksi: node masih `retrying` setelah 420s dan
+# eksekusi menggantung `pending` — user tidak pernah melihat kegagalan.
+# Sekarang: maksimum 3 percobaan, backoff eksponensial 1s/2s/4s, dan endpoint
+# yang menolak koneksi (connection refused) berhenti setelah 2 percobaan.
+MAX_ATTEMPTS = 3
 
 # Backoff eksponensial untuk rate limit. Indeks = attempt-1, di-clamp ke
-# panjang daftar, jadi attempt 6+ tidak keluar dari rentang.
-RATE_LIMIT_DELAYS_MS = (1000, 2000, 4000, 8000, 16000)
+# panjang daftar, jadi attempt 4+ tidak keluar dari rentang.
+RATE_LIMIT_DELAYS_MS = (1000, 2000, 4000)
 
-# Backoff untuk kategori transient (network / 5xx). Lebih pendek supaya
-# 5 percobaan tidak memakan ~15 detik wall-clock.
-TRANSIENT_DELAYS_MS = (0, 1000, 2000, 4000, 8000)
+# Backoff untuk kategori transient (network / 5xx / timeout).
+TRANSIENT_DELAYS_MS = (1000, 2000, 4000)
+
+# Backoff untuk `connection refused` — endpoint yang secara eksplisit MENOLAK
+# koneksi. Hanya 2 percobaan: kalau port benar-benar tertutup, percobaan ketiga
+# tidak akan mengubah apa pun.
+REFUSED_DELAYS_MS = (1000, 2000)
 
 
 # ─── Kategori error + perilaku healingnya ───────────────────────────────────
@@ -117,7 +137,7 @@ RULES: tuple[Rule, ...] = (
         "rate_limited",
         re.compile(r"\b(429|rate[ _-]?limit|too many requests|"
                    r"quota exceeded|resource[ _-]?exhausted)\b", re.I),
-        "retry", max_attempts=5, search=True,
+        "retry", max_attempts=3, search=True,
         fix={"backoff_seconds": 1},
         reason="Penyedia meminta perlambatan; retry dengan backoff eksponensial.",
     ),
@@ -127,9 +147,23 @@ RULES: tuple[Rule, ...] = (
         re.compile(r"\b(500|502|503|504|bad gateway|"
                    r"service unavailable|gateway timeout|"
                    r"internal server error|server error)\b", re.I),
-        "retry", max_attempts=5, search=True,
+        "retry", max_attempts=3, search=True,
         fix={"backoff_seconds": 1},
         reason="Kegagalan sisi server, umumnya sementara.",
+    ),
+    # ── Endpoint MATI: koneksi ditolak (S8) ───────────────────────────────
+    # Harus diperiksa SEBELUM rule `network` generik (polanya himpunan bagian
+    # dari `network`). Port tertutup / host menolak = deterministik: 2 percobaan
+    # sudah cukup untuk memastikan, percobaan berikutnya hanya menambah latensi.
+    Rule(
+        "connection_refused",
+        re.compile(r"\b(ECONNREFUSED|connectionrefusederror|"
+                   r"connection refused|connect refused|"
+                   r"errno 111)\b", re.I),
+        "retry", max_attempts=2, search=False,
+        fix={"backoff_seconds": 1},
+        reason="Koneksi DITOLAK (endpoint mati / port tertutup); mengulang "
+               "tidak akan menolong - berhenti cepat supaya kegagalan terlihat.",
     ),
     # ── Transient: jaringan ───────────────────────────────────────────────
     Rule(
@@ -147,7 +181,7 @@ RULES: tuple[Rule, ...] = (
                    r"connect(?:timeout|error)|read(?:timeout|error)|"
                    r"write(?:timeout|error)|pooltimeout|"
                    r"remoteprotocolerror)\b", re.I),
-        "retry", max_attempts=5, search=True,
+        "retry", max_attempts=3, search=True,
         fix={"backoff_seconds": 1},
         reason="Masalah jaringan; sering pulih sendiri.",
     ),
@@ -181,8 +215,8 @@ RULES: tuple[Rule, ...] = (
 # Peta kategori -> batas, dipakai oleh `handle_failure` tanpa harus tahu
 # nama rule. Diisi ulang dari RULES supaya ada satu sumber kebenaran.
 CATEGORIES: dict[str, int] = {
-    "credential": 0, "rate_limit": 5, "api_5xx": 5,
-    "network": 5, "unknown": 2,
+    "credential": 0, "rate_limit": 3, "api_5xx": 3,
+    "network": 3, "connection_refused": 2, "unknown": 2,
 }
 
 
@@ -289,7 +323,7 @@ class SelfHealingAgent:
     """
 
     def __init__(self, *, search_enabled: bool = True, llm_reflect=None,
-                 http_timeout: float = 8.0):
+                 http_timeout: float = 2.5):
         self.search_enabled = search_enabled
         self.llm_reflect = llm_reflect
         self.http_timeout = http_timeout
@@ -370,8 +404,14 @@ class SelfHealingAgent:
             except Exception as exc:  # noqa: BLE001
                 trace.append({"step": "search", "error": str(exc), "impact": "ignored"})
 
-        # Backoff. Rate limit eksponensial agresif; transient lebih pendek.
-        table = RATE_LIMIT_DELAYS_MS if rule.name == "rate_limited" else TRANSIENT_DELAYS_MS
+        # Backoff. `connection refused` (endpoint mati) punya tabel sendiri yang
+        # lebih pendek supaya berhenti cepat; sisanya eksponensial 1s/2s/4s.
+        if rule.name == "connection_refused":
+            table = REFUSED_DELAYS_MS
+        elif rule.name == "rate_limited":
+            table = RATE_LIMIT_DELAYS_MS
+        else:
+            table = TRANSIENT_DELAYS_MS
         delay = table[min(max(attempt - 1, 0), len(table) - 1)]
 
         return HealingPlan(

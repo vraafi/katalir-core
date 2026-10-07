@@ -345,11 +345,23 @@ def http_request(url: str, method: str = "GET", body: str = "",
         raise ValueError("Host internal/loopback ditolak (SSRF guard).")
     import httpx
 
+    # S8 (healing terlalu lama): timeout per percobaan 20s -> 10s. Self-healing
+    # mengulang beberapa kali, jadi timeout besar dikalikan jumlah percobaan
+    # membuat node menggantung menit-menitan. Dapat dikonfigurasi.
+    _timeout = float(os.getenv("HTTP_TOOL_TIMEOUT", "10"))
     try:
-        r = httpx.request(verb, url, content=body or None, timeout=20.0,
+        r = httpx.request(verb, url, content=body or None, timeout=_timeout,
                           headers={"Content-Type": "application/json"})
     except Exception as exc:  # noqa: BLE001
-        raise RuntimeError(f"Permintaan HTTP gagal ({type(exc).__name__}).")
+        # HANYA nama kelas + penanda "connection refused" yang dikutip ke pesan
+        # (bukan `str(exc)` mentah): pesan httpx bisa memuat URL lengkap, dan
+        # URL provider kadang mengandung token (mis. bot token Telegram).
+        _name = type(exc).__name__
+        _low = f"{_name} {exc}".lower()
+        if "refused" in _low or "econnrefused" in _low:
+            raise RuntimeError(
+                f"Permintaan HTTP gagal (connection refused: {_name}).")
+        raise RuntimeError(f"Permintaan HTTP gagal ({_name}).")
     snippet = (r.text or "")[:400]
     # BUG-B2 (KRITIS - kegagalan senyap): status >= 400 BUKAN "sukses".
     # Versi lama mengembalikan string "HTTP 404 ..." seolah berhasil, sehingga

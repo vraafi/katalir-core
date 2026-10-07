@@ -91,7 +91,7 @@ class TestRetryActuallyHappens(unittest.TestCase):
             self.assertIn(key, healing)
         self.assertEqual(healing["action"], "retry")
         self.assertEqual(healing["attempt"], 1)
-        self.assertEqual(healing["max_attempts"], 5)
+        self.assertEqual(healing["max_attempts"], 3)   # S8: 5 -> 3
 
     def test_on_step_sees_every_retry(self):
         """Callback on_step yang dipakai pencatat log harus melihat healing."""
@@ -115,7 +115,7 @@ class TestRetryActuallyHappens(unittest.TestCase):
 
 
 class TestEscalateAndAbort(unittest.TestCase):
-    def test_persistent_5xx_escalates_after_five(self):
+    def test_persistent_5xx_escalates_after_three(self):
         calls = {"n": 0}
 
         async def always_503(orch, node, inp):
@@ -129,8 +129,10 @@ class TestEscalateAndAbort(unittest.TestCase):
 
         with self.assertRaises(RuntimeError):
             asyncio.run(go())
-        # 5 percobaan gagal + 1 yang escalate = 6 pemanggilan.
-        self.assertEqual(calls["n"], 6)
+        # S8 (7 Okt 2026): 3 percobaan gagal + 1 yang escalate = 4 pemanggilan
+        # (dulu 5 + 1 = 6). Batas 3 percobaan + anggaran wall-clock 30s
+        # membuat node berakhir `error` dengan cepat, bukan menggantung.
+        self.assertEqual(calls["n"], 4)
         self.assertEqual(orch.states["a1"], "error")
 
     def test_final_error_step_carries_escalation(self):

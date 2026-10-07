@@ -318,6 +318,30 @@ class ToolExecutionError(RuntimeError):
     """
 
 
+class AgentExecutionError(RuntimeError):
+    """Node AGENT mengembalikan status GAGAL sebagai dict, bukan exception.
+
+    BUG-B3 (KRITIS - kegagalan senyap pada jalur AGENT):
+    `agent_reasoner.run_agent` TIDAK pernah melempar -- ia mengembalikan
+    `{"status": "error" | "skipped", "error": ...}`. Versi lama `_exec_agent`
+    mengembalikan dict itu apa adanya, sehingga `_run_node` mencatat node
+    sebagai "completed" walau LLM benar-benar gagal. Ini kelas bug yang SAMA
+    dengan BUG-B2, tetapi pada jalur agent (bukan tool/MCP) -- perbaikan
+    BUG-B2 tidak menyentuhnya.
+
+    Bukti produksi (7 Okt 2026): pada S6 lima node supervisor tercatat
+    "completed" padahal `agent_error="[InternalServerError] Internal Server
+    Error"` dan `delegations=[]`; laporan ke user berbunyi "berhasil ... 0
+    gagal". Konsumen status (kanvas, `/analytics`, billing) membaca
+    "completed" itu.
+
+    Exception ini dinaikkan supaya node ditandai `error`, eksekusi `error`,
+    dan self-healing bisa mengklasifikasi (5xx/network -> retry, credential ->
+    escalate). Pesan WAJIB memuat teks error aslinya (mis. "500",
+    "InternalServerError", "timeout") supaya klasifikasi tepat.
+    """
+
+
 def _now_ts() -> float:
     return _time.time()
 
@@ -955,13 +979,24 @@ class StatefulOrchestrator:
         sub_inp = {"_from": "delegate", "instruction": task, "task": task,
                    "reply": task}
         executor = self.EXECUTORS[NodeKind.AGENT]
-        out = await executor(self, target, sub_inp)
+        try:
+            out = await executor(self, target, sub_inp)
+        except Exception as exc:  # noqa: BLE001
+            # BUG-B3: sub-agent yang gagal TIDAK boleh (a) menandai dirinya
+            # "completed" maupun (b) membatalkan seluruh supervisor. Catat
+            # kegagalannya secara jujur (node `error` + transkrip), lalu
+            # lanjutkan supaya supervisor masih bisa melaporkan hasil akhir.
+            self._delegated.add(agent_id)
+            self.states[agent_id] = "error"
+            self.outputs[agent_id] = {"status": "error", "error": str(exc)}
+            return {"status": "error", "agent_id": agent_id,
+                    "reply": "", "error": str(exc)}
         # Tandai sudah dieksekusi lewat delegasi supaya mesin tidak
         # menjalankannya lagi sebagai node mandiri di gelombang berikutnya.
         self._delegated.add(agent_id)
         self.outputs[agent_id] = out or {"noop": True}
         self.states[agent_id] = "completed"
-        return {"status": out.get("agent_status", "success"),
+        return {"status": "success",
                 "agent_id": agent_id, "reply": out.get("instruction", ""),
                 "raw": out}
 
@@ -998,11 +1033,12 @@ class StatefulOrchestrator:
                     + json.dumps(transcript, ensure_ascii=False))
             res = await reason(sys_prompt, turn_input, config=cfg)
             if res.get("status") != "success":
-                return {"type": "agent.think", "role": "supervisor",
-                        "agent_status": res.get("status", "error"),
-                        "instruction": res.get("reply", ""),
-                        "agent_error": res.get("error"),
-                        "delegations": delegations, "usage": res.get("usage", {})}
+                # BUG-B3: supervisor yang gagal ber-LLM BUKAN "completed".
+                # Dulu payload ini dikembalikan apa adanya -> node supervisor
+                # hijau walau `agent_error` terisi dan `delegations` kosong.
+                raise AgentExecutionError(
+                    f"supervisor '{node.id}' status={res.get('status')}: "
+                    f"{res.get('error') or 'tanpa pesan'}")
             reply = str(res.get("reply") or "")
             directives = self._parse_delegations(reply, targets)
             if not directives:
@@ -1136,13 +1172,12 @@ class StatefulOrchestrator:
             except Exception:
                 _bal = None
             if _bal is not None and _bal <= 0:
-                return {
-                    "type": "agent.think",
-                    "received_from": inp.get("_from", "trigger"),
-                    "instruction": prompt,
-                    "message": "[Agent blocked] Saldo habis. Topup via Dodo Payments.",
-                    "agent_status": "blocked_no_balance",
-                }
+                # BUG-B3: saldo habis = node GAGAL, bukan "completed" dengan
+                # payload diam-diam. Dinaikkan sebagai exception (402, sama
+                # seperti gembok saldo Plus) supaya node `error` dan
+                # kanvas/analytics melihatnya.
+                raise BillingBlocked(
+                    402, "Saldo habis. Topup via Dodo Payments.")
         # --- DELEGASI MULTI-AGENT (BUG #3) ----------------------------------
         # Ditempatkan SETELAH resolusi vault + guard billing supaya supervisor
         # memakai kunci BYOK user dan tetap tunduk gembok eksekusi. Tiap
@@ -1195,15 +1230,17 @@ class StatefulOrchestrator:
                 "usage": res.get("usage", {}),
                 "cost_usd": res.get("cost_usd", 0.0),
             }
-        # Sin LLM key / error: no crashea - catat jelas di execution_logs.
-        return {
-            "type": "agent.think",
-            "received_from": inp.get("_from", "trigger"),
-            "instruction": prompt,
-            "message": f"[Agent {status}] {res.get('error', 'tanpa LLM key')}",
-            "agent_status": status,
-            "agent_error": res.get("error"),
-        }
+        # BUG-B3 (KRITIS - kegagalan senyap jalur AGENT): status non-sukses
+        # WAJIB dinaikkan sebagai exception. Versi lama mengembalikan payload
+        # `agent_status` apa adanya, sehingga `_run_node` menandai node
+        # "completed" walau LLM gagal -- kanvas hijau, `/analytics` errors:0,
+        # laporan ke user "berhasil ... 0 gagal". `_run_node` yang menangkap
+        # exception ini akan menandai node `error`; `execute_workflow_async`
+        # menandai eksekusi `error`; self-healing mengklasifikasi pesannya
+        # (5xx/network -> retry, credential -> escalate).
+        _err = res.get("error") or res.get("message") or "tanpa pesan"
+        raise AgentExecutionError(
+            f"agent '{node.id}' status={status}: {_err}")
 
     @staticmethod
     def _raise_if_tool_failed(provider: str, result: Any) -> None:
@@ -1347,6 +1384,14 @@ class StatefulOrchestrator:
         node = self._by_id[node_id]
         healing = self._healing()
         attempt = 1
+        # S8 (healing endpoint mati terlalu lama): anggaran WALL-CLOCK untuk
+        # seluruh fase healing. Batas PERCOBAAN saja tidak cukup -- satu
+        # percobaan bisa lambat (endpoint menggantung di balik proxy), sehingga
+        # 3 percobaan tetap bisa melewati target dan eksekusi berakhir
+        # `pending` tanpa pernah menunjukkan kegagalan. Bila anggaran habis,
+        # healing dipaksa berhenti -> node `error` (jujur & cepat).
+        _t_heal = _time.monotonic()
+        _heal_budget = float(os.getenv("HEALING_BUDGET_SEC", "30"))
         while True:
             self.states[node_id] = "running"
             step = ExecutionStep(node_id=node_id, kind=node.data.kind, status="running")
@@ -1386,20 +1431,28 @@ class StatefulOrchestrator:
                 plan = await healing.handle_failure(
                     node_id=node_id, error=exc, attempt=attempt)
                 if plan.action == "retry":
-                    # Emit SETIAP percobaan ke on_step supaya riwayat punya
-                    # jejak, bukan cuma hasil akhir. Tanpa ini user hanya
-                    # melihat "gagal" tanpa tahu sudah dicoba 5x.
-                    retry_step = ExecutionStep(
-                        node_id=node_id, kind=node.data.kind, status="retrying",
-                        output={"healing": plan.to_dict()},
-                    )
-                    steps.append(retry_step)
-                    if on_step:
-                        await on_step(retry_step)
-                    if plan.delay_ms:
-                        await asyncio.sleep(plan.delay_ms / 1000)
-                    attempt += 1
-                    continue
+                    if _time.monotonic() - _t_heal >= _heal_budget:
+                        # S8: anggaran healing habis -> JANGAN menggantung.
+                        # Minta plan "escalate" final (attempt > max_attempts),
+                        # lalu jatuh ke blok error di bawah.
+                        plan = await healing.handle_failure(
+                            node_id=node_id, error=exc,
+                            attempt=plan.max_attempts + 1)
+                    else:
+                        # Emit SETIAP percobaan ke on_step supaya riwayat punya
+                        # jejak, bukan cuma hasil akhir. Tanpa ini user hanya
+                        # melihat "gagal" tanpa tahu sudah dicoba berapa kali.
+                        retry_step = ExecutionStep(
+                            node_id=node_id, kind=node.data.kind, status="retrying",
+                            output={"healing": plan.to_dict()},
+                        )
+                        steps.append(retry_step)
+                        if on_step:
+                            await on_step(retry_step)
+                        if plan.delay_ms:
+                            await asyncio.sleep(plan.delay_ms / 1000)
+                        attempt += 1
+                        continue
                 # Escalate / credential / abort: catat diagnosis terakhir,
                 # lalu teruskan error aslinya supaya run() tetap gagal
                 # dengan alasan yang benar.

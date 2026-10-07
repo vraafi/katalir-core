@@ -124,7 +124,8 @@ def _run_webhook(monkeypatch, mem=None, **kwargs):
     asyncio.run(api_server._run_webhook_dag(
         kwargs.get("workflow_id", "wf-b1"),
         kwargs.get("flow_data", {"nodes": [], "edges": []}),
-        kwargs.get("trigger_input", {"_execution_id": "EX-B1"})))
+        kwargs.get("trigger_input", {"_execution_id": "EX-B1"}),
+        kwargs.get("owner_email", "")))
     return calls, statuses
 
 
@@ -137,19 +138,25 @@ def test_b1_webhook_meneruskan_execution_id_ke_runner(monkeypatch):
         "status akhir harus ditulis pada id yang SAMA")
 
 
-def test_b1_temuan_f6_webhook_tidak_meneruskan_owner_email(monkeypatch):
-    """F-6 (di luar brief, sengaja TIDAK diubah): webhook tidak kirim owner_email.
+def test_f6_webhook_meneruskan_owner_email_pemilik(monkeypatch):
+    """F-6 (Opsi A): webhook MENERUSKAN owner_email pemilik workflow.
 
-    Konsekuensi yang harus diketahui sebelum launch: node MCP ber-kredensial
-    pada workflow webhook TIDAK bisa membaca token milik user, dan node agent
-    di jalur ini TIDAK termeter (kuota free tidak terpakai). Mengubahnya adalah
-    keputusan produk/billing, jadi perilakunya dikunci di sini supaya tidak
-    berubah diam-diam.
+    Sebelumnya sengaja dikosongkan -> node MCP ber-kredensial (Sheets/Gmail/
+    Slack) pada workflow webhook tidak bisa me-resolve token user, sehingga
+    integrasi webhook nyata selalu gagal di node kredensial. Sekarang email
+    pemilik diteruskan, sama seperti `/execute`.
     """
-    calls, _ = _run_webhook(monkeypatch)
+    calls, _ = _run_webhook(monkeypatch, owner_email="pemilik@test.dev")
     assert calls[0]["execution_id"] == "EX-B1"
-    assert not calls[0]["owner_email"], (
-        "jalur webhook diharapkan tetap tanpa owner_email (lihat F-6)")
+    assert calls[0]["owner_email"] == "pemilik@test.dev", (
+        "F-6 Opsi A: email pemilik harus sampai ke runner")
+
+
+def test_f6_tanpa_email_tetap_aman(monkeypatch):
+    """Tanpa email (mis. dipanggil internal), jalur webhook tetap jalan."""
+    calls, statuses = _run_webhook(monkeypatch)
+    assert calls[0]["owner_email"] == ""
+    assert statuses == [("EX-B1", "completed")]
 
 
 def test_b1_status_mengikuti_hasil_runner_bukan_hardcode(monkeypatch):

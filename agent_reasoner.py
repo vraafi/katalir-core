@@ -17,6 +17,7 @@
 # =============================================================================
 
 import os
+import time
 from typing import Any
 
 from dotenv_loader import load_repo_env
@@ -276,17 +277,57 @@ async def run_agent(
         roster = gateway_models()
         picked = [ai_model] if ai_model in roster else roster
         candidates = [("gateway", m) for m in picked]
+        # Opsi C (S6): gateway -> Gemini pool -> provider langsung -> raise.
+        # Tanpa ini gateway yang turun = 0/5 agent sukses (satu titik gagal).
+        candidates += _fallback_chain(provider)
     elif ai_model == "universal":
         # 3) FREE: rute acak (random) dari dira model gratis di .env.
         candidates = _free_candidates(provider)
         if not candidates:
             candidates = [(provider, _default_model(provider))]
+        # Dulu: SATU provider acak TANPA cadangan -> satu provider sibuk =
+        # seluruh node agent gagal. Sekarang ditambah rantai cadangan.
+        for _c in _fallback_chain(provider):
+            if _c not in candidates:
+                candidates.append(_c)
     else:
         candidates = [(provider, _default_model(provider))]
+        for _c in _fallback_chain(provider):
+            if _c not in candidates:
+                candidates.append(_c)
 
     last_err: Exception | None = None
+    # Anggaran fase gateway. Roster bisa berisi 12 model; dengan timeout 20s
+    # per kandidat, gateway yang setengah-mati bisa memakan ~240s SEBELUM
+    # rantai cadangan dicoba (terukur: satu node agent 175s). Setelah anggaran
+    # habis, kandidat gateway dilewati dan jalur cadangan langsung dipakai.
+    _gw_budget = float(os.getenv("LLM_GATEWAY_BUDGET_SEC", "60"))
+    _t_llm = time.time()
     for prov, model_name in candidates:
+        # `>=` (bukan `>`): jam Windows beresolusi kasar sehingga `>` bisa
+        # bernilai False pada anggaran 0 (dua panggilan `time.time()` bisa
+        # mengembalikan nilai identik).
+        if prov == "gateway" and (time.time() - _t_llm) >= _gw_budget:
+            last_err = last_err or RuntimeError(
+                f"anggaran gateway {_gw_budget:.0f}s habis")
+            print(f"[agent_reasoner] anggaran gateway habis "
+                  f"({_gw_budget:.0f}s) -> langsung ke rantai cadangan")
+            continue
         try:
+            if prov == "gemini_pool":
+                # Opsi C: jalur cadangan Gemini via pool kunci (rotasi).
+                gp = await _gemini_pool_reply(system_prompt, user_msg, model_name)
+                return {
+                    "status": "success",
+                    "reply": gp["reply"],
+                    "output_data": {"reply": gp["reply"],
+                                    "model": gp["model"],
+                                    "provider": "gemini_pool"},
+                    "model": gp["model"],
+                    "provider": "gemini_pool",
+                    "usage": {"prompt_tokens": 0, "completion_tokens": 0},
+                    "cost_usd": 0.0,
+                }
             if prov == "byok":
                 # BYOK: model OpenAI-kompatibel dengan kunci user (tidak ke DB).
                 from langchain_openai import ChatOpenAI
@@ -307,7 +348,12 @@ async def run_agent(
                     api_key=gw_key,
                     base_url=f"{gw_url}/v1",
                     temperature=float(os.getenv("AGENT_TEMPERATURE", "0.4")),
-                    timeout=float(os.getenv("LLM_GATEWAY_TIMEOUT", "45")),
+                    # Timeout 45s -> 20s (disamakan dengan jalur /chat). Diukur
+                    # 7 Okt 2026: model gateway yang "menggantung" memakan 45s
+                    # per kandidat, sehingga satu node agent bisa >170s sebelum
+                    # akhirnya jatuh ke rantai cadangan. Model yang SEHAT
+                    # menjawab <2s, jadi 20s tetap longgar.
+                    timeout=float(os.getenv("LLM_GATEWAY_TIMEOUT", "20")),
                     max_retries=0,
                 )
             elif prov == "deepseek":
@@ -397,6 +443,101 @@ def _free_candidates(primary: str | None) -> list[tuple[str, str]]:
     import random
     picked = random.choice(pool)   # Round-Robin/random FREE rute
     return [picked]
+
+
+def _fallback_chain(primary: str | None) -> list[tuple[str, str]]:
+    """Rantai cadangan LANGSUNG (Opsi C) bila jalur utama tidak bisa diandalkan.
+
+    Masalah yang diperbaiki (S6, 7 Okt 2026): ketika gateway self-hosted
+    terkonfigurasi, `candidates` HANYA berisi kandidat gateway. Gateway yang
+    turun/tidak stabil membuat SEMUA node agent gagal (~0/5 sukses terukur),
+    padahal di lingkungan yang sama 13 kunci Gemini + Groq/NVIDIA/GitHub
+    sepenuhnya sehat. Satu titik kegagalan untuk seluruh fitur agent.
+
+    Urutan rantai (sesuai rekomendasi brief):
+      1. `gemini_pool` — rotasi kunci Gemini (cooldown per kunci/model);
+      2. provider langsung dari .env (groq / nvidia / github / google).
+
+    Dipakai SETELAH kandidat utama supaya jalur utama tetap diprioritaskan.
+    """
+    chain: list[tuple[str, str]] = []
+    try:
+        import gemini_key_pool as _gkp
+        if _gkp.pool().size:
+            chain.append(("gemini_pool",
+                          os.getenv("AGENT_FALLBACK_MODEL", "gemini-2.5-flash")))
+    except Exception as exc:  # noqa: BLE001 - pool opsional
+        print(f"[agent_reasoner] gemini_pool tidak tersedia: {exc}")
+    providers = {
+        "groq": ("GROQ_API_KEY", GROQ_MODEL),
+        "nvidia": ("NVIDIA_API_KEY", NVIDIA_MODEL),
+        "github": ("GITHUB_TOKEN", GITHUB_MODEL),
+        "google": ("GOOGLE_API_KEY", GOOGLE_MODEL),
+    }
+    for p, (env, model) in providers.items():
+        if os.getenv(env):
+            chain.append((p, model))
+    return chain
+
+
+async def _gemini_pool_reply(system_prompt: str, user_msg: str,
+                             model_name: str) -> dict:
+    """Jalur cadangan Gemini lewat POOL KUNCI (rotasi + cooldown per kunci).
+
+    Kuota Gemini bersifat per (project, model), jadi memutar 13 kunci jauh lebih
+    tahan daripada satu kunci tunggal. Mengembalikan `{"reply", "model"}` atau
+    MELEMPAR (supaya `last_err` di pemanggil tetap informatif).
+    """
+    import asyncio
+    import time as _time
+
+    import gemini_key_pool as _gkp
+    from google.genai import types as _types
+
+    pool = _gkp.pool()
+    if not pool.size:
+        raise RuntimeError("pool Gemini kosong (tidak ada GEMINI_KEY_*)")
+    deadline = _time.time() + float(os.getenv("AGENT_POOL_BUDGET_SEC", "60"))
+    models = [m for m in dict.fromkeys(
+        [model_name,
+         os.getenv("AGENT_FALLBACK_MODEL", "gemini-2.5-flash"),
+         GOOGLE_FALLBACK_MODEL]) if m]
+    last: Exception | None = None
+    for mid in models:
+        for _ in range(max(2, pool.size * 2)):
+            if _time.time() > deadline:
+                raise RuntimeError(
+                    f"batas waktu pool Gemini tercapai: "
+                    f"[{type(last).__name__}] {last}")
+            got = pool.acquire(mid)
+            if got is None:
+                break                      # semua kunci cooldown utk model ini
+            fp, _key = got
+            try:
+                client = pool.client(fp)
+                resp = await asyncio.to_thread(
+                    client.models.generate_content,
+                    model=mid,
+                    contents=user_msg,
+                    config=_types.GenerateContentConfig(
+                        system_instruction=system_prompt,
+                        temperature=float(os.getenv("AGENT_TEMPERATURE", "0.4")),
+                    ),
+                )
+                text = str(getattr(resp, "text", "") or "").strip()
+                if not text:
+                    raise RuntimeError("respons Gemini kosong (content:null)")
+                return {"reply": text, "model": mid}
+            except Exception as exc:  # noqa: BLE001
+                last = exc
+                kind, ttl = _gkp.classify_error(exc)
+                if kind == "unknown":
+                    # Bukan kuota/overload -> menukar kunci tidak menolong.
+                    break
+                pool.mark(fp, mid, kind=kind, ttl=ttl)
+                print(f"[agent_reasoner] gemini_pool {pool.label(fp)} {mid} "
+                      f"gagal ({kind}) -> rotasi; cooldown={ttl:.0f}s")
+    raise RuntimeError(f"[{type(last).__name__}] {last}")
 
 
 def agent_ready() -> bool:
