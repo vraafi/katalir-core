@@ -167,6 +167,25 @@ def validate_spec(raw: str) -> dict[str, Any]:
             errors.append(f"node mcp '{n.id}' (provider {prov}) belum lengkap: "
                           f"{', '.join(missing)} wajib ada di config")
 
+    # TRIASE ADVERSARIAL 2026-10-06 (BUG-1/BUG-6): config yang TIDAK pernah
+    # dibaca runner membuat "draf bohong" - node berlabel IF / batch /
+    # sub-workflow tersimpan tapi tetap dieksekusi linear tanpa error
+    # (silent failure by design). Tolak di sini supaya model jujur lewat
+    # repair loop, bukan mengaku bisa (bukti: skenario S1/S2/S5).
+    _DEAD_CONFIG_KEYS = (
+        "condition", "batch_size", "sub_workflow", "subworkflow",
+        "split_in_batches", "delegate", "delegation",
+    )
+    for n in spec.nodes:
+        dead = [k for k in _DEAD_CONFIG_KEYS if k in (n.config or {})]
+        if dead:
+            errors.append(
+                f"node '{n.id}' memakai config '{', '.join(dead)}' yang tidak "
+                "didukung runtime (tidak ada IF/cabang, Split In Batches, atau "
+                "sub-workflow). Hapus kunci itu; jalankan logika kondisi di "
+                "dalam prompt agent atau susun workflow linear berurutan."
+            )
+
     if not spec.edges and len(spec.nodes) > 1:
         warnings.append("tidak ada edge: node akan tampil terpisah di canvas")
 

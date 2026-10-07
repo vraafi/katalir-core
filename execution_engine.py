@@ -447,7 +447,14 @@ class StatefulOrchestrator:
         from agent_reasoner import run_agent as reason
 
         cfg = node.data.config or {}
-        prompt = cfg.get("system_prompt") or node.data.label or "instruccion por defecto"
+        # BUG FIX 2026-10-06 (adversarial BUG-1, silent failure): canvas
+        # (ConfigPanel -> setNodeCfg("prompt", ...)) dan model chat keduanya
+        # menulis instruksi agent di config `prompt`, tetapi runner hanya
+        # membaca `system_prompt` -> instruksi TERSINGKIR dan diganti label
+        # node tanpa error apa pun. `prompt` didahulukan (penulis saat ini),
+        # `system_prompt` tetap sebagai alias legacy (NodeConfig).
+        prompt = (cfg.get("prompt") or cfg.get("system_prompt")
+                  or node.data.label or "instruccion por defecto")
         import database as db
         owner = getattr(self, "owner_email", None) or cfg.get("owner_email") or ""
         _custom = str((cfg or {}).get("custom_api_key") or "").strip()

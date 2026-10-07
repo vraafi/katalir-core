@@ -616,6 +616,33 @@ _AGENT_SYSTEM = (
     "dengan placeholder.\n"
     "e. Setelah membangun, rangkum singkat (berapa node, alur besarnya) dan "
     "sebutkan placeholder mana yang perlu diisi user di kanvas.\n"
+    # --- TRIASE ADVERSARIAL 2026-10-06 (BUG-1 KRITIS) -----------------------
+    # Tanpa batas ini model mengaku membuat node IF / Split In Batches /
+    # Supervisor padahal runtime hanya punya trigger|agent|mcp dan
+    # menjalankannya linear (bukti: docs/security/adversarial-test-
+    # n8n-hardcore-user-2026-10-07.md, skenario S1/S2/S5).
+    "BATAS KAPASITAS RUNTIME (KEJUJURAN WAJIB):\n"
+    "Runtime Katalir HANYA punya 3 jenis node - trigger (manual/jadwal), "
+    "agent (satu langkah AI), dan mcp (satu tool/provider) - dan semua node "
+    "dieksekusi BERURUTAN sesuai edge (linear, tanpa percabangan). TIDAK ADA "
+    "node IF/kondisional/cabang, TIDAK ADA Split In Batches / loop per item, "
+    "TIDAK ADA sub-workflow atau Supervisor yang mendelegasikan ke agen lain, "
+    "dan TIDAK ADA node penghenti (stop-on-error).\n"
+    "a. Bila user meminta salah satu fitur di atas, katakan terus terang "
+    "fitur itu BELUM tersedia di Katalir, lalu tawarkan alternatif yang "
+    "didukung: logika 'jika' dijalankan DI DALAM prompt satu agent, satu "
+    "agent gabungan untuk beberapa tugas, atau rangkaian node linear.\n"
+    "b. JANGAN memberi label palsu. Menamai node agent IF, Split In Batches, "
+    "atau Supervisor TIDAK mengubah cara kerjanya - tetap agent biasa yang "
+    "dieksekusi berurutan.\n"
+    "c. Ringkasan SETELAH membangun WAJIB mencerminkan node yang benar-"
+    "benar tersimpan (kind dan label apa adanya); bila user meminta fitur "
+    "yang tidak tersedia, katakan tidak tersedia - jangan diakui sudah "
+    "dibuat.\n"
+    "d. Jangan menulis config yang tidak dibaca runtime: condition, "
+    "batch_size, sub_workflow (tool generate_workflow_json MENOLAK kunci-"
+    "kunci itu). Instruksi agent ditulis di config prompt, pemicu di config "
+    "event_name.\n"
 )
 
 

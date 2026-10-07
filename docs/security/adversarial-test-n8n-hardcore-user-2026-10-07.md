@@ -52,12 +52,13 @@ batas,** tapi yang gagal adalah **silent LLM quota exhaustion**.
 >
 > | Bug | Status | Keterangan |
 > |---|---|---|
-> | BUG-1 | ⏳ belum ditriase | Dikerjakan berikutnya (align `_AGENT_SYSTEM`) |
-> | BUG-2 | ⏳ belum ditriase | Butuh keputusan: implementasi IF/branch vs jujur di prompt |
+> | BUG-1 | ✅ **FIXED** | Prompt BATAS KAPASITAS RUNTIME + validator tolak config mati + runner baca `prompt` canvas. Lihat rincian BUG-1 |
+> | BUG-2 | ⚠️ sebagian | Pura-pura cabang ditutup (validator tolak `condition`); implementasi IF/branch = keputusan fitur pasca-launch |
 > | BUG-3 | ⏳ belum ditriase | Placeholder `{{...}}` belum dievaluasi runtime |
 > | BUG-4 | ✅ **FALSE POSITIVE** | Body 503 tidak kosong — artefak harness. Rincian di bawah |
 > | BUG-5 | ⏳ belum ditriase | Rate limiting `/chat` |
-> | BUG-6 | ⏳ belum ditriase | Validasi `{{placeholder}}` saat save |
+> | BUG-6 | ⏳ belum ditriase | Validasi `{{placeholder}}` saat save (bagian "node error tidak berhenti" tercakup batas prompt BUG-1) |
+
 
 ### BUG-1 (KRITIS) Model AI berhalusinasi arsitektur workflow
 
@@ -82,6 +83,35 @@ di kanvas, mengira mereka membuat otomatisasi yang benar. Jalankan tersebut
 akan mengeksekusi semua node secara linear tanpa logika apa pun.
 
 **Bukti:** output mentah probe S1 `_adv_s1s2s5_v2.py` (di log).
+
+> **TRIASE 2026-10-06 — FIXED (3 lapis).**
+>
+> 1. `api_server._AGENT_SYSTEM` — blok baru **BATAS KAPASITAS RUNTIME
+>    (KEJUJURAN WAJIB)**: menyebut eksplisit bahwa runtime hanya punya
+>    `trigger|agent|mcp` dan berjalan linear; IF / Split In Batches /
+>    Sub-Workflow / Supervisor / stop-on-error **TIDAK ADA**; model wajib
+>    menolak jujur + menawarkan alternatif yang didukung; larang label
+>    palsu; ringkasan wajib mencerminkan node yang benar-benar tersimpan.
+> 2. `workflow_spec.validate_spec` — MENOLAK config mati (`condition`,
+>    `batch_size`, `sub_workflow`, `split_in_batches`, `delegate`,
+>    `delegation`) dengan hint perbaikan. Rekomendasi #6 (validasi struktur
+>    saat save) ikut tercakup di sini.
+> 3. **Defect turunan ditemukan & diperbaiki saat triase**: canvas
+>    (`ConfigPanel.setNodeCfg("prompt", ...)`) dan model chat menulis
+>    instruksi agent di `config.prompt`, tetapi runner
+>    (`execution_engine._exec_agent`) hanya membaca `config.system_prompt`
+>    → instruksi TERSINGKIR dan diganti label node tanpa error apa pun
+>    (silent failure kedua, lebih parah karena menimpa SEMUA workflow yang
+>    dibuat via canvas/chat). Runner kini membaca `prompt` dulu, lalu
+>    `system_prompt` (alias legacy).
+>
+> Regresi dijaga `tests/test_runtime_capability_boundary.py` (6 tes: prompt,
+> validator ×3, runner ×2).
+>
+> Sisa yang TIDAK ditangani di sini: implementasi IF/batch/sub-workflow
+> **sebenarnya** tetap tidak ada — itu keputusan fitur pasca-launch. Yang
+> ditutup adalah penipuan diri "sudah bisa" (label palsu) dan silent-drop
+> instruksi agent.
 
 ---
 
@@ -296,6 +326,8 @@ POST /chat ×8 paralel, payload {"prompt":"halo, uji beban {i}"}
    AI chat saat ini memicu penggunaan node `IF`, `Split In Batches`,
    `Supervisor` — runtime tidak punya implementasi. Skenario 1/2/5 jadi
    halusinasi. Harus ditandai `UNECESSARY` atau dieliminasi dari prompt.
+   *(Triase 2026-10-06: DIPERBAIKI — blok BATAS KAPASITAS RUNTIME di
+   `_AGENT_SYSTEM` + validator tolak config mati; lihat rincian BUG-1.)*
 
 2. **(KRITIS) Implementasi mesin evaluasi placeholder.** Semua
    `{{...}}` harus dipetakan ke runner konteks sebelum eksekusi. Tanpa ini,
