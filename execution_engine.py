@@ -14,7 +14,9 @@
 # =============================================================================
 
 import asyncio
+import json
 import os
+import re
 import uuid
 from collections import defaultdict
 from enum import Enum
@@ -391,6 +393,50 @@ def guard_execution(cfg: dict, owner: str) -> tuple[bool, int | None, str]:
     return True, None, ""
 
 # ---------------------------------------------------------------------------
+# RESOLUSI PLACEHOLDER {{...}} (adversarial BUG-3/BUG-6, triase 2026-10-06)
+# ---------------------------------------------------------------------------
+# Dua makna token {{...}} dibedakan SENGAJA:
+#   {{tanpa_titik}}    placeholder isi-user (chat_id, url, channel, ...).
+#                      Didesain utuh di config sampai user mengisinya di
+#                      kanvas; runtime TIDAK menyentuhnya.
+#   {{akar.segmen..}}  ekspresi antar-node. WAJIB diresolv terhadap konteks
+#                      eksekusi sebelum prompt/params dipakai. Bila gagal ->
+#                      PlaceholderResolutionError (kegagalan jujur), bukan
+#                      string verbatim yang diam-diam masuk ke LLM atau
+#                      dipanggilkan ke API eksternal (bukti skenario S3).
+_PLACEHOLDER_RX = re.compile(r"\{\{\s*([^{}]+?)\s*\}\}")
+_MISSING = object()
+
+
+class PlaceholderResolutionError(ValueError):
+    """Referensi {{node.path}} tak bisa diresolv -> gagal jujur (BUG-3).
+
+    Pesan sengaja memuat penanda `PlaceholderResolutionError` supaya
+    `self_healing.classify_error` mengenali error ini sebagai `abort`
+    (payload identik tidak akan pernah valid; retry hanya membakar kuota).
+    """
+
+
+def _dig(root: Any, segs: list[str]) -> Any:
+    """Telusuri segmen titik pada dict/list; kembalikan _MISSING bila jalur tak ada."""
+    cur = root
+    for seg in segs:
+        if isinstance(cur, dict):
+            if seg in cur:
+                cur = cur[seg]
+                continue
+            return _MISSING
+        if isinstance(cur, (list, tuple)) and seg.lstrip("-").isdigit():
+            idx = int(seg)
+            if -len(cur) <= idx < len(cur):
+                cur = cur[idx]
+                continue
+            return _MISSING
+        return _MISSING
+    return cur
+
+
+# ---------------------------------------------------------------------------
 # STATE GRAPH ORCHESTRATOR
 # ---------------------------------------------------------------------------
 class StatefulOrchestrator:
@@ -427,9 +473,92 @@ class StatefulOrchestrator:
             self._succs[e.source].append(e.target)
             self._preds[e.target].append(e.source)
 
+    # --- RESOLUSI PLACEHOLDER {{...}} (adversarial BUG-3) ------------------
+    def _placeholder_roots(self) -> dict[str, Any]:
+        """Akar ekspresi: id node yang sudah dieksekusi + alias payload trigger."""
+        roots: dict[str, Any] = dict(self.outputs)
+        trig = next((n.id for n in self.graph.nodes
+                     if n.data.kind == NodeKind.TRIGGER), None)
+        if trig and trig in self.outputs:
+            roots.setdefault("trigger", self.outputs[trig])
+        # Alias payload input manual/webhook - dipakai model menulis
+        # `{{data.status}}` / `{{payload.x}}` tanpa tahu id trigger.
+        for alias in ("input", "payload", "data"):
+            roots.setdefault(alias, self.trigger_input)
+        return roots
+
+    def _resolve_text(self, text: str, *, where: str) -> str:
+        """Eval semua `{{akar.segmen..}}` dalam `text` terhadap konteks run.
+
+        - `{{tanpa_titik}}`  -> placeholder isi-user, DIBIARKAN utuh (didesain).
+        - `{{akar.x.y}}`     -> nilai diganti; tak bisa diganti -> NAIKKAN
+                                PlaceholderResolutionError (jujur, bukan diam).
+        """
+        if not isinstance(text, str) or "{{" not in text:
+            return text
+        roots = self._placeholder_roots()
+        node_ids = {n.id for n in self.graph.nodes}
+
+        def _sub(m) -> str:
+            expr = m.group(1).strip()
+            if "." not in expr:
+                return m.group(0)          # placeholder isi-user: jangan disentuh
+            segs = [s for s in expr.split(".") if s]
+            if not segs:
+                return m.group(0)
+            head, path = segs[0], segs[1:]
+            root = roots.get(head, _MISSING)
+            if root is _MISSING:
+                if head in node_ids:
+                    raise PlaceholderResolutionError(
+                        f"PlaceholderResolutionError: node '{head}' belum "
+                        f"menghasilkan output ketika {where} memakai "
+                        f"{{{{{expr}}}}} (bukan predesesor / belum "
+                        f"dieksekusi). Susun urutan node agar data tersedia.")
+                raise PlaceholderResolutionError(
+                    f"PlaceholderResolutionError: akar '{head}' pada "
+                    f"{{{{{expr}}}}} tidak ada di workflow (hanya id node "
+                    f"atau alias trigger/input/payload/data). Perbaiki "
+                    f"referensi di {where}.")
+            val = _dig(root, path)
+            if val is _MISSING and isinstance(root, dict) and "result" in root:
+                # Node MCP membungkus hasil provider di kunci `result`.
+                val = _dig(root["result"], path)
+            if val is _MISSING:
+                keys = (", ".join(sorted(map(str, root.keys()))[:8])
+                        if isinstance(root, dict) else "-")
+                raise PlaceholderResolutionError(
+                    f"PlaceholderResolutionError: field '{'.'.join(path)}' "
+                    f"tidak ditemukan di output '{head}' (kunci tersedia: "
+                    f"{keys}). Perbaiki referensi {{{{{expr}}}}} di {where}.")
+            if isinstance(val, str):
+                return val
+            if val is None:
+                return ""
+            return json.dumps(val, ensure_ascii=False)
+
+        return _PLACEHOLDER_RX.sub(_sub, text)
+
+    def _resolve_cfg(self, cfg: dict, *, where: str) -> dict:
+        """Resolv semua string di config node (salinan baru, config asli utuh)."""
+        if not cfg:
+            return cfg
+
+        def walk(v: Any) -> Any:
+            if isinstance(v, str):
+                return self._resolve_text(v, where=where)
+            if isinstance(v, dict):
+                return {k: walk(x) for k, x in v.items()}
+            if isinstance(v, list):
+                return [walk(x) for x in v]
+            return v
+
+        return walk(cfg)
+
     # --- executor registry (NodeKind -> async fn), sin if/else en el motor ---
     async def _exec_trigger(self, node: FlowNode, inp: dict) -> dict:
-        cfg = node.data.config or {}
+        cfg = self._resolve_cfg(node.data.config or {},
+                                where=f"node '{node.id}'")
         event = cfg.get("event_name") or node.data.label or "webhook"
         payload = dict(self.trigger_input or {})
         if node.data.kind == NodeKind.TRIGGER and inp:
@@ -455,6 +584,10 @@ class StatefulOrchestrator:
         # `system_prompt` tetap sebagai alias legacy (NodeConfig).
         prompt = (cfg.get("prompt") or cfg.get("system_prompt")
                   or node.data.label or "instruccion por defecto")
+        # BUG-3: {{akar.x}} di instruksi diresolv dulu terhadap output node
+        # hulu; gagal -> PlaceholderResolutionError (bukan literal verbatim
+        # yang diam-diam dikirim ke LLM).
+        prompt = self._resolve_text(prompt, where=f"node '{node.id}'")
         import database as db
         owner = getattr(self, "owner_email", None) or cfg.get("owner_email") or ""
         _custom = str((cfg or {}).get("custom_api_key") or "").strip()
@@ -554,7 +687,10 @@ class StatefulOrchestrator:
           3. tanpa provider -> jalur lama (web_search/http_request) demi
              kompatibilitas workflow yang sudah tersimpan.
         """
-        cfg = node.data.config or {}
+        # BUG-3: resolv {{akar.x}} di seluruh config sebelum provider
+        # memakainya (chat_id/url/pesan) - config asli tidak dimutasi.
+        cfg = self._resolve_cfg(node.data.config or {},
+                                where=f"node '{node.id}'")
         owner = (getattr(self, "owner_email", None)
                  or cfg.get("owner_email") or "")
         provider = provider_registry.resolve(cfg, inp)

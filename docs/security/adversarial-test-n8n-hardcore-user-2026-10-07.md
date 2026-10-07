@@ -54,10 +54,10 @@ batas,** tapi yang gagal adalah **silent LLM quota exhaustion**.
 > |---|---|---|
 > | BUG-1 | ✅ **FIXED** | Prompt BATAS KAPASITAS RUNTIME + validator tolak config mati + runner baca `prompt` canvas. Lihat rincian BUG-1 |
 > | BUG-2 | ⚠️ sebagian | Pura-pura cabang ditutup (validator tolak `condition`); implementasi IF/branch = keputusan fitur pasca-launch |
-> | BUG-3 | ⏳ belum ditriase | Placeholder `{{...}}` belum dievaluasi runtime |
+> | BUG-3 | ✅ **FIXED** | Mesin placeholder runtime (`_resolve_text`/`_resolve_cfg`) + save-time validation. Lihat rincian BUG-3 |
 > | BUG-4 | ✅ **FALSE POSITIVE** | Body 503 tidak kosong — artefak harness. Rincian di bawah |
 > | BUG-5 | ⏳ belum ditriase | Rate limiting `/chat` |
-> | BUG-6 | ⏳ belum ditriase | Validasi `{{placeholder}}` saat save (bagian "node error tidak berhenti" tercakup batas prompt BUG-1) |
+> | BUG-6 | ✅ **FIXED** | Validasi placeholder saat save (warning isi-user + error akar tak dikenal); bagian "node error tidak berhenti" tercakup batas prompt BUG-1 |
 
 
 ### BUG-1 (KRITIS) Model AI berhalusinasi arsitektur workflow
@@ -150,6 +150,42 @@ Tidak ada codebase (`api_server.py`/`execution_engine.py`/`provider_registry.py`
 ke node berikutnya.** Skenario 3 (silent-failure skema API) sudah terwujud
 DMARI prompt user, bahkan tanpa perubahan API.
 
+> **TRIASE 2026-10-06 — FIXED (mesin placeholder runtime + save-time).**
+>
+> Dua makna token `{{...}}` kini dibedakan secara eksplisit:
+>
+> 1. **`{{tanpa_titik}}`** (`{{chat_id}}`, `{{url}}`, `{{channel}}`) =
+>    placeholder isi-user yang memang didesain `_AGENT_SYSTEM` untuk diisi
+>    di kanvas. Runtime **tidak menyentuhnya**; save kini memberi **warning**
+>    "belum diisi" (BUG-6) supaya user tahu ada nilai yang harus diisi.
+> 2. **`{{akar.segmen}}`** (`{{http_1.response.data.user.name}}`,
+>    `{{payload.status}}`) = ekspresi antar-node yang **wajib diresolv**
+>    sebelum dipakai:
+>
+>    - `execution_engine._resolve_text` / `_resolve_cfg` mengevaluasi semua
+>      ekspresi terhadap konteks eksekusi (output node yang sudah jalan +
+>      alias `trigger`/`input`/`payload`/`data`); dipasang di `_exec_agent`
+>      (prompt), `_exec_mcp` (seluruh config: `chat_id`, `url`, `pesan`, …),
+>      dan `_exec_trigger`. Fallback kedua menelusuri kunci `result` (node MCP
+>      membungkus hasil provider di sana).
+>    - Gagal resolv (field hilang / akar tak ada / node belum dieksekusi) ->
+>      **`PlaceholderResolutionError`** — node gagal dengan pesan yang
+>      bisa diperbaiki, bukan string literal yang diam-diam mengalir.
+>      `self_healing` mengklasifikasi error ini sebagai **`abort`** (rule
+>      `placeholder_invalid`, tanpa retry/search) karena payload identik tidak
+>      akan pernah valid.
+>    - `workflow_spec.validate_spec` memeriksa saat **save**: ekspresi dengan
+>      akar di luar id-node/alias -> **ERROR** (repair loop model); placeholder
+>      isi-user -> **WARNING**. Normalizer produksi (`{{fetch_data.body}}`
+>      dengan node `fetch_data` nyata) tetap lolos.
+>
+> Regresi dijaga `tests/test_placeholder_resolution.py` (15 tes: resolusi,
+> error jujur, healing abort, runner end-to-end, save-time).
+>
+> Sisa yang TIDAK ditangani: tidak ada ekspresi kondisional/aritmatika
+> (`{{a}} == {{b}}`) — di luar scope; logika semacam itu tetap diminta
+> dijalankan di dalam prompt agent (konsisten batas BUG-1).
+
 ---
 
 ### BUG-4 (TINGGI) Quota LLM habis → 503 tanpa pesan dan tanpa recover
@@ -221,6 +257,25 @@ Dalam run S1 di atas, `mcp_1` ("Hentikan dan Error") sebenarnya **TIDAK
 berhenti** — ia mengeksekusi `everything_echo` dan melaporkan `status:
 success`. "Error path" sebenarnya hanyalah node normal tanpa kondisi
 pembatalan.
+
+> **TRIASE 2026-10-06 — FIXED.**
+>
+> 1. **Validasi placeholder saat save** (inti BUG-6):
+>    `workflow_spec.validate_spec` kini memeriksa SEMUA string config node:
+>    `{{tanpa_titik}}` yang belum diisi -> **WARNING** ("user harus mengisi
+>    nilai ini di kanvas sebelum workflow dijalankan") yang sampai ke model
+>    lewat `tools.generate_workflow_json` (`warnings`); ekspresi
+>    `{{akar.x}}` dengan akar di luar id-node/alias -> **ERROR** + repair
+>    loop. Uji: `tests/test_placeholder_resolution.py` bagian 5.
+> 2. **Runtime juga menangani** `{{fetch_data.body}}`-pola yang sah:
+>    nilai diganti dari output node `fetch_data` sungguhan (lihat rincian
+>    BUG-3) — klaim "tidak ada nilai `{{...}}` yang dibaca" tidak berlaku
+>    lagi.
+> 3. **Bagian "node error tidak berhenti"**: tidak ada node penghenti di
+>    runtime — sudah tercakup kejujuran BUG-1 (prompt melarang label
+>    "Hentikan Workflow"; model wajib menolak jujur). Implementasi
+>    stop-on-error/IF sebenarnya = keputusan fitur pasca-launch, sama
+>    seperti BUG-2.
 
 ---
 
@@ -333,6 +388,9 @@ POST /chat ×8 paralel, payload {"prompt":"halo, uji beban {i}"}
    `{{...}}` harus dipetakan ke runner konteks sebelum eksekusi. Tanpa ini,
    setiap workflow berisi token yang di-hardcode tidak akan pernah mengisi
    nilai runtime — silent failure by design.
+   *(Triase 2026-10-06: DIPERBAIKI — mesin placeholder runtime
+   `execution_engine._resolve_text`/`_resolve_cfg` + validasi saat save;
+   lihat rincian BUG-3.)*
 
 3. **(KRITIS) [BUG #4] Balikkan 503 tanpa pesan.** `chat` endpoint harus selalu
    mengirim pesan `cooldown (kuota)`. Saat ini 503 kosong → user tidak tahu
@@ -354,6 +412,9 @@ POST /chat ×8 paralel, payload {"prompt":"halo, uji beban {i}"}
    `_AGENT_SYSTEM` membawa `{provider, tool, arguments}` untuk node `mcp`,
    tetapi config `agent` seperti `condition: "{{data.status}}=='valid'"`
    diizinkan tanpa check bahwa `condition` bernama diallowlist runtime.
+   *(Triase 2026-10-06: DIPERBAIKI — `validate_spec` menolak config mati
+   (`condition`, `batch_size`, `sub_workflow`, …) di BUG-6/BUG-1; kini juga
+   memvalidasi placeholder `{{...}}` saat save.)*
 
 7. **(RENDAH) Instrument execution report.**
    S1: agent `agent_1` ber-`status completed` walau mengeluarkan string

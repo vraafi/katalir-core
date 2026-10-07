@@ -186,6 +186,47 @@ def validate_spec(raw: str) -> dict[str, Any]:
                 "dalam prompt agent atau susun workflow linear berurutan."
             )
 
+    # TRIASE ADVERSARIAL 2026-10-06 (BUG-6): placeholder {{...}} dicek saat
+    # SAVE, bukan baru ketahuan saat eksekusi:
+    #   {{tanpa_titik}}   placeholder isi-user (chat_id, url, ...) -> warning
+    #                     supaya user tahu ada nilai yang belum diisi di kanvas.
+    #   {{akar.segmen}}   ekspresi antar-node -> akar wajib ada di workflow
+    #                     (id node) atau alias; selain itu ERROR di sini
+    #                     (runtime juga menolak: PlaceholderResolutionError).
+    _PH_RX = re.compile(r"\{\{\s*([^{}]+?)\s*\}\}")
+    _PH_ALIASES = {"trigger", "input", "payload", "data"}
+    _ph_roots = set(ids) | _PH_ALIASES
+
+    def _str_leaves(v: Any):
+        if isinstance(v, str):
+            yield v
+        elif isinstance(v, dict):
+            for x in v.values():
+                yield from _str_leaves(x)
+        elif isinstance(v, list):
+            for x in v:
+                yield from _str_leaves(x)
+
+    for n in spec.nodes:
+        for key, val in (n.config or {}).items():
+            for s in _str_leaves(val):
+                for m in _PH_RX.finditer(s):
+                    expr = m.group(1).strip()
+                    if "." not in expr:
+                        warnings.append(
+                            f"node '{n.id}' config '{key}': placeholder "
+                            f"{{{{{expr}}}}} belum diisi - user harus mengisi "
+                            "nilai ini di kanvas sebelum workflow dijalankan")
+                        continue
+                    head = expr.split(".", 1)[0].strip()
+                    if head and head not in _ph_roots:
+                        errors.append(
+                            f"node '{n.id}' memakai ekspresi {{{{{expr}}}}} "
+                            f"tapi akar '{head}' tidak ada di workflow (id "
+                            f"node: {', '.join(sorted(set(ids)))} atau alias "
+                            "trigger/input/payload/data). Perbaiki id node "
+                            "atau hapus referensi itu.")
+
     if not spec.edges and len(spec.nodes) > 1:
         warnings.append("tidak ada edge: node akan tampil terpisah di canvas")
 

@@ -84,6 +84,17 @@ class Rule:
 # membalas "429 quota exceeded" yang sebenarnya soal kuota akun, bukan
 # rate limit sesaat -- keduanya tidak boleh tertukar.
 RULES: tuple[Rule, ...] = (
+    # ── Placeholder tak teresolusi (adversarial BUG-3) ────────────────────
+    # Error deterministik dari execution_engine.PlaceholderResolutionError:
+    # payload identik tidak akan pernah valid - retry hanya membakar kuota
+    # LLM user, jadi langsung abort tanpa pencarian forum.
+    Rule(
+        "placeholder_invalid",
+        re.compile(r"PlaceholderResolutionError"),
+        "abort", max_attempts=0, search=False,
+        reason="Referensi {{...}} tidak dapat diresolv; mengulang dengan "
+               "payload sama tidak akan mengubah hasil - perbaiki config node.",
+    ),
     # ── Credential: escalate, tidak pernah retry ─────────────────────────
     Rule(
         "oauth_token_expired",
