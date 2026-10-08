@@ -319,6 +319,47 @@ Screenshot: `resize-1-baris.png`, `resize-5-baris.png`, `resize-20-baris.png`,
 
 Screenshot: `desktop-composer-satu-baris.png`
 
+### 6.5 Verifikasi produksi (bukan hanya lokal)
+
+Suite yang sama dijalankan ulang terhadap situs **live**:
+
+```bash
+E2E_BASE_URL=https://katalir.de5.net \
+CHATUI_SHOT_DIR=.../chat-ui/prod \
+  npx playwright test -c playwright.chatui.config.ts
+```
+
+→ **28 passed (1.2m)**
+
+Bukti bahwa yang ter-deploy benar-benar build ini, bukan build lama:
+
+| Pemeriksaan | Nilai |
+|---|---|
+| `curl -I https://katalir.de5.net/chat` | **200** |
+| `<meta name="viewport">` produksi | `width=device-width, initial-scale=1, viewport-fit=cover, interactive-widget=resizes-content` |
+| Hash CSS produksi | `0f2c95e15e89deb4.css` — **sama persis** dengan `nexus-frontend/out/_next/static/css/` hasil build lokal |
+| `.k-chat-shell` di CSS produksi | `height:100vh;height:100dvh;overscroll-behavior:none` |
+| `.k-chat-footer` di CSS produksi | `padding-bottom:max(1rem,env(safe-area-inset-bottom,0px),var(--keyboard-inset,0px))` |
+| 20 metrik kunci di 320×568: lokal vs produksi | **identik** (dibandingkan otomatis per kunci) |
+
+Screenshot produksi ada di `docs/marketing/screenshots/chat-ui/prod/` (20 PNG +
+25 JSON bukti). Yang paling penting: `prod/keyboard-open-375x667.png` menunjukkan
+composer sudah berada **di atas** area keyboard pada situs live.
+
+**Temuan sampingan saat verifikasi produksi (bukan bagian perbaikan ini):** setiap
+pemuatan halaman produksi mencatat satu galat konsol —
+
+```
+Loading the script 'https://static.cloudflareinsights.com/beacon.min.js/...'
+violates the following Content Security Policy directive: "script-src 'self' 'unsafe-inline'"
+```
+
+Cloudflare Pages menyuntikkan beacon analitiknya sendiri, sedangkan CSP situs
+(`public/_headers`) tidak mengizinkan `static.cloudflareinsights.com`. Akibatnya
+analitik Cloudflare **tidak pernah berjalan di produksi**. Ini kondisi pra-ada dan
+tidak berhubungan dengan composer; dilaporkan di sini supaya tidak hilang. Tes hanya
+menyaring pola URL yang sempit ini, dan pelanggaran CSP lain tetap menggagalkan tes.
+
 ---
 
 ## 7. Batasan dan risiko terbuka
@@ -353,6 +394,11 @@ Screenshot: `desktop-composer-satu-baris.png`
 
 - 28 berkas JSON `getComputedStyle` + `getBoundingClientRect`:
   `docs/marketing/screenshots/chat-ui/evidence/`
-- 19 screenshot PNG: `docs/marketing/screenshots/chat-ui/`
-- Perintah: `E2E_PORT=3100 npx playwright test -c playwright.chatui.config.ts --reporter=list`
-- Hasil: `28 passed (1.3m)`
+- 20 screenshot PNG (lokal, bundle `out/`): `docs/marketing/screenshots/chat-ui/`
+- 20 screenshot PNG + 25 JSON bukti dari **produksi**:
+  `docs/marketing/screenshots/chat-ui/prod/`
+- Perintah lokal: `E2E_PORT=3100 npx playwright test -c playwright.chatui.config.ts --reporter=list`
+  → `28 passed (1.2m)`
+- Perintah produksi: `E2E_BASE_URL=https://katalir.de5.net npx playwright test -c playwright.chatui.config.ts`
+  → `28 passed (1.2m)`
+- Commit: `757c8e3` (`fix(chat-ui): composer mobile terlihat di atas keyboard + gaya DeepSeek desktop`)

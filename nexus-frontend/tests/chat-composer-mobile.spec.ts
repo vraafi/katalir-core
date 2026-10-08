@@ -310,15 +310,40 @@ function record(label: string, data: unknown) {
   console.log(`EVIDENCE ${label} ${JSON.stringify(data)}`);
 }
 
-/** Pasang kolektor galat runtime; mengembalikan fungsi assertion. */
+/**
+ * Pasang kolektor galat runtime; mengembalikan fungsi assertion.
+ *
+ * DIABAIKAN (hanya satu pola, sengaja sempit): Cloudflare Pages menyuntikkan
+ * beacon analitiknya sendiri (`static.cloudflareinsights.com/beacon.min.js`) ke
+ * setiap respons, sedangkan CSP situs (`script-src 'self' 'unsafe-inline'` di
+ * `public/_headers`) memblokirnya. Browser lalu mencatat pelanggaran CSP di
+ * konsol **di produksi saja**. Itu kondisi pra-ada milik platform, bukan
+ * regresi composer — dan tidak ada hubungannya dengan yang diuji di sini.
+ *
+ * Pola lain TETAP menggagalkan tes, termasuk pelanggaran CSP lain, supaya
+ * regresi sungguhan tidak ikut tersembunyi. Yang disaring tetap dicetak
+ * jumlahnya agar tidak hilang diam-diam.
+ */
+const GALAT_PIHAK_KETIGA = /static\.cloudflareinsights\.com/;
+
 function watchErrors(page: Page) {
   const pageErrors: string[] = [];
   const consoleErrors: string[] = [];
+  const diabaikan: string[] = [];
   page.on("pageerror", (e) => pageErrors.push(String(e).slice(0, 300)));
   page.on("console", (m) => {
-    if (m.type() === "error") consoleErrors.push(m.text().slice(0, 300));
+    if (m.type() !== "error") return;
+    const t = m.text().slice(0, 300);
+    if (GALAT_PIHAK_KETIGA.test(t)) {
+      diabaikan.push(t);
+      return;
+    }
+    consoleErrors.push(t);
   });
   return () => {
+    if (diabaikan.length > 0) {
+      console.log(`DIABAIKAN ${diabaikan.length} galat konsol pihak-ketiga (beacon Cloudflare diblokir CSP situs)`);
+    }
     expect(pageErrors, `galat runtime di halaman: ${JSON.stringify(pageErrors)}`).toHaveLength(0);
     expect(consoleErrors, `galat konsol: ${JSON.stringify(consoleErrors)}`).toHaveLength(0);
   };
