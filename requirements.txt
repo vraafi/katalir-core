@@ -99,3 +99,14 @@ croniter>=2.0
 # Import di queue_mode.py bersifat MALAS: tanpa paket ini aplikasi tetap jalan
 # (degradasi ke backend memori), jadi tidak mematikan startup.
 redis==8.1.0
+
+# --- Fitur #7: SSO / SAML / OIDC / LDAP (Okt 2026) --------------------------
+# ldap3  2.9.1  — klien LDAP pure-Python (bind + search), tanpa lib native.
+# signxml 5.1.0 — verifikasi XML-DSig (X.509) assertion SAML; dipilih karena
+#                 tidak butuh libxmlsec native di Windows.
+# Keduanya diimpor MALAS di sso.py: bila tidak ada, fitur terkait melaporkan
+# error jelas dan sisa aplikasi tetap berjalan.
+# Diverifikasi: 12/12 hard test vs IdP nyata (oidc-provider, samlp, glauth) +
+# Google Workspace OIDC; lihat docs/enterprise-100-percent-log.md.
+ldap3==2.9.1
+signxml==5.1.0

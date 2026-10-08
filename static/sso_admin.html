@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Katalir — Admin SSO</title>
+<style>
+  :root{
+    --bg:#0f1115; --panel:#171a21; --panel2:#1e222b; --line:#2b303b;
+    --fg:#e8ecf3; --muted:#98a2b3; --accent:#5b8cff; --ok:#22c55e;
+    --warn:#f59e0b; --bad:#ef4444;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--fg);
+       font:14px/1.5 ui-sans-serif,system-ui,"Segoe UI",Roboto,sans-serif}
+  header{display:flex;align-items:center;gap:14px;padding:14px 22px;
+         background:var(--panel);border-bottom:1px solid var(--line)}
+  header h1{font-size:16px;margin:0;font-weight:650;letter-spacing:.2px}
+  .badge{font-size:11px;padding:3px 9px;border-radius:999px;
+         background:rgba(91,140,255,.15);color:var(--accent);
+         border:1px solid rgba(91,140,255,.35)}
+  .spacer{flex:1}
+  main{padding:18px 22px;display:grid;grid-template-columns:1fr 1fr;gap:16px}
+  @media(max-width:1000px){main{grid-template-columns:1fr}}
+  section{background:var(--panel);border:1px solid var(--line);border-radius:12px;
+          padding:14px 16px}
+  section h2{font-size:13px;margin:0 0 10px;text-transform:uppercase;
+             letter-spacing:.7px;color:var(--muted);font-weight:650}
+  label{display:block;font-size:11.5px;color:var(--muted);margin:8px 0 3px;
+        text-transform:uppercase;letter-spacing:.5px}
+  input,textarea{width:100%;font:inherit;font-size:13px;padding:7px 9px;
+                 border-radius:8px;border:1px solid var(--line);
+                 background:var(--panel2);color:var(--fg)}
+  textarea{min-height:96px;font-family:ui-monospace,Consolas,monospace;font-size:12px}
+  button{font:inherit;font-size:12.5px;padding:7px 12px;border-radius:8px;
+         border:1px solid var(--line);background:var(--panel2);color:var(--fg);
+         cursor:pointer;margin:10px 6px 0 0}
+  button:hover{border-color:var(--accent)}
+  button.primary{background:var(--accent);border-color:var(--accent);color:#fff}
+  .row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+  .chip{display:inline-block;font-size:11px;padding:3px 9px;border-radius:999px;
+        margin:2px 4px 2px 0;border:1px solid var(--line);background:var(--panel2)}
+  .chip.on{border-color:rgba(34,197,94,.45);color:var(--ok)}
+  .chip.off{border-color:rgba(239,68,68,.35);color:var(--bad)}
+  pre{margin:8px 0 0;background:#0b0d11;border:1px solid var(--line);
+      border-radius:8px;padding:10px;font-size:11.5px;max-height:260px;
+      overflow:auto;white-space:pre-wrap;word-break:break-word}
+  .muted{color:var(--muted);font-size:12.5px}
+  .toast{position:fixed;right:18px;bottom:18px;background:var(--panel2);
+         border:1px solid var(--line);border-left:3px solid var(--accent);
+         padding:10px 14px;border-radius:10px;font-size:13px;max-width:460px;
+         display:none}
+</style>
+</head>
+<body>
+<header>
+  <h1>Katalir · Admin SSO</h1>
+  <span class="badge" id="active">memuat…</span>
+  <span class="spacer"></span>
+  <span class="muted" id="ts">—</span>
+</header>
+<main>
+  <section>
+    <h2>Provider</h2>
+    <div id="chips"><span class="muted">memuat…</span></div>
+    <div class="row" style="margin-top:10px">
+      <button class="primary" onclick="save()">Simpan konfigurasi</button>
+      <button onclick="load()">Muat ulang</button>
+      <button onclick="probe()">Uji discovery IdP</button>
+    </div>
+    <p class="muted" style="margin-top:8px">
+      Kredensial yang tampil sebagai <code>***</code> tidak diubah saat disimpan.
+    </p>
+    <pre id="discovery">belum diuji</pre>
+  </section>
+
+  <section>
+    <h2>OIDC (Okta / Auth0 / Google Workspace / Keycloak)</h2>
+    <label>Issuer URL</label>
+    <input id="oidc_issuer" placeholder="https://accounts.google.com">
+    <label>Client ID</label>
+    <input id="oidc_client_id">
+    <label>Client Secret</label>
+    <input id="oidc_client_secret" type="password">
+    <label>Redirect URI</label>
+    <input id="oidc_redirect_uri" placeholder="https://app/sso/callback/oidc">
+    <label>Scopes (spasi)</label>
+    <input id="oidc_scopes" placeholder="openid email profile groups">
+  </section>
+
+  <section>
+    <h2>LDAP / Active Directory</h2>
+    <label>Server URL</label>
+    <input id="ldap_server_url" placeholder="ldap://dc.corp:389">
+    <label>Base DN</label>
+    <input id="ldap_base_dn" placeholder="dc=corp,dc=local">
+    <label>Bind DN (akun layanan, butuh capability search)</label>
+    <input id="ldap_bind_dn">
+    <label>Bind Password</label>
+    <input id="ldap_bind_password" type="password">
+    <label>User filter</label>
+    <input id="ldap_user_filter" placeholder="(mail={login})">
+  </section>
+
+  <section>
+    <h2>SAML 2.0</h2>
+    <label>Metadata IdP URL</label>
+    <input id="saml_metadata_url" placeholder="https://idp.example.com/metadata">
+    <label>Sertifikat IdP (PEM)</label>
+    <textarea id="saml_cert" placeholder="-----BEGIN CERTIFICATE-----"></textarea>
+  </section>
+
+  <section>
+    <h2>Organisasi &amp; pemetaan peran</h2>
+    <p class="muted">JSON: <code>{"org": {"role_mapping": {"grup-IdP": "peran"}, "domains": ["corp.com"], "default_role": "viewer"}}</code></p>
+    <textarea id="orgs" style="min-height:160px"></textarea>
+  </section>
+
+  <section>
+    <h2>Raw response</h2>
+    <pre id="raw">—</pre>
+  </section>
+</main>
+<div class="toast" id="toast"></div>
+
+<script>
+const $ = (id) => document.getElementById(id);
+function token(){
+  const q = new URLSearchParams(location.search).get('token');
+  if (q) { try { localStorage.setItem('katalir_token', q); } catch(e){} }
+  try { return localStorage.getItem('katalir_token') || ''; } catch(e) { return ''; }
+}
+function toast(msg, bad){
+  const t = $('toast'); t.textContent = msg;
+  t.style.borderLeftColor = bad ? 'var(--bad)' : 'var(--accent)';
+  t.style.display = 'block'; clearTimeout(t._h);
+  t._h = setTimeout(() => t.style.display = 'none', 3600);
+}
+async function api(path, opts){
+  const h = Object.assign({'Content-Type':'application/json'}, (opts||{}).headers||{});
+  const tk = token(); if (tk) h['Authorization'] = 'Bearer ' + tk;
+  const r = await fetch(path, Object.assign({}, opts, {headers:h}));
+  const txt = await r.text();
+  let data; try { data = JSON.parse(txt); } catch(e) { data = {raw: txt}; }
+  if (!r.ok) { const e = new Error('HTTP '+r.status); e.data = data; throw e; }
+  return data;
+}
+const F = {
+  oidc: ['oidc_issuer','oidc_client_id','oidc_client_secret','oidc_redirect_uri'],
+  ldap: ['ldap_server_url','ldap_base_dn','ldap_bind_dn','ldap_bind_password','ldap_user_filter'],
+  saml: ['saml_metadata_url','saml_cert'],
+};
+function fill(cfg){
+  for (const bagian of Object.keys(F)){
+    for (const id of F[bagian]){
+      const key = id.replace(bagian + '_', '');
+      $(id).value = (cfg[bagian] && cfg[bagian][key]) || '';
+    }
+  }
+  $('orgs').value = JSON.stringify(cfg.orgs || {}, null, 2);
+  $('raw').textContent = JSON.stringify(cfg, null, 2);
+}
+function collect(){
+  const cfg = {oidc:{}, ldap:{}, saml:{}, orgs:{}};
+  for (const bagian of Object.keys(F)){
+    for (const id of F[bagian]){
+      const key = id.replace(bagian + '_', '');
+      cfg[bagian][key] = $(id).value;
+    }
+  }
+  const sc = $('oidc_scopes').value.trim();
+  if (sc) cfg.oidc.scopes = sc.split(/\s+/);
+  try { cfg.orgs = JSON.parse($('orgs').value || '{}'); } catch(e){ cfg.orgs = {}; }
+  return cfg;
+}
+async function load(){
+  try {
+    const d = await api('/sso/config');
+    fill(d.config);
+    const p = await api('/sso/providers');
+    $('active').textContent = 'aktif: ' + (p.active.length ? p.active.join(', ') : '—');
+    $('chips').innerHTML = p.providers.map(x =>
+      '<span class="chip ' + (p.active.includes(x) ? 'on' : 'off') + '">' +
+      x + (p.active.includes(x) ? ' ✓ aktif' : ' — nonaktif') + '</span>').join('') +
+      '<span class="chip">orgs: ' + (p.orgs.join(', ') || '—') + '</span>';
+    $('ts').textContent = new Date().toLocaleTimeString();
+  } catch(e){
+    toast('Gagal memuat: ' + e.message, true);
+    $('raw').textContent = JSON.stringify(e.data, null, 2);
+  }
+}
+async function save(){
+  try {
+    const d = await api('/sso/config', {method:'POST',
+      body: JSON.stringify({config: collect()})});
+    toast('Tersimpan (persisted=' + d.persisted + ')');
+    fill(d.config); await load();
+  } catch(e){ toast('Gagal simpan: ' + e.message, true); }
+}
+async function probe(){
+  $('discovery').textContent = 'menguji…';
+  try {
+    const d = await api('/sso/discovery');
+    $('discovery').textContent = JSON.stringify(d.discovery, null, 2);
+    toast('Discovery selesai');
+  } catch(e){
+    $('discovery').textContent = 'Gagal: ' + e.message + '\n' +
+      JSON.stringify(e.data, null, 2);
+    toast('Discovery gagal', true);
+  }
+}
+load();
+</script>
+</body>
+</html>

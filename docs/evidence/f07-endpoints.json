@@ -1,0 +1,254 @@
+{
+  "providers": {
+    "status": "success",
+    "providers": [
+      "oidc",
+      "saml",
+      "ldap"
+    ],
+    "active": [
+      "oidc",
+      "ldap",
+      "saml"
+    ],
+    "roles": [
+      "viewer",
+      "developer",
+      "admin",
+      "owner"
+    ],
+    "orgs": [
+      "acme"
+    ]
+  },
+  "discovery": {
+    "status": "success",
+    "discovery": {
+      "oidc": {
+        "issuer": "http://localhost:9443",
+        "authorization_endpoint": "http://localhost:9443/auth",
+        "token_endpoint": "http://localhost:9443/token",
+        "jwks_uri": "http://localhost:9443/jwks",
+        "userinfo_endpoint": "http://localhost:9443/me",
+        "end_session_endpoint": "http://localhost:9443/session/end",
+        "jwks_kids": [
+          "katalir-oidc-1"
+        ]
+      },
+      "saml": {
+        "entity_id": "urn:katalir:saml-idp",
+        "sso_url": "http://localhost:7000/saml/sso",
+        "cert_len": 1144
+      }
+    }
+  },
+  "oidc_login": {
+    "status": "success",
+    "login": {
+      "session_id": "S17UQlCFJMxsiHcHOda_SBRoCirJ7TX_zcfe-w5ZDkc",
+      "role": "admin",
+      "org": "acme",
+      "identity": {
+        "email": "alice@acme.test",
+        "name": "Alice Acme",
+        "groups": [
+          "katalir-admins",
+          "engineering"
+        ],
+        "provider": "oidc",
+        "org": "acme",
+        "subject": "user-alice"
+      },
+      "user": {
+        "email": "alice@acme.test",
+        "name": "Alice Acme",
+        "org": "acme",
+        "groups": [
+          "katalir-admins",
+          "engineering"
+        ],
+        "provider": "oidc",
+        "active": true,
+        "created_at": 1791485137.2376058,
+        "updated_at": 1791485137.2376058
+      }
+    }
+  },
+  "ldap_login_ok": {
+    "status": "success",
+    "login": {
+      "session_id": "LwD6jVEg5UIxwuNgI4gF5Uxv2e8DK58Da59o11uZLTc",
+      "role": "admin",
+      "org": "acme",
+      "identity": {
+        "email": "alice@acme.test",
+        "name": "Alice",
+        "groups": [
+          "katalir-admins",
+          "engineering"
+        ],
+        "provider": "ldap",
+        "org": "acme",
+        "subject": "alice"
+      },
+      "user": {
+        "email": "alice@acme.test",
+        "name": "Alice",
+        "org": "acme",
+        "groups": [
+          "katalir-admins",
+          "engineering"
+        ],
+        "provider": "ldap",
+        "active": true,
+        "created_at": 1791485137.2376058,
+        "updated_at": 1791485139.6277897
+      }
+    }
+  },
+  "ldap_login_bad": {
+    "status": 401,
+    "body": "{\"detail\":\"bind LDAP gagal (kredensial salah)\"}"
+  },
+  "saml_login": {
+    "status": "success",
+    "login": {
+      "session_id": "P80UXDtw_sBm65GdnCpABEh_HOChbiBQPeMTv9smaaY",
+      "role": "owner",
+      "org": "acme",
+      "identity": {
+        "email": "carol@globex.test",
+        "name": "Carol Globex",
+        "groups": [
+          "katalir-owners"
+        ],
+        "provider": "saml",
+        "org": "acme",
+        "subject": ""
+      },
+      "user": {
+        "email": "carol@globex.test",
+        "name": "Carol Globex",
+        "org": "acme",
+        "groups": [
+          "katalir-owners"
+        ],
+        "provider": "saml",
+        "active": true,
+        "created_at": 1791485146.0559053,
+        "updated_at": 1791485146.0559053
+      }
+    }
+  },
+  "saml_tamper": {
+    "status": 401,
+    "body": "{\"detail\":\"verifikasi tanda tangan SAML gagal: InvalidDigest: Digest mismatch for reference 0 (#_LyyV2psyLuEq3FucuiEuReVlhtrCHXIV)\"}"
+  },
+  "session": {
+    "status": "success",
+    "session": {
+      "identity": {
+        "email": "alice@acme.test",
+        "name": "Alice Acme",
+        "groups": [
+          "katalir-admins",
+          "engineering"
+        ],
+        "provider": "oidc",
+        "org": "acme",
+        "subject": "user-alice"
+      },
+      "role": "admin",
+      "created_at": 1791485137.2376058,
+      "expires_at": 1791488737.2376058
+    }
+  },
+  "logout": {
+    "status": "success",
+    "sessions_terminated": 2
+  },
+  "config_get": {
+    "status": "success",
+    "config": {
+      "orgs": {
+        "acme": {
+          "role_mapping": {
+            "katalir-admins": "admin",
+            "katalir-owners": "owner",
+            "engineering": "developer"
+          },
+          "domains": [
+            "acme.test",
+            "globex.test"
+          ],
+          "default_role": "viewer"
+        }
+      },
+      "oidc": {
+        "issuer": "http://localhost:9443",
+        "client_id": "katalir-app",
+        "client_secret": "***",
+        "redirect_uri": "http://localhost:8123/sso/callback/oidc"
+      },
+      "ldap": {
+        "server_url": "ldap://127.0.0.1:3893",
+        "base_dn": "dc=katalir,dc=test",
+        "bind_dn": "cn=svc-bind,cn=svcaccts,dc=katalir,dc=test",
+        "bind_password": "***",
+        "user_filter": "(mail={login})"
+      },
+      "saml": {
+        "metadata_url": "http://localhost:7000/metadata",
+        "cert": "-----BEGIN CERTIFICATE-----\nMIIDVTCCAj2gAwIBAgIUfhxT4Sn+fa5ljSIptcyb+1yZ4RcwDQYJKoZIhvcNAQEL\nBQAwOjEZMBcGA1UEAwwQa2F0YWxpci1zYW1sLWlkcDEQMA4GA1UECgwHS2F0YWxp\ncjELMAkGA1UEBhMCSUQwHhcNMjYxMDA4MTgyNzQzWhcNMjcxMDA4MTgyNzQzWjA6\nMRkwFwYDVQQDDBBrYXRhbGlyLXNhbWwtaWRwMRAwDgYDVQQKDAdLYXRhbGlyMQsw\nCQYDVQQGEwJJRDCCASIwDQYJKoZIhvcNAQEBBQADggEPADCCAQoCggEBAJ0FHUUO\nkUnISFGm3Bd9AuMsrGkfs6Xdjj46LMLKxbrKngNLznrrQmFhKjxaYMuORtvGV4Mb\nUCyo92RxGd4GCzM48d67PZ6aOqrg4DCy6X2lg+9VABpSGh/fXZ0UiL+QRlxKXApW\nzE+WQTQNHJSFXqims6qcw0+Th7dt/7lembG3bNcYqzzXXSl1OfRZAyJfE0fb2gLT\ncC3uHlBkuH/KhsTjh9YMU3Vtl28rFINF+QzCAtIQmzr4OMraCTS1HIabGsIbSY4b\nVOoD1bSSAgMFGGPQp72Y+U2RwLuSYJpIOEU6TfvcxZ48k7Lu8ibJeNftj/+3ma1W\nNbuwyzGVObCvhV0CAwEAAaNTMFEwHQYDVR0OBBYEFKsp/mIb06rvYOaKbVwydCRK\n1RuoMB8GA1UdIwQYMBaAFKsp/mIb06rvYOaKbVwydCRK1RuoMA8GA1UdEwEB/wQF\nMAMBAf8wDQYJKoZIhvcNAQELBQADggEBAJzcpE9aL/eLM9c45j5dX9d9tpdw/9wV\nntpesYw9gwPkg+E4VvuBpSxEYTgiPj00+UeH+3louDF9xr6J5IWnH2/j4tv9l/Na\nkN+OBv2IGTMfb9Tzv+TeBcaL74BpzfgqY2FMeBehgner5ZQd93/5L2YheKFiClQx\nz6LgD8SJCffQ2D47LeEjg4i87APxRcXoVyoD6pyT0snowEi3RoNZgQ/xxIfNY3xS\nHoafWvrSW7KJztDYIYYwxaWI5o7pf1E6+LYPjWJ9uQUGnm08r4T/F0nTfCGAGKg6\nHamfB2X7kMZ9laSBO7dk+EoMpx60/W0cKczROPaBtGdr+kVXTBKiuYI=\n-----END CERTIFICATE-----",
+        "sso_url": "http://localhost:7000/saml/sso"
+      },
+      "enabled": [
+        "oidc",
+        "saml",
+        "ldap"
+      ]
+    },
+    "admin": true
+  },
+  "config_post": {
+    "status": "success",
+    "config": {
+      "orgs": {
+        "acme": {
+          "default_role": "developer"
+        }
+      },
+      "oidc": {
+        "issuer": "http://localhost:9443",
+        "client_id": "katalir-app",
+        "client_secret": "***",
+        "redirect_uri": "http://localhost:8123/sso/callback/oidc"
+      },
+      "ldap": {
+        "server_url": "ldap://127.0.0.1:3893",
+        "base_dn": "dc=katalir,dc=test",
+        "bind_dn": "cn=svc-bind,cn=svcaccts,dc=katalir,dc=test",
+        "bind_password": "***",
+        "user_filter": "(mail={login})"
+      },
+      "saml": {
+        "metadata_url": "http://localhost:7000/metadata",
+        "cert": "-----BEGIN CERTIFICATE-----\nMIIDVTCCAj2gAwIBAgIUfhxT4Sn+fa5ljSIptcyb+1yZ4RcwDQYJKoZIhvcNAQEL\nBQAwOjEZMBcGA1UEAwwQa2F0YWxpci1zYW1sLWlkcDEQMA4GA1UECgwHS2F0YWxp\ncjELMAkGA1UEBhMCSUQwHhcNMjYxMDA4MTgyNzQzWhcNMjcxMDA4MTgyNzQzWjA6\nMRkwFwYDVQQDDBBrYXRhbGlyLXNhbWwtaWRwMRAwDgYDVQQKDAdLYXRhbGlyMQsw\nCQYDVQQGEwJJRDCCASIwDQYJKoZIhvcNAQEBBQADggEPADCCAQoCggEBAJ0FHUUO\nkUnISFGm3Bd9AuMsrGkfs6Xdjj46LMLKxbrKngNLznrrQmFhKjxaYMuORtvGV4Mb\nUCyo92RxGd4GCzM48d67PZ6aOqrg4DCy6X2lg+9VABpSGh/fXZ0UiL+QRlxKXApW\nzE+WQTQNHJSFXqims6qcw0+Th7dt/7lembG3bNcYqzzXXSl1OfRZAyJfE0fb2gLT\ncC3uHlBkuH/KhsTjh9YMU3Vtl28rFINF+QzCAtIQmzr4OMraCTS1HIabGsIbSY4b\nVOoD1bSSAgMFGGPQp72Y+U2RwLuSYJpIOEU6TfvcxZ48k7Lu8ibJeNftj/+3ma1W\nNbuwyzGVObCvhV0CAwEAAaNTMFEwHQYDVR0OBBYEFKsp/mIb06rvYOaKbVwydCRK\n1RuoMB8GA1UdIwQYMBaAFKsp/mIb06rvYOaKbVwydCRK1RuoMA8GA1UdEwEB/wQF\nMAMBAf8wDQYJKoZIhvcNAQELBQADggEBAJzcpE9aL/eLM9c45j5dX9d9tpdw/9wV\nntpesYw9gwPkg+E4VvuBpSxEYTgiPj00+UeH+3louDF9xr6J5IWnH2/j4tv9l/Na\nkN+OBv2IGTMfb9Tzv+TeBcaL74BpzfgqY2FMeBehgner5ZQd93/5L2YheKFiClQx\nz6LgD8SJCffQ2D47LeEjg4i87APxRcXoVyoD6pyT0snowEi3RoNZgQ/xxIfNY3xS\nHoafWvrSW7KJztDYIYYwxaWI5o7pf1E6+LYPjWJ9uQUGnm08r4T/F0nTfCGAGKg6\nHamfB2X7kMZ9laSBO7dk+EoMpx60/W0cKczROPaBtGdr+kVXTBKiuYI=\n-----END CERTIFICATE-----",
+        "sso_url": "http://localhost:7000/saml/sso"
+      },
+      "enabled": [
+        "oidc",
+        "saml",
+        "ldap"
+      ]
+    },
+    "persisted": true
+  },
+  "ui": {
+    "status": 200,
+    "len": 8790
+  },
+  "no_token": {
+    "status": 401
+  }
+}

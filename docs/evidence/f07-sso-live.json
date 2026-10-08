@@ -1,0 +1,156 @@
+{
+  "feature": "#7 SSO/SAML/OIDC/LDAP",
+  "lulus": 12,
+  "total": 12,
+  "hasil": [
+    {
+      "no": 1,
+      "skenario": "OIDC provider NYATA: discovery + JWKS",
+      "status": "PASS",
+      "raw": "issuer              = http://localhost:9443\nauthorization_endpt = http://localhost:9443/auth\ntoken_endpoint      = http://localhost:9443/token\njwks_uri            = http://localhost:9443/jwks\nuserinfo_endpoint   = http://localhost:9443/me\nend_session_endpoint= http://localhost:9443/session/end\npkce_methods        = ['S256']\nscopes_supported    = ['openid', 'offline_access', 'email', 'profile', 'groups']\nJWKS kid            = ['katalir-oidc-1']\nJWKS alg            = ['RS256']",
+      "detail": {
+        "issuer": "http://localhost:9443",
+        "jwks_kids": [
+          "katalir-oidc-1"
+        ]
+      }
+    },
+    {
+      "no": 2,
+      "skenario": "OIDC authorization-code + PKCE -> ID token nyata (RS256)",
+      "status": "PASS",
+      "raw": "flow                = authorization_code + PKCE (S256), REAL HTTP\ncallback            = http://localhost:8123/sso/callback/oidc?code=fmQRWfEe5qAoVq_tYUQ_Ryjoh-2pViA63Z6pNGIEXyp&state=c\ntoken_type          = Bearer  expires_in=3600\nid_token (potong)   = eyJhbGciOiJSUzI1NiIsImtpZCI6ImthdGFsaXItb2lkYy0x…\naccess_token (potong)= ZO4ZrYOA5_hwKGjIZgP5Qj0QdTI4L0O8…\n--- ID token claims (signature DIVERIFIKASI vs JWKS IdP) ---\niss    = http://localhost:9443\naud    = katalir-app\nsub    = user-alice\nemail  = alice@acme.test\nname   = Alice Acme\ngroups = ['katalir-admins', 'engineering']\nnonce  = cocok (diverifikasi)\ndurasi = 16629 ms",
+      "detail": {
+        "email": "alice@acme.test",
+        "groups": [
+          "katalir-admins",
+          "engineering"
+        ]
+      }
+    },
+    {
+      "no": 3,
+      "skenario": "OIDC userinfo + URL SLO (end_session) nyata",
+      "status": "PASS",
+      "raw": "userinfo endpoint (Bearer access_token NYATA):\n  sub    = user-bob\n  email  = bob@acme.test\n  name   = Bob Builder\n  groups = ['engineering']\nend_session (SLO) URL = http://localhost:9443/session/end?id_token_hint=eyJhbGciOiJSUzI1NiIsImtpZCI6ImthdGFsaXItb2lkYy0xIn0.eyJzdWIiOi\n  id_token_hint disertakan = True",
+      "detail": {
+        "email": "bob@acme.test",
+        "slo": "http://localhost:9443/session/end?id_token_hint=eyJhbGciOiJS"
+      }
+    },
+    {
+      "no": 4,
+      "skenario": "Google Workspace OIDC: discovery + JWKS internet nyata",
+      "status": "PASS",
+      "raw": "issuer       = https://accounts.google.com\nauthz        = https://accounts.google.com/o/oauth2/v2/auth\ntoken        = https://oauth2.googleapis.com/token\njwks_uri     = https://www.googleapis.com/oauth2/v3/certs\njumlah kunci = 2  (kid contoh: ['943a3a5d7d919625a454e489b75c29adab57acba', 'f10f87405a979c1df36df26606734f33cd85c271'])\nalg          = ['RS256']\nauthorize URL dibentuk (PKCE S256): https://accounts.google.com/o/oauth2/v2/auth?response_type=code&client_id=katalir-google-client&redirect_uri=&scope=open…\n  code_challenge_method ada = True",
+      "detail": {
+        "issuer": "https://accounts.google.com",
+        "keys": 2
+      }
+    },
+    {
+      "no": 5,
+      "skenario": "SAML 2.0 NYATA: metadata + assertion bertanda tangan + XML-DSig",
+      "status": "PASS",
+      "raw": "metadata IdP        = http://localhost:7000/metadata\n  entity_id         = urn:katalir:saml-idp\n  SSO URL (Redirect)= http://localhost:7000/saml/sso\n  sertifikat X.509  = 1144 char\nPOST /saml/sso       -> HTTP 200, panjang respons 6132\nSAMLResponse         = 5912 char (base64)\nassertion XML        = 4434 char\nverifikasi XML-DSig  = True  \nidentitas hasil parse= {\"email\": \"carol@globex.test\", \"name\": \"Carol Globex\", \"groups\": [\"katalir-owners\"], \"provider\": \"saml\", \"org\": \"globex\", \"subject\": \"\"}",
+      "detail": {
+        "verified": true,
+        "email": "carol@globex.test"
+      }
+    },
+    {
+      "no": 6,
+      "skenario": "LDAP NYATA: bind akun layanan + cari + bind pengguna",
+      "status": "PASS",
+      "raw": "server            = ldap://127.0.0.1:3893   (glauth v2.5.4, proses Go)\nbind akun layanan = cn=svc-bind,cn=svcaccts,ou=users,dc=katalir,dc=test\n  available()     = True\ncari mail=alice@acme.test:\n  DN    = cn=alice,cn=katalir-admins,ou=users,dc=katalir,dc=test\n  email = alice@acme.test\n  name  = Alice\n  groups= ['katalir-admins', 'engineering']\nbind password BENAR  -> True\nbind password SALAH  -> False  (harus False)\nbind user TAK ADA    -> False  (harus False)",
+      "detail": {
+        "dn": "cn=alice,cn=katalir-admins,ou=users,dc=katalir,dc=test",
+        "good": true,
+        "bad": false
+      }
+    },
+    {
+      "no": 7,
+      "skenario": "Role mapping: grup SSO nyata -> peran Katalir",
+      "status": "PASS",
+      "raw": "klaim `groups` OIDC NYATA -> peran Katalir (grup terkuat menang):\n  user-alice   -> org=acme     role=admin\n  user-bob     -> org=acme     role=developer\n  user-carol   -> org=globex   role=owner\nmapping acme   = {'katalir-admins': 'admin', 'engineering': 'developer'}\nmapping globex = {'katalir-owners': 'owner'}",
+      "detail": {
+        "hasil": {
+          "user-alice": [
+            "acme",
+            "admin"
+          ],
+          "user-bob": [
+            "acme",
+            "developer"
+          ],
+          "user-carol": [
+            "globex",
+            "owner"
+          ]
+        }
+      }
+    },
+    {
+      "no": 8,
+      "skenario": "JIT provisioning: user dibuat otomatis saat login pertama",
+      "status": "PASS",
+      "raw": "sebelum login  : get_user('bob@acme.test') = None\nlogin OIDC nyata -> JIT provisioning\nsesudah login  : {\"email\": \"bob@acme.test\", \"name\": \"Bob Builder\", \"org\": \"acme\", \"groups\": [\"engineering\"], \"provider\": \"oidc\", \"active\": true, \"created_at\": 1791485284.243571, \"updated_at\": 1791485284.243571}\nsession_id     = Gkqw-EmeKB5sq3Ev3k…\nrole           = developer\nprovider       = oidc  active=True",
+      "detail": {
+        "user": {
+          "email": "bob@acme.test",
+          "name": "Bob Builder",
+          "org": "acme",
+          "groups": [
+            "engineering"
+          ],
+          "provider": "oidc",
+          "active": true,
+          "created_at": 1791485284.243571,
+          "updated_at": 1791485284.243571
+        }
+      }
+    },
+    {
+      "no": 9,
+      "skenario": "Deprovisioning: user nonaktif + SEMUA sesinya dimatikan",
+      "status": "PASS",
+      "raw": "2 sesi aktif      -> [True, True]\ndeprovision()     -> {\"email\": \"bob@acme.test\", \"deactivated\": true, \"sessions_terminated\": 2}\nsesi setelah      -> hidup? [False, False]\nuser.active       -> False",
+      "detail": {
+        "terminated": 2
+      }
+    },
+    {
+      "no": 10,
+      "skenario": "Session timeout (TTL) + SLO logout tunggal",
+      "status": "PASS",
+      "raw": "ttl = 60s\n  t+0s  sesi hidup = True\n  t+30s sesi hidup = True\n  t+61s sesi hidup = False  (harus False -> kedaluwarsa)\nSLO (Single Logout): 2 sesi -> slo() mematikan 2\n  sesi a hidup? False  sesi b hidup? False",
+      "detail": {
+        "expired": true,
+        "slo_terminated": 2
+      }
+    },
+    {
+      "no": 11,
+      "skenario": "Multi-tenant (domain->org) + proteksi CSRF state",
+      "status": "PASS",
+      "raw": "multi-tenant (domain -> org):\n  bob@acme.test   -> acme\n  carol@globex.test -> globex\n  eve@evil.test   -> None (harus None)\nlogin domain TAK terdaftar -> AuthFailed: domain email tidak terdaftar di org mana pun\nCSRF: state palsu          -> StateMismatch: state OAuth tidak cocok (potensi CSRF)\nCSRF: state dipakai ulang  -> StateMismatch: state tidak dikenal atau sudah dipakai (anti-replay)",
+      "detail": {
+        "orgs": [
+          "acme",
+          "globex",
+          null
+        ]
+      }
+    },
+    {
+      "no": 12,
+      "skenario": "Token tidak bocor: redaksi JWT/Bearer/SAMLResponse",
+      "status": "PASS",
+      "raw": "id_token len       = 763\naccess_token len   = 43\nredact(blob)       = {\"id_token\": \"***\", \"access_token\": \"***\", \"note\": \"Authorization: ***\", \"url\": \"/cb?code=abc&***\", \"nested\": {\"k\": [\"***\", \"ok\"]}}\ntoken mentah bocor = False  (harus False)\nIdentity.to_dict() = {\"email\": \"alice@acme.test\", \"name\": \"\", \"groups\": [\"katalir-admins\", \"engineering\"], \"provider\": \"oidc\", \"org\": \"\", \"subject\": \"\"}\n  memuat token?    = False",
+      "detail": {
+        "bocor": false
+      }
+    }
+  ]
+}

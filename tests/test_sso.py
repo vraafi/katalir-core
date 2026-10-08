@@ -189,3 +189,152 @@ def test_12_no_token_leak():
     # identity.to_dict tidak pernah memuat kredensial
     d = sso.Identity("a@b.com", groups=["x"]).to_dict()
     assert "password" not in d and "token" not in d
+
+
+# ---------------------------------------------------------------------------
+# Regresi temuan verifikasi endpoint LIVE (IdP nyata) — Okt 2026
+# ---------------------------------------------------------------------------
+
+# 13. BUG NYATA: `decode_saml_response` menerima base64 (binding POST) & XML
+def test_13_decode_saml_response_base64_dan_xml():
+    import base64
+    xml = "<samlp:Response><Assertion/></samlp:Response>"
+    assert sso.decode_saml_response(xml) == xml                       # XML mentah
+    b64 = base64.b64encode(xml.encode()).decode()
+    assert sso.decode_saml_response(b64) == xml                       # base64 POST
+    assert sso.decode_saml_response(b64.encode()) == xml              # bytes
+    with pytest.raises(sso.AuthFailed):
+        sso.decode_saml_response("")                                  # kosong
+    with pytest.raises(sso.AuthFailed):
+        sso.decode_saml_response(base64.b64encode(b"bukan xml").decode())
+
+
+# 14. BUG NYATA: `SamlVerifier.verify` menormalkan base64 SEBELUM verifikasi
+#     (dulu selalu gagal "Start tag expected, '<' not found").
+def test_14_saml_verifier_normalisasi_sebelum_verifikasi(monkeypatch):
+    seen: list = []
+
+    class FakeVerifier:
+        def verify(self, data, x509_cert=None, **kw):
+            seen.append(data)
+            return type("R", (), {"signed_xml": data})()
+
+    import signxml
+    monkeypatch.setattr(signxml, "XMLVerifier", lambda: FakeVerifier())
+    import base64
+    xml = "<Response><Assertion/></Response>"
+    v = sso.SamlVerifier("CERT")
+    v.verify(base64.b64encode(xml.encode()).decode())
+    assert seen and seen[0].lstrip().startswith("<"), \
+        f"verifier menerima non-XML: {seen[0][:40]!r}"
+
+
+# 15. BUG NYATA: sesi harus BERTAHAN antar request (dulu manager dibangun ulang
+#     setiap request -> /sso/session selalu 404, SLO selalu 0).
+def test_15_sesi_bertahan_antar_request(monkeypatch):
+    import api_server
+    monkeypatch.setenv("KATALIR_SSO_ADMINS", "admin@x.test")
+    monkeypatch.setattr(api_server, "_SSO_MGR", None)
+    # paksa store memori supaya tes tidak butuh Redis
+    monkeypatch.setattr(api_server, "_sso_session_store", lambda: sso.SessionStore())
+    _, m1 = api_server._sso()
+    hasil = m1.login(sso.Identity("budi@acme.com", groups=["katalir-admins"],
+                                  org="acme"), state="", expect_state="")
+    sid = hasil["session_id"]
+    _, m2 = api_server._sso()                    # request "berikutnya"
+    assert m2 is m1, "manager dibangun ulang -> sesi hilang"
+    assert m2.session(sid) is not None, "sesi tidak ditemukan di request berikutnya"
+
+
+# 16. RedisSessionStore: create/get/rotate/destroy/destroy_all/touch
+class _FakeRedis:
+    """Subset Redis yang cukup untuk menguji RedisSessionStore (tanpa server)."""
+
+    def __init__(self):
+        self.h: dict = {}
+        self.s: dict = {}
+        self.exp: dict = {}
+
+    def hset(self, key, mapping=None):
+        self.h.setdefault(key, {}).update(mapping or {})
+
+    def hget(self, key, field):
+        return self.h.get(key, {}).get(field)
+
+    def expire(self, key, ttl):
+        self.exp[key] = ttl
+
+    def sadd(self, key, *vals):
+        self.s.setdefault(key, set()).update(vals)
+
+    def srem(self, key, *vals):
+        self.s.setdefault(key, set()).difference_update(vals)
+
+    def smembers(self, key):
+        return set(self.s.get(key, set()))
+
+    def delete(self, *keys):
+        n = 0
+        for k in keys:
+            n += 1 if self.h.pop(k, None) is not None else 0
+            self.s.pop(k, None)
+        return n
+
+    def scan_iter(self, match=None, count=100):
+        pref = (match or "").replace("*", "")
+        return [k for k in list(self.h) if k.startswith(pref)]
+
+    def pipeline(self, transaction=True):
+        outer = self
+
+        class P:
+            def __init__(self):
+                self.ops = []
+
+            def __getattr__(self, name):
+                def _q(*a, **k):
+                    self.ops.append((name, a, k))
+                    return self
+                return _q
+
+            def execute(self):
+                for name, a, k in self.ops:
+                    getattr(outer, name)(*a, **k)
+                self.ops = []
+                return []
+        return P()
+
+
+def test_16_redis_session_store_siklus_penuh():
+    clock = {"t": 500.0}
+    st = sso.RedisSessionStore(_FakeRedis(), clock=lambda: clock["t"])
+    ident = sso.Identity("budi@acme.com", name="Budi", groups=["devs"])
+    sid = st.create(ident, "developer", ttl=100.0)
+    rec = st.get(sid)
+    assert rec and rec["role"] == "developer" and rec["identity"]["email"] == "budi@acme.com"
+    # TTL benar-benar dipasang
+    assert st.r.exp[f"{st.ns}:{sid}"] == 100
+    # rotate (anti session-fixation) -> id BARU, lama mati
+    baru = st.rotate(sid)
+    assert baru and baru != sid and st.get(sid) is None and st.get(baru)
+    # touch memperpanjang
+    clock["t"] = 550.0
+    assert st.touch(baru, 300.0) is True
+    assert st.get(baru)["expires_at"] == 850.0
+    # destroy_all mematikan SEMUA sesi user (SLO)
+    st.create(ident, "developer", ttl=100.0)
+    st.create(sso.Identity("lain@acme.com"), "viewer", ttl=100.0)
+    assert st.destroy_all("budi@acme.com") == 2
+    assert st.destroy_all("budi@acme.com") == 0
+    # kedaluwarsa -> get() None
+    clock["t"] = 99999.0
+    assert st.get(baru) is None
+
+
+# 17. RedisSessionStore: `count()` melaporkan sesi aktif (observabilitas)
+def test_17_redis_session_store_count():
+    st = sso.RedisSessionStore(_FakeRedis())
+    assert st.count() == 0
+    st.create(sso.Identity("a@x.com"), "viewer")
+    st.create(sso.Identity("b@x.com"), "viewer")
+    assert st.count() == 2

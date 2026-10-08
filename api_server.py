@@ -5474,17 +5474,148 @@ def queue_ui():
 # ENDPOINT SSO / SAML / OIDC / LDAP (fitur #7)
 # ---------------------------------------------------------------------------
 _SSO_MGR = None
+_SSO_CONFIG: dict | None = None
+
+#: Kunci kredensial di konfigurasi SSO -> tidak pernah dikembalikan mentah.
+_SSO_SECRET_KEYS = ("client_secret", "bind_password", "private_key")
+
+
+def _sso_admin(user: dict) -> bool:
+    """Apakah user boleh mengubah konfigurasi SSO (allowlist env)."""
+    allow = [e.strip().lower() for e in
+             (os.getenv("KATALIR_SSO_ADMINS") or "").split(",") if e.strip()]
+    email = str(user.get("email") or "").lower()
+    if allow:
+        return email in allow
+    # Belum dikonfigurasi -> aplikasi single-tenant: user terautentikasi boleh,
+    # TAPI dicatat supaya operator mengisi allowlist di produksi.
+    print("[sso] PERINGATAN: KATALIR_SSO_ADMINS kosong — konfigurasi SSO dapat "
+          "diubah oleh setiap user terautentikasi.")
+    return True
+
+
+def _sso_config() -> dict:
+    """Konfigurasi SSO efektif (env + tersimpan), tanpa kredensial mentah."""
+    global _SSO_CONFIG
+    if _SSO_CONFIG is not None:
+        return _SSO_CONFIG
+    cfg: dict = {"orgs": {}, "oidc": {}, "ldap": {}, "saml": {},
+                 "enabled": ["oidc", "saml", "ldap"]}
+    # 1. env (bentuk JSON) — cara paling sederhana untuk deploy tanpa UI
+    raw = os.getenv("KATALIR_SSO_CONFIG") or ""
+    if raw.strip():
+        try:
+            loaded = json.loads(raw)
+            if isinstance(loaded, dict):
+                for k, v in loaded.items():
+                    if isinstance(v, dict) and isinstance(cfg.get(k), dict):
+                        cfg[k].update(v)
+                    else:
+                        cfg[k] = v
+        except Exception as _exc:  # noqa: BLE001
+            print(f"[sso] KATALIR_SSO_CONFIG bukan JSON valid: {_exc}")
+    # 2. env spesifik (menimpa JSON) — memudahkan konfigurasi satu per satu
+    env_map = {
+        "oidc": {"issuer": "KATALIR_SSO_OIDC_ISSUER",
+                 "client_id": "KATALIR_SSO_OIDC_CLIENT_ID",
+                 "client_secret": "KATALIR_SSO_OIDC_CLIENT_SECRET",
+                 "redirect_uri": "KATALIR_SSO_OIDC_REDIRECT_URI"},
+        "ldap": {"server_url": "KATALIR_SSO_LDAP_URL",
+                 "base_dn": "KATALIR_SSO_LDAP_BASE_DN",
+                 "bind_dn": "KATALIR_SSO_LDAP_BIND_DN",
+                 "bind_password": "KATALIR_SSO_LDAP_BIND_PASSWORD",
+                 "user_filter": "KATALIR_SSO_LDAP_USER_FILTER"},
+        "saml": {"metadata_url": "KATALIR_SSO_SAML_METADATA_URL",
+                 "cert": "KATALIR_SSO_SAML_CERT",
+                 "sso_url": "KATALIR_SSO_SAML_SSO_URL"},
+    }
+    for bagian, mp in env_map.items():
+        for key, env_name in mp.items():
+            val = os.getenv(env_name)
+            if val:
+                cfg[bagian][key] = val
+    _SSO_CONFIG = cfg
+    return cfg
+
+
+def _sso_config_public(cfg: dict | None = None) -> dict:
+    """Salinan konfigurasi untuk dibaca klien — kredensial diganti `***`."""
+    import sso as _sso_mod
+    cfg = cfg or _sso_config()
+    out = json.loads(json.dumps(cfg))
+    for bagian in ("oidc", "ldap", "saml"):
+        d = out.get(bagian)
+        if isinstance(d, dict):
+            for k in _SSO_SECRET_KEYS:
+                if d.get(k):
+                    d[k] = _sso_mod.MASK
+    return out
+
+
+def _sso_session_store():
+    """Penyimpan sesi SSO.
+
+    Bila Redis tersedia, sesi disimpan di Redis sehingga (a) BERTAHAN lintas
+    restart proses dan (b) berlaku untuk BANYAK proses/worker — syarat
+    produksi. Kalau tidak, jatuh ke penyimpan memori (single instance).
+
+    BUG NYATA (ditemukan saat verifikasi endpoint): sebelumnya `_sso()`
+    MEMBANGUN ULANG `SsoManager` pada SETIAP request, sehingga sesi yang baru
+    diterbitkan `/sso/login/*` selalu hilang di request berikutnya
+    (`/sso/session/{id}` -> 404, `/sso/logout` -> 0). Kini manager di-cache.
+    """
+    import sso
+    try:
+        import queue_mode as _qm
+        r = _qm.RedisQueueBackend(url="")
+        if r.available():
+            r._client()                       # ping -> benar-benar tersambung
+            return sso.RedisSessionStore(r._client())
+    except Exception as _exc:  # noqa: BLE001 - Redis opsional
+        print(f"[sso] Redis tidak tersedia untuk sesi: {type(_exc).__name__}")
+    return sso.SessionStore()
 
 
 def _sso():
+    """Manager SSO (di-cache), dibangun dari konfigurasi efektif + role mapping."""
     global _SSO_MGR
     import sso
-    if _SSO_MGR is None:
-        _SSO_MGR = sso.SsoManager()
-        # Org default dari env (bila ada) supaya demo langsung bisa dipakai.
-        _SSO_MGR.register_org("default", role_mapping={
+    if _SSO_MGR is not None:
+        return sso, _SSO_MGR
+    cfg = _sso_config()
+    m = sso.SsoManager(sessions=_sso_session_store())
+    orgs = cfg.get("orgs") or {}
+    if orgs:
+        for org, spec in orgs.items():
+            m.register_org(org, role_mapping=(spec or {}).get("role_mapping") or {},
+                           domains=(spec or {}).get("domains") or [],
+                           default_role=(spec or {}).get("default_role", "viewer"))
+    else:
+        m.register_org("default", role_mapping={
             "admins": "admin", "devs": "developer"}, domains=[])
-    return sso, _SSO_MGR
+    _SSO_MGR = m
+    return sso, m
+
+
+def _sso_oidc_transport():
+    """Transport OIDC nyata dari konfigurasi; None bila belum dikonfigurasi."""
+    import sso
+    c = (_sso_config().get("oidc") or {})
+    if not c.get("issuer") or not c.get("client_id"):
+        return None
+    return sso.OidcHttpTransport(c["issuer"], c["client_id"],
+                                 c.get("client_secret", ""),
+                                 c.get("redirect_uri", ""))
+
+
+def _sso_ldap_dir():
+    import sso
+    c = (_sso_config().get("ldap") or {})
+    if not c.get("server_url"):
+        return None
+    return sso.LdapDirectory(c["server_url"], c.get("base_dn", ""),
+                             c.get("bind_dn", ""), c.get("bind_password", ""),
+                             c.get("user_filter") or "(mail={login})")
 
 
 class SsoOidcLoginRequest(BaseModel):
@@ -5493,11 +5624,19 @@ class SsoOidcLoginRequest(BaseModel):
     org: str = ""
     state: str = ""
     expect_state: str = ""
+    code_verifier: str = ""
+
+
+class SsoLdapLoginRequest(BaseModel):
+    username: str
+    password: str
+    org: str = ""
 
 
 class SsoSamlLoginRequest(BaseModel):
     assertion: dict | str
     org: str = ""
+    verify: bool = True
 
 
 class SsoLogoutRequest(BaseModel):
@@ -5505,21 +5644,145 @@ class SsoLogoutRequest(BaseModel):
     email: str = ""
 
 
+class SsoConfigRequest(BaseModel):
+    config: dict
+
+
 @app.get("/sso/providers")
 def sso_providers():
-    """Daftar protokol SSO yang didukung (publik, non-sensitif)."""
+    """Protokol SSO yang didukung + yang AKTIF (publik, non-sensitif)."""
+    import sso as _m
+    cfg = _sso_config()
+    aktif = []
+    if (_sso_oidc_transport() is not None):
+        aktif.append("oidc")
+    if (_sso_ldap_dir() is not None):
+        aktif.append("ldap")
+    if (cfg.get("saml") or {}).get("cert") or (cfg.get("saml") or {}).get("metadata_url"):
+        aktif.append("saml")
     return {"status": "success", "providers": ["oidc", "saml", "ldap"],
-            "roles": __import__("sso").ROLE_PRIORITY}
+            "active": aktif, "roles": _m.ROLE_PRIORITY,
+            "orgs": sorted((cfg.get("orgs") or {}).keys())}
+
+
+@app.get("/sso/config")
+def sso_config_get(authorization: str | None = Header(None)):
+    """Konfigurasi SSO efektif (kredensial DIMASK)."""
+    user = security.get_current_user(authorization)
+    if not _sso_admin(user):
+        raise HTTPException(status_code=403, detail="butuh peran admin SSO")
+    return {"status": "success", "config": _sso_config_public(),
+            "admin": True}
+
+
+@app.post("/sso/config")
+def sso_config_set(body: SsoConfigRequest,
+                   authorization: str | None = Header(None)):
+    """Set konfigurasi SSO dari UI admin.
+
+    Nilai yang dikirim sebagai `***` (mask) DIPERTAHANKAN — supaya admin bisa
+    menyimpan ulang tanpa harus mengetikkan rahasia yang sudah tersimpan.
+    """
+    global _SSO_CONFIG, _SSO_MGR
+    user = security.get_current_user(authorization)
+    if not _sso_admin(user):
+        raise HTTPException(status_code=403, detail="butuh peran admin SSO")
+    lama = _sso_config()
+    baru = json.loads(json.dumps(lama))
+    masuk = body.config or {}
+    for k, v in masuk.items():
+        if isinstance(v, dict) and isinstance(baru.get(k), dict):
+            for kk, vv in v.items():
+                if vv == "***" and baru[k].get(kk):
+                    continue          # pertahankan rahasia lama
+                baru[k][kk] = vv
+        else:
+            baru[k] = v
+    _SSO_CONFIG = baru
+    _SSO_MGR = None                    # paksa bangun ulang dengan config baru
+    # best-effort persist ke preferensi user admin
+    try:
+        prefs = db.get_user_preferences(str(user["email"])) or {}
+        prefs["sso_config"] = baru
+        db.save_user_preferences(str(user["email"]), prefs)
+        persisted = True
+    except Exception:  # noqa: BLE001 - persistensi opsional
+        persisted = False
+    return {"status": "success", "config": _sso_config_public(baru),
+            "persisted": persisted}
+
+
+@app.get("/sso/discovery")
+def sso_discovery(authorization: str | None = Header(None)):
+    """Probe NYATA: discovery OIDC + metadata SAML dari IdP yang dikonfigurasi."""
+    security.get_current_user(authorization)
+    import sso as _m
+    out: dict = {"oidc": None, "saml": None}
+    t = _sso_oidc_transport()
+    if t is not None:
+        try:
+            meta = t.discover()
+            out["oidc"] = {"issuer": meta.get("issuer"),
+                           "authorization_endpoint": meta.get("authorization_endpoint"),
+                           "token_endpoint": meta.get("token_endpoint"),
+                           "jwks_uri": meta.get("jwks_uri"),
+                           "userinfo_endpoint": meta.get("userinfo_endpoint"),
+                           "end_session_endpoint": meta.get("end_session_endpoint"),
+                           "jwks_kids": [k.get("kid") for k in t.jwks().get("keys", [])]}
+        except Exception as exc:  # noqa: BLE001
+            out["oidc"] = {"error": f"{type(exc).__name__}: {exc}"}
+    saml_cfg = _sso_config().get("saml") or {}
+    if saml_cfg.get("metadata_url"):
+        try:
+            md = _m.SamlVerifier.fetch_idp_metadata(saml_cfg["metadata_url"])
+            out["saml"] = {"entity_id": md.get("entity_id"),
+                           "sso_url": md.get("sso_url"),
+                           "cert_len": len(md.get("cert") or "")}
+        except Exception as exc:  # noqa: BLE001
+            out["saml"] = {"error": f"{type(exc).__name__}: {exc}"}
+    return {"status": "success", "discovery": out}
 
 
 @app.post("/sso/login/oidc")
 def sso_login_oidc(body: SsoOidcLoginRequest):
-    """Selesaikan login OIDC (claims dari IdP) -> sesi Katalir."""
+    """Selesaikan login OIDC -> sesi Katalir.
+
+    Bila IdP dikonfigurasi, `code` DITUKAR ke token endpoint NYATA dan ID
+    token DIVERIFIKASI terhadap JWKS IdP (signature + iss/aud/exp/nonce).
+    Jalur `claims` tetap ada untuk pemanggil yang sudah memverifikasi sendiri.
+    """
     sso, m = _sso()
-    prov = sso.OidcProvider("katalir", "https://idp.local")
     try:
-        ident = prov.exchange(body.code, claims=body.claims or None, org=body.org)
+        if body.code:
+            t = _sso_oidc_transport()
+            if t is None:
+                raise HTTPException(status_code=503,
+                                    detail="OIDC belum dikonfigurasi (issuer/client_id)")
+            tok = t.exchange_code(body.code, body.code_verifier)
+            claims = t.verify_id_token(tok["id_token"])
+            ident = sso.OidcProvider(t.client_id, t.issuer)._identity_from_claims(
+                claims, body.org)
+        else:
+            prov = sso.OidcProvider("katalir", "https://idp.local")
+            ident = prov.exchange(body.code, claims=body.claims or None,
+                                  org=body.org)
         hasil = m.login(ident, state=body.state, expect_state=body.expect_state)
+    except sso.SsoError as exc:
+        raise HTTPException(status_code=401, detail=str(exc))
+    return {"status": "success", "login": hasil}
+
+
+@app.post("/sso/login/ldap")
+def sso_login_ldap(body: SsoLdapLoginRequest):
+    """Login LDAP NYATA: bind akun layanan -> cari DN -> bind pengguna."""
+    sso, m = _sso()
+    d = _sso_ldap_dir()
+    if d is None:
+        raise HTTPException(status_code=503,
+                            detail="LDAP belum dikonfigurasi (server_url)")
+    try:
+        ident = d.identity(body.username, body.password, org=body.org)
+        hasil = m.login(ident)
     except sso.SsoError as exc:
         raise HTTPException(status_code=401, detail=str(exc))
     return {"status": "success", "login": hasil}
@@ -5527,10 +5790,21 @@ def sso_login_oidc(body: SsoOidcLoginRequest):
 
 @app.post("/sso/login/saml")
 def sso_login_saml(body: SsoSamlLoginRequest):
-    """Selesaikan login SAML (assertion) -> sesi Katalir."""
+    """Selesaikan login SAML (assertion) -> sesi Katalir.
+
+    Bila sertifikat IdP dikonfigurasi, tanda tangan XML-DSig DIVERIFIKASI
+    lebih dulu; assertion tanpa tanda tangan sah DITOLAK.
+    """
     sso, m = _sso()
     prov = sso.SamlProvider()
+    cert = (_sso_config().get("saml") or {}).get("cert") or ""
     try:
+        if isinstance(body.assertion, str) and body.verify:
+            if not cert:
+                raise HTTPException(
+                    status_code=503,
+                    detail="sertifikat IdP SAML belum dikonfigurasi; verifikasi wajib")
+            sso.SamlVerifier(cert).verify(body.assertion)
         ident = prov.parse_assertion(body.assertion, org=body.org)
         hasil = m.login(ident)
     except sso.SsoError as exc:
@@ -5560,6 +5834,16 @@ def sso_logout(body: SsoLogoutRequest,
     if body.email:
         return {"status": "success", "sessions_terminated": m.slo(body.email)}
     raise HTTPException(status_code=400, detail="session_id atau email wajib")
+
+
+@app.get("/sso/ui")
+def sso_ui():
+    """Halaman admin SSO (same-origin, tanpa data sensitif di shell)."""
+    from fastapi.responses import HTMLResponse
+    path = os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                        "static", "sso_admin.html")
+    with open(path, encoding="utf-8") as fh:
+        return HTMLResponse(fh.read())
 
 
 # ---------------------------------------------------------------------------
