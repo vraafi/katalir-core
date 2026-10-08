@@ -4956,6 +4956,137 @@ def monitoring_logs(q: str = "", level: str = "", limit: int = 100,
             "logs": _LOG_INDEX.search(q, level=level, limit=max(1, min(limit, 500)))}
 
 
+# ---------------------------------------------------------------------------
+# ENDPOINT MULTI-ENVIRONMENT (fitur #4)
+# ---------------------------------------------------------------------------
+_ENVS = None
+
+
+def _envs():
+    global _ENVS
+    import environments as envmod
+    if _ENVS is None:
+        _ENVS = envmod.Environments(envmod.default_store())
+    return _ENVS
+
+
+class PromoteRequest(BaseModel):
+    workflow_id: str
+    src: str
+    dst: str
+    role: str = "owner"
+    approver: str = ""
+
+
+class ApproveRequest(BaseModel):
+    request_id: str
+    role: str = "admin"
+
+
+class RollbackRequest(BaseModel):
+    workflow_id: str
+    env: str
+    version: int
+    role: str = "owner"
+
+
+@app.get("/environments")
+def environments_list(authorization: str | None = Header(None)):
+    """Daftar environment + hak peran (untuk selector UI)."""
+    security.get_current_user(authorization)
+    import environments as envmod
+    return {"status": "success", "environments": list(envmod.ENVIRONMENTS),
+            "protected": list(envmod.PROTECTED),
+            "promotion_order": envmod.PROMOTION_ORDER,
+            "role_rights": {k: sorted(v) for k, v in envmod.ROLE_RIGHTS.items()}}
+
+
+@app.get("/environments/{env}/workflows")
+def environments_workflows(env: str, authorization: str | None = Header(None)):
+    """Daftar workflow pada satu environment."""
+    user = security.get_current_user(authorization)
+    import environments as envmod
+    try:
+        wf = _envs().list(str(user["email"]), env)
+    except envmod.UnknownEnvironment as exc:
+        raise HTTPException(status_code=404, detail=str(exc))
+    return {"status": "success", "env": env, "workflows": wf}
+
+
+@app.post("/environments/promote")
+def environments_promote(body: PromoteRequest,
+                         authorization: str | None = Header(None)):
+    """Promosikan workflow antar environment (production butuh approval)."""
+    user = security.get_current_user(authorization)
+    import environments as envmod
+    try:
+        hasil = _envs().promote(str(user["email"]), body.workflow_id, body.src,
+                                body.dst, role=body.role,
+                                approver=body.approver)
+    except envmod.ApprovalRequired as exc:
+        return {"status": "pending_approval", "request_id": exc.request_id}
+    except (envmod.EnvError, envmod.UnknownEnvironment) as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
+    return {"status": "success", "result": hasil}
+
+
+@app.post("/environments/approve")
+def environments_approve(body: ApproveRequest,
+                         authorization: str | None = Header(None)):
+    """Setujui permintaan promosi yang tertunda."""
+    user = security.get_current_user(authorization)
+    import environments as envmod
+    try:
+        hasil = _envs().approve(body.request_id, str(user["email"]),
+                                role=body.role)
+    except envmod.EnvError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
+    return {"status": "success", "result": hasil}
+
+
+@app.get("/environments/pending")
+def environments_pending(authorization: str | None = Header(None)):
+    """Daftar permintaan promosi yang menunggu approval."""
+    user = security.get_current_user(authorization)
+    return {"status": "success",
+            "pending": _envs().pending(str(user["email"]))}
+
+
+@app.get("/environments/diff")
+def environments_diff(workflow_id: str, env_a: str, env_b: str,
+                      authorization: str | None = Header(None)):
+    """Diff struktural workflow antara dua environment."""
+    user = security.get_current_user(authorization)
+    import environments as envmod
+    try:
+        d = _envs().diff(str(user["email"]), workflow_id, env_a, env_b)
+    except envmod.EnvError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
+    return {"status": "success", "diff": d}
+
+
+@app.post("/environments/rollback")
+def environments_rollback(body: RollbackRequest,
+                          authorization: str | None = Header(None)):
+    """Kembalikan environment ke versi tertentu."""
+    user = security.get_current_user(authorization)
+    import environments as envmod
+    try:
+        hasil = _envs().rollback(str(user["email"]), body.workflow_id, body.env,
+                                 body.version, role=body.role)
+    except envmod.EnvError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
+    return {"status": "success", "result": hasil}
+
+
+@app.get("/environments/audit")
+def environments_audit(authorization: str | None = Header(None)):
+    """Jejak audit promosi/rollback milik user ini."""
+    user = security.get_current_user(authorization)
+    return {"status": "success",
+            "audit": _envs().audit_trail(str(user["email"]))}
+
+
 @app.get("/health")
 def health():
     return {

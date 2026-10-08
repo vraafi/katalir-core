@@ -180,3 +180,60 @@ Bukti raw: `13 passed in 0.33s`.
 - Fitur #4 — Multi-Environment.
 
 ---
+
+## FITUR #4: Multi-Environment (dev/staging/prod)
+
+### Research
+| Pendekatan | Verdict | Alasan |
+|-----------|---------|--------|
+| Vendor env (Vercel/Netlify) | DITOLAK | tidak menyimpan workflow/DAG |
+| n8n environments | REFERENSI | pola promotion + approval |
+| In-house di atas store dapat-disuntik | **DIPAKAI** | nol dependensi, deterministik, tidak terkunci vendor |
+
+**Pilihan:** `environments.py`. **Alasan:** store memori untuk test +
+`SupabaseEnvStore` untuk produksi (antarmuka identik).
+
+### Implementasi
+- File: `environments.py` (baru, ~330 baris) — `Environments`, `EnvStore`,
+  `SupabaseEnvStore`, `diff_flow`, `credential_key`, `default_store`.
+- Aturan: promosi hanya maju satu langkah; `production` butuh approval;
+  isolasi credential `env:<env>:<provider>`; rollback = append versi baru;
+  RBAC per environment (`viewer/developer/admin/owner`).
+- DDL: `migrations/2026_environments.sql` → `workflow_environments`,
+  `environment_audit` + RLS (diterapkan: **11/11 OK**).
+- API: `GET /environments`, `GET /environments/{env}/workflows`,
+  `POST /environments/promote`, `POST /environments/approve`,
+  `GET /environments/pending`, `GET /environments/diff`,
+  `POST /environments/rollback`, `GET /environments/audit`.
+- Registry `/version`: `20_environments`.
+
+### Hard Test — `tests/test_environments.py` (14 kasus, PASS)
+| # | Skenario | Status |
+|---|----------|--------|
+| 1 | Create di dev → promote ke staging | PASS |
+| 2 | Promote staging → production (approval) | PASS |
+| 3 | Isolasi credential antar environment | PASS |
+| 4 | Environment selector | PASS |
+| 5 | Rollback dari production | PASS |
+| 6 | Diff antar environment | PASS |
+| 7 | Concurrent edit 2 environment (50+50) | PASS |
+| 8 | Migrasi workflow existing → dev | PASS |
+| 9 | Config spesifik per environment | PASS |
+| 10 | Performa 100 workflow < 2s | PASS |
+| 11 | Audit log promosi | PASS |
+| 12 | Access control per environment | PASS |
+| 13 | Bandingkan versi antar environment | PASS |
+
+Bukti raw: `14 passed in 0.32s`. DDL live: `default_store() == SupabaseEnvStore`.
+
+### Deviasi dari brief
+- UI environment selector disajikan via API (`GET /environments`); komponen
+  React belum ditambahkan di batch ini (backend lengkap).
+
+### Blocker
+- Tidak ada.
+
+### Next
+- Fitur #5 — Source Control / Git.
+
+---
