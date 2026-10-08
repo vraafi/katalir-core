@@ -439,6 +439,15 @@ def get_template(template_id: str, user_id: Optional[str] = None) -> Optional[di
         if row and (not user_id or str(row.get("user_id")) == str(user_id)):
             return _row_to_template(row, "custom")
         return None
+    # ID kustom adalah uuid. ID berbentuk lain TIDAK mungkin ada, dan
+    # meneruskannya ke PostgREST membuat Postgres menolak sintaks uuid ->
+    # exception -> HTTP 500 "Internal Server Error" (bug nyata yang terbukti
+    # di produksi: GET /templates/nonexistent-id-xyz). Jawaban yang benar
+    # untuk "tidak ada" adalah None (-> 404), bukan 500.
+    try:
+        uuid.UUID(tid)
+    except (ValueError, AttributeError, TypeError):
+        return None
     c = db.get_write_client()
     q = c.table("workflow_templates").select("*").eq("id", tid)
     if user_id:
@@ -492,6 +501,12 @@ def delete_custom_template(template_id: str, user_id: str) -> bool:
         if row and str(row.get("user_id")) == str(user_id):
             del _LTEMPLATES[tid]
             return True
+        return False
+    # Sama seperti `get_template`: id non-uuid tidak mungkin ada, dan
+    # meneruskannya ke PostgREST menghasilkan 500, bukan 404.
+    try:
+        uuid.UUID(tid)
+    except (ValueError, AttributeError, TypeError):
         return False
     c = db.get_write_client()
     res = (c.table("workflow_templates").delete()

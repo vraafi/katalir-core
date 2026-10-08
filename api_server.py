@@ -525,6 +525,69 @@ class WorkflowUpdateRequest(BaseModel):
     description: str | None = None
 
 
+# ---------------------------------------------------------------------------
+# Validasi graf workflow — dipakai jalur TULIS /workflows (INSERT & UPDATE).
+#
+# KENAPA ADA: `POST /workflows` dulu menyimpan `flow_data` APA ADANYA. Tiga
+# masalah nyata yang terbukti lewat hard test produksi (8 Okt 2026):
+#   1. graf 5.000 node diterima (201) -> tidak ada batas atas, permukaan DoS
+#      sekaligus beban DB;
+#   2. self-loop diterima;
+#   3. edge yang menunjuk node tidak ada ("node hantu") diterima.
+# Sementara itu `workflow_templates.validate_flow_data` dan
+# `mcp_server._validate_flow_data` SUDAH menegakkan aturan yang sama — jadi
+# jalur tulis utama justru yang paling longgar. Fungsi ini menyatukan aturan
+# itu untuk kanvas pengguna dengan batas yang lebih longgar dari template.
+# ---------------------------------------------------------------------------
+MAX_WORKFLOW_NODES = 500
+MAX_WORKFLOW_EDGES = 1000
+
+
+def validate_workflow_flow(flow: Any) -> dict:
+    """Validasi bentuk graf kanvas. Mengembalikan flow bila sah.
+
+    Raises HTTPException(422) supaya klien tahu payload-nya yang salah, bukan
+    500 (kesalahan server).
+    """
+    if not isinstance(flow, dict):
+        raise HTTPException(422, "flow_data harus objek JSON.")
+    nodes = flow.get("nodes", [])
+    if not isinstance(nodes, list):
+        raise HTTPException(422, "flow_data.nodes harus list.")
+    if len(nodes) > MAX_WORKFLOW_NODES:
+        raise HTTPException(
+            422, f"Terlalu banyak node ({len(nodes)} > {MAX_WORKFLOW_NODES}).")
+    ids: set[str] = set()
+    for i, n in enumerate(nodes):
+        if not isinstance(n, dict):
+            raise HTTPException(422, f"node[{i}] bukan objek.")
+        nid = n.get("id")
+        if not isinstance(nid, str) or not nid.strip():
+            raise HTTPException(422, f"node[{i}] tanpa id.")
+        if nid in ids:
+            raise HTTPException(422, f"node id duplikat: {nid!r}.")
+        ids.add(nid)
+    edges = flow.get("edges", [])
+    if not isinstance(edges, list):
+        raise HTTPException(422, "flow_data.edges harus list.")
+    if len(edges) > MAX_WORKFLOW_EDGES:
+        raise HTTPException(
+            422, f"Terlalu banyak edge ({len(edges)} > {MAX_WORKFLOW_EDGES}).")
+    for i, e in enumerate(edges):
+        if not isinstance(e, dict):
+            raise HTTPException(422, f"edge[{i}] bukan objek.")
+        src, tgt = e.get("source"), e.get("target")
+        if not isinstance(src, str) or not isinstance(tgt, str):
+            raise HTTPException(422, f"edge[{i}] harus punya source & target string.")
+        if src not in ids:
+            raise HTTPException(422, f"edge[{i}] source {src!r} tidak ada di nodes.")
+        if tgt not in ids:
+            raise HTTPException(422, f"edge[{i}] target {tgt!r} tidak ada di nodes.")
+        if src == tgt:
+            raise HTTPException(422, f"edge[{i}] self-loop {src!r} tidak diizinkan.")
+    return flow
+
+
 class ExecuteRequest(BaseModel):
     # Body opcional; si va vacio, se usa el flow_data guardado del workflow.
     flow_data: dict | None = None
@@ -3465,6 +3528,9 @@ def create_workflow(req: WorkflowCreateRequest, authorization: str | None = Head
     baru di sidebar (bug lama: POST selalu INSERT).
     """
     user = security.get_current_user(authorization)
+    # Validasi graf SEBELUM menyentuh DB — berlaku untuk INSERT maupun UPDATE
+    # (autosave kanvas juga mengirim flow_data). Lihat validate_workflow_flow.
+    validate_workflow_flow(req.flow_data or {})
     if req.id:
         existing = db.get_workflow(req.id, user["id"])
         if not existing:
