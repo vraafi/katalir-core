@@ -1009,6 +1009,12 @@ _SENSITIVE_KEYS = frozenset({
     "refresh_token", "id_token", "token", "bearer", "secret", "client_secret",
     "password", "passwd", "private_key", "service_key", "service_role_key",
     "supabase_service_key", "session_token", "webhook_secret", "signature",
+    # 2026-10-08 (temuan adversarial Fitur #11): kredensial Telegram disimpan
+    # sebagai dict `{"bot_token": ..., "chat_id": ...}`. `token` sudah ada di
+    # set ini, tetapi pencocokan bersifat EKSAK sehingga `bot_token` lolos dan
+    # nilai token tercetak utuh di log eksekusi. Ditambahkan beserta varian
+    # yang dipakai provider lain.
+    "bot_token", "telegram_bot_token", "access_token_secret",
 })
 
 #: Pola nilai sensitif di dalam string bebas (mis. pesan error, body webhook).

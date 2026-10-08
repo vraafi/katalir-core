@@ -853,3 +853,104 @@ harus nyata; endpoint memakai id dari JWT.)
 
 ### Next
 Fitur #11 (Testing Framework).
+
+---
+
+## Fitur #11: Testing Framework (workflow testkit)
+
+### Research
+| Paket / Pendekatan | Verdict | Alasan |
+|---|---|---|
+| `agentest` | ❌ | Rilis terakhir Mar 2026 (7 bulan), 2 rilis. |
+| `robotframework-agenteval` | ❌ | Menyeret Robot Framework penuh; overkill. |
+| `pytest-asyncio` | ❌ | Repo memakai `asyncio.run()` per test; plugin mengubah harness seluruh repo. |
+| **harness in-house di atas engine asli** | ✅ **dipakai** | Engine sudah punya titik injeksi (`registry`,`reasoner`,`healing_factory`); nol dep baru. |
+
+**Pilihan:** harness in-house; engine NYATA, hanya batas I/O yang di-stub.
+**Alasan:** menguji engine sungguhan + hermetik (tanpa Supabase/LLM/jaringan) →
+bisa jadi gerbang CI.
+
+### Implementasi
+- **Baru:** `workflow_testkit.py` (Scenario/run_flow/run_scenario/build_catalog/
+  security_adversarial/load_test + CLI), `tests/test_workflow_testkit.py` (12),
+  `.github/workflows/ci.yml` (CI hermetik).
+- **Diubah:** `database.py` — temuan keamanan: `bot_token` (dkk) ditambahkan ke
+  `_SENSITIVE_KEYS`.
+- **Katalog:** 119 skenario (linear 22, provider 16, placeholder 18,
+  condition 24, batch 8, parallel 4, delegation 2, error 7, graph 7, security 11).
+
+### Hard Test
+`tests/test_workflow_testkit.py` → **12 passed in 2.76s**.
+
+| # | Test | Status | Bukti |
+|---|------|--------|-------|
+| 1 | katalog >=100 | PASS | 119, ID unik |
+| 2 | semua katalog lulus | PASS | 119/119 |
+| 3 | **META** ekspektasi salah | PASS | FAIL terdeteksi |
+| 4 | **META** node status salah | PASS | `node:m1=FAIL` |
+| 5 | stub provider restore | PASS | objek asli kembali |
+| 6 | agent dipanggil | PASS | `reasoner_calls=1` |
+| 7 | error dilaporkan | PASS | `boom-xyz` |
+| 8 | adversarial | PASS | 11/11 |
+| 9 | load 0 error | PASS | 20 & 50 konkuren |
+| 10 | tanpa jaringan | PASS | 0 invoke asli |
+| 11 | kategori lengkap | PASS | 10 kategori |
+| 12 | bot_token teredaksi | PASS | `[REDACTED]` |
+
+**Load (raw):**
+```
+n=  50 errors=0 wall=11.1ms  p50=8.13ms  p95=9.74ms  thr=4493.2/s
+n= 100 errors=0 wall=74.5ms  p50=69.01ms p95=71.72ms thr=1342.9/s
+n= 200 errors=0 wall=43.1ms  p50=31.24ms p95=37.65ms thr=4638.6/s
+```
+
+### Temuan nyata (ditemukan fitur ini)
+1. **`bot_token` tidak teredaksi** (medium) — `_SENSITIVE_KEYS` cocok EKSAK dan
+   hanya punya `token`. **Diperbaiki**: + `bot_token`, `telegram_bot_token`,
+   `access_token_secret`.
+2. Node tanpa predesesor (bukan trigger) tetap dieksekusi (`_runnable` vakum
+   True) — didokumentasikan sebagai perilaku nyata.
+3. `next_fire_utc` tidak menolak cron 6-field; gerbang yang benar =
+   `is_valid_cron`. Matriks adversarial diperbaiki.
+
+### Blocker
+Tidak ada. CI = suite hermetik saja (sengaja; hindari "hijau palsu").
+
+### Next
+Selesai — lihat tabel final di bawah.
+
+---
+
+# TABEL FINAL — 11 FITUR
+
+| # | Fitur | Status | Bukti utama | Commit |
+|---|---|---|---|---|
+| 1 | Scheduled Trigger (cron) | ✅ HIJAU | 13/13 pytest + 5/5 live (cron fired, restart, TZ) | `a3e6fd3` |
+| 2 | Durable Execution | ✅ HIJAU | 14/14 (resume tanpa ulang langkah 1–2) | `5b637d3` |
+| 3 | Retry + Backoff + DLQ + Circuit Breaker | ✅ HIJAU | 16/16 | `24cb48c` |
+| 4 | Sub-Workflow Execution | ✅ HIJAU | 11/11 (max depth 3, siklus ditolak) | `55d16c6` |
+| 5 | Parallel Fan-Out/Fan-In | ✅ HIJAU | 12/12 (8 paralel 0,62s < seri 0,80s) | `5968dbd` |
+| 6 | Code Node (Sandbox) | ✅ HIJAU | 14/14 (infinite loop dibunuh 3,0s) | `7e0e32b` |
+| 7 | External Secrets Manager | ✅ HIJAU | 12/12 | `67080cb` |
+| 8 | MCP Server Built-in | ✅ HIJAU | 10/10 (protokol MCP asli di `/mcp/katalir`) | `bb144ba` |
+| 9 | AI Agent Memory (pgvector) | ✅ HIJAU | 12/12 + benchmark (DB 49ms) | `a3e6fd3` |
+| 10 | Workflow Templates | ✅ HIJAU | 15/15 + LIVE Supabase (10 bawaan + kustom) | `b035dd8` |
+| 11 | Testing Framework | ✅ HIJAU | 119 skenario + 11/11 adversarial + load 0 error | (sesi ini) |
+
+## Ringkasan bukti akhir
+- **pytest fitur baru (sesi ini):** MCP 10/10, Templates 15/15, Testkit 12/12.
+- **Katalog testkit:** 119/119 lulus; adversarial keamanan 11/11.
+- **Load:** 50/100/200 konkuren → **0 error**.
+- **DDL diterapkan LIVE:** `workflow_templates` (+ RLS) — 15 statement + fungsi/trigger OK.
+- **Temuan keamanan nyata & diperbaiki:** `bot_token` tidak teredaksi → ditambahkan
+  ke `_SENSITIVE_KEYS`; `tools.py` Telegram vault JSON-aware (fix 8 Okt).
+- **Tidak ada** deploy produksi / push (menunggu GO user; push masih diblokir
+  GCM — lihat `docs/PUSH_BLOCKER.md`).
+
+## Deviasi brief (dicatat, bukan disembunyikan)
+- Paket contoh brief (`tickforge`, `pyergon`, `flux-core`, `agentbox-sandbox`,
+  `apikeyvault`, `agentest`, `mem01-engine`) sebagian tidak dipakai karena
+  tidak matang / butuh infra sendiri; dipilih alternatif yang diverifikasi.
+- `fastmcp` (PyPI 4.0.11) ditolak untuk #8; dipakai SDK resmi `mcp` 1.28.1
+  yang sudah ada di repo.
+- UI: node `cron_trigger` sudah dibuat; galeri template UI belum (endpoint siap).

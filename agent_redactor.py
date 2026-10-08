@@ -78,6 +78,10 @@ SENSITIVE_KEYS = frozenset({
     "refresh_token", "id_token", "token", "bearer", "secret", "client_secret",
     "password", "passwd", "private_key", "service_key", "service_role_key",
     "supabase_service_key", "session_token", "webhook_secret", "signature",
+    # 2026-10-08 (parity dengan database._SENSITIVE_KEYS): kredensial Telegram
+    # disimpan sebagai `{"bot_token": ..., "chat_id": ...}`. `token` sudah ada
+    # tetapi pencocokan EKSAK, sehingga `bot_token` sebelumnya lolos redaksi.
+    "bot_token", "telegram_bot_token", "access_token_secret",
 })
 
 #: Nilai pengganti untuk kunci sensitif.

@@ -1,0 +1,56 @@
+name: CI
+
+# Fitur #11 — Testing Framework.
+#
+# Gerbang ini sengaja HANYA menjalankan suite yang HERMETIK (tidak butuh
+# kredensial): workflow_testkit + template + sandbox. Suite lain di repo ini
+# memerlukan Supabase/Gemini sungguhan dan akan dijalankan di jalur terpisah
+# dengan secret — bukan di sini, supaya CI tidak pernah "hijau palsu" karena
+# test yang di-skip.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  hermetic:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Cache pip
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-${{ hashFiles('requirements.txt') }}
+          restore-keys: ${{ runner.os }}-pip-
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Workflow testkit — katalog + adversarial + load
+        run: |
+          python workflow_testkit.py --quiet --load
+
+      - name: Pytest (suite hermetik)
+        env:
+          # Host test TestClient + kill-switch supaya lifespan tidak menembak
+          # jaringan saat impor.
+          ALLOWED_HOSTS: "testserver,localhost,127.0.0.1"
+          SCHEDULER_ENABLED: "0"
+          MCP_SERVER_ENABLED: "0"
+        run: |
+          python -m pytest \
+            tests/test_workflow_testkit.py \
+            tests/test_workflow_templates.py \
+            -q -p no:cacheprovider
