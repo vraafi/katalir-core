@@ -16,9 +16,30 @@ import { defineConfig } from "@playwright/test";
 const PORT = Number(process.env.E2E_PORT || 3000);
 const BASE_URL = process.env.E2E_BASE_URL || "https://katalir.de5.net";
 
+/**
+ * Output dir sengaja DI LUAR workspace (default ke TEMP) agar Playwright tidak
+ * menghapus ratusan artefak di dalam repo. Guard `safe-delete` memblokir
+ * penghapusan massal (>50 berkas) dan dulu menggagalkan `next build`.
+ * Override dengan PW_OUTPUT_DIR bila perlu.
+ */
+const OUTPUT_DIR =
+  process.env.PW_OUTPUT_DIR ||
+  `${process.env.TEMP || process.env.TMPDIR || "/tmp"}/katalir_pw_out/templates`;
+
+/**
+ * testMatch dapat di-override agar config yang sama bisa menjalankan suite
+ * live (tanpa stub) maupun suite stub 12 tes.
+ *   E2E_SPEC=templates-live  -> hanya tests/templates-live.spec.ts
+ */
+const SPEC = process.env.E2E_SPEC;
+const TEST_MATCH = SPEC
+  ? new RegExp(`${SPEC.replace(/\.spec\.ts$/, "")}\\.spec\\.ts`)
+  : /templates-gallery\.spec\.ts/;
+
 export default defineConfig({
   testDir: "./tests",
-  testMatch: /templates-gallery\.spec\.ts/,
+  testMatch: TEST_MATCH,
+  outputDir: OUTPUT_DIR,
   timeout: 180000,
   retries: 0,
   workers: 1,

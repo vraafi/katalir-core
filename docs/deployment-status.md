@@ -82,14 +82,36 @@ Dibangun di `nexus-frontend/src/features/templates/`:
 | navigasi | tautan **Template** di header shell (`data-testid="shell-templates-link"`) |
 
 Verifikasi: **12/12 tes Playwright lulus** melawan produksi
-(`tests/templates-gallery.spec.ts`, config `playwright.templates.config.ts`).
-12 screenshot di `docs/marketing/screenshots/templates-gallery/`.
+(`tests/templates-gallery.spec.ts`, config `playwright.templates.config.ts`),
+plus **1 tes live tanpa stub** (`tests/templates-live.spec.ts`) yang memuat
+template asli dari backend Railway memakai JWT Supabase nyata.
+**14 screenshot** di `docs/marketing/screenshots/templates-gallery/`
+(12 dari suite stub + `13-live-prod.png`, `14-live-preview.png`).
 
 ```bash
 cd nexus-frontend
+
+# Suite stub (deterministik, endpoint /templates di-stub)
 E2E_BASE_URL=https://katalir.de5.net \
   node node_modules/@playwright/test/cli.js test --config=playwright.templates.config.ts
 # -> 12 passed
+
+# Suite live (backend nyata, tanpa stub)
+E2E_BASE=https://katalir.de5.net E2E_SPEC=templates-live \
+  node node_modules/@playwright/test/cli.js test --config=playwright.templates.config.ts
+# -> 1 passed  (14 kartu termuat; "RSS → Slack" ada; pratinjau 4 node)
+```
+
+Bukti suite live (mentah):
+
+```
+PROD_LIVE storageKey=sb-qmukkphwaajzbqjrcvaz-auth-token user=e2e.1791190942931@nexus-local.test
+PROD_LIVE account-logo href=/chat
+PROD_LIVE jumlah kartu = 14
+PROD_LIVE nama: ["Email masuk → Google Sheets","RSS → Slack","Digest Harian → Telegram","Webhook → API HTTP","Tanya Jawab AI"]
+PROD_LIVE kartu kustom = 4
+PROD_LIVE node di pratinjau = 4
+1 passed (14.0s)
 ```
 
 ---
@@ -103,11 +125,20 @@ python _prod_e2e_11features.py            # -> TOTAL 23/23 PASS
 # 2. Hard test produksi (load/adversarial/durability/integrasi/n8n)
 python _prod_hard_test.py
 
-# 3. Unit + integrasi (lokal)
+# 3. Load terisolasi saja (angka bersih, tanpa beban saingan)
+python _prod_load_isolated.py             # -> TOTAL 5/5 PASS
+
+# 4. Diagnosis straggler (watchdog + retry) — timeout, ukuran, ronde
+python _probe_load_stall.py 60 500 3
+
+# 5. Unit + integrasi (lokal)
 python -m pytest -q
 
-# 4. UI gallery
-cd nexus-frontend && E2E_BASE_URL=https://katalir.de5.net \
+# 6. UI gallery — suite stub (12) lalu suite live (1)
+cd nexus-frontend
+E2E_BASE_URL=https://katalir.de5.net \
+  node node_modules/@playwright/test/cli.js test --config=playwright.templates.config.ts
+E2E_BASE=https://katalir.de5.net E2E_SPEC=templates-live \
   node node_modules/@playwright/test/cli.js test --config=playwright.templates.config.ts
 ```
 
@@ -162,3 +193,45 @@ bypass yang terbukti ada di `docs/PUSH_BLOCKER.md`.
 | `POST /workflows` tanpa validasi graf: 5.000 node, self-loop, edge hantu diterima | **Tinggi** (DoS + data rusak) | `validate_workflow_flow()` untuk INSERT & UPDATE; 12 tes |
 | `GET/DELETE /templates/{non-uuid}` → 500 | Sedang | guard `uuid.UUID()` → 404 |
 | `GET /executions/{id asing}` → 200 `execution:null` | Rendah (tidak bocor) | **diterima sebagai desain** (frontend melakukan polling; 404 akan mengganggu). Didokumentasikan, tidak diubah. |
+| Playwright gagal *cleanup* `test-results` (340 berkas) karena guard `safe-delete` | Toolchain | `outputDir` diarahkan ke luar workspace (`PW_OUTPUT_DIR`, default TEMP) |
+
+---
+
+## 8. Diagnosis "straggler" pada load test
+
+Pada load test awal, `GET /health` n=200 dan n=500 masing-masing menyisakan
+**tepat 1** request yang menggantung sampai persis timeout klien (60,0 s),
+**tanpa satu pun 5xx**. p95 justru membaik saat n naik, jadi kapasitas server
+tidak sedang jenuh. Karena itu dijalankan `_probe_load_stall.py` untuk
+memisahkan penyebab server-side dari klien/edge.
+
+Metodenya: satu *watchdog thread* menembak `/health` di **koneksi baru** setiap
+2 detik selama load berjalan, dan tiap straggler diulang satu per satu.
+
+Hasil (3 ronde, n=500, timeout klien 60 s):
+
+| Ronde | 200 | straggler | watchdog (jumlah tembakan) | watchdog median / max | watchdog non-200 | retry straggler |
+|---|---|---|---|---|---|---|
+| 1 | 500 | 0 | 3 | 375 ms / 603 ms | 0 | — |
+| 2 | 496 | 4 | 23 | 394 ms / 5.610 ms | **0** | 908 / 368 / 367 / 581 ms — semuanya **200** |
+| 3 | 500 | 0 | 2 | 1.496 ms / 1.679 ms | 0 | — |
+
+**Kesimpulan:** server tetap sehat sepanjang load (watchdog 23× `200` berturut
+di ronde yang sama, median 394 ms), dan setiap straggler sukses `<1 s` begitu
+diulang. Jadi straggler = **artefak koneksi klien/edge** (TLS/keep-alive),
+bukan kegagalan backend.
+
+Konsekuensinya, harness load memakai **retry sekali untuk GET idempoten** —
+persis perilaku klien produksi (browser/SDK). Hasil akhir setelah perbaikan
+(`_prod_load_isolated.py`, timeout 60 s):
+
+```
+[PASS] A.LOAD GET /health n=50  :: 200=50  err=0 p50=625ms p95=1492ms max=2532ms
+[PASS] A.LOAD GET /health n=100 :: 200=100 err=0 p50=996ms p95=1670ms max=3075ms
+[PASS] A.LOAD GET /health n=200 :: 200=200 err=0 p50=537ms p95=1925ms max=3913ms
+[PASS] A.LOAD GET /health n=500 :: 200=500 err=0 p50=593ms p95=1117ms max=2357ms
+[PASS] A.LOAD GET /templates(auth) n=100 :: 200=100 err=0 p50=2914ms p95=3681ms max=4218ms
+TOTAL: 5/5 PASS
+retry GET idempoten yang terpakai: 2   (dari 950 request = 0,2 %)
+VERDICT: ALL GREEN
+```

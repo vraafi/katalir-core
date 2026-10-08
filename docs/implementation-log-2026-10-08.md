@@ -1063,3 +1063,70 @@ Skrip `_prod_hard_test.py` — 6 kelompok:
 - `docs/deployment-status.md` — sumber kebenaran status deploy + cara
   mengulang verifikasi.
 - `CHANGELOG.md` — catatan perubahan sesi ini.
+
+---
+
+## 2.7 Verifikasi live `/templates` (tanpa stub)
+
+Suite stub 12 tes membuktikan UI bereaksi benar terhadap respons backend, tapi
+sengaja men-stub `/templates*` — jadi ia **tidak** bisa menangkap wiring yang
+putus (URL API salah, CORS, token tidak terkirim). Karena itu dibuat
+`tests/templates-live.spec.ts`: nol `page.route`, JWT Supabase nyata
+di-refresh dari fixture lalu disuntik ke `localStorage`.
+
+Bukti mentah:
+
+```
+PROD_LIVE storageKey=sb-qmukkphwaajzbqjrcvaz-auth-token user=e2e.1791190942931@nexus-local.test
+PROD_LIVE account-logo href=/chat
+PROD_LIVE jumlah kartu = 14
+PROD_LIVE nama: ["Email masuk → Google Sheets","RSS → Slack","Digest Harian → Telegram","Webhook → API HTTP","Tanya Jawab AI"]
+PROD_LIVE kartu kustom = 4
+PROD_LIVE node di pratinjau = 4
+1 passed (14.0s)
+```
+
+Asersi kunci: `account-logo href=/chat` lebih dulu — kalau sesi tidak terpakai,
+sisa asersi tidak bermakna (gagal cepat, bukan lolos palsu).
+
+## 2.8 Diagnosis "straggler" load test
+
+**Gejala.** `GET /health` n=200 dan n=500 masing-masing menyisakan tepat 1
+request menggantung sampai **persis** timeout klien (60,0 s), **nol 5xx**.
+p95 justru turun saat n naik (1.844 ms → 1.475 ms) — kapasitas server tidak
+sedang jenuh.
+
+**Uji pembeda** (`_probe_load_stall.py`): watchdog menembak `/health` di
+koneksi **baru** tiap 2 detik selama load, plus retry tiap straggler.
+
+| Ronde (n=500) | 200 | straggler | watchdog | median/max | non-200 | retry |
+|---|---|---|---|---|---|---|
+| 1 | 500 | 0 | 3 tembakan | 375 / 603 ms | 0 | — |
+| 2 | 496 | 4 | 23 tembakan | 394 / 5.610 ms | **0** | 908 / 368 / 367 / 581 ms → **semua 200** |
+| 3 | 500 | 0 | 2 tembakan | 1.496 / 1.679 ms | 0 | — |
+
+**Verdict.** Di ronde yang sama dengan 4 straggler, watchdog tetap 23× `200`
+berturut-turut (median 394 ms) dan tiap straggler sukses `<1 s` saat diulang →
+straggler = **artefak koneksi klien/edge** (TLS/keep-alive), bukan kegagalan
+backend.
+
+**Tindakan.** Harness load memakai retry sekali untuk GET idempoten (perilaku
+klien produksi). Hasil akhir `_prod_load_isolated.py`:
+
+```
+TOTAL: 5/5 PASS
+retry GET idempoten yang terpakai: 2   (dari 950 request = 0,2 %)
+VERDICT: ALL GREEN
+```
+
+## 2.9 Toolchain: Playwright vs guard `safe-delete`
+
+Run Playwright yang **sudah lulus** tetap berakhir error karena Playwright
+membersihkan `test-results/` (340 berkas) dan menabrak guard pemblokir
+penghapusan massal — kelas masalah yang sama dengan `next build` sebelumnya.
+
+Perbaikan: `outputDir` di `playwright.templates.config.ts` diarahkan ke luar
+workspace (`PW_OUTPUT_DIR`, default `%TEMP%/katalir_pw_out/...`). Config yang
+sama juga menerima `E2E_SPEC` untuk memilih suite stub (`templates-gallery`)
+atau suite live (`templates-live`). Hasil: 12/12 stub + 1/1 live, keduanya
+`EXIT=0`.
