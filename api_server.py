@@ -222,6 +222,21 @@ app.add_middleware(
 #
 # Kill-switch env MCP_SERVER_ENABLED=0 (dipakai test suite yang tidak butuh MCP),
 # konsisten dengan kill-switch scheduler dan lifespan di atas.
+#
+# URUTAN MOUNT = BUG PRODUKSI YANG PERNAH LOLOS (ditemukan 8 Okt 2026 lewat
+# verifikasi E2E produksi). `app.mount("/mcp/katalir", ...)` mencocokkan
+# BERDASARKAN PREFIX, jadi bila didaftarkan di sini (baris ~243) ia menelan
+# `/mcp/katalir/info`, `/mcp/katalir/key`, dan `/mcp/katalir/verify` yang baru
+# dideklarasikan ribuan baris di bawah — ketiganya jadi tidak pernah tercapai
+# dan membalas JSON-RPC `-32001` (auth MCP), bukan handler-nya. Akibatnya user
+# TIDAK PERNAH bisa menerbitkan API key MCP: Fitur #8 mati dari sisi klien.
+# Test suite tidak menangkapnya karena tidak ada satu pun tes yang memanggil
+# ketiga route itu lewat HTTP.
+#
+# PERBAIKAN: mount dipindah ke AKHIR modul (lihat `_mount_mcp_app()` di bawah),
+# sehingga route eksplisit yang didaftarkan lebih dulu selalu menang, dan mount
+# hanya melayani sisa prefix (`/mcp/katalir/`).
+_MCP_ASGI = None
 if os.getenv("MCP_SERVER_ENABLED", "1").strip() not in ("0", "false", "False"):
     try:
         # BUG NYATA (ditemukan lewat probe): `app.mount()` FastAPI/Starlette
@@ -236,13 +251,13 @@ if os.getenv("MCP_SERVER_ENABLED", "1").strip() not in ("0", "false", "False"):
         # dekorator, karena prefix mount sudah di-strip).
         from starlette.routing import Route as _StarletteRoute
 
-        _mcp_asgi = mcp_server.get_asgi_application(server=_MCP_SERVER)
+        _MCP_ASGI = mcp_server.get_asgi_application(server=_MCP_SERVER)
         app.router.routes.insert(0, _StarletteRoute(
-            "/mcp/katalir", endpoint=_mcp_asgi, methods=None,
+            "/mcp/katalir", endpoint=_MCP_ASGI, methods=None,
             include_in_schema=False))
-        app.mount("/mcp/katalir", _mcp_asgi)
     except Exception as _mcp_mount_exc:  # noqa: BLE001 - mount gagal tidak boleh mematikan API
         print(f"[startup] mount MCP gagal: {type(_mcp_mount_exc).__name__}: {_mcp_mount_exc}")
+        _MCP_ASGI = None
 
 
 # MODEL SELECTION: discovery dinamis via model_discovery (runtime query,
@@ -4403,6 +4418,20 @@ def version():
         "features_present": sum(1 for v in feats.values() if v),
         "features_total": len(feats),
     }
+
+
+# ---------------------------------------------------------------------------
+# MOUNT MCP — SENGAJA DI AKHIR MODUL (lihat catatan di baris ~225).
+#
+# `app.mount()` mencocokkan prefix, jadi ia HARUS didaftarkan setelah semua
+# route eksplisit `/mcp/katalir/*` (`/info`, `/key`, `/verify`). Bila mount
+# didaftarkan lebih dulu, ketiga route itu tidak pernah tercapai.
+# ---------------------------------------------------------------------------
+if _MCP_ASGI is not None:
+    try:
+        app.mount("/mcp/katalir", _MCP_ASGI)
+    except Exception as _mcp_mount_exc:  # noqa: BLE001
+        print(f"[startup] mount MCP gagal: {type(_mcp_mount_exc).__name__}: {_mcp_mount_exc}")
 
 
 # ---------------------------------------------------------------------------

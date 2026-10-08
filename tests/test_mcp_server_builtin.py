@@ -576,3 +576,117 @@ async def _t10():
 
 def test_10_dns_rebinding_dan_validasi_flow():
     jalankan(_t10())
+
+
+# ---------------------------------------------------------------------------
+# 11. REGRESI — mount /mcp/katalir TIDAK boleh menelan route eksplisit
+#
+# Bug produksi (ditemukan 8 Okt 2026 lewat verifikasi E2E produksi):
+# `app.mount("/mcp/katalir", ...)` didaftarkan di awal modul, dan karena
+# `Mount` cocok berdasarkan PREFIX, ia menelan `/mcp/katalir/info`,
+# `/mcp/katalir/key`, dan `/mcp/katalir/verify` yang dideklarasikan jauh di
+# bawah. Ketiganya membalas JSON-RPC `-32001` (auth MCP) alih-alih handler-nya,
+# sehingga user TIDAK PERNAH bisa menerbitkan API key MCP — Fitur #8 mati dari
+# sisi klien. Suite lama tidak menangkapnya karena tak satu pun tes memanggil
+# ketiga route itu lewat HTTP.
+#
+# Dua lapis penjagaan:
+#   (a) invarian urutan route (Mount harus SETELAH ketiga APIRoute), dan
+#   (b) perilaku HTTP nyata (bukan balasan JSON-RPC).
+# ---------------------------------------------------------------------------
+async def _t11():
+    from starlette.routing import Mount as _Mount
+    from starlette.routing import Route as _SRoute
+
+    rute = api_server.app.router.routes
+    pos = {}
+    for i, r in enumerate(rute):
+        p = getattr(r, "path", None)
+        if isinstance(r, _Mount) and p == MCP_PATH:
+            pos["mount"] = i
+        elif isinstance(r, _SRoute) and p == MCP_PATH:
+            pos["exact"] = i
+        elif p in (f"{MCP_PATH}/info", f"{MCP_PATH}/key", f"{MCP_PATH}/verify"):
+            pos[p] = i
+
+    print(f"[11] posisi route: {pos}")
+    assert "mount" in pos, "Mount /mcp/katalir tidak terdaftar"
+    for ep in (f"{MCP_PATH}/info", f"{MCP_PATH}/key", f"{MCP_PATH}/verify"):
+        assert ep in pos, f"route {ep} tidak terdaftar"
+        assert pos[ep] < pos["mount"], (
+            f"{ep} (index {pos[ep]}) terdaftar SETELAH Mount (index {pos['mount']}) "
+            "-> akan tertelan dan tidak pernah tercapai"
+        )
+    # Route exact untuk path tanpa trailing slash tetap harus ada & paling awal
+    # (mencegah 307 pada POST /mcp/katalir).
+    assert "exact" in pos and pos["exact"] < pos["mount"]
+
+    cli = await _boot()
+
+    # /info publik: harus 200 dengan metadata MCP, BUKAN JSON-RPC error.
+    r = await cli.get(f"{MCP_PATH}/info")
+    assert r.status_code == 200, f"/info -> {r.status_code} {r.text[:200]}"
+    assert '"jsonrpc"' not in r.text, f"/info tertelan mount: {r.text[:200]}"
+    body = r.json()
+    assert body.get("server") == "katalir", body
+    print(f"[11] GET /info -> 200 server={body.get('server')} "
+          f"transport={body.get('transport')}")
+
+    # /key & /verify tanpa kredensial: 401 dari FastAPI (field `detail`),
+    # bukan 401 JSON-RPC. Inilah pembeda "tertelan" vs "tercapai".
+    r = await cli.post(f"{MCP_PATH}/key", json={})
+    assert r.status_code in (401, 403), f"/key -> {r.status_code} {r.text[:200]}"
+    assert '"jsonrpc"' not in r.text, f"/key tertelan mount: {r.text[:200]}"
+    assert "detail" in r.json(), f"/key bukan balasan FastAPI: {r.text[:200]}"
+    print(f"[11] POST /key (tanpa JWT) -> {r.status_code} {r.json().get('detail')!r}")
+
+    r = await cli.get(f"{MCP_PATH}/verify", headers={"X-API-Key": "kunci-palsu"})
+    assert r.status_code == 401, f"/verify -> {r.status_code} {r.text[:200]}"
+    assert '"jsonrpc"' not in r.text, f"/verify tertelan mount: {r.text[:200]}"
+    print(f"[11] GET /verify (kunci palsu) -> {r.status_code} {r.json().get('detail')!r}")
+
+
+def test_11_mount_tidak_menutupi_endpoint_katalir():
+    jalankan(_t11())
+
+
+# ---------------------------------------------------------------------------
+# 12. Alur penerbitan kunci MCP end-to-end (JWT -> key -> verify)
+# ---------------------------------------------------------------------------
+async def _t12(monkeypatch=None):
+    cli = await _boot()
+
+    # Simulasi user terautentikasi: patch get_current_user seperti pola suite lain.
+    import security as _sec
+
+    asli = _sec.get_current_user
+    _sec.get_current_user = lambda authorization=None: {
+        "id": "u-mcp-key-e2e", "email": "mcp-e2e@example.com"}
+    try:
+        r = await cli.post(f"{MCP_PATH}/key", json={"ttl_days": 7, "label": "e2e"})
+        assert r.status_code == 200, f"/key -> {r.status_code} {r.text[:250]}"
+        d = r.json()
+        assert d.get("api_key"), d
+        assert d.get("header") == "X-API-Key", d
+        print(f"[12] POST /key -> 200 prefix={d.get('prefix')} "
+              f"expires_in_days={d.get('expires_in_days')} len={len(d['api_key'])}")
+
+        key = d["api_key"]
+        r2 = await cli.get(f"{MCP_PATH}/verify", headers={"X-API-Key": key})
+        assert r2.status_code == 200, f"/verify -> {r2.status_code} {r2.text[:200]}"
+        v = r2.json()
+        assert v.get("valid") is True and v.get("user_id") == "u-mcp-key-e2e", v
+        print(f"[12] GET /verify -> 200 valid={v.get('valid')} "
+              f"user_id={v.get('user_id')} label={v.get('label')!r}")
+
+        # Kunci hasil terbitan HARUS benar-benar dipakai oleh permukaan MCP.
+        cli_key = McpClient(cli, key=key)
+        resp = await cli_key.initialize()
+        assert resp.status_code == 200, resp.text[:250]
+        print(f"[12] initialize dengan kunci terbitan -> {resp.status_code}")
+    finally:
+        _sec.get_current_user = asli
+
+
+def test_12_alur_kunci_mcp_end_to_end():
+    jalankan(_t12())
