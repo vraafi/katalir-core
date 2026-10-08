@@ -104,6 +104,27 @@ class Rule:
 # membalas "429 quota exceeded" yang sebenarnya soal kuota akun, bukan
 # rate limit sesaat -- keduanya tidak boleh tertukar.
 RULES: tuple[Rule, ...] = (
+    # ── Kode user gagal (fitur #6: node Code) ─────────────────────────────
+    # DIPERIKSA PALING AWAL, dan itu disengaja.
+    #
+    # Pesan kegagalan sandbox memuat kata "timeout" (mis. "timeout: eksekusi
+    # dihentikan setelah 30s"), sehingga TANPA rule ini ia dicocokkan oleh rule
+    # `network` dan di-RETRY 3x. Setiap percobaan menunggu sampai 30 detik
+    # penuh, jadi satu infinite loop membakar ~90 detik eksekusi + anggaran
+    # healing, padahal hasilnya pasti sama.
+    #
+    # Kode yang ditolak sandbox (`import os`) atau error logika (`1/0`) juga
+    # deterministik: payload identik selalu gagal identik. Aturannya sama
+    # dengan `placeholder_invalid` di bawah — berhenti cepat supaya penyebab
+    # aslinya terlihat, bukan tertutup retry.
+    Rule(
+        "code_execution",
+        re.compile(r"CodeExecutionError"),
+        "abort", max_attempts=0, search=False,
+        reason="Kode di node Code gagal (ditolak sandbox, error runtime, atau "
+               "melewati batas waktu). Menjalankan ulang kode yang SAMA tidak "
+               "akan mengubah hasil — perbaiki config.code, jangan ulangi.",
+    ),
     # ── Placeholder tak teresolusi (adversarial BUG-3) ────────────────────
     # Error deterministik dari execution_engine.PlaceholderResolutionError:
     # payload identik tidak akan pernah valid - retry hanya membakar kuota

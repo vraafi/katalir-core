@@ -309,6 +309,10 @@ html {
      --node-trigger-color --node-action-color --node-success-glow
      --node-error-glow --node-pulse-color --edge-color
      --edge-animated-color --panel-bg --text-primary --text-secondary
+   Warna per-kind lain (`--node-mcp-color`, `--node-cron-color`,
+   `--node-code-color`) mengikuti daftar kunci META di types.ts; setiap tema
+   WAJIB mendefinisikan semuanya, karena `cssKind()` memetakan nama kind
+   langsung ke nama token.
    Blok tema dipasang di <html data-canvas-theme="..."> oleh
    CanvasThemeProvider, jadi panel/toolbar/minimap ikut tema tanpa prop-drilling.
 
@@ -341,6 +345,7 @@ html {
   --node-action-color: #5c9df5;
   --node-mcp-color: #8b5cf6;
   --node-cron-color: #38bdf8;
+  --node-code-color: #34d399;
   --node-success-glow: #26bd73;
   /* FASE 5 (kontras): tombol "Jalankan" memakai isi ini. Putih di atas #26bd73
      hanya 2.46:1 -> isi digelapkan ke green-700 (putih = 4.7:1) tanpa mengubah
@@ -387,6 +392,7 @@ html {
   --node-action-color: #4f46e5;
   --node-mcp-color: #7c3aed;
   --node-cron-color: #0ea5e9;
+  --node-code-color: #059669;
   --node-success-glow: #16a34a;
   /* FASE 5 (kontras): putih di atas #16a34a = 3.35:1 -> digelapkan (lihat midnight). */
   --node-success-solid: #15803d;
@@ -433,6 +439,7 @@ html {
   --node-action-color: #00ffd5;
   --node-mcp-color: #b14aed;
   --node-cron-color: #00b3ff;
+  --node-code-color: #00ff9d;
   --node-success-glow: #00ffd5;
   /* FASE 5 (kontras): tema neon -> isi tetap #00ffd5, teks gelap (16.3:1). */
   --node-success-solid: #00ffd5;
@@ -477,6 +484,7 @@ html {
   --node-action-color: #18181b;
   --node-mcp-color: #52525b;
   --node-cron-color: #3f3f46;
+  --node-code-color: #71717a;
   --node-success-glow: #18181b;
   --node-success-solid: #18181b;
   --node-success-fg: #ffffff;

@@ -44,14 +44,31 @@ class NodeKind(str, Enum):
     TRIGGER = "trigger"
     AGENT = "agent"
     MCP = "mcp"
+    #: Fitur #6 (Code Sandbox) DISAMBUNGKAN KE PRODUKSI.
+    #: Sebelum ini `code_sandbox.py` ada dan lulus hard test, tetapi tidak ada
+    #: satu pun jalur eksekusi yang memanggilnya — `/version` melaporkan fitur
+    #: ini "ada" (modulnya bisa diimpor) padahal tidak bisa dipakai. Kini ada
+    #: DUA jalur: node `code` (di sini) dan tool MCP `execute_code`
+    #: (`mcp_server.py`), keduanya memakai mesin sandbox yang sama.
+    #: Rincian keputusan + batas + bukti: docs/sandbox-production.md.
+    CODE = "code"
 
 
 class NodeConfig(BaseModel):
-    """Configuracion libre de cada nodo (guardada en flow_data por el builder)."""
+    """Configuracion libre de cada nodo (guardada en flow_data por el builder).
+
+    Catatan: `FlowNodeData.config` bertipe `dict[str, Any]` dan itulah yang
+    benar-benar dibaca executor. Model ini adalah skema/dokumentasi field yang
+    dikenal; menambah field di sini TIDAK membuat nilainya terisi otomatis.
+    """
     event_name: Optional[str] = None
     system_prompt: Optional[str] = None
     tool_name: Optional[str] = None
     tool_param: Optional[str] = None
+    # --- node CODE (fitur #6) ---------------------------------------------
+    code: Optional[str] = None
+    language: Optional[str] = None       # "python" (default) | "javascript"
+    timeout_s: Optional[int] = None      # dijepit ke code_sandbox.CODE_TIMEOUT_S
 
 
 class FlowNodeData(BaseModel):
@@ -315,6 +332,24 @@ class ToolExecutionError(RuntimeError):
     Pesan WAJIB memuat teks error penyedia (mis. "404", "500", "timeout",
     "invalid JSON") supaya `self_healing.classify_error` memetakannya dengan
     benar -- pola yang sama dengan `PlaceholderResolutionError`.
+    """
+
+
+class CodeExecutionError(RuntimeError):
+    """Node CODE gagal: sandbox menolak, kode user error, atau timeout.
+
+    KENAPA DIPISAH DARI `ToolExecutionError`:
+    `ToolExecutionError` menyiratkan "provider eksternal menjawab gagal" —
+    self-healing memetakan pesannya ke strategi retry/abort berdasarkan teks
+    HTTP ("404", "500", "timeout"). Untuk kode user, mengulang TIDAK menolong:
+    `import os` akan ditolak lagi, dan `1/0` akan nol lagi. Karena itu pesan di
+    sini menyebut "kode" secara eksplisit supaya `classify_error` tidak
+    salah mengira ini kegagalan jaringan yang layak di-retry.
+
+    `code_sandbox.execute()` sendiri SELALU mengembalikan dict (tidak pernah
+    melempar untuk kode user yang buruk). Exception ini dinaikkan oleh executor
+    supaya `_run_node` mencatat node `error` — bukan "completed" palsu — persis
+    alasan yang sama dengan BUG-B2/BUG-B3.
     """
 
 
@@ -1316,10 +1351,122 @@ class StatefulOrchestrator:
         self._raise_if_tool_failed("", result)
         return {"type": "mcp.call", "tool": tool, "result": result}
 
+    async def _exec_code(self, node: FlowNode, inp: dict,
+                         _extra_roots: Optional[dict] = None) -> dict:
+        """Node CODE: jalankan `config.code` di sandbox (fitur #6).
+
+        KONTRAK
+          config.code       : str (wajib) — kode yang dijalankan.
+          config.language   : "python" (default) | "javascript".
+          config.timeout_s  : int, dijepit ke `code_sandbox.CODE_TIMEOUT_S`.
+          output            : {type, language, result, stdout, stderr,
+                               duration_ms, duration_s, os_limits}
+
+        KENAPA TIDAK ADA SUBSTITUSI `{{...}}` DI DALAM KODE
+          Semua executor lain melewatkan config-nya ke `_resolve_cfg`, yang
+          mengganti `{{akar.jalur}}` dengan nilai dari output node sebelumnya.
+          Untuk `code` itu SENGAJA TIDAK dilakukan, dan alasannya keamanan:
+
+          `_resolve_text` menyisipkan nilai string APA ADANYA (tanpa kutip).
+          Kalau data workflow berisi string, nilainya menjadi TEKS KODE. Data
+          yang datang dari webhook/email/LLM adalah input tak tepercaya, jadi
+          substitusi teks berarti "input tak tepercaya menjadi program".
+          Penjaga AST sandbox tetap berdiri, tetapi ia hanya menutup sintaks
+          berbahaya yang DIKENALI — mengubah arti kode user secara senyap jauh
+          lebih sulit diaudit daripada menolaknya.
+
+          Gantinya, data workflow masuk sebagai VARIABEL `input_data`
+          (`code_sandbox.VARS_NAME`) yang berisi JSON murni. Untuk JavaScript
+          sama: `const input_data = …`. Ini juga pola yang dipakai n8n/Zapier
+          untuk code step-nya, dan satu-satunya bentuk yang bisa dibuktikan
+          aman oleh tes.
+
+        KENAPA `asyncio.to_thread`
+          `code_sandbox.run_python` memblokir (subprocess.run dengan timeout).
+          Memanggilnya langsung di coroutine akan MEMBEKUKAN event loop —
+          termasuk cabang paralel lain di `asyncio.gather` yang seharusnya
+          berjalan bersamaan. `to_thread` mengembalikan paralelisme itu.
+
+        AUDIT
+          Tidak ada penulisan log baru di sini: `_run_node` sudah mengirim
+          setiap langkah ke `on_step`, dan `execute_workflow_async` menyimpannya
+          ke `execution_logs`. Output di bawah ini (language, durasi, ok/error)
+          karena itu otomatis menjadi jejak audit per eksekusi.
+        """
+        import code_sandbox
+
+        # `code` diambil MENTAH dari config (bukan lewat _resolve_cfg) — lihat
+        # penjelasan di docstring. Kunci lain tetap diresolv seperti biasa.
+        mentah = node.data.config or {}
+        kode = mentah.get("code")
+        cfg = self._resolve_cfg(
+            {k: v for k, v in mentah.items() if k != "code"},
+            where=f"node '{node.id}'", extra_roots=_extra_roots)
+
+        # PENTING: setiap pesan diawali "CodeExecutionError: ". Ini bukan
+        # hiasan — `self_healing.classify_error` mencocokkan TEKS pesan, dan
+        # rule pertama yang cocok menentukan strategi. Awalan ini mengunci
+        # node Code ke rule `code_execution` (action=abort, 0 retry). Tanpa
+        # itu, pesan timeout sandbox akan cocok dengan rule `network` dan
+        # dijalankan ulang 3x — 90 detik terbuang untuk hasil yang pasti sama.
+        if not isinstance(kode, str) or not kode.strip():
+            raise CodeExecutionError(
+                f"CodeExecutionError: node '{node.id}' config.code wajib diisi "
+                f"(string tidak kosong)")
+
+        language = str(cfg.get("language") or "python").strip().lower()
+        if language not in code_sandbox.LANGUAGES:
+            raise CodeExecutionError(
+                f"CodeExecutionError: node '{node.id}' bahasa {language!r} "
+                f"tidak didukung (pilih {', '.join(code_sandbox.LANGUAGES)})")
+
+        try:
+            timeout_s = int(cfg.get("timeout_s") or code_sandbox.CODE_TIMEOUT_S)
+        except (TypeError, ValueError):
+            raise CodeExecutionError(
+                f"CodeExecutionError: node '{node.id}' config.timeout_s bukan "
+                f"angka: {cfg.get('timeout_s')!r}") from None
+        # Dijepit di sini DAN di `code_sandbox.execute` (dua lapis, karena
+        # `timeout_s` berasal dari data user).
+        timeout_s = max(1, min(timeout_s, code_sandbox.CODE_TIMEOUT_S))
+
+        # Data workflow untuk kode. `inp` = {id_predesesor: output}; nilai
+        # mentah (bukan hasil resolusi teks) supaya tidak ada nilai yang
+        # berubah menjadi kode. `sanitize_vars` di code_sandbox menyaring
+        # apa pun yang bukan JSON murni.
+        data = {"input": {k: v for k, v in inp.items() if k != "_from"},
+                "from": inp.get("_from")}
+
+        hasil = await asyncio.to_thread(
+            code_sandbox.execute, kode, language,
+            timeout_s=timeout_s,
+            vars=data,
+            execution_id=getattr(self, "execution_id", None),
+            step_id=node.id,
+        )
+
+        if not hasil.get("ok"):
+            raise CodeExecutionError(
+                f"CodeExecutionError: node '{node.id}' kode {language} gagal: "
+                f"{hasil.get('error') or 'tanpa pesan'}")
+
+        durasi_s = hasil.get("duration_s")
+        return {
+            "type": "code.run",
+            "language": language,
+            "result": hasil.get("result"),
+            "stdout": hasil.get("stdout") or "",
+            "stderr": hasil.get("stderr") or "",
+            "duration_s": durasi_s,
+            "duration_ms": int(round((durasi_s or 0) * 1000)),
+            "os_limits": hasil.get("os_limits"),
+        }
+
     EXECUTORS: dict[NodeKind, Callable[[Any, FlowNode, dict], Awaitable[dict]]] = {
         NodeKind.TRIGGER: _exec_trigger,
         NodeKind.AGENT: _exec_agent,
         NodeKind.MCP: _exec_mcp,
+        NodeKind.CODE: _exec_code,
     }
 
     def _runnable(self, remaining: set[str]) -> list[str]:

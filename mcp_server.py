@@ -391,6 +391,76 @@ def svc_get_execution_status(user_id: str, execution_id: str) -> dict:
 SERVER_NAME = "katalir"
 STREAMABLE_PATH = "/mcp"
 
+#: Batas eksekusi kode lewat MCP. Sama dengan `code_sandbox.CODE_TIMEOUT_S`.
+#: Didefinisikan lewat modul agar tidak ada dua angka berbeda untuk satu
+#: konsep (pola yang sama dengan flow_limits.py).
+def _sandbox_timeout_cap() -> int:
+    try:
+        import code_sandbox
+        return int(code_sandbox.CODE_TIMEOUT_S)
+    except Exception:  # noqa: BLE001
+        return 30
+
+
+def svc_execute_code(user_id: str, code: str, language: str = "python",
+                     timeout_s: int = 30) -> dict:
+    """Jalankan kode di sandbox (fitur #6) atas nama pemilik API key.
+
+    Auth: `user_id` WAJIB valid. Sandbox sendiri tidak menyimpan state, tetapi
+    identitas tetap diambil supaya (a) endpoint ini tidak menjadi eksekutor
+    kode anonim, dan (b) pemanggil bisa dilacak saat penyalahgunaan.
+
+    `user_id` sengaja tidak dipakai untuk membatasi apa pun di dalam sandbox:
+    tidak ada data user yang bisa dijangkau kode, jadi tidak ada yang bisa
+    diisolasi per-tenant di sana. Isolasi antar-tenant terjadi karena sandbox
+    tidak punya filesystem, jaringan, atau kredensial sama sekali.
+
+    Selalu mengembalikan dict (tidak melempar untuk kode user yang buruk),
+    supaya agen bisa membaca `error` dan memperbaiki kodenya.
+    """
+    import code_sandbox
+
+    uid = _clean_text(user_id, "user_id", required=True)
+    if not isinstance(code, str) or not code.strip():
+        return {"ok": False, "result": None, "stdout": "", "stderr": "",
+                "duration_ms": 0, "error": "code wajib diisi (string tidak kosong)"}
+
+    lang = str(language or "python").strip().lower()
+    if lang not in code_sandbox.LANGUAGES:
+        return {"ok": False, "result": None, "stdout": "", "stderr": "",
+                "duration_ms": 0,
+                "error": f"language '{lang}' tidak didukung "
+                         f"(pilih: {', '.join(code_sandbox.LANGUAGES)})"}
+
+    try:
+        batas = int(timeout_s)
+    except (TypeError, ValueError):
+        return {"ok": False, "result": None, "stdout": "", "stderr": "",
+                "duration_ms": 0,
+                "error": f"timeout_s harus angka, bukan {timeout_s!r}"}
+    # Dijepit, bukan ditolak: pemanggil meminta 600s tetap dilayani 30s, dan
+    # nilai yang benar-benar dipakai dilaporkan kembali di `timeout_s`.
+    cap = _sandbox_timeout_cap()
+    batas = max(1, min(batas, cap))
+
+    hasil = code_sandbox.execute(
+        code, lang, timeout_s=batas,
+        vars={}, execution_id=f"mcp:{uid[:8]}", step_id="mcp_execute_code")
+
+    durasi_s = hasil.get("duration_s") or 0
+    return {
+        "ok": bool(hasil.get("ok")),
+        "result": hasil.get("result"),
+        "stdout": hasil.get("stdout") or "",
+        "stderr": hasil.get("stderr") or "",
+        "duration_ms": int(round(float(durasi_s) * 1000)),
+        "error": hasil.get("error"),
+        "language": lang,
+        "timeout_s": batas,
+        "memory_limit_mb": code_sandbox.CODE_MEMORY_MB,
+        "os_limits": hasil.get("os_limits"),
+    }
+
 #: Context ulang ditulis kembali dari header `X-API-Key` di setiap request.
 #: `FastMCP` mengeksekusi tool secara sinkron di thread pool; menyimpan
 #: identitas di ContextVar adalah cara paling andal agar tool yang berjalan di
@@ -415,13 +485,14 @@ def _tool_auth_error(exc: Exception) -> ValueError:
 
 
 def build_server():
-    """Bangun FastMCP + daftarkan kelima tool.
+    """Bangun FastMCP + daftarkan keenam tool.
 
     Dipisah dari pembuatan ASGI app supaya tes bisa memeriksa daftar tool
     tanpa menyalakan server.
     """
     from mcp.server.fastmcp import FastMCP
     from mcp.server.transport_security import TransportSecuritySettings
+    from mcp.types import ToolAnnotations
 
     mcp = FastMCP(
         SERVER_NAME,
@@ -429,7 +500,9 @@ def build_server():
             "Katalir — platform otomasi workflow. Tool di sini mengelola "
             "workflow MILIK pemilik API key: buat, ubah, daftar, jalankan, "
             "dan periksa status eksekusi. Semua operasi terbatas pada akun "
-            "pemilik kunci."
+            "pemilik kunci. Selain itu tersedia `execute_code` untuk "
+            "menjalankan potongan Python/JavaScript di sandbox terisolasi "
+            "(tanpa jaringan, tanpa filesystem, batas 30 detik / 128 MB)."
         ),
         stateless_http=True,
         streamable_http_path=STREAMABLE_PATH,
@@ -508,6 +581,53 @@ def build_server():
             `{execution_id, workflow_id, status, created_at, steps, step_count}`.
         """
         return svc_get_execution_status(current_key()["user_id"], execution_id)
+
+    @mcp.tool(
+        title="Jalankan kode di sandbox",
+        annotations=ToolAnnotations(
+            # `execute_code` menjalankan kode yang diberikan pemanggil. Menurut
+            # taksonomi MCP, itu BUKAN operasi baca-saja, dan efeknya tidak bisa
+            # dijamin idempoten (kode bisa memakai waktu acak, atau menulis
+            # hasil berbeda tiap jalan). Klien yang memakai hint ini untuk
+            # memutuskan auto-approve akan menampilkan konfirmasi — perilaku
+            # yang memang diinginkan untuk eksekusi kode.
+            readOnlyHint=False,
+            destructiveHint=True,
+            idempotentHint=False,
+            # Sandbox TIDAK punya jaringan (impor diblokir total), jadi tidak
+            # ada interaksi dengan entitas di luar proses ini.
+            openWorldHint=False,
+        ),
+    )
+    def execute_code(code: str, language: str = "python",
+                     timeout_s: int = 30) -> dict:
+        """Jalankan kode Python atau JavaScript di sandbox terisolasi.
+
+        Berguna untuk perhitungan, transformasi data, dan parsing yang lebih
+        mudah ditulis sebagai kode daripada dirangkai dari node.
+
+        Batas yang DITEGAKKAN (bukan saran): waktu 30 detik (hard-kill),
+        memori 128 MB, keluaran 64 KB, tanpa impor modul, tanpa jaringan,
+        tanpa filesystem. `code` TIDAK boleh memuat `import` — `import os`
+        ditolak sebelum kode berjalan.
+
+        Cara mengembalikan nilai: tetapkan variabel bernama `result`
+        (JavaScript: `result`). Nilai `console.log`/`print` masuk ke `stdout`.
+
+        Args:
+            code: Kode yang dijalankan. Python: `result = sum([1, 2, 3])`.
+                JavaScript: `result = 1 + 2;`.
+            language: "python" (default) atau "javascript".
+            timeout_s: Batas waktu detik (default 30, maksimum 30).
+
+        Returns:
+            `{ok, result, stdout, stderr, duration_ms, error, language,
+            timeout_s, memory_limit_mb, os_limits}`. `ok=false` berarti kode
+            ditolak sandbox, error runtime, atau melewati batas waktu —
+            baca `error` lalu perbaiki kodenya.
+        """
+        return svc_execute_code(current_key()["user_id"], code, language,
+                                timeout_s)
 
     return mcp
 
@@ -754,6 +874,7 @@ def describe() -> dict:
             {"name": "list_workflows", "args": ["limit"]},
             {"name": "execute_workflow", "args": ["workflow_id", "input_data"]},
             {"name": "get_execution_status", "args": ["execution_id"]},
+            {"name": "execute_code", "args": ["code", "language", "timeout_s"]},
         ],
         "clients": ["Claude Desktop (mcp-remote)", "Cursor", "Cline", "Continue", "MCP SDK"],
     }
@@ -765,5 +886,5 @@ __all__ = [
     "issue_api_key", "verify_api_key",
     "build_server", "get_server", "get_asgi_application", "describe",
     "svc_create_workflow", "svc_update_workflow", "svc_list_workflows",
-    "svc_execute_workflow", "svc_get_execution_status",
+    "svc_execute_workflow", "svc_get_execution_status", "svc_execute_code",
 ]

@@ -48,9 +48,24 @@ CODE_TIMEOUT_S = 30           # brief: timeout 30s
 CODE_MEMORY_MB = 128          # brief: memori 128MB
 CODE_MAX_OUTPUT_BYTES = 64_000
 CODE_MAX_CODE_BYTES = 100_000
+# Batas data workflow yang boleh diinjeksi sebagai variabel. 256 KB cukup untuk
+# payload trigger realistis (satu halaman webhook) dan tetap jauh di bawah
+# batas memori sandbox (128 MB).
+CODE_MAX_VARS_BYTES = 262_144
 
 # Bahasa yang didukung.
 LANGUAGES = ("python", "javascript")
+
+#: Nama variabel yang menerima data workflow di dalam kode user.
+#:
+#: KENAPA BUKAN `input`:
+#:   `input` DITOLAK oleh penjaga AST (lihat `validate_python`) sebagai nama
+#:   terlarang — ia memanggil `input()` yang bisa membaca stdin. Kalau
+#:   variabel data dinamai `input`, setiap kode yang MEMBACANYA akan ditolak
+#:   sandbox: fiturnya mati sebelum lahir. Nama ini juga harus cocok dengan
+#:   yang dipakai jalur JavaScript (`const input_data = …`) supaya user hanya
+#:   perlu mengingat SATU nama untuk kedua bahasa.
+VARS_NAME = "input_data"
 
 # Modul yang DILARANG diimpor (kalau kelak ada allowlist impor).
 FORBIDDEN_MODULES = frozenset({
@@ -464,6 +479,17 @@ _PY_RUNNER = textwrap.dedent('''
                     g[nama] = getattr(_b, nama)
 
             ns = dict(g)
+            # Data workflow masuk sebagai SATU variabel (VARS_NAME), BUKAN
+            # sebagai substitusi teks ke dalam kode — lihat catatan panjang di
+            # `_exec_code` (execution_engine.py). Satu variabel, bukan sebar
+            # kunci: nama variabel jadi tetap (tidak bisa menabrak apa pun) dan
+            # kunci payload boleh berbentuk apa saja.
+            # Kunci sudah dibersihkan di proses API oleh `sanitize_vars`, tapi
+            # penjaga kedua di sini murah dan menjaga runner tetap aman walau
+            # dipanggil tanpa lewat `execute()`.
+            _data = payload.get("vars")
+            if isinstance(_data, dict):
+                ns["input_data"] = _data
             exec(bytecode, ns)
 
             keluaran = ""
@@ -579,6 +605,45 @@ def _win_assign_job(job, proc) -> bool:
         return False
 
 
+def _tolak_json(obj: Any) -> Any:
+    """`default=` untuk json.dumps: TOLAK objek yang bukan data murni."""
+    raise TypeError(f"nilai bukan data JSON: {type(obj).__name__}")
+
+
+def sanitize_vars(vars_in: Any) -> dict:
+    """Ubah data workflow menjadi nilai JSON-murni yang aman diinjeksi.
+
+    JSON round-trip di sini BUKAN formalitas — ia adalah sanitizer:
+
+      * Hanya dict/list/str/int/float/bool/None yang selamat. Objek Python apa
+        pun (modul, kelas, fungsi, file handle, generator) GAGAL serialisasi
+        dan dibuang. Jadi tidak ada jalan bagi objek berkemampuan-kode untuk
+        masuk ke namespace sandbox lewat jalur data.
+      * Nilai yang gagal diserialisasi DIBUANG satu per satu — bukan diganti
+        `str(obj)`, karena `str()` pada objek tak dikenal memanggil `__repr__`
+        milik objek itu.
+
+    Kunci TIDAK disaring, dan itu keputusan sadar: data masuk sebagai SATU
+    variabel (`VARS_NAME`), jadi kunci apa pun hanyalah isi data — ia tidak
+    bisa lagi menimpa nama internal runner atau menyamar sebagai `result`.
+    Menyaring kunci justru akan membuang data senyap pada payload nyata yang
+    berkunci `@timestamp`, `user-id`, atau `_meta`.
+    """
+    if not isinstance(vars_in, dict):
+        return {}
+    bersih: dict[str, Any] = {}
+    for kunci, nilai in vars_in.items():
+        try:
+            bersih[str(kunci)] = json.loads(
+                json.dumps(nilai, default=_tolak_json))
+        except Exception:  # noqa: BLE001 - nilai buruk = dibuang, bukan crash
+            continue
+    if len(json.dumps(bersih, default=_tolak_json)) > CODE_MAX_VARS_BYTES:
+        raise SandboxError(
+            f"data workflow terlalu besar (>{CODE_MAX_VARS_BYTES} byte)")
+    return bersih
+
+
 def _python_bin() -> str:
     """Interpreter untuk subprocess sandbox.
 
@@ -611,8 +676,13 @@ def _python_env() -> dict:
 
 def run_python(code: str, *, timeout_s: int = CODE_TIMEOUT_S,
                memory_mb: int = CODE_MEMORY_MB,
-               allow: Optional[list[str]] = None) -> dict:
+               allow: Optional[list[str]] = None,
+               vars: Optional[dict] = None) -> dict:
     """Jalankan kode Python di subprocess terisolasi.
+
+    `vars` adalah data workflow yang diekspos ke kode user sebagai SATU
+    variabel `input_data` (lihat `VARS_NAME`). Ia selalu melewati
+    `sanitize_vars` — hanya data JSON murni yang bisa masuk.
 
     Return dict: {ok, result, error, stdout, stderr, duration_s,
                   os_limits, killed}
@@ -624,6 +694,7 @@ def run_python(code: str, *, timeout_s: int = CODE_TIMEOUT_S,
         "memory_mb": int(memory_mb),
         "cpu_s": int(timeout_s),
         "allow": list(allow or SAFE_BUILTIN_NAMES),
+        "vars": sanitize_vars(vars),
     })
     t0 = time.monotonic()
     killed = False
@@ -691,9 +762,12 @@ def run_python(code: str, *, timeout_s: int = CODE_TIMEOUT_S,
             hasil["ok"] = bool(data.get("ok"))
             hasil["result"] = data.get("result")
             hasil["os_limits"] = data.get("os_limits", "unknown")
-            printed = data.get("printed") or ""
-            if printed:
-                hasil["stdout"] = _potong(printed)
+            # stdout = keluaran `print()` user SAJA.
+            # Sebelumnya penetapan ini bersyarat (`if printed:`), sehingga saat
+            # kode TIDAK memanggil print() nilainya tetap `_potong(stdout)` —
+            # yaitu baris JSON internal runner. Node Code menampilkan field ini
+            # apa adanya ke user, jadi bocoran itu terbaca sebagai "output".
+            hasil["stdout"] = _potong(data.get("printed") or "")
             if data.get("error"):
                 # Dipotong juga: sebelumnya `error` LOLOS tanpa batas sehingga
                 # exception 100KB mengalir utuh ke respons API (stdout/stderr
@@ -712,7 +786,8 @@ def run_python(code: str, *, timeout_s: int = CODE_TIMEOUT_S,
 
 
 def run_javascript(code: str, *, timeout_s: int = CODE_TIMEOUT_S,
-                   memory_mb: int = CODE_MEMORY_MB) -> dict:
+                   memory_mb: int = CODE_MEMORY_MB,
+                   vars: Optional[dict] = None) -> dict:
     """Jalankan JavaScript lewat `node` bila tersedia.
 
     Tidak ada runtime JS di proses API — bila `node` tidak ada, ini
@@ -726,10 +801,25 @@ def run_javascript(code: str, *, timeout_s: int = CODE_TIMEOUT_S,
                 "stdout": "", "stderr": "", "duration_s": 0.0,
                 "os_limits": "n/a", "killed": False, "language": "javascript"}
 
+    # Data workflow diinjeksi sebagai variabel `input_data`, BUKAN sebagai
+    # substitusi teks ke dalam kode (alasan sama seperti jalur Python).
+    #
+    # Kenapa `JSON.parse("<literal>")` dan bukan objek literal langsung:
+    # pada objek literal JavaScript, kunci `__proto__` MENYETEL prototipe
+    # (prototype pollution), sedangkan `JSON.parse` membuatnya sebagai properti
+    # biasa. Karena kunci di sini berasal dari data workflow milik user, itu
+    # perbedaan yang penting. String literal-nya sendiri dihasilkan oleh
+    # json.dumps dari json.dumps, jadi selalu ter-escape dengan benar.
+    _json_text = json.dumps(sanitize_vars(vars), ensure_ascii=True)
+    _literal = json.dumps(_json_text).replace("\u2028", "\\u2028") \
+                                    .replace("\u2029", "\\u2029")
+    _prelude = f"const {VARS_NAME} = JSON.parse({_literal});\n"
+
     pembungkus = (
         "const __out = [];\n"
         "const console = { log: (...a) => __out.push(a.map(x => "
         "typeof x === 'object' ? JSON.stringify(x) : String(x)).join(' ')) };\n"
+        f"{_prelude}"
         f"{code}\n"
         "process.stdout.write(JSON.stringify({ok:true, result: "
         "(typeof result !== 'undefined' ? result : null), log: __out}));"
@@ -768,9 +858,12 @@ def run_javascript(code: str, *, timeout_s: int = CODE_TIMEOUT_S,
                 data = json.loads(baris)
                 hasil["ok"] = bool(data.get("ok"))
                 hasil["result"] = data.get("result")
+                # Sama seperti jalur Python: stdout hanya berisi `console.log`
+                # user, bukan baris JSON internal runner.
                 log = data.get("log")
-                if isinstance(log, list) and log:
-                    hasil["stdout"] = _potong("\n".join(str(x) for x in log))
+                hasil["stdout"] = _potong(
+                    "\n".join(str(x) for x in log)
+                    if isinstance(log, list) else "")
                 return hasil
             except json.JSONDecodeError:
                 continue
@@ -825,12 +918,15 @@ def execute(code: str, language: str = "python", *,
             timeout_s: int = CODE_TIMEOUT_S,
             memory_mb: int = CODE_MEMORY_MB,
             allow: Optional[list[str]] = None,
+            vars: Optional[dict] = None,
             execution_id: Optional[str] = None,
             step_id: Optional[str] = None) -> dict:
     """Titik masuk tunggal untuk node Code.
 
     Selalu mengembalikan dict (tidak pernah melempar untuk kode user yang
     buruk) supaya mesin workflow bisa menandai node gagal dengan rapi.
+
+    `vars` = data workflow yang diekspos ke kode sebagai `input_data`.
     """
     if not isinstance(code, str):
         return {"ok": False, "result": None, "error": "kode harus berupa teks",
@@ -844,10 +940,10 @@ def execute(code: str, language: str = "python", *,
     try:
         if language == "python":
             hasil = run_python(code, timeout_s=timeout_s, memory_mb=memory_mb,
-                               allow=allow)
+                               allow=allow, vars=vars)
         elif language == "javascript":
             hasil = run_javascript(code, timeout_s=timeout_s,
-                                   memory_mb=memory_mb)
+                                   memory_mb=memory_mb, vars=vars)
         else:
             return {"ok": False, "result": None,
                     "error": f"bahasa tidak didukung: {language!r}",
@@ -888,6 +984,10 @@ def capabilities() -> dict:
         "javascript_available": _cari_node() is not None,
         "timeout_s": CODE_TIMEOUT_S,
         "memory_mb": CODE_MEMORY_MB,
+        "max_output_bytes": CODE_MAX_OUTPUT_BYTES,
+        "max_code_bytes": CODE_MAX_CODE_BYTES,
+        "data_variable": VARS_NAME,
+        "max_data_bytes": CODE_MAX_VARS_BYTES,
         "os_resource_limits": os_limits,
         "memory_enforced": memory_mechanism != "tidak ditegakkan",
         "memory_mechanism": memory_mechanism,
@@ -895,4 +995,24 @@ def capabilities() -> dict:
         "filesystem_default": "blocked (tanpa open)",
         "ast_guard": "RestrictedPython + allowlist + tolak dunder di str.format",
         "platform": sys.platform,
+    }
+
+
+def info() -> dict:
+    """Ringkasan sandbox untuk `/version` — permukaan publik, bukan internal.
+
+    Dipisah dari `capabilities()` (yang melaporkan MEKANISME penegakan) supaya
+    `/version` bisa menjawab "fitur ini tersambung ke mana saja" tanpa
+    membocorkan detail implementasi keamanan.
+    """
+    caps = capabilities()
+    return {
+        "enabled": True,
+        "languages": caps["languages"],
+        "javascript_available": caps["javascript_available"],
+        "max_timeout_s": caps["timeout_s"],
+        "memory_limit_mb": caps["memory_mb"],
+        "memory_enforced": caps["memory_enforced"],
+        "data_variable": caps["data_variable"],
+        "endpoints": ["code_node", "mcp_execute_code"],
     }

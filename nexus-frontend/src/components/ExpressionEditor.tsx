@@ -40,8 +40,25 @@ export default function ExpressionEditor(props: {
   placeholder?: string;
   onChange: (value: string) => void;
   minHeight?: string;
+  /** Nomor baris. Berguna untuk KODE (banyak baris), tidak untuk ekspresi. */
+  lineNumbers?: boolean;
+  /**
+   * Saran autocomplete `{{`-triggered.
+   *
+   *   undefined -> perilaku lama (variabel workflow: trigger.body, …)
+   *   null      -> autocomplete DIMATIKAN
+   *
+   * `null` dipakai oleh node Code, dan itu keputusan sadar: `{{...}}` TIDAK
+   * disubstitusi di dalam `config.code` (substitusi teks pada kode = data
+   * tak tepercaya menjadi program). Menawarkan `trigger.body` di sana akan
+   * menghasilkan kode yang terlihat benar tapi tidak pernah terisi — lebih
+   * buruk daripada tidak ada saran sama sekali. Data workflow masuk sebagai
+   * variabel `input_data`.
+   */
+  suggestions?: { label: string; detail?: string }[] | null;
 }) {
-  const { value, placeholder, onChange, minHeight } = props;
+  const { value, placeholder, onChange, minHeight, lineNumbers, suggestions } = props;
+  const daftar = suggestions === undefined ? SUGGESTIONS : suggestions;
   return (
     <div className="nodrag overflow-hidden rounded-md border border-gray-600 bg-gray-900 font-mono text-[12px]">
       <style>{`.nodrag .cm-tooltip-autocomplete, .nodrag .cm-tooltip { z-index: 9999 !important; }`}</style>
@@ -50,8 +67,12 @@ export default function ExpressionEditor(props: {
         placeholder={placeholder ?? "Ketik... (gunakan {{ untuk variabel)"}
         theme="dark"
         height={minHeight ?? "112px"}
-        basicSetup={{ lineNumbers: false, foldGutter: false, highlightActiveLine: false }}
-        extensions={[autocompletion({ override: [braceCompleter] })]}
+        basicSetup={{
+          lineNumbers: lineNumbers ?? false,
+          foldGutter: false,
+          highlightActiveLine: lineNumbers ?? false,
+        }}
+        extensions={daftar ? [autocompletion({ override: [braceCompleter] })] : []}
         onChange={(v) => onChange(v)}
       />
     </div>

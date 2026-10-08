@@ -14,7 +14,9 @@ export default defineConfig({
   testDir: "./tests",
   // `card-persistence.unit.spec.ts` diuji di sini juga: ia hanya memanggil
   // fungsi murni `decodePersistedCard`, jadi tidak butuh browser/backend.
-  testMatch: /(execution-report-healing|repro-integrations|repro-detail|badge-layout|card-persistence\.unit)\.spec\.ts/,
+  // `node-types.unit.spec.ts`: mengunci "setiap kind di META punya komponen di
+  // NODE_TYPES" — bug nyata node `code` tampil sebagai kotak bawaan React Flow.
+  testMatch: /(execution-report-healing|repro-integrations|repro-detail|badge-layout|card-persistence\.unit|node-types\.unit)\.spec\.ts/,
   // Spec badge-layout memverifikasi produksi nyata: setiap test menunggu
   // kartu pertama + respons registry, yang bisa >15s saat katalog besar.
   // Timeout global 15s (default config repo ini) akan membunuh test yang

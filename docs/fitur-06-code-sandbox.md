@@ -200,3 +200,50 @@ membaca `-e` sebagai nilai ukuran →`illegal value for flag --max-old-space-siz
 ## E. STATUS
 
 Lolos. Lanjut ke Fitur #7 (External Secrets Manager).
+
+---
+
+## F. PENYAMBUNGAN KE PRODUKSI
+
+**Ditemukan kemudian:** semua di atas benar, tetapi fitur ini **tidak punya jalur
+eksekusi**. `code_sandbox.py` bisa diimpor dan `/version` melaporkan
+`06_code_sandbox: true`, padahal tidak ada node, tidak ada tool MCP, dan tidak
+ada UI yang memanggilnya. "Fitur ada" secara teknis, tidak terpakai secara
+praktis.
+
+**Perbaikan:** menambahkan dua titik masuk di atas mesin yang sudah ada —
+**bukan** menulis sandbox baru:
+
+| Jalur | Berkas | Untuk |
+| --- | --- | --- |
+| Node `code` (`NodeKind.CODE` → `_exec_code`) | `execution_engine.py` | pengguna Builder |
+| Tool MCP `execute_code` (`svc_execute_code`) | `mcp_server.py` | agen/LLM |
+
+Keduanya memanggil `code_sandbox.execute()`. UI Builder mendapat editor
+CodeMirror, pemilih bahasa, input batas waktu, dan kotak ringkasan batas.
+
+**Keputusan yang perlu dibaca sebelum mengubah kode:**
+
+1. `{{...}}` **tidak** disubstitusi di dalam `config.code` — data workflow masuk
+   sebagai variabel `input_data` (substitusi teks pada kode = data tak tepercaya
+   menjadi program).
+2. Setiap `CodeExecutionError` berawalan `"CodeExecutionError: "` supaya cocok
+   dengan aturan self-healing `code_execution` (`abort`, `max_attempts=0`).
+   Tanpa itu, pesan timeout sandbox akan cocok dengan aturan `network` dan
+   infinite loop diulang 3× (± 90 detik terbuang).
+3. `sanitize_vars` membuang nilai yang gagal JSON round-trip — **tidak**
+   memakai `str()` (yang akan memanggil `__repr__` objek tak dikenal).
+
+**Empat bug ditemukan saat menyambungkan:** injeksi `vars` Python/JS tidak
+konsisten (satu per-kunci vs satu kontainer); JSON internal runner bocor ke
+`stdout` pengguna; `NODE_TYPES` tidak punya kunci `code` sehingga node tampil
+sebagai **kotak bawaan React Flow** (store benar, render salah, tanpa error);
+dan `kindOf`/`Palette.kindColorVar` menyalin ulang pemetaan kind sehingga
+`cron_trigger` memakai token CSS yang tidak ada.
+
+**Bukti:** `tests/test_sandbox_production.py` (58 tes, termasuk 20 vektor escape
+Python + 11 vektor JS → 0 bocor, bom memori 2 GB → `MemoryError`, timeout 30 s
+nyata), `tests/builder-code-node.spec.ts` (UI), dan `/version` yang memuat blok
+`code_sandbox`.
+
+Rincian lengkap: **`docs/sandbox-production.md`**.

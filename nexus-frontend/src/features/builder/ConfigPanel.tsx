@@ -300,6 +300,95 @@ export function ConfigPanel({
         </>
       )}
 
+      {kind === "code" && (
+        <>
+          <label className="block">
+            <span style={LABEL_STYLE} className={LABEL_CLS}>
+              Bahasa
+            </span>
+            <select
+              className={FIELD_CLS}
+              style={FIELD_STYLE}
+              value={cfg.language ?? "python"}
+              onChange={(e) => setNodeCfg("language", e.target.value)}
+              data-testid="code-language"
+            >
+              <option value="python">Python 3</option>
+              <option value="javascript">JavaScript (Node)</option>
+            </select>
+            <span className={HINT_CLS} style={HINT_STYLE}>
+              Keduanya berjalan di sandbox terpisah, bukan di server aplikasi.
+            </span>
+          </label>
+
+          <label className="block">
+            <span style={LABEL_STYLE} className={LABEL_CLS}>
+              Kode
+            </span>
+            <div className="mt-1">
+              <ExpressionEditor
+                value={cfg.code ?? ""}
+                placeholder={
+                  (cfg.language ?? "python") === "javascript"
+                    ? "// Tetapkan `result` untuk mengembalikan nilai\nresult = input_data.input.nilai * 2;"
+                    : "# Tetapkan `result` untuk mengembalikan nilai\nresult = input_data[\"input\"][\"nilai\"] * 2"
+                }
+                minHeight="168px"
+                lineNumbers
+                // `{{...}}` TIDAK disubstitusi di dalam kode — lihat komentar
+                // di ExpressionEditor. Menawarkan variabel workflow di sini
+                // akan menghasilkan kode yang tidak pernah terisi.
+                suggestions={null}
+                onChange={(v) => setNodeCfg("code", v)}
+              />
+            </div>
+            <span className={HINT_CLS} style={HINT_STYLE}>
+              Data dari node sebelumnya tersedia sebagai variabel{" "}
+              <code>input_data</code>. Tetapkan <code>result</code> untuk
+              mengembalikan nilai; <code>print()</code>/<code>console.log()</code>{" "}
+              masuk ke stdout.
+            </span>
+          </label>
+
+          <label className="block">
+            <span style={LABEL_STYLE} className={LABEL_CLS}>
+              Batas waktu (detik)
+            </span>
+            <input
+              type="number"
+              min={1}
+              max={30}
+              className={FIELD_CLS}
+              style={FIELD_STYLE}
+              value={cfg.timeout_s ?? "30"}
+              onChange={(e) => setNodeCfg("timeout_s", e.target.value)}
+              data-testid="code-timeout"
+            />
+            <span className={HINT_CLS} style={HINT_STYLE}>
+              Maksimum 30 detik. Kode yang melewatinya dihentikan paksa.
+            </span>
+          </label>
+
+          <div className={BOX_CLS} style={BOX_STYLE}>
+            <div className="mb-2 text-[11px] font-bold uppercase tracking-wide" style={LABEL_STYLE}>
+              Batas sandbox
+            </div>
+            <ul
+              className="flex flex-col gap-1 text-[11px] leading-snug"
+              style={{ color: "var(--canvas-text-primary)" }}
+            >
+              <li>• Tanpa <code>import</code> — <code>import os</code> ditolak sebelum kode berjalan.</li>
+              <li>• Tanpa jaringan, tanpa akses filesystem.</li>
+              <li>• Memori 128 MB, keluaran dipotong 64 KB.</li>
+            </ul>
+            <span className={HINT_CLS} style={HINT_STYLE}>
+              Kode yang gagal TIDAK diulang otomatis: perbaiki kodenya lalu
+              jalankan ulang.
+            </span>
+          </div>
+        </>
+      )}
+
       {kind === "mcp" && (
         <div className="flex flex-col gap-3">
           <label className="block">

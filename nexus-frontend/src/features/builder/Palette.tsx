@@ -3,6 +3,7 @@
 import { useCallback, useRef, useState } from "react";
 import { ChevronUp, Plus, Trash2 } from "lucide-react";
 import { META, type Kind } from "./types";
+import { cssKind } from "./nodes/CanvasNode";
 import { useI18n } from "@/i18n/context";
 import { StaggerItem, StaggerList } from "@/components/motion";
 
@@ -21,7 +22,11 @@ import { StaggerItem, StaggerList } from "@/components/motion";
  */
 
 function kindColorVar(kind: Kind): string {
-  return `var(--node-${kind === "agent" ? "action" : kind}-color)`;
+  // Memakai `cssKind()` yang sama dengan kanvas. Sebelumnya fungsi ini menulis
+  // ulang pemetaannya sendiri (`kind === "agent" ? "action" : kind`), sehingga
+  // `cron_trigger` menghasilkan token yang TIDAK PERNAH ADA
+  // (`--node-cron_trigger-color`) dan item palette-nya jatuh ke warna default.
+  return `var(--node-${cssKind(kind)}-color)`;
 }
 
 function PaletteList({

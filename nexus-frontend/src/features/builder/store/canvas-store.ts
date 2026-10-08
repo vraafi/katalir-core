@@ -172,7 +172,24 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
           id,
           type: kind,
           position: pos,
-          data: { kind, label: kind },
+          data: {
+            kind,
+            label: kind,
+            // Node Code TANPA `config.code` langsung gagal saat dijalankan dan
+            // juga ditolak validasi draf — jadi node baru akan terasa "rusak"
+            // padahal cuma belum diisi. Contoh dua baris ini membuat node baru
+            // langsung bisa di-Run, sekaligus memperagakan kontraknya
+            // (tetapkan `result`).
+            ...(kind === "code"
+              ? {
+                  config: {
+                    language: "python",
+                    timeout_s: "30",
+                    code: 'result = 1 + 1',
+                  },
+                }
+              : {}),
+          },
         },
       ],
     });

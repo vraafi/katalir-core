@@ -246,9 +246,13 @@ async def _t02():
     await cli.initialize()
     tools = await cli.list_tools()
     names = sorted(t["name"] for t in tools)
+    # `execute_code` (fitur #6) ditambahkan saat sandbox disambungkan ke
+    # produksi. Daftar ini adalah KONTRAK permukaan tool: menambah/menghapus
+    # tool tanpa memperbarui baris ini harus menggagalkan tes.
     expected = sorted([
         "create_workflow", "update_workflow", "list_workflows",
         "execute_workflow", "get_execution_status",
+        "execute_code",
     ])
     assert names == expected, f"daftar tool tidak sesuai: {names}"
     for t in tools:
@@ -256,6 +260,13 @@ async def _t02():
         schema = t.get("inputSchema") or {}
         assert schema.get("type") == "object", f"{t['name']} inputSchema bukan object"
         assert isinstance(schema.get("properties"), dict), f"{t['name']} properties bukan dict"
+    # Kontrak argumen execute_code: `code` wajib, `language`/`timeout_s` opsional.
+    code_tool = next(t for t in tools if t["name"] == "execute_code")
+    code_props = (code_tool.get("inputSchema") or {}).get("properties") or {}
+    code_req = (code_tool.get("inputSchema") or {}).get("required") or []
+    assert "code" in code_props, f"execute_code tanpa properti 'code': {code_props}"
+    assert set(code_req) == {"code"}, f"execute_code required={code_req} (harus ['code'])"
+    assert "language" in code_props and "timeout_s" in code_props, code_props
     print(f"[2] tools={names}")
     for t in tools:
         req = (t.get("inputSchema") or {}).get("required") or []

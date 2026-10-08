@@ -4502,7 +4502,23 @@ def _limits_info() -> dict:
         pass
     try:
         import code_sandbox
+        # DUA kunci, dan keduanya disengaja:
+        #   `sandbox`      = MEKANISME penegakan (RLIMIT_AS vs Job Object).
+        #                    Dipakai laporan hard test untuk membuktikan batas
+        #                    memori benar-benar berlaku di platform ini.
+        #   `code_sandbox` = PERMUKAAN PUBLIK fitur #6 (bahasa, batas, endpoint).
+        #                    Dipakai untuk menjawab "fitur ini tersambung ke
+        #                    mana saja" tanpa membocorkan detail internal.
         info["sandbox"] = code_sandbox.capabilities()
+        info["code_sandbox"] = code_sandbox.info()
+    except Exception:  # noqa: BLE001
+        pass
+    try:
+        import mcp_server
+        # Membuktikan tool MCP benar-benar TERDAFTAR, bukan sekadar ada di
+        # kode: daftar ini dibaca dari `describe()` yang sumbernya sama dengan
+        # yang dipakai klien MCP.
+        info["mcp_tools"] = [t["name"] for t in mcp_server.describe().get("tools", [])]
     except Exception:  # noqa: BLE001
         pass
     try:

@@ -1,5 +1,5 @@
 import type { Edge, Node } from "@xyflow/react";
-import { type FlowNode, type Kind } from "./types";
+import { META, type FlowNode, type Kind } from "./types";
 
 /**
  * Identitas node/edge untuk kanvas Builder (FASE stabilisasi).
@@ -32,15 +32,27 @@ let counter = ID_BASE;
  *                      jadi selalu ada pada node yang valid.
  *   3. prefix id    -- heuristik terlemah; id draf AI bisa berupa "n1"/"m2"
  *                      sehingga prefix tidak selalu bermakna.
+ *
+ * Sumber kebenaran daftar kind adalah KUNCI `META`, bukan daftar literal di
+ * sini. Versi sebelumnya menulis ulang daftarnya tiga kali
+ * (`"trigger" || "agent" || "mcp"`), dan akibatnya `cron_trigger` — yang ADA
+ * di META — selalu jatuh ke `"agent"`. Menambah kind baru ke META kini cukup
+ * satu tempat.
  */
+const KIND_NAMES = new Set<string>(Object.keys(META));
+
+function asKind(value: unknown): Kind | null {
+  const s = String(value ?? "");
+  return KIND_NAMES.has(s) ? (s as Kind) : null;
+}
+
 export function kindOf(node: Partial<FlowNode> | null | undefined): Kind {
-  const fromData = (node?.data as { kind?: string } | undefined)?.kind;
-  if (fromData === "trigger" || fromData === "agent" || fromData === "mcp") return fromData;
-  const t = String(node?.type ?? "");
-  if (t === "trigger" || t === "agent" || t === "mcp") return t as Kind;
-  const prefix = typeof node?.id === "string" ? node.id.split("-")[0] : "";
-  if (prefix === "trigger" || prefix === "agent" || prefix === "mcp") return prefix as Kind;
-  return "agent";
+  return (
+    asKind((node?.data as { kind?: string } | undefined)?.kind) ??
+    asKind(node?.type) ??
+    asKind(typeof node?.id === "string" ? node.id.split("-")[0] : "") ??
+    "agent"
+  );
 }
 
 /**

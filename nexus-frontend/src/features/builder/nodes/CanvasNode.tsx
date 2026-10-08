@@ -46,6 +46,9 @@ function subtitleFor(kind: Kind, data: FlowNodeData): string {
     return cfg.cron ? String(cfg.cron) : "belum ada ekspresi cron";
   }
   if (kind === "mcp") return cfg.tool ? String(cfg.tool) : META.mcp.desc;
+  if (kind === "code") {
+    return cfg.language === "javascript" ? "JavaScript · sandbox" : "Python · sandbox";
+  }
   return META.agent.desc;
 }
 
@@ -97,6 +100,15 @@ export function previewFor(kind: Kind, data: FlowNodeData): string {
     const t = cfg.tool ? String(cfg.tool) : "pilih tool";
     return cfg.param ? `${t} · ${String(cfg.param).slice(0, 60)}` : `Tool: ${t}`;
   }
+  if (kind === "code") {
+    // Baris pertama kode, bukan seluruhnya: pratinjau harus tetap satu baris
+    // agar tinggi kartu node seragam.
+    const kode = String(cfg.code ?? "").split("\n").map((l) => l.trim())
+      .find((l) => l.length > 0);
+    if (!kode) return "Belum ada kode — buka konfigurasi untuk mengisi.";
+    const batas = cfg.timeout_s ? ` · ${String(cfg.timeout_s)}s` : "";
+    return `${kode.slice(0, 72)}${batas}`;
+  }
   const model = cfg.model === "deepseek-flash" ? "DeepSeek V4 Flash" : "Universal AI";
   const prompt = cfg.prompt ? String(cfg.prompt).replace(/\s+/g, " ").slice(0, 90) : "prompt belum diisi";
   return `${model} · ${prompt}`;
@@ -111,8 +123,11 @@ const STATUS_LABEL: Record<NodeStatus, string> = {
 
 /**
  * Nama kind -> token CSS `--node-<x>-color`.
- * `agent` memakai token aksi (--node-action-color) dan `cron_trigger`
- * memakai --node-cron-color; sisanya 1:1 dengan nama kind.
+ * `agent` memakai token aksi (--node-action-color), `cron_trigger` memakai
+ * --node-cron-color, dan `code` memakai --node-code-color; sisanya 1:1 dengan
+ * nama kind. Setiap tema di globals.css WAJIB mendefinisikan token yang
+ * dirujuk di sini — token yang tidak ada membuat node memakai warna aksi
+ * (fallback), bukan warna kind-nya.
  */
 export function cssKind(kind: Kind): string {
   if (kind === "agent") return "action";

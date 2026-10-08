@@ -30,6 +30,43 @@ import { clearPendingWorkflow, peekPendingWorkflow } from "@/features/agent/work
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
+/**
+ * `true` hanya di viewport < 1024px — breakpoint yang SAMA dengan `lg:hidden`
+ * pada `Sheet` panel konfigurasi mobile.
+ *
+ * KENAPA INI ADA (bug nyata, ditemukan lewat hard test UI node `code`)
+ * ------------------------------------------------------------------
+ * Sebelumnya `Sheet` dibuka dengan `open={!!selectedNode}` di SEMUA lebar
+ * layar, dan hanya disembunyikan lewat `lg:hidden` (CSS `display:none`).
+ * `display:none` TIDAK mematikan logika Radix: `DialogPrimitive.Root` tetap
+ * menganggap dirinya terbuka, sehingga `DismissableLayer`-nya menutup diri
+ * begitu ada pointerdown/focus DI LUAR `Content`-nya → `onOpenChange(false)`
+ * → `setSelectedId(null)`.
+ *
+ * Akibat terukurnya: di desktop, mengisi kolom APA PUN di panel konfigurasi
+ * (`config-aside`) menutup panel itu sendiri. Bukti probe:
+ *   `Q1 FILL: aside before=1 after=0 | dialog before=1 after=0 | ?n=null`
+ * Nilainya tetap tersimpan (probe Q1c membaca `timeout="12"` setelah memilih
+ * ulang node), jadi yang rusak hanya VISIBILITAS panel — dan itu membuat panel
+ * konfigurasi desktop tidak bisa dipakai mengedit sama sekali.
+ *
+ * `lg:hidden` pada Content/Overlay tetap dipertahankan: ia menutup celah
+ * hidrasi (render pertama di server belum tahu lebar viewport, jadi `mobile`
+ * bernilai `false` lebih dulu — aman: sheet tidak pernah berkedip di desktop).
+ */
+function useSheetMobile(): boolean {
+  const [mobile, setMobile] = useState(false);
+  useEffect(() => {
+    if (typeof window === "undefined" || !window.matchMedia) return;
+    const mq = window.matchMedia("(max-width: 1023px)");
+    const sync = () => setMobile(mq.matches);
+    sync();
+    mq.addEventListener("change", sync);
+    return () => mq.removeEventListener("change", sync);
+  }, []);
+  return mobile;
+}
+
 export function BuilderInner() {
   // FASE 5: nama landmark panel konfigurasi (lihat messages `builder.configPanelLabel`).
   const { t } = useI18n();
@@ -42,6 +79,9 @@ export function BuilderInner() {
     "n",
     parseAsString.withOptions({ shallow: true, clearOnDefault: true })
   );
+
+  // Panel konfigurasi sebagai bottom-sheet HANYA berlaku di ponsel (< lg).
+  const sheetMobile = useSheetMobile();
 
   // --- canvas state via Zustand store (single-source-of-truth) ---
   const { nodes, edges, onNodesChange, onEdgesChange, onConnect, setNodes, setEdges, replaceWork, addNode, clearWork } =
@@ -350,7 +390,14 @@ export function BuilderInner() {
         }}
       />
       <Sheet
-        open={!!selectedNode}
+        // `open={... && sheetMobile}` BUKAN hiasan: `lg:hidden` saja TIDAK
+        // cukup. Radix tetap menganggap dialognya TERBUKA (display:none tidak
+        // mengubah state) dan menutup dirinya pada pointerdown/focus di luar
+        // Content — di desktop itu berarti setiap kali pengguna mengisi kolom
+        // di `config-aside`, panelnya sendiri ikut tertutup. Bukti probe:
+        // `Q1 FILL: aside before=1 after=0 | dialog before=1 after=0 | ?n=null`.
+        // Lihat `useSheetMobile` di atas untuk rinciannya.
+        open={!!selectedNode && sheetMobile}
         onOpenChange={(o) => {
           if (!o) {
             setSelectedId(null);

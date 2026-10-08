@@ -26,8 +26,13 @@ from pydantic import BaseModel, Field, ValidationError
 # eksekusi, supaya "draf valid" == "draf bisa dijalankan".
 import provider_registry
 
-# Kind node HARUS sama dengan META di types.ts (trigger | agent | mcp).
-Kind = Literal["trigger", "agent", "mcp"]
+# Kind node HARUS sama dengan META di types.ts (trigger | agent | mcp | code).
+#
+# 2026-10-08: `code` ditambahkan bersama penyambungan fitur #6 ke produksi
+# (node CODE di execution_engine). Tanpa entri di sini, model TIDAK BISA
+# membuat node code sama sekali: `SpecNode.kind` bertipe Literal ini, jadi
+# draf berisi node code ditolak Pydantic sebelum sempat divalidasi.
+Kind = Literal["trigger", "agent", "mcp", "code"]
 
 # Provider yang punya jalur kredensial (dipakai alur credential prompt 2.3).
 # BUG FIX 2026-10-03: `google_calendar` DITAMBAHKAN.
@@ -132,6 +137,38 @@ def validate_spec(raw: str) -> dict[str, Any]:
 
     if not [n for n in spec.nodes if n.kind == "trigger"]:
         errors.append("tidak ada node kind='trigger' (tanpa pemicu workflow tak bisa jalan)")
+
+    # Node CODE (fitur #6 disambungkan ke produksi, 2026-10-08).
+    # Validasi di sini menutup kelas "draf valid tapi tidak bisa dijalankan":
+    # node code tanpa config.code akan gagal saat eksekusi, jadi lebih baik
+    # ditolak sekarang supaya model bisa memperbaiki lewat repair loop.
+    for n in spec.nodes:
+        if n.kind != "code":
+            continue
+        kode = n.config.get("code")
+        if not isinstance(kode, str) or not kode.strip():
+            errors.append(f"node code '{n.id}' wajib punya config.code "
+                          f"(string tidak kosong)")
+        lang = str(n.config.get("language") or "python").strip().lower()
+        if lang not in ("python", "javascript"):
+            errors.append(f"node code '{n.id}' config.language harus "
+                          f"'python' atau 'javascript', bukan '{lang}'")
+        if "timeout_s" in n.config:
+            try:
+                t = int(n.config["timeout_s"])
+            except (TypeError, ValueError):
+                errors.append(f"node code '{n.id}' config.timeout_s harus "
+                              f"angka")
+            else:
+                if t < 1:
+                    errors.append(f"node code '{n.id}' config.timeout_s "
+                                  f"minimal 1 detik")
+                elif t > 30:
+                    # Bukan penolakan: runtime menjepitnya ke 30s. Diberitahu
+                    # supaya model tidak menjanjikan waktu jalan yang lebih
+                    # lama daripada yang benar-benar diberikan runtime.
+                    errors.append(f"node code '{n.id}' config.timeout_s "
+                                  f"maksimal 30 detik (runtime menjepitnya)")
 
     for n in spec.nodes:
         if n.kind != "mcp":
