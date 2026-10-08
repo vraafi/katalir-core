@@ -42,8 +42,8 @@
   "composerPosition": "static",
   "composerRadius": "24px",
   "composerBg": "rgb(255, 255, 255)",
-  "composerBorder": "rgba(130, 132, 239, 0.57)",
-  "composerShadow": "rgba(255, 255, 255, 0.863) 0px 0px 0px 0px, rgba(99, 102, 241, 0.216) 0px 0px 0px 1.72543px, rgba(0, 0, 0, 0.1) 0px 18.9017px 25.961px -4.86271px, rgba(0, 0, 0, 0.09) 0px 7.45085px 9.72543px -5.72543px",
+  "composerBorder": "rgba(146, 148, 237, 0.61)",
+  "composerShadow": "rgba(255, 255, 255, 0.776) 0px 0px 0px 0px, rgba(99, 102, 241, 0.192) 0px 0px 0px 1.55178px, rgba(0, 0, 0, 0.1) 0px 18.2071px 26.5688px -4.77589px, rgba(0, 0, 0, 0.086) 0px 7.10356px 9.55178px -5.55178px",
   "composerChain": [
     "form.k-chat-composer=static",
     "div.mx-auto=static",
