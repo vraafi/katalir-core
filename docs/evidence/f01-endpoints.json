@@ -1,0 +1,168 @@
+{
+  "backends": {
+    "status": "success",
+    "backends": [
+      {
+        "backend": "1password",
+        "available": false,
+        "class": "OnePasswordProvider"
+      },
+      {
+        "backend": "aws",
+        "available": true,
+        "class": "AWSSecretsManager"
+      },
+      {
+        "backend": "doppler",
+        "available": false,
+        "class": "DopplerProvider"
+      },
+      {
+        "backend": "hashicorp",
+        "available": true,
+        "class": "HashiCorpVault"
+      },
+      {
+        "backend": "infisical",
+        "available": false,
+        "class": "InfisicalProvider"
+      },
+      {
+        "backend": "katalir",
+        "available": true,
+        "class": "KatalirVault"
+      },
+      {
+        "backend": "onepassword",
+        "available": false,
+        "class": "OnePasswordProvider"
+      },
+      {
+        "backend": "openbao",
+        "available": true,
+        "class": "OpenBaoVault"
+      },
+      {
+        "backend": "vault",
+        "available": true,
+        "class": "HashiCorpVault"
+      }
+    ],
+    "default": "katalir"
+  },
+  "info": {
+    "status": "success",
+    "providers": {
+      "hashicorp": {
+        "available": true,
+        "addr": "http://127.0.0.1:8200",
+        "version": "2.1.2",
+        "sealed": false,
+        "cluster_name": "vault-cluster-4aaa88e8"
+      },
+      "openbao": {
+        "available": true,
+        "addr": "http://127.0.0.1:8210",
+        "version": "2.7.1",
+        "sealed": false,
+        "cluster_name": "vault-cluster-c245ecc5"
+      },
+      "aws": {
+        "available": true,
+        "endpoint": "http://127.0.0.1:4566",
+        "region": "us-east-1",
+        "secret_count": 2
+      }
+    }
+  },
+  "resolve::secret://hashicorp/demo/db": {
+    "mask": {
+      "status": "success",
+      "backend": "hashicorp",
+      "reveal": false,
+      "value": "***",
+      "bytes": 15
+    },
+    "reveal": {
+      "status": "success",
+      "backend": "hashicorp",
+      "reveal": true,
+      "value": "vault-pass-2026",
+      "bytes": 15
+    }
+  },
+  "resolve::secret://openbao/demo/db": {
+    "mask": {
+      "status": "success",
+      "backend": "openbao",
+      "reveal": false,
+      "value": "***",
+      "bytes": 17
+    },
+    "reveal": {
+      "status": "success",
+      "backend": "openbao",
+      "reveal": true,
+      "value": "openbao-pass-2026",
+      "bytes": 17
+    }
+  },
+  "resolve::secret://aws/demo/db": {
+    "mask": {
+      "status": "success",
+      "backend": "aws",
+      "reveal": false,
+      "value": "***",
+      "bytes": 13
+    },
+    "reveal": {
+      "status": "success",
+      "backend": "aws",
+      "reveal": true,
+      "value": "aws-pass-2026",
+      "bytes": 13
+    }
+  },
+  "failover": {
+    "status": "success",
+    "backend": "failover-chain",
+    "reveal": true,
+    "value": "vault-pass-2026",
+    "bytes": 15
+  },
+  "history": {
+    "status": "success",
+    "path": "rotate/db",
+    "history": [
+      {
+        "owner": "otonom-test@katalir-internal.dev",
+        "path": "rotate/db",
+        "version": 1,
+        "rotated_at": 1791486708.7131958
+      },
+      {
+        "owner": "otonom-test@katalir-internal.dev",
+        "path": "rotate/db",
+        "version": 2,
+        "rotated_at": 1791486710.7982092
+      }
+    ],
+    "current_version": 2
+  },
+  "traversal": {
+    "status": 400,
+    "body": "{\"detail\":\"referensi rahasia tidak boleh absolut / bersegmen kosong: 'openbao//etc/shadow'\"}"
+  },
+  "too_large": {
+    "status": 413,
+    "body": "{\"detail\":\"rahasia terlalu besar: 262145 byte > 262144 byte\"}"
+  },
+  "ui": {
+    "status": 200,
+    "len": 8295
+  },
+  "no_token": {
+    "status": 401
+  },
+  "screenshot": "C:\\Users\\user\\Proyek_AI\\docs\\evidence\\f01-secrets-admin.png"
+}

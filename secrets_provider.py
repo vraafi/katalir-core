@@ -47,7 +47,7 @@ MASK = "***"
 
 #: Backend yang dikenal. `katalir` selalu tersedia; sisanya opsional.
 KATALIR = "katalir"
-KNOWN_BACKENDS = ("katalir", "hashicorp", "aws", "onepassword")
+KNOWN_BACKENDS = ("katalir", "hashicorp", "openbao", "aws", "onepassword")
 
 
 class SecretsError(Exception):
@@ -283,15 +283,23 @@ class KatalirVault(SecretsProvider):
 # ---------------------------------------------------------------------------
 
 class HashiCorpVault(SecretsProvider):
-    """Adaptor HashiCorp Vault (hvac 2.4.0, Apache-2.0).
+    """Adaptor HashiCorp Vault (hvac 2.4.0, Apache-2.0) — API KV v2 NYATA.
 
     Konfigurasi lewat variabel lingkungan:
-      KATALIR_VAULT_ADDR   mis. https://vault.internal:8200
+      KATALIR_VAULT_ADDR   mis. http://127.0.0.1:8200
       KATALIR_VAULT_TOKEN  token (TIDAK pernah dicetak)
       KATALIR_VAULT_MOUNT  default "secret"
+
+    Riset Okt 2026: Vault **2.1.2** (build 2026-10-06) menjalankan dev server
+    dengan `vault server -dev` tanpa akun/kartu kredit; `hvac` 2.4.0 adalah
+    klien resmi Python (Apache-2.0). Subkelas `OpenBaoVault` memakai ulang
+    kelas ini dengan prefiks env berbeda.
     """
 
     name = "hashicorp"
+    ENV_ADDR = "KATALIR_VAULT_ADDR"
+    ENV_TOKEN = "KATALIR_VAULT_TOKEN"
+    ENV_MOUNT = "KATALIR_VAULT_MOUNT"
 
     def _client(self):
         try:
@@ -300,10 +308,10 @@ class HashiCorpVault(SecretsProvider):
             raise BackendUnavailable(
                 "hvac tidak terpasang — `pip install hvac` untuk memakai "
                 "HashiCorp Vault") from exc
-        addr = os.environ.get("KATALIR_VAULT_ADDR")
-        token = os.environ.get("KATALIR_VAULT_TOKEN")
+        addr = os.environ.get(self.ENV_ADDR)
+        token = os.environ.get(self.ENV_TOKEN)
         if not addr:
-            raise BackendUnavailable("KATALIR_VAULT_ADDR belum diisi")
+            raise BackendUnavailable(f"{self.ENV_ADDR} belum diisi")
         return hvac.Client(url=addr, token=token)
 
     def available(self) -> bool:
@@ -311,16 +319,19 @@ class HashiCorpVault(SecretsProvider):
             import hvac  # noqa: F401
         except ImportError:
             return False
-        return bool(os.environ.get("KATALIR_VAULT_ADDR"))
+        return bool(os.environ.get(self.ENV_ADDR))
+
+    def _mount(self) -> str:
+        return os.environ.get(self.ENV_MOUNT, "secret")
 
     def get(self, path: str, owner: str) -> Optional[str]:
         client = self._client()
-        mount = os.environ.get("KATALIR_VAULT_MOUNT", "secret")
+        mount = self._mount()
         # Ruang nama per-owner: cegah lintas-user.
         jalur = f"{owner}/{path}".strip("/")
         try:
             res = client.secrets.kv.v2.read_secret_version(
-                path=jalur, mount_point=mount)
+                path=jalur, mount_point=mount, raise_on_deleted_version=True)
             data = (res or {}).get("data", {}).get("data", {}) or {}
         except Exception:  # noqa: BLE001 - tidak ada / tidak boleh dibaca
             return None
@@ -331,7 +342,7 @@ class HashiCorpVault(SecretsProvider):
 
     def set(self, path: str, value: str, owner: str) -> bool:
         client = self._client()
-        mount = os.environ.get("KATALIR_VAULT_MOUNT", "secret")
+        mount = self._mount()
         jalur = f"{owner}/{path}".strip("/")
         client.secrets.kv.v2.create_or_update_secret(
             path=jalur, secret={"value": value}, mount_point=mount)
@@ -339,7 +350,7 @@ class HashiCorpVault(SecretsProvider):
 
     def delete(self, path: str, owner: str) -> bool:
         client = self._client()
-        mount = os.environ.get("KATALIR_VAULT_MOUNT", "secret")
+        mount = self._mount()
         jalur = f"{owner}/{path}".strip("/")
         try:
             client.secrets.kv.v2.delete_metadata_and_all_versions(
@@ -348,11 +359,55 @@ class HashiCorpVault(SecretsProvider):
         except Exception:  # noqa: BLE001
             return False
 
+    def list_paths(self, owner: str) -> list[str]:
+        """Daftar path MILIK owner (KV v2 LIST pada prefiks owner)."""
+        client = self._client()
+        try:
+            res = client.secrets.kv.v2.list_secrets(
+                path=owner, mount_point=self._mount())
+            return sorted(res.get("data", {}).get("keys", []) or [])
+        except Exception:  # noqa: BLE001
+            return []
+
+    def info(self) -> dict:
+        """Info server NYATA (versi/seal) — bukti binding, bukan klaim."""
+        client = self._client()
+        h = client.sys.read_health_status(method="GET")
+        return {"addr": os.environ.get(self.ENV_ADDR),
+                "version": h.get("version"),
+                "sealed": h.get("sealed"),
+                "cluster_name": h.get("cluster_name")}
+
+
+class OpenBaoVault(HashiCorpVault):
+    """Adaptor OpenBao (fork Vault oleh Linux Foundation) — API KV v2 NYATA.
+
+    OpenBao adalah produk BERBEDA dari Vault (rilis sendiri: v2.7.1,
+    2026-10-01, MIT) namun kompatibel API, sehingga memakai ulang logika
+    `HashiCorpVault` hanya dengan prefiks env berbeda:
+      KATALIR_OPENBAO_ADDR / _TOKEN / _MOUNT
+    """
+
+    name = "openbao"
+    ENV_ADDR = "KATALIR_OPENBAO_ADDR"
+    ENV_TOKEN = "KATALIR_OPENBAO_TOKEN"
+    ENV_MOUNT = "KATALIR_OPENBAO_MOUNT"
+
 
 class AWSSecretsManager(SecretsProvider):
-    """Adaptor AWS Secrets Manager (boto3, Apache-2.0).
+    """Adaptor AWS Secrets Manager (boto3, Apache-2.0) — API NYATA.
 
-    Konfigurasi: kredensial AWS standar (peran/env) — TIDAK disimpan di sini.
+    Konfigurasi:
+      - Kredensial AWS standar (peran/env) untuk AWS asli, ATAU
+      - **emulator lokal** (MiniStack/LocalStack) lewat:
+          KATALIR_AWS_ENDPOINT_URL = http://127.0.0.1:4566
+          KATALIR_AWS_ACCESS_KEY_ID / KATALIR_AWS_SECRET_ACCESS_KEY (dummy)
+        Kredensial dummy diperlukan karena emulator tetap menandatangani
+        SigV4; nilainya tidak dipakai untuk autentikasi nyata.
+
+    Riset Okt 2026: LocalStack **menghapus tier gratisnya (Maret 2026)**;
+    penggantinya yang gratis/MIT adalah **MiniStack** (`pip install ministack`,
+    port 4566, 60+ layanan, kompatibel boto3) — lihat link di laporan.
     Nama rahasia diberi prefiks owner untuk isolasi antar-user.
     """
 
@@ -365,8 +420,17 @@ class AWSSecretsManager(SecretsProvider):
             raise BackendUnavailable(
                 "boto3 tidak terpasang — `pip install boto3` untuk memakai "
                 "AWS Secrets Manager") from exc
-        region = os.environ.get("KATALIR_AWS_REGION") or None
-        return boto3.client("secretsmanager", region_name=region)
+        region = os.environ.get("KATALIR_AWS_REGION") or "us-east-1"
+        endpoint = os.environ.get("KATALIR_AWS_ENDPOINT_URL") or None
+        kw: dict = {"region_name": region}
+        if endpoint:
+            kw["endpoint_url"] = endpoint
+            # emulator butuh kredensial bentuk-sah (SigV4), bukan kredensial asli
+            kw["aws_access_key_id"] = (os.environ.get("KATALIR_AWS_ACCESS_KEY_ID")
+                                       or "katalir-local")
+            kw["aws_secret_access_key"] = (os.environ.get("KATALIR_AWS_SECRET_ACCESS_KEY")
+                                           or "katalir-local")
+        return boto3.client("secretsmanager", **kw)
 
     def available(self) -> bool:
         try:
@@ -395,6 +459,7 @@ class AWSSecretsManager(SecretsProvider):
         return str(rahasia)
 
     def set(self, path: str, value: str, owner: str) -> bool:
+        import json
         client = self._client()
         nama = f"katalir/{owner}/{path}".strip("/")
         payload = json.dumps({"value": value})
@@ -412,6 +477,27 @@ class AWSSecretsManager(SecretsProvider):
             return True
         except Exception:  # noqa: BLE001
             return False
+
+    def list_paths(self, owner: str) -> list[str]:
+        client = self._client()
+        prefiks = f"katalir/{owner}/"
+        try:
+            daftar = client.list_secrets().get("SecretList", []) or []
+        except Exception:  # noqa: BLE001
+            return []
+        return sorted(s["Name"][len(prefiks):] for s in daftar
+                      if str(s.get("Name", "")).startswith(prefiks))
+
+    def info(self) -> dict:
+        """Info NYATA: jumlah rahasia + endpoint yang dipakai (bukti binding)."""
+        client = self._client()
+        try:
+            n = len(client.list_secrets().get("SecretList", []) or [])
+        except Exception:  # noqa: BLE001
+            n = -1
+        return {"endpoint": os.environ.get("KATALIR_AWS_ENDPOINT_URL") or "aws",
+                "region": os.environ.get("KATALIR_AWS_REGION") or "us-east-1",
+                "secret_count": n}
 
 
 class OnePasswordProvider(SecretsProvider):
@@ -471,6 +557,7 @@ REGISTRY: dict[str, type[SecretsProvider]] = {
     KATALIR: KatalirVault,
     "hashicorp": HashiCorpVault,
     "vault": HashiCorpVault,        # alias
+    "openbao": OpenBaoVault,        # fork Vault (Linux Foundation)
     "aws": AWSSecretsManager,
     "onepassword": OnePasswordProvider,
     "1password": OnePasswordProvider,
@@ -561,6 +648,18 @@ def parse_ref(ref: str) -> tuple[str, str, Optional[str]]:
     bagian = [b for b in sisa.split("/") if b]
     if not bagian:
         raise SecretRefError("path rahasia kosong")
+
+    # --- Hardening (temuan hard test #9) ----------------------------------
+    # `secret://openbao//etc/shadow` dulu DITERIMA: segmen kosong dibuang
+    # diam-diam sehingga referensi "absolut" berubah bentuk tanpa peringatan.
+    # Tanda `/` ganda (atau `/` tepat setelah `secret://`) menandakan path
+    # absolut/malformed -> tolak eksplisit supaya tidak ada normalisasi
+    # tersembunyi pada backend yang memetakan path ke berkas/nama.
+    mentah = m.group(1)
+    if mentah.startswith("/") or "//" in mentah:
+        raise SecretRefError(
+            f"referensi rahasia tidak boleh absolut / bersegmen kosong: "
+            f"{mentah[:40]!r}")
 
     # --- Hardening (temuan hard test) -------------------------------------
     # Dulu `secret://../../etc/passwd` DITERIMA apa adanya dan menghasilkan

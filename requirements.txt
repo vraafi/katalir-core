@@ -110,3 +110,14 @@ redis==8.1.0
 # Google Workspace OIDC; lihat docs/enterprise-100-percent-log.md.
 ldap3==2.9.1
 signxml==5.1.0
+
+# --- Fitur #1: External Secrets Manager (Okt 2026) --------------------------
+# hvac 2.4.0 — klien resmi HashiCorp Vault (Apache-2.0). Dipakai untuk KV v2
+#              pada Vault 2.1.2 DAN OpenBao 2.7.1 (API kompatibel).
+# boto3      — SDK resmi AWS; dipakai untuk AWS Secrets Manager. Endpoint dapat
+#              diarahkan ke emulator gratis lewat KATALIR_AWS_ENDPOINT_URL
+#              (MiniStack, MIT) karena LocalStack menghapus tier gratis 2026-03.
+# Keduanya diimpor MALAS di secrets_provider.py: tanpa paket ini backend
+# terkait dilaporkan tidak tersedia, aplikasi tetap jalan.
+hvac==2.4.0
+boto3>=1.43

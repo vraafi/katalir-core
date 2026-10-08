@@ -4850,6 +4850,84 @@ def secrets_history(ref: str, authorization: str | None = Header(None)):
                 str(user["email"]), jalur)}
 
 
+class SecretResolveRequest(BaseModel):
+    """Body POST /secrets/resolve."""
+    ref: str
+    reveal: bool = False          # True -> kirim nilai; default MASK
+    provider: str = ""
+    chain: list[str] = []         # rantai failover (opsional)
+
+
+@app.post("/secrets/resolve")
+def secrets_resolve(body: SecretResolveRequest,
+                    authorization: str | None = Header(None)):
+    """Resolve `secret://…` -> nilai (atau MASK bila `reveal` False).
+
+    Default MASK supaya pemanggil biasa tidak pernah menerima rahasia;
+    `reveal=true` dipakai alur yang memang butuh nilai (mis. uji koneksi).
+    """
+    user = security.get_current_user(authorization)
+    import secrets_provider as sp
+    owner = str(user["email"])
+    try:
+        if body.chain:
+            nilai = sp.resolve_with_failover(body.ref, owner, chain=body.chain)
+            backend_terpakai = "failover-chain"
+        else:
+            backend, path, field = sp.parse_ref(body.ref)
+            backend_terpakai = body.provider or backend
+            jalur = f"{path}/{field}" if field else path
+            prov = sp.get_provider(body.provider or backend)
+            nilai = prov.get(jalur, owner)
+            if nilai is None:
+                raise sp.SecretNotFound(f"Rahasia tidak ditemukan: {jalur}")
+    except sp.SecretRefError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
+    except sp.SecretNotFound as exc:
+        raise HTTPException(status_code=404, detail=str(exc))
+    except sp.BackendUnavailable as exc:
+        raise HTTPException(status_code=503, detail=str(exc))
+    except sp.SecretsError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
+    return {"status": "success", "backend": backend_terpakai,
+            "reveal": bool(body.reveal),
+            "value": nilai if body.reveal else sp.MASK,
+            "bytes": len(str(nilai))}
+
+
+@app.get("/secrets/info")
+def secrets_info(authorization: str | None = Header(None)):
+    """Info server NYATA tiap provider (versi/seal) — bukti binding.
+
+    Tidak pernah memuat token/nilai rahasia.
+    """
+    security.get_current_user(authorization)
+    import secrets_provider as sp
+    out: dict = {}
+    for nama in ("hashicorp", "openbao", "aws"):
+        try:
+            prov = sp.get_provider(nama)
+            if not prov.available():
+                out[nama] = {"available": False}
+                continue
+            info = prov.info() if hasattr(prov, "info") else {}
+            out[nama] = {"available": True, **info}
+        except Exception as exc:  # noqa: BLE001
+            out[nama] = {"available": False,
+                         "error": f"{type(exc).__name__}: {str(exc)[:120]}"}
+    return {"status": "success", "providers": out}
+
+
+@app.get("/secrets/ui")
+def secrets_ui():
+    """Halaman admin Secrets Manager (same-origin, tanpa data sensitif)."""
+    from fastapi.responses import HTMLResponse
+    path = os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                        "static", "secrets_admin.html")
+    with open(path, encoding="utf-8") as fh:
+        return HTMLResponse(fh.read())
+
+
 # ---------------------------------------------------------------------------
 # ENDPOINT ADVANCED SCHEDULING (fitur #2) — builder, NL, preview, kondisi
 # ---------------------------------------------------------------------------
