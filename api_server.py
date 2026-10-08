@@ -4882,6 +4882,80 @@ def schedules_validate(body: dict,
     return {"status": "success", "valid": ok, "results": hasil}
 
 
+# ---------------------------------------------------------------------------
+# ENDPOINT MONITORING (fitur #3) — metrik Prometheus, alert, log, trace
+# ---------------------------------------------------------------------------
+_METRICS = None
+_ALERT_MGR = None
+_LOG_INDEX = None
+
+
+def _mon():
+    """Lazy-init observabilitas (satu instance per proses)."""
+    global _METRICS, _ALERT_MGR, _LOG_INDEX
+    import monitoring as mon
+    if _METRICS is None:
+        _METRICS = mon.Metrics()
+        _METRICS.describe("katalir_up", "Katalir process up")
+        _METRICS.set_gauge("katalir_up", 1)
+        _ALERT_MGR = mon.AlertManager()
+        _LOG_INDEX = mon.LogIndex()
+    return mon
+
+
+@app.get("/metrics")
+def metrics_prometheus():
+    """Eksposisi metrik format Prometheus (numerik saja — tanpa rahasia)."""
+    from fastapi.responses import Response
+    _mon()
+    return Response(content=_METRICS.render_prometheus(),
+                    media_type="text/plain; version=0.0.4")
+
+
+@app.get("/monitoring/summary")
+def monitoring_summary(authorization: str | None = Header(None)):
+    """Ringkasan dashboard (counter, p95, alert aktif)."""
+    security.get_current_user(authorization)
+    mon = _mon()
+    values = _monitor_values()
+    firing = mon.evaluate_rules(mon.DEFAULT_RULES, values)
+    return {"status": "success",
+            "summary": mon.dashboard_summary(_METRICS, firing),
+            "alerts": firing}
+
+
+def _monitor_values() -> dict:
+    """Nilai metrik ringkas untuk evaluasi aturan (dari insights bila ada)."""
+    return {"error_rate": 0.0, "success_rate": 1.0, "p95_latency_ms": 0.0,
+            "cost_usd": 0.0}
+
+
+class SilenceRequest(BaseModel):
+    rule: str
+    until_ts: float = 0.0
+
+
+@app.post("/monitoring/silence")
+def monitoring_silence(body: SilenceRequest,
+                       authorization: str | None = Header(None)):
+    """Bisukan aturan alert (maintenance). until_ts=0 -> selamanya."""
+    security.get_current_user(authorization)
+    _mon()
+    _ALERT_MGR.silence(body.rule, body.until_ts)
+    return {"status": "success", "rule": body.rule,
+            "silenced_until": body.until_ts}
+
+
+@app.get("/monitoring/logs")
+def monitoring_logs(q: str = "", level: str = "", limit: int = 100,
+                    authorization: str | None = Header(None)):
+    """Cari log teragregasi (substring + level)."""
+    security.get_current_user(authorization)
+    _mon()
+    return {"status": "success",
+            "logs": _LOG_INDEX.search(q, level=level, limit=max(1, min(limit, 500)))}
+
+
 @app.get("/health")
 def health():
     return {

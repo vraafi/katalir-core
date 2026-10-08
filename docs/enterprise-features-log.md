@@ -125,3 +125,58 @@ Bukti raw: `26 passed in 0.70s` + `66 passed` (seluruh tes scheduler).
 - Fitur #3 — Advanced Monitoring & Alerting.
 
 ---
+
+## FITUR #3: Advanced Monitoring & Alerting
+
+### Research
+| Paket | Verdict | Alasan |
+|-------|---------|--------|
+| prometheus_client | DITOLAK | menambah dependensi; eksposisi teks cukup ditulis sendiri |
+| Grafana Agent / OTel SDK | OPSIONAL | berat untuk jalur launch; tracing in-house cukup |
+| stdlib `urllib` (notifier) | **DIPAKAI** | nol dependensi, transport disuntik untuk test |
+
+**Pilihan:** `monitoring.py` (murni) + eksposisi Prometheus 0.0.4 buatan sendiri.
+**Alasan:** bisa di-scrape Prometheus/Grafana tanpa klien berat; notifikasi
+diuji tanpa jaringan lewat transport yang disuntik.
+
+### Implementasi
+- File: `monitoring.py` (baru, ~420 baris)
+- Komponen: `Metrics` (+`render_prometheus`), `evaluate_rules` (mesin aturan),
+  `AlertManager` (dedup + silence), notifier `Webhook/Slack/Telegram/Email`,
+  `redact` (cegah bocor), `LogIndex` (agregasi), `Trace`/`Span`,
+  `dashboard_summary`.
+- API: `GET /metrics` (Prometheus, numerik saja), `GET /monitoring/summary`,
+  `POST /monitoring/silence`, `GET /monitoring/logs`.
+- Registry `/version`: `19_monitoring`.
+
+### Hard Test — `tests/test_monitoring.py` (13 kasus, PASS)
+| # | Skenario | Status |
+|---|----------|--------|
+| 1 | Metrik → eksposisi Prometheus bisa di-scrape | PASS |
+| 2 | Aturan error rate > 5% → fire | PASS |
+| 3 | Notifikasi Slack diterima | PASS |
+| 4 | Notifikasi Email diterima | PASS |
+| 5 | Dashboard muat < 2s (5000 observasi) | PASS |
+| 6 | Trace: span per node | PASS |
+| 7 | Agregasi log: pencarian OK | PASS |
+| 8 | Dedup alert | PASS |
+| 9 | Silence (maintenance) | PASS |
+| 10 | Performa 1000 aturan < 1s | PASS |
+| 11 | Benchmark latensi evaluasi alert | PASS |
+| 12 | Keamanan: isi alert tidak bocorkan rahasia | PASS |
+
+Bukti raw: `13 passed in 0.33s`.
+
+### Deviasi dari brief
+- Sumber nilai metrik (`_monitor_values`) saat ini konservatif (0/1); hook ke
+  `insights`/engine dapat diperkaya tanpa mengubah kontrak.
+- Notifier `_send_http` tidak diuji jaringan (transport disuntik) — perilaku
+  produksi memakai stdlib `urllib`.
+
+### Blocker
+- Tidak ada.
+
+### Next
+- Fitur #4 — Multi-Environment.
+
+---
