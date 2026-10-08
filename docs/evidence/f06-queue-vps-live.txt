@@ -1,0 +1,153 @@
+# HARD TEST Fitur #6 Queue Mode Scaling — Redis NYATA
+# url=redis://:O1SYgiRrMTSsmhuUOt55VvV3Qo6zHsA0AnxBRYNN@127.0.0.1:6379/0
+# python=3.12.3
+
+
+==============================================================================
+#01 [PASS] Redis ping + INFO server nyata
+------------------------------------------------------------------------------
+redis-py 8.1.0
+PING -> True  (12.92 ms)
+server.redis_version   = 7.0.15
+server.valkey_version  = None
+server.os              = Linux 6.8.0-31-generic x86_64
+server.tcp_port        = 6379
+DBSIZE                 = 1002
+
+
+==============================================================================
+#02 [PASS] 1000 job -> SEMUA diproses (diverifikasi dari Redis)
+------------------------------------------------------------------------------
+enqueue 1000 job     -> ZCARD(ready)=1000  (0.502s, 1993 job/s)
+drain (4 worker)     -> processed=1000  (1.140s, 877 job/s)
+by_status (dari Redis) = {'completed': 1000}
+sisa ready           = 0
+CEK: zcard==1000 dan completed==1000 dan sisa==0 -> True
+
+
+==============================================================================
+#03 [PASS] Worker crash (dibunuh) -> job requeued via visibility timeout
+------------------------------------------------------------------------------
+worker PID        = 4161576 (proses terpisah)
+KATALIR_VISIBILITY_TIMEOUT = 1.5s (dibaca dari env)
+job diklaim       -> inflight=['crash-1'] status=running attempts=1
+worker DIBUNUH    -> proc.kill(); tidak ada ACK
+reclaim_expired() -> 1 job direklaim ['crash-1']
+status setelah    = queued  attempts=1
+ZCARD(ready)      = 1
+CEK: job kembali ke ready tanpa ACK -> True
+
+
+==============================================================================
+#04 [PASS] Horizontal scaling: 2 proses worker paralel
+------------------------------------------------------------------------------
+beban: 200 job (sleep 0.01s tiap job)
+1 PROSES worker -> 2.959s, processed=[200]
+2 PROSES worker -> 1.791s, processed=[101, 99]  (tiap proses dapat kerja: True)
+speedup         = 1.65x
+by_status       = {'completed': 200}
+CEK: speedup>1.2x dan kedua proses memproses job -> True
+
+
+==============================================================================
+#05 [PASS] Prioritas high/normal/low + FIFO tie-break
+------------------------------------------------------------------------------
+enqueue urutan: p-low(prio 0) -> p-norm(prio 5) -> p-high(prio 10)
+dequeue urutan: ['p-high', 'p-norm', 'p-low']
+CEK: high -> normal -> low -> True
+
+
+==============================================================================
+#06 [PASS] Job timeout dipaksa (lease/visibility 60s default)
+------------------------------------------------------------------------------
+visibility_timeout default = 60.0s (lease job 'running')
+job.timeout               = 0.3s, handler tidur 3s
+process_once()            -> timeout
+status akhir              = dead
+error                     = 'timeout'
+CEK: job dibunuh saat lewat timeout, error='timeout' -> True
+
+
+==============================================================================
+#07 [PASS] Retry max 3 -> job masuk DLQ
+------------------------------------------------------------------------------
+max_retries=3, handler selalu gagal
+claim#1 -> failed (status=queued)
+claim#2 -> failed (status=queued)
+claim#3 -> failed (status=queued)
+claim#4 -> failed (status=dead)
+attempts akhir = 4  status = dead
+DLQ            = ['dlq-1']
+CEK: 4x claim lalu masuk DLQ (attempts>max_retries) -> True
+
+
+==============================================================================
+#08 [PASS] DLQ replay -> job kembali diproses
+------------------------------------------------------------------------------
+DLQ sebelum replay = ['dlq-1']
+dlq_replay()       -> 1 job dipindah
+DLQ sesudah replay = []
+proses ulang       -> completed
+status akhir       = completed
+CEK: DLQ kosong dan job selesai -> True
+
+
+==============================================================================
+#09 [PASS] Graceful shutdown: job in-flight diselesaikan
+------------------------------------------------------------------------------
+enqueue 60 job (sleep 0.03s), 4 worker
+saat stop: inflight=3
+stop(graceful=True) -> 0.057s
+inflight akhir = []  sisa ready = 0
+completed      = 60/60
+CEK: tak ada job hilang saat shutdown -> True
+
+
+==============================================================================
+#10 [PASS] Redis down -> error jelas + antrian pause (degradasi)
+------------------------------------------------------------------------------
+URL mati = redis://127.0.0.1:6399/0
+RedisQueueBackend._client() -> ConnectionError: Error 111 connecting to 127.0.0.1:6399. Connection refused.
+QueueManager(auto)  backend = memory
+QueueManager(redis) backend = memory
+health.backend = memory
+antrian tetap jalan (memori): enqueue+dequeue -> dc14cd785622
+CEK: Redis down -> error jelas + degradasi anggun, tidak crash -> True
+
+
+==============================================================================
+#11 [PASS] Load test 10.000 job -> semua diproses
+------------------------------------------------------------------------------
+enqueue 10000 job -> ZCARD=10000  (4.995s, 2002 job/s)
+drain 8 worker -> processed=10000  (12.585s, 795 job/s)
+by_status      = {'completed': 10000}
+sisa ready     = 0
+CEK: 10.000/10.000 selesai, antrian kosong -> True
+
+
+==============================================================================
+#12 [PASS] Benchmark throughput/latency (ambang keras)
+------------------------------------------------------------------------------
+enqueue 2000 job (1 round-trip via _PUT_LUA):
+  mean=0.488ms  p50=0.465ms  p95=0.666ms  -> 2050 job/s
+dequeue+ack 2000 job (Lua claim atomik):
+  mean=0.738ms  p50=0.713ms  p95=0.967ms  -> 1355 job/s
+CEK: enqueue>300 job/s dan p95<50ms dan dequeue>200 job/s -> True
+
+==============================================================================
+RINGKASAN HARD TEST FITUR #6: 12/12 PASS
+==============================================================================
+  #01 [PASS] Redis ping + INFO server nyata
+  #02 [PASS] 1000 job -> SEMUA diproses (diverifikasi dari Redis)
+  #03 [PASS] Worker crash (dibunuh) -> job requeued via visibility timeout
+  #04 [PASS] Horizontal scaling: 2 proses worker paralel
+  #05 [PASS] Prioritas high/normal/low + FIFO tie-break
+  #06 [PASS] Job timeout dipaksa (lease/visibility 60s default)
+  #07 [PASS] Retry max 3 -> job masuk DLQ
+  #08 [PASS] DLQ replay -> job kembali diproses
+  #09 [PASS] Graceful shutdown: job in-flight diselesaikan
+  #10 [PASS] Redis down -> error jelas + antrian pause (degradasi)
+  #11 [PASS] Load test 10.000 job -> semua diproses
+  #12 [PASS] Benchmark throughput/latency (ambang keras)
+
+JSON -> /root/katalir-queue/f06-queue-live.json

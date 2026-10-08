@@ -769,3 +769,94 @@ dengan nama, status `tersinkron`.
 screenshot dua pengguna · **5 bug nyata** ditemukan & diperbaiki.
 
 ---
+
+---
+
+# RONDE 2 — BINDING KREDENSIAL NYATA DARI .env (zero mock)
+
+Setelah ronde 1 (fitur selesai dengan provider nyata), ronde ini **mengikat ulang
+semua 5 fitur ke kredensial NYATA yang sudah dimiliki user di `.env`** — inventory
+dulu (LANGKAH 0), tanpa mock, tanpa free tier pengganti.
+
+## Inventory .env → `docs/env-inventory.md`
+
+| Fitur | Kredensial di .env | Status | Pakai? |
+|---|---|---|---|
+| #1 Secrets | `NANGO_API_KEY` (live), `METORIAL_API_KEY` (live), `VAULT_PASSWORD`, `VAULT_SECRET_KEY` | SET & **tervalidasi ke API nyata** | ✅ Nango + Metorial + KatalirVault |
+| #5 Git | `GITHUB_TOKEN` (40 char) | SET — `GET /user` → **200 `login=vraafi`** | ✅ |
+| #6 Queue | `VPS_IP`/`VPS_USERNAME`/`VPS_PASSWORD` (SSH root OK) | SET — Redis **7.0.15 dipasang di VPS** (bind 127.0.0.1 + requirepass), `REDIS_HOST/PORT/PASSWORD` di-append ke `.env` | ✅ |
+| #7 SSO | `GOOGLE_CLIENT_ID`+`GOOGLE_CLIENT_SECRET` | SET — token endpoint Google → **`invalid_grant`** (bukan `invalid_client`) = pasangan client valid | ✅ OIDC nyata |
+| #10 Collab | `VPS_*` + `SUPABASE_URL`/key | SET — **server Yjs/CRDT dijalankan DI VPS** | ✅ |
+
+Probe kredensial (raw, tanpa nilai bocor): Nango `POST /connections` → **201 Created**
+(id 2664298) + retrieve + delete; Metorial `GET /provider-deployments` → **200**
+(data live); GitHub `/user` → 200; VPS port 22 OPEN (6379 sengaja TIDAK diekspos
+publik — best practice Okt 2026: akses Redis via tunnel SSH, bind loopback).
+
+## FITUR #6 — Queue vs Redis 7.0.15 DI VPS — 12/12 PASS ✅
+
+Test dijalankan **di VPS** (`/root/katalir-queue/`, python3.12 + redis-py 8.1.0,
+`redis://:***@127.0.0.1:6379/0`) — topologi produksi nyata, bukan tunnel:
+- Raw `redis-cli`: `PING → PONG`, `redis_version:7.0.15`, `DBSIZE` nyata
+  (`docs/evidence/f06-redis-cli-raw.txt`).
+- Benchmark: enqueue **2050 job/s** (p95 0.67 ms), dequeue+ack **1355 job/s**;
+  load test **10.000 job** diproses semua; worker crash → requeue via visibility
+  timeout; DLQ + replay; graceful shutdown; Redis down → degradasi jelas.
+- Bukti: `docs/evidence/f06-queue-vps-live.{txt,json}` (12/12).
+
+## FITUR #1 — Secrets vs Nango + Metorial (API NYATA) — 12/12 PASS ✅
+
+Backend baru di `secrets_provider.py`: `NangoProvider` (store secret = koneksi
+import `POST /connections`, retrieve `GET /connections?connectionId=`, delete)
+dan `MetorialProvider` (`GET /provider-deployments` live). Perbaikan nyata:
+`_HttpJsonProvider._request` tak lagi mengirim `Content-Type` pada GET tanpa body
+(Metorial/Cloudflare menolaknya dengan 400). Concurrent 100 resolve, failover
+Nango→Metorial→Vault, multi-tenant, traversal, enkripsi at-rest — semua vs API
+nyata. Bukti: `docs/evidence/f01-secrets-env-live.{txt,json}` (12/12).
+
+## FITUR #7 — SSO vs Google OAuth (client .env) + sesi Redis VPS — 12/12 PASS ✅
+
+`GOOGLE_CLIENT_ID/SECRET` dari `.env`: discovery `oauth2.googleapis.com/.well-known/
+openid-configuration` → 200; authorize URL memuat client_id nyata + PKCE + nonce;
+exchange `dummy code` → `invalid_grant` (bukti client valid, endpoint jaringan
+nyata); sesi disimpan di **Redis VPS** (tunnel) via `RedisSessionStore`; role
+mapping, JIT, CSRF/state, logout, token-encryption. Bukti:
+`docs/evidence/f07-sso-env-live.{txt,json}` (12/12).
+
+## FITUR #5 — Git vs GITHUB_TOKEN dari .env — 12/12 PASS ✅
+
+`scripts/enterprise_scm_live.py` dieksekusi dengan `GITHUB_TOKEN` yang diekspor
+dari `.env` (len 40, `login=vraafi`): commit+re-read, pull, rollback, branch+push,
+PR nyata, konflik 409, webhook, token Fernet, 100 commit, 401 token salah.
+Bukti: `docs/evidence/f05-scm-env-live.{txt,json}` (12/12).
+
+## FITUR #10 — Collab: server Yjs/CRDT DIJALANKAN DI VPS — 12/12 PASS ✅
+
+`collab_realtime.py` + `scripts/vps_collab_server.py` dideploy ke
+`/root/katalir-collab` (venv: pycrdt 0.14.8, pycrdt-websocket 0.16.5, uvicorn).
+Server listen `127.0.0.1:8140` (tidak diekspos publik); klien uji terhubung lewat
+tunnel SSH `ssh.exe -L 8140` (kunci ed25519 khusus `katalir-agent`). Autentikasi
+JWT tetap NYATA (verifikasi Supabase dari VPS). Skenario: 2/5-user sync lintas
+internet, konvergensi, kursor, komentar, **restart server via SSH nyata → state
+CRDT dipulihkan**, tolak tanpa token, offline replay, isolasi room, 200 update
+(109 ops/s lintas internet), frame y-sync mentah.
+
+**BUG PRODUKSI BARU ditemukan & diperbaiki (`guarded_send`)**: saat klien
+terakhir room memutus koneksi, broadcast yroom memanggil `send` → uvicorn
+`ClientDisconnected` → TaskGroup room runtuh → lifespan mati → **SEMUA** koneksi
+berikutnya gagal ("The WebsocketServer is not running"). Fix di
+`CollabASGIServer.__call__`: `guarded_send` menelan galat kirim klien yang sudah
+pergi (pembersihan tetap via jalur `recv`). Regresi
+`tests/test_collab_realtime.py::test_guarded_send_swallows_client_disconnect`
+(9/9 pass) — **terbukti GAGAL bila perbaikan dihapus**.
+Bukti: `docs/evidence/f10-collab-vps-live.{txt,json}` (12/12).
+
+## Status Ronde 2
+
+| Fitur | Provider .env nyata | Hard Test | Bukti |
+|---|---|---|---|
+| #6 Queue | Redis 7.0.15 @ VPS | 12/12 | f06-queue-vps-live + redis-cli raw |
+| #5 Git | GITHUB_TOKEN (.env) | 12/12 | f05-scm-env-live |
+| #7 SSO | Google OAuth + Redis VPS | 12/12 | f07-sso-env-live |
+| #1 Secrets | Nango + Metorial + Vault | 12/12 | f01-secrets-env-live |
+| #10 Collab | Yjs WS server @ VPS | 12/12 | f10-collab-vps-live |

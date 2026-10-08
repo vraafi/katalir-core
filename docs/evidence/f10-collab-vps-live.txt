@@ -1,0 +1,91 @@
+VPS = 107.173.51.78 | WS = ws://localhost:8140
+JWT ok (len=815)
+==============================================================================
+#01 [PASS] Server WS di VPS + 2 klien (JWT sah) lewat tunnel & tersinkron
+------------------------------------------------------------------------------
+ws      = ws://localhost:8140/vps2006-dasar  (server: VPS 127.0.0.1:8140)
+A.client_id = 7049832174540690
+B.client_id = 911024407715168
+handshake+sync = 1.63s
+A.synced=True  B.synced=True
+
+==============================================================================
+#02 [PASS] CRDT sync: node buatan A tampak di B (lintas internet->VPS)
+------------------------------------------------------------------------------
+A.add_node(n1) -> B.nodes = {'n1': {'y': 20.0, 'label': 'Mulai', 'x': 10.0}}
+
+==============================================================================
+#03 [PASS] 5 user serentak melihat node yang sama
+------------------------------------------------------------------------------
+klien  = ['Andi', 'Budi', 'Citra', 'Dewi', 'Eka']
+n5 terlihat = [True, True, True, True, True]
+peers A = 4
+
+==============================================================================
+#04 [PASS] Edit bersamaan (field beda) -> CRDT konvergen di kedua klien
+------------------------------------------------------------------------------
+A.lihat n1 = {'y': 20.0, 'x': 111.0, 'label': 'Dari-Budi'}
+B.lihat n1 = {'y': 20.0, 'x': 111.0, 'label': 'Dari-Budi'}
+CEK: x=111.0 & label='Dari-Budi' di KEDUANYA -> True
+
+==============================================================================
+#05 [PASS] Presence kursor: B melihat kursor A bernama
+------------------------------------------------------------------------------
+cursors B = {"Citra": {}, "Dewi": {}, "Eka": {}, "Andi": {"x": 320.0, "y": 140.0, "node": ""}}
+
+==============================================================================
+#06 [PASS] Komentar CRDT: A tulis -> B terima
+------------------------------------------------------------------------------
+comments B = [{'user': 'Andi', 'target': 'n1', 'text': 'tolong cek node n1', 'at': 1791502015.177305}]
+
+==============================================================================
+#07 [PASS] Restart server VPS (SSH nyata) -> state CRDT dipulihkan
+------------------------------------------------------------------------------
+restart OK = True
+state sebelum = {"n5": {"label": "lima-user", "x": 1.0, "y": 2.0}, "n1": {"y": 20.0, "x": 111.0, "label": "Dari-Budi"}}
+state setelah (klien baru 'Farhan') = {"n1": {"y": 20.0, "label": "Dari-Budi", "x": 111.0}, "n5": {"y": 2.0, "label": "lima-user", "x": 1.0}}
+CEK: n1(x=111.0,'Dari-Budi') & n5 ada -> True
+
+==============================================================================
+#08 [PASS] Koneksi TANPA token ditolak server VPS
+------------------------------------------------------------------------------
+koneksi ditolak (close 4401/403) sesuai kebijakan
+
+==============================================================================
+#09 [PASS] B offline -> A edit -> B reconnect -> state ter-replay
+------------------------------------------------------------------------------
+n9 = {'x': 9.0, 'label': 'awal', 'y': 9.0}
+
+==============================================================================
+#10 [PASS] Isolasi room: node room A TIDAK bocor ke room B
+------------------------------------------------------------------------------
+x2.nodes = {} (harus kosong / tanpa 'rahasia')
+bocor = False
+
+==============================================================================
+#11 [PASS] Perf: 200 update melewati VPS (lintas internet) terkirim semua
+------------------------------------------------------------------------------
+200 update dalam 1.75s (114 ops/s)
+nilai akhir di q = 200
+
+==============================================================================
+#12 [PASS] Protokol y-sync/y-awareness mentah terbaca dari VPS
+------------------------------------------------------------------------------
+frame SYNC=1  AWARENESS=1 (byte pertama = tipe pesan y-sync)
+
+==============================================================================
+RINGKASAN HARD TEST FITUR #10 (VPS): 12/12 PASS
+==============================================================================
+  #01 [PASS] Server WS di VPS + 2 klien (JWT sah) lewat tunnel & tersinkron
+  #02 [PASS] CRDT sync: node buatan A tampak di B (lintas internet->VPS)
+  #03 [PASS] 5 user serentak melihat node yang sama
+  #04 [PASS] Edit bersamaan (field beda) -> CRDT konvergen di kedua klien
+  #05 [PASS] Presence kursor: B melihat kursor A bernama
+  #06 [PASS] Komentar CRDT: A tulis -> B terima
+  #07 [PASS] Restart server VPS (SSH nyata) -> state CRDT dipulihkan
+  #08 [PASS] Koneksi TANPA token ditolak server VPS
+  #09 [PASS] B offline -> A edit -> B reconnect -> state ter-replay
+  #10 [PASS] Isolasi room: node room A TIDAK bocor ke room B
+  #11 [PASS] Perf: 200 update melewati VPS (lintas internet) terkirim semua
+  #12 [PASS] Protokol y-sync/y-awareness mentah terbaca dari VPS
+JSON -> docs/evidence/f10-collab-vps-live.json

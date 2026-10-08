@@ -1,0 +1,5 @@
+PONG
+redis_version:7.0.15
+os:Linux 6.8.0-31-generic x86_64
+tcp_port:6379
+2001

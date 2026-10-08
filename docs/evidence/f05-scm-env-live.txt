@@ -1,0 +1,121 @@
+==============================================================================
+#01 [PASS] GitHub NYATA: connect (PAT asli) + daftar cabang
+------------------------------------------------------------------------------
+repo        = vraafi/katalir-scm-verify
+GET /user   -> login=vraafi id=209403877
+rate_limit  -> core 5000 / sisa 5000
+branches    = ['feature/verify-87590', 'feature/verify-87975', 'main', 'ui/ui-demo-88474', 'ui/ui-demo-88588', 'ui/ui-demo-88667']
+CEK: PAT sah + repo terbaca -> True
+
+==============================================================================
+#02 [PASS] Commit -> terverifikasi ULANG di GitHub (baca balik API)
+------------------------------------------------------------------------------
+commit sha  = e767bb3720568b9559519b552d5892a860e68d68
+path        = workflows/verify-886-wf.json
+created     = True
+read_file() -> sha=8851e1d194ca…  run=verify-886
+CEK: isi di GitHub == yang dikirim -> 8851e1d194ca3fc96a016022c6973ff2ceaa45c1
+
+==============================================================================
+#03 [PASS] Pull: ambil workflow dari GitHub
+------------------------------------------------------------------------------
+pull_workflow('verify-886-wf', 'main')
+  sha       = 8851e1d194ca…
+  flow_data = {"edges": [], "nodes": [{"id": "n1", "type": "trigger"}], "run": "verify-886"}
+CEK: isi cocok dengan yang di-commit -> 8851e1d194ca3fc96a016022c6973ff2ceaa45c1
+
+==============================================================================
+#04 [PASS] Rollback ke commit lama (isi kembali seperti semula)
+------------------------------------------------------------------------------
+commit v1   = e767bb372056…
+commit v2   = 3283de047bd3…  (flow_data memuat 'versi': 2)
+rollback(to_sha=v1) -> commit baru 530f1b4f6d97…
+isi main sekarang = {"edges": [], "nodes": [{"id": "n1", "type": "trigger"}], "run": "verify-886"}
+CEK: 'versi' hilang lagi (isi v1 dipulihkan) -> True
+
+==============================================================================
+#05 [PASS] Branch baru + push (terpisah dari main)
+------------------------------------------------------------------------------
+create_branch('feature/verify-886', from='main')
+commit di cabang -> a723b8b4ba02…
+branches sekarang = ['feature/verify-886', 'feature/verify-87590', 'feature/verify-87975', 'main', 'ui/ui-demo-88474', 'ui/ui-demo-88588', 'ui/ui-demo-88667']
+isi di cabang     = {"cabang": "feature/verify-886", "edges": [], "nodes": [{"id": "n1", "type": "trigger"}], "run": "verify-886"}
+CEK: cabang ada & isinya beda dari main -> True
+
+==============================================================================
+#06 [PASS] Pull Request: buka PR nyata + verifikasi di GitHub
+------------------------------------------------------------------------------
+open_pr(head='feature/verify-886', base='main')
+  number = 4  state = open
+GET /pulls/4 -> state=open head=feature/verify-886 base=main
+url    = https://github.com/vraafi/katalir-scm-verify/pull/4
+CEK: PR benar-benar ada di GitHub -> True
+
+==============================================================================
+#07 [PASS] Konflik: 2 commit bersamaan -> yang basi DITOLAK (HTTP 409)
+------------------------------------------------------------------------------
+sha dasar (dibaca proses B) = 2b8cd664cd1d…
+proses A commit dulu        -> sukses
+proses B commit expect_sha  -> RAISES ConflictError: konflik pada verify-886-konflik: dasar 2b8cd66 ≠ remote 9095af7
+CEK: penulisan basi terdeteksi sebagai konflik -> True
+
+==============================================================================
+#08 [PASS] Webhook push GitHub -> auto-sync daftar workflow
+------------------------------------------------------------------------------
+payload.ref = refs/heads/main
+3 commit, 5 berkas (3 .json workflow + README + src/lain.py)
+hasil sync  = {"branch": "main", "workflow_ids": ["verify-886-baru", "verify-886-hapus", "verify-886-wf"], "count": 3}
+CEK: hanya berkas workflows/*.json yang diambil -> True
+
+==============================================================================
+#09 [PASS] Multi-user: koneksi & token terpisah per user
+------------------------------------------------------------------------------
+store.list(budi)  = [{"provider": "github", "repo": "vraafi/katalir-scm-verify", "token": "ghp_\u2026ok"}]
+store.list(orang) = [{"provider": "github", "repo": "orang-lain/repo-pribadi", "token": "ghp_\u2026in"}]
+store.client(orang).repo = orang-lain/repo-pribadi
+token asli muncul di list? False (harus False)
+CEK: tidak ada kebocoran lintas-user -> True
+
+==============================================================================
+#10 [PASS] Token DIENKRIPSI di penyimpanan (Fernet), dekripsi benar
+------------------------------------------------------------------------------
+ciphertext di store = gAAAAABqyCJ7k-uag32c3jwq06Sg2407bd2Re6FP… (140 char)
+token asli ada di cipher? False  (harus False)
+prefix Fernet        = True
+store.get()          = token panjang 40 (cocok)
+CEK: at-rest terenkripsi, in-use terdekripsi -> True
+
+==============================================================================
+#11 [PASS] Performa: 100 commit nyata ke GitHub
+------------------------------------------------------------------------------
+100 commit ke workflows/verify-886-perf.json
+durasi      = 188.8s (1888 ms/commit)
+sha akhir   = b435cbea54c8…
+GET /commits?path=… -> 100 commit terdaftar di GitHub
+CEK: semua commit benar-benar tercatat -> True
+
+==============================================================================
+#12 [PASS] Token SALAH -> galat JELAS (401, token tidak bocor)
+------------------------------------------------------------------------------
+token   = ghp_token_palsu_… (sengaja salah)
+list_branches() -> RAISES GitError: HTTP 401: {'message': 'Bad credentials', 'documentation_url': 'https://docs.github.com/rest', 'status': '401'}
+token muncul di pesan? False (harus False)
+CEK: 401 terklasifikasi + rahasia tidak bocor -> True
+
+==============================================================================
+RINGKASAN HARD TEST FITUR #5: 12/12 PASS
+==============================================================================
+  #01 [PASS] GitHub NYATA: connect (PAT asli) + daftar cabang
+  #02 [PASS] Commit -> terverifikasi ULANG di GitHub (baca balik API)
+  #03 [PASS] Pull: ambil workflow dari GitHub
+  #04 [PASS] Rollback ke commit lama (isi kembali seperti semula)
+  #05 [PASS] Branch baru + push (terpisah dari main)
+  #06 [PASS] Pull Request: buka PR nyata + verifikasi di GitHub
+  #07 [PASS] Konflik: 2 commit bersamaan -> yang basi DITOLAK (HTTP 409)
+  #08 [PASS] Webhook push GitHub -> auto-sync daftar workflow
+  #09 [PASS] Multi-user: koneksi & token terpisah per user
+  #10 [PASS] Token DIENKRIPSI di penyimpanan (Fernet), dekripsi benar
+  #11 [PASS] Performa: 100 commit nyata ke GitHub
+  #12 [PASS] Token SALAH -> galat JELAS (401, token tidak bocor)
+
+JSON -> docs/evidence/f05-scm-env-live.json

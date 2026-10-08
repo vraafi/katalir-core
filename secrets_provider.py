@@ -801,18 +801,32 @@ def check_size(value: Any) -> int:
 # Backend OPSIONAL tambahan — Infisical & Doppler (REST, stdlib)
 # ---------------------------------------------------------------------------
 
+#: Opener TANPA proxy. Lingkungan build/dev sering menyetel `HTTP_PROXY`
+#: ke proxy lokal yang membelokkan lalu lintas ke SaaS eksternal
+#: (api.nango.dev, api.metorial.com) dan mengembalikan 502. Untuk backend
+#: rahasia kita bicara LANGSUNG ke penyedia.
+_OPENER = _urlreq.build_opener(_urlreq.ProxyHandler({}))
+
+
 class _HttpJsonProvider(SecretsProvider):
     """Dasar untuk backend berbasis REST JSON. Tidak pernah mencetak token."""
 
     timeout: float = 10.0
 
+    def _opener(self):
+        return _OPENER
+
     def _request(self, method: str, url: str, headers: dict,
                  body: Optional[bytes] = None) -> Optional[dict]:
         req = _urlreq.Request(url, data=body, method=method)
         for k, v in headers.items():
+            # Content-Type pada request TANPA body ditolak Cloudflare/Metorial
+            # (HTTP 400). Kirim hanya saat ada payload.
+            if body is None and k.lower() == "content-type":
+                continue
             req.add_header(k, v)
         try:
-            with _urlreq.urlopen(req, timeout=self.timeout) as resp:
+            with self._opener().open(req, timeout=self.timeout) as resp:
                 raw = resp.read()
         except Exception:  # noqa: BLE001 — jaringan/HTTP apa pun -> None
             return None
@@ -942,9 +956,167 @@ class DopplerProvider(_HttpJsonProvider):
         return r is not None
 
 
+# ---------------------------------------------------------------------------
+# Backend NYATA dari `.env` (Okt 2026) — Nango (OAuth secret manager) &
+# Metorial (MCP provider catalog). Keduanya dipanggil lewat REST sungguhan.
+# ---------------------------------------------------------------------------
+
+def _aman_untuk_id(teks: str) -> str:
+    """Bersihkan owner/path agar aman jadi `connection_id` (charset ketat)."""
+    return re.sub(r"[^A-Za-z0-9._-]", "_", teks)
+
+
+class NangoProvider(_HttpJsonProvider):
+    """Nango (https://api.nango.dev) — menyimpan & mengambil kredensial OAuth
+    sebagai *connection*. Konfigurasi via env:
+
+        KATALIR_NANGO_KEY          API key environment (NANGO_API_KEY)
+        KATALIR_NANGO_HOST         default https://api.nango.dev
+        KATALIR_NANGO_INTEGRATION  integration key, default github-getting-started
+
+    Catatan: API key TIDAK pernah dicetak. `set()` mengimpor token OAuth2 ke
+    Nango (`POST /connections`), `get()` membacanya kembali, `delete()`
+    menghapus connection.
+    """
+
+    name = "nango"
+
+    def available(self) -> bool:
+        return bool(os.environ.get("KATALIR_NANGO_KEY"))
+
+    def _cfg(self) -> tuple[str, str, str]:
+        host = (os.environ.get("KATALIR_NANGO_HOST")
+                or "https://api.nango.dev").rstrip("/")
+        key = os.environ.get("KATALIR_NANGO_KEY") or ""
+        integ = (os.environ.get("KATALIR_NANGO_INTEGRATION")
+                 or "github-getting-started")
+        if not key:
+            raise BackendUnavailable("Nango: KATALIR_NANGO_KEY belum diisi")
+        return host, key, integ
+
+    def _headers(self) -> dict:
+        _, key, _ = self._cfg()
+        return {"Authorization": f"Bearer {key}", "Content-Type": "application/json"}
+
+    def _conn_id(self, path: str, owner: str) -> str:
+        # `/` -> `__` supaya path bisa dipulihkan saat list_paths().
+        jalur = re.sub(r"[^A-Za-z0-9._-]", "_", path.replace("/", "__"))
+        return f"{_aman_untuk_id(owner)}__{jalur}"
+
+    def get(self, path: str, owner: str) -> Optional[str]:
+        host, _, integ = self._cfg()
+        cid = self._conn_id(path, owner)
+        qs = _urlparse.urlencode({"provider_config_key": integ})
+        data = self._request("GET", f"{host}/connections/{cid}?{qs}", self._headers())
+        if not data:
+            return None
+        creds = data.get("credentials") or {}
+        val = creds.get("access_token") or creds.get("api_key") or creds.get("oauth_token")
+        return str(val) if val is not None else None
+
+    def set(self, path: str, value: str, owner: str) -> bool:
+        check_size(value)
+        host, _, integ = self._cfg()
+        cid = self._conn_id(path, owner)
+        payload = _json.dumps({
+            "provider_config_key": integ,
+            "connection_id": cid,
+            "credentials": {"type": "OAUTH2", "access_token": value},
+            "metadata": {}, "connection_config": {}, "tags": {}}).encode()
+        r = self._request("POST", f"{host}/connections", self._headers(), payload)
+        return bool(r) and not r.get("errors")
+
+    def delete(self, path: str, owner: str) -> bool:
+        host, _, integ = self._cfg()
+        cid = self._conn_id(path, owner)
+        qs = _urlparse.urlencode({"provider_config_key": integ})
+        r = self._request("DELETE", f"{host}/connections/{cid}?{qs}", self._headers())
+        return bool(r) and bool(r.get("success"))
+
+    def list_paths(self, owner: str) -> list[str]:
+        host, _, _ = self._cfg()
+        data = self._request("GET", f"{host}/connections", self._headers())
+        if not data:
+            return []
+        prefix = f"{_aman_untuk_id(owner)}__"
+        out = []
+        for c in data.get("connections", []):
+            cid = str(c.get("connection_id") or "")
+            if cid.startswith(prefix):
+                out.append(cid[len(prefix):].replace("__", "/"))
+        return sorted(out)
+
+    def info(self) -> dict:
+        host, _, integ = self._cfg()
+        return {"backend": self.name, "host": host, "integration": integ}
+
+
+class MetorialProvider(_HttpJsonProvider):
+    """Metorial (https://api.metorial.com) — katalog *provider deployment* MCP.
+    Kredensial = handle konfigurasi provider (dipakai untuk memanggil MCP).
+
+        KATALIR_METORIAL_KEY   API key (METORIAL_API_KEY)
+        KATALIR_METORIAL_HOST  default https://api.metorial.com
+
+    Read-only: `set()` ditolak (deployment dibuat dari dashboard Metorial),
+    sejalan dengan pola OnePasswordProvider.
+    """
+
+    name = "metorial"
+
+    def available(self) -> bool:
+        return bool(os.environ.get("KATALIR_METORIAL_KEY"))
+
+    def _cfg(self) -> tuple[str, str]:
+        host = (os.environ.get("KATALIR_METORIAL_HOST")
+                or "https://api.metorial.com").rstrip("/")
+        key = os.environ.get("KATALIR_METORIAL_KEY") or ""
+        if not key:
+            raise BackendUnavailable("Metorial: KATALIR_METORIAL_KEY belum diisi")
+        return host, key
+
+    def _headers(self) -> dict:
+        _, key = self._cfg()
+        # Metorial di balik Cloudflare: UA non-browser -> 403 error 1010.
+        return {"Authorization": f"Bearer {key}",
+                "User-Agent": ("Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+                               "AppleWebKit/537.36 (KHTML, like Gecko) "
+                               "Chrome/141.0.0.0 Safari/537.36"),
+                "Content-Type": "application/json"}
+
+    def _deployments(self) -> list[dict]:
+        host, _ = self._cfg()
+        data = self._request("GET", f"{host}/provider-deployments", self._headers())
+        if not data:
+            return []
+        return list(data.get("items") or data.get("data") or [])
+
+    def get(self, path: str, owner: str) -> Optional[str]:
+        for d in self._deployments():
+            if str(d.get("id")) == path or str(d.get("name")) == path:
+                cfg = d.get("default_config") or {}
+                return str(cfg.get("id") or d.get("id"))
+        return None
+
+    def set(self, path: str, value: str, owner: str) -> bool:
+        raise BackendUnavailable(
+            "Metorial read-only: deployment dibuat dari dashboard Metorial, "
+            "bukan lewat API secrets ini")
+
+    def list_paths(self, owner: str) -> list[str]:
+        return sorted(str(d.get("id")) for d in self._deployments() if d.get("id"))
+
+    def info(self) -> dict:
+        host, _ = self._cfg()
+        return {"backend": self.name, "host": host,
+                "deployments": len(self._deployments())}
+
+
 # Daftarkan backend baru (tanpa menghapus yang lama).
 REGISTRY["infisical"] = InfisicalProvider
 REGISTRY["doppler"] = DopplerProvider
+REGISTRY["nango"] = NangoProvider
+REGISTRY["metorial"] = MetorialProvider
 KNOWN_BACKENDS = tuple(sorted(set(REGISTRY)))
 
 

@@ -1,0 +1,115 @@
+{
+  "feature": "#7 SSO/SAML/OIDC/LDAP (.env real)",
+  "lulus": 12,
+  "total": 12,
+  "hasil": [
+    {
+      "no": 1,
+      "skenario": "Google OIDC discovery + authorize URL pakai GOOGLE_CLIENT_ID .env",
+      "status": "PASS",
+      "raw": "issuer       = https://accounts.google.com\ntoken        = https://oauth2.googleapis.com/token\njwks_uri     = https://www.googleapis.com/oauth2/v3/certs\nclient_id .env ada di authorize URL = True\nPKCE S256    = True\nCEK: client asli + PKCE -> True",
+      "detail": {
+        "issuer": "https://accounts.google.com",
+        "cid_in_url": true
+      }
+    },
+    {
+      "no": 2,
+      "skenario": "Token exchange NYATA ke Google (client .env sah)",
+      "status": "PASS",
+      "raw": "POST https://oauth2.googleapis.com/token -> HTTP 400\n  {\n  \"error\": \"invalid_grant\",\n  \"error_description\": \"Malformed auth code.\"\n}\nerror = 'invalid_grant'\nCEK: 'invalid_grant' (code dummy) bukan 'invalid_client' -> True",
+      "detail": {
+        "status": 400,
+        "error": "invalid_grant"
+      }
+    },
+    {
+      "no": 3,
+      "skenario": "Role mapping dari group IdP (owner/developer/viewer)",
+      "status": "PASS",
+      "raw": "budi  groups=['katalir-owners'] -> role=owner\nsiti  groups=['katalir-dev']    -> role=developer\ntono  groups=[]                 -> role=viewer (default)\nCEK: pemetaan group->role tepat -> True",
+      "detail": {
+        "owner": "owner",
+        "editor": "developer"
+      }
+    },
+    {
+      "no": 4,
+      "skenario": "JIT provisioning: user dibuat otomatis saat login",
+      "status": "PASS",
+      "raw": "get_user('budi@acme.test') -> {'email': 'budi@acme.test', 'name': 'Budi', 'org': 'acme', 'groups': ['katalir-owners'], 'provider': 'oidc', 'active': True, 'created_at': 1791502247.768214, 'updated_at': 1791502247.768214}\nCEK: user ter-provision + org benar -> True",
+      "detail": {
+        "org": "acme"
+      }
+    },
+    {
+      "no": 5,
+      "skenario": "Sesi SSO tersimpan di backend NYATA",
+      "status": "PASS",
+      "raw": "backend      = Redis VPS NYATA via SSH tunnel :56096\nsession_id   = _rctH9naUThg…\nsession.get  -> role=owner\nCEK: sesi hidup & terbaca kembali -> True",
+      "detail": {
+        "backend": "Redis VPS NYATA via SSH tunnel :56096"
+      }
+    },
+    {
+      "no": 6,
+      "skenario": "Logout + Single Logout (matikan SEMUA sesi user)",
+      "status": "PASS",
+      "raw": "slo('budi@acme.test') -> 2 sesi dimatikan\nsession(sid) setelah SLO -> None\nCEK: semua sesi user mati -> True",
+      "detail": {
+        "terminated": 2
+      }
+    },
+    {
+      "no": 7,
+      "skenario": "Multi-tenant: domain->org terpisah (acme/globex)",
+      "status": "PASS",
+      "raw": "dave@globex.test -> org=globex role=admin\norg_for_email(budi@acme.test)   -> acme\norg_for_email(dave@globex.test) -> globex\nCEK: tenant tidak tercampur -> True",
+      "detail": {
+        "globex_role": "admin"
+      }
+    },
+    {
+      "no": 8,
+      "skenario": "CSRF: state SEKALI pakai -> replay DITOLAK",
+      "status": "PASS",
+      "raw": "state diterbitkan -> dipakai sekali -> OK\npakai ULANG state yang sama -> RAISES StateMismatch\nCEK: anti-replay aktif -> True",
+      "detail": {
+        "replay": "StateMismatch"
+      }
+    },
+    {
+      "no": 9,
+      "skenario": "Token/sesi TERENKRIPSI (Fernet) sebelum disimpan",
+      "status": "PASS",
+      "raw": "token di ciphertext? False (harus False)\nciphertext = gAAAAABqyCeq-N61_96y1u7xdmKHGjzDxRr-jNFo… (140 char)\ndecrypt cocok? True\nCEK: token tidak tersimpan polos -> True",
+      "detail": {
+        "cipher_len": 140
+      }
+    },
+    {
+      "no": 10,
+      "skenario": "RAW OUTPUT: authorize URL nyata (siap login browser)",
+      "status": "PASS",
+      "raw": "https://accounts.google.com/o/oauth2/v2/auth?response_type=code&client_id=<GOOGLE_CLIENT_ID>&redirect_uri=http%3A%2F%2Flocalhost%3A8123%2Fsso%2Fcallback&scope=openid+email+profile+groups&state=st-raw&nonce=NoDDWwVOVlvMYMRFCy6bxzx0Lwot3tqp&login_hint=budi%40acme.test&code_challenge=NoH75bOSiS5hdOx2cyekmpoW2h-Wqk82iUgzu5wdVWU&code_challenge_method=S256\nCEK: URL OAuth 2.0 Google terbentuk lengkap -> True",
+      "detail": {}
+    },
+    {
+      "no": 11,
+      "skenario": "Error handling: state salah + token exchange gagal",
+      "status": "PASS",
+      "raw": "login(state='x', expect='y') -> RAISES StateMismatch\nexchange_code('kode-palsu')  -> RAISES AuthFailed\nCEK: galat terklasifikasi -> True",
+      "detail": {
+        "state": "StateMismatch",
+        "exchange": "AuthFailed"
+      }
+    },
+    {
+      "no": 12,
+      "skenario": "Security: client_secret TIDAK pernah masuk URL/log",
+      "status": "PASS",
+      "raw": "client_secret di authorize URL? False (harus False)\nclient_secret di seluruh hasil tes? False (harus False)\nPKCE S256 dipakai = True\nCEK: tidak ada kebocoran rahasia -> True",
+      "detail": {}
+    }
+  ]
+}

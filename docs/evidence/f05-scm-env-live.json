@@ -1,0 +1,156 @@
+{
+  "feature": "#5 Source Control Git",
+  "repo": "vraafi/katalir-scm-verify",
+  "lulus": 12,
+  "total": 12,
+  "hasil": [
+    {
+      "no": 1,
+      "skenario": "GitHub NYATA: connect (PAT asli) + daftar cabang",
+      "status": "PASS",
+      "raw": "repo        = vraafi/katalir-scm-verify\nGET /user   -> login=vraafi id=209403877\nrate_limit  -> core 5000 / sisa 5000\nbranches    = ['feature/verify-87590', 'feature/verify-87975', 'main', 'ui/ui-demo-88474', 'ui/ui-demo-88588', 'ui/ui-demo-88667']\nCEK: PAT sah + repo terbaca -> True",
+      "detail": {
+        "login": "vraafi",
+        "branches": [
+          "feature/verify-87590",
+          "feature/verify-87975",
+          "main",
+          "ui/ui-demo-88474",
+          "ui/ui-demo-88588",
+          "ui/ui-demo-88667"
+        ]
+      }
+    },
+    {
+      "no": 2,
+      "skenario": "Commit -> terverifikasi ULANG di GitHub (baca balik API)",
+      "status": "PASS",
+      "raw": "commit sha  = e767bb3720568b9559519b552d5892a860e68d68\npath        = workflows/verify-886-wf.json\ncreated     = True\nread_file() -> sha=8851e1d194ca…  run=verify-886\nCEK: isi di GitHub == yang dikirim -> 8851e1d194ca3fc96a016022c6973ff2ceaa45c1",
+      "detail": {
+        "sha": "e767bb3720568b9559519b552d5892a860e68d68",
+        "path": "workflows/verify-886-wf.json"
+      }
+    },
+    {
+      "no": 3,
+      "skenario": "Pull: ambil workflow dari GitHub",
+      "status": "PASS",
+      "raw": "pull_workflow('verify-886-wf', 'main')\n  sha       = 8851e1d194ca…\n  flow_data = {\"edges\": [], \"nodes\": [{\"id\": \"n1\", \"type\": \"trigger\"}], \"run\": \"verify-886\"}\nCEK: isi cocok dengan yang di-commit -> 8851e1d194ca3fc96a016022c6973ff2ceaa45c1",
+      "detail": {
+        "sha": "8851e1d194ca3fc96a016022c6973ff2ceaa45c1"
+      }
+    },
+    {
+      "no": 4,
+      "skenario": "Rollback ke commit lama (isi kembali seperti semula)",
+      "status": "PASS",
+      "raw": "commit v1   = e767bb372056…\ncommit v2   = 3283de047bd3…  (flow_data memuat 'versi': 2)\nrollback(to_sha=v1) -> commit baru 530f1b4f6d97…\nisi main sekarang = {\"edges\": [], \"nodes\": [{\"id\": \"n1\", \"type\": \"trigger\"}], \"run\": \"verify-886\"}\nCEK: 'versi' hilang lagi (isi v1 dipulihkan) -> True",
+      "detail": {
+        "rollback_sha": "530f1b4f6d97c1855927c4af50aeeefb8de23c32"
+      }
+    },
+    {
+      "no": 5,
+      "skenario": "Branch baru + push (terpisah dari main)",
+      "status": "PASS",
+      "raw": "create_branch('feature/verify-886', from='main')\ncommit di cabang -> a723b8b4ba02…\nbranches sekarang = ['feature/verify-886', 'feature/verify-87590', 'feature/verify-87975', 'main', 'ui/ui-demo-88474', 'ui/ui-demo-88588', 'ui/ui-demo-88667']\nisi di cabang     = {\"cabang\": \"feature/verify-886\", \"edges\": [], \"nodes\": [{\"id\": \"n1\", \"type\": \"trigger\"}], \"run\": \"verify-886\"}\nCEK: cabang ada & isinya beda dari main -> True",
+      "detail": {
+        "branch": "feature/verify-886",
+        "branches": [
+          "feature/verify-886",
+          "feature/verify-87590",
+          "feature/verify-87975",
+          "main",
+          "ui/ui-demo-88474",
+          "ui/ui-demo-88588",
+          "ui/ui-demo-88667"
+        ]
+      }
+    },
+    {
+      "no": 6,
+      "skenario": "Pull Request: buka PR nyata + verifikasi di GitHub",
+      "status": "PASS",
+      "raw": "open_pr(head='feature/verify-886', base='main')\n  number = 4  state = open\nGET /pulls/4 -> state=open head=feature/verify-886 base=main\nurl    = https://github.com/vraafi/katalir-scm-verify/pull/4\nCEK: PR benar-benar ada di GitHub -> True",
+      "detail": {
+        "pr": 4,
+        "url": "https://github.com/vraafi/katalir-scm-verify/pull/4"
+      }
+    },
+    {
+      "no": 7,
+      "skenario": "Konflik: 2 commit bersamaan -> yang basi DITOLAK (HTTP 409)",
+      "status": "PASS",
+      "raw": "sha dasar (dibaca proses B) = 2b8cd664cd1d…\nproses A commit dulu        -> sukses\nproses B commit expect_sha  -> RAISES ConflictError: konflik pada verify-886-konflik: dasar 2b8cd66 ≠ remote 9095af7\nCEK: penulisan basi terdeteksi sebagai konflik -> True",
+      "detail": {
+        "error": "ConflictError"
+      }
+    },
+    {
+      "no": 8,
+      "skenario": "Webhook push GitHub -> auto-sync daftar workflow",
+      "status": "PASS",
+      "raw": "payload.ref = refs/heads/main\n3 commit, 5 berkas (3 .json workflow + README + src/lain.py)\nhasil sync  = {\"branch\": \"main\", \"workflow_ids\": [\"verify-886-baru\", \"verify-886-hapus\", \"verify-886-wf\"], \"count\": 3}\nCEK: hanya berkas workflows/*.json yang diambil -> True",
+      "detail": {
+        "branch": "main",
+        "workflow_ids": [
+          "verify-886-baru",
+          "verify-886-hapus",
+          "verify-886-wf"
+        ],
+        "count": 3
+      }
+    },
+    {
+      "no": 9,
+      "skenario": "Multi-user: koneksi & token terpisah per user",
+      "status": "PASS",
+      "raw": "store.list(budi)  = [{\"provider\": \"github\", \"repo\": \"vraafi/katalir-scm-verify\", \"token\": \"ghp_\\u2026ok\"}]\nstore.list(orang) = [{\"provider\": \"github\", \"repo\": \"orang-lain/repo-pribadi\", \"token\": \"ghp_\\u2026in\"}]\nstore.client(orang).repo = orang-lain/repo-pribadi\ntoken asli muncul di list? False (harus False)\nCEK: tidak ada kebocoran lintas-user -> True",
+      "detail": {
+        "budi": [
+          {
+            "provider": "github",
+            "repo": "vraafi/katalir-scm-verify",
+            "token": "ghp_…ok"
+          }
+        ],
+        "orang": [
+          {
+            "provider": "github",
+            "repo": "orang-lain/repo-pribadi",
+            "token": "ghp_…in"
+          }
+        ]
+      }
+    },
+    {
+      "no": 10,
+      "skenario": "Token DIENKRIPSI di penyimpanan (Fernet), dekripsi benar",
+      "status": "PASS",
+      "raw": "ciphertext di store = gAAAAABqyCJ7k-uag32c3jwq06Sg2407bd2Re6FP… (140 char)\ntoken asli ada di cipher? False  (harus False)\nprefix Fernet        = True\nstore.get()          = token panjang 40 (cocok)\nCEK: at-rest terenkripsi, in-use terdekripsi -> True",
+      "detail": {
+        "enc_prefix": "gAAAAABq"
+      }
+    },
+    {
+      "no": 11,
+      "skenario": "Performa: 100 commit nyata ke GitHub",
+      "status": "PASS",
+      "raw": "100 commit ke workflows/verify-886-perf.json\ndurasi      = 188.8s (1888 ms/commit)\nsha akhir   = b435cbea54c8…\nGET /commits?path=… -> 100 commit terdaftar di GitHub\nCEK: semua commit benar-benar tercatat -> True",
+      "detail": {
+        "seconds": 188.8,
+        "commits": 100
+      }
+    },
+    {
+      "no": 12,
+      "skenario": "Token SALAH -> galat JELAS (401, token tidak bocor)",
+      "status": "PASS",
+      "raw": "token   = ghp_token_palsu_… (sengaja salah)\nlist_branches() -> RAISES GitError: HTTP 401: {'message': 'Bad credentials', 'documentation_url': 'https://docs.github.com/rest', 'status': '401'}\ntoken muncul di pesan? False (harus False)\nCEK: 401 terklasifikasi + rahasia tidak bocor -> True",
+      "detail": {
+        "error": "GitError",
+        "message": "HTTP 401: {'message': 'Bad credentials', 'documentation_url': 'https://docs.github.com/rest', 'status': '401'}"
+      }
+    }
+  ]
+}

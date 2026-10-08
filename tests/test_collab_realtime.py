@@ -110,3 +110,74 @@ def test_room_view_lookup():
     assert cr.room_view(srv, "lain")["exists"] is False
     # list_rooms menormalkan nama
     assert [r["room"] for r in cr.list_rooms(srv)] == ["tim"]
+
+
+# 9. guarded_send: disconnect klien TIDAK boleh meruntuhkan TaskGroup room
+#    (bug produksi nyata: uvicorn ClientDisconnected -> lifespan mati ->
+#    "The WebsocketServer is not running" untuk semua klien berikutnya)
+def test_guarded_send_swallows_client_disconnect():
+    import collab_realtime as crmod
+
+    server = crmod.CollabASGIServer(crmod.WS_SERVER, on_connect=crmod._on_connect)
+
+    pesan = [{"type": "websocket.connect"}]
+
+    async def receive():
+        if pesan:
+            return pesan.pop(0)
+        await asyncio.sleep(3600)  # klien "menggantung" setelah connect
+
+    terkirim: list[dict] = []
+
+    async def send(msg):
+        terkirim.append(msg)
+        if msg.get("type") == "websocket.send" and len(terkirim) > 2:
+            raise RuntimeError("ClientDisconnected (simulasi uvicorn)")
+
+    async def jalan():
+        token_ok = "x"  # on_connect asli akan menolak token palsu; pakai bypass:
+        # gunakan on_connect yang selalu menerima agar sampai ke jalur serve
+        srv = crmod.CollabASGIServer(_FakeWsServer(),
+                                     on_connect=_accept_async)
+        # kirim beberapa pesan data -> send ke-3 melempar; guarded_send
+        # harus menelannya (tidak ada exception yang keluar dari __call__)
+        import pycrdt.websocket.asgi_server as asi
+
+        async def korban():
+            await srv.__call__(
+                {"type": "websocket", "path": "/room-uji"},
+                receive, send)
+
+        t = asyncio.create_task(korban())
+        await asyncio.sleep(0.2)
+        # kirim lewat channel: simulasi broadcast yroom ke klien mati
+        # (guarded_send dipasang sebagai `send` di ASGIWebsocket)
+        assert terkirim[0]["type"] == "websocket.accept"
+        # tak ada exception -> lolos; batalkan task gantung
+        t.cancel()
+        try:
+            await t
+            gagal = None
+        except asyncio.CancelledError:
+            gagal = None
+        except Exception as e:  # noqa: BLE001
+            gagal = e
+        # PENTING: tanpa guarded_send, RuntimeError "ClientDisconnected"
+        # akan lolos dari __call__ (bug produksi). Dengan perbaikan: None.
+        assert gagal is None, f"exception bocor dari __call__: {gagal!r}"
+        return True
+
+    assert asyncio.run(jalan()) is True
+
+
+async def _accept_async(msg, scope):
+    return False
+
+
+class _FakeWsServer:
+    """Server WS tiruan: cukup untuk menguji jalur guarded_send."""
+
+    async def serve(self, websocket):
+        # yroom "menulis" 3 pesan; yang ke-3 memicu send error tersimulasi
+        for _ in range(3):
+            await websocket.send(b"frame")

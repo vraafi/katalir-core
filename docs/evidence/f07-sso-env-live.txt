@@ -1,0 +1,116 @@
+
+[VAULT] VAULT_SECRET_KEY ei löytynyt .env:stä — generoitiin.
+[VAULT] LISÄÄ TÄMÄ .env:hen (tai Railway env) jotta avaimet pysyvät:
+[VAULT] Avaimet simulasi disimpan; JANGAN cetak kunci di console/log server.
+
+==============================================================================
+#01 [PASS] Google OIDC discovery + authorize URL pakai GOOGLE_CLIENT_ID .env
+------------------------------------------------------------------------------
+issuer       = https://accounts.google.com
+token        = https://oauth2.googleapis.com/token
+jwks_uri     = https://www.googleapis.com/oauth2/v3/certs
+client_id .env ada di authorize URL = True
+PKCE S256    = True
+CEK: client asli + PKCE -> True
+
+==============================================================================
+#02 [PASS] Token exchange NYATA ke Google (client .env sah)
+------------------------------------------------------------------------------
+POST https://oauth2.googleapis.com/token -> HTTP 400
+  {
+  "error": "invalid_grant",
+  "error_description": "Malformed auth code."
+}
+error = 'invalid_grant'
+CEK: 'invalid_grant' (code dummy) bukan 'invalid_client' -> True
+
+==============================================================================
+#03 [PASS] Role mapping dari group IdP (owner/developer/viewer)
+------------------------------------------------------------------------------
+budi  groups=['katalir-owners'] -> role=owner
+siti  groups=['katalir-dev']    -> role=developer
+tono  groups=[]                 -> role=viewer (default)
+CEK: pemetaan group->role tepat -> True
+
+==============================================================================
+#04 [PASS] JIT provisioning: user dibuat otomatis saat login
+------------------------------------------------------------------------------
+get_user('budi@acme.test') -> {'email': 'budi@acme.test', 'name': 'Budi', 'org': 'acme', 'groups': ['katalir-owners'], 'provider': 'oidc', 'active': True, 'created_at': 1791502247.768214, 'updated_at': 1791502247.768214}
+CEK: user ter-provision + org benar -> True
+
+==============================================================================
+#05 [PASS] Sesi SSO tersimpan di backend NYATA
+------------------------------------------------------------------------------
+backend      = Redis VPS NYATA via SSH tunnel :56096
+session_id   = _rctH9naUThg…
+session.get  -> role=owner
+CEK: sesi hidup & terbaca kembali -> True
+
+==============================================================================
+#06 [PASS] Logout + Single Logout (matikan SEMUA sesi user)
+------------------------------------------------------------------------------
+slo('budi@acme.test') -> 2 sesi dimatikan
+session(sid) setelah SLO -> None
+CEK: semua sesi user mati -> True
+
+==============================================================================
+#07 [PASS] Multi-tenant: domain->org terpisah (acme/globex)
+------------------------------------------------------------------------------
+dave@globex.test -> org=globex role=admin
+org_for_email(budi@acme.test)   -> acme
+org_for_email(dave@globex.test) -> globex
+CEK: tenant tidak tercampur -> True
+
+==============================================================================
+#08 [PASS] CSRF: state SEKALI pakai -> replay DITOLAK
+------------------------------------------------------------------------------
+state diterbitkan -> dipakai sekali -> OK
+pakai ULANG state yang sama -> RAISES StateMismatch
+CEK: anti-replay aktif -> True
+
+==============================================================================
+#09 [PASS] Token/sesi TERENKRIPSI (Fernet) sebelum disimpan
+------------------------------------------------------------------------------
+token di ciphertext? False (harus False)
+ciphertext = gAAAAABqyCeq-N61_96y1u7xdmKHGjzDxRr-jNFo… (140 char)
+decrypt cocok? True
+CEK: token tidak tersimpan polos -> True
+
+==============================================================================
+#10 [PASS] RAW OUTPUT: authorize URL nyata (siap login browser)
+------------------------------------------------------------------------------
+https://accounts.google.com/o/oauth2/v2/auth?response_type=code&client_id=<GOOGLE_CLIENT_ID>&redirect_uri=http%3A%2F%2Flocalhost%3A8123%2Fsso%2Fcallback&scope=openid+email+profile+groups&state=st-raw&nonce=NoDDWwVOVlvMYMRFCy6bxzx0Lwot3tqp&login_hint=budi%40acme.test&code_challenge=NoH75bOSiS5hdOx2cyekmpoW2h-Wqk82iUgzu5wdVWU&code_challenge_method=S256
+CEK: URL OAuth 2.0 Google terbentuk lengkap -> True
+
+==============================================================================
+#11 [PASS] Error handling: state salah + token exchange gagal
+------------------------------------------------------------------------------
+login(state='x', expect='y') -> RAISES StateMismatch
+exchange_code('kode-palsu')  -> RAISES AuthFailed
+CEK: galat terklasifikasi -> True
+
+==============================================================================
+#12 [PASS] Security: client_secret TIDAK pernah masuk URL/log
+------------------------------------------------------------------------------
+client_secret di authorize URL? False (harus False)
+client_secret di seluruh hasil tes? False (harus False)
+PKCE S256 dipakai = True
+CEK: tidak ada kebocoran rahasia -> True
+
+==============================================================================
+RINGKASAN HARD TEST FITUR #7 (.env real): 12/12 PASS
+==============================================================================
+  #01 [PASS] Google OIDC discovery + authorize URL pakai GOOGLE_CLIENT_ID .env
+  #02 [PASS] Token exchange NYATA ke Google (client .env sah)
+  #03 [PASS] Role mapping dari group IdP (owner/developer/viewer)
+  #04 [PASS] JIT provisioning: user dibuat otomatis saat login
+  #05 [PASS] Sesi SSO tersimpan di backend NYATA
+  #06 [PASS] Logout + Single Logout (matikan SEMUA sesi user)
+  #07 [PASS] Multi-tenant: domain->org terpisah (acme/globex)
+  #08 [PASS] CSRF: state SEKALI pakai -> replay DITOLAK
+  #09 [PASS] Token/sesi TERENKRIPSI (Fernet) sebelum disimpan
+  #10 [PASS] RAW OUTPUT: authorize URL nyata (siap login browser)
+  #11 [PASS] Error handling: state salah + token exchange gagal
+  #12 [PASS] Security: client_secret TIDAK pernah masuk URL/log
+
+JSON -> docs/evidence/f07-sso-env-live.json

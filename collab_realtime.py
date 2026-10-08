@@ -171,12 +171,32 @@ class CollabASGIServer(ASGIServer):
                     await send({"type": "websocket.close", "code": 4401})
                     return
                 await send({"type": "websocket.accept"})
+
+                async def guarded_send(message: dict) -> None:
+                    """Kirim tanpa membunuh room.
+
+                    BUG PRODUKSI (ditemukan hard test VPS): saat klien
+                    terakhir sebuah room memutus koneksi, broadcast yroom
+                    masih memanggil `send` -> uvicorn `ClientDisconnected`
+                    -> exception merambat ke TaskGroup yroom -> TaskGroup
+                    WebsocketServer ikut runtuh -> lifespan mati ->
+                    SEMUA koneksi berikutnya gagal
+                    ("The WebsocketServer is not running").
+                    Solusi: telan galat kirim untuk klien yang sudah pergi;
+                    pembersihan klien tetap lewat jalur `recv`
+                    (websocket.disconnect).
+                    """
+                    try:
+                        await send(message)
+                    except Exception:  # noqa: BLE001
+                        pass
+
                 from pycrdt.websocket.asgi_server import ASGIWebsocket
                 # Nama room = segmen terakhir path (BUKAN path penuh): Starlette
                 # `mount()` TIDAK memotong prefix, jadi `scope["path"]` =
                 # "/collab/ws/<room>". Tanpa normalisasi ini, kunci room jadi
                 # path penuh dan lookup REST/persistensi jadi tidak konsisten.
-                ws = ASGIWebsocket(receive, send,
+                ws = ASGIWebsocket(receive, guarded_send,
                                    room_from_path(scope.get("path", "")),
                                    self._on_disconnect)
                 await self._websocket_server.serve(ws)

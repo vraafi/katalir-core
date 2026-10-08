@@ -1,0 +1,92 @@
+{
+ "feature": "#10 Real-Time Collaboration (VPS)",
+ "target": "VPS 107.173.51.78 127.0.0.1:8140 via SSH tunnel",
+ "lulus": 12,
+ "total": 12,
+ "hasil": [
+  {
+   "no": 1,
+   "skenario": "Server WS di VPS + 2 klien (JWT sah) lewat tunnel & tersinkron",
+   "status": "PASS",
+   "raw": "ws      = ws://localhost:8140/vps2006-dasar  (server: VPS 127.0.0.1:8140)\nA.client_id = 7049832174540690\nB.client_id = 911024407715168\nhandshake+sync = 1.63s\nA.synced=True  B.synced=True",
+   "detail": {}
+  },
+  {
+   "no": 2,
+   "skenario": "CRDT sync: node buatan A tampak di B (lintas internet->VPS)",
+   "status": "PASS",
+   "raw": "A.add_node(n1) -> B.nodes = {'n1': {'y': 20.0, 'label': 'Mulai', 'x': 10.0}}",
+   "detail": {}
+  },
+  {
+   "no": 3,
+   "skenario": "5 user serentak melihat node yang sama",
+   "status": "PASS",
+   "raw": "klien  = ['Andi', 'Budi', 'Citra', 'Dewi', 'Eka']\nn5 terlihat = [True, True, True, True, True]\npeers A = 4",
+   "detail": {}
+  },
+  {
+   "no": 4,
+   "skenario": "Edit bersamaan (field beda) -> CRDT konvergen di kedua klien",
+   "status": "PASS",
+   "raw": "A.lihat n1 = {'y': 20.0, 'x': 111.0, 'label': 'Dari-Budi'}\nB.lihat n1 = {'y': 20.0, 'x': 111.0, 'label': 'Dari-Budi'}\nCEK: x=111.0 & label='Dari-Budi' di KEDUANYA -> True",
+   "detail": {}
+  },
+  {
+   "no": 5,
+   "skenario": "Presence kursor: B melihat kursor A bernama",
+   "status": "PASS",
+   "raw": "cursors B = {\"Citra\": {}, \"Dewi\": {}, \"Eka\": {}, \"Andi\": {\"x\": 320.0, \"y\": 140.0, \"node\": \"\"}}",
+   "detail": {}
+  },
+  {
+   "no": 6,
+   "skenario": "Komentar CRDT: A tulis -> B terima",
+   "status": "PASS",
+   "raw": "comments B = [{'user': 'Andi', 'target': 'n1', 'text': 'tolong cek node n1', 'at': 1791502015.177305}]",
+   "detail": {}
+  },
+  {
+   "no": 7,
+   "skenario": "Restart server VPS (SSH nyata) -> state CRDT dipulihkan",
+   "status": "PASS",
+   "raw": "restart OK = True\nstate sebelum = {\"n5\": {\"label\": \"lima-user\", \"x\": 1.0, \"y\": 2.0}, \"n1\": {\"y\": 20.0, \"x\": 111.0, \"label\": \"Dari-Budi\"}}\nstate setelah (klien baru 'Farhan') = {\"n1\": {\"y\": 20.0, \"label\": \"Dari-Budi\", \"x\": 111.0}, \"n5\": {\"y\": 2.0, \"label\": \"lima-user\", \"x\": 1.0}}\nCEK: n1(x=111.0,'Dari-Budi') & n5 ada -> True",
+   "detail": {}
+  },
+  {
+   "no": 8,
+   "skenario": "Koneksi TANPA token ditolak server VPS",
+   "status": "PASS",
+   "raw": "koneksi ditolak (close 4401/403) sesuai kebijakan",
+   "detail": {}
+  },
+  {
+   "no": 9,
+   "skenario": "B offline -> A edit -> B reconnect -> state ter-replay",
+   "status": "PASS",
+   "raw": "n9 = {'x': 9.0, 'label': 'awal', 'y': 9.0}",
+   "detail": {}
+  },
+  {
+   "no": 10,
+   "skenario": "Isolasi room: node room A TIDAK bocor ke room B",
+   "status": "PASS",
+   "raw": "x2.nodes = {} (harus kosong / tanpa 'rahasia')\nbocor = False",
+   "detail": {}
+  },
+  {
+   "no": 11,
+   "skenario": "Perf: 200 update melewati VPS (lintas internet) terkirim semua",
+   "status": "PASS",
+   "raw": "200 update dalam 1.75s (114 ops/s)\nnilai akhir di q = 200",
+   "detail": {}
+  },
+  {
+   "no": 12,
+   "skenario": "Protokol y-sync/y-awareness mentah terbaca dari VPS",
+   "status": "PASS",
+   "raw": "frame SYNC=1  AWARENESS=1 (byte pertama = tipe pesan y-sync)",
+   "detail": {}
+  }
+ ]
+}
