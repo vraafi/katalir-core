@@ -458,3 +458,54 @@ Bukti raw: `13 passed in 0.36s`.
 - Fitur #9 — AI Workflow Optimizer.
 
 ---
+
+## FITUR #9: AI Workflow Optimizer
+
+### Research
+| Pendekatan | Verdict | Alasan |
+|-----------|---------|--------|
+| LLM-as-optimizer (prompt DAG) | OPSIONAL | non-deterministik; dipakai sebagai lapis kedua |
+| Analisis graf statis in-house | **DIPAKAI** | deterministik, dapat di-hard-test, nol biaya |
+| n8n (tak punya) | — | Katalir lebih unggul di sini |
+
+**Pilihan:** `workflow_optimizer.py` (analisis DAG statis + estimasi).
+
+### Implementasi
+- File: `workflow_optimizer.py` (baru, ~330 baris) — deteksi `duplicate_call`,
+  `parallelizable`, `missing_cache`, `missing_retry`; `estimate_cost`,
+  `estimate_latency` (paralel = MAX per level); `analyze`, `apply`,
+  `apply_safe`, `FeedbackStore`; multi-model (`MODEL_PRICING`).
+- Keamanan: hanya membaca field struktural; nilai rahasia tak masuk keluaran.
+- API: `POST /ai/optimize/analyze`, `POST /ai/optimize/apply`,
+  `POST /ai/optimize/feedback`, `GET /ai/optimize/feedback`.
+- Registry `/version`: `25_workflow_optimizer`.
+
+### Hard Test — `tests/test_workflow_optimizer.py` (12 kasus, PASS)
+| # | Skenario | Status |
+|---|----------|--------|
+| 1 | Analisis 5 node → rekomendasi | PASS |
+| 2 | Duplicate HTTP → saran cache | PASS |
+| 3 | Sekuensial → saran parallel | PASS |
+| 4 | Akurasi estimasi biaya | PASS |
+| 5 | Akurasi prediksi latensi (MAX paralel) | PASS |
+| 6 | Auto-optimize (imutabel, struktur utuh) | PASS |
+| 7 | Tolak optimasi berisiko | PASS |
+| 8 | Performa 100 analisis < 5s | PASS |
+| 9 | Multi-model support | PASS |
+| 10 | Loop umpan balik | PASS |
+| 11 | Benchmark pengurangan biaya | PASS |
+| 12 | Keamanan: tidak bocorkan isi | PASS |
+
+Bukti raw: `12 passed in 0.31s`.
+
+### Deviasi dari brief
+- Optimasi `parallel` berisiko medium → TIDAK diterapkan otomatis (harus
+  disetujui eksplisit); ini disengaja agar aman.
+
+### Blocker
+- Tidak ada.
+
+### Next
+- Fitur #10 — Real-Time Collaboration.
+
+---

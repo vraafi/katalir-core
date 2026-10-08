@@ -5540,6 +5540,78 @@ def wfgen_generate(body: WorkflowGenRequest,
     return {"status": "success", **out}
 
 
+# ---------------------------------------------------------------------------
+# ENDPOINT AI WORKFLOW OPTIMIZER (fitur #9)
+# ---------------------------------------------------------------------------
+_OPT_FEEDBACK = None
+
+
+def _opt_feedback():
+    global _OPT_FEEDBACK
+    import workflow_optimizer as wo
+    if _OPT_FEEDBACK is None:
+        _OPT_FEEDBACK = wo.FeedbackStore()
+    return wo, _OPT_FEEDBACK
+
+
+class OptimizeAnalyzeRequest(BaseModel):
+    flow: dict
+
+
+class OptimizeApplyRequest(BaseModel):
+    flow: dict
+    accept_ids: list = []
+    max_risk: str = "low"
+
+
+class OptimizeFeedbackRequest(BaseModel):
+    rec_id: str
+    accepted: bool
+    note: str = ""
+
+
+@app.post("/ai/optimize/analyze")
+def optimize_analyze(body: OptimizeAnalyzeRequest,
+                     authorization: str | None = Header(None)):
+    """Analisis workflow -> temuan, rekomendasi, estimasi biaya/latensi."""
+    security.get_current_user(authorization)
+    import workflow_optimizer as wo
+    return {"status": "success", "analysis": wo.analyze(body.flow)}
+
+
+@app.post("/ai/optimize/apply")
+def optimize_apply(body: OptimizeApplyRequest,
+                   authorization: str | None = Header(None)):
+    """Terapkan rekomendasi optimasi (default hanya risiko-rendah)."""
+    security.get_current_user(authorization)
+    import workflow_optimizer as wo
+    hasil = wo.analyze(body.flow)
+    out = wo.apply(body.flow, hasil["recommendations"],
+                   accept_ids=body.accept_ids, max_risk=body.max_risk)
+    return {"status": "success", **out,
+            "before": {"cost_usd": hasil["cost_usd"],
+                       "latency_ms": hasil["latency_ms"]}}
+
+
+@app.post("/ai/optimize/feedback")
+def optimize_feedback(body: OptimizeFeedbackRequest,
+                      authorization: str | None = Header(None)):
+    """Catat umpan balik pengguna terhadap rekomendasi."""
+    security.get_current_user(authorization)
+    _, fb = _opt_feedback()
+    return {"status": "success", "feedback": fb.record(body.rec_id,
+                                                       body.accepted, body.note)}
+
+
+@app.get("/ai/optimize/feedback")
+def optimize_feedback_stats(authorization: str | None = Header(None)):
+    """Ringkasan umpan balik (tingkat penerimaan)."""
+    security.get_current_user(authorization)
+    _, fb = _opt_feedback()
+    return {"status": "success", "count": len(fb.all()),
+            "acceptance_rate": fb.acceptance_rate(), "items": fb.all()[-50:]}
+
+
 @app.get("/health")
 def health():
     return {
