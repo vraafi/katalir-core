@@ -29,7 +29,9 @@ const OUTPUT_DIR =
 
 export default defineConfig({
   testDir: "./tests",
-  testMatch: /builder-code-node\.spec\.ts/,
+  // `prod-csp-analytics.spec.ts` menembak SITUS LIVE (E2E_BASE_URL), jadi
+  // `webServer` di bawah otomatis dilewati bila E2E_BASE_URL diisi.
+  testMatch: /(builder-code-node|prod-csp-analytics)\.spec\.ts/,
   outputDir: OUTPUT_DIR,
   timeout: 180000,
   retries: 0,

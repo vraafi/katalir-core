@@ -187,10 +187,65 @@ menyambungkan node baru memaksa kedua fungsi itu dibaca ulang.
 3. **Validasi statis JavaScript lebih longgar dari Python.** `import('fs')`
    dan `constructor.constructor` lolos penjaga pola, tetapi eksekusi nyata
    **0/11** berhasil (runtime menahan). Ini defence-in-depth, bukan celah aktif.
+4. **JavaScript TIDAK tersedia di produksi (Railway).** `/version` melaporkan
+   `code_sandbox.javascript_available: false` karena gambar kontainer Railway
+   tidak membawa runtime Node (`_cari_node()` tidak menemukan `node`).
+   Perilakunya jujur dan rapi, bukan hang: `execute_code` bahasa `javascript`
+   menjawab `ok=false`,
+   `error="runtime JavaScript (node) tidak tersedia di lingkungan ini"`.
+   Python — bahasa utama fitur ini — bekerja penuh di produksi. Tindak lanjut
+   yang disarankan: (a) tambahkan Node ke gambar Railway, **atau** (b) sembunyikan
+   opsi JavaScript di UI ketika `javascript_available` `false`. Belum dilakukan
+   karena butuh keputusan infrastruktur (mengubah gambar deploy), bukan perubahan
+   kode di repo ini.
 
 ---
 
-## 7. Bukti
+## 7. Verifikasi PRODUKSI (bukan simulasi, bukan TestClient)
+
+Dijalankan terhadap `https://web-production-dc90b.up.railway.app` (commit
+`3ff2b29`) lewat endpoint MCP HTTP sungguhan. Skrip pengukurnya tidak di-commit
+(harness lokal, `.gitignore` `_*.py`); angka di bawah adalah keluaran mentahnya.
+
+```
+TARGET: https://web-production-dc90b.up.railway.app
+
+[1] dasar python      ok=True result=42 stdout='halo produksi\n' dur=32ms os_limits=on
+[2] escape python     total=20 bocor=0 []
+[3] escape javascript total=11 ok=0 gagal=11 bocor=0 []
+[4] tanpa impor/net/fs ditolak=5/5
+[5] bom memori 2GB    ok=False error='MemoryError: '
+[6] infinite loop     ok=False error='timeout: eksekusi dihentikan setelah 30s' wall=31.5s
+[7] timeout_s=600     dilaporkan=30 (harus 30)
+[8] javascript        ok=False result=None error='runtime JavaScript (node) tidak tersedia di lingkungan ini'
+```
+
+Yang penting dibaca dari angka-angka itu:
+
+| Baris | Artinya |
+| --- | --- |
+| `[1] ... os_limits=on` | **RLIMIT aktif di produksi** (Linux). Di Windows pengembangan nilai ini `"job object"` — keduanya berarti batas memori DITEGAKKAN. |
+| `[2] bocor=0` | 20 vektor escape Python, nol yang menghasilkan efek nyata. |
+| `[3] gagal=11 bocor=0` | Semua vektor JS ditahan — sebagian oleh sandbox, sebagian karena Node memang tidak ada (lihat batasan #4). |
+| `[5] MemoryError` | Batas 128 MB ditegakkan kernel, bukan sekadar dilaporkan. |
+| `[6] wall=31.5s` | Infinite loop dibunuh pada 30 s (overhead 1,5 s = pembuatan proses + SSE). |
+| `[7] 30` | `timeout_s=600` dipaksa turun ke cap 30, bukan ditolak. |
+
+**Curl langsung** (`tools/call execute_code`) di produksi:
+
+```json
+{"ok": true, "result": 42, "stdout": "halo dari sandbox produksi\n",
+ "duration_ms": 32, "language": "python", "timeout_s": 30,
+ "memory_limit_mb": 128, "os_limits": "on"}
+```
+
+`/version` di produksi melaporkan `code_sandbox.endpoints =
+["code_node", "mcp_execute_code"]` dan `mcp_tools` memuat `execute_code` —
+kedua jalur benar-benar terpasang, bukan hanya dideklarasikan.
+
+---
+
+## 8. Bukti
 
 - **`tests/test_sandbox_production.py`** — 58 tes (bagian A–H): registrasi node,
   injeksi data, integrasi alur, protokol MCP nyata, keamanan (20 vektor Python +
@@ -198,15 +253,21 @@ menyambungkan node baru memaksa kedua fungsi itu dibaca ulang.
   (timeout 30 s nyata, bom memori 2 GB → `MemoryError`, keluaran dipotong).
 - **`tests/test_code_sandbox.py`** + **`tests/test_hard_test_fixes.py`** — suite
   sandbox lama tetap hijau setelah perubahan.
-- **`tests/builder-code-node.spec.ts`** — UI: palette, node masuk kanvas, panel
-  konfigurasi (bahasa/timeout/editor), token tema di 4 tema, screenshot.
+- **`tests/builder-code-node.spec.ts`** — 17 tes UI pada BUNDLE PRODUKSI:
+  palette, node masuk kanvas, panel konfigurasi (bahasa/timeout/editor), token
+  tema di 4 tema, F1/F2/F3 (panel tidak menutup sendiri, sheet mobile bekerja),
+  dan screenshot `docs/marketing/screenshots/code-node/canvas-code-node.png`.
+- **`tests/node-types.unit.spec.ts`** — 4 tes: `META` ↔ `NODE_TYPES` setara.
+- **`tests/prod-csp-analytics.spec.ts`** — 2 tes menembak SITUS LIVE: header CSP
+  memuat kedua host pada direktif yang benar, beacon terunduh 200, tag terpasang
+  di DOM, **0 error CSP**, dan beacon mengirim data.
 - **`/version`** — blok `code_sandbox` (`enabled`, `languages`,
   `max_timeout_s`, `memory_limit_mb`, `memory_enforced`, `endpoints`) dan
   `mcp_tools` yang memuat `execute_code`.
 
 ---
 
-## 8. Cara memakai
+## 9. Cara memakai
 
 **Node `code` (Builder):** tarik node **Kode** dari palette → pilih bahasa
 (Python 3 / JavaScript) → tulis kode → atur batas waktu (default 30 s). Data dari
