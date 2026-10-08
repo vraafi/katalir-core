@@ -34,6 +34,12 @@ for h in _extra:
 
 os.environ["ALLOWED_HOSTS"] = ",".join(_hosts)
 
+# Scheduled Trigger (cron): loop TIDAK boleh jalan di dalam pytest — tick
+# tiap 20s akan berlomba dengan test yang memanggil scheduler_manager.tick()
+# secara deterministik. Test live uvicorn menyetel SCHEDULER_ENABLED=1 di
+# proses servernya sendiri.
+os.environ.setdefault("SCHEDULER_ENABLED", "0")
+
 
 @pytest.fixture(autouse=True)
 def _bersihkan_event_loop_menggantung():

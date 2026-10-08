@@ -104,6 +104,12 @@ def _get_write_client():
     return _write_client
 
 
+def get_write_client():
+    """Akses PUBLIK ke service client untuk modul backend terpercaya
+    (scheduler_manager). Endpoint tetap wajib cek ownership sebelum pakai."""
+    return _get_write_client()
+
+
 def _map_api_error(exc, context):
     """Convert postgrest APIError -> HTTPException dengan status yang sesuai.
 

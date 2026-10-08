@@ -13,6 +13,7 @@
 #   uvicorn api_server:app --reload
 # =====================================================================
 
+import asyncio
 import os
 import json
 import threading
@@ -33,6 +34,8 @@ import gemini_key_pool
 import mcp_tool_cache
 import model_discovery as md
 import rate_limit
+import scheduler_manager  # Scheduled Trigger (cron) — Fitur #1, 8 Okt 2026
+import memory_manager    # AI Agent Memory (pgvector) — Fitur #11, 8 Okt 2026
 import workflow_autofix as _wf_autofix
 import security
 import tools
@@ -57,6 +60,12 @@ import execution_engine as engine
 from tools import CredentialMissingError
 from google import genai
 from google.genai import types
+import mcp_server
+
+# Instance MCP proses-wide (Fitur #8). Dibuat di sini supaya lifespan, mount,
+# dan endpoint bantu memakai SERVER YANG SAMA — `session_manager` hanya boleh
+# `run()` sekali, jadi app yang di-mount harus terikat ke instance ini.
+_MCP_SERVER = mcp_server.get_server()
 
 @asynccontextmanager
 async def _lifespan(_app: "FastAPI"):
@@ -75,7 +84,45 @@ async def _lifespan(_app: "FastAPI"):
     """
     security.warm_jwks()
     _warm_gateway_roster()
+    # Scheduled Trigger (cron, Fitur #1): loop asyncio di-startup, dihentikan
+    # saat shutdown. Kill-switch env SCHEDULER_ENABLED=0 (dipakai test suite).
+    _sched_task = None
+    _sched_stop = asyncio.Event()
+    if scheduler_manager.scheduler_enabled():
+        try:
+            _sched_task = asyncio.create_task(
+                scheduler_manager.scheduler_loop(_sched_stop))
+        except Exception as _exc:  # noqa: BLE001 - startup tak boleh gagal karena scheduler
+            print(f"[lifespan] scheduler gagal dimulai: {type(_exc).__name__}: {_exc}")
+    # MCP Server (Fitur #8): `session_manager.run()` WAJIB hidup selama app
+    # melayani request, kalau tidak setiap panggilan JSON-RPC di /mcp/katalir
+    # langsung 500 (RuntimeError: Task group is not initialized).
+    #
+    # PENTING: manager HANYA boleh `run()` sekali per instance, dan app yang
+    # di-mount harus terikat ke instance yang sama. Karena itu server dibuat
+    # di sini, dijadikan target mount di bawah, dan manager-nya dinyalakan
+    # lewat context manager yang sama. Kill-switch env MCP_SERVER_ENABLED=0.
+    _mcp_ctx = None
+    if os.getenv("MCP_SERVER_ENABLED", "1").strip() not in ("0", "false", "False"):
+        try:
+            _mcp_ctx = mcp_server.session_manager_lifespan(_MCP_SERVER)
+            await _mcp_ctx.__aenter__()
+        except Exception as _exc:  # noqa: BLE001 - startup tak boleh gagal karena MCP
+            print(f"[lifespan] MCP server gagal dimulai: {type(_exc).__name__}: {_exc}")
+            _mcp_ctx = None
     yield
+    if _mcp_ctx is not None:
+        try:
+            await _mcp_ctx.__aexit__(None, None, None)
+        except BaseException:  # noqa: BLE001 - shutdown MCP tidak boleh menahan proses
+            pass
+    if _sched_task is not None:
+        _sched_stop.set()
+        _sched_task.cancel()
+        try:
+            await _sched_task
+        except BaseException:  # noqa: BLE001 - CancelledError saat shutdown = wajar
+            pass
 
 
 # Swagger/OpenAPI hanya untuk development. Default `development` (bukan
@@ -159,6 +206,42 @@ app.add_middleware(
     # dapat di_debug daripada redirect diam-diam yang bisa jadi loop.
     www_redirect=False,
 )
+
+# ---------------------------------------------------------------------------
+# MCP SERVER BUILT-IN — Fitur #8
+#
+# Mount diletakkan SETELAH TrustedHostMiddleware dipasang agar urutan
+# middleware tetap: request melewati TrustedHost (menolak Host palsu) SEBELUM
+# mencapai middleware auth MCP. Membalik urutan ini akan membuat endpoint MCP
+# bisa dijangkau dengan Host header yang tidak divalidasi.
+#
+# `app.mount` meneruskan SEMUA metode (GET/POST/DELETE) ke sub-app, jadi
+# /mcp/katalir melayani `initialize`, `tools/list`, `tools/call`, dan
+# penutupan sesi sesuai spesifikasi Streamable HTTP.
+#
+# Kill-switch env MCP_SERVER_ENABLED=0 (dipakai test suite yang tidak butuh MCP),
+# konsisten dengan kill-switch scheduler dan lifespan di atas.
+if os.getenv("MCP_SERVER_ENABLED", "1").strip() not in ("0", "false", "False"):
+    try:
+        # BUG NYATA (ditemukan lewat probe): `app.mount()` FastAPI/Starlette
+        # membalas **307 Temporary Redirect** untuk POST /mcp/katalir (tanpa
+        # trailing slash) -> /mcp/katalir/. Klien MCP tidak mengikuti redirect
+        # POST, jadi URL yang didokumentasikan akan tampak "mati" tanpa pesan
+        # yang berguna. Route ASGI eksplisit di BAWAH INI didaftarkan SEBELUM
+        # mount sehingga path tanpa slash dilayani langsung, bukan di-redirect.
+        #
+        # Dipakai `app.add_route` (Starlette) alih-alih dekorator FastAPI
+        # supaya path kosong ikut ditangani (FastAPI menolak path "" pada
+        # dekorator, karena prefix mount sudah di-strip).
+        from starlette.routing import Route as _StarletteRoute
+
+        _mcp_asgi = mcp_server.get_asgi_application(server=_MCP_SERVER)
+        app.router.routes.insert(0, _StarletteRoute(
+            "/mcp/katalir", endpoint=_mcp_asgi, methods=None,
+            include_in_schema=False))
+        app.mount("/mcp/katalir", _mcp_asgi)
+    except Exception as _mcp_mount_exc:  # noqa: BLE001 - mount gagal tidak boleh mematikan API
+        print(f"[startup] mount MCP gagal: {type(_mcp_mount_exc).__name__}: {_mcp_mount_exc}")
 
 
 # MODEL SELECTION: discovery dinamis via model_discovery (runtime query,
@@ -1916,6 +1999,23 @@ def chat(req: ChatRequest, authorization: str | None = Header(None)):
     # DAN sebagai prompt). Tanpa ini agen lupa isi percakapan turn sebelumnya.
     history = load_history(user_email, session_id, current_prompt=req.prompt)
 
+    # AI AGENT MEMORY (Fitur #11): recall memori relevan + preferensi user,
+    # dijahit ke prompt. Defensif TOTAL — kegagalan memory TIDAK BOLEH
+    # mengganggu chat (build_memory_context sudah menelan exception; ini
+    # lapis kedua). Kill-switch: env AGENT_MEMORY_ENABLED=0.
+    prompt_final = req.prompt
+    try:
+        _memctx = memory_manager.build_memory_context(
+            str(user_id), session_id or "chat", req.prompt)
+        if _memctx:
+            prompt_final = (
+                f"{req.prompt}\n\n"
+                "[KONTEKS MEMORI — informasi latar dari interaksi sebelumnya; "
+                "gunakan bila relevan, jangan sebut asalnya ke user]\n"
+                + _memctx)
+    except Exception as _mem_exc:  # noqa: BLE001
+        print(f"[memory] hook recall gagal (diabaikan): {type(_mem_exc).__name__}")
+
     # Simpan prompt user ke riwayat (kepemilikan session divalidasi via auth_id).
     # Idempoten: bila client_request_id sudah tercatat, add_message return False
     # dan TIDAK meng-insert — mencegah pesan user duplikat dalam 1 sesi.
@@ -1932,10 +2032,20 @@ def chat(req: ChatRequest, authorization: str | None = Header(None)):
             500, "Gagal menyimpan pesan. Silakan coba lagi.")
 
     try:
-        _run = _agentic_run_direct(req.prompt, user_email, model=_q_run_model,
+        _run = _agentic_run_direct(prompt_final, user_email, model=_q_run_model,
                                    user_tier=user_tier, history=history)
         reply = _run["reply"]
         meta = _run.get("meta") or {}
+        # Fitur #11: simpan giliran chat sebagai memori EPISODIC (fire-and-
+        # forget di thread daemon — nol tambahan latensi respons).
+        try:
+            threading.Thread(
+                target=memory_manager.remember_chat_turn,
+                args=(str(user_id), session_id or "chat", req.prompt, str(reply)),
+                daemon=True).start()
+        except Exception as _mem_w_exc:  # noqa: BLE001
+            print(f"[memory] episodic thread gagal (diabaikan): "
+                  f"{type(_mem_w_exc).__name__}")
     except CredentialMissingError as e:
         # Persist hanya pesan user; UI menampilkan form credential & akan submit ulang.
         #
@@ -3456,6 +3566,75 @@ def mcp_server_call(req: MCPWorkflowCall, authorization: str | None = Header(Non
     return {"execution_id": execution_id, "workflow_id": str(row["id"]), "status": "pending"}
 
 # ---------------------------------------------------------------------------
+# MCP SERVER BUILT-IN — Fitur #8
+#   Katalir sebagai MCP server ASLI (JSON-RPC 2.0 + Streamable HTTP).
+#   Endpoint protokol : POST/GET/DELETE /mcp/katalir
+#   Endpoint bantu    : GET  /mcp/katalir/info   (metadata + daftar tool)
+#                       POST /mcp/katalir/key    (terbitkan API key MCP)
+#
+#   Kenapa API key, bukan JWT Supabase: klien MCP (Claude Desktop, Cursor)
+#   tidak bisa menjalani alur login Supabase. Kunci bertanda tangan HMAC
+#   (stateless) → tidak ada tabel baru, tetap sah setelah instance restart.
+# ---------------------------------------------------------------------------
+class McpKeyRequest(BaseModel):
+    ttl_days: int = 90
+    label: str = ""
+
+
+@app.get("/mcp/katalir/info")
+def mcp_katalir_info():
+    """Metadata permukaan MCP Katalir (publik: hanya bentuk, bukan rahasia)."""
+    return mcp_server.describe()
+
+
+@app.post("/mcp/katalir/key")
+def mcp_katalir_issue_key(req: McpKeyRequest | None = None,
+                          authorization: str | None = Header(None)):
+    """Terbitkan API key MCP untuk user yang sedang login (JWT Supabase).
+
+    Kunci ditampilkan SEKALI di respons ini dan tidak disimpan di server —
+    server tidak punya tabel kunci. Kehilangan kunci = terbitkan yang baru.
+    """
+    user = security.get_current_user(authorization)
+    days = 90 if req is None else req.ttl_days
+    try:
+        days = int(days)
+    except (TypeError, ValueError):
+        raise HTTPException(422, "ttl_days harus angka")
+    # 1..365 hari: batas bawah mencegah kunci yang mati sebelum dipakai, batas
+    # atas membatasi umur kunci yang bocor.
+    days = max(1, min(365, days))
+    key = mcp_server.issue_api_key(
+        str(user["id"]), str(user.get("email") or ""),
+        ttl_s=days * 24 * 3600,
+        label=("" if req is None else str(req.label or ""))[:40],
+    )
+    return {
+        "api_key": key,
+        "prefix": mcp_server.API_KEY_PREFIX,
+        "expires_in_days": days,
+        "endpoint": f"/mcp/katalir",
+        "header": "X-API-Key",
+        "note": "Simpan sekarang — server tidak menyimpan kunci ini.",
+    }
+
+
+@app.get("/mcp/katalir/verify")
+def mcp_katalir_verify(x_api_key: str | None = Header(None),
+                       authorization: str | None = Header(None)):
+    """Cek apakah API key MCP masih sah. Dipakai UI untuk badge "Terhubung"."""
+    raw = (x_api_key or "").strip()
+    if not raw and authorization and authorization.lower().startswith("bearer "):
+        raw = authorization[7:].strip()
+    try:
+        info = mcp_server.verify_api_key(raw)
+    except mcp_server.McpAuthError as exc:
+        raise HTTPException(401, str(exc))
+    return {"valid": True, "user_id": info["user_id"],
+            "email": info["email"], "label": info["label"], "exp": info["exp"]}
+
+
+# ---------------------------------------------------------------------------
 # ENDPOINTS: POST /workflows/{id}/execute + GET /executions/{id}
 #   Execution Engine — instan, non-blocking, devuelve {execution_id, status: pending}
 # ---------------------------------------------------------------------------
@@ -3483,6 +3662,222 @@ async def execute_workflow(workflow_id: str, req: ExecuteRequest = None,
     except Exception as exc:  # noqa: BLE001
         raise HTTPException(500, f"Gagal melanjar ejekution: {exc}")
     return {"execution_id": execution_id, "workflow_id": workflow_id, "status": "pending"}
+
+
+# ---------------------------------------------------------------------------
+# ENDPOINTS: Scheduled Trigger (cron) — Fitur #1 (8 Okt 2026)
+#   POST   /workflows/{id}/schedule  -> buat/ganti (satu jadwal per workflow)
+#   GET    /workflows/{id}/schedule  -> lihat jadwal
+#   DELETE /workflows/{id}/schedule  -> hapus jadwal
+# Validasi: cron 5-field via croniter, timezone IANA via zoneinfo.
+# Ownership dicek sebelum operasi DB (service client dipakai hanya setelah itu).
+# ---------------------------------------------------------------------------
+class ScheduleRequest(BaseModel):
+    cron_expression: str
+    timezone: str = "Asia/Jakarta"
+    enabled: bool = True
+
+
+def _schedule_owner_or_404(workflow_id: str, authorization: str | None) -> dict:
+    user = security.get_current_user(authorization)
+    owner = db.get_workflow_owner(workflow_id)
+    if owner is None or owner != user["id"]:
+        raise HTTPException(404, "Workflow tidak ditemukan.")
+    return user
+
+
+@app.post("/workflows/{workflow_id}/schedule", status_code=201)
+def create_workflow_schedule(workflow_id: str, body: ScheduleRequest,
+                             authorization: str | None = Header(None)):
+    """Buat/ganti jadwal cron workflow. next_run_at dihitung pada timezone
+    jadwal (IANA), dikembalikan dalam UTC."""
+    user = _schedule_owner_or_404(workflow_id, authorization)
+    expr = (body.cron_expression or "").strip()
+    if not scheduler_manager.is_valid_cron(expr):
+        raise HTTPException(
+            400, f"Cron expression tidak valid: {expr!r} "
+                 "(format 5-field: menit jam tanggal bulan hari)")
+    tz = (body.timezone or "Asia/Jakarta").strip() or "Asia/Jakarta"
+    if not scheduler_manager.is_valid_timezone(tz):
+        raise HTTPException(
+            400, f"Timezone tidak valid: {tz!r} "
+                 "(pakai nama IANA, mis. 'Asia/Jakarta', bukan 'WIB')")
+    try:
+        next_at = scheduler_manager.next_fire_utc(expr, tz)
+    except Exception as exc:  # noqa: BLE001
+        raise HTTPException(400, f"Cron expression tidak bisa dihitung: {exc}")
+    row = {
+        "workflow_id": workflow_id,
+        "user_id": str(user["id"]),
+        "cron_expression": expr,
+        "timezone": tz,
+        "enabled": bool(body.enabled),
+        "next_fire_at": scheduler_manager.iso_utc(next_at) if body.enabled else None,
+    }
+    try:
+        res = (db.get_write_client().table("workflow_schedules")
+               .upsert(row, on_conflict="workflow_id").execute())
+    except Exception as exc:  # noqa: BLE001
+        raise HTTPException(500, f"Gagal menyimpan jadwal: {exc}")
+    data = (res.data or [{}])[0]
+    return {
+        "schedule_id": data.get("id"),
+        "workflow_id": workflow_id,
+        "cron_expression": data.get("cron_expression"),
+        "timezone": data.get("timezone"),
+        "enabled": data.get("enabled"),
+        "next_run_at": data.get("next_fire_at"),
+    }
+
+
+@app.get("/workflows/{workflow_id}/schedule")
+def get_workflow_schedule(workflow_id: str, authorization: str | None = Header(None)):
+    """Lihat jadwal cron workflow ini (atau 404 bila belum ada)."""
+    _schedule_owner_or_404(workflow_id, authorization)
+    try:
+        res = (db.get_write_client().table("workflow_schedules").select("*")
+               .eq("workflow_id", workflow_id).limit(1).execute())
+    except Exception as exc:  # noqa: BLE001
+        raise HTTPException(500, f"Gagal memuat jadwal: {exc}")
+    rows = res.data or []
+    if not rows:
+        raise HTTPException(404, "Jadwal tidak ditemukan untuk workflow ini.")
+    row = rows[0]
+    return {
+        "schedule_id": row.get("id"),
+        "workflow_id": workflow_id,
+        "cron_expression": row.get("cron_expression"),
+        "timezone": row.get("timezone"),
+        "enabled": row.get("enabled"),
+        "next_run_at": row.get("next_fire_at"),
+        "last_fired_at": row.get("last_fired_at"),
+        "last_execution_id": row.get("last_execution_id"),
+        "created_at": row.get("created_at"),
+    }
+
+
+@app.delete("/workflows/{workflow_id}/schedule")
+def delete_workflow_schedule(workflow_id: str, authorization: str | None = Header(None)):
+    """Hapus jadwal cron workflow ini (idempotent: 404 bila memang tidak ada)."""
+    _schedule_owner_or_404(workflow_id, authorization)
+    try:
+        res = (db.get_write_client().table("workflow_schedules").delete()
+               .eq("workflow_id", workflow_id).execute())
+    except Exception as exc:  # noqa: BLE001
+        raise HTTPException(500, f"Gagal menghapus jadwal: {exc}")
+    if not res.data:
+        raise HTTPException(404, "Jadwal tidak ditemukan untuk workflow ini.")
+    return {"deleted": True, "workflow_id": workflow_id}
+
+
+# ---------------------------------------------------------------------------
+# ENDPOINTS: AI Agent Memory — Fitur #11 (8 Okt 2026)
+#   POST   /memory/remember          -> simpan memory (dedup >= 0.95 = update)
+#   POST   /memory/recall            -> semantic search (cosine, pgvector)
+#   DELETE /memory/{memory_id}       -> soft delete (expires_at = now)
+#   GET    /memory/preferences       -> semua preferensi user
+#   PUT    /memory/preferences/{key} -> set/override preferensi
+# Embedding: gemini-embedding-001 (1536-dim) via pool GEMINI_KEY.
+# ---------------------------------------------------------------------------
+class MemoryRememberRequest(BaseModel):
+    content: str
+    memory_type: str = "semantic"
+    metadata: dict = Field(default_factory=dict)
+    ttl_seconds: Optional[int] = None
+    agent_id: str = "default"
+
+
+class MemoryRecallRequest(BaseModel):
+    query: str
+    top_k: int = 5
+    memory_type: Optional[str] = None
+    agent_id: str = "default"
+
+
+class MemoryPreferenceRequest(BaseModel):
+    value: dict
+    confidence: float = 1.0
+
+
+@app.post("/memory/remember")
+def memory_remember(body: MemoryRememberRequest,
+                    authorization: str | None = Header(None)):
+    """Simpan memory baru untuk user. Dedup otomatis: konten yang mirip
+    (similarity >= 0.95) memicu UPDATE, bukan INSERT duplikat."""
+    user = security.get_current_user(authorization)
+    try:
+        row = memory_manager.MemoryManager(
+            user_id=str(user["id"]), agent_id=body.agent_id
+        ).remember(body.content, memory_type=body.memory_type,
+                   metadata=body.metadata, ttl_seconds=body.ttl_seconds)
+    except ValueError as exc:
+        raise HTTPException(400, str(exc))
+    except memory_manager.MemoryUnavailable as exc:
+        raise HTTPException(503, f"Embedding provider tidak tersedia: {exc}")
+    except Exception as exc:  # noqa: BLE001
+        raise HTTPException(500, f"Gagal menyimpan memory: {exc}")
+    return {"status": "success", "memory": {
+        "id": row.get("id"), "content": row.get("content"),
+        "memory_type": row.get("memory_type"),
+        "expires_at": row.get("expires_at"),
+        "created_at": row.get("created_at"),
+        "updated_at": row.get("updated_at"),
+    }}
+
+
+@app.post("/memory/recall")
+def memory_recall(body: MemoryRecallRequest,
+                  authorization: str | None = Header(None)):
+    """Semantic search memori milik user (tenant-isolated via filter + RLS)."""
+    user = security.get_current_user(authorization)
+    try:
+        rows = memory_manager.MemoryManager(
+            user_id=str(user["id"]), agent_id=body.agent_id
+        ).recall(body.query, top_k=body.top_k, memory_type=body.memory_type)
+    except memory_manager.MemoryUnavailable as exc:
+        raise HTTPException(503, f"Embedding provider tidak tersedia: {exc}")
+    except Exception as exc:  # noqa: BLE001
+        raise HTTPException(500, f"Gagal mengambil memory: {exc}")
+    return {"status": "success", "memories": [
+        {"id": r.get("id"), "content": r.get("content"),
+         "memory_type": r.get("memory_type"),
+         "similarity": round(float(r.get("similarity") or 0), 4)}
+        for r in rows]}
+
+
+@app.delete("/memory/{memory_id}")
+def memory_forget(memory_id: str, authorization: str | None = Header(None)):
+    """Soft delete satu memory milik user (retention guard menyaring)."""
+    user = security.get_current_user(authorization)
+    deleted = memory_manager.MemoryManager(
+        user_id=str(user["id"]), agent_id="default").forget(memory_id)
+    if not deleted:
+        raise HTTPException(404, "Memory tidak ditemukan.")
+    return {"status": "success", "deleted": True, "memory_id": memory_id}
+
+
+@app.get("/memory/preferences")
+def memory_preferences_get(authorization: str | None = Header(None)):
+    user = security.get_current_user(authorization)
+    prefs = memory_manager.MemoryManager(
+        user_id=str(user["id"]), agent_id="default").list_preferences()
+    return {"status": "success", "preferences": prefs}
+
+
+@app.put("/memory/preferences/{key}")
+def memory_preferences_put(key: str, body: MemoryPreferenceRequest,
+                           authorization: str | None = Header(None)):
+    user = security.get_current_user(authorization)
+    try:
+        row = memory_manager.MemoryManager(
+            user_id=str(user["id"]), agent_id="default"
+        ).set_preference(key, body.value, confidence=body.confidence)
+    except ValueError as exc:
+        raise HTTPException(400, str(exc))
+    except Exception as exc:  # noqa: BLE001
+        raise HTTPException(500, f"Gagal menyimpan preferensi: {exc}")
+    return {"status": "success", "key": key,
+            "value": row.get("value"), "confidence": row.get("confidence")}
 
 
 @app.get("/executions/{execution_id}")

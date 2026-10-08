@@ -233,6 +233,29 @@ def _host_blocked(host: str) -> bool:
     return ip.is_private or ip.is_loopback or ip.is_link_local or ip.is_reserved
 
 
+def _telegram_vault_token(owner_email: str) -> str:
+    """Bot token dari Brankas multi-field (JSON) — pola yang sama dengan Gmail.
+
+    BUG 2026-10-08: kredensial Telegram yang disimpan lewat form chat adalah
+    SATU ciphertext JSON `{"bot_token": ..., "chat_id": ...}` (lihat
+    `credential_forms.save_vault_credential`). Pembacaan legacy
+    (`db.get_integration` -> `database._vault_integration`) mengembalikan
+    string terdekripsi MENTAH sebagai "api_token", sehingga URL kirim menjadi
+    `https://api.telegram.org/bot<JSON-BLOB>/sendMessage` dan Telegram
+    menolaknya (HTTP 401). Fungsi ini membaca vault JSON-aware, persis pola
+    `tools.gmail_imap_credential`.
+    """
+    try:
+        from credential_forms import load_vault_credential
+        data = load_vault_credential(owner_email, "telegram") or {}
+        tok = str(data.get("bot_token") or "").strip()
+        if tok:
+            return tok
+    except Exception:  # noqa: BLE001 - vault rusak tidak boleh mematikan kirim
+        pass
+    return ""
+
+
 def _get_telegram_token(owner_email: str) -> str:
     """Token Telegram: Brankas user DULU, lalu fallback `.env`.
 
@@ -247,9 +270,17 @@ def _get_telegram_token(owner_email: str) -> str:
     """
     import os as _os
 
+    # 1) Brankas multi-field (form chat, JSON-aware) — pola Gmail IMAP.
+    vault_token = _telegram_vault_token(owner_email)
+    if vault_token:
+        return vault_token
+    # 2) Brankas legacy (baris token polos, mis. dari `/api/vault/save`).
     cred = db.get_integration(owner_email, "telegram")
     vault_token = (cred or {}).get("api_token") or ""
-    if vault_token:
+    if vault_token and not vault_token.lstrip().startswith("{"):
+        # Baris berisi JSON blob (data lama / tersimpan lewat jalur lain)
+        # TIDAK dipakai sebagai token: lebih baik gagal jelas (CredentialMissing)
+        # daripada mengirim URL rusak ke Telegram.
         return vault_token
     fallback_on = (_os.environ.get("TELEGRAM_ENV_FALLBACK") or "1").strip() != "0"
     env_token = (_os.environ.get("TELEGRAM_BOT_TOKEN") or "").strip() if fallback_on else ""
@@ -266,10 +297,8 @@ def kirim_telegram_message(chat_id: str, pesan: str, email: str) -> str:
         CredentialMissingError: tidak ada token di Brankas DAN fallback `.env`
             dimatikan/kosong.
     """
-    cred = db.get_integration(email, "telegram")
-    token = (cred or {}).get("api_token") or ""
-    if not token:
-        token = _get_telegram_token(email)
+    # Satu sumber kebenaran: JSON-aware dulu, legacy token polos, lalu .env.
+    token = _get_telegram_token(email)
     # Token Telegram WAJIB di path (desain API-nya) — karena itu URL ini tidak
     # pernah dicetak/di-log, dan pesan error di bawah tidak memuat URL.
     url = f"https://api.telegram.org/bot{token}/sendMessage"

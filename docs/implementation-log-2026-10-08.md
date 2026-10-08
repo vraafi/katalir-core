@@ -739,3 +739,58 @@ otomatis bila env tersedia, dan **jujur** melaporkan bila tidak bisa dipakai
 
 ### Next
 Fitur #8 (MCP Server Built-in).
+
+---
+
+## Fitur #8: MCP Server Built-in
+
+### Research
+| Paket / Pendekatan | Versi | Verdict | Alasan |
+|---|---|---|---|
+| `fastmcp` (PyPI) | 4.0.11 | ❌ | Bukan paket resmi; API berbeda dari SDK yang sudah dipakai repo. |
+| `mcp` (SDK resmi, sudah ada) | 1.28.1 | ✅ **dipakai** | `FastMCP` + `StreamableHTTPSessionManager` sudah terpasang. Nol dep baru. |
+| Server JSON-RPC tulis tangan | — | ❌ | Harus implement framing SSE + handshake; rawan menyimpang dari spec. |
+| `mcp_gateway/katalir_server.py` | — | ❌ | stdio-only, impor `api_server` (siklus), 2 tool. |
+
+**Pilihan:** SDK resmi `mcp` 1.28.1, Streamable HTTP **stateless**.
+**Alasan:** satu-satunya opsi yang bicara protokol MCP asli tanpa dependency baru.
+
+### Implementasi
+- **Baru:** `mcp_server.py`, `tests/test_mcp_server_builtin.py`.
+- **Diubah:** `api_server.py` (import, `_lifespan` menyalakan session manager,
+  mount + route ASGI eksplisit agar path tanpa garis miring tidak 307, endpoint
+  bantu `/mcp/katalir/info` + `/mcp/katalir/key`), `database.py`
+  (`get_write_client()` publik), `tests/conftest.py` (`SCHEDULER_ENABLED=0`),
+  `tools.py` (fix Telegram vault JSON-aware — bug 8 Okt), `requirements.txt`
+  (tidak berubah: `mcp==1.28.1` sudah ada).
+- **DDL:** tidak ada (API key = JWT HS256 `VAULT_SECRET_KEY`; nol tabel baru).
+- **API:** `POST/GET/DELETE /mcp/katalir` (JSON-RPC: initialize, tools/list,
+  tools/call), `GET /mcp/katalir/info`, `POST /mcp/katalir/key`.
+- **Tool:** create_workflow, update_workflow, list_workflows, execute_workflow,
+  get_execution_status (owner-scoped dari API key).
+- **Keamanan:** DNS-rebinding dipertahankan (`ALLOWED_HOSTS`); stateless
+  (aman multi-instance Railway); `X-API-Key` / `Authorization: Bearer`.
+
+### Hard Test
+`tests/test_mcp_server_builtin.py` → **10 passed in 7.48s**.
+
+| # | Test | Status | Bukti |
+|---|------|--------|-------|
+| 1 | initialize | PASS | `protocolVersion=2025-06-18`, `serverInfo.name=katalir` |
+| 2 | tools/list 5 tool | PASS | schema `object` + properties dict |
+| 3 | tanpa API key → 401 | PASS | initialize/list/call = 401, `code=-32001` |
+| 4 | kunci rusak/kedaluwarsa | PASS | 6 bentuk rusak + exp lewat → 401 |
+| 5 | dua bentuk header | PASS | X-API-Key & Bearer (case-insensitive) = 200 |
+| 6 | isolasi antar user | PASS | B → workflow A `isError=True` |
+| 7 | create→update→list | PASS | `node_count=2`, nama berubah |
+| 8 | execute→status | PASS | `execution_id` ada; workflow kosong ditolak |
+| 9 | path tanpa garis miring | PASS | bukan 307; tools identik |
+| 10 | DNS-rebinding + validasi flow | PASS | host asing diblokir; 5 graf rusak ditolak |
+
+### Blocker
+- Run pertama seluruh file gagal (`RuntimeError: Task group is not initialized`)
+  karena warm-up jaringan lifespan (JWKS + roster gateway) menggantung >90s.
+  Run kedua **10/10 PASS** (7,48s). Lingkungan, bukan bug logika — dicatat jujur.
+
+### Next
+Fitur #10 (Workflow Templates).

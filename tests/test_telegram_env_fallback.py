@@ -25,11 +25,21 @@ import tools  # noqa: E402
 
 def _no_vault(monkeypatch) -> None:
     monkeypatch.setattr(db, "get_integration", lambda email, provider: None)
+    # FIX 2026-10-08: jalur Telegram kini membaca vault multi-field (JSON-aware)
+    # lebih dulu, jadi uji ini harus hermetic — tanpa query Supabase nyata.
+    monkeypatch.setattr(db, "vault_get", lambda email, provider: None)
+    import vault_cache as _vc
+
+    _vc.invalidate()
 
 
 def test_vault_menang_atas_env(monkeypatch):
     monkeypatch.setattr(db, "get_integration",
                         lambda email, provider: {"api_token": "TOKEN-DARI-VAULT"})
+    monkeypatch.setattr(db, "vault_get", lambda email, provider: None)
+    import vault_cache as _vc
+
+    _vc.invalidate()
     monkeypatch.setenv("TELEGRAM_BOT_TOKEN", "TOKEN-DARI-ENV")
     assert tools._get_telegram_token("a@b.c") == "TOKEN-DARI-VAULT"
     print("TELEGRAM_VAULT_MENANG=ok")
