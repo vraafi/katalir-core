@@ -5476,6 +5476,70 @@ def sso_logout(body: SsoLogoutRequest,
     raise HTTPException(status_code=400, detail="session_id atau email wajib")
 
 
+# ---------------------------------------------------------------------------
+# ENDPOINT AI WORKFLOW GENERATOR (fitur #8)
+# ---------------------------------------------------------------------------
+_VISION_FN = None
+
+
+def _vision_fn():
+    """Sambungan model vision. `None` bila belum dikonfigurasi."""
+    return _VISION_FN
+
+
+class WorkflowGenRequest(BaseModel):
+    filename: str
+    media_base64: str = ""
+    steps: list = []          # jalur preview: langkah sudah diekstrak klien
+    language: str = "id"
+    name: str = "AI Generated"
+    mime: str = ""
+    confidence: float = 0.9
+
+
+@app.get("/ai/workflow-gen/allowed")
+def wfgen_allowed():
+    """Batas & jenis berkas yang diterima (non-sensitif)."""
+    import ai_workflow_gen as g
+    return {"status": "success", "extensions": list(g.ALLOWED_EXT),
+            "mime": list(g.ALLOWED_MIME),
+            "max_bytes": g.MAX_MEDIA_BYTES,
+            "confidence_threshold": g.CONFIDENCE_THRESHOLD,
+            "languages": ["id", "en"]}
+
+
+@app.post("/ai/workflow-gen/generate")
+def wfgen_generate(body: WorkflowGenRequest,
+                   authorization: str | None = Header(None)):
+    """Hasilkan workflow dari screenshot/video (atau langkah siap-pakai)."""
+    security.get_current_user(authorization)
+    import base64
+    import ai_workflow_gen as g
+    try:
+        if body.steps:
+            analysis = {"steps": body.steps, "confidence": body.confidence,
+                        "ambiguous": False, "questions": [],
+                        "duration_s": 0.0}
+            g.validate_media(body.filename, 1, body.mime)  # validasi ekstensi
+            wf = g.build_workflow(analysis, name=body.name,
+                                  language=body.language)
+            return {"status": "success", "workflow": wf,
+                    "needs_clarification": False, "warnings": [],
+                    "confidence": body.confidence}
+        media = base64.b64decode(body.media_base64 or "")
+        vf = _vision_fn()
+        if vf is None:
+            raise HTTPException(status_code=503,
+                                detail="model vision belum dikonfigurasi")
+        out = g.generate(media, body.filename, vf, language=body.language,
+                         name=body.name, mime=body.mime)
+    except g.MediaError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
+    except g.GenerationError as exc:
+        raise HTTPException(status_code=422, detail=str(exc))
+    return {"status": "success", **out}
+
+
 @app.get("/health")
 def health():
     return {

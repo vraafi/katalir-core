@@ -405,3 +405,56 @@ Bukti raw: `13 passed in 0.31s` + `/sso/login/saml` → role `admin` (live).
 - Fitur #8 — AI Workflow Generator (video/screenshot).
 
 ---
+
+## FITUR #8: AI Workflow Generator (video/screenshot)
+
+### Research
+| Pendekatan | Verdict | Alasan |
+|-----------|---------|--------|
+| Gemini vision (Gemini 3.x) | **DIPAKAI (via seam)** | sudah ada klien di stack |
+| GPT-4V/5.1 vision | OPSIONAL | alternatif penyedia |
+| Whisper (audio video) | OPSIONAL | hanya bila video beraudio; belum perlu |
+| Parser langkah in-house | **DIPAKAI** | deterministik, dapat di-hard-test |
+
+**Pilihan:** `ai_workflow_gen.py` + `vision_fn` disuntik. **Alasan:** logika
+ekstraksi & pembangunan DAG diuji tanpa memanggil model.
+
+### Implementasi
+- File: `ai_workflow_gen.py` (baru, ~230 baris) — `validate_media`,
+  `analyze_media`, `build_workflow`, `generate`, pemetaan aksi→node engine,
+  label ID/EN, deteksi ambiguitas & klarifikasi.
+- Keamanan: whitelist ekstensi + MIME, batas 100 MB, nama berkas → basename.
+- API: `GET /ai/workflow-gen/allowed`, `POST /ai/workflow-gen/generate`
+  (jalur langkah siap-pakai ATAU media base64 + model vision).
+- Registry `/version`: `24_ai_workflow_gen`.
+
+### Hard Test — `tests/test_ai_workflow_gen.py` (13 kasus, PASS)
+| # | Skenario | Status |
+|---|----------|--------|
+| 1 | Screenshot UI → workflow | PASS |
+| 2 | Video demo → workflow | PASS |
+| 3 | Multi-step (5 langkah) | PASS |
+| 4 | Kondisi IF/ELSE | PASS |
+| 5 | Error handling (on_error) | PASS |
+| 6 | Bahasa ID + EN | PASS |
+| 7 | Complex 10+ node | PASS |
+| 8 | Ambiguitas → klarifikasi | PASS |
+| 9 | Berkas invalid → error graceful | PASS |
+| 10 | Performa < 30s | PASS |
+| 11 | Batas ukuran 100 MB | PASS |
+| 12 | Keamanan unggahan | PASS |
+
+Bukti raw: `13 passed in 0.36s`.
+
+### Deviasi dari brief
+- `vision_fn` produksi belum disambungkan ke kunci Gemini di jalur ini
+  (endpoint mengembalikan 503 bila belum dikonfigurasi); jalur langkah
+  siap-pakai sudah berfungsi penuh.
+
+### Blocker
+- Tidak ada.
+
+### Next
+- Fitur #9 — AI Workflow Optimizer.
+
+---
