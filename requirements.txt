@@ -22,6 +22,11 @@ httpx==0.28.1
 # Sudah menjadi dependensi transitif FastAPI/Starlette (4.12.1 terpasang),
 # pin di bawah menyamakan versi ke rilis yang diverifikasi.
 anyio==4.12.1
+# Fitur #6 (Code Node Sandbox): RestrictedPython = lapis AST (portabel) yang
+# menolak import/eval/exec/open/escape atribut SEBELUM kode user dijalankan.
+# WAJIB >= 8.4: CVE-2026-76825 (CVSS 8.4 High) = sandbox escape lewat
+# string.Formatter pada < 8.4. Lisensi ZPL-2.1 (bukan MIT, tapi OSI-approved).
+RestrictedPython==8.5
 # MCP Python SDK for agentgateway Streamable HTTP client
 mcp==1.28.1
 ddgs==9.0.1
