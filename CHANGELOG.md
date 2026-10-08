@@ -3,6 +3,88 @@
 Format mengikuti [Keep a Changelog](https://keepachangelog.com/id/1.1.0/).
 Versi mengikuti tanggal kerja (proyek ini belum memakai semver rilis).
 
+## [2026-10-08] — Hard test batas 11 fitur: 10 batas ditemukan & diperbaiki
+
+Brief "HARD TEST 11 FITUR — TEMUKAN BATASAN & PERBAIKI". Tujuannya bukan
+"apakah fitur bekerja" (sudah dibuktikan), tapi **di mana ia BREAK**. Harness
+`_hard_limits.py` (11 grup, 65 pemeriksaan) menjalankan boundary, stress, chaos,
+adversarial, concurrent, long-running, resource, dan edge test. Laporan penuh:
+**`docs/hard-test-limits.md`**.
+
+### Diperbaiki — HIGH
+
+- **Batas graf berbeda di tiga jalur tulis.** `api_server` 500 node/1000 edge,
+  `mcp_server` 200 node, `workflow_templates` 100 node/200 edge. Akibatnya
+  workflow 300 node bisa dibuat lewat API tetapi **ditolak** saat disimpan
+  sebagai template atau dikirim lewat MCP.
+  → modul baru **`flow_limits.py`** sebagai sumber kebenaran tunggal; ketiga
+  modul mengimpornya. Kini 500/1000 di semua jalur.
+- **Batas memori sandbox 128 MB tidak ditegakkan di Windows.** Alokasi
+  **4 GB berhasil** (`ok=True`, 0,2 s). Watchdog berbasis thread Python tidak
+  dapat menangkapnya karena `bytes(4GB)` adalah satu panggilan C yang memegang
+  GIL — thread watchdog tidak pernah dijadwalkan. Metrik yang benar juga
+  ditemukan: **`PagefileUsage` (commit charge), bukan `WorkingSetSize`**
+  (WS tetap 38 MB sementara commit naik 12 → 525 → 2.577 MB).
+  → **Windows Job Object** (`JOB_OBJECT_LIMIT_PROCESS_MEMORY`), ditegakkan
+  kernel, dipasang sebelum kode user berjalan. Kini 64 MB lolos,
+  128 MB–4 GB → `MemoryError`. `capabilities()` melaporkan `memory_enforced`
+  dan `memory_mechanism` secara jujur.
+
+### Diperbaiki — MEDIUM
+
+- **`str.format` melewati penjaga atribut.** `'{0.__class__.__mro__}'.format(1)`
+  membocorkan `__class__`, `__subclasses__`, dan **alamat memori (ASLR)** —
+  melewati `FORBIDDEN_ATTRS` (AST) *dan* `_safe_getattr` (runtime). Ini kelas
+  CVE-2026-76825 yang header modul klaim "tidak terpengaruh" pada
+  RestrictedPython 8.5; **klaim itu tidak akurat** untuk jalur `str.format`.
+  → tolak dunder di nama field `str.format`; format spec sah (`{0:.2f}`) tetap lolos.
+- **Field `error` sandbox tidak dipotong** — exception 200 KB lolos utuh
+  (stdout/stderr sudah dipotong). → `_potong()`.
+- **`vault_cache` tanpa batas ukuran nilai** — 10 MB diterima. →
+  `MAX_VALUE_BYTES` 256 KB; nilai lebih besar dilewati (bukan error).
+- **`memory_manager` tanpa batas panjang `content`** — gagal di API embedding
+  dengan galat buram, bukan 4xx rapi. → `MAX_CONTENT_CHARS` 20.000.
+- **Jitter backoff diterapkan setelah cap** — delay nyata mencapai 37,5 s
+  padahal `MAX_DELAY_SECONDS=30`. → jitter hanya ke bawah saat menyentuh cap.
+
+### Diperbaiki — LOW
+
+- `secret://../../etc/passwd` diterima apa adanya (inert: path dipakai sebagai
+  kunci DB, bukan path berkas) → tolak segmen traversal dan karakter di luar
+  `[A-Za-z0-9._-]`.
+- `MAX_BRANCHES=64` dan `MAX_DEPTH=3` keras → dapat disetel lewat env
+  (`MAX_PARALLEL_BRANCHES`, `SUBWORKFLOW_MAX_DEPTH`).
+
+### Ditambahkan
+
+- **`/version` mengekspos `limits`** (flow, sandbox, rate) untuk observabilitas.
+- **`tests/test_hard_test_fixes.py`** — 16 tes pengunci agar perbaikan tidak
+  dapat mundur diam-diam.
+- **`docs/hard-test-limits.md`** — matriks per fitur, bukti mentah
+  sebelum/sesudah, rekomendasi tuning post-launch, daftar env baru.
+
+### Diterima (didokumentasikan, bukan diperbaiki)
+
+- Tidak ada batas aplikasi untuk ukuran state durable — dibatasi ukuran baris
+  Postgres.
+- Validasi statis JavaScript longgar (`import(`, `constructor.constructor`),
+  tetapi **eksekusi nyata 0/10 escape** — runtime menahan.
+- `workflow_testkit` belum punya self-test/meta-test.
+
+### Bukti
+
+| Verifikasi | Hasil |
+|---|---|
+| Harness hard limit (11 grup, 65 pemeriksaan) | 10 batas diperbaiki |
+| Regresi (sandbox/templates/secrets/flow/MCP) | **65 lulus** |
+| Regresi (retry/subworkflow/parallel/memory/sandbox e2e) | **74 lulus + 19 subtests** |
+| Regresi (workflow API/lifecycle/schedules/trigger/testkit/credential) | **100 lulus** |
+| Tes pengunci baru | **16 lulus** |
+| **Total** | **255 lulus, 0 gagal** |
+| Escape sandbox Python / JavaScript (eksekusi nyata) | **0/50** dan **0/10** |
+
+---
+
 ## [2026-10-08] — Lanjutan: verifikasi live, diagnosis straggler load, artefak final
 
 Penutupan sesi: tes live tanpa stub untuk `/templates`, diagnosis tuntas untuk
