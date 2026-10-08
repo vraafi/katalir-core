@@ -608,3 +608,134 @@ yang gagal dilaporkan), `quorum` (mayoritas murni, `>= total//2 + 1`).
 
 ### Next
 Fitur #6 (Code Node / Sandbox).
+
+---
+
+## Fitur #6: Code Node (Sandbox)
+
+### Research
+Temuan keamanan penentu: **CVE-2026-76825** (CVSS 8.4 High) — sandbox escape
+pada **RestrictedPython < 8.4** lewat `string.Formatter` yang traversal atribut
+tanpa melewati `safer_getattr`. Diperbaiki di **8.4**; dipakai **8.5** → aman.
+
+| Paket / Pendekatan | Versi | Verdict | Alasan |
+|---|---|---|---|
+| `RestrictedPython` | 8.5 | ✅ lapis 1 | `Mature`, Py 3.10–3.15, ZPL-2.1. Menolak import/eval/exec/open sebelum eksekusi. Wajib ≥8.4 (CVE). |
+| `codejail` | — | ❌ | Butuh AppArmor + user OS terpisah; tak bisa di Railway tanpa hak istimewa. |
+| `secure-sandbox` | 0.0.1 | ❌ | Rilis 0.0.1, belum matang. |
+| `pydantic-monty` / `agentbox-sandbox` / `codeshield-runtime` | — | ❌ | Disebut brief, tidak dapat diverifikasi matang. Tidak dipakai tanpa verifikasi. |
+| Docker / nsjail / gVisor | — | ❌ | Railway = container tidak berhak istimewa. |
+| `resource.setrlimit` + `subprocess` | bawaan | ✅ lapis 2 & 3 | Batas OS nyata (Linux) + pembunuhan paksa lintas-platform. |
+
+**Pilihan:** RestrictedPython 8.5 + subprocess + `resource`.
+**Alasan:** satu-satunya kombinasi yang jaminannya **benar-benar ditegakkan di
+Railway**. Lisensi ZPL-2.1 = deviasi dari preferensi MIT/Apache/BSD, dicatat
+(bukan disembunyikan); tetap OSI-approved & permissive.
+
+### Implementasi
+`code_sandbox.py` (3 lapis: AST → proses → OS); `requirements.txt`
+(`RestrictedPython==8.5`). Tanpa migrasi. `capabilities()` melaporkan batas
+**nyata** (`os_resource_limits: False` di Windows, jujur).
+
+### Hard Test
+**14/14 PASS**, 3× berturut-turut. Ringkas:
+
+| # | Skenario | Bukti |
+|---|---|---|
+| 1 | Kode valid | `result=285` |
+| 2 | print tertangkap | `stdout='halo python\n'` |
+| 3–8 | import os/subprocess, open, eval, exec, `__import__` | semua `ok=False` dengan alasan spesifik |
+| 9 | Escape atribut | `.__globals__` `.__mro__` `.__bases__` `.__subclasses__` ditolak |
+| 10 | `os.system`/`check_output`/`getattr` | ditolak |
+| 11 | **Infinite loop** | `killed=True durasi_nyata=3.0s` |
+| 12 | Validasi & error runtime | kosong / sintaks / bahasa ngawur / `1/0` / `None` |
+| 13 | Isolasi + capabilities | env induk tidak berubah; batas dilaporkan jujur |
+| 14 | JavaScript | `result=14` (1+4+9); `require()` ditolak |
+
+### Blocker — tiga bug nyata ditemukan & diperbaiki
+- **BUG-6a** subprocess memakai **interpreter salah**: `python` di PATH = 3.13
+  (tanpa RestrictedPython) sedangkan modul jalan di 3.12 → sandbox selalu
+  gagal. Diperbaiki: `sys.executable` + wariskan `PYTHONPATH`; **buang `-I`**
+  (isolated mengabaikan PYTHONPATH).
+- **BUG-6b** `safe_builtins` tidak memuat `sum`; `PrintCollector.txt` adalah
+  **list** (bukan str) → `stdout` jadi list; `_getiter_` hilang → tiap
+  `for`/comprehension gagal. Diperbaiki: allowlist eksplisit, `"".join(txt)`,
+  `g["_getiter_"] = iter`.
+- **BUG-6c** `NODE_OPTIONS` diwariskan ke sandbox (kebocoran **dan** node gagal
+  `bad option: --experimental-wasm-exnref`); flag V8 ditulis dua token
+  (`--max-old-space-size 128`) → node membaca `-e` sebagai nilainya.
+  Diperbaiki: `_node_env()` bersih (hanya PATH/SYSTEMROOT/HOME) + bentuk
+  `--flag=value`.
+
+### Next
+Fitur #7 (External Secrets Manager).
+
+---
+
+## Fitur #7: External Secrets Manager
+
+### Research
+
+Katalir **sudah** punya `vault_broker.py` (`secret://provider/field` →
+`credential_forms.load_vault_credential`). Jadi fokus fitur ini adalah
+**abstraksi**, bukan bangun ulang: kontrak netral-backend, `set`/`delete`
+programatik, parser referensi yang benar, dan jalur ke backend eksternal.
+
+| Paket | Versi | Verdict | Alasan |
+|---|---|---|---|
+| `hvac` | 2.4.0 | ✅ dipilih (opsional) | Apache-2.0, rilis 30 Okt 2025, 6 maintainer, 1320★, py≥3.8. Klien resmi HashiCorp. |
+| `boto3` | transitif | ✅ dipilih (opsional) | SDK resmi AWS; wajib lazy-import. |
+| `onepassword-sdk` | 0.4.1 | ⚠️ opsional + catatan | MIT, 30 Jul 2026 — **tapi 0.x (pra-1.0)** + butuh libssl 3/glibc 2.32 (risiko di Railway). |
+| vault internal | — | ✅ **default** | Nol dependensi baru; `user_vault` + Fernet sudah ada. |
+| `keyring` | — | ❌ | Butuh OS keychain; tidak ada di container Railway. |
+| dotenv-as-store | — | ❌ | Tidak ada enkripsi/audit/rotasi. |
+
+**Pilihan:** `SecretsProvider(ABC)` + `KatalirVault` default; `HashiCorpVault`,
+`AWSSecretsManager`, `OnePasswordProvider` opsional lazy.
+**Alasan:** fitur harus **hijau tanpa install apa pun**. Backend eksternal aktif
+otomatis bila env tersedia, dan **jujur** melaporkan bila tidak bisa dipakai
+(`available()=False`, `get()` → `BackendUnavailable`).
+
+### Implementasi
+
+- `secrets_provider.py` baru: ABC `SecretsProvider` (`get`/`set`/`delete`/
+  `list_paths`/`available`); exception `SecretsError`, `SecretNotFound`,
+  `SecretRefError`, `BackendUnavailable`; registry + alias (`vault`→hashicorp,
+  `1password`→onepassword); `parse_ref`, `resolve`, `resolve_in_args`, `redact`,
+  `describe_backends`, `get_provider`, `is_secret_ref`.
+- **Tanpa DDL** — memakai tabel `user_vault` yang sudah ada.
+- Parser: `^secret://(.+)$`; segmen pertama = backend **hanya jika** ada di
+  registry, sehingga `secret://gmail_imap/app_password` tetap valid (default).
+
+### Hard Test
+
+**12/12 PASS** (`tests/test_secrets_provider.py`).
+
+| # | Skenario | Status | Bukti |
+|---|---|---|---|
+| 1 | `get` dasar | ✅ | nilai persis |
+| 2 | `set` → `get` | ✅ | nilai baru terbaca |
+| 3 | `list_paths` | ✅ | path muncul |
+| 4 | `delete` | ✅ | → `SecretNotFound` |
+| 5 | `resolve` | ✅ | `APP-PASS-999` |
+| 6 | `resolve_in_args` bersarang | ✅ | `c.d='APP-PASS-999' e[0]='APP-PASS-999'` |
+| 7 | `redact` | ✅ | `{'key':'***','biasa':'terlihat','bersarang':{'d':'***'},'list':['***']}` |
+| 8 | Isolasi antar user | ✅ | `owner='PUNYA-OWNER' asing=None` |
+| 9 | `parse_ref` 6 bentuk + invalid | ✅ | `secret://gmail_imap/app_password` → `('katalir','gmail_imap','app_password')` |
+| 10 | End-to-end | ✅ | `resolve='APP-PASS-999'` |
+| 11 | Rahasia tak bocor di error | ✅ | `Rahasia tidak ditemukan: katalir/bocor/tidak_ada` |
+| 12 | Backend eksternal jujur | ✅ | `aws: available=True`; yang False → `BackendUnavailable` |
+
+```
+======================== 12 passed, 1 warning in 9.23s ========================
+```
+
+### Blocker — satu bug nyata, diperbaiki
+
+- **BUG-7a** field bersarang tak terbaca: `credential_forms.save_vault_credential`
+  memaksa tiap nilai dengan `str(v)` → dict bersarang tersimpan sebagai repr
+  string. Diperbaiki: `_normalisasi()` (JSON-encode dict/list saat tulis) +
+  `_pulihkan()` (JSON-parse saat baca) + `set()` membangun path bersarang.
+
+### Next
+Fitur #8 (MCP Server Built-in).
