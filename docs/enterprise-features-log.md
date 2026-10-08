@@ -237,3 +237,62 @@ Bukti raw: `14 passed in 0.32s`. DDL live: `default_store() == SupabaseEnvStore`
 - Fitur #5 — Source Control / Git.
 
 ---
+
+## FITUR #5: Source Control / Git
+
+### Research
+| Pendekatan | Verdict | Alasan |
+|-----------|---------|--------|
+| PyGithub / python-gitlab SDK | DITOLAK | dependensi berat; REST cukup |
+| GitHub/GitLab/Bitbucket REST | **DIPAKAI** | ringan, lewat transport yang dapat disuntik |
+| git CLI lokal | DITOLAK | Railway ephemeral + tak cocok multi-tenant |
+
+**Pilihan:** `source_control.py` (REST + transport disuntik). **Alasan:** nol
+dependensi, dapat diuji tanpa jaringan (server Git tiruan), token di-redact.
+
+### Implementasi
+- File: `source_control.py` (baru, ~430 baris) — `GitClient` (abstract),
+  `GitHubClient`/`GitLabClient`/`BitbucketClient`, `SourceControl`,
+  `serialize_workflow`/`deserialize_workflow`, `ConnectionStore` (token
+  dienkripsi via `vault_security`), `redact`, `ConflictError`.
+- Fitur: commit/pull/diff/rollback, branch, PR (open+merge), conflict detection
+  (`expect_sha`), sync dari webhook push, mask token.
+- DDL: `migrations/2026_source_control.sql` → `git_connections` + RLS
+  (diterapkan: **6/6 OK**).
+- API: `GET /source-control/providers`, `POST /source-control/connect`,
+  `GET /source-control/connections`, `DELETE .../{provider}`,
+  `POST /source-control/commit`, `GET /source-control/pull`,
+  `GET /source-control/diff`, `POST /source-control/rollback`,
+  `POST /source-control/branches`, `POST /source-control/pr`,
+  `POST /source-control/webhook`.
+- Registry `/version`: `21_source_control`.
+
+### Hard Test — `tests/test_source_control.py` (12 kasus, PASS)
+| # | Skenario | Status |
+|---|----------|--------|
+| 1 | Connect repo → OK | PASS |
+| 2 | Commit workflow → ter-push | PASS |
+| 3 | Pull workflow → ter-load | PASS |
+| 4 | Diff view | PASS |
+| 5 | Rollback ke versi lama | PASS |
+| 6 | Branch main vs dev | PASS |
+| 7 | PR create + merge | PASS |
+| 8 | Conflict resolution (expect_sha) | PASS |
+| 9 | Multi-user (2 branch) | PASS |
+| 10 | Webhook push → sync | PASS |
+| 11 | Performa 100 commit < 3s | PASS |
+| 12 | Keamanan: token tidak bocor | PASS |
+
+Bukti raw: `12 passed in 0.32s`.
+
+### Deviasi dari brief
+- `ConnectionStore` saat ini memori (tabel `git_connections` sudah dibuat untuk
+  persistensi; wiring Supabase dapat ditambahkan tanpa mengubah API).
+
+### Blocker
+- Tidak ada.
+
+### Next
+- Fitur #6 — Queue Mode Scaling.
+
+---

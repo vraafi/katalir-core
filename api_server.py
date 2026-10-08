@@ -5087,6 +5087,200 @@ def environments_audit(authorization: str | None = Header(None)):
             "audit": _envs().audit_trail(str(user["email"]))}
 
 
+# ---------------------------------------------------------------------------
+# ENDPOINT SOURCE CONTROL / GIT (fitur #5)
+# ---------------------------------------------------------------------------
+_SC_CONN = None
+
+
+def _sc():
+    global _SC_CONN
+    import source_control as sc
+    if _SC_CONN is None:
+        _SC_CONN = sc.ConnectionStore()
+    return sc, _SC_CONN
+
+
+class GitConnectRequest(BaseModel):
+    provider: str
+    repo: str
+    token: str = ""
+
+
+class GitCommitRequest(BaseModel):
+    provider: str
+    workflow_id: str
+    flow_data: dict
+    branch: str = "main"
+    message: str = ""
+    expect_sha: str = ""
+
+
+class GitRollbackRequest(BaseModel):
+    provider: str
+    workflow_id: str
+    to_sha: str
+    branch: str = "main"
+
+
+class GitBranchRequest(BaseModel):
+    provider: str
+    name: str
+    from_ref: str = "main"
+
+
+class GitPrRequest(BaseModel):
+    provider: str
+    head: str
+    base: str = "main"
+    title: str
+    body: str = ""
+
+
+class GitWebhookRequest(BaseModel):
+    provider: str = "github"
+    payload: dict = {}
+
+
+@app.get("/source-control/providers")
+def sc_providers(authorization: str | None = Header(None)):
+    """Daftar provider Git yang didukung."""
+    security.get_current_user(authorization)
+    sc, _ = _sc()
+    return {"status": "success", "providers": sorted(sc.PROVIDERS)}
+
+
+@app.post("/source-control/connect")
+def sc_connect(body: GitConnectRequest,
+               authorization: str | None = Header(None)):
+    """Simpan koneksi Git (token dienkripsi, tidak pernah dikembalikan)."""
+    user = security.get_current_user(authorization)
+    sc, store = _sc()
+    try:
+        client = sc.make_client(body.provider, body.token, body.repo)
+        cabang = client.list_branches()
+    except sc.GitError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
+    info = store.save(str(user["email"]), body.provider, body.repo, body.token)
+    return {"status": "success", "connection": info, "branches": cabang[:50]}
+
+
+@app.get("/source-control/connections")
+def sc_connections(authorization: str | None = Header(None)):
+    """Daftar koneksi Git milik user (token ter-mask)."""
+    user = security.get_current_user(authorization)
+    _, store = _sc()
+    return {"status": "success", "connections": store.list(str(user["email"]))}
+
+
+@app.delete("/source-control/connections/{provider}")
+def sc_disconnect(provider: str, authorization: str | None = Header(None)):
+    """Hapus koneksi Git."""
+    user = security.get_current_user(authorization)
+    _, store = _sc()
+    ok = store.delete(str(user["email"]), provider)
+    return {"status": "success", "removed": ok}
+
+
+@app.post("/source-control/commit")
+def sc_commit(body: GitCommitRequest,
+              authorization: str | None = Header(None)):
+    """Commit workflow ke repo."""
+    user = security.get_current_user(authorization)
+    sc, store = _sc()
+    try:
+        client = store.client(str(user["email"]), body.provider)
+        scm = sc.SourceControl(client)
+        hasil = scm.commit_workflow(
+            body.workflow_id, body.flow_data, branch=body.branch,
+            message=body.message,
+            expect_sha=(body.expect_sha or None))
+    except sc.ConflictError as exc:
+        raise HTTPException(status_code=409, detail=str(exc))
+    except sc.GitError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
+    return {"status": "success", "commit": hasil}
+
+
+@app.get("/source-control/pull")
+def sc_pull(provider: str, workflow_id: str, ref: str = "main",
+            authorization: str | None = Header(None)):
+    """Ambil workflow dari repo."""
+    user = security.get_current_user(authorization)
+    sc, store = _sc()
+    try:
+        client = store.client(str(user["email"]), provider)
+        out = sc.SourceControl(client).pull_workflow(workflow_id, ref)
+    except sc.GitError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
+    return {"status": "success", "workflow": out}
+
+
+@app.get("/source-control/diff")
+def sc_diff(provider: str, workflow_id: str, base: str, head: str,
+            authorization: str | None = Header(None)):
+    """Diff workflow antara dua ref."""
+    user = security.get_current_user(authorization)
+    sc, store = _sc()
+    try:
+        client = store.client(str(user["email"]), provider)
+        out = sc.SourceControl(client).diff(workflow_id, base, head)
+    except sc.GitError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
+    return {"status": "success", "diff": out}
+
+
+@app.post("/source-control/rollback")
+def sc_rollback(body: GitRollbackRequest,
+                authorization: str | None = Header(None)):
+    """Rollback workflow ke commit sebelumnya."""
+    user = security.get_current_user(authorization)
+    sc, store = _sc()
+    try:
+        client = store.client(str(user["email"]), body.provider)
+        out = sc.SourceControl(client).rollback(body.workflow_id, body.to_sha,
+                                                body.branch)
+    except sc.GitError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
+    return {"status": "success", "commit": out}
+
+
+@app.post("/source-control/branches")
+def sc_branch(body: GitBranchRequest,
+              authorization: str | None = Header(None)):
+    """Buat branch baru."""
+    user = security.get_current_user(authorization)
+    sc, store = _sc()
+    try:
+        client = store.client(str(user["email"]), body.provider)
+        out = sc.SourceControl(client).create_branch(body.name, body.from_ref)
+    except sc.GitError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
+    return {"status": "success", "branch": out}
+
+
+@app.post("/source-control/pr")
+def sc_pr(body: GitPrRequest, authorization: str | None = Header(None)):
+    """Buka pull request."""
+    user = security.get_current_user(authorization)
+    sc, store = _sc()
+    try:
+        client = store.client(str(user["email"]), body.provider)
+        out = sc.SourceControl(client).open_pr(body.head, body.base, body.title,
+                                               body.body)
+    except sc.GitError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
+    return {"status": "success", "pull_request": out}
+
+
+@app.post("/source-control/webhook")
+def sc_webhook(body: GitWebhookRequest):
+    """Terima event push Git -> daftar workflow yang berubah (untuk sync)."""
+    sc, _ = _sc()
+    return {"status": "success", "sync": sc.SourceControl(
+        sc.make_client(body.provider, "", "x")).sync_from_webhook(body.payload)}
+
+
 @app.get("/health")
 def health():
     return {
