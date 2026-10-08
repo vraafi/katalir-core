@@ -68,6 +68,29 @@ import workflow_templates  # Workflow Templates — Fitur #10, 8 Okt 2026
 # `run()` sekali, jadi app yang di-mount harus terikat ke instance ini.
 _MCP_SERVER = mcp_server.get_server()
 
+# Queue Mode (Fitur #6): manager + worker pool proses-wide.
+_QUEUE_MGR = None
+_QUEUE_POOL = None
+
+
+def _queue_mgr():
+    """Lazy-init QueueManager (backend Redis bila ada, else memori)."""
+    global _QUEUE_MGR
+    import queue_mode
+    if _QUEUE_MGR is None:
+        _QUEUE_MGR = queue_mode.QueueManager()
+    return _QUEUE_MGR
+
+
+def _queue_handler(job):
+    """Handler worker: jalankan workflow dari payload job."""
+    import execution_engine as engine
+    p = job.payload or {}
+    return engine.launch_execution(
+        p.get("workflow_id"), p.get("flow_data") or {},
+        p.get("trigger_input") or {}, owner_email=p.get("owner_email", ""))
+
+
 @asynccontextmanager
 async def _lifespan(_app: "FastAPI"):
     """Hook startup/shutdown (pengganti @app.on_event yang sudah deprecated).
@@ -111,7 +134,27 @@ async def _lifespan(_app: "FastAPI"):
         except Exception as _exc:  # noqa: BLE001 - startup tak boleh gagal karena MCP
             print(f"[lifespan] MCP server gagal dimulai: {type(_exc).__name__}: {_exc}")
             _mcp_ctx = None
+    # Queue Mode (Fitur #6): worker pool opsional. Kill-switch env
+    # QUEUE_WORKERS=0 (default) -> tidak ada worker (perilaku lama).
+    global _QUEUE_POOL
+    try:
+        _n_workers = int(os.getenv("QUEUE_WORKERS", "0") or "0")
+    except ValueError:
+        _n_workers = 0
+    if _n_workers > 0:
+        try:
+            _QUEUE_POOL = _queue_mgr().pool(_queue_handler, concurrency=_n_workers)
+            _QUEUE_POOL.start()
+            print(f"[lifespan] queue worker aktif: {_n_workers} "
+                  f"(backend={_queue_mgr().backend_name})")
+        except Exception as _exc:  # noqa: BLE001
+            print(f"[lifespan] queue worker gagal: {type(_exc).__name__}: {_exc}")
     yield
+    if _QUEUE_POOL is not None:
+        try:
+            _QUEUE_POOL.stop(graceful=True)
+        except Exception:  # noqa: BLE001
+            pass
     if _mcp_ctx is not None:
         try:
             await _mcp_ctx.__aexit__(None, None, None)
@@ -5279,6 +5322,66 @@ def sc_webhook(body: GitWebhookRequest):
     sc, _ = _sc()
     return {"status": "success", "sync": sc.SourceControl(
         sc.make_client(body.provider, "", "x")).sync_from_webhook(body.payload)}
+
+
+# ---------------------------------------------------------------------------
+# ENDPOINT QUEUE MODE (fitur #6)
+# ---------------------------------------------------------------------------
+class QueueEnqueueRequest(BaseModel):
+    workflow_id: str
+    flow_data: dict = {}
+    trigger_input: dict = {}
+    priority: int = 0
+    max_retries: int = 3
+    timeout: float = 0.0
+
+
+@app.get("/queue/health")
+def queue_health(authorization: str | None = Header(None)):
+    """Status backend antrian + worker pool."""
+    security.get_current_user(authorization)
+    mgr = _queue_mgr()
+    out = mgr.health()
+    out["workers"] = _QUEUE_POOL.health() if _QUEUE_POOL else {
+        "workers": 0, "concurrency": 0}
+    return {"status": "success", "queue": out}
+
+
+@app.get("/queue/stats")
+def queue_stats(authorization: str | None = Header(None)):
+    """Statistik antrian (queued/inflight/dlq/by_status)."""
+    security.get_current_user(authorization)
+    return {"status": "success", "stats": _queue_mgr().queue.stats()}
+
+
+@app.post("/queue/enqueue")
+def queue_enqueue(body: QueueEnqueueRequest,
+                  authorization: str | None = Header(None)):
+    """Masukkan eksekusi workflow ke antrian."""
+    user = security.get_current_user(authorization)
+    job = _queue_mgr().queue.enqueue(
+        {"workflow_id": body.workflow_id, "flow_data": body.flow_data,
+         "trigger_input": body.trigger_input,
+         "owner_email": str(user["email"])},
+        priority=body.priority, max_retries=body.max_retries,
+        timeout=(body.timeout or None))
+    return {"status": "success", "job": job.to_dict()}
+
+
+@app.get("/queue/dlq")
+def queue_dlq(authorization: str | None = Header(None)):
+    """Daftar job yang gagal permanen (dead letter queue)."""
+    security.get_current_user(authorization)
+    return {"status": "success",
+            "dlq": [j.to_dict() for j in _queue_mgr().queue.dlq()]}
+
+
+@app.post("/queue/recover")
+def queue_recover(authorization: str | None = Header(None)):
+    """Requeue job in-flight (pemulihan setelah worker crash)."""
+    security.get_current_user(authorization)
+    n = _queue_mgr().queue.recover_inflight()
+    return {"status": "success", "requeued": n}
 
 
 @app.get("/health")

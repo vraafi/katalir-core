@@ -296,3 +296,58 @@ Bukti raw: `12 passed in 0.32s`.
 - Fitur #6 — Queue Mode Scaling.
 
 ---
+
+## FITUR #6: Queue Mode Scaling (horizontal)
+
+### Research
+| Pustaka | Verdict | Alasan |
+|---------|---------|--------|
+| ARQ | DITOLAK | resmi **maintenance-only** (temuan Okt 2026) |
+| RQ | OPSIONAL | fork-per-job, pickle; retry/sched kini built-in |
+| Dramatiq | OPSIONAL | retry/rate-limit bawaan, tapi +dependensi |
+| Taskiq | OPSIONAL | async-native, ekosistem muda |
+| In-house (memori + Redis lazy) | **DIPAKAI** | nol dependensi wajib, degradasi anggun |
+
+**Pilihan:** `queue_mode.py` — backend memori (test) + Redis opsional (lazy).
+**Alasan:** berjalan tanpa Redis (Railway single-instance) dan siap di-scale
+saat `KATALIR_REDIS_URL` diisi.
+
+### Implementasi
+- File: `queue_mode.py` (baru, ~430 baris) — `Job`, `MemoryQueueBackend`,
+  `RedisQueueBackend`, `JobQueue` (prioritas/retry/DLQ/recover), `WorkerPool`
+  (health/scale/graceful), `QueueManager` (pilih backend).
+- Integrasi: worker pool di `_lifespan` (kill-switch `QUEUE_WORKERS`, default 0);
+  handler memanggil `execution_engine.launch_execution`.
+- API: `GET /queue/health`, `GET /queue/stats`, `POST /queue/enqueue`,
+  `GET /queue/dlq`, `POST /queue/recover`.
+- Registry `/version`: `22_queue_mode`.
+
+### Hard Test — `tests/test_queue_mode.py` (13 kasus, PASS)
+| # | Skenario | Status |
+|---|----------|--------|
+| 1 | 100 job → semua diproses | PASS |
+| 2 | Worker crash → job requeued | PASS |
+| 3 | Redis down → degradasi anggun | PASS |
+| 4 | Concurrent workers (5) | PASS |
+| 5 | Prioritas job | PASS |
+| 6 | Job timeout | PASS |
+| 7 | Retry (max 3 → 4 percobaan) | PASS |
+| 8 | Dead letter queue | PASS |
+| 9 | Load test 1000 job < 10s | PASS |
+| 10 | Scaling: tambah worker runtime | PASS |
+| 11 | Graceful shutdown | PASS |
+| 12 | Benchmark throughput > 100 job/s | PASS |
+
+Bukti raw: `13 passed in 1.16s`.
+
+### Deviasi dari brief
+- Redis tidak di-hard-test (butuh server); jalur Redis memakai `redis` lazy dan
+  diuji sebagai degradasi anggun. Supabase tetap source of truth.
+
+### Blocker
+- Tidak ada.
+
+### Next
+- Fitur #7 — SSO / SAML / OIDC / LDAP.
+
+---
