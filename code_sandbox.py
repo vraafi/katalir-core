@@ -242,6 +242,84 @@ _PY_RUNNER = textwrap.dedent('''
         if op == "**=": return x ** y
         return x
 
+    # ------------------------------------------------------------------
+    # Penjaga str.format — BERBASIS RUNTIME, bukan pemindaian literal.
+    #
+    # Kenapa: pemindaian konstanta string di AST (LAPIS 1) hanya melihat
+    # literal SATU PER SATU, sehingga string yang DIRAKIT lolos:
+    #
+    #     "{0." + "__class__" + "}".format(1)   -> bocor <class 'int'>
+    #     "{0." + chr(95)*2 + "class" + chr(95)*2 + "}".format(1)
+    #
+    # Terbukti: 5/5 vektor rakitan bocor (C1,C2,C3,C4,C7).
+    # Perbaikan yang benar: pindai string format SESUDAH DIRAKIT, saat runtime.
+    # Caranya: transformasi AST mengubah `X.format(...)` menjadi
+    # `katalir_attr_format(X)(...)`, sehingga string yang benar-benar dipakai
+    # selalu diperiksa. Jalur "ambil atribut tanpa memanggil"
+    # (`f = "{0."+"__class__"+"}".format; f(1)`) juga tertutup karena
+    # transformasinya di level Attribute, bukan Call.
+    # ------------------------------------------------------------------
+    def _scan_format(teks):
+        import string as _s
+
+        def _periksa(fmt, kedalaman=0):
+            if kedalaman > 4:
+                return
+            for _lit, field, spec, _konv in _s.Formatter().parse(fmt):
+                if field and "__" in field:
+                    raise AttributeError(
+                        "akses atribut dunder lewat format tidak diizinkan: "
+                        "{" + field + "}")
+                if spec:
+                    _periksa(spec, kedalaman + 1)
+
+        _periksa(teks)
+
+    def katalir_attr_format(obj):
+        if obj is str:                       # str.format(fmt, *a) tak-terikat
+            def _unbound(fmt, *a, **kw):
+                _scan_format(fmt)
+                return str.format(fmt, *a, **kw)
+            return _unbound
+        if isinstance(obj, str):             # "fmt".format(*a)
+            def _bound(*a, **kw):
+                _scan_format(obj)
+                return str.format(obj, *a, **kw)
+            return _bound
+        return obj.format                    # objek lain: serahkan ke metodenya
+
+    def katalir_attr_format_map(obj):
+        if obj is str:
+            def _unbound(fmt, mapping):
+                _scan_format(fmt)
+                return str.format_map(fmt, mapping)
+            return _unbound
+        if isinstance(obj, str):
+            def _bound(mapping):
+                _scan_format(obj)
+                return str.format_map(obj, mapping)
+            return _bound
+        return obj.format_map
+
+    def _tutup_format(kode):
+        """Ubah X.format / X.format_map menjadi pemanggilan terjaga."""
+        import ast as _a
+
+        class _T(_a.NodeTransformer):
+            def visit_Attribute(self, node):
+                self.generic_visit(node)
+                if node.attr in ("format", "format_map"):
+                    nama = ("katalir_attr_format" if node.attr == "format"
+                            else "katalir_attr_format_map")
+                    return _a.Call(
+                        func=_a.Name(id=nama, ctx=_a.Load()),
+                        args=[node.value], keywords=[])
+                return node
+
+        pohon = _T().visit(_a.parse(kode))
+        _a.fix_missing_locations(pohon)
+        return _a.unparse(pohon)
+
     def _safe_getattr(obj, name, *a):
         if name in ("__subclasses__", "__globals__", "__bases__", "__mro__",
                     "__code__", "__closure__", "__reduce__", "__reduce_ex__",
@@ -362,6 +440,9 @@ _PY_RUNNER = textwrap.dedent('''
             from RestrictedPython.Guards import safe_builtins
             from RestrictedPython.PrintCollector import PrintCollector
 
+            # Terapkan penjaga str.format SEBELUM compile_restricted, supaya
+            # RestrictedPython melihat bentuk yang sudah terjaga.
+            kode = _tutup_format(kode)
             bytecode = compile_restricted(kode, "<kode-user>", "exec")
 
             g = dict(safe_globals)
@@ -372,6 +453,8 @@ _PY_RUNNER = textwrap.dedent('''
             g["_getiter_"] = iter              # WAJIB: dipakai oleh for/comp
             g["_write_"] = lambda ob: ob
             g["_inplacevar_"] = _inplacevar
+            g["katalir_attr_format"] = katalir_attr_format
+            g["katalir_attr_format_map"] = katalir_attr_format_map
 
             import builtins as _b
             for nama in payload.get("allow", []):

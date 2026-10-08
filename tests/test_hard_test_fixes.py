@@ -101,6 +101,64 @@ def test_sandbox_format_sah_tidak_ikut_diblokir():
         CS.validate(kode, "python")     # tidak boleh melempar
 
 
+# ---------------------------------------------------------------------------
+# V3 — str.format: vektor RAKITAN (bypass pemindaian literal AST).
+#
+# Pemindaian konstanta string di AST hanya melihat literal satu per satu,
+# sehingga string yang dirakit saat runtime lolos:
+#     "{0." + "__class__" + "}".format(1)          -> bocor <class 'int'>
+# Penjaga yang benar bekerja pada string SESUDAH DIRAKIT (runtime), lewat
+# transformasi AST `X.format` -> `katalir_attr_format(X)`.
+# ---------------------------------------------------------------------------
+
+_VEKTOR_RAKITAN = (
+    # konkatenasi literal
+    'print("{0." + "__class__" + "}".format(1))',
+    'print("{0." + "__class__.__mro__" + "}".format(1))',
+    # dibangun dengan chr()/join()
+    'u = chr(95) * 2\nprint(("{0." + u + "class" + u + "}").format(1))',
+    's = "{0." + "".join([chr(95), chr(95), "class", chr(95), chr(95)]) + "}"\n'
+    'print(s.format(1))',
+    # dipecah ke variabel terpisah
+    'a = "__cl"\nb = "ass__"\nprint(("{0." + a + b + "}").format(1))',
+    # jalur "ambil atribut tanpa memanggil"
+    'f = ("{0." + "__class__" + "}").format\nprint(f(1))',
+    # str.format tak-terikat
+    'f = str.format\nprint(f("{0." + "__class__" + "}", 1))',
+    # format_map
+    's = "{a." + "__class__" + "}"\nprint(s.format_map({"a": 1}))',
+    # nested format spec
+    's = "{0:{1:" + "__class__" + "}}"\nprint(s.format(1, 1))',
+)
+
+
+@pytest.mark.parametrize("kode", _VEKTOR_RAKITAN)
+def test_sandbox_format_rakitan_diblokir_saat_eksekusi(kode):
+    """Setiap vektor rakitan harus GAGAL — dan tidak membocorkan apa pun."""
+    import code_sandbox as CS
+    h = CS.execute(kode, "python")
+    assert h["ok"] is False, f"vektor rakitan berhasil (bocor): {kode!r} -> {h}"
+    gabung = f"{h.get('stdout') or ''}{h.get('stderr') or ''}{h.get('error') or ''}"
+    for jejak in ("<class ", "0x", "__main__", "built-in"):
+        assert jejak not in gabung, f"jejak internal {jejak!r} bocor: {gabung!r}"
+
+
+def test_sandbox_format_sah_tetap_jalan_setelah_penjaga_runtime():
+    """Penjaga runtime tidak boleh merusak format yang sah."""
+    import code_sandbox as CS
+    kasus = (
+        ("print('{0:.2f}'.format(3.14159))", "3.14"),
+        ("print('Halo {nama}'.format(nama='A'))", "Halo A"),
+        ("print(str.format('{0}-{1}', 'a', 'b'))", "a-b"),
+        ("print('{0[0]}'.format([1, 2, 3]))", "1"),
+        ("print(format(3.14159, '.2f'))", "3.14"),
+    )
+    for kode, harap in kasus:
+        h = CS.execute(kode, "python")
+        assert h["ok"] is True, f"format sah gagal: {kode!r} -> {h}"
+        assert harap in (h.get("stdout") or ""), f"{kode!r} -> {h}"
+
+
 def test_sandbox_error_dipotong():
     import code_sandbox as CS
     kode = "raise ValueError('x' * 200000)\n"

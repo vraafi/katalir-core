@@ -55,3 +55,116 @@ jobs:
             tests/test_workflow_templates.py \
             tests/test_deploy_version.py \
             -q -p no:cacheprovider
+
+  # ---------------------------------------------------------------------
+  # Fitur #6 (Code Node Sandbox) — penegakan batas memori di LINUX.
+  #
+  # Kenapa job terpisah: perbaikan awal hanya berlaku di Windows (Job Object).
+  # Di Linux jalurnya berbeda (`resource.setrlimit(RLIMIT_AS)` di dalam proses
+  # runner). Railway = Linux, jadi jalur inilah yang sebenarnya berlaku di
+  # produksi — dan sebelumnya tidak pernah dibuktikan dengan eksekusi nyata.
+  # Job ini menjalankannya di ubuntu-latest dan mencetak output mentah.
+  # ---------------------------------------------------------------------
+  sandbox-linux-limit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install RestrictedPython
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install "RestrictedPython==8.5"
+
+      - name: Buktikan batas memori sandbox berlaku di Linux
+        env:
+          ALLOWED_HOSTS: "testserver,localhost,127.0.0.1"
+          SCHEDULER_ENABLED: "0"
+        run: |
+          python - <<'PY'
+          import json
+          import sys
+
+          sys.path.insert(0, ".")
+          import code_sandbox as cs
+
+          print("platform        :", sys.platform)
+          print("capabilities    :", json.dumps(cs.capabilities()))
+
+          def jalankan(label, kode, mem=128, timeout=30):
+              h = cs.execute(kode, "python", memory_mb=mem, timeout_s=timeout)
+              print(f"[{label}]")
+              print(f"    ok={h['ok']} os_limits={h.get('os_limits')} "
+                    f"killed={h.get('killed')} dur={h.get('duration_s')}s")
+              print(f"    error={str(h.get('error'))[:160]!r}")
+              return h
+
+          print("\n--- 1. kontrol: kode sepele harus JALAN (runner sanggup start)")
+          a = jalankan("trivial", 'print("halo")')
+          assert a["ok"] is True, "runner gagal start dengan RLIMIT_AS=128MB"
+
+          print("\n--- 2. kontrol: alokasi 64MB (di bawah batas) harus JALAN")
+          b = jalankan("alokasi-64MB", 'x = bytes(64 * 1024 * 1024)\n'
+                                      'print(len(x))')
+
+          print("\n--- 3. memory bomb 2GB (di atas batas 128MB) harus GAGAL")
+          c = jalankan("bomb-2GB", 'x = bytes(2 * 1024 * 1024 * 1024)\n'
+                                   'print(len(x))')
+
+          print("\n--- 4. memory bomb 512MB harus GAGAL")
+          d = jalankan("bomb-512MB", 'x = bytes(512 * 1024 * 1024)\n'
+                                     'print(len(x))')
+
+          print("\n--- 5. alokasi bertahap (loop sampai 1GB) harus GAGAL")
+          e = jalankan("bomb-loop", 'blok = []\n'
+                                    'for i in range(1024):\n'
+                                    '    blok.append(bytes(1024 * 1024))\n'
+                                    'print(len(blok))')
+
+          print("\n=== HASIL ===")
+          print("trivial 64MB lolos     :", b["ok"])
+          print("2GB   ditolak          :", not c["ok"])
+          print("512MB ditolak          :", not d["ok"])
+          print("loop  ditolak          :", not e["ok"])
+          gagal = [n for n, h in (("2GB", c), ("512MB", d), ("loop", e))
+                   if h["ok"]]
+          if gagal:
+              print(f"BATAS MEMORI TIDAK DITEGAKKAN DI LINUX untuk: {gagal}")
+              raise SystemExit(1)
+          print("OK: RLIMIT_AS menegakkan batas memori di Linux.")
+          PY
+
+      - name: Buktikan vektor bypass str.format ditolak di Linux
+        run: |
+          python - <<'PY'
+          import sys
+
+          sys.path.insert(0, ".")
+          import code_sandbox as cs
+
+          VEKTOR = [
+              'print("{0.__class__}".format(1))',
+              'print("{0." + "__class__" + "}".format(1))',
+              'u = chr(95) * 2\nprint(("{0." + u + "class" + u + "}").format(1))',
+              'f = ("{0." + "__class__" + "}").format\nprint(f(1))',
+              'f = str.format\nprint(f("{0." + "__class__" + "}", 1))',
+              's = "{a." + "__class__" + "}"\nprint(s.format_map({"a": 1}))',
+          ]
+          bocor = 0
+          for kode in VEKTOR:
+              h = cs.execute(kode, "python")
+              gabung = (str(h.get("stdout") or "") + str(h.get("stderr") or "")
+                        + str(h.get("error") or ""))
+              jejak = [j for j in ("<class ", "0x", "__main__") if j in gabung]
+              status = "BLOK" if not h["ok"] else "LOLOS"
+              print(f"{status} jejak={jejak} {kode[:60]!r}")
+              if h["ok"] or jejak:
+                  bocor += 1
+          print(f"\nbocor: {bocor}/{len(VEKTOR)}")
+          raise SystemExit(1 if bocor else 0)
+          PY
+
