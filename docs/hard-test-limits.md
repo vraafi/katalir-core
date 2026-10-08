@@ -30,7 +30,7 @@ diperbaiki lalu diuji ulang dengan bukti mentah.
 | 11 | F2 Durable | Tidak ada batas eksplisit ukuran state | MEDIUM | ⚠️ ACCEPTED (dibatasi Postgres) |
 | 12 | F11 Testkit | Tidak ada self-test/meta-test eksplisit | MEDIUM | ⚠️ ACCEPTED (dokumentasi) |
 
-**Regresi setelah semua perbaikan: 239 tes lulus, 0 gagal.**
+**Regresi setelah semua perbaikan: 255 tes lulus, 0 gagal.**
 
 ---
 
