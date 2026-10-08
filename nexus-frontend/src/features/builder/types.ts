@@ -1,4 +1,4 @@
-import { Zap, Bot, Wrench, CalendarClock, Code2 } from "lucide-react";
+import { Zap, Bot, Wrench, CalendarClock, Code2, ShieldAlert, Database, UserCheck } from "lucide-react";
 import type { NodeStatus } from "@/components/ui/node-status-indicator";
 
 export const META = {
@@ -10,6 +10,11 @@ export const META = {
   // di SANDBOX: tanpa impor, tanpa jaringan, tanpa filesystem, batas 30s/128MB.
   // Warna visualnya diambil dari `--node-code-color` (lihat `cssKind`).
   code: { label: "Kode", color: "rgb(16, 185, 129)", Icon: Code2, desc: "Jalankan Python/JavaScript di sandbox" },
+  // Fitur #1-#3 penutup gap n8n (2026-10-08). Warna dari token
+  // `--node-<kind>-color` di globals.css (4 tema).
+  guardrails: { label: "Guardrails", color: "rgb(239, 68, 68)", Icon: ShieldAlert, desc: "Saring PII, prompt injection, toxic, secret" },
+  vector_store: { label: "Vector Store", color: "rgb(6, 182, 212)", Icon: Database, desc: "RAG: insert/query/delete dokumen (pgvector)" },
+  wait_for_human: { label: "Tunggu Manusia", color: "rgb(245, 158, 11)", Icon: UserCheck, desc: "Jeda workflow sampai ada persetujuan manusia" },
 } as const;
 
 export type Kind = keyof typeof META;

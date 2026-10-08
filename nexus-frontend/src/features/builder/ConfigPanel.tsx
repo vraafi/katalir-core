@@ -481,6 +481,381 @@ export function ConfigPanel({
           </label>
         </div>
       )}
+
+      {kind === "guardrails" && (
+        <>
+          <label className="block">
+            <span style={LABEL_STYLE} className={LABEL_CLS}>
+              Operasi
+            </span>
+            <select
+              className={FIELD_CLS}
+              style={FIELD_STYLE}
+              value={cfg.operation ?? "check"}
+              onChange={(e) => setNodeCfg("operation", e.target.value)}
+              data-testid="guardrails-operation"
+            >
+              <option value="check">Check Text for Violations (blokir bila melanggar)</option>
+              <option value="sanitize">Sanitize Text (ganti pelanggaran dengan placeholder)</option>
+            </select>
+          </label>
+
+          <label className="block">
+            <span style={LABEL_STYLE} className={LABEL_CLS}>
+              Aksi default
+            </span>
+            <select
+              className={FIELD_CLS}
+              style={FIELD_STYLE}
+              value={cfg.guardrail_action ?? "block"}
+              onChange={(e) => setNodeCfg("guardrail_action", e.target.value)}
+              data-testid="guardrails-action"
+            >
+              <option value="block">Block (gagalkan node)</option>
+              <option value="warn">Warn (lanjut dengan peringatan)</option>
+              <option value="log">Log (catat saja)</option>
+            </select>
+          </label>
+
+          <label className="block">
+            <span style={LABEL_STYLE} className={LABEL_CLS}>
+              Ambang (0.0 – 1.0)
+            </span>
+            <input
+              type="number"
+              min={0}
+              max={1}
+              step={0.05}
+              className={FIELD_CLS}
+              style={FIELD_STYLE}
+              value={cfg.guardrail_threshold ?? "0.5"}
+              onChange={(e) => setNodeCfg("guardrail_threshold", e.target.value)}
+              data-testid="guardrails-threshold"
+            />
+            <span className={HINT_CLS} style={HINT_STYLE}>
+              Berlaku untuk guardrail berbasis model (jailbreak, NSFW, topical, custom).
+            </span>
+          </label>
+
+          <div className={BOX_CLS} style={BOX_STYLE}>
+            <div className="mb-2 text-[11px] font-bold uppercase tracking-wide" style={LABEL_STYLE}>
+              9 Tipe Guardrail (paritas n8n)
+            </div>
+            <div className="grid grid-cols-2 gap-1.5">
+              {[
+                "keywords", "jailbreak", "nsfw", "pii", "secret_keys",
+                "topical_alignment", "urls", "custom", "custom_regex",
+              ].map((t) => {
+                let items: Array<{ type?: string }> = [];
+                try {
+                  const parsed = JSON.parse(cfg.guardrails_json || "[]");
+                  items = Array.isArray(parsed) ? parsed : [];
+                } catch {
+                  items = [];
+                }
+                const on = items.some((i) => i.type === t);
+                return (
+                  <label
+                    key={t}
+                    className="flex cursor-pointer items-center gap-1.5 text-[11px]"
+                    style={{ color: "var(--canvas-text-primary)" }}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={on}
+                      data-testid={`guardrail-type-${t}`}
+                      onChange={() => {
+                        const next = on
+                          ? items.filter((i) => i.type !== t)
+                          : [...items, {
+                              type: t,
+                              action: cfg.guardrail_action || "block",
+                              threshold: Number(cfg.guardrail_threshold ?? 0.5),
+                            }];
+                        setNodeCfg("guardrails_json", JSON.stringify(next));
+                      }}
+                    />
+                    {t}
+                  </label>
+                );
+              })}
+            </div>
+          </div>
+
+          <label className="block">
+            <span style={LABEL_STYLE} className={LABEL_CLS}>
+              Teks yang diperiksa (opsional)
+            </span>
+            <div className="mt-1">
+              <ExpressionEditor
+                value={cfg.text ?? ""}
+                placeholder="Kosongkan untuk memakai teks dari node sebelumnya... ketik {{ untuk variabel"
+                minHeight="72px"
+                onChange={(v) => setNodeCfg("text", v)}
+              />
+            </div>
+          </label>
+
+          <label className="block">
+            <span style={LABEL_STYLE} className={LABEL_CLS}>
+              Konfigurasi lanjutan (JSON)
+            </span>
+            <div className="mt-1">
+              <ExpressionEditor
+                value={cfg.guardrails_json ?? "[]"}
+                placeholder='[{"type":"pii","action":"block"},{"type":"keywords","keywords":"rahasia"}]'
+                minHeight="96px"
+                suggestions={null}
+                onChange={(v) => setNodeCfg("guardrails_json", v)}
+              />
+            </div>
+            <span className={HINT_CLS} style={HINT_STYLE}>
+              Field per-tipe: <code>keywords</code>, <code>entities</code>,{" "}
+              <code>permissiveness</code>, <code>patterns</code>,{" "}
+              <code>block_all_urls_except</code>, <code>prompt</code>,{" "}
+              <code>threshold</code>, <code>action</code>.
+            </span>
+          </label>
+        </>
+      )}
+
+      {kind === "vector_store" && (
+        <>
+          <label className="block">
+            <span style={LABEL_STYLE} className={LABEL_CLS}>
+              Operasi
+            </span>
+            <select
+              className={FIELD_CLS}
+              style={FIELD_STYLE}
+              value={cfg.operation ?? "insert"}
+              onChange={(e) => setNodeCfg("operation", e.target.value)}
+              data-testid="vector-operation"
+            >
+              <option value="insert">Insert (chunk → embed → simpan)</option>
+              <option value="query">Query (cari dokumen relevan)</option>
+              <option value="delete">Delete (hapus dokumen)</option>
+            </select>
+          </label>
+
+          <label className="block">
+            <span style={LABEL_STYLE} className={LABEL_CLS}>
+              Koleksi
+            </span>
+            <input
+              className={FIELD_CLS}
+              style={FIELD_STYLE}
+              value={cfg.collection ?? "default"}
+              onChange={(e) => setNodeCfg("collection", e.target.value)}
+              data-testid="vector-collection"
+            />
+          </label>
+
+          {(cfg.operation ?? "insert") === "insert" && (
+            <>
+              <label className="block">
+                <span style={LABEL_STYLE} className={LABEL_CLS}>
+                  Dokumen
+                </span>
+                <div className="mt-1">
+                  <ExpressionEditor
+                    value={cfg.document ?? ""}
+                    placeholder="Teks dokumen... ketik {{ untuk variabel dari node sebelumnya"
+                    minHeight="120px"
+                    onChange={(v) => setNodeCfg("document", v)}
+                  />
+                </div>
+              </label>
+              <div className="grid grid-cols-2 gap-2">
+                <label className="block">
+                  <span style={LABEL_STYLE} className={LABEL_CLS}>
+                    Ukuran chunk
+                  </span>
+                  <input
+                    type="number" min={1}
+                    className={FIELD_CLS} style={FIELD_STYLE}
+                    value={cfg.chunk_size ?? "800"}
+                    onChange={(e) => setNodeCfg("chunk_size", e.target.value)}
+                    data-testid="vector-chunk-size"
+                  />
+                </label>
+                <label className="block">
+                  <span style={LABEL_STYLE} className={LABEL_CLS}>
+                    Tumpang-tindih
+                  </span>
+                  <input
+                    type="number" min={0}
+                    className={FIELD_CLS} style={FIELD_STYLE}
+                    value={cfg.chunk_overlap ?? "100"}
+                    onChange={(e) => setNodeCfg("chunk_overlap", e.target.value)}
+                  />
+                </label>
+              </div>
+            </>
+          )}
+
+          {(cfg.operation === "query" || cfg.operation === "delete") && (
+            <label className="block">
+              <span style={LABEL_STYLE} className={LABEL_CLS}>
+                {cfg.operation === "delete" ? "ID dokumen" : "Kueri"}
+              </span>
+              <div className="mt-1">
+                <ExpressionEditor
+                  value={cfg.query ?? ""}
+                  placeholder="Tulis pertanyaan... ketik {{ untuk variabel"
+                  minHeight="80px"
+                  onChange={(v) => setNodeCfg("query", v)}
+                />
+              </div>
+            </label>
+          )}
+
+          {cfg.operation === "query" && (
+            <>
+              <div className="grid grid-cols-2 gap-2">
+                <label className="block">
+                  <span style={LABEL_STYLE} className={LABEL_CLS}>
+                    Top-K
+                  </span>
+                  <input
+                    type="number" min={1} max={50}
+                    className={FIELD_CLS} style={FIELD_STYLE}
+                    value={cfg.top_k ?? "5"}
+                    onChange={(e) => setNodeCfg("top_k", e.target.value)}
+                    data-testid="vector-topk"
+                  />
+                </label>
+                <label className="block">
+                  <span style={LABEL_STYLE} className={LABEL_CLS}>
+                    Mode pencarian
+                  </span>
+                  <select
+                    className={FIELD_CLS} style={FIELD_STYLE}
+                    value={cfg.search_mode ?? "hybrid"}
+                    onChange={(e) => setNodeCfg("search_mode", e.target.value)}
+                    data-testid="vector-search-mode"
+                  >
+                    <option value="hybrid">Hybrid (vektor + kata kunci)</option>
+                    <option value="vector">Vektor (semantik)</option>
+                    <option value="keyword">Kata kunci (BM25)</option>
+                  </select>
+                </label>
+              </div>
+              <label className="block">
+                <span style={LABEL_STYLE} className={LABEL_CLS}>
+                  Bobot hybrid α (0=keyword, 1=vektor)
+                </span>
+                <input
+                  type="number" min={0} max={1} step={0.1}
+                  className={FIELD_CLS} style={FIELD_STYLE}
+                  value={cfg.alpha ?? "0.5"}
+                  onChange={(e) => setNodeCfg("alpha", e.target.value)}
+                />
+              </label>
+            </>
+          )}
+          <span className={HINT_CLS} style={HINT_STYLE}>
+            Penyimpanan: Supabase pgvector, embedding Gemini 1536-dim. Tenant
+            dipisah otomatis per user.
+          </span>
+        </>
+      )}
+
+      {kind === "wait_for_human" && (
+        <>
+          <label className="block">
+            <span style={LABEL_STYLE} className={LABEL_CLS}>
+              Kanal notifikasi
+            </span>
+            <select
+              className={FIELD_CLS} style={FIELD_STYLE}
+              value={cfg.channel ?? "chat"}
+              onChange={(e) => setNodeCfg("channel", e.target.value)}
+              data-testid="hitl-channel"
+            >
+              <option value="chat">Chat (kartu di percakapan)</option>
+              <option value="slack">Slack</option>
+              <option value="email">Email</option>
+              <option value="telegram">Telegram</option>
+              <option value="webhook">Webhook (resume via HTTP)</option>
+            </select>
+          </label>
+
+          <label className="block">
+            <span style={LABEL_STYLE} className={LABEL_CLS}>
+              Pesan persetujuan
+            </span>
+            <div className="mt-1">
+              <ExpressionEditor
+                value={cfg.message ?? ""}
+                placeholder="Setujui pengiriman 1.000 email pemasaran?"
+                minHeight="72px"
+                onChange={(v) => setNodeCfg("message", v)}
+              />
+            </div>
+          </label>
+
+          <div className="grid grid-cols-2 gap-2">
+            <label className="block">
+              <span style={LABEL_STYLE} className={LABEL_CLS}>
+                Batas waktu (detik)
+              </span>
+              <input
+                type="number" min={0}
+                className={FIELD_CLS} style={FIELD_STYLE}
+                value={cfg.timeout_s ?? "3600"}
+                onChange={(e) => setNodeCfg("timeout_s", e.target.value)}
+                data-testid="hitl-timeout"
+              />
+            </label>
+            <label className="block">
+              <span style={LABEL_STYLE} className={LABEL_CLS}>
+                Saat timeout
+              </span>
+              <select
+                className={FIELD_CLS} style={FIELD_STYLE}
+                value={cfg.on_timeout ?? "resume"}
+                onChange={(e) => setNodeCfg("on_timeout", e.target.value)}
+                data-testid="hitl-on-timeout"
+              >
+                <option value="resume">Lanjut (default action)</option>
+                <option value="reject">Hentikan workflow</option>
+              </select>
+            </label>
+          </div>
+
+          <div className="grid grid-cols-2 gap-2">
+            <label className="block">
+              <span style={LABEL_STYLE} className={LABEL_CLS}>
+                Mode approver
+              </span>
+              <select
+                className={FIELD_CLS} style={FIELD_STYLE}
+                value={cfg.approval_mode ?? "any"}
+                onChange={(e) => setNodeCfg("approval_mode", e.target.value)}
+              >
+                <option value="any">Cukup satu</option>
+                <option value="all">Semua harus setuju</option>
+              </select>
+            </label>
+            <label className="block">
+              <span style={LABEL_STYLE} className={LABEL_CLS}>
+                Approver (koma)
+              </span>
+              <input
+                className={FIELD_CLS} style={FIELD_STYLE}
+                value={cfg.approvers ?? ""}
+                placeholder="a@x.com, b@x.com"
+                onChange={(e) => setNodeCfg("approvers", e.target.value)}
+              />
+            </label>
+          </div>
+          <span className={HINT_CLS} style={HINT_STYLE}>
+            Workflow dijeda; user menyetujui lewat kartu di chat atau tautan
+            resume, lalu alur lanjut. Timeout memakai aksi default.
+          </span>
+        </>
+      )}
     </motion.div>
   );
 }

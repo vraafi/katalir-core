@@ -104,6 +104,19 @@ class Rule:
 # membalas "429 quota exceeded" yang sebenarnya soal kuota akun, bukan
 # rate limit sesaat -- keduanya tidak boleh tertukar.
 RULES: tuple[Rule, ...] = (
+    # ── Guardrail memblokir teks (fitur #1) ───────────────────────────────
+    # DIPERIKSA PALING AWAL. Detail pelanggaran bisa memuat angka (nomor
+    # telepon "500-1234", kartu kredit) yang akan dicocokkan rule `server_5xx`
+    # atau `bad_request` bila rule ini tidak didahulukan. Pemblokiran bersifat
+    # deterministik: teks yang sama diblokir lagi, jadi jangan retry.
+    Rule(
+        "guardrail_violation",
+        re.compile(r"GuardrailViolationError"),
+        "abort", max_attempts=0, search=False,
+        reason="Guardrail memblokir teks (PII/jailbreak/toxic/secret/URL/…). "
+               "Mengulang dengan teks yang SAMA akan diblokir lagi — "
+               "perbaiki input atau longgarkan config guardrail.",
+    ),
     # ── Kode user gagal (fitur #6: node Code) ─────────────────────────────
     # DIPERIKSA PALING AWAL, dan itu disengaja.
     #

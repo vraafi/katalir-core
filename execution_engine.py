@@ -52,6 +52,14 @@ class NodeKind(str, Enum):
     #: (`mcp_server.py`), keduanya memakai mesin sandbox yang sama.
     #: Rincian keputusan + batas + bukti: docs/sandbox-production.md.
     CODE = "code"
+    #: Fitur #1 (Guardrails, paritas n8n 9 tipe) — 8 Okt 2026.
+    #: Menyaring teks (input user / output model) sebelum dipakai node
+    #: berikutnya. Logika di `guardrails.py` (deterministik + judge injeksi).
+    GUARDRAILS = "guardrails"
+    #: Fitur #2 (RAG / Vector Store) — 8 Okt 2026. Logika di `vector_store.py`.
+    VECTOR_STORE = "vector_store"
+    #: Fitur #3 (Human-in-the-Loop) — 8 Okt 2026. Logika di `hitl.py`.
+    WAIT_FOR_HUMAN = "wait_for_human"
 
 
 class NodeConfig(BaseModel):
@@ -350,6 +358,17 @@ class CodeExecutionError(RuntimeError):
     melempar untuk kode user yang buruk). Exception ini dinaikkan oleh executor
     supaya `_run_node` mencatat node `error` — bukan "completed" palsu — persis
     alasan yang sama dengan BUG-B2/BUG-B3.
+    """
+
+
+class GuardrailViolationError(RuntimeError):
+    """Node GUARDRAILS memblokir teks (fitur #1).
+
+    Deterministik: teks yang sama akan diblokir lagi. Karena itu pesan diawali
+    "GuardrailViolationError: " supaya `self_healing.classify_error` memetakan
+    ke rule `guardrail_violation` (abort, 0 retry) — BUKAN ke `network`/`5xx`
+    yang akan mengulang sia-sia. Detail pelanggaran bisa memuat angka (mis.
+    nomor telepon "500-1234"), jadi rule guardrail diperiksa PALING AWAL.
     """
 
 
@@ -1462,11 +1481,94 @@ class StatefulOrchestrator:
             "os_limits": hasil.get("os_limits"),
         }
 
+    async def _exec_guardrails(self, node: FlowNode, inp: dict,
+                               _extra_roots: Optional[dict] = None) -> dict:
+        """Node GUARDRAILS (fitur #1, paritas n8n): saring `config.text` /
+        teks dari node sebelumnya. Logika penuh di `guardrails.py`.
+
+        KONTRAK
+          config.operation : "check" (default) | "sanitize"
+          config.text      : teks yang diperiksa; bila kosong dipakai teks dari
+                             predesesor (`inp["_from"]` -> field teks pertama).
+          config.guardrails: list[{type, action, threshold, ...}] (9 tipe n8n)
+          output           : {type, status, violations, sanitized, ...}
+
+        Bila status "block", node melempar `GuardrailViolationError` supaya
+        node benar-benar tercatat `error` (tidak "completed" palsu) — pola
+        yang sama dengan `_raise_if_tool_failed`.
+        """
+        import guardrails
+
+        cfg = self._resolve_cfg(node.data.config or {},
+                                where=f"node '{node.id}'",
+                                extra_roots=_extra_roots)
+        text = cfg.get("text")
+        if text is None or str(text).strip() == "":
+            text = self._first_text(inp)
+        hasil = guardrails.run_config(str(text or ""), cfg)
+        if hasil["status"] == "block":
+            details = "; ".join(v.get("detail", v.get("type", ""))
+                                for v in hasil["violations"][:3])
+            raise GuardrailViolationError(
+                f"GuardrailViolationError: node '{node.id}' memblokir teks "
+                f"({hasil['violation_count']} pelanggaran): {details}")
+        return {"type": "guardrails", **hasil}
+
+    #: Key yang isinya teks siap-pakai (prioritas tertinggi).
+    _TEXT_KEYS = ("text", "pesan", "content", "query", "prompt", "reply",
+                  "body", "instruction", "output", "result", "answer")
+    #: Kontainer payload yang isinya perlu digali lebih dulu (trigger/webhook).
+    _PAYLOAD_KEYS = ("webhook_payload", "context", "payload", "input",
+                     "data", "vars", "request")
+
+    @classmethod
+    def _first_text(cls, inp: dict) -> str:
+        """Ambil teks pertama yang masuk akal dari output predesesor.
+
+        Urutan pencarian (penting): key teks eksplisit dulu, lalu kontainer
+        payload (webhook_payload/context/…), baru string apa pun. Ini supaya
+        teks asli user (`webhook_payload.text`) menang atas pesan internal
+        trigger ("Trigger disparado: webhook").
+        """
+
+        def walk(v: Any, depth: int = 0) -> str:
+            if depth > 4:
+                return ""
+            if isinstance(v, str):
+                return v if v.strip() else ""
+            if isinstance(v, dict):
+                for k in cls._TEXT_KEYS:
+                    if isinstance(v.get(k), str) and v[k].strip():
+                        return v[k]
+                for k in cls._PAYLOAD_KEYS:
+                    if k in v:
+                        r = walk(v[k], depth + 1)
+                        if r:
+                            return r
+                for val in v.values():
+                    if isinstance(val, str) and val.strip():
+                        return val
+            if isinstance(v, list):
+                for item in v:
+                    r = walk(item, depth + 1)
+                    if r:
+                        return r
+            return ""
+
+        for key, val in inp.items():
+            if key == "_from":
+                continue
+            r = walk(val)
+            if r:
+                return r
+        return ""
+
     EXECUTORS: dict[NodeKind, Callable[[Any, FlowNode, dict], Awaitable[dict]]] = {
         NodeKind.TRIGGER: _exec_trigger,
         NodeKind.AGENT: _exec_agent,
         NodeKind.MCP: _exec_mcp,
         NodeKind.CODE: _exec_code,
+        NodeKind.GUARDRAILS: _exec_guardrails,
     }
 
     def _runnable(self, remaining: set[str]) -> list[str]:
