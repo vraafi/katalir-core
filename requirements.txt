@@ -121,3 +121,19 @@ signxml==5.1.0
 # terkait dilaporkan tidak tersedia, aplikasi tetap jalan.
 hvac==2.4.0
 boto3>=1.43
+
+# --- Fitur #5: Source Control / Git (Okt 2026) ------------------------------
+# Tidak ada dependensi SDK: GitHub/GitLab/Bitbucket dipanggil lewat REST v3/v4
+# memakai `urllib` (stdlib). Ketahanan 409/422 dari Contents API ditangani
+# dengan retry terbatas + exponential backoff (lihat source_control.py).
+
+# --- Fitur #10: Real-Time Collaboration (Okt 2026) --------------------------
+# pycrdt 0.14.8         — CRDT Yjs (implementasi Rust `yrs`) untuk Python.
+# pycrdt-websocket 0.16.5 — server WebSocket ASGI (`ASGIServer`) yang di-mount
+#                           ke FastAPI; menyediakan protokol y-sync + y-awareness.
+# pycrdt-store 0.1.5    — `FileYStore`/`SQLiteYStore` untuk persistensi CRDT.
+# Sumber: https://pypi.org/project/pycrdt-websocket/ (rilis 2026-09-20, MIT).
+pycrdt==0.14.8
+pycrdt-websocket==0.16.5
+pycrdt-store==0.1.5
+

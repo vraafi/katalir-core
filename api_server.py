@@ -158,7 +158,26 @@ async def _lifespan(_app: "FastAPI"):
                   f"(backend={_queue_mgr().backend_name})")
         except Exception as _exc:  # noqa: BLE001
             print(f"[lifespan] queue worker gagal: {type(_exc).__name__}: {_exc}")
+    # Real-Time Collaboration (Fitur #10): server WebSocket Yjs/CRDT. Harus
+    # hidup selama app melayani request; kalau tidak, setiap upgrade ke
+    # /collab/ws gagal (RuntimeError: WebsocketServer not running).
+    # Kill-switch env COLLAB_ENABLED=0 (dipakai test suite yang tak butuh WS).
+    _collab_ctx = None
+    if os.getenv("COLLAB_ENABLED", "1").strip() not in ("0", "false", "False"):
+        try:
+            import collab_realtime
+            _collab_ctx = collab_realtime.WS_SERVER
+            await _collab_ctx.__aenter__()
+            print("[lifespan] collab websocket server aktif (Yjs/CRDT)")
+        except Exception as _exc:  # noqa: BLE001
+            print(f"[lifespan] collab gagal dimulai: {type(_exc).__name__}: {_exc}")
+            _collab_ctx = None
     yield
+    if _collab_ctx is not None:
+        try:
+            await _collab_ctx.__aexit__(None, None, None)
+        except BaseException:  # noqa: BLE001 - shutdown WS tak boleh menahan proses
+            pass
     if _QUEUE_POOL is not None:
         try:
             _QUEUE_POOL.stop(graceful=True)
@@ -6550,6 +6569,65 @@ def _limits_info() -> dict:
 
 
 # ---------------------------------------------------------------------------
+# ENDPOINT REAL-TIME COLLABORATION (fitur #10) — Yjs/CRDT + WebSocket
+# ---------------------------------------------------------------------------
+class CollabCommentRequest(BaseModel):
+    text: str
+    target: str = ""
+
+
+def _collab():
+    import collab_realtime as cr
+    return cr
+
+
+@app.get("/collab/rooms")
+def collab_rooms(authorization: str | None = Header(None)):
+    """Daftar room kolaborasi aktif + jumlah klien/presence."""
+    security.get_current_user(authorization)
+    cr = _collab()
+    return {"status": "success", "server_running": cr.WS_SERVER.running,
+            "rooms": cr.list_rooms(cr.WS_SERVER)}
+
+
+@app.get("/collab/rooms/{room}")
+def collab_room(room: str, authorization: str | None = Header(None)):
+    """Snapshot CRDT (nodes + komentar) + presence/kursor sebuah room."""
+    security.get_current_user(authorization)
+    cr = _collab()
+    if not cr.valid_room(room):
+        raise HTTPException(400, "nama room tidak valid")
+    return {"status": "success", "room": cr.room_view(cr.WS_SERVER, room)}
+
+
+@app.post("/collab/rooms/{room}/comment")
+async def collab_comment(room: str, body: CollabCommentRequest,
+                         authorization: str | None = Header(None)):
+    """Tambah komentar ke dokumen CRDT room (terdistribusi ke semua klien)."""
+    user = security.get_current_user(authorization)
+    cr = _collab()
+    if not cr.valid_room(room):
+        raise HTTPException(400, "nama room tidak valid")
+    import pycrdt as _y
+    yr = await cr.WS_SERVER.get_room(room)
+    arr = yr.ydoc.get("comments", type=_y.Array)
+    entry = {"user": str(user.get("email") or "anon"), "text": body.text,
+             "target": body.target}
+    arr.append(entry)
+    return {"status": "success", "comment": entry}
+
+
+@app.get("/collab/ui")
+def collab_ui():
+    """Editor kolaboratif (kursor multi-user + nama user) — Yjs sungguhan."""
+    from fastapi.responses import HTMLResponse
+    path = os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                        "static", "collab_editor.html")
+    with open(path, encoding="utf-8") as fh:
+        return HTMLResponse(fh.read())
+
+
+# ---------------------------------------------------------------------------
 # MOUNT MCP — SENGAJA DI AKHIR MODUL (lihat catatan di baris ~225).
 #
 # `app.mount()` mencocokkan prefix, jadi ia HARUS didaftarkan setelah semua
@@ -6561,6 +6639,17 @@ if _MCP_ASGI is not None:
         app.mount("/mcp/katalir", _MCP_ASGI)
     except Exception as _mcp_mount_exc:  # noqa: BLE001
         print(f"[startup] mount MCP gagal: {type(_mcp_mount_exc).__name__}: {_mcp_mount_exc}")
+
+# ---------------------------------------------------------------------------
+# MOUNT REAL-TIME COLLAB (fitur #10): server WebSocket Yjs di /collab/ws/<room>.
+# Juga di akhir modul supaya route eksplisit `/collab/*` tetap tercapai.
+# ---------------------------------------------------------------------------
+try:
+    import collab_realtime as _collab_mod
+    app.mount("/collab/ws", _collab_mod.ASGI)
+except Exception as _collab_mount_exc:  # noqa: BLE001
+    print(f"[startup] mount collab gagal: {type(_collab_mount_exc).__name__}: "
+          f"{_collab_mount_exc}")
 
 
 # ---------------------------------------------------------------------------

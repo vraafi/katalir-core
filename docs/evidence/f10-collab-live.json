@@ -1,0 +1,159 @@
+{
+  "feature": "#10 Real-Time Collaboration",
+  "lulus": 12,
+  "total": 12,
+  "hasil": [
+    {
+      "no": 1,
+      "skenario": "Server WS NYATA + 2 klien terhubung (JWT sah) & tersinkron",
+      "status": "PASS",
+      "raw": "ws      = ws://localhost:8131/collab/ws/r90443-dasar\nA.client_id = 8854385383382187\nB.client_id = 8768268928518580\nA.synced=True  B.synced=True\nCEK: handshake + sync-step selesai -> True",
+      "detail": {
+        "a": 8854385383382187,
+        "b": 8768268928518580
+      }
+    },
+    {
+      "no": 2,
+      "skenario": "Sinkron 2 user: A tambah node -> B melihatnya",
+      "status": "PASS",
+      "raw": "A: nodes={'n1': {'x':10,'y':20,'label':'Mulai'}}\nB.nodes setelah propagasi = {'n1': {'label': 'Mulai', 'x': 10.0, 'y': 20.0}}\nCEK: node A muncul di dokumen CRDT B -> True",
+      "detail": {
+        "b_nodes": [
+          "n1"
+        ]
+      }
+    },
+    {
+      "no": 3,
+      "skenario": "Sinkron 5 user: semua konvergen ke dokumen identik",
+      "status": "PASS",
+      "raw": "5 klien di room r90443-lima\nU1 tambah 'shared', U2 tambah 'milik-U2'\njumlah node tiap klien = [2, 2, 2, 2, 2]\nsnapshot identik (hash sama) = True\nCEK: konvergensi CRDT penuh -> True",
+      "detail": {
+        "nodes": 2
+      }
+    },
+    {
+      "no": 4,
+      "skenario": "Edit BERSAMAAN (node berbeda) -> kedua node ter-merge",
+      "status": "PASS",
+      "raw": "X menambah 'nx', Y menambah 'ny' (tanpa koordinasi)\nX.nodes = ['nx', 'ny']\nY.nodes = ['nx', 'ny']\nCEK: tidak ada yang hilang (merge CRDT) -> True",
+      "detail": {
+        "x": [
+          "nx",
+          "ny"
+        ],
+        "y": [
+          "nx",
+          "ny"
+        ]
+      }
+    },
+    {
+      "no": 5,
+      "skenario": "Tulisan BERSAMAAN field sama -> konvergen deterministik",
+      "status": "PASS",
+      "raw": "P set label='dari-P', Q set label='dari-Q' (bersamaan)\nP.label = 'dari-Q'\nQ.label = 'dari-Q'\nCEK: kedua klien setuju pada nilai yang sama -> True",
+      "detail": {
+        "p": "dari-Q",
+        "q": "dari-Q"
+      }
+    },
+    {
+      "no": 6,
+      "skenario": "Multi-kursor: A geser kursor -> B melihat kursor + nama",
+      "status": "PASS",
+      "raw": "A.move_cursor(x=120, y=240, node='n1')\nB.cursors() = {\"Andi\": {\"x\": 120, \"y\": 240, \"node\": \"n1\"}}\nCEK: nama 'Andi' + posisi kursor sampai ke B -> True",
+      "detail": {
+        "cursor": {
+          "x": 120,
+          "y": 240,
+          "node": "n1"
+        }
+      }
+    },
+    {
+      "no": 7,
+      "skenario": "Presence 5 user: tiap klien melihat 4 rekan + nama",
+      "status": "PASS",
+      "raw": "jumlah rekan dilihat tiap klien = [4, 4, 4, 4, 4]\nnama yang dilihat U1 = ['U2', 'U3', 'U4', 'U5']\nCEK: awareness penuh (5-1=4) -> True",
+      "detail": {
+        "peers": [
+          4,
+          4,
+          4,
+          4,
+          4
+        ],
+        "names": [
+          "U2",
+          "U3",
+          "U4",
+          "U5"
+        ]
+      }
+    },
+    {
+      "no": 8,
+      "skenario": "Komentar: A tulis -> B lihat & tersimpan di snapshot REST",
+      "status": "PASS",
+      "raw": "A.add_comment('tolong cek node n1', target='n1')\nB.comments = [{'target': 'n1', 'at': 1791490467.5120604, 'text': 'tolong cek node n1', 'user': 'Andi'}]\nGET /collab/rooms/r90443-dasar -> HTTP 200\n  {\"status\":\"success\",\"room\":{\"room\":\"r90443-dasar\",\"exists\":true,\"nodes\":{\"n1\":{\"label\":\"Mulai\",\"y\":20.0,\"x\":10.0}},\"comments\":[{\"user\":\"Andi\",\"target\":\"n1\",\"at\":1791490467.5120604,\"text\":\"tolong cek n\nCEK: komentar terdistribusi + persist di server -> True",
+      "detail": {
+        "rest_status": 200
+      }
+    },
+    {
+      "no": 9,
+      "skenario": "Persistensi CRDT: state bertahan setelah RESTART server",
+      "status": "PASS",
+      "raw": "FileYStore = r90443-persist.y (71 byte)\nserver di-restart (proses BARU, memori kosong)\nklien baru baca nodes = {'tahan': {'label': 'harus-selamat'}}\nCEK: dokumen dipulihkan dari disk -> True",
+      "detail": {
+        "file_bytes": 71
+      }
+    },
+    {
+      "no": 10,
+      "skenario": "Keamanan: koneksi tanpa/ dengan token palsu DITOLAK",
+      "status": "PASS",
+      "raw": "  tanpa-token: ditolak: InvalidStatus\n  token-palsu: ditolak: InvalidStatus\nCEK: tidak ada koneksi anonim -> True",
+      "detail": {
+        "tanpa-token": "ditolak: InvalidStatus",
+        "token-palsu": "ditolak: InvalidStatus"
+      }
+    },
+    {
+      "no": 11,
+      "skenario": "Edit OFFLINE lalu reconnect -> ter-merge (tanpa kehilangan)",
+      "status": "PASS",
+      "raw": "O2 putus -> menambah 'saat-offline' (lokal)\nO1 (online) menambah 'saat-o1-online'\nO2 tersambung lagi -> O1.nodes = ['awal', 'saat-o1-online', 'saat-offline']\n                        O2.nodes = ['awal', 'saat-o1-online', 'saat-offline']\nCEK: kedua perubahan bertahan -> True",
+      "detail": {
+        "o1": [
+          "awal",
+          "saat-o1-online",
+          "saat-offline"
+        ],
+        "o2": [
+          "awal",
+          "saat-o1-online",
+          "saat-offline"
+        ]
+      }
+    },
+    {
+      "no": 12,
+      "skenario": "Performa: 200 op CRDT di 5 klien -> konvergen",
+      "status": "PASS",
+      "raw": "200 add_node dibagi ke 5 klien\ndurasi            = 0.21s\njumlah node/klien = [200, 200, 200, 200, 200]\nCEK: semua klien sepakat >= 200 node -> True",
+      "detail": {
+        "seconds": 0.21,
+        "nodes": [
+          200,
+          200,
+          200,
+          200,
+          200
+        ]
+      }
+    }
+  ]
+}
