@@ -16,6 +16,12 @@ streamlit==1.41.1
 # membatasi paket ini, jadi pin ini tidak menimbulkan konflik resolusi.
 google-genai==1.65.0
 httpx==0.28.1
+# Fitur #5 (Parallel Fan-Out/Fan-In): anyio untuk `move_on_after` (timeout
+# PER cabang tanpa membatalkan saudaranya) + `create_task_group` (barrier
+# merge "tunggu semua"). MIT, Production/Stable, rilis 5 Sep 2026.
+# Sudah menjadi dependensi transitif FastAPI/Starlette (4.12.1 terpasang),
+# pin di bawah menyamakan versi ke rilis yang diverifikasi.
+anyio==4.12.1
 # MCP Python SDK for agentgateway Streamable HTTP client
 mcp==1.28.1
 ddgs==9.0.1
@@ -73,3 +79,8 @@ litellm==1.65.1
 # walaupun DODO_WEBHOOK_SECRET sudah benar (temuan audit billing 2026-09-18).
 dodopayments[webhooks]==1.116.0
 standardwebhooks==1.1.0
+
+# Scheduled Trigger (cron) — Fitur #1, Opsi B in-house (8 Okt 2026).
+# croniter = parser cron 5-field pure-python; terverifikasi lokal v6.0.0.
+# Tidak dipakai langsung frontend; scheduler_manager.py (loop asyncio di _lifespan).
+croniter>=2.0

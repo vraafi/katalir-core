@@ -446,3 +446,165 @@ lain berjalan bersamaan; dijalankan sendiri **lolos** (`1560 ms`).
    macet (`heartbeat > 5 menit`); idempotency key per node; **10 skenario**.
 2. Hari 3 (10 Okt): integrasi #1+#2, skenario n8n keras, regresi, verifikasi akhir.
 3. Tes frontend dengan runner benar (**Playwright**, bukan vitest).
+
+---
+
+# SESI 3 — FITUR #2, #3, #4, #5
+
+## Fitur #2: Durable Execution
+
+### Research
+| Paket | Versi | Verdict | Alasan |
+|---|---|---|---|
+| `dbos` | 3.2.0 | ✅ dipakai semantiknya | MIT, 524 rilis, Postgres-native, skema sendiri (13 tabel) tanpa polusi `public` |
+| `temporalio` | — | ❌ | Butuh server terpisah |
+| `restate-sdk` | — | ❌ | Pra-1.0 |
+| `inngest` | — | ❌ | Berat infra |
+
+**Pilihan:** menerapkan SEMANTIK DBOS di atas skema Katalir (`execution_steps`).
+**Alasan:** mengganti engine menjelang launch tidak dapat dibenarkan; semantik
+yang diverifikasi (crash `os._exit(137)` → langkah 1 & 2 **tidak** diulang) bisa
+diterapkan tanpa runtime baru.
+
+### Implementasi
+`durable_execution.py`; migrasi `2026-10-08-durable-execution.sql`
+(`executions.state/current_step_id/idempotency_key/heartbeat_at/retry_count/resumed_at/waiting_for/parent_execution_id`,
+`execution_steps`, RPC `claim_stuck_executions`).
+
+### Hard Test
+**14/14 PASS.** Bukti resume: side-effect log `[LANGKAH-1, LANGKAH-2]` →
+`[LANGKAH-1, LANGKAH-2, LANGKAH-3]` — langkah 1–2 TIDAK diulang.
+
+### Blocker
+Tidak ada (temuan: `workflows.user_id → auth.users`, bukan `public.users`;
+PostgREST tidak mengekspos skema `auth` → pakai psycopg2 langsung).
+
+### Next
+Fitur #3.
+
+---
+
+## Fitur #3: Retry + Backoff + DLQ + Circuit Breaker
+
+### Research
+| Paket | Versi | Verdict | Alasan |
+|---|---|---|---|
+| `tenacity` | 9.2.1 | ✅ dipakai | Standar de-facto; `stop_after_attempt`, `wait_exponential` |
+| `pybreaker` | 1.4.1 | ✅ dipakai | Circuit breaker matang; pindah ke `half-open` pada panggilan berikutnya |
+| `backoff` | — | ❌ | Stagnan sejak 2022 |
+| `stamina` | — | ❌ | Pra-1.0 |
+| `unbreak` | — | ❌ | `is_retryable(ValueError)` = False → `@unbreak.retry(max=3)` melakukan **nol** retry |
+
+### Implementasi
+`retry_policy.py`; migrasi `2026-10-08-retry-dlq.sql` (`dead_letter_queue`,
+`circuit_breakers`, RPC `claim_dlq_item` → jsonb, RPC `dlq_stats`, RLS).
+
+### Hard Test
+**16/16 PASS.**
+
+### Blocker — dua bug nyata ditemukan & diperbaiki
+- **BUG-3a** DLQ gagal diam-diam (`42P10`): indeks unik **parsial** tidak bisa
+  jadi target `ON CONFLICT`. Karena `push_dlq` menelan exception, gejalanya
+  16→ (11 lolos / 5 gagal) **tanpa pesan error**. Diperbaiki: `execution_id
+  NOT NULL` + constraint biasa; `push_dlq` sekarang **mencetak** kegagalan.
+- **BUG-3b** kebocoran klaim DLQ antar-user: RPC `returns public.dead_letter_queue`
+  mengembalikan dict semua-NULL saat tidak ada baris, dan **dict truthy di Python**
+  → user asing tampak berhasil mengklaim. Diperbaiki 2 lapis: SQL `returns jsonb`
+  + Python wajib `data["id"]` **dan** `data["user_id"]`.
+
+### Next
+Fitur #4.
+
+---
+
+## Fitur #4: Sub-Workflow Execution
+
+### Research
+Tidak memerlukan paket baru — primitifnya adalah pemanggilan bersarang dengan
+penjaga kedalaman & deteksi siklus di atas `durable_execution`. Kandidat
+(temporal child workflows, `dbos.start_workflow`) ditolak karena alasan yang
+sama seperti #2 (infra / penggantian engine).
+
+### Implementasi
+`subworkflow.py`; migrasi `2026-10-08-subworkflow.sql`
+(`executions.depth`, `workflow_call_chain`, `subworkflow_invocations`,
+RPC `check_subworkflow_allowed` → jsonb dengan penjaga loop `< 50`).
+
+### Hard Test
+**11/11 PASS.** Bukti: 3 level diterima, level 4 ditolak
+(`kedalaman maksimum 3 terlampaui (akan menjadi 4)`); siklus ditolak
+(`siklus terdeteksi: workflow anak sudah ada di rantai leluhur`);
+idempotensi (`2× invoke step sama → runner dipanggil 1×`).
+
+### Blocker
+Tidak ada. (Catatan: tes #4 awalnya gagal karena **tes**-nya salah — memakai
+ulang `wf_child` dua kali dalam satu rantai sehingga cek siklus benar-benar
+menyala sebelum cek kedalaman. Diperbaiki dengan workflow baru per level.)
+
+### Next
+Fitur #5.
+
+---
+
+## Fitur #5: Parallel Fan-Out / Fan-In
+
+### Research
+| Paket / Pendekatan | Versi | Verdict | Alasan |
+|---|---|---|---|
+| `anyio` | 4.15.1 / 4.12.1 | ✅ dipakai | MIT, Production/Stable (5 Sep 2026), 5 maintainer, 2.553★. `move_on_after` = timeout **per cabang** tanpa membatalkan saudara; `create_task_group` = barrier. Sudah dependensi transitif FastAPI. |
+| `asyncio.TaskGroup` | bawaan | ❌ primitif utama | Semua-atau-tidak-sama-sekali: satu gagal → seluruh grup dibatalkan (kebalikan dari partial-failure). |
+| `asyncio.gather` | bawaan | ⚠️ sebagian | Bisa tunggu semua, tapi **tanpa timeout per-item**. |
+| `mcp-agent` Parallel | — | ❌ | Pola bagus, tapi menyeret framework agen penuh + LLM. |
+| PyAgent fan-out/fan-in | — | ❌ | Dokumentasi pola, bukan pustaka inti. |
+
+Verifikasi langsung (`pip install --target ./_verify_f5 anyio`):
+```
+T2 timeout: {'cepat': 'cepat ok', 'lambat': 'TIMEOUT'}
+T3 partial: {'satu': 'satu ok', 'dua': 'ERR:dua gagal'}
+```
+**Pilihan:** `anyio` 4.12.1. **Alasan:** satu-satunya kandidat yang memberi
+timeout per cabang *dan* barrier tunggu-semua dalam satu API, MIT,
+Production/Stable, sudah ada sebagai dependensi transitif.
+
+### Implementasi
+`parallel_fanout.py`; migrasi `2026-10-08-parallel-fanout.sql`
+(`execution_branches` + `unique (execution_id, split_step_id, branch_key)`,
+`executions.parallel_policy`, `execution_steps.timeout_seconds`,
+RPC `branch_summary`, RPC `bulk_update_branches`, RLS); pin
+`anyio==4.12.1` di `requirements.txt`.
+
+Kebijakan fan-in: `all_success` (barrier klasik), `all_settled` (lanjut apa pun,
+yang gagal dilaporkan), `quorum` (mayoritas murni, `>= total//2 + 1`).
+
+### Hard Test
+**12/12 PASS**, 3× berturut-turut. Ringkas:
+
+| # | Skenario | Bukti |
+|---|---|---|
+| 1 | 3 cabang semua sukses | `ok=True summary{success:3}` |
+| 2 | Barrier tunggu semua | tambah 2 cabang hanya **+0.09s** (seri akan +0.15s) |
+| 3 | Output terpisah per cabang | `{'cabang':'x','nilai':120}` / `{'cabang':'y','nilai':121}` |
+| 4 | **Durability**: bertahan setelah restart | sesi-2 summary == sesi-1 |
+| 5 | **Durability**: resume tidak gandakan | `setelah fan_out ulang, jumlah baris = 3` (bukan 6) |
+| 6 | **Edge**: timeout per cabang | `2 sukses, 0 gagal, 1 timeout` |
+| 7 | **Edge**: partial failure `all_settled` | `failed_keys=['rusak'], ok=True` |
+| 8 | **Edge**: `all_success` bila ada gagal | `ok=False` |
+| 9 | **Edge**: `quorum` | 2/4 → False; 3/4 → True |
+| 10 | **Edge**: validasi input | duplikat & `65 > MAX_BRANCHES=64` ditolak |
+| 11 | **Security**: isolasi user | user asing lihat **0** cabang |
+| 12 | **Performance**: 8 paralel | `0.62s < 0.65s` (seri 0.80s) |
+
+### Blocker — dua bug nyata ditemukan & diperbaiki
+- **BUG-5a** — fan-out "paralel" **lebih lambat** daripada seri
+  (`8×0.1s → 2.89s` vs seri `0.80s`). Sebab: (i) tulis-baca PostgREST sinkron
+  dipanggil dari korut → **memblokir event loop**; (ii) terukur **satu
+  panggilan PostgREST = ~110–125 ms**, 16 round trip membunuh paralelisme.
+  Diperbaiki: `asyncio.to_thread` + tulis **massal** (satu di awal, satu di
+  akhir). Setelah: **2.89s → 0.62s**.
+- **BUG-5b** — `upsert` PostgREST gagal untuk pembaruan parsial
+  (`23502 null value in column "execution_id"`): payload parsial dianggap
+  INSERT. Diperbaiki dengan RPC `bulk_update_branches` (benar-benar `UPDATE`)
+  + fallback per-cabang.
+
+### Next
+Fitur #6 (Code Node / Sandbox).
