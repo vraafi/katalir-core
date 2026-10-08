@@ -5427,6 +5427,21 @@ def sc_webhook(body: GitWebhookRequest):
         sc.make_client(body.provider, "", "x")).sync_from_webhook(body.payload)}
 
 
+@app.get("/source-control/ui")
+def source_control_ui():
+    """Halaman admin Source Control (Git) — hubungkan repo + commit/PR/rollback.
+
+    Halaman statis same-origin: `fetch` tidak kena CORS. Shell tidak memuat
+    data sensitif; tiap panggilan di dalamnya tetap membawa Bearer token dan
+    melewati `get_current_user`.
+    """
+    from fastapi.responses import HTMLResponse
+    path = os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                        "static", "scm_admin.html")
+    with open(path, encoding="utf-8") as fh:
+        return HTMLResponse(fh.read())
+
+
 # ---------------------------------------------------------------------------
 # ENDPOINT QUEUE MODE (fitur #6)
 # ---------------------------------------------------------------------------

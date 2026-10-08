@@ -234,3 +234,90 @@ def test_12_no_token_leak(gh):
         scm.client.call("GET", "/repos/me/repo/contents/x?ref=main")
     except sc.GitError as exc:
         assert "ghp_secrettoken123456" not in str(exc)
+
+
+# ---------------------------------------------------------------------------
+# REGRESI konsistensi eventual Contents API (Okt 2026).
+# GitHub kadang mengembalikan SHA basi (409) atau "sha wasn't supplied" (422)
+# tepat sesudah PUT. Praktik terbaik = retry terbatas + backoff (go-github
+# #2707). Test ini GAGAL bila penanganan retry hilang.
+# ---------------------------------------------------------------------------
+class _Inject:
+    """Transport pembungkus: `n_fail` PUT pertama dipaksa gagal (bisa di-arm)."""
+
+    def __init__(self, fake, n_fail: int, status: int, body: dict,
+                 armed: bool = True):
+        self.fake = fake
+        self.n_fail = n_fail
+        self.status = status
+        self.body = body
+        self.armed = armed
+        self.n = 0
+
+    def __call__(self, method, url, headers, b):
+        if (self.armed and self.n < self.n_fail
+                and method == "PUT" and "/contents/" in url):
+            self.n += 1
+            return self.status, dict(self.body)
+        return self.fake.transport(method, url, headers, b)
+
+
+@pytest.fixture
+def no_sleep(monkeypatch):
+    """Hilangkan jeda backoff supaya test tetap cepat."""
+    monkeypatch.setattr(sc.time, "sleep", lambda *_: None)
+
+
+# 13. 409 transien (SHA basi) -> otomatis dicoba ulang, akhirnya SUKSES
+def test_13_retry_transient_409(no_sleep):
+    fake = FakeGitHub()
+    inj = _Inject(fake, 2, 409, {"message": "sha mismatch"})
+    client = sc.make_client("github", "ghp_secrettoken123456", "me/repo",
+                            transport=inj)
+    scm = sc.SourceControl(client)
+    r1 = scm.commit_workflow("wf-1", _flow(["a"]))  # 2x 409 lalu sukses
+    assert r1["sha"] and r1["created"] is True
+    r2 = scm.commit_workflow("wf-1", _flow(["a", "b"]))
+    assert r2["sha"] and r2["created"] is False
+    assert len(scm.pull_workflow("wf-1")["flow_data"]["nodes"]) == 2
+    assert inj.n == 2  # benar-benar ada 2 kegagalan transien yang di-retry
+
+
+# 14. 422 "sha wasn't supplied" (berkas baru belum tersinkron) -> retry SUKSES
+def test_14_retry_transient_422(no_sleep):
+    fake = FakeGitHub()
+    inj = _Inject(fake, 1, 422,
+                  {"message": 'Invalid request. "sha" wasn\'t supplied.'})
+    client = sc.make_client("github", "ghp_secrettoken123456", "me/repo",
+                            transport=inj)
+    scm = sc.SourceControl(client)
+    r = scm.commit_workflow("wf-1", _flow(["a"]))  # 1x 422 lalu sukses
+    assert r["sha"] and r["created"] is True
+    assert inj.n == 1
+
+
+# 15. Konflik OPTIMISTIK (expect_sha) TIDAK di-retry -> naik ke pemanggil
+def test_15_expect_sha_not_retried(no_sleep):
+    fake = FakeGitHub()
+    inj = _Inject(fake, 99, 409, {"message": "sha mismatch"}, armed=False)
+    client = sc.make_client("github", "ghp_secrettoken123456", "me/repo",
+                            transport=inj)
+    scm = sc.SourceControl(client)
+    scm.commit_workflow("wf-1", _flow(["a"]))          # belum di-arm -> sukses
+    base = scm.pull_workflow("wf-1")["sha"]
+    inj.armed = True
+    with pytest.raises(sc.ConflictError):
+        scm.commit_workflow("wf-1", _flow(["a", "b"]), expect_sha=base)
+    assert inj.n == 1  # HANYA 1 percobaan: tidak di-retry
+
+
+# 16. 409 PERSISTEN -> menyerah setelah 5 percobaan (tidak menggantung)
+def test_16_retry_gives_up(no_sleep):
+    fake = FakeGitHub()
+    inj = _Inject(fake, 99, 409, {"message": "sha mismatch"})
+    client = sc.make_client("github", "ghp_secrettoken123456", "me/repo",
+                            transport=inj)
+    scm = sc.SourceControl(client)
+    with pytest.raises(sc.ConflictError):
+        scm.commit_workflow("wf-1", _flow(["a"]))
+    assert inj.n == 6  # 1 percobaan awal + 5 retry, lalu menyerah

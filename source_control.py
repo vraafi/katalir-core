@@ -16,6 +16,7 @@ from __future__ import annotations
 import base64
 import json
 import re
+import time
 import urllib.request
 from abc import ABC, abstractmethod
 from typing import Any, Callable, Optional
@@ -77,6 +78,20 @@ def deserialize_workflow(text: str) -> dict:
 
 def workflow_path(workflow_id: str, prefix: str = "workflows/") -> str:
     return f"{prefix}{workflow_id}.json"
+
+
+def _write_retryable(exc: "GitError") -> bool:
+    """True bila kegagalan `write_file` layak dicoba ulang (SHA basi/hilang).
+
+    409 = blob-SHA yang dikirim tak cocok (baca balik masih basi).
+    422 `"sha" wasn't supplied` = berkas sebenarnya SUDAH ada tapi GET sempat
+    mengembalikan "tidak ditemukan" (belum tersinkron) -> PUT tanpa sha.
+    Keduanya gejala konsistensi eventual Contents API (go-github #2707).
+    """
+    if isinstance(exc, ConflictError):
+        return True
+    msg = str(exc)
+    return "422" in msg and "sha" in msg.lower()
 
 
 # ---------------------------------------------------------------------------
@@ -332,21 +347,38 @@ class SourceControl:
                         branch: str = "main", message: str = "",
                         expect_sha: Optional[str] = None,
                         meta: Optional[dict] = None) -> dict:
-        """Commit workflow ke repo. `expect_sha` -> deteksi konflik."""
+        """Commit workflow ke repo. `expect_sha` -> deteksi konflik.
+
+        Ketahanan 409 (konsistensi eventual Contents API): GitHub kadang
+        mengembalikan blob-SHA yang BASI bila `GET contents` dibaca tepat
+        sesudah `PUT` (server internal belum sinkron). Praktik terbaik Okt 2026
+        = ulang baca SHA terbaru lalu coba lagi dengan exponential backoff
+        (lihat maintainer go-github #2707). Retry HANYA dijalankan bila
+        pemanggil TIDAK meminta cek optimistik (`expect_sha is None`); konflik
+        optimistik asli tetap naik ke pemanggil.
+        """
         path = self._path(workflow_id)
-        sha: Optional[str] = None
-        try:
-            _, sha = self.client.read_file(path, branch)
-        except NotFoundError:
-            sha = None
-        if expect_sha is not None and expect_sha != (sha or ""):
-            raise ConflictError(
-                f"konflik pada {workflow_id}: dasar {expect_sha[:7]} "
-                f"≠ remote {(sha or 'none')[:7]}")
         text = serialize_workflow(workflow_id, flow_data, meta)
-        res = self.client.write_file(
-            path, text, message or f"chore: update workflow {workflow_id}",
-            branch, sha)
+        pesan = message or f"chore: update workflow {workflow_id}"
+        percobaan = 0
+        while True:
+            sha: Optional[str] = None
+            try:
+                _, sha = self.client.read_file(path, branch)
+            except NotFoundError:
+                sha = None
+            if expect_sha is not None and expect_sha != (sha or ""):
+                raise ConflictError(
+                    f"konflik pada {workflow_id}: dasar {expect_sha[:7]} "
+                    f"≠ remote {(sha or 'none')[:7]}")
+            try:
+                res = self.client.write_file(path, text, pesan, branch, sha)
+                break
+            except GitError as exc:
+                if expect_sha is not None or percobaan >= 5 or not _write_retryable(exc):
+                    raise
+                time.sleep(0.25 * (2 ** percobaan))
+                percobaan += 1
         commit_sha = ""
         if isinstance(res, dict):
             commit_sha = (res.get("commit") or {}).get("sha") or res.get("sha") or ""

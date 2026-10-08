@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Katalir — Source Control (Git)</title>
+<style>
+  :root{
+    --bg:#0f1115; --panel:#171a21; --panel2:#1e222b; --line:#2b303b;
+    --fg:#e8ecf3; --muted:#98a2b3; --accent:#5b8cff; --ok:#22c55e;
+    --warn:#f59e0b; --bad:#ef4444;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--fg);
+       font:14px/1.5 ui-sans-serif,system-ui,"Segoe UI",Roboto,sans-serif}
+  header{display:flex;align-items:center;gap:14px;padding:14px 22px;
+         background:var(--panel);border-bottom:1px solid var(--line)}
+  header h1{font-size:16px;margin:0;font-weight:650;letter-spacing:.2px}
+  .badge{font-size:11px;padding:3px 9px;border-radius:999px;
+         background:rgba(91,140,255,.15);color:var(--accent);
+         border:1px solid rgba(91,140,255,.35)}
+  .spacer{flex:1}
+  main{padding:18px 22px;display:grid;grid-template-columns:1fr 1fr;gap:16px}
+  @media(max-width:1000px){main{grid-template-columns:1fr}}
+  section{background:var(--panel);border:1px solid var(--line);border-radius:12px;
+          padding:14px 16px}
+  section h2{font-size:13px;margin:0 0 10px;text-transform:uppercase;
+             letter-spacing:.7px;color:var(--muted);font-weight:650}
+  label{display:block;font-size:11.5px;color:var(--muted);margin:8px 0 3px;
+        text-transform:uppercase;letter-spacing:.5px}
+  input,textarea,select{width:100%;font:inherit;font-size:13px;padding:7px 9px;
+                 border-radius:8px;border:1px solid var(--line);
+                 background:var(--panel2);color:var(--fg)}
+  textarea{min-height:80px;font-family:ui-monospace,Consolas,monospace;font-size:12px}
+  button{font:inherit;font-size:12.5px;padding:7px 12px;border-radius:8px;
+         border:1px solid var(--line);background:var(--panel2);color:var(--fg);
+         cursor:pointer;margin:10px 6px 0 0}
+  button:hover{border-color:var(--accent)}
+  button.primary{background:var(--accent);border-color:var(--accent);color:#fff}
+  button.danger{border-color:rgba(239,68,68,.45);color:var(--bad)}
+  .row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+  .chip{display:inline-block;font-size:11px;padding:3px 9px;border-radius:999px;
+        margin:2px 4px 2px 0;border:1px solid var(--line);background:var(--panel2)}
+  .chip.on{border-color:rgba(34,197,94,.45);color:var(--ok)}
+  .chip.off{border-color:rgba(239,68,68,.35);color:var(--bad)}
+  table{width:100%;border-collapse:collapse;font-size:12.5px}
+  th,td{text-align:left;padding:6px 8px;border-bottom:1px solid var(--line)}
+  th{color:var(--muted);font-weight:600;font-size:11px;text-transform:uppercase;
+     letter-spacing:.5px}
+  pre{margin:8px 0 0;background:#0b0d11;border:1px solid var(--line);
+      border-radius:8px;padding:10px;font-size:11.5px;max-height:320px;
+      overflow:auto;white-space:pre-wrap;word-break:break-word}
+  code{font-family:ui-monospace,Consolas,monospace;font-size:12px}
+  .muted{color:var(--muted);font-size:12.5px}
+  .toast{position:fixed;right:18px;bottom:18px;background:var(--panel2);
+         border:1px solid var(--line);border-left:3px solid var(--accent);
+         padding:10px 14px;border-radius:10px;font-size:13px;max-width:460px;
+         display:none}
+</style>
+</head>
+<body>
+<header>
+  <h1>Katalir · Source Control (Git)</h1>
+  <span class="badge" id="providers">provider: —</span>
+  <span class="spacer"></span>
+  <span class="muted" id="ts">—</span>
+</header>
+
+<main>
+  <section>
+    <h2>Hubungkan repo</h2>
+    <label for="provider">Provider</label>
+    <select id="provider">
+      <option value="github">GitHub</option>
+      <option value="gitlab">GitLab</option>
+      <option value="bitbucket">Bitbucket</option>
+    </select>
+    <label for="repo">Repo <code>owner/nama</code></label>
+    <input id="repo" placeholder="vraafi/katalir-scm-verify">
+    <label for="token">Token (disimpan terenkripsi, tidak pernah dikembalikan)</label>
+    <input id="token" type="password" placeholder="ghp_… / glpat-…">
+    <div class="row">
+      <button id="btn-connect" class="primary" onclick="connect()">Hubungkan</button>
+      <button id="btn-loadconn" onclick="loadConn()">Muat koneksi</button>
+    </div>
+
+    <h2 style="margin-top:16px">Koneksi tersimpan</h2>
+    <table id="tbl">
+      <thead><tr><th>Provider</th><th>Repo</th><th>Token</th><th></th></tr></thead>
+      <tbody><tr><td colspan="4" class="muted">memuat…</td></tr></tbody>
+    </table>
+    <pre id="connraw">—</pre>
+  </section>
+
+  <section>
+    <h2>Operasi workflow</h2>
+    <label for="wf">Workflow ID</label>
+    <input id="wf" value="demo-wf">
+    <label for="branch">Branch</label>
+    <input id="branch" value="main">
+    <label for="flow">flow_data (JSON)</label>
+    <textarea id="flow">{"nodes":[{"id":"n1","type":"trigger"}],"edges":[]}</textarea>
+    <label for="msg">Pesan commit</label>
+    <input id="msg" value="chore: update dari UI">
+    <div class="row">
+      <button id="btn-commit" class="primary" onclick="commit()">Commit</button>
+      <button id="btn-pull" onclick="pull()">Pull</button>
+      <button id="btn-rollback" onclick="rollback()">Rollback</button>
+    </div>
+
+    <label for="tosha" style="margin-top:12px">to_sha (untuk rollback)</label>
+    <input id="tosha" placeholder="sha commit tujuan">
+    <label for="newname">Branch baru (dari base di atas)</label>
+    <input id="newname" placeholder="feature/xyz">
+    <div class="row">
+      <button id="btn-branch" onclick="mkBranch()">Buat branch</button>
+      <button id="btn-pr" onclick="openPr()">Buka PR</button>
+    </div>
+    <pre id="out">—</pre>
+  </section>
+
+  <section style="grid-column:1/-1">
+    <h2>Webhook push → auto-sync</h2>
+    <label for="hook">Payload push (JSON)</label>
+    <textarea id="hook">{"ref":"refs/heads/main","commits":[{"added":["workflows/wf-1.json"],"modified":[],"removed":["workflows/wf-2.json"]}]}</textarea>
+    <div class="row">
+      <button id="btn-webhook" class="primary" onclick="webhook()">Proses webhook</button>
+    </div>
+    <pre id="hookout">—</pre>
+  </section>
+</main>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const $ = (id) => document.getElementById(id);
+const q = new URLSearchParams(location.search);
+if (q.get('token')) { try { localStorage.setItem('katalir_token', q.get('token')); } catch(e){} }
+function token(){ try { return localStorage.getItem('katalir_token') || ''; } catch(e) { return ''; } }
+function toast(m){ const t=$('toast'); t.textContent=m; t.style.display='block';
+  clearTimeout(t._h); t._h=setTimeout(()=>t.style.display='none', 4200); }
+async function api(path, opts){
+  const h = {'Accept':'application/json'};
+  const tk = token(); if (tk) h['Authorization'] = 'Bearer ' + tk;
+  if (opts && opts.body) h['Content-Type'] = 'application/json';
+  const r = await fetch(path, Object.assign({}, opts, {headers:h}));
+  const t = await r.text();
+  let j; try { j = JSON.parse(t); } catch(e){ j = {raw:t}; }
+  return {status:r.status, body:j};
+}
+function stamp(){ $('ts').textContent = new Date().toLocaleTimeString('id-ID'); }
+function prov(){ return $('provider').value; }
+
+async function loadProviders(){
+  const r = await api('/source-control/providers');
+  $('providers').textContent = 'provider: ' + (r.body.providers||[]).join(', ');
+}
+
+async function connect(){
+  const r = await api('/source-control/connect', {method:'POST',
+    body:JSON.stringify({provider:prov(), repo:$('repo').value, token:$('token').value})});
+  $('token').value = '';
+  $('out').textContent = JSON.stringify(r.body, null, 1);
+  toast(r.status===200 ? 'Terhubung ('+(r.body.branches||[]).length+' cabang)' : 'Gagal: '+r.status);
+  loadConn(); stamp();
+}
+
+async function loadConn(){
+  const r = await api('/source-control/connections');
+  const c = r.body.connections || [];
+  $('tbl').querySelector('tbody').innerHTML = c.length ? c.map(x =>
+    `<tr><td>${x.provider}</td><td><code>${x.repo}</code></td><td>${x.token}</td>
+     <td><button class="danger" onclick="disc('${x.provider}')">Putuskan</button></td></tr>`
+  ).join('') : '<tr><td colspan="4" class="muted">belum ada koneksi</td></tr>';
+  $('connraw').textContent = JSON.stringify(r.body, null, 1);
+  stamp();
+}
+
+async function disc(p){
+  await api('/source-control/connections/' + p, {method:'DELETE'});
+  toast('Koneksi ' + p + ' dihapus'); loadConn();
+}
+
+async function commit(){
+  let flow; try { flow = JSON.parse($('flow').value); }
+  catch(e){ toast('flow_data bukan JSON valid'); return; }
+  const r = await api('/source-control/commit', {method:'POST',
+    body:JSON.stringify({provider:prov(), workflow_id:$('wf').value, flow_data:flow,
+      branch:$('branch').value, message:$('msg').value})});
+  $('out').textContent = JSON.stringify(r.body, null, 1);
+  toast(r.status===200 ? 'Commit OK '+((r.body.commit||{}).sha||'').slice(0,7) : 'Gagal: '+r.status);
+  stamp();
+}
+
+async function pull(){
+  const u = '/source-control/pull?provider='+prov()+'&workflow_id='+
+    encodeURIComponent($('wf').value)+'&ref='+encodeURIComponent($('branch').value);
+  const r = await api(u);
+  $('out').textContent = JSON.stringify(r.body, null, 1);
+  toast(r.status===200 ? 'Pull OK' : 'Gagal: '+r.status); stamp();
+}
+
+async function rollback(){
+  const r = await api('/source-control/rollback', {method:'POST',
+    body:JSON.stringify({provider:prov(), workflow_id:$('wf').value,
+      to_sha:$('tosha').value, branch:$('branch').value})});
+  $('out').textContent = JSON.stringify(r.body, null, 1);
+  toast(r.status===200 ? 'Rollback OK' : 'Gagal: '+r.status); stamp();
+}
+
+async function mkBranch(){
+  const r = await api('/source-control/branches', {method:'POST',
+    body:JSON.stringify({provider:prov(), name:$('newname').value, from_ref:$('branch').value})});
+  $('out').textContent = JSON.stringify(r.body, null, 1);
+  toast(r.status===200 ? 'Branch dibuat' : 'Gagal: '+r.status); stamp();
+}
+
+async function openPr(){
+  const r = await api('/source-control/pr', {method:'POST',
+    body:JSON.stringify({provider:prov(), head:$('newname').value, base:$('branch').value,
+      title:'PR dari UI: '+$('wf').value, body:'Dibuat via Katalir UI'})});
+  $('out').textContent = JSON.stringify(r.body, null, 1);
+  toast(r.status===200 ? 'PR #'+((r.body.pull_request||{}).number) : 'Gagal: '+r.status); stamp();
+}
+
+async function webhook(){
+  let p; try { p = JSON.parse($('hook').value); }
+  catch(e){ toast('payload bukan JSON valid'); return; }
+  const r = await api('/source-control/webhook', {method:'POST',
+    body:JSON.stringify({provider:prov(), payload:p})});
+  $('hookout').textContent = JSON.stringify(r.body, null, 1);
+  toast('Sync: ' + ((r.body.sync||{}).count) + ' workflow'); stamp();
+}
+
+loadProviders(); loadConn();
+</script>
+</body>
+</html>
