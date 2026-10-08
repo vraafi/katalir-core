@@ -794,3 +794,62 @@ Fitur #8 (MCP Server Built-in).
 
 ### Next
 Fitur #10 (Workflow Templates).
+
+---
+
+## Fitur #10: Workflow Templates
+
+### Research
+| Paket / Pendekatan | Verdict | Alasan |
+|---|---|---|
+| registry JSON eksternal (n8n-style) | ❌ | Butuh file/DB tambahan; tak perlu untuk 10 template. |
+| semua template di DB | ❌ | Bawaan hilang bila Supabase down. |
+| **konstanta Python + tabel DB** | ✅ **dipakai** | Bawaan selalu ada; kustom owner-scoped + RLS. |
+| `cookiecutter`/`jinja` | ❌ | Overkill; template = flow_data JSON. |
+
+**Pilihan:** bawaan = konstanta Python; kustom = tabel `workflow_templates`.
+**Alasan:** nol dep baru, tahan-Supabase-down, instantiate memakai
+`database.create_workflow` (sumber kebenaran sama dengan POST /workflows).
+
+### Implementasi
+- **Baru:** `workflow_templates.py`, `migrations/2026-10-08-workflow-templates.sql`,
+  `tests/test_workflow_templates.py`.
+- **Diubah:** `api_server.py` (import + 6 endpoint + 2 model request).
+- **DDL:** tabel `workflow_templates` + 3 index + RLS + 4 policy + trigger
+  `updated_at`. **Diterapkan LIVE** via pooler (15 statement + fungsi/trigger OK).
+- **API:** GET /templates, GET /templates/info, GET /templates/{id},
+  POST /templates, POST /templates/{id}/use, DELETE /templates/{id}.
+- **Template bawaan:** 10 (email→sheets, RSS→slack, telegram digest,
+  webhook→http, tanya-jawab-ai, laporan bulanan, form→email, agenda→calendar,
+  monitoring→telegram, whatsapp broadcast).
+
+### Hard Test
+`tests/test_workflow_templates.py` → **15 passed in 3.00s** (unit + endpoint).
+
+| # | Test | Status | Bukti |
+|---|------|--------|-------|
+| 1 | bawaan sah | PASS | 10 template lolos validasi |
+| 2 | filter kategori | PASS | kategori asing = 0 |
+| 3 | pencarian | PASS | case-insensitive |
+| 4 | detail/unknown | PASS | dict / None |
+| 5 | instantiate | PASS | flow_data identik, muncul di list |
+| 6 | CRUD kustom | PASS | create→list→delete |
+| 7 | isolasi user | PASS | B tak lihat/hapus template A |
+| 8 | validasi flow | PASS | 6 bentuk ditolak |
+| 9 | bawaan tak bisa dihapus | PASS | False |
+| 10 | kategori invalid | PASS | TemplateError |
+| 11 | GET list+info | PASS | count>=10 |
+| 12 | POST use | PASS | 201; unknown→404 |
+| 13 | POST dari workflow_id | PASS | 201; 404; flow rusak→400 |
+| 14 | 404 | PASS | tpl-nope |
+| 15 | DELETE bawaan/kustom | PASS | 400 / 200→404 |
+
+**LIVE:** `is_configured=True`; create/list/get/delete/isolasi OK; instantiate
+membuat workflow nyata (`flow_data identik=True`, muncul di `list_workflows`).
+
+### Blocker
+Tidak ada. (Temuan: `instantiate` ke user_id acak ditolak FK — benar, user
+harus nyata; endpoint memakai id dari JWT.)
+
+### Next
+Fitur #11 (Testing Framework).

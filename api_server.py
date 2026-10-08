@@ -61,6 +61,7 @@ from tools import CredentialMissingError
 from google import genai
 from google.genai import types
 import mcp_server
+import workflow_templates  # Workflow Templates — Fitur #10, 8 Okt 2026
 
 # Instance MCP proses-wide (Fitur #8). Dibuat di sini supaya lifespan, mount,
 # dan endpoint bantu memakai SERVER YANG SAMA — `session_manager` hanya boleh
@@ -512,6 +513,27 @@ class WorkflowUpdateRequest(BaseModel):
 class ExecuteRequest(BaseModel):
     # Body opcional; si va vacio, se usa el flow_data guardado del workflow.
     flow_data: dict | None = None
+
+
+class TemplateCreateRequest(BaseModel):
+    """POST /templates — simpan template kustom.
+
+    Bisa dari `flow_data` langsung ATAU dari `workflow_id` (workflow yang sudah
+    ada milik user diambil flow_data-nya). `workflow_id` menang bila keduanya
+    diisi — user tidak perlu menyalin JSON manual.
+    """
+    name: str = ""
+    description: str = ""
+    category: str = "ops"
+    tags: list[str] = Field(default_factory=list)
+    flow_data: dict | None = None
+    workflow_id: str | None = None
+
+
+class TemplateUseRequest(BaseModel):
+    """POST /templates/{id}/use — nama/deskripsi opsional untuk workflow baru."""
+    name: str | None = None
+    description: str | None = None
 
 
 # ---------------------------------------------------------------------------
@@ -3532,6 +3554,101 @@ def get_workflows(authorization: str | None = Header(None)):
     except Exception as exc:  # noqa: BLE001
         raise HTTPException(500, f"Gagal memuat workflows: {exc}")
     return {"status": "success", "workflows": rows}
+
+
+# ---------------------------------------------------------------------------
+# ENDPOINT: /templates — Workflow Templates (Fitur #10)
+#   GET  /templates                 -> bawaan + kustom milik user
+#   GET  /templates/info            -> metadata (jumlah, kategori)
+#   GET  /templates/{id}            -> detail satu template
+#   POST /templates                 -> simpan template kustom
+#   POST /templates/{id}/use        -> buat workflow NYATA dari template
+#   DELETE /templates/{id}          -> hapus template kustom
+#
+# Route "/templates/info" didaftarkan SEBELUM "/templates/{id}" supaya tidak
+# tertangkap sebagai template_id="info".
+# ---------------------------------------------------------------------------
+@app.get("/templates/info")
+def templates_info(authorization: str | None = Header(None)):
+    security.get_current_user(authorization)
+    return {"status": "success", **workflow_templates.describe()}
+
+
+@app.get("/templates")
+def list_templates_endpoint(category: str | None = None, q: str | None = None,
+                            authorization: str | None = Header(None)):
+    """Daftar template: bawaan (kode) + kustom milik user JWT."""
+    user = security.get_current_user(authorization)
+    try:
+        items = workflow_templates.list_templates(
+            user_id=user["id"], category=category, query=q)
+    except Exception as exc:  # noqa: BLE001
+        raise HTTPException(500, f"Gagal memuat template: {exc}")
+    return {"status": "success", "count": len(items), "templates": items}
+
+
+@app.get("/templates/{template_id}")
+def get_template_endpoint(template_id: str,
+                          authorization: str | None = Header(None)):
+    user = security.get_current_user(authorization)
+    tpl = workflow_templates.get_template(template_id, user["id"])
+    if not tpl:
+        raise HTTPException(404, "Template tidak ditemukan.")
+    return {"status": "success", "template": tpl}
+
+
+@app.post("/templates", status_code=201)
+def create_template_endpoint(req: TemplateCreateRequest,
+                             authorization: str | None = Header(None)):
+    """Simpan template kustom dari `flow_data` atau dari `workflow_id` milik user."""
+    user = security.get_current_user(authorization)
+    flow = req.flow_data
+    if req.workflow_id:
+        wf = db.get_workflow(req.workflow_id, user["id"])
+        if not wf:
+            if db.get_workflow_owner(req.workflow_id):
+                raise HTTPException(403, "Workflow ini bukan milik Anda.")
+            raise HTTPException(404, "Workflow tidak ditemukan.")
+        flow = wf.get("flow_data") or {}
+    try:
+        row = workflow_templates.create_custom_template(
+            user["id"], name=req.name, description=req.description,
+            category=req.category, flow_data=flow, tags=req.tags)
+    except workflow_templates.TemplateError as exc:
+        raise HTTPException(400, str(exc))
+    except Exception as exc:  # noqa: BLE001
+        raise HTTPException(500, f"Gagal menyimpan template: {exc}")
+    return {"status": "success", "template": row}
+
+
+@app.post("/templates/{template_id}/use", status_code=201)
+def use_template_endpoint(template_id: str, req: TemplateUseRequest,
+                          authorization: str | None = Header(None)):
+    """Buat workflow BARU milik user dari template (bawaan maupun kustom)."""
+    user = security.get_current_user(authorization)
+    try:
+        hasil = workflow_templates.instantiate(
+            template_id, user["id"], name=req.name, description=req.description)
+    except workflow_templates.TemplateError as exc:
+        raise HTTPException(404, str(exc))
+    except Exception as exc:  # noqa: BLE001
+        raise HTTPException(500, f"Gagal membuat workflow dari template: {exc}")
+    return {"status": "success", **hasil}
+
+
+@app.delete("/templates/{template_id}")
+def delete_template_endpoint(template_id: str,
+                             authorization: str | None = Header(None)):
+    user = security.get_current_user(authorization)
+    if str(template_id).startswith(workflow_templates.BUILTIN_PREFIX):
+        raise HTTPException(400, "Template bawaan tidak bisa dihapus.")
+    try:
+        ok = workflow_templates.delete_custom_template(template_id, user["id"])
+    except Exception as exc:  # noqa: BLE001
+        raise HTTPException(500, f"Gagal menghapus template: {exc}")
+    if not ok:
+        raise HTTPException(404, "Template tidak ditemukan.")
+    return {"status": "success", "deleted": True, "id": template_id}
 
 
 class MCPWorkflowCall(BaseModel):
