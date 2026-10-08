@@ -4578,6 +4578,121 @@ def hitl_expire(authorization: str | None = Header(None)):
                           "status": r.get("status")} for r in changed]}
 
 
+# ---------------------------------------------------------------------------
+# ENDPOINT EVALUATION (fitur #4) — dataset uji + metrik + LLM-as-judge
+# ---------------------------------------------------------------------------
+class EvalRunRequest(BaseModel):
+    dataset: Any = Field(default_factory=list)   # list[dict] | str (JSON/CSV)
+    dataset_format: str = ""                     # "" | "csv" | "json"
+    workflow_id: str = ""
+    name: str = "eval"
+    compare_mode: str = "fuzzy"                  # exact|contains|fuzzy|numeric|judge
+    threshold: float = 0.8
+    baseline_accuracy: Optional[float] = None
+    max_cases: int = 50
+    dataset_name: str = ""
+
+
+def _eval_runner(workflow_id: str, owner: str, timeout_s: float = 120.0):
+    """Runner produksi: jalankan workflow untuk tiap kasus, ambil teks output."""
+    import asyncio
+
+    def runner(case: dict) -> dict:
+        flow = _load_workflow_flow(workflow_id, owner)
+        if not flow:
+            raise RuntimeError(f"workflow {workflow_id} tidak ditemukan")
+        payload = {"input": case.get("input", ""), "text": case.get("input", "")}
+        t0 = time.perf_counter()
+        res = asyncio.run(engine.execute_workflow_async(
+            workflow_id, flow, payload, owner_email=owner))
+        latency = (time.perf_counter() - t0) * 1000
+        text = _last_output_text(res)
+        return {"output": text, "latency_ms": latency,
+                "error": res.get("error") or ""}
+    return runner
+
+
+def _last_output_text(res: dict) -> str:
+    for step in reversed(res.get("steps") or []):
+        out = step.get("output") or {}
+        for k in ("reply", "output", "result", "text", "message", "content"):
+            v = out.get(k)
+            if isinstance(v, str) and v.strip():
+                return v
+        if isinstance(out.get("result"), dict):
+            for k in ("reply", "output", "text"):
+                v = out["result"].get(k)
+                if isinstance(v, str) and v.strip():
+                    return v
+    return res.get("error") or ""
+
+
+def _load_workflow_flow(workflow_id: str, owner: str) -> Optional[dict]:
+    try:
+        row = db.get_or_create_user(owner)
+        uid = str((row or {}).get("id") or "")
+        wf = db.get_workflow(workflow_id, uid) if uid else None
+    except Exception:  # noqa: BLE001
+        wf = None
+    if not wf:
+        return None
+    return wf.get("flow_data") or wf.get("data") or {}
+
+
+@app.post("/evaluations/run")
+def evaluations_run(req: EvalRunRequest,
+                    authorization: str | None = Header(None)):
+    """Jalankan dataset terhadap sebuah workflow, hitung metrik, simpan run."""
+    user = security.get_current_user(authorization)
+    import evaluation
+
+    try:
+        cases = evaluation.load_dataset(req.dataset, req.dataset_format)
+    except ValueError as exc:
+        raise HTTPException(422, str(exc))
+    if not cases:
+        raise HTTPException(422, "Dataset kosong atau tidak bisa dibaca.")
+    cases = cases[:max(1, min(int(req.max_cases or 50), evaluation.MAX_CASES))]
+
+    runner = _eval_runner(req.workflow_id, user["email"])
+    ev = evaluation.Evaluator(name=req.name, threshold=req.threshold)
+    out = ev.run(cases, runner, compare_mode=req.compare_mode,
+                 baseline_accuracy=req.baseline_accuracy)
+    row = evaluation.save_run(user["email"], out["summary"], out["results"],
+                              dataset_name=req.dataset_name)
+    return {"status": "success", "run_id": row["run_id"],
+            "summary": out["summary"], "results": out["results"]}
+
+
+@app.get("/evaluations/runs")
+def evaluations_list(limit: int = 20, authorization: str | None = Header(None)):
+    user = security.get_current_user(authorization)
+    import evaluation
+    rows = evaluation.list_runs(user["email"], limit=max(1, min(limit, 100)))
+    return {"status": "success", "runs": [
+        {"run_id": r.get("run_id"), "name": r.get("name"),
+         "dataset_name": r.get("dataset_name"), "accuracy": r.get("accuracy"),
+         "passed": r.get("passed"), "total": r.get("total"),
+         "latency_mean_ms": r.get("latency_mean_ms"),
+         "cost_total_usd": r.get("cost_total_usd"),
+         "created_at": r.get("created_at")} for r in rows]}
+
+
+@app.get("/evaluations/runs/{run_id}")
+def evaluations_detail(run_id: str, authorization: str | None = Header(None)):
+    user = security.get_current_user(authorization)
+    import evaluation
+    row = evaluation.runs_backend().get(run_id)
+    if not row:
+        raise HTTPException(404, "Run tidak ditemukan.")
+    if str(row.get("owner") or "") != str(user["email"]):
+        raise HTTPException(403, "Bukan run Anda.")
+    return {"status": "success", "run": {
+        "run_id": row.get("run_id"), "name": row.get("name"),
+        "summary": row.get("summary"), "results": row.get("results"),
+        "created_at": row.get("created_at")}}
+
+
 @app.get("/health")
 def health():
     return {

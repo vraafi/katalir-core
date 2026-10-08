@@ -18,6 +18,8 @@ import {
   Search,
   Plug,
   Boxes,
+  FlaskConical,
+  BarChart3,
 } from "lucide-react";
 import { useTheme } from "next-themes";
 import { useAuth } from "@/context/auth";
@@ -78,6 +80,8 @@ export function CommandPalette({ onNewChat, onNewWorkflow }: PaletteProps) {
       // tetap menjadi jalan ke halaman yang salah untuk "connect apa saja".
       { id: "integrations", icon: Plug, label: t("palette.integrations"), keywords: ["integration", "connect", "oauth", "api", "slack", "sheets"], run: () => go("/integrations") },
       { id: "my-integrations", icon: Boxes, label: t("palette.myIntegrations"), keywords: ["installed", "instance", "installed mcp"], run: () => go("/my-integrations") },
+      { id: "evaluations", icon: FlaskConical, label: "Evaluasi", keywords: ["eval", "evaluation", "test", "dataset", "akurasi", "accuracy"], run: () => go("/evaluations") },
+      { id: "insights", icon: BarChart3, label: "Insight", keywords: ["insight", "insights", "analytics", "statistik", "roi", "dashboard"], run: () => go("/insights") },
       { id: "billing", icon: CreditCard, label: t("userMenu.billing"), run: () => go("/billing") },
       { id: "help", icon: HelpCircle, label: t("userMenu.help"), run: () => go("/help") },
       {
