@@ -372,6 +372,41 @@ katalir:sso:sess:idx:carol@globex.test
 `saml · aktif`, `ldap · aktif`; panel discovery menampilkan issuer & JWKS IdP
 nyata; rahasia tampil `***`.
 
+**Jalur B — endpoint di PRODUKSI** (`https://web-production-dc90b.up.railway.app`,
+deploy `a9abf4e`):
+
+```
+GET /sso/providers   (tanpa token) -> HTTP 200  {"providers":["oidc","saml","ldap"],"active":[],"roles":["viewer","developer","admin","owner"],"orgs":[]}
+GET /sso/ui          (tanpa token) -> HTTP 200  <!DOCTYPE html> … <title>Katalir — Admin SSO</title>
+GET /sso/config      (token)       -> HTTP 200  {"config":{"orgs":{},"oidc":{},"ldap":{},"saml":{}},"admin":true}
+GET /sso/discovery   (token)       -> HTTP 200  {"discovery":{"oidc":null,"saml":null}}
+GET /sso/config      (tanpa token) -> HTTP 401  {"detail":"Token wajib (Authorization: Bearer <jwt>)."}
+```
+
+Di produksi `active: []` dan `discovery: {oidc:null, saml:null}` karena belum
+ada `KATALIR_SSO_CONFIG` di environment Railway — perilakunya **degradasi
+anggun** (endpoint tetap 200, bukan 500).
+
+**TODO di kode** (`_sso_config` docstring `api_server.py`): untuk mengaktifkan
+SSO di produksi tanpa perubahan kode, set salah satu env berikut di dashboard
+Railway (nilai sama seperti `sso_cfg` di `scripts/enterprise_sso_endpoints.py`):
+
+```
+KATALIR_SSO_CONFIG          = <JSON: orgs/oidc/ldap/saml>
+KATALIR_SSO_ADMINS          = admin@perusahaan.com      # allowlist pengubah konfigurasi
+KATALIR_SSO_OIDC_ISSUER     = https://accounts.google.com
+KATALIR_SSO_OIDC_CLIENT_ID  = <client id Google Workspace>
+KATALIR_SSO_OIDC_CLIENT_SECRET = <client secret>
+KATALIR_SSO_LDAP_URL        = ldap://dc.corp:389
+KATALIR_SSO_SAML_METADATA_URL = https://idp.corp/metadata
+```
+
+Penulisan env-var via API Railway tidak mungkin dengan kredensial yang ada
+(`RAILWAY_TOKEN` project-scoped → `{"errors":[{"message":"Not Authorized"}]}`),
+sebagaimana dicatat pada Fitur #6; langkah manual di dashboard itulah satu-
+satunya jalur tanpa kredensial baru.
+
+
 ### Commit
 
 | Hash | Isi | Push |

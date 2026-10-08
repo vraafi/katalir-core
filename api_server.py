@@ -5495,7 +5495,18 @@ def _sso_admin(user: dict) -> bool:
 
 
 def _sso_config() -> dict:
-    """Konfigurasi SSO efektif (env + tersimpan), tanpa kredensial mentah."""
+    """Konfigurasi SSO efektif (env + tersimpan), tanpa kredensial mentah.
+
+    TODO(produksi): agar SSO aktif di produksi TANPA perubahan kode, set salah
+    satu env berikut di dashboard Railway (kredensial Railway yang ada bersifat
+    project-scoped sehingga penulisan env-var via API tidak diizinkan):
+        KATALIR_SSO_CONFIG             JSON {orgs,oidc,ldap,saml}
+        KATALIR_SSO_ADMINS             allowlist email pengubah konfigurasi
+        KATALIR_SSO_OIDC_ISSUER / _CLIENT_ID / _CLIENT_SECRET / _REDIRECT_URI
+        KATALIR_SSO_LDAP_URL / _BASE_DN / _BIND_DN / _BIND_PASSWORD / _USER_FILTER
+        KATALIR_SSO_SAML_METADATA_URL / _CERT / _SSO_URL
+    Tanpa env itu, /sso/* tetap 200 dengan `active: []` (degradasi anggun).
+    """
     global _SSO_CONFIG
     if _SSO_CONFIG is not None:
         return _SSO_CONFIG
