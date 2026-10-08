@@ -47,9 +47,12 @@ CATEGORIES = (
     "integration",
 )
 
-#: Batas aman jumlah node/edge per template (mencegah payload raksasa).
-MAX_NODES = 100
-MAX_EDGES = 200
+#: Batas keras node/edge — SATU sumber kebenaran dengan API & MCP
+#: (lihat flow_limits.py). Dulu di sini 100/200 sementara API 500/1000,
+#: sehingga workflow 300 node bisa dibuat lewat API tapi gagal jadi template.
+from flow_limits import MAX_FLOW_EDGES as MAX_EDGES  # noqa: E402
+from flow_limits import MAX_FLOW_NODES as MAX_NODES  # noqa: E402
+from flow_limits import RECOMMENDED_TEMPLATE_NODES  # noqa: E402,F401
 
 
 # ---------------------------------------------------------------------------

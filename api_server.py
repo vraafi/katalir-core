@@ -539,8 +539,11 @@ class WorkflowUpdateRequest(BaseModel):
 # jalur tulis utama justru yang paling longgar. Fungsi ini menyatukan aturan
 # itu untuk kanvas pengguna dengan batas yang lebih longgar dari template.
 # ---------------------------------------------------------------------------
-MAX_WORKFLOW_NODES = 500
-MAX_WORKFLOW_EDGES = 1000
+# Sumber kebenaran tunggal (flow_limits.py) — dulu ada 3 nilai berbeda:
+# 500 (API) vs 200 (MCP) vs 100 (templates) untuk konsep yang sama.
+# ---------------------------------------------------------------------------
+from flow_limits import MAX_FLOW_EDGES as MAX_WORKFLOW_EDGES  # noqa: E402
+from flow_limits import MAX_FLOW_NODES as MAX_WORKFLOW_NODES  # noqa: E402
 
 
 def validate_workflow_flow(flow: Any) -> dict:
@@ -4483,7 +4486,37 @@ def version():
         "features": feats,
         "features_present": sum(1 for v in feats.values() if v),
         "features_total": len(feats),
+        # Batas graf kini satu sumber kebenaran (flow_limits.py). Diekspos
+        # supaya operator/klien bisa melihat batas AKTIF tanpa membaca kode.
+        "limits": _limits_info(),
     }
+
+
+def _limits_info() -> dict:
+    """Batas aktif — dipakai UI/observabilitas & verifikasi hard test."""
+    info: dict = {}
+    try:
+        import flow_limits
+        info.update(flow_limits.describe())
+    except Exception:  # noqa: BLE001
+        pass
+    try:
+        import code_sandbox
+        info["sandbox"] = code_sandbox.capabilities()
+    except Exception:  # noqa: BLE001
+        pass
+    try:
+        import rate_limit
+        info["rate_limits"] = {
+            "chat_per_window": rate_limit.chat_limiter.max_calls,
+            "chat_window_s": rate_limit.chat_limiter.window_sec,
+            "workflow_build_per_window": rate_limit.workflow_build_limiter.max_calls,
+            "tool_call_per_window": rate_limit.tool_call_limiter.max_calls,
+            "requests_per_hour": rate_limit.request_hourly_limiter.max_calls,
+        }
+    except Exception:  # noqa: BLE001
+        pass
+    return info
 
 
 # ---------------------------------------------------------------------------

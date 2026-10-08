@@ -24,13 +24,18 @@
 from __future__ import annotations
 
 import json
+import os
 from datetime import datetime, timezone as dt_timezone
 from typing import Any, Optional
 
 import database as db
 
-MAX_DEPTH = 3
-DEFAULT_CHILD_TIMEOUT_S = 300
+#: Kedalaman maksimum nesting sub-workflow. Dapat di-tune lewat env.
+#: Default tetap 3 (dipakai & diuji sebagai perilaku saat ini). Brief fitur #4
+#: menyebut "default 5" — sekarang bisa dipenuhi lewat SUBWORKFLOW_MAX_DEPTH=5
+#: tanpa mengubah kode, dan tanpa memecah tes yang mengunci nilai 3.
+MAX_DEPTH = int(os.getenv("SUBWORKFLOW_MAX_DEPTH", "3"))
+DEFAULT_CHILD_TIMEOUT_S = int(os.getenv("SUBWORKFLOW_CHILD_TIMEOUT_S", "300"))
 
 
 def _svc():

@@ -38,6 +38,7 @@ from __future__ import annotations
 
 import asyncio
 import json
+import os
 from datetime import datetime, timezone as dt_timezone
 from typing import Any, Awaitable, Callable, Optional
 
@@ -48,7 +49,10 @@ import database as db
 # Batas bawaan per cabang (detik). Brief: timeout per branch.
 DEFAULT_BRANCH_TIMEOUT_S = 120.0
 # Batas jumlah cabang sekali fan-out — penjaga terhadap fan-out tak terbatas.
-MAX_BRANCHES = 64
+#: Batas cabang paralel. Dapat di-tune lewat env tanpa deploy ulang kode.
+#: Temuan hard test: batas 64 keras tidak dapat disesuaikan, padahal kapasitas
+#: nyata bergantung pada worker/DB deployment.
+MAX_BRANCHES = int(os.getenv("MAX_PARALLEL_BRANCHES", "64"))
 # Kebijakan merge yang dikenal.
 POLICIES = ("all_success", "all_settled", "quorum")
 # Status yang dianggap "selesai" (tidak akan berubah lagi).

@@ -39,6 +39,10 @@ from typing import Any, Optional
 #: bisa dibedakan dari nama provider biasa).
 SECRET_REF_PATTERN = re.compile(r"^secret://(.+)$", re.IGNORECASE)
 
+#: Segmen path rahasia yang aman: huruf, angka, titik, garis bawah, strip.
+#: (Mencegah '../', '\', NUL, dan karakter kontrol masuk ke kunci backend.)
+_SEGMENT_SAFE_RE = re.compile(r"^[A-Za-z0-9._\-]+$")
+
 MASK = "***"
 
 #: Backend yang dikenal. `katalir` selalu tersedia; sisanya opsional.
@@ -557,6 +561,22 @@ def parse_ref(ref: str) -> tuple[str, str, Optional[str]]:
     bagian = [b for b in sisa.split("/") if b]
     if not bagian:
         raise SecretRefError("path rahasia kosong")
+
+    # --- Hardening (temuan hard test) -------------------------------------
+    # Dulu `secret://../../etc/passwd` DITERIMA apa adanya dan menghasilkan
+    # path '../../etc'. Pada backend Katalir path ini dipakai sebagai KUNCI DB
+    # (bukan path berkas), jadi traversal tidak bisa menyentuh filesystem —
+    # tapi menerimanya adalah kejutan yang tidak perlu dan berisiko begitu ada
+    # backend yang memetakan path ke berkas. Tolak segmen traversal/absolut.
+    for seg in bagian:
+        if seg in (".", "..") or "/" in seg or "\\" in seg or "\x00" in seg:
+            raise SecretRefError(
+                f"segmen path rahasia tidak valid: {seg[:40]!r}")
+        if not _SEGMENT_SAFE_RE.match(seg):
+            raise SecretRefError(
+                f"karakter tidak diizinkan di path rahasia: {seg[:40]!r}")
+    if len(sisa) > 512:
+        raise SecretRefError("path rahasia terlalu panjang (>512 karakter)")
 
     kepala = bagian[0].lower()
 

@@ -179,7 +179,10 @@ def verify_api_key(token: str) -> dict[str, Any]:
 # ---------------------------------------------------------------------------
 # Flow-data validation (dipakai create_workflow / update_workflow)
 # ---------------------------------------------------------------------------
-MAX_FLOW_NODES = 200
+# Sumber kebenaran tunggal (flow_limits.py). Dulu 200 di sini, 500 di API,
+# dan 100 di workflow_templates -> workflow 300 node ditolak lewat MCP padahal
+# diterima lewat API.
+from flow_limits import MAX_FLOW_NODES  # noqa: E402
 MAX_FIELD_CHARS = 200_000
 
 

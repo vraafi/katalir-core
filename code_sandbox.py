@@ -146,6 +146,32 @@ def validate_python(code: str) -> None:
                 "locals", "vars", "breakpoint", "input"}:
             raise SandboxError(f"nama tidak diizinkan: {node.id}")
 
+        # --- str.format attribute traversal --------------------------------
+        # `'{0.__class__.__base__.__subclasses__}'.format(1)` MELEWATI kedua
+        # penjaga (AST FORBIDDEN_ATTRS dan _safe_getattr) karena str.format
+        # melakukan pencarian atributnya sendiri. Terbukti bocor: __class__,
+        # __mro__, __subclasses__, dan alamat memori (ASLR).
+        # Semua eskalasi klasik butuh dunder di NAMA FIELD, jadi cukup tolak
+        # dunder di bagian field (sebelum `!`/`:`), tanpa menyentuh format spec
+        # yang sah seperti '{0:.2f}'.
+        if isinstance(node, _ast.Constant) and isinstance(node.value, str):
+            teks = node.value
+            if "{" in teks and "__" in teks:
+                import string as _string
+                try:
+                    for _lit, nama_field, _spec, _konv in (
+                            _string.Formatter().parse(teks)):
+                        if nama_field and "__" in nama_field:
+                            raise SandboxError(
+                                "akses atribut dunder lewat str.format tidak "
+                                f"diizinkan: {{{nama_field}}}")
+                except SandboxError:
+                    raise
+                except Exception:
+                    # Format tidak valid -> biarkan jalur sintaks normal
+                    # yang menanganinya.
+                    pass
+
     # RestrictedPython sebagai lapis AST KEDUA (independen dari di atas).
     # Ini yang secara langsung menutup kelas CVE-2026-76825.
     try:
@@ -193,7 +219,7 @@ def validate(code: str, language: str = "python") -> None:
 _PY_RUNNER = textwrap.dedent('''
     # Runner sandbox Katalir — hidup di PROSES TERPISAH.
     # Menerima JSON di stdin, menulis JSON di stdout.
-    import json, sys
+    import json, sys, os, threading, time
 
     # Allowlist builtins yang dikenal-amAN. Didefinisikan ULANG di sini karena
     # runner adalah program mandiri (tidak mengimpor modul Katalir).
@@ -224,6 +250,83 @@ _PY_RUNNER = textwrap.dedent('''
             raise AttributeError(f"akses atribut tidak diizinkan: {name}")
         return getattr(obj, name, *a)
 
+    def _rss_mb():
+        """Memori terpakai proses ini dalam MB, lintas-platform.
+
+        Windows: pakai PagefileUsage (commit charge), BUKAN WorkingSetSize.
+        Alasannya penting dan sudah dibuktikan: `bytes(512*1024*1024)`
+        meng-commit 512MB tapi WorkingSetSize tetap ~38MB karena halaman nol
+        di-commit malas (lazy). Dengan WorkingSetSize, memory bomb TIDAK
+        terdeteksi. PagefileUsage naik 12MB -> 525MB -> 2577MB pada kasus yang
+        sama, jadi itulah metrik yang benar.
+        Linux: /proc/self/statm (RLIMIT_AS sudah menangani batas virtual).
+        """
+        try:
+            if sys.platform.startswith("win"):
+                import ctypes
+                from ctypes import wintypes
+
+                class _PMC(ctypes.Structure):
+                    _fields_ = [
+                        ("cb", wintypes.DWORD),
+                        ("PageFaultCount", wintypes.DWORD),
+                        ("PeakWorkingSetSize", ctypes.c_size_t),
+                        ("WorkingSetSize", ctypes.c_size_t),
+                        ("QuotaPeakPagedPoolUsage", ctypes.c_size_t),
+                        ("QuotaPagedPoolUsage", ctypes.c_size_t),
+                        ("QuotaPeakNonPagedPoolUsage", ctypes.c_size_t),
+                        ("QuotaNonPagedPoolUsage", ctypes.c_size_t),
+                        ("PagefileUsage", ctypes.c_size_t),
+                        ("PeakPagefileUsage", ctypes.c_size_t),
+                    ]
+                k32 = ctypes.windll.kernel32
+                # WAJIB: tanpa argtypes/restype, HANDLE dipotong ke 32-bit dan
+                # K32GetProcessMemoryInfo mengembalikan 0 (gagal senyap).
+                k32.GetCurrentProcess.restype = wintypes.HANDLE
+                k32.GetCurrentProcess.argtypes = []
+                fn = k32.K32GetProcessMemoryInfo
+                fn.argtypes = [wintypes.HANDLE, ctypes.POINTER(_PMC),
+                               wintypes.DWORD]
+                fn.restype = wintypes.BOOL
+                pmc = _PMC()
+                pmc.cb = ctypes.sizeof(_PMC)
+                if not fn(k32.GetCurrentProcess(), ctypes.byref(pmc), pmc.cb):
+                    return None
+                return max(pmc.PagefileUsage, pmc.WorkingSetSize) / (1024.0 * 1024.0)
+            with open("/proc/self/statm", "r") as fh:
+                halaman = int(fh.read().split()[1])
+            return halaman * (os.sysconf("SC_PAGE_SIZE") / (1024.0 * 1024.0))
+        except Exception:
+            return None
+
+    def _start_memory_watchdog(batas_mb):
+        """Hentikan proses bila RSS melewati batas — SEMUA platform.
+
+        Kenapa perlu: `resource.setrlimit` hanya ada di Linux. Di Windows
+        batas memori sebelumnya TIDAK ditegakkan sama sekali (terbukti: alokasi
+        4 GB berhasil, ok=True, padahal cap 128 MB). Watchdog ini menutup celah
+        itu tanpa mengubah perilaku di Linux (yang sudah punya RLIMIT_AS).
+        """
+        def _loop():
+            # Beri ruang untuk alokasi wajar sebelum mulai menembak.
+            while True:
+                time.sleep(0.05)
+                rss = _rss_mb()
+                if rss is not None and rss > batas_mb:
+                    try:
+                        print(json.dumps({
+                            "ok": False,
+                            "os_limits": "watchdog",
+                            "error": (f"memory limit terlampaui: "
+                                      f"{rss:.0f}MB > {batas_mb}MB "
+                                      f"(dihentikan oleh watchdog)"),
+                        }), flush=True)
+                    except Exception:
+                        pass
+                    os._exit(137)          # SIGKILL-equivalent
+        t = threading.Thread(target=_loop, daemon=True)
+        t.start()
+
     def main():
         try:
             payload = json.loads(sys.stdin.read() or "{}")
@@ -247,6 +350,11 @@ _PY_RUNNER = textwrap.dedent('''
             os_limits = "on"
         except Exception:
             os_limits = "unavailable"
+
+        # ---- LAPIS 3b: watchdog memori lintas-platform --------------------
+        # Menegakkan batas memori di platform TANPA `resource` (mis. Windows),
+        # tempat RLIMIT_AS tidak tersedia sehingga cap 128MB dulu tidak berlaku.
+        _start_memory_watchdog(mem_mb)
 
         # ---- LAPIS 1 (ulang di sini): RestrictedPython -------------------
         try:
@@ -304,6 +412,90 @@ _PY_RUNNER = textwrap.dedent('''
 ''')
 
 
+def _win_memory_job(memory_mb: int):
+    """Windows: Job Object yang menegakkan batas memori TANPA kerja sama proses.
+
+    Kenapa perlu: `resource.setrlimit` tidak ada di Windows, dan watchdog
+    berbasis thread Python TIDAK BISA menangkap `bytes(4GB)` karena alokasi itu
+    satu panggilan C yang memegang GIL — thread watchdog tidak pernah dijadwalkan
+    (dibuktikan: 4 GB berhasil dalam 0,23 s). Job Object ditegakkan KERNEL:
+    alokasi yang melewati batas GAGAL (MemoryError), bukan membunuh proses.
+
+    Mengembalikan HANDLE job, atau None bila tidak tersedia/gagal.
+    """
+    try:
+        import ctypes
+        from ctypes import wintypes
+
+        class _IO_COUNTERS(ctypes.Structure):
+            _fields_ = [("ReadOperationCount", ctypes.c_ulonglong),
+                        ("WriteOperationCount", ctypes.c_ulonglong),
+                        ("OtherOperationCount", ctypes.c_ulonglong),
+                        ("ReadTransferCount", ctypes.c_ulonglong),
+                        ("WriteTransferCount", ctypes.c_ulonglong),
+                        ("OtherTransferCount", ctypes.c_ulonglong)]
+
+        class _BASIC(ctypes.Structure):
+            _fields_ = [("PerProcessUserTimeLimit", ctypes.c_longlong),
+                        ("PerJobUserTimeLimit", ctypes.c_longlong),
+                        ("LimitFlags", wintypes.DWORD),
+                        ("MinimumWorkingSetSize", ctypes.c_size_t),
+                        ("MaximumWorkingSetSize", ctypes.c_size_t),
+                        ("ActiveProcessLimit", wintypes.DWORD),
+                        ("Affinity", ctypes.c_size_t),
+                        ("PriorityClass", wintypes.DWORD),
+                        ("SchedulingClass", wintypes.DWORD)]
+
+        class _EXT(ctypes.Structure):
+            _fields_ = [("BasicLimitInformation", _BASIC),
+                        ("IoInfo", _IO_COUNTERS),
+                        ("ProcessMemoryLimit", ctypes.c_size_t),
+                        ("JobMemoryLimit", ctypes.c_size_t),
+                        ("PeakProcessMemoryUsed", ctypes.c_size_t),
+                        ("PeakJobMemoryUsed", ctypes.c_size_t)]
+
+        k32 = ctypes.windll.kernel32
+        k32.CreateJobObjectW.restype = wintypes.HANDLE
+        k32.CreateJobObjectW.argtypes = [ctypes.c_void_p, wintypes.LPCWSTR]
+        job = k32.CreateJobObjectW(None, None)
+        if not job:
+            return None
+
+        JOB_OBJECT_LIMIT_PROCESS_MEMORY = 0x00000100
+        JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE = 0x00002000
+        JOB_OBJECT_EXTENDED_LIMIT_INFORMATION = 9
+
+        info = _EXT()
+        info.BasicLimitInformation.LimitFlags = (
+            JOB_OBJECT_LIMIT_PROCESS_MEMORY | JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE)
+        info.ProcessMemoryLimit = int(memory_mb) * 1024 * 1024
+        k32.SetInformationJobObject.argtypes = [
+            wintypes.HANDLE, ctypes.c_int, ctypes.c_void_p, wintypes.DWORD]
+        k32.SetInformationJobObject.restype = wintypes.BOOL
+        if not k32.SetInformationJobObject(
+                job, JOB_OBJECT_EXTENDED_LIMIT_INFORMATION,
+                ctypes.byref(info), ctypes.sizeof(info)):
+            k32.CloseHandle(job)
+            return None
+        return job
+    except Exception:  # noqa: BLE001
+        return None
+
+
+def _win_assign_job(job, proc) -> bool:
+    """Masukkan proses anak ke Job Object. False bila gagal."""
+    try:
+        import ctypes
+        from ctypes import wintypes
+        k32 = ctypes.windll.kernel32
+        k32.AssignProcessToJobObject.argtypes = [wintypes.HANDLE, wintypes.HANDLE]
+        k32.AssignProcessToJobObject.restype = wintypes.BOOL
+        return bool(k32.AssignProcessToJobObject(
+            job, wintypes.HANDLE(int(proc._handle))))
+    except Exception:  # noqa: BLE001
+        return False
+
+
 def _python_bin() -> str:
     """Interpreter untuk subprocess sandbox.
 
@@ -352,14 +544,40 @@ def run_python(code: str, *, timeout_s: int = CODE_TIMEOUT_S,
     })
     t0 = time.monotonic()
     killed = False
+    # Windows: pasang Job Object SEBELUM kode user berjalan. Anak ditahan
+    # dulu (menunggu stdin) sehingga tidak ada balapan antara pembuatan proses
+    # dan pemasangan batas memori.
+    _job = _win_memory_job(memory_mb) if sys.platform == "win32" else None
     try:
-        p = subprocess.run(
-            [_python_bin(), "-c", _PY_RUNNER],
-            input=payload, capture_output=True, text=True,
-            timeout=timeout_s,
-            env=_python_env(),
-        )
-        stdout, stderr, rc = p.stdout, p.stderr, p.returncode
+        if _job:
+            proc = subprocess.Popen(
+                [_python_bin(), "-c", _PY_RUNNER],
+                stdin=subprocess.PIPE, stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE, text=True, env=_python_env(),
+            )
+            _win_assign_job(_job, proc)
+            try:
+                stdout, stderr = proc.communicate(payload, timeout=timeout_s)
+                rc = proc.returncode
+            except subprocess.TimeoutExpired:
+                killed = True
+                proc.kill()
+                stdout, stderr = proc.communicate()
+                rc = -9
+            finally:
+                try:
+                    import ctypes
+                    ctypes.windll.kernel32.CloseHandle(_job)
+                except Exception:  # noqa: BLE001
+                    pass
+        else:
+            p = subprocess.run(
+                [_python_bin(), "-c", _PY_RUNNER],
+                input=payload, capture_output=True, text=True,
+                timeout=timeout_s,
+                env=_python_env(),
+            )
+            stdout, stderr, rc = p.stdout, p.stderr, p.returncode
     except subprocess.TimeoutExpired as exc:
         killed = True
         out = exc.stdout or b""
@@ -394,7 +612,10 @@ def run_python(code: str, *, timeout_s: int = CODE_TIMEOUT_S,
             if printed:
                 hasil["stdout"] = _potong(printed)
             if data.get("error"):
-                hasil["error"] = data["error"]
+                # Dipotong juga: sebelumnya `error` LOLOS tanpa batas sehingga
+                # exception 100KB mengalir utuh ke respons API (stdout/stderr
+                # sudah dipotong, error tidak).
+                hasil["error"] = _potong(data["error"])
             return hasil
 
     if not hasil["error"]:
@@ -569,6 +790,15 @@ def capabilities() -> dict:
         os_limits = True
     except ImportError:
         os_limits = False
+    # Sejak perbaikan hard test: batas memori ditegakkan di SEMUA platform.
+    # Linux -> RLIMIT_AS; Windows -> Job Object (kernel). Sebelumnya di Windows
+    # cap 128MB tidak berlaku sama sekali (alokasi 4 GB berhasil).
+    if os_limits:
+        memory_mechanism = "RLIMIT_AS"
+    elif sys.platform == "win32" and _win_memory_job(CODE_MEMORY_MB):
+        memory_mechanism = "Windows Job Object (JOB_OBJECT_LIMIT_PROCESS_MEMORY)"
+    else:
+        memory_mechanism = "tidak ditegakkan"
     return {
         "languages": list(LANGUAGES),
         "python_available": True,
@@ -576,8 +806,10 @@ def capabilities() -> dict:
         "timeout_s": CODE_TIMEOUT_S,
         "memory_mb": CODE_MEMORY_MB,
         "os_resource_limits": os_limits,
+        "memory_enforced": memory_mechanism != "tidak ditegakkan",
+        "memory_mechanism": memory_mechanism,
         "network_default": "blocked (tanpa impor)",
         "filesystem_default": "blocked (tanpa open)",
-        "ast_guard": "RestrictedPython + allowlist",
+        "ast_guard": "RestrictedPython + allowlist + tolak dunder di str.format",
         "platform": sys.platform,
     }

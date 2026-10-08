@@ -97,6 +97,12 @@ def backoff_delay(attempt: int, *, base: float = BASE_DELAY_SECONDS,
     """
     attempt = max(1, int(attempt))
     raw = min(base * (2 ** (attempt - 1)), cap)
+    if raw >= cap:
+        # Di batas atas: jitter hanya ke BAWAH, supaya nilai akhir TIDAK
+        # melewati `cap`. Sebelumnya jitter diterapkan setelah cap sehingga
+        # delay nyata bisa mencapai cap*(1+jitter) = 37,5s padahal cap=30s.
+        # Jitter tetap ada (mencegah thundering herd) tapi tidak melanggar cap.
+        return max(0.0, cap - random.uniform(0.0, cap * jitter))
     delta = raw * jitter
     return max(0.0, raw + random.uniform(-delta, delta))
 

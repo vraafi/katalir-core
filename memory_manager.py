@@ -47,6 +47,14 @@ MEMORY_TYPES = ("episodic", "semantic", "procedural")
 # atau memory dilewati (chat tidak boleh menunggu lama).
 EMBED_TIMEOUT_S = float(os.getenv("MEMORY_EMBED_TIMEOUT_S", "8"))
 
+#: Batas panjang satu memori (karakter). Model embedding punya batas token
+#: sendiri; ini batas aplikasi supaya pelanggaran tertangkap lebih awal dengan
+#: pesan yang jelas, bukan galat API yang buram.
+MAX_CONTENT_CHARS = int(os.getenv("MEMORY_MAX_CONTENT_CHARS", "20000"))
+
+#: Batas atas top_k untuk recall (dipaksa di query).
+MAX_RECALL_TOP_K = int(os.getenv("MEMORY_MAX_RECALL_TOP_K", "50"))
+
 
 class MemoryUnavailable(RuntimeError):
     """Embedding provider / DB gagal — pemanggil /chat mengabaikan."""
@@ -176,6 +184,13 @@ class MemoryManager:
         content = (content or "").strip()
         if not content:
             raise ValueError("content kosong")
+        # Temuan hard test: TIDAK ADA batas panjang, sehingga konten raksasa
+        # lolos sampai ke API embedding dan gagal di sana dengan galat yang
+        # tidak informatif (bukan 4xx yang rapi). Batasi di sini.
+        if len(content) > MAX_CONTENT_CHARS:
+            raise ValueError(
+                f"content terlalu panjang ({len(content)} > "
+                f"{MAX_CONTENT_CHARS} karakter)")
         agent = str(agent_id or self.agent_id)
         try:
             embedding = generate_embedding(content, task_type="retrieval_document")
@@ -218,7 +233,7 @@ class MemoryManager:
             raise
         params = {
             "query_embedding": q_emb,
-            "match_count": max(1, min(int(top_k), 50)),
+            "match_count": max(1, min(int(top_k), MAX_RECALL_TOP_K)),
             "filter_user_id": self.user_id,
             "filter_agent_id": str(agent_id or self.agent_id),
             "filter_memory_type": memory_type,

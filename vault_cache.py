@@ -26,6 +26,7 @@ Nilai yang di-cache adalah kredensial yang SUDAH didekripsi. Batas yang dipilih:
 """
 from __future__ import annotations
 
+import json
 import os
 import threading
 import time
@@ -34,10 +35,17 @@ from typing import Any
 TTL_S = float(os.getenv("VAULT_CACHE_TTL", "300"))
 MAX_ENTRIES = int(os.getenv("VAULT_CACHE_MAX", "500"))
 
+#: Batas ukuran SATU nilai yang di-cache (byte JSON). Temuan hard test: tanpa
+#: batas ini, satu nilai 10 MB diterima apa adanya; dengan 500 entri itu berarti
+#: potensi ~5 GB memori proses hanya dari cache. Kredensial normal jauh di
+#: bawah batas ini (token/JSON kecil).
+MAX_VALUE_BYTES = int(os.getenv("VAULT_CACHE_MAX_VALUE_BYTES", str(256 * 1024)))
+
 _lock = threading.Lock()
 _store: dict[tuple[str, str], tuple[float, Any]] = {}
 _hits = 0
 _misses = 0
+_skipped_oversize = 0
 
 
 def _key(email: str, provider: str) -> tuple[str, str]:
@@ -61,6 +69,21 @@ def get(email: str, provider: str) -> tuple[bool, Any]:
 
 
 def put(email: str, provider: str, value: Any) -> None:
+    """Simpan ke cache. Nilai yang terlalu besar DILEWATI (bukan di-cache).
+
+    Melewati (bukan melempar) dipilih supaya jalur pemanggil tetap berfungsi:
+    cache adalah optimisasi, bukan sumber kebenaran. Kredensial besar tetap
+    dilayani dari sumber aslinya, hanya tanpa caching.
+    """
+    global _skipped_oversize
+    try:
+        ukuran = len(json.dumps(value, default=str).encode("utf-8"))
+    except Exception:  # noqa: BLE001
+        ukuran = 0
+    if ukuran > MAX_VALUE_BYTES:
+        with _lock:
+            _skipped_oversize += 1
+        return
     k = _key(email, provider)
     with _lock:
         if len(_store) >= MAX_ENTRIES and k not in _store:
@@ -93,14 +116,17 @@ def invalidate(email: str | None = None, provider: str | None = None) -> int:
 def stats() -> dict:
     with _lock:
         return {"entries": len(_store), "hits": _hits, "misses": _misses,
-                "ttl_s": TTL_S, "max_entries": MAX_ENTRIES}
+                "ttl_s": TTL_S, "max_entries": MAX_ENTRIES,
+                "max_value_bytes": MAX_VALUE_BYTES,
+                "skipped_oversize": _skipped_oversize}
 
 
 def reset_stats() -> None:
-    global _hits, _misses
+    global _hits, _misses, _skipped_oversize
     with _lock:
         _hits = 0
         _misses = 0
+        _skipped_oversize = 0
 
 
 def load_vault_credential_cached(user_email: str, vault_provider: str) -> dict | None:
