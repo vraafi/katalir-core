@@ -654,3 +654,366 @@ def resolve_in_args(args: dict, owner: str,
 
 def is_secret_ref(value: Any) -> bool:
     return isinstance(value, str) and value.strip().lower().startswith("secret://")
+
+
+# ===========================================================================
+# FITUR #1 (lanjutan) — Enterprise Secrets Manager, Okt 2026
+# ===========================================================================
+# RISET (Okt 2026):
+#   Peringkat tools secrets 2026 (briandetering, fairdevs, envtools, ciphers):
+#     HashiCorp Vault, AWS Secrets Manager, Doppler, Infisical = 4 besar.
+#   Infisical  -> REST `/api/v3/secrets/raw/{name}` + Bearer token; SDK resmi
+#                 python tersedia tapi REST lebih ringan (nol dependensi baru).
+#   Doppler    -> REST `https://api.doppler.com/v3/configs/config/secret`,
+#                 auth Basic base64(token:) ; SDK `doppler-sdk` ada.
+#   KEPUTUSAN: pakai REST via `urllib` (stdlib) -> TIDAK menambah dependensi,
+#   berjalan di Railway ephemeral, dan tetap bisa ditest dengan server tiruan.
+# ===========================================================================
+
+import base64 as _b64
+import json as _json
+import threading as _threading
+import time as _time
+import urllib.error as _urlerr
+import urllib.parse as _urlparse
+import urllib.request as _urlreq
+from concurrent.futures import ThreadPoolExecutor as _TPE
+
+#: Batas ukuran nilai rahasia (256 KiB) — mencegah penyalahgunaan vault
+#: sebagai penyimpanan objek besar (biaya + latensi + potensi DoS).
+MAX_SECRET_BYTES = 256 * 1024
+
+
+class SecretTooLarge(SecretsError):
+    """Nilai rahasia melebihi `MAX_SECRET_BYTES`."""
+
+
+def check_size(value: Any) -> int:
+    """Kembalikan ukuran byte nilai; raise SecretTooLarge bila > batas."""
+    raw = value if isinstance(value, bytes) else str(value or "").encode("utf-8")
+    n = len(raw)
+    if n > MAX_SECRET_BYTES:
+        raise SecretTooLarge(
+            f"rahasia terlalu besar: {n} byte > {MAX_SECRET_BYTES} byte")
+    return n
+
+
+# ---------------------------------------------------------------------------
+# Backend OPSIONAL tambahan — Infisical & Doppler (REST, stdlib)
+# ---------------------------------------------------------------------------
+
+class _HttpJsonProvider(SecretsProvider):
+    """Dasar untuk backend berbasis REST JSON. Tidak pernah mencetak token."""
+
+    timeout: float = 10.0
+
+    def _request(self, method: str, url: str, headers: dict,
+                 body: Optional[bytes] = None) -> Optional[dict]:
+        req = _urlreq.Request(url, data=body, method=method)
+        for k, v in headers.items():
+            req.add_header(k, v)
+        try:
+            with _urlreq.urlopen(req, timeout=self.timeout) as resp:
+                raw = resp.read()
+        except Exception:  # noqa: BLE001 — jaringan/HTTP apa pun -> None
+            return None
+        if not raw:
+            return {}
+        try:
+            return _json.loads(raw.decode("utf-8"))
+        except (ValueError, UnicodeDecodeError):
+            return None
+
+
+class InfisicalProvider(_HttpJsonProvider):
+    """Adaptor Infisical (REST v3). Konfigurasi via env:
+        KATALIR_INFISICAL_TOKEN       service token (TIDAK pernah dicetak)
+        KATALIR_INFISICAL_PROJECT_ID  workspace id
+        KATALIR_INFISICAL_ENV         default "prod"
+        KATALIR_INFISICAL_HOST        default https://app.infisical.com
+    """
+
+    name = "infisical"
+
+    def available(self) -> bool:
+        return bool(os.environ.get("KATALIR_INFISICAL_TOKEN")
+                    and os.environ.get("KATALIR_INFISICAL_PROJECT_ID"))
+
+    def _cfg(self) -> tuple[str, str, str, str]:
+        host = (os.environ.get("KATALIR_INFISICAL_HOST")
+                or "https://app.infisical.com").rstrip("/")
+        token = os.environ.get("KATALIR_INFISICAL_TOKEN") or ""
+        project = os.environ.get("KATALIR_INFISICAL_PROJECT_ID") or ""
+        env = os.environ.get("KATALIR_INFISICAL_ENV") or "prod"
+        if not token or not project:
+            raise BackendUnavailable("Infisical: token/project belum diisi")
+        return host, token, project, env
+
+    def _name(self, path: str, owner: str) -> str:
+        # Ruang nama per-owner supaya satu project tidak bocor antar-user.
+        return f"{owner}__{path}".replace("/", "__")
+
+    def get(self, path: str, owner: str) -> Optional[str]:
+        host, token, project, env = self._cfg()
+        name = self._name(path, owner)
+        qs = _urlparse.urlencode({
+            "workspaceId": project, "environment": env,
+            "secretPath": "/", "type": "shared"})
+        url = f"{host}/api/v3/secrets/raw/{_urlparse.quote(name)}?{qs}"
+        data = self._request("GET", url, {"Authorization": f"Bearer {token}"})
+        if not data:
+            return None
+        secret = (data.get("secret") or {}).get("secretValue")
+        return str(secret) if secret is not None else None
+
+    def set(self, path: str, value: str, owner: str) -> bool:
+        check_size(value)
+        host, token, project, env = self._cfg()
+        name = self._name(path, owner)
+        payload = _json.dumps({
+            "workspaceId": project, "environment": env, "secretPath": "/",
+            "secretValue": value, "type": "shared"}).encode()
+        # Coba update dulu; kalau 404 -> create.
+        url = f"{host}/api/v3/secrets/raw/{_urlparse.quote(name)}"
+        r = self._request("PATCH", url, {
+            "Authorization": f"Bearer {token}",
+            "Content-Type": "application/json"}, payload)
+        if r is None:
+            r = self._request("POST", url, {
+                "Authorization": f"Bearer {token}",
+                "Content-Type": "application/json"}, payload)
+        return r is not None
+
+
+class DopplerProvider(_HttpJsonProvider):
+    """Adaptor Doppler (REST v3). Konfigurasi via env:
+        KATALIR_DOPPLER_TOKEN    token (TIDAK pernah dicetak)
+        KATALIR_DOPPLER_PROJECT  project slug
+        KATALIR_DOPPLER_CONFIG   config slug, default "prd"
+    """
+
+    name = "doppler"
+
+    def available(self) -> bool:
+        return bool(os.environ.get("KATALIR_DOPPLER_TOKEN")
+                    and os.environ.get("KATALIR_DOPPLER_PROJECT"))
+
+    def _cfg(self) -> tuple[str, str, str, str]:
+        token = os.environ.get("KATALIR_DOPPLER_TOKEN") or ""
+        project = os.environ.get("KATALIR_DOPPLER_PROJECT") or ""
+        config = os.environ.get("KATALIR_DOPPLER_CONFIG") or "prd"
+        host = (os.environ.get("KATALIR_DOPPLER_HOST")
+                or "https://api.doppler.com").rstrip("/")
+        if not token or not project:
+            raise BackendUnavailable("Doppler: token/project belum diisi")
+        return host, token, project, config
+
+    def _auth(self) -> dict:
+        _, token, _, _ = self._cfg()
+        basic = _b64.b64encode(f"{token}:".encode()).decode()
+        return {"Authorization": f"Basic {basic}"}
+
+    def _name(self, path: str, owner: str) -> str:
+        return f"{owner}__{path}".replace("/", "__").upper()
+
+    def get(self, path: str, owner: str) -> Optional[str]:
+        host, _, project, config = self._cfg()
+        name = self._name(path, owner)
+        qs = _urlparse.urlencode({
+            "project": project, "config": config, "name": name})
+        data = self._request("GET",
+                             f"{host}/v3/configs/config/secret?{qs}",
+                             self._auth())
+        if not data:
+            return None
+        val = (data.get("value") or {}).get("raw")
+        return str(val) if val is not None else None
+
+    def set(self, path: str, value: str, owner: str) -> bool:
+        check_size(value)
+        host, _, project, config = self._cfg()
+        name = self._name(path, owner)
+        payload = _json.dumps({
+            "project": project, "config": config,
+            "name": name, "value": value}).encode()
+        headers = dict(self._auth())
+        headers["Content-Type"] = "application/json"
+        r = self._request("POST", f"{host}/v3/configs/config/secrets",
+                          headers, payload)
+        return r is not None
+
+
+# Daftarkan backend baru (tanpa menghapus yang lama).
+REGISTRY["infisical"] = InfisicalProvider
+REGISTRY["doppler"] = DopplerProvider
+KNOWN_BACKENDS = tuple(sorted(set(REGISTRY)))
+
+
+# ---------------------------------------------------------------------------
+# Failover + resolve paralel
+# ---------------------------------------------------------------------------
+
+def resolve_with_failover(ref: str, owner: str,
+                          chain: Optional[list[str]] = None) -> str:
+    """Resolve `secret://` dengan RANTAI backend; backend pertama yang
+    mengembalikan nilai menang. `chain` default: backend di ref + katalir.
+
+    Raises SecretNotFound bila SEMUA backend gagal.
+    """
+    backend, path, field = parse_ref(ref)
+    urutan: list[str] = []
+    if chain:
+        urutan.extend(chain)
+    if backend not in urutan:
+        urutan.insert(0, backend)
+    if KATALIR not in urutan:
+        urutan.append(KATALIR)
+    dicoba: list[str] = []
+    for nama in urutan:
+        if nama not in REGISTRY:
+            continue
+        dicoba.append(nama)
+        try:
+            prov = get_provider(nama)
+            if not prov.available():
+                continue
+            jalur = f"{path}/{field}" if field else path
+            nilai = prov.get(jalur, owner)
+        except Exception:  # noqa: BLE001 — backend rusak -> coba berikutnya
+            continue
+        if nilai is not None:
+            return nilai
+    raise SecretNotFound(
+        f"Rahasia tidak ditemukan di backend mana pun: {dicoba}")
+
+
+def resolve_many(refs: list[str], owner: str, max_workers: int = 16
+                 ) -> dict[str, Optional[str]]:
+    """Resolve banyak `secret://` secara PARALEL. Nilai gagal -> None.
+
+    Dipakai untuk mengambil 1000 referensi tanpa latensi serial.
+    """
+    unik = list(dict.fromkeys(refs))
+    hasil: dict[str, Optional[str]] = {}
+    if not unik:
+        return hasil
+    workers = max(1, min(max_workers, len(unik)))
+
+    def _satu(r: str) -> tuple[str, Optional[str]]:
+        try:
+            return r, resolve(r, owner)
+        except Exception:  # noqa: BLE001
+            return r, None
+
+    with _TPE(max_workers=workers) as pool:
+        for r, v in pool.map(_satu, unik):
+            hasil[r] = v
+    return hasil
+
+
+# ---------------------------------------------------------------------------
+# Rotasi rahasia (version history) — store dapat disuntik (test tanpa DB)
+# ---------------------------------------------------------------------------
+
+class RotationStore:
+    """Riwayat rotasi. Backend memori (default) atau Supabase (opsional)."""
+
+    def __init__(self) -> None:
+        self._lock = _threading.Lock()
+        self._versi: dict[tuple[str, str], int] = {}
+        self._riwayat: list[dict] = []
+
+    def next_version(self, owner: str, path: str) -> int:
+        with self._lock:
+            kunci = (owner, path)
+            v = self._versi.get(kunci, 0) + 1
+            self._versi[kunci] = v
+            return v
+
+    def record(self, owner: str, path: str, version: int) -> None:
+        with self._lock:
+            self._riwayat.append({
+                "owner": owner, "path": path, "version": version,
+                "rotated_at": _time.time()})
+
+    def history(self, owner: str, path: str) -> list[dict]:
+        with self._lock:
+            return [r for r in self._riwayat
+                    if r["owner"] == owner and r["path"] == path]
+
+    def current_version(self, owner: str, path: str) -> int:
+        with self._lock:
+            return self._versi.get((owner, path), 0)
+
+
+_ROTATION = RotationStore()
+
+
+def set_rotation_store(store: RotationStore) -> None:
+    """Suntik store rotasi (dipakai test / integrasi DB)."""
+    global _ROTATION
+    _ROTATION = store
+
+
+def rotation_store() -> RotationStore:
+    return _ROTATION
+
+
+def rotate(ref_or_path: str, new_value: str, owner: str,
+           provider_name: Optional[str] = None) -> dict:
+    """Rotasi rahasia: tulis nilai BARU + naikkan versi.
+
+    Menerima `secret://...` atau path polos ("provider/field").
+    Return dict {path, backend, version, bytes, rotated_at}.
+    Raises SecretTooLarge / BackendUnavailable / SecretsError.
+    """
+    check_size(new_value)
+    if ref_or_path.strip().lower().startswith("secret://"):
+        backend, path, field = parse_ref(ref_or_path)
+    else:
+        backend = (provider_name or default_provider_name())
+        bagian = ref_or_path.strip("/").split("/", 1)
+        path = bagian[0]
+        field = bagian[1] if len(bagian) > 1 else None
+    if provider_name:
+        backend = provider_name
+    if backend not in REGISTRY:
+        raise BackendUnavailable(f"backend tidak dikenal: {backend!r}")
+    prov = get_provider(backend)
+    if not prov.available():
+        raise BackendUnavailable(f"backend {backend} tidak tersedia")
+    jalur = f"{path}/{field}" if field else path
+    if not prov.set(jalur, new_value, owner):
+        raise SecretsError(f"rotasi gagal untuk {backend}/{jalur}")
+    versi = _ROTATION.next_version(owner, jalur)
+    _ROTATION.record(owner, jalur, versi)
+    return {"path": jalur, "backend": backend, "version": versi,
+            "bytes": check_size(new_value), "rotated_at": _time.time()}
+
+
+# ---------------------------------------------------------------------------
+# Dokumentasi 10 format referensi (dipakai endpoint + test)
+# ---------------------------------------------------------------------------
+
+SECRET_REF_FORMATS: list[dict] = [
+    {"format": "secret://provider/field", "contoh": "secret://gmail_imap/app_password",
+     "backend": "default"},
+    {"format": "secret://provider/sub/field", "contoh": "secret://db/prod/password",
+     "backend": "default"},
+    {"format": "secret://provider (tanpa field)",
+     "contoh": "secret://gmail_imap", "backend": "default"},
+    {"format": "secret://katalir/provider/field",
+     "contoh": "secret://katalir/db/pass", "backend": "katalir"},
+    {"format": "secret://hashicorp/path/field",
+     "contoh": "secret://hashicorp/app/key", "backend": "hashicorp"},
+    {"format": "secret://aws/path/field", "contoh": "secret://aws/prod/db",
+     "backend": "aws"},
+    {"format": "secret://onepassword/op/item/field",
+     "contoh": "secret://onepassword/vault/item/pass", "backend": "onepassword"},
+    {"format": "secret://infisical/path/field",
+     "contoh": "secret://infisical/api/token", "backend": "infisical"},
+    {"format": "secret://doppler/path/field",
+     "contoh": "secret://doppler/api/key", "backend": "doppler"},
+    {"format": "secret://provider/a.b.c (field bersarang)",
+     "contoh": "secret://oauth/google/client_secret", "backend": "default"},
+]

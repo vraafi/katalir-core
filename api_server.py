@@ -4459,6 +4459,18 @@ _FEATURE_MODULES = {
     "14_hitl": "hitl",
     "15_evaluation": "evaluation",
     "16_insights": "insights",
+    # 11 fitur enterprise n8n (Okt 2026)
+    "17_secrets_enterprise": "secrets_provider",
+    "18_advanced_scheduling": "scheduler_manager",
+    "19_monitoring": "monitoring",
+    "20_environments": "environments",
+    "21_source_control": "source_control",
+    "22_queue_mode": "queue_mode",
+    "23_sso": "sso",
+    "24_ai_workflow_gen": "ai_workflow_gen",
+    "25_workflow_optimizer": "workflow_optimizer",
+    "26_collab": "collab",
+    "27_plugins": "plugin_system",
 }
 
 
@@ -4720,6 +4732,65 @@ def insights_export(days: int = 30, workflow_id: str = "",
                                                            workflow_id=workflow_id)
     return Response(content=csv_text, media_type="text/csv", headers={
         "Content-Disposition": f'attachment; filename="insights-{days}d.csv"'})
+
+
+# ---------------------------------------------------------------------------
+# ENDPOINT SECRETS ENTERPRISE (fitur #1 lanjutan) — multi-provider + rotasi
+# ---------------------------------------------------------------------------
+class SecretRotateRequest(BaseModel):
+    """Body POST /secrets/rotate."""
+    ref: str                      # "secret://provider/field" atau "provider/field"
+    value: str
+    provider: str = ""            # paksa backend tertentu (opsional)
+
+
+@app.get("/secrets/backends")
+def secrets_backends(authorization: str | None = Header(None)):
+    """Status tiap backend secrets (tanpa mengungkap nilai)."""
+    security.get_current_user(authorization)
+    import secrets_provider as sp
+    return {"status": "success", "backends": sp.describe_backends(),
+            "default": sp.default_provider_name()}
+
+
+@app.get("/secrets/formats")
+def secrets_formats(authorization: str | None = Header(None)):
+    """Dokumentasi format referensi `secret://` yang didukung."""
+    security.get_current_user(authorization)
+    import secrets_provider as sp
+    return {"status": "success", "formats": sp.SECRET_REF_FORMATS,
+            "max_bytes": sp.MAX_SECRET_BYTES}
+
+
+@app.post("/secrets/rotate")
+def secrets_rotate(body: SecretRotateRequest,
+                   authorization: str | None = Header(None)):
+    """Rotasi rahasia: tulis nilai baru + naikkan versi."""
+    user = security.get_current_user(authorization)
+    import secrets_provider as sp
+    try:
+        hasil = sp.rotate(body.ref, body.value, str(user["email"]),
+                          provider_name=(body.provider or None))
+    except sp.SecretTooLarge as exc:
+        raise HTTPException(status_code=413, detail=str(exc))
+    except sp.SecretsError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
+    return {"status": "success", "rotation": hasil}
+
+
+@app.get("/secrets/history")
+def secrets_history(ref: str, authorization: str | None = Header(None)):
+    """Riwayat rotasi untuk satu path (tanpa nilai)."""
+    user = security.get_current_user(authorization)
+    import secrets_provider as sp
+    jalur = ref
+    if ref.strip().lower().startswith("secret://"):
+        _b, p, f = sp.parse_ref(ref)
+        jalur = f"{p}/{f}" if f else p
+    hist = sp.rotation_store().history(str(user["email"]), jalur)
+    return {"status": "success", "path": jalur, "history": hist,
+            "current_version": sp.rotation_store().current_version(
+                str(user["email"]), jalur)}
 
 
 @app.get("/health")
