@@ -1,9 +1,9 @@
 ==============================================================================
 #01 [PASS] Server WS NYATA + 2 klien terhubung (JWT sah) & tersinkron
 ------------------------------------------------------------------------------
-ws      = ws://localhost:8131/collab/ws/r90443-dasar
-A.client_id = 8854385383382187
-B.client_id = 8768268928518580
+ws      = ws://localhost:8131/collab/ws/r91249-dasar
+A.client_id = 7716885343213511
+B.client_id = 2737792918714189
 A.synced=True  B.synced=True
 CEK: handshake + sync-step selesai -> True
 
@@ -17,7 +17,7 @@ CEK: node A muncul di dokumen CRDT B -> True
 ==============================================================================
 #03 [PASS] Sinkron 5 user: semua konvergen ke dokumen identik
 ------------------------------------------------------------------------------
-5 klien di room r90443-lima
+5 klien di room r91249-lima
 U1 tambah 'shared', U2 tambah 'milik-U2'
 jumlah node tiap klien = [2, 2, 2, 2, 2]
 snapshot identik (hash sama) = True
@@ -35,8 +35,8 @@ CEK: tidak ada yang hilang (merge CRDT) -> True
 #05 [PASS] Tulisan BERSAMAAN field sama -> konvergen deterministik
 ------------------------------------------------------------------------------
 P set label='dari-P', Q set label='dari-Q' (bersamaan)
-P.label = 'dari-Q'
-Q.label = 'dari-Q'
+P.label = 'dari-P'
+Q.label = 'dari-P'
 CEK: kedua klien setuju pada nilai yang sama -> True
 
 ==============================================================================
@@ -57,15 +57,15 @@ CEK: awareness penuh (5-1=4) -> True
 #08 [PASS] Komentar: A tulis -> B lihat & tersimpan di snapshot REST
 ------------------------------------------------------------------------------
 A.add_comment('tolong cek node n1', target='n1')
-B.comments = [{'target': 'n1', 'at': 1791490467.5120604, 'text': 'tolong cek node n1', 'user': 'Andi'}]
-GET /collab/rooms/r90443-dasar -> HTTP 200
-  {"status":"success","room":{"room":"r90443-dasar","exists":true,"nodes":{"n1":{"label":"Mulai","y":20.0,"x":10.0}},"comments":[{"user":"Andi","target":"n1","at":1791490467.5120604,"text":"tolong cek n
+B.comments = [{'text': 'tolong cek node n1', 'target': 'n1', 'user': 'Andi', 'at': 1791491274.0036101}]
+GET /collab/rt/rooms/r91249-dasar -> HTTP 200
+  {"status":"success","room":{"room":"r91249-dasar","exists":true,"nodes":{"n1":{"y":20.0,"x":10.0,"label":"Mulai"}},"comments":[{"target":"n1","user":"Andi","at":1791491274.0036101,"text":"tolong cek n
 CEK: komentar terdistribusi + persist di server -> True
 
 ==============================================================================
 #09 [PASS] Persistensi CRDT: state bertahan setelah RESTART server
 ------------------------------------------------------------------------------
-FileYStore = r90443-persist.y (71 byte)
+FileYStore = r91249-persist.y (71 byte)
 server di-restart (proses BARU, memori kosong)
 klien baru baca nodes = {'tahan': {'label': 'harus-selamat'}}
 CEK: dokumen dipulihkan dari disk -> True
@@ -90,7 +90,7 @@ CEK: kedua perubahan bertahan -> True
 #12 [PASS] Performa: 200 op CRDT di 5 klien -> konvergen
 ------------------------------------------------------------------------------
 200 add_node dibagi ke 5 klien
-durasi            = 0.21s
+durasi            = 0.24s
 jumlah node/klien = [200, 200, 200, 200, 200]
 CEK: semua klien sepakat >= 200 node -> True
 

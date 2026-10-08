@@ -7,10 +7,10 @@
       "no": 1,
       "skenario": "Server WS NYATA + 2 klien terhubung (JWT sah) & tersinkron",
       "status": "PASS",
-      "raw": "ws      = ws://localhost:8131/collab/ws/r90443-dasar\nA.client_id = 8854385383382187\nB.client_id = 8768268928518580\nA.synced=True  B.synced=True\nCEK: handshake + sync-step selesai -> True",
+      "raw": "ws      = ws://localhost:8131/collab/ws/r91249-dasar\nA.client_id = 7716885343213511\nB.client_id = 2737792918714189\nA.synced=True  B.synced=True\nCEK: handshake + sync-step selesai -> True",
       "detail": {
-        "a": 8854385383382187,
-        "b": 8768268928518580
+        "a": 7716885343213511,
+        "b": 2737792918714189
       }
     },
     {
@@ -28,7 +28,7 @@
       "no": 3,
       "skenario": "Sinkron 5 user: semua konvergen ke dokumen identik",
       "status": "PASS",
-      "raw": "5 klien di room r90443-lima\nU1 tambah 'shared', U2 tambah 'milik-U2'\njumlah node tiap klien = [2, 2, 2, 2, 2]\nsnapshot identik (hash sama) = True\nCEK: konvergensi CRDT penuh -> True",
+      "raw": "5 klien di room r91249-lima\nU1 tambah 'shared', U2 tambah 'milik-U2'\njumlah node tiap klien = [2, 2, 2, 2, 2]\nsnapshot identik (hash sama) = True\nCEK: konvergensi CRDT penuh -> True",
       "detail": {
         "nodes": 2
       }
@@ -53,10 +53,10 @@
       "no": 5,
       "skenario": "Tulisan BERSAMAAN field sama -> konvergen deterministik",
       "status": "PASS",
-      "raw": "P set label='dari-P', Q set label='dari-Q' (bersamaan)\nP.label = 'dari-Q'\nQ.label = 'dari-Q'\nCEK: kedua klien setuju pada nilai yang sama -> True",
+      "raw": "P set label='dari-P', Q set label='dari-Q' (bersamaan)\nP.label = 'dari-P'\nQ.label = 'dari-P'\nCEK: kedua klien setuju pada nilai yang sama -> True",
       "detail": {
-        "p": "dari-Q",
-        "q": "dari-Q"
+        "p": "dari-P",
+        "q": "dari-P"
       }
     },
     {
@@ -97,7 +97,7 @@
       "no": 8,
       "skenario": "Komentar: A tulis -> B lihat & tersimpan di snapshot REST",
       "status": "PASS",
-      "raw": "A.add_comment('tolong cek node n1', target='n1')\nB.comments = [{'target': 'n1', 'at': 1791490467.5120604, 'text': 'tolong cek node n1', 'user': 'Andi'}]\nGET /collab/rooms/r90443-dasar -> HTTP 200\n  {\"status\":\"success\",\"room\":{\"room\":\"r90443-dasar\",\"exists\":true,\"nodes\":{\"n1\":{\"label\":\"Mulai\",\"y\":20.0,\"x\":10.0}},\"comments\":[{\"user\":\"Andi\",\"target\":\"n1\",\"at\":1791490467.5120604,\"text\":\"tolong cek n\nCEK: komentar terdistribusi + persist di server -> True",
+      "raw": "A.add_comment('tolong cek node n1', target='n1')\nB.comments = [{'text': 'tolong cek node n1', 'target': 'n1', 'user': 'Andi', 'at': 1791491274.0036101}]\nGET /collab/rt/rooms/r91249-dasar -> HTTP 200\n  {\"status\":\"success\",\"room\":{\"room\":\"r91249-dasar\",\"exists\":true,\"nodes\":{\"n1\":{\"y\":20.0,\"x\":10.0,\"label\":\"Mulai\"}},\"comments\":[{\"target\":\"n1\",\"user\":\"Andi\",\"at\":1791491274.0036101,\"text\":\"tolong cek n\nCEK: komentar terdistribusi + persist di server -> True",
       "detail": {
         "rest_status": 200
       }
@@ -106,7 +106,7 @@
       "no": 9,
       "skenario": "Persistensi CRDT: state bertahan setelah RESTART server",
       "status": "PASS",
-      "raw": "FileYStore = r90443-persist.y (71 byte)\nserver di-restart (proses BARU, memori kosong)\nklien baru baca nodes = {'tahan': {'label': 'harus-selamat'}}\nCEK: dokumen dipulihkan dari disk -> True",
+      "raw": "FileYStore = r91249-persist.y (71 byte)\nserver di-restart (proses BARU, memori kosong)\nklien baru baca nodes = {'tahan': {'label': 'harus-selamat'}}\nCEK: dokumen dipulihkan dari disk -> True",
       "detail": {
         "file_bytes": 71
       }
@@ -143,9 +143,9 @@
       "no": 12,
       "skenario": "Performa: 200 op CRDT di 5 klien -> konvergen",
       "status": "PASS",
-      "raw": "200 add_node dibagi ke 5 klien\ndurasi            = 0.21s\njumlah node/klien = [200, 200, 200, 200, 200]\nCEK: semua klien sepakat >= 200 node -> True",
+      "raw": "200 add_node dibagi ke 5 klien\ndurasi            = 0.24s\njumlah node/klien = [200, 200, 200, 200, 200]\nCEK: semua klien sepakat >= 200 node -> True",
       "detail": {
-        "seconds": 0.21,
+        "seconds": 0.24,
         "nodes": [
           200,
           200,

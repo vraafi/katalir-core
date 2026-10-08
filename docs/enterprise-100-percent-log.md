@@ -691,7 +691,8 @@ pada `ws://localhost:8131/collab/ws/<room>`.
 |---|---|
 | Server | `collab_realtime.py` — `PersistentWebsocketServer` (YRoom + `FileYStore` + pemulihan), `CollabASGIServer` (tolak `close 4401`) |
 | Klien | `CollabClient` — protokol y-sync/y-awareness nyata di atas `websockets` |
-| API | `/collab/rooms`, `/collab/rooms/{room}`, `/collab/rooms/{room}/comment`, `/collab/ui` |
+| API | `/collab/rt/rooms`, `/collab/rt/rooms/{room}`, `/collab/rt/rooms/{room}/comment`, `/collab/ui` |
+| Koeksistensi | REST API kolaborasi **deterministik** (`collab.py`, in-memory — substrat uji murni) **tetap utuh** di `/collab/*`; lapisan real-time dipasang **di sampingnya** di `/collab/rt/*` (lihat bug #5) |
 | UI | `static/collab_editor.html` — **yjs + y-websocket sungguhan** (esm.sh), node bisa diseret, kursor rekan + nama, panel komentar |
 | Integrasi | `api_server.py`: lifespan menyalakan `WS_SERVER`; `app.mount("/collab/ws", ASGI)` |
 
@@ -708,17 +709,26 @@ Sumber mentah: `docs/evidence/f10-collab-live.txt` + `f10-collab-live.json`.
 | 5 | Tulisan BERSAMAAN field sama → deterministik | PASS | P.label=Q.label=`'dari-P'` |
 | 6 | Multi-kursor: A geser → B lihat nama+kursor | PASS | `{"Andi": {"x":120,"y":240,"node":"n1"}}` |
 | 7 | Presence 5 user: tiap klien lihat 4 rekan | PASS | `[4,4,4,4,4]`, nama `['U2','U3','U4','U5']` |
-| 8 | Komentar → terdistribusi + persist REST | PASS | REST HTTP 200 memuat komentar |
+| 8 | Komentar → terdistribusi + persist REST | PASS | `GET /collab/rt/rooms/<room>` HTTP 200 memuat komentar |
 | 9 | Persistensi CRDT lintas RESTART server | PASS | state dipulihkan dari `FileYStore` |
 | 10 | Tanpa/ token palsu → DITOLAK | PASS | `InvalidStatus` (close 4401) |
 | 11 | Edit OFFLINE lalu reconnect → merge | PASS | O1=O2=`['awal','saat-o1-online','saat-offline']` |
 | 12 | Performa 200 op di 5 klien → konvergen | PASS | 0,22s, `[200,200,200,200,200]` |
 
-**4 bug nyata ditemukan & diperbaiki hard test:**
+**5 bug nyata ditemukan & diperbaiki hard test:**
 1. `wait_for` memakai `time.sleep` → **memblokir event loop** (klien tak pernah sync).
 2. `update_node` menulis ke **salinan** `Map.get()` → update CRDT hilang.
 3. Kunci room = **path penuh** (Starlette `mount()` tak memotong prefix) → lookup REST gagal.
 4. `YRoom` hanya **menulis** ke ystore; pemulihan harus eksplisit → state hilang saat restart.
+5. **Tabrakan route/nama dengan REST kolaborasi lama (`collab.py`)** — blok baru semula
+   memakai `GET /collab/rooms` + mendefinisikan ulang `_collab()` dan
+   `CollabCommentRequest`; karena FastAPI memakai **route pertama** dan Python
+   memakai **binding global terakhir**, endpoint lama rusak (`TypeError: cannot
+   unpack non-iterable module object` pada `GET /collab/rooms`, HTTP 500).
+   **Diperbaiki**: seluruh simbol diberi sufiks (`_collab_rt`, `CollabRtCommentRequest`)
+   dan route dipindah ke `/collab/rt/*` sehingga substrat murni & lapisan
+   real-time hidup berdampingan. Diverifikasi live: `GET /collab/rooms` → 200
+   DAN `GET /collab/rt/rooms` → 200 `{"server_running":true}`.
 Ditambah 1 bug UI: `awareness.clientID` (bukan `clientId`) → kursor sendiri ikut tampil.
 8 unit test regresi (`tests/test_collab_realtime.py`) GAGAL bila perbaikan ini hilang.
 
@@ -731,12 +741,14 @@ Ditambah 1 bug UI: `awareness.clientID` (bukan `clientId`) → kursor sendiri ik
 > Verifikasi produksi memakai **jalur produksi nyata**: ASGI `uvicorn` + CRDT Yjs nyata.
 
 ```
-### GET /collab/rooms        -> HTTP 200 {"server_running":true,"rooms":[...]}
-### GET /collab/rooms/<room> -> HTTP 200
+### GET  /collab/rt/rooms        -> HTTP 200 {"server_running":true,"rooms":[...]}
+### GET  /collab/rt/rooms/<room> -> HTTP 200
       {"room":{"exists":true,"nodes":{"n1":{"x":10.0,"y":20.0,"label":"Mulai"}},
                "comments":[{"text":"tolong cek node n1","user":"Andi",...}],"presence":[...]}}
-### GET /collab/ui           -> HTTP 200 (editor yjs + y-websocket)
-### WS  /collab/ws/<room>    -> 2 klien browser NYATA, 3 node + kursor "Budi" tersinkron
+### GET  /collab/ui              -> HTTP 200 (editor yjs + y-websocket)
+### WS   /collab/ws/<room>       -> 2 klien browser NYATA, 3 node + kursor "Budi" tersinkron
+### GET  /collab/rooms (LAMA)    -> HTTP 200 {"rooms":[]}   (substrat deterministik TETAP utuh)
+### GET  /version                -> HTTP 200 features_present 27/27 (26_collab=True)
 ```
 
 **Bukti visual:** `docs/evidence/f10-collab-editor.png` — dua pengguna browser
@@ -747,7 +759,8 @@ dengan nama, status `tersinkron`.
 
 | Hash | Isi | Push |
 |---|---|---|
-| _(lihat bagian akhir dokumen)_ | `feat(collab): Fitur #10 — Real-Time Collaboration 100% production-ready (Yjs/WebSocket NYATA)` | `origin/main` ✅ |
+| `7afd249` | `feat(collab): Fitur #10 — Real-Time Collaboration 100% production-ready (Yjs/WebSocket NYATA)` | `origin/main` ✅ |
+| _(fix menyusul)_ | `fix(collab): hindari tabrakan route/nama dengan REST kolaborasi lama (pindah ke /collab/rt/*)` | `origin/main` ✅ |
 
 ### Status: 100% COMPLETE ✅
 

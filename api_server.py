@@ -6569,43 +6569,50 @@ def _limits_info() -> dict:
 
 
 # ---------------------------------------------------------------------------
-# ENDPOINT REAL-TIME COLLABORATION (fitur #10) — Yjs/CRDT + WebSocket
+# ENDPOINT REAL-TIME COLLABORATION (fitur #10) — Yjs/CRDT + WebSocket NYATA
+#
+# CATATAN ARSITEKTUR (penting): blok di atas (baris ~6108) adalah REST API
+# kolaborasi DETERMINISTIK (`collab.py`, in-memory) yang menjadi substrat uji
+# murni — sengaja TIDAK diubah. Blok ini adalah lapisan REAL-TIME sungguhan
+# (Yjs/pycrdt + WebSocket) yang dipasang DI SAMPINGNYA. Agar tidak saling
+# menimpa (FastAPI: route pertama menang, nama global terakhir menang), semua
+# simbol & path di sini memakai sufiks `/collab/rt/*` dan awalan `_collab_rt`.
 # ---------------------------------------------------------------------------
-class CollabCommentRequest(BaseModel):
+class CollabRtCommentRequest(BaseModel):
     text: str
     target: str = ""
 
 
-def _collab():
+def _collab_rt():
     import collab_realtime as cr
     return cr
 
 
-@app.get("/collab/rooms")
-def collab_rooms(authorization: str | None = Header(None)):
-    """Daftar room kolaborasi aktif + jumlah klien/presence."""
+@app.get("/collab/rt/rooms")
+def collab_rt_rooms(authorization: str | None = Header(None)):
+    """Daftar room kolaborasi real-time aktif + jumlah klien/presence."""
     security.get_current_user(authorization)
-    cr = _collab()
+    cr = _collab_rt()
     return {"status": "success", "server_running": cr.WS_SERVER.running,
             "rooms": cr.list_rooms(cr.WS_SERVER)}
 
 
-@app.get("/collab/rooms/{room}")
-def collab_room(room: str, authorization: str | None = Header(None)):
-    """Snapshot CRDT (nodes + komentar) + presence/kursor sebuah room."""
+@app.get("/collab/rt/rooms/{room}")
+def collab_rt_room(room: str, authorization: str | None = Header(None)):
+    """Snapshot CRDT (nodes + komentar) + presence/kursor sebuah room nyata."""
     security.get_current_user(authorization)
-    cr = _collab()
+    cr = _collab_rt()
     if not cr.valid_room(room):
         raise HTTPException(400, "nama room tidak valid")
     return {"status": "success", "room": cr.room_view(cr.WS_SERVER, room)}
 
 
-@app.post("/collab/rooms/{room}/comment")
-async def collab_comment(room: str, body: CollabCommentRequest,
-                         authorization: str | None = Header(None)):
+@app.post("/collab/rt/rooms/{room}/comment")
+async def collab_rt_comment(room: str, body: CollabRtCommentRequest,
+                            authorization: str | None = Header(None)):
     """Tambah komentar ke dokumen CRDT room (terdistribusi ke semua klien)."""
     user = security.get_current_user(authorization)
-    cr = _collab()
+    cr = _collab_rt()
     if not cr.valid_room(room):
         raise HTTPException(400, "nama room tidak valid")
     import pycrdt as _y

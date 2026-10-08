@@ -253,13 +253,13 @@ async def skenario(token: str) -> None:
     a.add_comment("tolong cek node n1", target="n1")
     ok = await b.wait_for(lambda: any("cek node n1" in dict(c).get("text", "")
                                       for c in b.comments), 10)
-    st, body = _rest(f"/collab/rooms/{RUN}-dasar", token)
+    st, body = _rest(f"/collab/rt/rooms/{RUN}-dasar", token)
     rest_ok = st == 200 and "cek node n1" in body
     lulus = ok and rest_ok
     _catat(8, "Komentar: A tulis -> B lihat & tersimpan di snapshot REST", lulus,
            f"A.add_comment('tolong cek node n1', target='n1')\n"
            f"B.comments = {[dict(c) for c in b.comments]}\n"
-           f"GET /collab/rooms/{RUN}-dasar -> HTTP {st}\n"
+           f"GET /collab/rt/rooms/{RUN}-dasar -> HTTP {st}\n"
            f"  {body[:200]}\n"
            f"CEK: komentar terdistribusi + persist di server -> {lulus}",
            {"rest_status": st})
