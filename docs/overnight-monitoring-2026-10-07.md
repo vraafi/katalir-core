@@ -16,6 +16,8 @@
 |---|---|---|---|---|---|
 | 19:35 | 200 · 1.56s · `persisted` | 401 · 7.79s | — | tidak dapat diakses | `/mcp/gateway/health` 7.79s (lambat) |
 | 19:42 | 200 · 4.49s · `persisted` | 401 · 1.62s | **200 · ≥30.0s · 8646B** | tidak dapat diakses | **Gateway ≥30s (menembus batas), payload terpotong** |
+| 21:44 | 200 · 0.64s · `persisted` | 401 · 1.86s | **200 · 6.89s · 74354B** | tidak dapat diakses | tidak ada 5xx; **gateway pulih** (≥30s → 6.89s) |
+| 05:58 | 200 · 0.42s · `persisted` | 401 · 0.33s | **200 · 1.66s · 74354B** | tidak dapat diakses | tidak ada 5xx; gateway cepat & payload utuh |
 | 20:00 | _otomasi_ | | | | |
 | 22:00 | _otomasi_ | | | | |
 | 00:00 | _otomasi_ | | | | |
@@ -40,6 +42,17 @@
 | A-5 | Metrik VPS buta | SSH `Permission denied (publickey,password)`; tidak ada `sshpass`/`plink` | 🟡 SEDANG | TIDAK |
 
 **Tidak ada 5xx.** Endpoint inti (`/health`, `/workflows`) sesuai kontrak.
+
+> **Pembaruan 21:44 (otomasi `375e771c`).** Tidak ada anomali berat pada run ini.
+> Gateway LLM **pulih**: 6.89s (di bawah ambang 10s) dengan payload utuh 74.354B —
+> turun dari ≥30s / 8.646B (terpotong) pada 19:42, jadi A-1/A-2 untuk sementara
+> tidak teramati. A-3 (`/health`) juga normal (0.64s). A-5 (VPS) **masih** terjadi.
+
+> **Pembaruan 05:58 (otomasi `375e771c`).** Tidak ada anomali berat pada run ini.
+> `/health` 200 · 0.42s · `persisted`; `/workflows` 401; `/mcp/gateway/health` 401
+> (normal). Gateway LLM **200 · 1.66s · 74.354B** — paling cepat sejauh monitoring,
+> payload utuh (di bawah ambang 10s). Tidak ada 5xx / status tak diduga. A-5 (VPS)
+> **masih** terjadi (SSH `Permission denied (publickey,password)`).
 
 A-1/A-2 konsisten dengan risiko residual **R-1** (`docs/security/launch-ready-v2-2026-10-07.md`).
 Produk **tidak bergantung** pada gateway (rantai cadangan

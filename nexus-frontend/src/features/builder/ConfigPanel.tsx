@@ -5,6 +5,7 @@ import { motion } from "motion/react";
 import { Check, Copy, Loader2 } from "lucide-react";
 import dynamic from "next/dynamic";
 import { META, type FlowNode } from "./types";
+import { cssKind, describeCron } from "./nodes/CanvasNode";
 import { useMcpTools } from "./useMcpTools";
 import { springPanel } from "@/components/motion";
 
@@ -135,7 +136,7 @@ export function ConfigPanel({
       <div className="flex items-center gap-2">
         <span
           className="flex h-8 w-8 items-center justify-center rounded-lg text-white"
-          style={{ background: `var(--node-${kind === "agent" ? "action" : kind}-color)` }}
+          style={{ background: `var(--node-${cssKind(kind)}-color)` }}
         >
           <Icon size={16} strokeWidth={1.75} />
         </span>
@@ -148,6 +149,54 @@ export function ConfigPanel({
           </div>
         </div>
       </div>
+
+      {kind === "cron_trigger" && (
+        <>
+          <label className="block">
+            <span style={LABEL_STYLE} className={LABEL_CLS}>
+              Ekspresi Cron
+            </span>
+            <input
+              className={FIELD_CLS}
+              style={FIELD_STYLE}
+              placeholder="Misal: 0 22 * * *"
+              value={cfg.cron ?? ""}
+              onChange={(e) => setNodeCfg("cron", e.target.value)}
+            />
+            <span className={HINT_CLS} style={HINT_STYLE}>
+              Format 5-field: menit jam tanggal bulan hari. Contoh
+              <code> 0 22 * * * </code> = setiap hari pukul 22:00.
+            </span>
+          </label>
+          <label className="block">
+            <span style={LABEL_STYLE} className={LABEL_CLS}>
+              Timezone
+            </span>
+            <input
+              className={FIELD_CLS}
+              style={FIELD_STYLE}
+              placeholder="Asia/Jakarta"
+              value={cfg.timezone ?? ""}
+              onChange={(e) => setNodeCfg("timezone", e.target.value)}
+            />
+            <span className={HINT_CLS} style={HINT_STYLE}>
+              Nama IANA (mis. Asia/Jakarta, UTC, America/New_York). Bukan &quot;WIB&quot;.
+            </span>
+          </label>
+          <div className={BOX_CLS} style={BOX_STYLE}>
+            <div className="mb-2 text-[11px] font-bold uppercase tracking-wide" style={LABEL_STYLE}>
+              Pratinjau
+            </div>
+            <div className="text-[12px]" style={{ color: "var(--canvas-text-primary)" }}>
+              {describeCron(cfg.cron ?? "")}
+              {cfg.timezone ? ` · ${cfg.timezone}` : " · Asia/Jakarta"}
+            </div>
+            <span className={HINT_CLS} style={HINT_STYLE}>
+              Jadwal disimpan di server; aktif setelah workflow disimpan.
+            </span>
+          </div>
+        </>
+      )}
 
       {kind === "trigger" && (
         <>

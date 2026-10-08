@@ -10,6 +10,7 @@ import { CanvasNode } from "./CanvasNode";
  */
 export const NODE_TYPES = {
   trigger: CanvasNode,
+  cron_trigger: CanvasNode,
   agent: CanvasNode,
   mcp: CanvasNode,
 };

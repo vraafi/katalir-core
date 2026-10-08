@@ -42,8 +42,43 @@ const LONG_PRESS_MS = 500;
 function subtitleFor(kind: Kind, data: FlowNodeData): string {
   const cfg = data.config ?? {};
   if (kind === "trigger") return cfg.event ? String(cfg.event) : META.trigger.desc;
+  if (kind === "cron_trigger") {
+    return cfg.cron ? String(cfg.cron) : "belum ada ekspresi cron";
+  }
   if (kind === "mcp") return cfg.tool ? String(cfg.tool) : META.mcp.desc;
   return META.agent.desc;
+}
+
+/**
+ * Terjemahkan ekspresi cron 5-field ke bahasa manusia (5 bentuk umum).
+ * Fallback: tampilkan ekspresi apa adanya supaya pengguna tetap melihat
+ * konfigurasinya walau belum dikenali.
+ */
+export function describeCron(expr: string): string {
+  const e = String(expr || "").trim();
+  const m = e.match(/^(\S+)\s+(\S+)\s+(\S+)\s+(\S+)\s+(\S+)$/);
+  if (!m) return e || "—";
+  const [, min, hour, dom, mon, dow] = m;
+  if (min.startsWith("*/") && hour === "*" && dom === "*" && mon === "*" && dow === "*") {
+    return `Setiap ${min.slice(2)} menit`;
+  }
+  if (min === "*" && hour === "*" && dom === "*" && mon === "*" && dow === "*") {
+    return "Setiap menit";
+  }
+  if (dom === "*" && mon === "*" && dow === "*" && /^\d+$/.test(hour) && /^\d+$/.test(min)) {
+    const hh = String(hour).padStart(2, "0");
+    const mm = String(min).padStart(2, "0");
+    return hh === "00" && mm === "00" ? "Setiap hari tengah malam" : `Setiap hari pukul ${hh}:${mm}`;
+  }
+  if (mon === "*" && dow === "1-5" && /^\d+$/.test(hour) && /^\d+$/.test(min)) {
+    const hh = String(hour).padStart(2, "0");
+    const mm = String(min).padStart(2, "0");
+    return `Hari kerja pukul ${hh}:${mm}`;
+  }
+  if (/^\d+$/.test(dom) && mon === "*" && dow === "*") {
+    return `Tanggal ${dom} tiap bulan`;
+  }
+  return `Cron: ${e}`;
 }
 
 /** Ringkasan konfigurasi yang tampil di bagian body kartu. */
@@ -51,6 +86,12 @@ export function previewFor(kind: Kind, data: FlowNodeData): string {
   const cfg = data.config ?? {};
   if (kind === "trigger") {
     return cfg.event ? String(cfg.event) : "Belum ada event — buka konfigurasi untuk mengisi.";
+  }
+  if (kind === "cron_trigger") {
+    if (!cfg.cron) return "Belum ada jadwal — buka konfigurasi untuk mengisi.";
+    const tz = cfg.timezone ? String(cfg.timezone) : "Asia/Jakarta";
+    const label = tz === "Asia/Jakarta" ? "WIB" : tz;
+    return `${describeCron(String(cfg.cron))} · ${label}`;
   }
   if (kind === "mcp") {
     const t = cfg.tool ? String(cfg.tool) : "pilih tool";
@@ -67,6 +108,17 @@ const STATUS_LABEL: Record<NodeStatus, string> = {
   success: "Berhasil",
   error: "Gagal",
 };
+
+/**
+ * Nama kind -> token CSS `--node-<x>-color`.
+ * `agent` memakai token aksi (--node-action-color) dan `cron_trigger`
+ * memakai --node-cron-color; sisanya 1:1 dengan nama kind.
+ */
+export function cssKind(kind: Kind): string {
+  if (kind === "agent") return "action";
+  if (kind === "cron_trigger") return "cron";
+  return kind;
+}
 
 export function CanvasNode({
   id,
@@ -166,7 +218,7 @@ export function CanvasNode({
         (status === "loading" ? " k-node--executing" : "") +
         (armed ? " k-node--armed" : "")
       }
-      style={{ ["--node-kind-color" as string]: `var(--node-${kind === "agent" ? "action" : kind}-color)` }}
+      style={{ ["--node-kind-color" as string]: `var(--node-${cssKind(kind)}-color)` }}
     >
       <NodeToolbar position={Position.Bottom}>
         <div className="flex gap-1">
@@ -189,7 +241,9 @@ export function CanvasNode({
         </div>
       </NodeToolbar>
 
-      {kind !== "trigger" && <Handle type="target" position={Position.Left} className="k-handle k-handle--in" />}
+      {kind !== "trigger" && kind !== "cron_trigger" && (
+        <Handle type="target" position={Position.Left} className="k-handle k-handle--in" />
+      )}
 
       <div className="k-node__header">
         <span className="k-node__icon" aria-hidden="true">

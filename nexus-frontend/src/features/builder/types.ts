@@ -1,8 +1,9 @@
-import { Zap, Bot, Wrench } from "lucide-react";
+import { Zap, Bot, Wrench, CalendarClock } from "lucide-react";
 import type { NodeStatus } from "@/components/ui/node-status-indicator";
 
 export const META = {
   trigger: { label: "Trigger", color: "rgb(99, 102, 241)", Icon: Zap, desc: "Titik inisyalisasi alur" },
+  cron_trigger: { label: "Jadwal (Cron)", color: "rgb(168, 85, 247)", Icon: CalendarClock, desc: "Jalankan otomatis sesuai jadwal cron" },
   agent: { label: "Agent", color: "rgb(34, 197, 94)", Icon: Bot, desc: "Proses via Gemini LLM" },
   mcp: { label: "MCP Tool", color: "rgb(245, 158, 11)", Icon: Wrench, desc: "Aksi eksternal (MCP)" },
 } as const;
