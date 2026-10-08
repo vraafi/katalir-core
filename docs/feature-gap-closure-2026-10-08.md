@@ -171,6 +171,17 @@ tests/test_insights.py      18 passed in 1.15s
 5 suite                    107 passed in 5.10s
 ```
 
+### Regresi penuh (seluruh repo)
+
+```
+pytest tests/ -q
+1450 passed, 17 warnings, 42 subtests passed in 503.72s (0:08:23)
+```
+
+`tests/test_deploy_version.py` diperbarui: kontrak jumlah fitur kini
+diturunkan dari `api_server._FEATURE_MODULES` (bukan angka keras 11) dan
+tetap menuntut `12_guardrails..16_insights` ada.
+
 ### Benchmark per fitur
 
 ```
