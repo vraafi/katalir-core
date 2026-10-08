@@ -5612,6 +5612,152 @@ def optimize_feedback_stats(authorization: str | None = Header(None)):
             "acceptance_rate": fb.acceptance_rate(), "items": fb.all()[-50:]}
 
 
+# ---------------------------------------------------------------------------
+# ENDPOINT REAL-TIME COLLABORATION (fitur #10)
+# ---------------------------------------------------------------------------
+_COLLAB_SRV = None
+
+
+def _collab():
+    global _COLLAB_SRV
+    import collab
+    if _COLLAB_SRV is None:
+        _COLLAB_SRV = collab.CollabServer()
+    return collab, _COLLAB_SRV
+
+
+class CollabRoomRequest(BaseModel):
+    room: str
+    allowed: list = []
+
+
+class CollabOpRequest(BaseModel):
+    client: str
+    seq: int
+    kind: str
+    target: str = ""
+    field: str = ""
+    value: Any = None
+    ts: float = 0.0
+
+
+class CollabPresenceRequest(BaseModel):
+    user: str
+    cursor: dict = {}
+    name: str = ""
+
+
+class CollabCommentRequest(BaseModel):
+    user: str
+    target: str
+    text: str
+    parent: int | None = None
+
+
+class CollabMergeRequest(BaseModel):
+    ops: list = []
+
+
+@app.get("/collab/rooms")
+def collab_rooms(authorization: str | None = Header(None)):
+    """Daftar room kolaborasi + statistik."""
+    security.get_current_user(authorization)
+    _, srv = _collab()
+    return {"status": "success",
+            "rooms": [r.stats() for r in srv.rooms.values()]}
+
+
+@app.post("/collab/rooms")
+def collab_create(body: CollabRoomRequest,
+                  authorization: str | None = Header(None)):
+    """Buat/ambil room kolaborasi (opsional batasi user)."""
+    security.get_current_user(authorization)
+    _, srv = _collab()
+    r = srv.room(body.room, allowed=body.allowed or None)
+    return {"status": "success", "room": r.stats()}
+
+
+@app.get("/collab/rooms/{room}/snapshot")
+def collab_snapshot(room: str, authorization: str | None = Header(None)):
+    """Snapshot dokumen CRDT (nodes)."""
+    security.get_current_user(authorization)
+    _, srv = _collab()
+    return {"status": "success", "snapshot": srv.room(room).doc.snapshot()}
+
+
+@app.post("/collab/rooms/{room}/ops")
+def collab_submit(room: str, body: CollabOpRequest,
+                  authorization: str | None = Header(None)):
+    """Kirim satu operasi CRDT ke room."""
+    security.get_current_user(authorization)
+    collab, srv = _collab()
+    try:
+        op = collab.Op(body.client, body.seq, body.kind, body.target,
+                       body.field, body.value,
+                       ts=(body.ts or None))
+        out = srv.submit(room, op)
+    except collab.AccessDenied as exc:
+        raise HTTPException(status_code=403, detail=str(exc))
+    return {"status": "success", **out}
+
+
+@app.post("/collab/rooms/{room}/merge")
+def collab_merge(room: str, body: CollabMergeRequest,
+                 authorization: str | None = Header(None)):
+    """Merge op yang dibuat saat offline (idempoten)."""
+    security.get_current_user(authorization)
+    collab, srv = _collab()
+    ops = [collab.Op(o.get("client", ""), o.get("seq", 0), o.get("kind", ""),
+                     o.get("target", ""), o.get("field", ""), o.get("value"),
+                     ts=o.get("ts")) for o in (body.ops or [])]
+    return {"status": "success", **srv.merge_offline(room, ops)}
+
+
+@app.get("/collab/rooms/{room}/presence")
+def collab_presence(room: str, authorization: str | None = Header(None)):
+    """Presence + multi-cursor di room."""
+    security.get_current_user(authorization)
+    _, srv = _collab()
+    r = srv.room(room)
+    return {"status": "success", "presence": r.presence(),
+            "cursors": r.cursors()}
+
+
+@app.post("/collab/rooms/{room}/presence")
+def collab_set_presence(room: str, body: CollabPresenceRequest,
+                        authorization: str | None = Header(None)):
+    """Perbarui presence/kursor user."""
+    security.get_current_user(authorization)
+    _, srv = _collab()
+    return {"status": "success",
+            "presence": srv.room(room).set_presence(body.user, body.cursor,
+                                                    body.name)}
+
+
+@app.post("/collab/rooms/{room}/comments")
+def collab_comment(room: str, body: CollabCommentRequest,
+                   authorization: str | None = Header(None)):
+    """Tambah komentar/balasan (dengan deteksi mention)."""
+    security.get_current_user(authorization)
+    collab, srv = _collab()
+    try:
+        c = srv.room(room).comment(body.user, body.target, body.text,
+                                   body.parent)
+    except collab.AccessDenied as exc:
+        raise HTTPException(status_code=403, detail=str(exc))
+    return {"status": "success", "comment": c}
+
+
+@app.get("/collab/rooms/{room}/comments")
+def collab_comments(room: str, target: str = "",
+                    authorization: str | None = Header(None)):
+    """Daftar komentar pada room (opsional filter target)."""
+    security.get_current_user(authorization)
+    _, srv = _collab()
+    return {"status": "success",
+            "comments": srv.room(room).comments(target or None)}
+
+
 @app.get("/health")
 def health():
     return {

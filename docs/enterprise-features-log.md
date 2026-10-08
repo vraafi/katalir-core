@@ -509,3 +509,55 @@ Bukti raw: `12 passed in 0.31s`.
 - Fitur #10 — Real-Time Collaboration.
 
 ---
+
+## FITUR #10: Real-Time Collaboration
+
+### Research
+| Pendekatan | Verdict | Alasan |
+|-----------|---------|--------|
+| Yjs (JS) + y-websocket | OPSIONAL | transport produksi; binding Python (pycrdt/yrs) ada |
+| Automerge | OPSIONAL | alternatif CRDT |
+| CRDT LWW + OR-Set in-house | **DIPAKAI** | deterministik, dapat di-hard-test, nol dependensi |
+
+**Pilihan:** `collab.py` (semantik CRDT LWW-register + OR-Set).
+
+### Implementasi
+- File: `collab.py` (baru, ~320 baris) — `Op`, `CollabDoc` (LWW konvergen,
+  idempoten), `CollabRoom` (presence/multi-cursor, komentar+mention,
+  undo/redo per-user, akses), `CollabServer` (banyak room + merge offline).
+- Kunci: LWW memakai (ts, client) → hasil KONVERGEN apa pun urutan kedatangan;
+  op idempoten via (client, seq); undo/redo memakai op sistem ber-ts logis.
+- API: `GET/POST /collab/rooms`, `GET /collab/rooms/{r}/snapshot`,
+  `POST /collab/rooms/{r}/ops`, `POST .../merge`, `GET/POST .../presence`,
+  `GET/POST .../comments`.
+- Registry `/version`: `26_collab`.
+
+### Hard Test — `tests/test_collab.py` (12 kasus, PASS)
+| # | Skenario | Status |
+|---|----------|--------|
+| 1 | 2 user edit → sinkron | PASS |
+| 2 | 5 user edit → sinkron | PASS |
+| 3 | Conflict resolution (LWW konvergen) | PASS |
+| 4 | Cursor presence | PASS |
+| 5 | Komentar + reply + mention | PASS |
+| 6 | Undo/redo per-user | PASS |
+| 7 | Offline edit → merge saat online | PASS |
+| 8 | Performa 10 user concurrent | PASS |
+| 9 | Latensi < 100ms/op | PASS |
+| 10 | Reconnect (state bertahan) | PASS |
+| 11 | Memory leak check | PASS |
+| 12 | Security: akses room | PASS |
+
+Bukti raw: `12 passed in 0.32s`.
+
+### Deviasi dari brief
+- Transport WebSocket/CRDT-binary (Yjs) belum diikat; semantik CRDT sudah
+  terbukti konvergen. Integrasi transport dapat ditambahkan tanpa ubah kontrak.
+
+### Blocker
+- Tidak ada.
+
+### Next
+- Fitur #11 — Plugin / Extension System.
+
+---
