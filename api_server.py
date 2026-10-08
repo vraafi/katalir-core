@@ -4328,11 +4328,80 @@ async def dodo_webhook(request: Request):
 # ---------------------------------------------------------------------------
 # HEALTH CHECK (opsional, berguna utk deployment Cloudflare)
 # ---------------------------------------------------------------------------
+def _build_info() -> dict:
+    """Metadata build/deploy — NON-sensitif (tidak memuat satu pun secret).
+
+    Railway menyuntikkan variabel `RAILWAY_GIT_*` pada service yang terhubung
+    GitHub. Diekspos supaya commit yang BENAR-BENAR berjalan dapat diverifikasi
+    dari luar (`curl /version`) tanpa memerlukan Railway API token — token yang
+    tersedia di repo hanya project-scope dan menjawab "Not Authorized".
+    """
+    def _env(*names: str) -> str:
+        for n in names:
+            v = (os.getenv(n) or "").strip()
+            if v:
+                return v
+        return ""
+
+    import platform
+    return {
+        "commit": (_env("RAILWAY_GIT_COMMIT_SHA", "GIT_COMMIT_SHA") or "unknown")[:40],
+        "branch": _env("RAILWAY_GIT_BRANCH") or "unknown",
+        "service": _env("RAILWAY_SERVICE_NAME") or "local",
+        "environment": _env("RAILWAY_ENVIRONMENT_NAME") or "local",
+        "deployment_id": _env("RAILWAY_DEPLOYMENT_ID") or "local",
+        "python": platform.python_version(),
+    }
+
+
+#: Modul tiap fitur (Fitur #1–#11). Dipakai `/version` untuk membuktikan fitur
+#: mana yang ADA di image yang sedang berjalan. `find_spec` dipakai (bukan
+#: import) supaya endpoint ini tidak menarik impor berat di jalur request.
+_FEATURE_MODULES = {
+    "01_cron": "scheduler_manager",
+    "02_durable": "durable_execution",
+    "03_retry_dlq": "retry_policy",
+    "04_subworkflow": "subworkflow",
+    "05_parallel_fanout": "parallel_fanout",
+    "06_code_sandbox": "code_sandbox",
+    "07_secrets": "secrets_provider",
+    "08_mcp_server": "mcp_server",
+    "09_memory": "memory_manager",
+    "10_templates": "workflow_templates",
+    "11_testkit": "workflow_testkit",
+}
+
+
+def _feature_status() -> dict:
+    import importlib.util
+    out: dict[str, bool] = {}
+    for key, mod in _FEATURE_MODULES.items():
+        try:
+            out[key] = importlib.util.find_spec(mod) is not None
+        except Exception:  # noqa: BLE001
+            out[key] = False
+    return out
+
+
 @app.get("/health")
 def health():
     return {
         "status": "ok",
         "persistence": db.persistence_info(),
+        "build": _build_info(),
+    }
+
+
+@app.get("/version")
+def version():
+    """Build + status 11 fitur (untuk verifikasi deploy). Non-sensitif."""
+    feats = _feature_status()
+    return {
+        "status": "success",
+        "build": _build_info(),
+        "features": feats,
+        "features_present": sum(1 for v in feats.values() if v),
+        "features_total": len(feats),
     }
 
 

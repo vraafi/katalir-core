@@ -53,4 +53,5 @@ jobs:
           python -m pytest \
             tests/test_workflow_testkit.py \
             tests/test_workflow_templates.py \
+            tests/test_deploy_version.py \
             -q -p no:cacheprovider
