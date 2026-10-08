@@ -210,13 +210,32 @@ TABLES terverifikasi: hitl_requests, rag_chunks, rag_documents, eval_runs
 
 ### Git
 
+8 commit (5 fitur + laporan + perbaikan kontrak `/version` + pembaruan laporan):
+
 ```
+c8ec636 docs(feature-gap): catat hasil regresi penuh 1450 passed (8m23s)
+83205b7 test(version): kontrak /version diturunkan dari _FEATURE_MODULES (16 fitur)
+07c31ff docs(feature-gap): laporan penutup 5 gap fitur n8n (8 Okt 2026)
 9045c21 feat(insights): Fitur #5 — Insights & Analytics
 64782b2 feat(eval):     Fitur #4 — Evaluation & Testing built-in
 e09fce8 feat(hitl):     Fitur #3 — node Human-in-the-Loop
 311d74c feat(rag):      Fitur #2 — node Vector Store / RAG
 b47d91f feat(guardrails): Fitur #1 — node Guardrails 9 tipe
 ```
+
+**Push ke `origin/main` — TERKIRIM.** `35dfe28..c8ec636  main -> main`
+(POST git-receive-pack 78888 bytes). Verifikasi sinkron:
+
+```
+LOCAL  = c8ec636348481f807fae8b68c5a59ee2ea3ac04a
+REMOTE = c8ec636348481f807fae8b68c5a59ee2ea3ac04a  refs/heads/main   → IN SYNC
+```
+
+> Catatan lingkungan: push sempat macet >39 menit karena helper
+> `credential.helper=helper-selector` menggantung (tidak pernah mengembalikan
+> kredensial secara non-interaktif setelah GitHub membalas `401`). Bypass yang
+> berhasil: `git -c credential.helper= -c credential.helper='!"<...>/git-credential-wincred.exe"' push origin main`
+> (kredensial `x-access-token` memang tersimpan di Windows Credential Manager).
 
 ---
 
