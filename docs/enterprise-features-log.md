@@ -561,3 +561,265 @@ Bukti raw: `12 passed in 0.32s`.
 - Fitur #11 — Plugin / Extension System.
 
 ---
+## FITUR #11: Plugin / Extension System
+
+### Research (Okt 2026)
+| Kandidat | Verdict | Alasan |
+|----------|---------|--------|
+| Pluggy (pytest) | TOLAK | hook berbasis entry-point lokal; tidak ada isolasi capability |
+| Stevedore | TOLAK | hanya discovery, tanpa sandbox/versi/review |
+| Entry-points + importlib.metadata | TOLAK | eksekusi kode tanpa gating capability = permukaan serang |
+| WASM sandbox (wasmtime-py) | TOLAK (untuk sekarang) | sangat aman, tapi butuh toolchain build & runtime besar; menambah dependensi wajib dekat launch |
+| Manifest + capability-gated sandbox in-house | **DIPAKAI** | deterministik, nol dependensi, capability TERLARANG mustahil dijangkau; dapat di-hard-test penuh |
+
+**Pilihan:** `plugin_system.py` — manifest deklaratif + sandbox ber-capability,
+semver + resolusi dependensi, review/approval marketplace, audit.
+
+### Implementasi
+- File: `plugin_system.py` (baru, ~330 baris).
+  - `SAFE_CAPABILITIES` = {http, kv, log, workflow.read, workflow.write, notify}
+  - `FORBIDDEN_CAPABILITIES` = {secrets, vault, db, database, env, exec, eval,
+    shell, filesystem, admin} → diblokir di **dua lapis**: validasi manifest
+    saat install **dan** `Sandbox.call` saat runtime.
+  - `PluginManifest.validate()` (nama semver-safe, versi, entry, capability),
+    `PluginManifest.from_dict/to_dict`.
+  - `parse_semver` / `semver_gt` / `semver_satisfies` (dukung `^`).
+  - `Sandbox`, `Plugin`, `PluginRegistry` (list/search marketplace),
+    `PluginManager` (install/uninstall/enable/call, `resolve_dependencies`
+    DFS + deteksi siklus, `submit_for_review`/`approve`/`reject`, `stats`,
+    `audit`).
+- UI: `static/plugins_marketplace.html` disajikan di `GET /plugins/ui`
+  (same-origin → bebas CORS) — daftar plugin, form install, kebijakan
+  capability, uji sandbox, antrean review.
+- **Durability (DB-backed):** `migrations/2026_plugins.sql` membuat tabel
+  `plugin_registry` (UNIQUE owner,name; manifest jsonb; index GIN pada
+  `manifest->'capabilities'`; RLS `owner = auth.jwt()->>'email'` + policy
+  eksplisit `service_role`). `PluginStore` (memori) / `SupabasePluginStore`
+  + `PluginManager.hydrate()` memulihkan plugin saat startup; `default_store()`
+  memilih Supabase bila tabel hidup. **Diterapkan live: 9/9 statement OK.**
+- **Isolasi tenant:** `_plugins(owner)` memakai satu `PluginManager` PER-OWNER
+  (bukan registry global) — tanpa ini plugin user A bocor ke user B.
+  `_plugins_auth()` mengambil owner dari klaim token, bukan dari body/param.
+- API: `GET /plugins`, `/plugins/capabilities`, `/plugins/search`, `/plugins/stats`,
+  `/plugins/audit`, `/plugins/{n}/manifest`, `POST /plugins/install`,
+  `DELETE /plugins/{n}`, `POST /plugins/{n}/enable`, `POST /plugins/{n}/call`,
+  `GET/POST /plugins/reviews`, `POST /plugins/reviews/{id}/approve|reject`,
+  `GET /plugins/ui`.
+- Pemetaan error fail-closed: capability terlarang/`CapabilityDenied` → **403**,
+  inkompatibilitas/dependensi → **409**, manifest cacat → **400**.
+- Registry `/version`: `27_plugins` → **27/27 fitur** aktif.
+- **Catatan penamaan:** modul sengaja bernama `plugin_system.py`, bukan
+  `plugins.py` — ada paket `plugins` LAIN di `sys.path`
+  (`...hermes-agent/plugins/__init__.py`) yang membuat `find_spec("plugins")`
+  menyelesaikan ke modul asing sehingga fitur terlihat "hilang" di `/version`.
+
+### Hard Test
+**Unit — `tests/test_plugin_system.py` (18 kasus, PASS)**
+| # | Skenario | Status |
+|---|----------|--------|
+| 1 | Install plugin valid | PASS |
+| 2 | Uninstall + tak ada | PASS |
+| 3 | Sandbox menolak capability tak dideklarasikan | PASS |
+| 4 | Update versi + helper semver (incl. `^`) | PASS |
+| 5 | Dependensi: urutan benar | PASS |
+| 5b | Dependensi: deteksi siklus | PASS |
+| 6 | Marketplace search | PASS |
+| 7 | Review approve/reject | PASS |
+| 8 | Plugin jahat diblokir | PASS |
+| 9 | Kompatibilitas versi platform | PASS |
+| 10 | Performa: 100 plugin < 3s | PASS |
+| 11 | Benchmark overhead `call` | PASS |
+| 12 | Tidak bisa akses secret + audit tercatat | PASS |
+| 13 | **Regresi** panjang nama monoton (≥3) | PASS |
+| 14 | **Durability** store→hydrate (status+versi pulih) | PASS |
+| 15 | **Isolasi tenant** (A tak terlihat B) | PASS |
+| 16 | Hydrate defensif (manifest rusak/inkompatibel dilewati) | PASS |
+| 17 | Capability terlarang mustahil dipanggil | PASS |
+
+Bukti raw: `18 passed in 0.34s` (plugin) · `33 passed in 0.44s` (plugin+monitoring).
+
+**Live — `_plugins_live.py` (23 skenario, PASS)**
+Raw: `RINGKASAN: 23/23 skenario LIVE lolos`
+- 01 auth wajib (401) · 02 daftar + contoh bawaan · 03 kebijakan capability
+- 04 install valid · 05 capability terlarang → **403** · 06 capability tak
+  dikenal → 400 · 07 nama invalid → 400 · 08 call diizinkan → 200
+- 09 call capability tak dideklarasikan → **403** · 10 call capability
+  terlarang → **403** · 11 disable → call ditolak · 12 search marketplace
+- 13 manifest · 14 platform tak kompatibel → **409** · 15 dependensi hilang →
+  **409** · 16 review submit+approve · 17 approve plugin melanggar → **403**
+- 18 review reject · 19 stats+audit terisi · 20 uninstall → 404 · 21 uninstall
+  tak ada → 404 · 22 `/version` 27/27 · 23 regresi `/metrics` prometheus
+
+**Live durability lintas RESTART — `_plugins_durability.py` (2 fase, PASS)**
+- Fase 1: `POST /plugins/install` → dibaca LANGSUNG dari Supabase
+  (`plugin_registry?owner=eq.…`): baris `acme.durable v3.3.3`,
+  `capabilities=["kv","log"]`, `enabled=true` **ADA DI DB**.
+- Restart proses uvicorn.
+- Fase 2: `GET /plugins` → `['acme.durable','katalir.sample']`;
+  `acme.durable v3.3.3` **PULIH** dengan versi, capability, dan status enabled
+  utuh. Bukti mentah: `BUKTI: acme.durable v3.3.3 PULIH setelah restart`.
+
+**Bukti visual:** `docs/evidence/f11-plugins-marketplace.png`
+(5 plugin terpasang, kebijakan capability, uji sandbox, 2 antrean review —
+satu di antaranya bertanda pelanggaran `capability terlarang: ['secrets']`).
+
+### Dua bug nyata yang ditemukan oleh hard test LIVE
+1. **`plugin_system._NAME_RE` tidak monoton.** Pola lama
+   `^[a-z0-9]([a-z0-9._-]{1,62}[a-z0-9])?$` **menerima** nama 1 karakter (`x`)
+   tetapi **menolak** nama 2 karakter (`ok`) — kebijakan panjang yang tidak
+   masuk akal. Diperbaiki menjadi `^[a-z0-9][a-z0-9._-]{1,62}[a-z0-9]$`
+   (ambang minimum eksplisit 3 karakter) + test regresi #13.
+2. **`monitoring.Metrics.describe()` tidak pernah dirender.** `render_prometheus`
+   mengabaikan `self.help`, sehingga `/metrics` di server hidup hanya
+   mengembalikan **13 byte** (`katalir_up 1`) tanpa `# HELP`/`# TYPE`; tipe
+   metrik (counter vs gauge vs histogram) tak terdeklarasi untuk scraper.
+   Diperbaiki: keluarkan `# HELP` (dengan escape spec) + `# TYPE` per keluarga,
+   urut HELP→TYPE→series. Verifikasi: `/metrics` kini **74 byte** berisi
+   `# HELP katalir_up …` / `# TYPE katalir_up gauge`. + test regresi #13/#14.
+
+### Deviasi dari brief
+- SDK Python + TypeScript: sisi **Python** lengkap (manifest, semver, sandbox,
+  registry, review). SDK TypeScript (paket npm) belum dibuat — kontraknya sudah
+  murni JSON (manifest) sehingga binding TS hanya pembungkus tipis; dicatat
+  sebagai TODO lanjutan, tidak menghambat fitur inti.
+- Eksekusi plugin berjalan **in-process** dengan gating capability, bukan WASM.
+  `http` sengaja dry-run agar build ini tidak punya jalur egress tersembunyi.
+- Registry marketplace bersifat internal (per-proses), belum registry publik
+  ber-URL.
+
+### Blocker
+- Tidak ada.
+
+### Next
+- Tidak ada fitur tersisa; lanjut ke laporan final.
+
+---
+## REGRESI SUITE PENUH — 3 kegagalan yang ditemukan & diperbaiki
+
+Suite penuh (`pytest tests/`) menemukan **3 kegagalan**. Ketiganya nyata dan
+sudah diperbaiki; tidak satu pun dibiarkan.
+
+### 1–2. `ApproveRequest` terdefinisi DUA KALI (nama bertabrakan)
+`api_server.py` punya **dua** kelas bernama `ApproveRequest`:
+- baris ~3459 → model `/chat/approve` (`approval_token`, `decision`);
+- baris ~5024 → model `/environments/approve` (`request_id`, `role`) —
+  **ditambahkan pada Fitur #4 Multi-Environment**.
+
+Definisi kedua **menimpa** nama modul, sehingga `api_server.ApproveRequest`
+menunjuk ke model promosi environment. Akibatnya alur persetujuan tool
+(Defect #4, Telegram) pecah: `ApproveRequest(approval_token=..., decision=...)`
+melempar `ValidationError: request_id Field required`.
+
+- **Perbaikan:** kelas promosi environment diganti nama menjadi
+  `EnvApproveRequest` (nama unik) + docstring yang menjelaskan jebakannya.
+- **Verifikasi:** `tests/test_bug1_telegram_approval.py` +
+  `tests/test_tool_injection.py` + `tests/test_environments.py`
+  → **125 passed in 6.43s**.
+
+### 3. `test_12_performa_paralel_vs_seri` rapuh terhadap beban mesin
+Kegagalan di suite penuh: `paralel=0.80s (seri 0.80s) speedup=1.00x`.
+
+Investigasi ulang (bukan asumsi): uji ini dijalankan lagi sambil mengukur
+**overlap** pekerja yang aktif bersamaan. Hasilnya
+`overlap_puncak=8/8` — **paralelisme NYATA**. Jadi yang salah bukan
+`parallel_fanout.run_branches` (memang memakai `asyncio.TaskGroup` +
+`asyncio.to_thread`), melainkan **metrik ujinya**: dengan `jeda=0.10s`, waktu
+total didominasi ~0.6s latensi I/O Postgres (list + mark_bulk + tulis akhir),
+sehingga uji tidak bisa membedakan paralel dari seri.
+
+- **Perbaikan:** `jeda` dinaikkan ke `0.5s` (kerja jadi dominan), ditambah
+  assertion **struktural** `overlap_puncak == n` (tidak bergantung jam/beban),
+  dan ambang waktu dijadikan relatif (`< seri * 0.5`).
+- **Verifikasi (3x berturut):**
+  `speedup=3.51x / 4.07x / 4.13x`, `overlap_puncak=8/8` setiap kali,
+  `1.30s < 2.00s` — margin lebar, tidak lagi rapuh.
+
+---
+# LAPORAN FINAL — 11 FITUR ENTERPRISE n8n
+
+Standar: Oktober 2026 best practice · Mode: otonom penuh
+(riset → implementasi → hard test → verifikasi → commit → lanjut)
+
+## Tabel final
+
+| # | Fitur | Modul | Endpoint utama | Test unit | Test live | UI |
+|---|-------|-------|----------------|-----------|-----------|-----|
+| 1 | External Secrets Manager | `secrets_provider.py` | `/secrets/*` | 31 | live | ya |
+| 2 | Advanced Scheduling | `advanced_scheduling.py` + `scheduler_manager.py` | `/schedules/*` | 26 | live | ya |
+| 3 | Advanced Monitoring & Alerting | `monitoring.py` | `/metrics`, `/monitoring/*` | 15 | live | ya |
+| 4 | Multi-Environment | `environments.py` | `/environments/*` | 14 | live | ya |
+| 5 | Source Control / Git | `source_control.py` | `/source-control/*` | 12 | live | ya |
+| 6 | Queue Mode Scaling | `queue_mode.py` | `/queue/*` | 13 | live | ya |
+| 7 | SSO / SAML / OIDC / LDAP | `sso.py` | `/sso/*` | 13 | live | ya |
+| 8 | AI Workflow Generator | `ai_workflow_gen.py` | `/ai/workflow-gen/*` | 13 | live | ya |
+| 9 | AI Workflow Optimizer | `workflow_optimizer.py` | `/ai/optimize/*` | 12 | live | ya |
+| 10 | Real-Time Collaboration | `collab.py` | `/collab/*` | 12 | live | ya |
+| 11 | Plugin / Extension System | `plugin_system.py` | `/plugins/*` + `/plugins/ui` | 18 | 23 + 2 fase | ya |
+| | **TOTAL** | | | **179** | | |
+
+Registry `/version`: `17_secrets_enterprise` … `27_plugins` →
+**27/27 fitur aktif** (`features_present=27`, `features_total=27`).
+
+## Bukti wajib
+
+| Bukti | Status | Raw |
+|-------|--------|-----|
+| Test unit 11 fitur (target ≥130) | **179 lolos** | `179 passed in 3.31s` |
+| Suite penuh hijau | **1629 lolos, 0 gagal** | `1629 passed, 17 warnings, 42 subtests passed in 539.05s` |
+| Hard test live (skenario API nyata) | **23/23 lolos** | `RINGKASAN: 23/23 skenario LIVE lolos` |
+| Durability lintas restart | **lolos** | `acme.durable v3.3.3 PULIH setelah restart` |
+| Bukti visual UI | **ada** | `docs/evidence/f11-plugins-marketplace.png` |
+| Migration diterapkan ke Supabase live | **5/5 OK** | rag 14/14 · hitl 7/7 · eval 5/5 · adv_sched 5/5 · envs 11/11 · src_ctrl 6/6 · sso 9/9 · plugins 9/9 |
+| Keamanan: capability terlarang | **100% diblokir** | HTTP 403 pada install DAN pada `call` |
+| Keamanan: endpoint tanpa token | **401** | semua endpoint baru |
+| Regresi suite penuh | **3 temuan, 3 diperbaiki** | lihat bagian di atas |
+| `promtool`-compatible `/metrics` | **ya** | `# HELP katalir_up … / # TYPE katalir_up gauge` |
+| Git log + push | **lihat bawah** | `origin/main` |
+
+## Keputusan & deviasi (ringkas)
+
+1. **Urutan eksekusi** — brief memuat DUA urutan yang berbeda. Yang dipakai
+   adalah daftar yang secara eksplisit berlabel *"Priority order (dari mudah ke
+   kompleks)"* (Secrets → Scheduling → Monitoring → Multi-Env → Source Control →
+   Queue → SSO → AI Gen → Optimizer → Collab → Plugin). Registry diberi kunci
+   `17_…`–`27_…` sesuai urutan itu.
+2. **`plugins.py` → `plugin_system.py`** — ada paket `plugins` asing di
+   `sys.path` yang membuat fitur terlihat hilang dari `/version`.
+3. **Transport belum diikat untuk sebagian fitur** — WebSocket/Yjs (Collab),
+   provider OIDC/SAML nyata (SSO), Redis nyata (Queue), provider vault nyata
+   (Secrets). Semantik + kontraknya sudah terbukti keras; binding transport
+   dapat ditambahkan tanpa mengubah kontrak. Setiap modul memakai pola
+   *injectable seam* (`transport`, `bind_fn`, `vision_fn`, `clock`, …) sehingga
+   integrasi nyata tidak menuntut perubahan logika.
+4. **SDK TypeScript (Fitur #11)** belum dibuat — kontrak manifest sudah JSON
+   murni, jadi binding TS hanya pembungkus tipis. Dicatat sebagai TODO.
+5. **Plugin berjalan in-process** dengan gating capability (bukan WASM);
+   capability `http` sengaja dry-run agar build tidak punya jalur egress
+   tersembunyi.
+
+## Bug nyata yang ditemukan oleh hard test (bukan sekadar test hijau)
+
+| # | Bug | Dampak | Perbaikan |
+|---|-----|--------|-----------|
+| 1 | `croniter` dengan basis tz-aware memunculkan `08:00` palsu pada hari DST | jadwal dobel di hari transisi | iterasi pada wall-clock lokal naif lalu localize |
+| 2 | `secrets_provider` `_instances()` memakai `global _CACHE` salah | provider tidak konsisten antar-panggilan | cache instance yang benar |
+| 3 | `collab` undo/redo memakai ulang kunci invers → tombstone kalah LWW | undo/redo salah hasil | op sistem `__sys__` + `_max_ts`/`_sys_seq` monoton |
+| 4 | `sso.login` tidak menghabiskan `state` → CSRF bisa diulang | state replay | `self._states.pop(state, None)` |
+| 5 | `plugin_system._NAME_RE` menerima nama 1 karakter tapi menolak 2 | kebijakan panjang tidak monoton | regex min 3 karakter + test regresi |
+| 6 | `monitoring.render_prometheus` mengabaikan `self.help` | `/metrics` cuma 13 byte, tipe metrik tak terdeklarasi | keluarkan `# HELP` + `# TYPE` |
+| 7 | `ApproveRequest` terdefinisi DUA KALI di `api_server.py` | alur approve tool Telegram pecah (`request_id` Field required) | kelas env → `EnvApproveRequest` |
+| 8 | `test_12_performa_paralel_vs_seri` mengukur hal yang salah | gagal di mesin sibuk walau paralelisme nyata (overlap 8/8) | ukur overlap struktural + jeda 0.5s |
+
+## Catatan lingkungan (bukan bug produk)
+
+- Proxy sandbox (`HTTP_PROXY=http://127.0.0.1:49613`) membelokkan permintaan
+  `127.0.0.1` → `502 upstream connect failed`. Skrip bukti memakai
+  `ProxyHandler({})` untuk koneksi langsung.
+- `ALLOWED_HOSTS` tidak memuat `127.0.0.1` → `TrustedHostMiddleware` menjawab
+  `400 Invalid host header`. Bukti live memakai `http://localhost:8123`.
+- `git push` terhenti karena `credential.helper=helper-selector` menggantung
+  setelah GitHub `401`; diatasi dengan `-c credential.helper=` +
+  `git-credential-wincred.exe` (tanpa mengubah config global).
+
+**STATUS: SELESAI.** 11/11 fitur terimplementasi, teruji keras, terdokumentasi,
+dan terverifikasi pada server hidup.

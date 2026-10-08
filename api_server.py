@@ -5021,7 +5021,18 @@ class PromoteRequest(BaseModel):
     approver: str = ""
 
 
-class ApproveRequest(BaseModel):
+class EnvApproveRequest(BaseModel):
+    """Body untuk /environments/approve.
+
+    CATATAN PENTING (bug ditemukan saat regresi suite penuh): kelas ini DULU
+    bernama `ApproveRequest` — sama persis dengan model `/chat/approve`
+    (approval_token + decision) di atas. Definisi kedua MENIMPA nama modul
+    `ApproveRequest`, sehingga `api_server.ApproveRequest` menunjuk ke model
+    promosi environment dan alur persetujuan tool Telegram (Defect #4) pecah:
+    `ApproveRequest(approval_token=..., decision=...)` melempar ValidationError
+    "request_id Field required". Nama kini unik.
+    """
+
     request_id: str
     role: str = "admin"
 
@@ -5074,7 +5085,7 @@ def environments_promote(body: PromoteRequest,
 
 
 @app.post("/environments/approve")
-def environments_approve(body: ApproveRequest,
+def environments_approve(body: EnvApproveRequest,
                          authorization: str | None = Header(None)):
     """Setujui permintaan promosi yang tertunda."""
     user = security.get_current_user(authorization)
@@ -5756,6 +5767,255 @@ def collab_comments(room: str, target: str = "",
     _, srv = _collab()
     return {"status": "success",
             "comments": srv.room(room).comments(target or None)}
+
+
+# ---------------------------------------------------------------------------
+# FITUR #11 — PLUGIN / EXTENSION SYSTEM
+#
+# Handler plugin di server ini SENGAJA deterministik & tanpa jaringan: `http`
+# bersifat dry-run (mengembalikan URL yang diminta, bukan melakukan request).
+# Tujuannya agar sandbox capability bisa dibuktikan keras (test + audit) tanpa
+# membuat build ini punya jalur egress tersembunyi. Secret/DB/env MUSTAHIL
+# dijangkau dari dalam sandbox (lihat FORBIDDEN_CAPABILITIES).
+# ---------------------------------------------------------------------------
+_PLUGIN_KV: dict = {}
+
+
+def _plugin_handler(capability: str, kwargs: dict):
+    """Handler contoh: membuktikan capability bekerja, tanpa efek samping luar."""
+    cap = capability
+    if cap == "log":
+        return {"logged": True, "message": str(kwargs.get("message", ""))}
+    if cap == "kv":
+        key = str(kwargs.get("key", ""))
+        if kwargs.get("op") == "set":
+            _PLUGIN_KV[key] = kwargs.get("value")
+            return {"key": key, "value": kwargs.get("value")}
+        return {"key": key, "value": _PLUGIN_KV.get(key)}
+    if cap == "http":
+        return {"url": str(kwargs.get("url", "")), "dry_run": True}
+    if cap == "notify":
+        return {"notified": str(kwargs.get("channel", "default"))}
+    if cap in ("workflow.read", "workflow.write"):
+        return {"workflow_id": kwargs.get("workflow_id"), "capability": cap}
+    return {"echo": cap, "args": kwargs}
+
+
+_PLUGIN_MGRS: dict = {}
+
+
+def _plugins(owner: str = "public"):
+    """Manajer plugin PER-OWNER.
+
+    Isolasi tenant: satu registry global akan membocorkan plugin milik user A
+    ke user B. Karena itu tiap owner punya `PluginManager` sendiri yang
+    di-hydrate dari tabel `plugin_registry` (RLS `owner = auth.jwt()->>'email'`)
+    sehingga plugin yang dipasang BERTAHAN lintas restart/deploy.
+    """
+    import plugin_system as ps
+    mgr = _PLUGIN_MGRS.get(owner)
+    if mgr is None:
+        mgr = ps.PluginManager(store=ps.default_store(), owner=owner)
+        mgr.hydrate(_plugin_handler)
+        # Contoh bawaan supaya marketplace/UI tidak kosong & pola terlihat.
+        # `install` idempoten (upsert), jadi aman dipanggil tiap kali.
+        contoh = ps.PluginManifest(
+            name="katalir.sample", version="1.0.0", entry="sample:run",
+            capabilities=["log", "kv"], author="Katalir",
+            description="Plugin contoh (capability log + kv)")
+        try:
+            mgr.install(contoh, _plugin_handler)
+        except Exception:  # noqa: BLE001
+            pass
+        _PLUGIN_MGRS[owner] = mgr
+    return ps, mgr
+
+
+def _plugins_auth(authorization: str | None):
+    """Verifikasi token + kembalikan (modul, manajer) milik owner token itu."""
+    user = security.get_current_user(authorization)
+    owner = (user.get("email") or user.get("id") or "public").strip() or "public"
+    return _plugins(owner)
+
+
+def _plugin_error(exc) -> HTTPException:
+    """Pemetaan error plugin -> status HTTP (fail-closed)."""
+    import plugin_system as ps
+    if isinstance(exc, (ps.PluginBlocked, ps.CapabilityDenied)):
+        return HTTPException(status_code=403, detail=str(exc))
+    if isinstance(exc, (ps.CompatibilityError, ps.DependencyError)):
+        return HTTPException(status_code=409, detail=str(exc))
+    return HTTPException(status_code=400, detail=str(exc))
+
+
+class PluginInstallRequest(BaseModel):
+    manifest: dict
+    allow_unsigned: bool = True
+
+
+class PluginToggleRequest(BaseModel):
+    enabled: bool = True
+
+
+class PluginCallRequest(BaseModel):
+    capability: str
+    args: dict = {}
+
+
+class PluginReviewSubmitRequest(BaseModel):
+    manifest: dict
+
+
+class PluginReviewDecisionRequest(BaseModel):
+    reviewer: str = ""
+    reason: str = ""
+
+
+@app.get("/plugins")
+def plugins_list(authorization: str | None = Header(None)):
+    """Daftar plugin terpasang (marketplace internal)."""
+    ps, mgr = _plugins_auth(authorization)
+    return {"status": "success", "plugins": mgr.registry.list(),
+            "stats": mgr.stats()}
+
+
+@app.get("/plugins/capabilities")
+def plugins_capabilities(authorization: str | None = Header(None)):
+    """Capability yang diizinkan vs yang dilarang keras."""
+    ps, _ = _plugins_auth(authorization)
+    return {"status": "success",
+            "safe": sorted(ps.SAFE_CAPABILITIES),
+            "forbidden": sorted(ps.FORBIDDEN_CAPABILITIES),
+            "katalir_version": ps.KATALIR_VERSION}
+
+
+@app.get("/plugins/search")
+def plugins_search(q: str = "", authorization: str | None = Header(None)):
+    """Cari plugin di registry (nama/deskripsi/author)."""
+    _, mgr = _plugins_auth(authorization)
+    return {"status": "success", "results": mgr.registry.search(q)}
+
+
+@app.get("/plugins/stats")
+def plugins_stats(authorization: str | None = Header(None)):
+    _, mgr = _plugins_auth(authorization)
+    return {"status": "success", "stats": mgr.stats()}
+
+
+@app.get("/plugins/audit")
+def plugins_audit(authorization: str | None = Header(None)):
+    """Jejak audit aksi plugin (install/uninstall/call/block)."""
+    _, mgr = _plugins_auth(authorization)
+    return {"status": "success", "audit": mgr.audit()}
+
+
+@app.post("/plugins/install")
+def plugins_install(req: PluginInstallRequest,
+                    authorization: str | None = Header(None)):
+    """Pasang/naikkan versi plugin. Capability terlarang => 403."""
+    ps, mgr = _plugins_auth(authorization)
+    try:
+        man = ps.PluginManifest.from_dict(req.manifest)
+        out = mgr.install(man, _plugin_handler,
+                          allow_unsigned=req.allow_unsigned)
+    except (ps.PluginError, ps.PluginBlocked) as exc:  # noqa: BLE001
+        raise _plugin_error(exc)
+    return {"status": "success", **out}
+
+
+@app.delete("/plugins/{name}")
+def plugins_uninstall(name: str, authorization: str | None = Header(None)):
+    ps, mgr = _plugins_auth(authorization)
+    if not mgr.uninstall(name):
+        raise HTTPException(status_code=404, detail=f"plugin tidak ada: {name}")
+    return {"status": "success", "removed": name}
+
+
+@app.post("/plugins/{name}/enable")
+def plugins_enable(name: str, req: PluginToggleRequest,
+                   authorization: str | None = Header(None)):
+    _, mgr = _plugins_auth(authorization)
+    if not mgr.set_enabled(name, req.enabled):
+        raise HTTPException(status_code=404, detail=f"plugin tidak ada: {name}")
+    return {"status": "success", "name": name, "enabled": req.enabled}
+
+
+@app.get("/plugins/{name}/manifest")
+def plugins_manifest(name: str, authorization: str | None = Header(None)):
+    _, mgr = _plugins_auth(authorization)
+    p = mgr.registry.get(name)
+    if not p:
+        raise HTTPException(status_code=404, detail=f"plugin tidak ada: {name}")
+    return {"status": "success", "manifest": p.manifest.to_dict()}
+
+
+@app.post("/plugins/{name}/call")
+def plugins_call(name: str, req: PluginCallRequest,
+                 authorization: str | None = Header(None)):
+    """Panggil capability plugin di dalam sandbox (capability harus dideklarasikan)."""
+    ps, mgr = _plugins_auth(authorization)
+    try:
+        hasil = mgr.call(name, req.capability, **req.args)
+    except ps.PluginError as exc:  # noqa: BLE001
+        raise _plugin_error(exc)
+    return {"status": "success", "result": hasil}
+
+
+@app.post("/plugins/reviews")
+def plugins_review_submit(req: PluginReviewSubmitRequest,
+                          authorization: str | None = Header(None)):
+    """Ajukan plugin untuk review (publikasi marketplace)."""
+    ps, mgr = _plugins_auth(authorization)
+    try:
+        man = ps.PluginManifest.from_dict(req.manifest)
+        rec = mgr.submit_for_review(man)
+    except ps.PluginError as exc:  # noqa: BLE001
+        raise _plugin_error(exc)
+    return {"status": "success", "review": rec}
+
+
+@app.get("/plugins/reviews")
+def plugins_reviews(authorization: str | None = Header(None)):
+    _, mgr = _plugins_auth(authorization)
+    return {"status": "success", "reviews": mgr.reviews()}
+
+
+@app.post("/plugins/reviews/{request_id}/approve")
+def plugins_review_approve(request_id: str, req: PluginReviewDecisionRequest,
+                           authorization: str | None = Header(None)):
+    ps, mgr = _plugins_auth(authorization)
+    try:
+        rec = mgr.approve(request_id, req.reviewer)
+    except ps.PluginError as exc:  # noqa: BLE001
+        raise _plugin_error(exc)
+    return {"status": "success", "review": rec}
+
+
+@app.post("/plugins/reviews/{request_id}/reject")
+def plugins_review_reject(request_id: str, req: PluginReviewDecisionRequest,
+                          authorization: str | None = Header(None)):
+    ps, mgr = _plugins_auth(authorization)
+    try:
+        rec = mgr.reject(request_id, req.reason)
+    except ps.PluginError as exc:  # noqa: BLE001
+        raise _plugin_error(exc)
+    return {"status": "success", "review": rec}
+
+
+@app.get("/plugins/ui")
+def plugins_ui():
+    """Marketplace UI (halaman statis same-origin).
+
+    Disajikan dari origin yang SAMA dengan API supaya `fetch` tidak terkena
+    CORS dan tidak perlu allowlist tambahan. Shell-nya sendiri tidak memuat
+    data sensitif — setiap panggilan di dalamnya tetap membawa Bearer token
+    dan melewati `get_current_user` seperti endpoint lain.
+    """
+    from fastapi.responses import HTMLResponse
+    path = os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                        "static", "plugins_marketplace.html")
+    with open(path, encoding="utf-8") as fh:
+        return HTMLResponse(fh.read())
 
 
 @app.get("/health")

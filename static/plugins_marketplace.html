@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Katalir — Plugin Marketplace</title>
+<style>
+  :root{
+    --bg:#0f1115; --panel:#171a21; --panel2:#1e222b; --line:#2b303b;
+    --fg:#e8ecf3; --muted:#98a2b3; --accent:#5b8cff; --ok:#22c55e;
+    --warn:#f59e0b; --bad:#ef4444;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--fg);
+       font:14px/1.5 ui-sans-serif,system-ui,"Segoe UI",Roboto,sans-serif}
+  header{display:flex;align-items:center;gap:14px;padding:14px 22px;
+         background:var(--panel);border-bottom:1px solid var(--line)}
+  header h1{font-size:16px;margin:0;font-weight:650;letter-spacing:.2px}
+  .badge{font-size:11px;padding:3px 9px;border-radius:999px;
+         background:rgba(91,140,255,.15);color:var(--accent);
+         border:1px solid rgba(91,140,255,.35)}
+  .spacer{flex:1}
+  main{display:grid;grid-template-columns:1.25fr .95fr;gap:16px;padding:18px 22px}
+  section{background:var(--panel);border:1px solid var(--line);border-radius:12px;
+          padding:14px 16px}
+  section h2{font-size:13px;margin:0 0 10px;text-transform:uppercase;
+             letter-spacing:.7px;color:var(--muted);font-weight:650}
+  table{width:100%;border-collapse:collapse;font-size:13px}
+  th,td{text-align:left;padding:8px 8px;border-bottom:1px solid var(--line);
+        vertical-align:top}
+  th{color:var(--muted);font-weight:600;font-size:11.5px;
+     text-transform:uppercase;letter-spacing:.5px}
+  code{background:var(--panel2);padding:1px 6px;border-radius:5px;font-size:12px}
+  .chip{display:inline-block;font-size:11px;padding:2px 8px;border-radius:999px;
+        background:var(--panel2);border:1px solid var(--line);margin:1px 3px 1px 0}
+  .chip.safe{border-color:rgba(34,197,94,.4);color:var(--ok)}
+  .chip.bad{border-color:rgba(239,68,68,.4);color:var(--bad)}
+  .pill{font-size:11px;padding:2px 8px;border-radius:999px}
+  .pill.on{background:rgba(34,197,94,.15);color:var(--ok)}
+  .pill.off{background:rgba(239,68,68,.15);color:var(--bad)}
+  button{font:inherit;font-size:12.5px;padding:6px 11px;border-radius:8px;
+         border:1px solid var(--line);background:var(--panel2);color:var(--fg);
+         cursor:pointer}
+  button:hover{border-color:var(--accent)}
+  button.primary{background:var(--accent);border-color:var(--accent);color:#fff}
+  button.danger{color:var(--bad);border-color:rgba(239,68,68,.4)}
+  input,select{font:inherit;font-size:13px;padding:7px 9px;border-radius:8px;
+               border:1px solid var(--line);background:var(--panel2);color:var(--fg)}
+  .row{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:8px}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+  pre{margin:8px 0 0;background:#0b0d11;border:1px solid var(--line);
+      border-radius:8px;padding:10px;font-size:12px;max-height:190px;overflow:auto;
+      white-space:pre-wrap;word-break:break-word}
+  .stat{display:flex;gap:18px;margin-bottom:10px}
+  .stat div{background:var(--panel2);border:1px solid var(--line);
+            border-radius:10px;padding:8px 14px;min-width:92px}
+  .stat b{display:block;font-size:19px;font-weight:680}
+  .stat span{font-size:11px;color:var(--muted);text-transform:uppercase;
+             letter-spacing:.5px}
+  .empty{color:var(--muted);font-size:13px;padding:10px 0}
+  .status{font-size:12px;color:var(--muted)}
+  .toast{position:fixed;right:18px;bottom:18px;background:var(--panel2);
+         border:1px solid var(--line);border-left:3px solid var(--accent);
+         padding:10px 14px;border-radius:10px;font-size:13px;max-width:420px}
+</style>
+</head>
+<body>
+<header>
+  <h1>Katalir · Plugin Marketplace</h1>
+  <span class="badge" id="ver">Katalir —</span>
+  <span class="badge">Fitur #11</span>
+  <div class="spacer"></div>
+  <input id="tok" type="password" placeholder="Bearer token (Supabase JWT)" style="width:270px">
+  <button class="primary" onclick="connect()">Sambungkan</button>
+</header>
+
+<main>
+  <div>
+    <section>
+      <h2>Plugin terpasang</h2>
+      <div class="stat">
+        <div><b id="s-inst">0</b><span>Terpasang</span></div>
+        <div><b id="s-call">0</b><span>Panggilan</span></div>
+        <div><b id="s-rev">0</b><span>Review</span></div>
+      </div>
+      <table>
+        <thead><tr><th>Nama</th><th>Versi</th><th>Capability</th>
+          <th>Status</th><th>Aksi</th></tr></thead>
+        <tbody id="rows"><tr><td colspan="5" class="empty">Belum tersambung.</td></tr></tbody>
+      </table>
+    </section>
+
+    <section style="margin-top:16px">
+      <h2>Pasang / perbarui plugin</h2>
+      <div class="grid2">
+        <input id="i-name" placeholder="nama (mis. acme.slack)">
+        <input id="i-ver" value="1.0.0" placeholder="versi">
+      </div>
+      <div class="row" style="margin-top:8px">
+        <span class="status">Capability:</span>
+        <label><input type="checkbox" value="http" checked> http</label>
+        <label><input type="checkbox" value="log"> log</label>
+        <label><input type="checkbox" value="kv"> kv</label>
+        <label><input type="checkbox" value="notify"> notify</label>
+        <label><input type="checkbox" value="workflow.read"> workflow.read</label>
+        <label><input type="checkbox" value="workflow.write"> workflow.write</label>
+      </div>
+      <div class="row">
+        <input id="i-min" placeholder="min_katalir_version (opsional)">
+        <button class="primary" onclick="install()">Pasang</button>
+        <button onclick="tryForbidden()">Uji capability terlarang</button>
+      </div>
+      <pre id="out">// respons mentah muncul di sini</pre>
+    </section>
+  </div>
+
+  <div>
+    <section>
+      <h2>Kebijakan capability</h2>
+      <div style="margin-bottom:8px">
+        <span class="status">Diizinkan</span><br>
+        <div id="safe"></div>
+      </div>
+      <div>
+        <span class="status">Dilarang keras (sandbox menolak)</span><br>
+        <div id="forbidden"></div>
+      </div>
+    </section>
+
+    <section style="margin-top:16px">
+      <h2>Uji sandbox</h2>
+      <div class="row">
+        <select id="c-plugin"></select>
+        <select id="c-cap">
+          <option>http</option><option>kv</option><option>log</option>
+          <option>notify</option><option>secrets</option><option>db</option>
+        </select>
+        <button onclick="callCap()">Panggil</button>
+      </div>
+      <pre id="out2">// hasil pemanggilan</pre>
+    </section>
+
+    <section style="margin-top:16px">
+      <h2>Review marketplace</h2>
+      <div id="reviews" class="empty">Belum ada pengajuan.</div>
+    </section>
+  </div>
+</main>
+
+<div id="toast" class="toast" style="display:none"></div>
+<script>
+const $ = (id) => document.getElementById(id);
+let TOKEN = localStorage.getItem("katalir_token") || "";
+
+function toast(msg){ const t=$("toast"); t.textContent=msg; t.style.display="block";
+  clearTimeout(t._h); t._h=setTimeout(()=>t.style.display="none",4200); }
+
+async function api(path, method="GET", body){
+  const r = await fetch(path, {method,
+    headers:{"Content-Type":"application/json","Authorization":"Bearer "+TOKEN},
+    body: body?JSON.stringify(body):undefined});
+  const text = await r.text();
+  let data; try{ data = JSON.parse(text); }catch(e){ data = {raw:text}; }
+  return {status:r.status, data};
+}
+
+function show(el, obj){ el.textContent = JSON.stringify(obj, null, 2); }
+
+async function connect(){
+  TOKEN = $("tok").value.trim() || TOKEN;
+  localStorage.setItem("katalir_token", TOKEN);
+  await refresh();
+}
+
+async function refresh(){
+  const v = await api("/version");
+  if (v.status===200 && v.data.build) $("ver").textContent =
+    "Katalir " + (v.data.build.commit || "unknown").slice(0,10) +
+    " · " + v.data.features_present + "/" + v.data.features_total + " fitur";
+
+  const caps = await api("/plugins/capabilities");
+  if (caps.status===200){
+    $("safe").innerHTML = caps.data.safe.map(c=>`<span class="chip safe">${c}</span>`).join("");
+    $("forbidden").innerHTML = caps.data.forbidden.map(c=>`<span class="chip bad">${c}</span>`).join("");
+  } else if (caps.status===401){ toast("Token tidak sah (401)."); }
+
+  const p = await api("/plugins");
+  if (p.status!==200){ $("rows").innerHTML =
+      `<tr><td colspan="5" class="empty">Gagal memuat (HTTP ${p.status}).</td></tr>`; return; }
+  const list = p.data.plugins || [];
+  $("s-inst").textContent = p.data.stats.installed;
+  $("s-call").textContent = p.data.stats.calls;
+  $("s-rev").textContent  = p.data.stats.reviews;
+
+  $("rows").innerHTML = list.length ? list.map(pl=>`
+    <tr>
+      <td><b>${pl.name}</b><br><span class="status">${pl.description||"—"}</span></td>
+      <td><code>${pl.version}</code></td>
+      <td>${(pl.capabilities||[]).map(c=>`<span class="chip">${c}</span>`).join("")||"—"}</td>
+      <td><span class="pill ${pl.enabled?'on':'off'}">${pl.enabled?'aktif':'nonaktif'}</span></td>
+      <td>
+        <button onclick="toggle('${pl.name}',${!pl.enabled})">${pl.enabled?'Nonaktifkan':'Aktifkan'}</button>
+        <button class="danger" onclick="uninstall('${pl.name}')">Hapus</button>
+      </td>
+    </tr>`).join("")
+    : `<tr><td colspan="5" class="empty">Belum ada plugin.</td></tr>`;
+
+  $("c-plugin").innerHTML = list.map(pl=>`<option>${pl.name}</option>`).join("");
+
+  const rv = await api("/plugins/reviews");
+  const rs = (rv.data.reviews||[]);
+  $("reviews").innerHTML = rs.length ? rs.map(r=>`
+    <div style="padding:6px 0;border-bottom:1px solid var(--line)">
+      <b>${r.name}</b> <code>${r.version}</code>
+      <span class="pill ${r.status==='approved'?'on':'off'}">${r.status}</span>
+      ${r.errors&&r.errors.length?`<div class="status">pelanggaran: ${r.errors.join("; ")}</div>`:""}
+      ${r.status==='pending'?`<div style="margin-top:5px">
+        <button onclick="decide('${r.request_id}','approve')">Setujui</button>
+        <button class="danger" onclick="decide('${r.request_id}','reject')">Tolak</button>
+      </div>`:""}
+    </div>`).join("") : `<div class="empty">Belum ada pengajuan.</div>`;
+}
+
+function caps(){ return [...document.querySelectorAll(".row input[type=checkbox]:checked")].map(c=>c.value); }
+
+async function install(){
+  const name=$("i-name").value.trim();
+  const r = await api("/plugins/install","POST",{manifest:{
+    name, version:$("i-ver").value.trim()||"1.0.0", entry:"main:run",
+    capabilities:caps(), min_katalir_version:$("i-min").value.trim(),
+    author:"UI", description:"dipasang dari marketplace UI"}});
+  show($("out"), r); toast("install -> HTTP "+r.status); await refresh();
+}
+
+async function tryForbidden(){
+  const r = await api("/plugins/install","POST",{manifest:{
+    name:"evil.secretreader", version:"1.0.0", entry:"main:run",
+    capabilities:["secrets","db"], author:"attacker",
+    description:"mencoba menjangkau vault"}});
+  show($("out"), r);
+  toast(r.status===403 ? "DIBLOKIR 403 (benar)" : "TIDAK diblokir (HTTP "+r.status+")");
+  await refresh();
+}
+
+async function toggle(name, on){
+  const r = await api(`/plugins/${name}/enable`,"POST",{enabled:on});
+  toast(`${name} -> ${on?'aktif':'nonaktif'} (HTTP ${r.status})`); await refresh();
+}
+
+async function uninstall(name){
+  const r = await api(`/plugins/${name}`,"DELETE");
+  toast(`hapus ${name} -> HTTP ${r.status}`); await refresh();
+}
+
+async function callCap(){
+  const r = await api(`/plugins/${$("c-plugin").value}/call`,"POST",
+    {capability:$("c-cap").value, args:{key:"demo", op:"set", value:42}});
+  show($("out2"), r); toast("call -> HTTP "+r.status); await refresh();
+}
+
+async function decide(id, aksi){
+  const r = await api(`/plugins/reviews/${id}/${aksi}`,"POST",{reviewer:"ui@katalir"});
+  toast(`${aksi} -> HTTP ${r.status}`); await refresh();
+}
+
+if (TOKEN){ $("tok").value = TOKEN; }
+connect();
+setInterval(()=>{ if(TOKEN) refresh(); }, 15000);
+</script>
+</body>
+</html>

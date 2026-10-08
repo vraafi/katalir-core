@@ -407,29 +407,58 @@ def test_11_isolasi_antar_user(ctx):
 # ---------------------------------------------------------------------------
 def test_12_performa_paralel_vs_seri(ctx):
     n = 8
-    jeda = 0.10
+    # `jeda` sengaja BESAR relatif terhadap I/O Postgres (~0.6s untuk
+    # list_branches + mark_branches_bulk + tulis akhir, terukur pada pooler
+    # ap-southeast-1). Kalau jeda kecil (0.10s), waktu total didominasi latensi
+    # DB dan uji jadi tidak bisa membedakan paralel dari seri.
+    jeda = 0.5
     ex = de.start_execution(ctx["wid"], idempotency_key=f"t12-{uuid.uuid4()}")
     kunci = [f"k{i}" for i in range(n)]
     pf.fan_out(ex["id"], "split1", kunci, merge_step_id="m")
 
+    # Bukti paralelisme DIUKUR DUA CARA supaya tidak rapuh terhadap beban mesin:
+    #   (a) OVERLAP  : berapa pekerja yang benar-benar aktif BERSAMAAN.
+    #                  Ini bukti STRUKTURAL — tidak bergantung jam, tidak
+    #                  bergantung latensi jaringan, tidak bergantung beban CPU.
+    #   (b) WAKTU    : total detik vs baseline seri (n x jeda).
+    #
+    # Kenapa ditambah: saat suite PENUH dijalankan, mesin sibuk dan uji ini
+    # pernah gagal dengan speedup 1.00x padahal di isolasi lolos. Pengukuran
+    # ulang menunjukkan `overlap_puncak=8/8` — paralelisme NYATA — sementara
+    # waktu total memang didominasi I/O DB. Jadi yang salah bukan produk,
+    # melainkan metrik ujinya.
+    aktif = 0
+    puncak = 0
+
     async def pekerja(k, inp):
-        await asyncio.sleep(jeda)
-        return {"k": k}
+        nonlocal aktif, puncak
+        aktif += 1
+        puncak = max(puncak, aktif)
+        try:
+            await asyncio.sleep(jeda)
+            return {"k": k}
+        finally:
+            aktif -= 1
 
     t0 = time.monotonic()
     hasil = asyncio.run(pf.run_branches(ex["id"], "split1", pekerja))
     paralel = time.monotonic() - t0
     seri = n * jeda
     print(f"[12] {n} cabang x {jeda}s: paralel={paralel:.2f}s  seri={seri:.2f}s  "
-          f"speedup={seri/paralel:.2f}x")
+          f"speedup={seri/paralel:.2f}x  overlap_puncak={puncak}/{n}")
     assert hasil["summary"]["success"] == n
-    # Bukti PARALELISME: seluruh cabang selesai dalam waktu yang mendekati
-    # SATU cabang (0.10s) + overhead I/O Postgres (~0.15s per round trip,
-    # terukur). Kalau berurutan, tidak mungkin di bawah 8x0.10s = 0.80s.
-    # Ambang 0.10s + 0.55s margin sudah membuktikan paralelisme tanpa rapuh
-    # terhadap latensi jaringan.
-    assert paralel < jeda + 0.55, (
-        f"tidak cukup paralel: {paralel:.2f}s (seri {seri:.2f}s)")
-    print(f"[12] BUKTI paralel: {paralel:.2f}s < {jeda + 0.55:.2f}s "
+
+    # (a) BUKTI STRUKTURAL (utama): seluruh cabang tumpang tindih.
+    assert puncak == n, (
+        f"tidak ada overlap penuh: puncak {puncak} dari {n} cabang")
+    print(f"[12] BUKTI overlap: {puncak}/{n} cabang aktif BERSAMAAN")
+
+    # (b) BUKTI EMPIRIS: jauh lebih cepat daripada n x jeda.
+    #     Ambang 50% dari seri memberi margin ~1.4s di atas I/O DB, sementara
+    #     implementasi yang benar-benar serial akan butuh seri + I/O ≈ 4.6s.
+    assert paralel < seri * 0.5, (
+        f"tidak cukup paralel: {paralel:.2f}s (seri {seri:.2f}s, "
+        f"I/O DB ~0.6s)")
+    print(f"[12] BUKTI paralel: {paralel:.2f}s < {seri * 0.5:.2f}s "
           f"(seri {seri:.2f}s)")
     _bersih(ctx["svc"], ex["id"], ctx["uid"], ctx["wid"])

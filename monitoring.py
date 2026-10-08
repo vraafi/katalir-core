@@ -80,7 +80,13 @@ class Metrics:
             }
 
     def render_prometheus(self) -> str:
-        """Eksposisi teks format Prometheus 0.0.4."""
+        """Eksposisi teks format Prometheus 0.0.4.
+
+        Menyertakan `# HELP` (dari `describe()`) dan `# TYPE` per keluarga metrik.
+        Tanpa ini `describe()` hanya tersimpan dan tidak pernah terlihat oleh
+        scraper, dan `promtool check metrics` menganggap tipe metrik tidak
+        terdeklarasi (counter/gauge tak bisa dibedakan).
+        """
         snap = self.snapshot()
         lines: list[str] = []
 
@@ -91,22 +97,50 @@ class Metrics:
             isi = ",".join(f'{kk}="{vv}"' for kk, vv in pasangan)
             return "{" + isi + "}"
 
+        def _family(nama: str, jenis: str, series: list) -> None:
+            if not series:
+                return
+            if nama in self.help:
+                # Escape sesuai spec: backslash, newline, kutip ganda.
+                teks = (self.help[nama].replace("\\", "\\\\")
+                        .replace("\n", "\\n").replace('"', '\\"'))
+                lines.append(f"# HELP {nama} {teks}")
+            lines.append(f"# TYPE {nama} {jenis}")
+            for k, v in series:
+                lines.append(f"{nama}{_labels(k)} {_fmt(v)}")
+
+        cg: dict[str, list] = {}
         for k, v in sorted(snap["counters"].items()):
-            lines.append(f"{k[0]}{_labels(k)} {_fmt(v)}")
+            cg.setdefault(k[0], []).append((k, v))
+        for nama, series in cg.items():
+            _family(nama, "counter", series)
+
+        gg: dict[str, list] = {}
         for k, v in sorted(snap["gauges"].items()):
-            lines.append(f"{k[0]}{_labels(k)} {_fmt(v)}")
+            gg.setdefault(k[0], []).append((k, v))
+        for nama, series in gg.items():
+            _family(nama, "gauge", series)
+
+        hg: dict[str, list] = {}
         for k, vals in sorted(snap["histograms"].items()):
-            nama = k[0]
-            for le in (50, 100, 250, 500, 1000, 2500, 5000):
-                n = sum(1 for x in vals if x <= le)
-                lbl = _labels(k)
-                if lbl:
-                    inner = lbl[1:-1] + f',le="{le}"'
-                else:
-                    inner = f'le="{le}"'
-                lines.append(f"{nama}_bucket{{{inner}}} {n}")
-            lines.append(f"{nama}_sum{_labels(k)} {_fmt(sum(vals))}")
-            lines.append(f"{nama}_count{_labels(k)} {len(vals)}")
+            hg.setdefault(k[0], []).append((k, vals))
+        for nama, groups in hg.items():
+            if nama in self.help:
+                teks = (self.help[nama].replace("\\", "\\\\")
+                        .replace("\n", "\\n").replace('"', '\\"'))
+                lines.append(f"# HELP {nama} {teks}")
+            lines.append(f"# TYPE {nama} histogram")
+            for k, vals in groups:
+                for le in (50, 100, 250, 500, 1000, 2500, 5000):
+                    n = sum(1 for x in vals if x <= le)
+                    lbl = _labels(k)
+                    if lbl:
+                        inner = lbl[1:-1] + f',le="{le}"'
+                    else:
+                        inner = f'le="{le}"'
+                    lines.append(f"{nama}_bucket{{{inner}}} {n}")
+                lines.append(f"{nama}_sum{_labels(k)} {_fmt(sum(vals))}")
+                lines.append(f"{nama}_count{_labels(k)} {len(vals)}")
         return "\n".join(lines) + "\n"
 
 

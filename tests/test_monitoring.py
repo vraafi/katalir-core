@@ -179,3 +179,45 @@ def test_12_alert_no_secret_leak():
     assert "sk-abcdefghijklmnop" not in blob
     assert "Bearer" not in blob
     assert mon.MASK in blob
+
+
+# 13. Eksposisi WAJIB menyertakan # HELP (dari describe) + # TYPE per keluarga.
+#     Regresi: `describe()` dulu hanya tersimpan dan TIDAK PERNAH dirender,
+#     sehingga scraper kehilangan tipe metrik (counter vs gauge tak terbedakan)
+#     dan `promtool check metrics` mengeluh. Ditemukan saat hard test LIVE:
+#     /metrics hanya mengembalikan 13 byte ("katalir_up 1") tanpa header.
+def test_13_prometheus_help_and_type():
+    m = mon.Metrics()
+    m.describe("katalir_up", "Katalir process up")
+    m.set_gauge("katalir_up", 1)
+    m.inc("katalir_executions_total", 1, {"status": "success"})
+    m.observe("latency_ms", 120)
+
+    teks = m.render_prometheus()
+    assert "# HELP katalir_up Katalir process up" in teks
+    assert "# TYPE katalir_up gauge" in teks
+    assert "# TYPE katalir_executions_total counter" in teks
+    assert "# TYPE latency_ms histogram" in teks
+
+    # Urutan spec: HELP harus mendahului TYPE, dan TYPE mendahului series.
+    i_help = teks.index("# HELP katalir_up")
+    i_type = teks.index("# TYPE katalir_up")
+    i_series = teks.index("katalir_up 1")
+    assert i_help < i_type < i_series
+
+    # Komentar TIDAK boleh mengacaukan parser -> nilai tetap terbaca.
+    parsed = mon.parse_prometheus(teks)
+    assert parsed["katalir_up"] == 1
+    assert parsed['katalir_executions_total{status="success"}'] == 1
+
+
+# 14. HELP dengan karakter khusus harus di-escape sesuai spec Prometheus.
+def test_14_prometheus_help_escaping():
+    m = mon.Metrics()
+    m.describe("x_metric", 'baris1\nbaris2 "kutip" back\\slash')
+    m.set_gauge("x_metric", 2)
+    teks = m.render_prometheus()
+    baris = [ln for ln in teks.splitlines() if ln.startswith("# HELP x_metric")][0]
+    assert "\n" not in baris                      # newline di-escape
+    assert '\\n' in baris and '\\"' in baris and "\\\\" in baris
+    assert len(baris.splitlines()) == 1
