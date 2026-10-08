@@ -66,5 +66,34 @@
     }
   },
   "no_token_status": 401,
-  "local_ok": true
+  "local_ok": true,
+  "prod_version": {
+    "01_cron": true,
+    "02_durable": true,
+    "03_retry_dlq": true,
+    "04_subworkflow": true,
+    "05_parallel_fanout": true,
+    "06_code_sandbox": true,
+    "07_secrets": true,
+    "08_mcp_server": true,
+    "09_memory": true,
+    "10_templates": true,
+    "11_testkit": true,
+    "12_guardrails": true,
+    "13_vector_store": true,
+    "14_hitl": true,
+    "15_evaluation": true,
+    "16_insights": true,
+    "17_secrets_enterprise": true,
+    "18_advanced_scheduling": true,
+    "19_monitoring": true,
+    "20_environments": true,
+    "21_source_control": true,
+    "22_queue_mode": true,
+    "23_sso": true,
+    "24_ai_workflow_gen": true,
+    "25_workflow_optimizer": true,
+    "26_collab": true,
+    "27_plugins": true
+  }
 }

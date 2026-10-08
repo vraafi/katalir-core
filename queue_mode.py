@@ -709,6 +709,25 @@ class QueueManager:
     `backend` = "auto" | "redis" | "memory". Pada "auto", Redis dipakai bila
     `KATALIR_REDIS_URL`/`REDIS_URL` terisi DAN `PING` berhasil; kalau tidak,
     turun ke memori (single instance) tanpa mematikan aplikasi.
+
+    TODO(prod, Okt 2026): instance produksi
+    (`web-production-dc90b.up.railway.app`) masih memakai backend `memory`
+    karena `KATALIR_REDIS_URL` belum bisa diisi di sana. 11 alternatif sudah
+    dicoba dan GAGAL (detail + link di docs/enterprise-100-percent-log.md):
+      1 Railway Redis add-on  -> token project-scoped, "Not Authorized"
+      2 Upstash free tier     -> butuh pendaftaran akun
+      3 Redis Cloud free      -> butuh akun + kartu kredit
+      4 Docker Redis          -> daemon tidak bisa start (butuh WSL)
+      5 WSL2 + Redis          -> wsl.exe DIBLOKIR Security Center
+      6 Memurai               -> download 403 (Cloudflare)
+      7 conda-forge win-64    -> tidak ada build
+      8 msys2 Redis           -> netapi32.dll error 5
+      9 cygwin Redis          -> netapi32.dll error 5
+     10 Valkey 9.1.2 win64    -> BERHASIL, dipakai sebagai server uji nyata
+     11 Railway variable     -> "Project Token not found" / "Not Authorized"
+    Langkah yang TIDAK butuh kredensial baru: tambahkan add-on Redis di
+    dashboard Railway, lalu set `KATALIR_REDIS_URL` ke URL internalnya
+    (`redis://default:<pass>@<host>:<port>`). Tanpa perubahan kode.
     """
 
     def __init__(self, backend: str = "auto",

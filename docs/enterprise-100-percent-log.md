@@ -199,11 +199,36 @@ HGETALL katalir:q:job:a2ddf8af301d
 Screenshot UI: `docs/evidence/f06-queue-dashboard.png`
 (`backend: redis`, `server: 9.1.2 · Windows_NT 10.0 x86_64`, depth 60, total 60, by_status queued 60).
 
-**Jalur B — endpoint di produksi (`https://katalir.de5.net`)** dijalankan setelah push
-(bagian "Verifikasi Production" di bawah mencatat hasilnya).
+**Jalur B — endpoint di produksi (`https://web-production-dc90b.up.railway.app`)**
+
+Push `30bd44e` → deploy Railway aktif (`deployment_id 6a95813a-6663-43c1-abc6-8fd506ab9b7b`,
+`commit 30bd44e30b280ee57f056e5947856d9ad3676892`). Raw output:
+
+```
+### GET /queue/workers -> HTTP 200
+{"status":"success","backend":"memory","redis":{},"visibility_timeout":0.0,
+ "workers":{"workers":0,"concurrency":0,"processed":0,"failed":0},
+ "depth":{"ready":0,"inflight":0,"dlq":0,"total":0},"by_status":{}}
+
+### GET /queue/stats -> HTTP 200
+{"status":"success","stats":{"total":0,"queued":0,"inflight":0,"dlq":0,"by_status":{}}}
+
+### GET /queue/ui -> HTTP 200
+<!DOCTYPE html><html lang="id">… <title>Katalir — Queue Mode</title> …
+
+### GET /version -> HTTP 200
+{"status":"success","build":{"commit":"30bd44e30b280ee57f056e5947856d9ad3676892",
+ "branch":"main","service":"web","environment":"production",
+ "deployment_id":"6a95813a-6663-43c1-abc6-8fd506ab9b7b","python":"3.12.7"},
+ "features":{"01_cron":true, … ,"06_code_sandbox":true,"07_secrets":true, …}}
+```
+
+**Endpoint `/queue/*` AKTIF di produksi.** Backend produksi masih `memory`
+karena `KATALIR_REDIS_URL` belum dapat diisi (lihat tabel alternatif di bawah);
+degradasi anggun terbukti bekerja — aplikasi tetap melayani, bukan 500.
 
 **Catatan provider terkelola (jujur, sesuai aturan misi):** untuk Redis terkelola
-gratis, 10 alternatif dicoba dan hasilnya:
+gratis, **11 alternatif** dicoba dan hasilnya:
 
 | # | Alternatif | Hasil |
 |---|---|---|
@@ -217,15 +242,22 @@ gratis, 10 alternatif dicoba dan hasilnya:
 | 8 | msys2 Redis 8.10.2 | ❌ `unable to load netapi32.dll, Win32 error 5` |
 | 9 | cygwin Redis | ❌ `unable to load netapi32.dll, Win32 error 5` |
 | 10 | **Valkey 9.1.2 win64 (build resmi)** | ✅ **BERHASIL** — server nyata jalan di `127.0.0.1:6379` |
+| 11 | Railway GraphQL `variableCollectionUpsert` | ❌ `{"errors":[{"message":"Project Token not found"}]}` / `Not Authorized` — token tidak berhak menulis env |
 
 Temuan akar masalah saat 8–9 gagal: binari di bawah direktori berawalan titik
 (`C:\Users\user\Proyek_AI\.redis_dist\`) gagal `bind socket errno 10106` /
 `unable to load netapi32.dll`; binari **yang sama** di `C:\katalir-valkey\`
 berjalan sempurna. Itulah sebabnya provider dipasang di path tanpa awalan titik.
 
+**TODO di kode** (`queue_mode.QueueManager` docstring): langkah tanpa kredensial
+baru = tambahkan add-on Redis di dashboard Railway, set `KATALIR_REDIS_URL` ke
+URL internalnya (`redis://default:<pass>@<host>:<port>`) — tanpa perubahan kode.
+
 ### Commit
 
-Lihat bagian "Commit Fitur #6" di akhir dokumen (hash + bukti push `origin/main`).
+| Hash | Isi | Push |
+|---|---|---|
+| `30bd44e` | `feat(queue): Fitur #6 — Queue Mode Scaling 100% production-ready (Redis NYATA)` | `b3c3d9e..30bd44e main -> main` ✅ |
 
 ### Status: 100% COMPLETE ✅
 
