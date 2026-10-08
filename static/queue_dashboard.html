@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Katalir — Queue Mode</title>
+<style>
+  :root{
+    --bg:#0f1115; --panel:#171a21; --panel2:#1e222b; --line:#2b303b;
+    --fg:#e8ecf3; --muted:#98a2b3; --accent:#5b8cff; --ok:#22c55e;
+    --warn:#f59e0b; --bad:#ef4444;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--fg);
+       font:14px/1.5 ui-sans-serif,system-ui,"Segoe UI",Roboto,sans-serif}
+  header{display:flex;align-items:center;gap:14px;padding:14px 22px;
+         background:var(--panel);border-bottom:1px solid var(--line)}
+  header h1{font-size:16px;margin:0;font-weight:650;letter-spacing:.2px}
+  .badge{font-size:11px;padding:3px 9px;border-radius:999px;
+         background:rgba(91,140,255,.15);color:var(--accent);
+         border:1px solid rgba(91,140,255,.35)}
+  .spacer{flex:1}
+  main{padding:18px 22px;display:flex;flex-direction:column;gap:16px}
+  section{background:var(--panel);border:1px solid var(--line);border-radius:12px;
+          padding:14px 16px}
+  section h2{font-size:13px;margin:0 0 10px;text-transform:uppercase;
+             letter-spacing:.7px;color:var(--muted);font-weight:650}
+  .stat{display:flex;gap:14px;flex-wrap:wrap}
+  .stat div{background:var(--panel2);border:1px solid var(--line);
+            border-radius:10px;padding:9px 16px;min-width:104px}
+  .stat b{display:block;font-size:21px;font-weight:680;line-height:1.25}
+  .stat span{font-size:11px;color:var(--muted);text-transform:uppercase;
+             letter-spacing:.5px}
+  table{width:100%;border-collapse:collapse;font-size:13px}
+  th,td{text-align:left;padding:8px;border-bottom:1px solid var(--line)}
+  th{color:var(--muted);font-weight:600;font-size:11.5px;
+     text-transform:uppercase;letter-spacing:.5px}
+  code{background:var(--panel2);padding:1px 6px;border-radius:5px;font-size:12px}
+  .pill{font-size:11px;padding:2px 9px;border-radius:999px;font-weight:600}
+  .pill.on{background:rgba(34,197,94,.15);color:var(--ok);
+           border:1px solid rgba(34,197,94,.4)}
+  .pill.off{background:rgba(239,68,68,.15);color:var(--bad);
+            border:1px solid rgba(239,68,68,.4)}
+  .pill.warn{background:rgba(245,158,11,.15);color:var(--warn);
+             border:1px solid rgba(245,158,11,.4)}
+  button{font:inherit;font-size:12.5px;padding:7px 12px;border-radius:8px;
+         border:1px solid var(--line);background:var(--panel2);color:var(--fg);
+         cursor:pointer}
+  button:hover{border-color:var(--accent)}
+  button.primary{background:var(--accent);border-color:var(--accent);color:#fff}
+  button.danger{color:var(--bad);border-color:rgba(239,68,68,.4)}
+  input{font:inherit;font-size:13px;padding:7px 9px;border-radius:8px;
+        border:1px solid var(--line);background:var(--panel2);color:var(--fg)}
+  .row{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:10px}
+  .bar{height:10px;border-radius:999px;background:var(--panel2);
+       border:1px solid var(--line);overflow:hidden;display:flex}
+  .bar i{display:block;height:100%}
+  .bar i.ready{background:var(--accent)}
+  .bar i.inflight{background:var(--warn)}
+  .bar i.dlq{background:var(--bad)}
+  pre{margin:8px 0 0;background:#0b0d11;border:1px solid var(--line);
+      border-radius:8px;padding:10px;font-size:12px;max-height:200px;overflow:auto;
+      white-space:pre-wrap;word-break:break-word}
+  .muted{color:var(--muted);font-size:12.5px}
+  .toast{position:fixed;right:18px;bottom:18px;background:var(--panel2);
+         border:1px solid var(--line);border-left:3px solid var(--accent);
+         padding:10px 14px;border-radius:10px;font-size:13px;max-width:420px;
+         display:none}
+</style>
+</head>
+<body>
+<header>
+  <h1>Katalir · Queue Mode Scaling</h1>
+  <span class="badge" id="backend">backend: —</span>
+  <span class="badge" id="server">server: —</span>
+  <span class="spacer"></span>
+  <span class="muted" id="ts">—</span>
+</header>
+<main>
+  <section>
+    <h2>Worker pool &amp; kedalaman antrian</h2>
+    <div class="stat">
+      <div><b id="s-ready">0</b><span>ready (depth)</span></div>
+      <div><b id="s-inflight">0</b><span>in-flight</span></div>
+      <div><b id="s-dlq">0</b><span>DLQ</span></div>
+      <div><b id="s-total">0</b><span>total job</span></div>
+      <div><b id="s-workers">0</b><span>worker aktif</span></div>
+      <div><b id="s-conc">0</b><span>concurrency</span></div>
+      <div><b id="s-done">0</b><span>diproses</span></div>
+      <div><b id="s-fail">0</b><span>gagal</span></div>
+    </div>
+    <div class="bar" id="bar" style="margin-top:12px"></div>
+    <p class="muted" style="margin:8px 0 0">
+      Lease / visibility timeout: <code id="vis">—</code> detik — job
+      <code>running</code> tanpa ACK selama ini dianggap milik worker mati dan
+      diklaim ulang.
+    </p>
+  </section>
+
+  <section>
+    <h2>Aksi</h2>
+    <div class="row">
+      <button class="primary" onclick="refresh()">Refresh</button>
+      <button onclick="post('/queue/reclaim','reclaimed')">Reclaim job worker mati</button>
+      <button onclick="post('/queue/dlq/replay','replayed')">Replay DLQ</button>
+      <button class="danger" onclick="post('/queue/recover','requeued')">Recover in-flight</button>
+    </div>
+    <div class="row">
+      <input id="wid" placeholder="workflow_id (uji)" value="demo-queue" size="24">
+      <button onclick="enqueue()">Enqueue job uji</button>
+      <span class="muted">atau</span>
+      <button onclick="enqueueN(100)">Enqueue 100 job</button>
+      <button onclick="enqueueN(1000)">Enqueue 1000 job</button>
+    </div>
+  </section>
+
+  <section>
+    <h2>Breakdown status (dibaca langsung dari Redis)</h2>
+    <table><thead><tr><th>Status</th><th>Jumlah</th></tr></thead>
+      <tbody id="tbody"><tr><td colspan="2" class="muted">memuat…</td></tr></tbody>
+    </table>
+  </section>
+
+  <section>
+    <h2>Raw response</h2>
+    <pre id="raw">—</pre>
+  </section>
+</main>
+<div class="toast" id="toast"></div>
+
+<script>
+const $ = (id) => document.getElementById(id);
+function token(){
+  const q = new URLSearchParams(location.search).get('token');
+  if (q) { try { localStorage.setItem('katalir_token', q); } catch(e){} }
+  try { return localStorage.getItem('katalir_token') || ''; } catch(e) { return ''; }
+}
+function toast(msg, bad){
+  const t = $('toast'); t.textContent = msg;
+  t.style.borderLeftColor = bad ? 'var(--bad)' : 'var(--accent)';
+  t.style.display = 'block'; clearTimeout(t._h);
+  t._h = setTimeout(() => t.style.display = 'none', 3200);
+}
+async function api(path, opts){
+  const h = Object.assign({'Content-Type':'application/json'}, (opts||{}).headers||{});
+  const tk = token(); if (tk) h['Authorization'] = 'Bearer ' + tk;
+  const r = await fetch(path, Object.assign({}, opts, {headers:h}));
+  const txt = await r.text();
+  let data; try { data = JSON.parse(txt); } catch(e) { data = {raw: txt}; }
+  if (!r.ok) { const e = new Error('HTTP '+r.status); e.data = data; throw e; }
+  return data;
+}
+function setStat(id, v){ $(id).textContent = v; }
+function render(d){
+  $('backend').textContent = 'backend: ' + (d.backend || '—');
+  const ri = d.redis || {};
+  $('server').textContent = 'server: ' + (ri.server || '—') +
+      (ri.os ? ' · ' + ri.os : '');
+  const dep = d.depth || {}, w = d.workers || {};
+  setStat('s-ready', dep.ready ?? 0);
+  setStat('s-inflight', dep.inflight ?? 0);
+  setStat('s-dlq', dep.dlq ?? 0);
+  setStat('s-total', dep.total ?? 0);
+  setStat('s-workers', w.workers ?? 0);
+  setStat('s-conc', w.concurrency ?? 0);
+  setStat('s-done', w.processed ?? 0);
+  setStat('s-fail', w.failed ?? 0);
+  $('vis').textContent = d.visibility_timeout ?? '—';
+  const tot = Math.max(1, (dep.ready||0) + (dep.inflight||0) + (dep.dlq||0));
+  $('bar').innerHTML =
+    '<i class="ready" style="width:'+((dep.ready||0)/tot*100)+'%"></i>' +
+    '<i class="inflight" style="width:'+((dep.inflight||0)/tot*100)+'%"></i>' +
+    '<i class="dlq" style="width:'+((dep.dlq||0)/tot*100)+'%"></i>';
+  const by = d.by_status || {};
+  const keys = Object.keys(by);
+  $('tbody').innerHTML = keys.length
+    ? keys.sort().map(k => '<tr><td><code>'+k+'</code></td><td>'+by[k]+'</td></tr>').join('')
+    : '<tr><td colspan="2" class="muted">belum ada job</td></tr>';
+  $('raw').textContent = JSON.stringify(d, null, 2);
+  $('ts').textContent = new Date().toLocaleTimeString();
+}
+async function refresh(){
+  try { render(await api('/queue/workers')); }
+  catch(e){ toast('Gagal: ' + e.message + ' (token?)', true);
+            $('raw').textContent = JSON.stringify(e.data, null, 2); }
+}
+async function post(path, key){
+  try { const d = await api(path, {method:'POST'});
+        toast(path + ' → ' + key + ' = ' + d[key]); await refresh(); }
+  catch(e){ toast('Gagal: ' + e.message, true); }
+}
+async function enqueue(){
+  const wid = $('wid').value || 'demo-queue';
+  try { const d = await api('/queue/enqueue', {method:'POST',
+        body: JSON.stringify({workflow_id: wid, flow_data:{}, trigger_input:{}})});
+        toast('job dibuat: ' + d.job.id); await refresh(); }
+  catch(e){ toast('Gagal: ' + e.message, true); }
+}
+async function enqueueN(n){
+  const wid = $('wid').value || 'demo-queue';
+  let ok = 0;
+  for (let i = 0; i < n; i++){
+    try { await api('/queue/enqueue', {method:'POST',
+      body: JSON.stringify({workflow_id: wid, flow_data:{n:i}, trigger_input:{}})}); ok++; }
+    catch(e){ break; }
+  }
+  toast(ok + '/' + n + ' job dimasukkan'); await refresh();
+}
+refresh();
+setInterval(refresh, 2000);
+</script>
+</body>
+</html>

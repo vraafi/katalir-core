@@ -89,3 +89,13 @@ standardwebhooks==1.1.0
 # croniter = parser cron 5-field pure-python; terverifikasi lokal v6.0.0.
 # Tidak dipakai langsung frontend; scheduler_manager.py (loop asyncio di _lifespan).
 croniter>=2.0
+
+# Queue Mode Scaling — Fitur #6 (binding Redis NYATA, Okt 2026).
+# `redis` = klien RESMI Redis/Valkey (MIT). Versi 8.1.0 rilis 2026-07-30,
+# dipakai untuk klaim job atomik via Lua (EVALSHA), prioritas ZSET, visibility
+# timeout, dan DLQ. Kompatibel dengan Redis 7.2+ dan Valkey 9.x (API sama).
+# Diverifikasi lokal: PING True, valkey_version 9.1.2 / redis_version 7.2.4,
+# 12/12 skenario hard test lulus (scripts/enterprise_queue_live.py).
+# Import di queue_mode.py bersifat MALAS: tanpa paket ini aplikasi tetap jalan
+# (degradasi ke backend memori), jadi tidak mematikan startup.
+redis==8.1.0

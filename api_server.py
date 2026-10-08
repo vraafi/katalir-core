@@ -83,10 +83,19 @@ def _queue_mgr():
 
 
 def _queue_handler(job):
-    """Handler worker: jalankan workflow dari payload job."""
+    """Handler worker: jalankan workflow dari payload job.
+
+    PENTING: worker pool berjalan di thread TANPA event loop, sedangkan
+    `launch_execution` (sinkron) memanggil `asyncio.create_task` di dalamnya.
+    Memanggilnya langsung -> `RuntimeError: no running event loop` dan SETIAP
+    job workflow berakhir DEAD di DLQ. Karena itu pemanggilan diarahkan ke
+    loop asyncio persisten lewat `queue_bridge.run_sync`.
+    """
+    import queue_bridge
     import execution_engine as engine
     p = job.payload or {}
-    return engine.launch_execution(
+    return queue_bridge.run_sync(
+        engine.launch_execution,
         p.get("workflow_id"), p.get("flow_data") or {},
         p.get("trigger_input") or {}, owner_email=p.get("owner_email", ""))
 
@@ -153,6 +162,11 @@ async def _lifespan(_app: "FastAPI"):
     if _QUEUE_POOL is not None:
         try:
             _QUEUE_POOL.stop(graceful=True)
+        except Exception:  # noqa: BLE001
+            pass
+        try:
+            import queue_bridge
+            queue_bridge.shutdown()
         except Exception:  # noqa: BLE001
             pass
     if _mcp_ctx is not None:
@@ -5393,6 +5407,67 @@ def queue_recover(authorization: str | None = Header(None)):
     security.get_current_user(authorization)
     n = _queue_mgr().queue.recover_inflight()
     return {"status": "success", "requeued": n}
+
+
+@app.get("/queue/workers")
+def queue_workers(authorization: str | None = Header(None)):
+    """Status worker pool + kedalaman antrian (dipakai dashboard UI).
+
+    `depth` = jumlah job siap diambil (ZCARD `ready` di Redis) — angka ini
+    dibaca LANGSUNG dari server Redis, jadi mencerminkan state lintas PROSES,
+    bukan sekadar isi memori proses API.
+    """
+    security.get_current_user(authorization)
+    mgr = _queue_mgr()
+    pool = _QUEUE_POOL.health() if _QUEUE_POOL else {
+        "workers": 0, "concurrency": 0, "processed": 0, "failed": 0}
+    st = mgr.queue.stats()
+    return {"status": "success", "backend": mgr.backend_name,
+            "redis": mgr.redis_info,
+            "visibility_timeout": getattr(mgr, "visibility_timeout", 0.0),
+            "workers": pool,
+            "depth": {"ready": st.get("queued", 0),
+                      "inflight": st.get("inflight", 0),
+                      "dlq": st.get("dlq", 0),
+                      "total": st.get("total", 0)},
+            "by_status": st.get("by_status", {})}
+
+
+@app.post("/queue/reclaim")
+def queue_reclaim(authorization: str | None = Header(None)):
+    """Klaim ulang job yang lease-nya lewat (worker mati tanpa ack).
+
+    Berbeda dari `/queue/recover` (yang hanya melihat job in-flight di proses
+    ini), endpoint ini memakai visibility timeout: job 'running' yang tidak
+    di-ack dalam `visibility_timeout` detik dianggap milik worker MATI dan
+    dikembalikan ke antrian — aman dijalankan oleh proses mana pun.
+    """
+    security.get_current_user(authorization)
+    n = _queue_mgr().reclaim_expired()
+    return {"status": "success", "reclaimed": n}
+
+
+@app.post("/queue/dlq/replay")
+def queue_dlq_replay(authorization: str | None = Header(None)):
+    """Pindahkan semua job DLQ kembali ke antrian untuk dicoba lagi."""
+    security.get_current_user(authorization)
+    n = _queue_mgr().dlq_replay()
+    return {"status": "success", "replayed": n}
+
+
+@app.get("/queue/ui")
+def queue_ui():
+    """Dashboard Queue Mode (status worker + kedalaman antrian).
+
+    Halaman statis same-origin: `fetch` tidak kena CORS. Shell tidak memuat
+    data sensitif; tiap panggilan di dalamnya tetap membawa Bearer token dan
+    melewati `get_current_user`.
+    """
+    from fastapi.responses import HTMLResponse
+    path = os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                        "static", "queue_dashboard.html")
+    with open(path, encoding="utf-8") as fh:
+        return HTMLResponse(fh.read())
 
 
 # ---------------------------------------------------------------------------

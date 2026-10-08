@@ -1,0 +1,137 @@
+{
+  "feature": "#6 Queue Mode Scaling",
+  "url": "redis://127.0.0.1:6379/0",
+  "lulus": 12,
+  "total": 12,
+  "hasil": [
+    {
+      "no": 1,
+      "skenario": "Redis ping + INFO server nyata",
+      "status": "PASS",
+      "raw": "redis-py 8.1.0\nPING -> True  (12.12 ms)\nserver.redis_version   = 7.2.4\nserver.valkey_version  = 9.1.2\nserver.os              = Windows_NT 10.0 x86_64\nserver.tcp_port        = 6379\nDBSIZE                 = 5",
+      "detail": {
+        "pong": true,
+        "version": "9.1.2"
+      }
+    },
+    {
+      "no": 2,
+      "skenario": "1000 job -> SEMUA diproses (diverifikasi dari Redis)",
+      "status": "PASS",
+      "raw": "enqueue 1000 job     -> ZCARD(ready)=1000  (0.266s, 3753 job/s)\ndrain (4 worker)     -> processed=1000  (0.597s, 1676 job/s)\nby_status (dari Redis) = {'completed': 1000}\nsisa ready           = 0\nCEK: zcard==1000 dan completed==1000 dan sisa==0 -> True",
+      "detail": {
+        "processed": 1000,
+        "by_status": {
+          "completed": 1000
+        }
+      }
+    },
+    {
+      "no": 3,
+      "skenario": "Worker crash (dibunuh) -> job requeued via visibility timeout",
+      "status": "PASS",
+      "raw": "worker PID        = 9012 (proses terpisah)\nKATALIR_VISIBILITY_TIMEOUT = 1.5s (dibaca dari env)\njob diklaim       -> inflight=['crash-1'] status=running attempts=1\nworker DIBUNUH    -> proc.kill(); tidak ada ACK\nreclaim_expired() -> 1 job direklaim ['crash-1']\nstatus setelah    = queued  attempts=1\nZCARD(ready)      = 1\nCEK: job kembali ke ready tanpa ACK -> True",
+      "detail": {
+        "reclaimed": 1,
+        "attempts": 1
+      }
+    },
+    {
+      "no": 4,
+      "skenario": "Horizontal scaling: 2 proses worker paralel",
+      "status": "PASS",
+      "raw": "beban: 200 job (sleep 0.01s tiap job)\n1 PROSES worker -> 3.937s, processed=[200]\n2 PROSES worker -> 2.546s, processed=[100, 100]  (tiap proses dapat kerja: True)\nspeedup         = 1.55x\nby_status       = {'completed': 200}\nCEK: speedup>1.2x dan kedua proses memproses job -> True",
+      "detail": {
+        "speedup": 1.55,
+        "per_proc": [
+          100,
+          100
+        ]
+      }
+    },
+    {
+      "no": 5,
+      "skenario": "Prioritas high/normal/low + FIFO tie-break",
+      "status": "PASS",
+      "raw": "enqueue urutan: p-low(prio 0) -> p-norm(prio 5) -> p-high(prio 10)\ndequeue urutan: ['p-high', 'p-norm', 'p-low']\nCEK: high -> normal -> low -> True",
+      "detail": {
+        "urutan": [
+          "p-high",
+          "p-norm",
+          "p-low"
+        ]
+      }
+    },
+    {
+      "no": 6,
+      "skenario": "Job timeout dipaksa (lease/visibility 60s default)",
+      "status": "PASS",
+      "raw": "visibility_timeout default = 60.0s (lease job 'running')\njob.timeout               = 0.3s, handler tidur 3s\nprocess_once()            -> timeout\nstatus akhir              = dead\nerror                     = 'timeout'\nCEK: job dibunuh saat lewat timeout, error='timeout' -> True",
+      "detail": {
+        "status": "dead",
+        "error": "timeout"
+      }
+    },
+    {
+      "no": 7,
+      "skenario": "Retry max 3 -> job masuk DLQ",
+      "status": "PASS",
+      "raw": "max_retries=3, handler selalu gagal\nclaim#1 -> failed (status=queued)\nclaim#2 -> failed (status=queued)\nclaim#3 -> failed (status=queued)\nclaim#4 -> failed (status=dead)\nattempts akhir = 4  status = dead\nDLQ            = ['dlq-1']\nCEK: 4x claim lalu masuk DLQ (attempts>max_retries) -> True",
+      "detail": {
+        "attempts": 4,
+        "dlq": [
+          "dlq-1"
+        ]
+      }
+    },
+    {
+      "no": 8,
+      "skenario": "DLQ replay -> job kembali diproses",
+      "status": "PASS",
+      "raw": "DLQ sebelum replay = ['dlq-1']\ndlq_replay()       -> 1 job dipindah\nDLQ sesudah replay = []\nproses ulang       -> completed\nstatus akhir       = completed\nCEK: DLQ kosong dan job selesai -> True",
+      "detail": {
+        "replayed": 1
+      }
+    },
+    {
+      "no": 9,
+      "skenario": "Graceful shutdown: job in-flight diselesaikan",
+      "status": "PASS",
+      "raw": "enqueue 60 job (sleep 0.03s), 4 worker\nsaat stop: inflight=4\nstop(graceful=True) -> 0.110s\ninflight akhir = []  sisa ready = 0\ncompleted      = 60/60\nCEK: tak ada job hilang saat shutdown -> True",
+      "detail": {
+        "completed": 60,
+        "total": 60
+      }
+    },
+    {
+      "no": 10,
+      "skenario": "Redis down -> error jelas + antrian pause (degradasi)",
+      "status": "PASS",
+      "raw": "URL mati = redis://127.0.0.1:6399/0\nRedisQueueBackend._client() -> ConnectionError: Error 10061 connecting to 127.0.0.1:6399. No connection could be made because the target machine actively refused it.\nQueueManager(auto)  backend = memory\nQueueManager(redis) backend = memory\nhealth.backend = memory\nantrian tetap jalan (memori): enqueue+dequeue -> db6642e972e8\nCEK: Redis down -> error jelas + degradasi anggun, tidak crash -> True",
+      "detail": {
+        "error": "ConnectionError: Error 10061 connecting to 127.0.0.1:6399. No connection could be made because the target machine actively refused it.",
+        "fallback": "memory"
+      }
+    },
+    {
+      "no": 11,
+      "skenario": "Load test 10.000 job -> semua diproses",
+      "status": "PASS",
+      "raw": "enqueue 10000 job -> ZCARD=10000  (2.267s, 4411 job/s)\ndrain 8 worker -> processed=10000  (5.735s, 1744 job/s)\nby_status      = {'completed': 10000}\nsisa ready     = 0\nCEK: 10.000/10.000 selesai, antrian kosong -> True",
+      "detail": {
+        "enqueue_per_s": 4411,
+        "drain_per_s": 1744
+      }
+    },
+    {
+      "no": 12,
+      "skenario": "Benchmark throughput/latency (ambang keras)",
+      "status": "PASS",
+      "raw": "enqueue 2000 job (1 round-trip via _PUT_LUA):\n  mean=0.236ms  p50=0.204ms  p95=0.370ms  -> 4245 job/s\ndequeue+ack 2000 job (Lua claim atomik):\n  mean=0.367ms  p50=0.329ms  p95=0.479ms  -> 2728 job/s\nCEK: enqueue>300 job/s dan p95<50ms dan dequeue>200 job/s -> True",
+      "detail": {
+        "enqueue_per_s": 4245,
+        "dequeue_per_s": 2728
+      }
+    }
+  ]
+}

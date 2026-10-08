@@ -5,19 +5,30 @@
 # eksekusi -> update. Supabase tetap source of truth.
 #
 # RISET (Okt 2026):
-#   - ARQ: resmi MAINTENANCE-ONLY -> ditolak sebagai default.
-#   - RQ: retry/scheduling kini built-in, tapi fork-per-job & pickle.
-#   - Dramatiq: pilihan umum "RQ-alternatif" (retry/rate-limit bawaan).
-#   - Taskiq: async-native, ekosistem lebih muda.
-#   - KEPUTUSAN: implementasi backend ANTRIAN in-house (memori untuk test +
-#     Redis opsional via `redis` yang diimpor MALAS). Nol dependensi wajib;
-#     Redis tidak tersedia -> degradasi anggun ke memori (single-instance).
+#   - `arq` 0.28.0 (2026-04-16): masih PRA-1.0 -> gagal kriteria "production-
+#     ready >=1.0" (https://pypi.org/pypi/arq/json).
+#   - `rq` 2.12.0 (2026-08-30): matang, MIT; sejak v2.2 (Jun 2025) punya
+#     `SpawnWorker` sehingga Windows didukung tanpa `os.fork()`. Namun worker
+#     RQ = PROSES terpisah yang memanggil fungsi top-level (pickle); engine
+#     Katalir memanggil `engine.launch_execution` di dalam proses FastAPI
+#     (asyncio), jadi integrasi RQ menuntut jembatan proses tambahan.
+#   - `celery` 5.6.3 (2026-03-26): matang tapi sinkron & berat untuk app
+#     asyncio; `dramatiq` 2.2.1 (2026-09-02) juga sinkron.
+#   - `redis` 8.1.0 (2026-07-30): klien RESMI, aktif, MIT -> lolos kriteria.
+#   - KEPUTUSAN: Redis sebagai ANTRIAN SEBENARNYA lewat klien resmi `redis`
+#     8.1.0, dengan klaim ATOMIK (skrip Lua) supaya aman lintas proses.
+#     Alasan: (a) `redis` memenuhi semua kriteria library; (b) klaim atomik +
+#     `inflight` berbatas waktu memberi jaminan yang sama dengan broker job
+#     sungguhan (worker mati -> job diklaim ulang); (c) tetap asyncio-friendly
+#     tanpa proses tambahan yang harus di-deploy; (d) Redis tidak tersedia ->
+#     degradasi anggun ke memori (single instance).
 # ======================================================================
 
 from __future__ import annotations
 
 import heapq
 import itertools
+import json
 import os
 import threading
 import time
@@ -148,27 +159,126 @@ class MemoryQueueBackend:
         with self._lock:
             return list(self._jobs.values())
 
+    def get_job(self, job_id: str) -> Optional[Job]:
+        with self._lock:
+            return self._jobs.get(job_id)
+
     def size(self) -> int:
         with self._lock:
             return len(self._heap)
 
 
-class RedisQueueBackend:
-    """Backend Redis (opsional). `redis` diimpor malas.
+#: Namespace kunci Redis. Semua kunci satu antrian berada di bawah prefix ini.
+REDIS_KEY_NS = "katalir:q"
 
-    Dipakai bila `KATALIR_REDIS_URL` diisi. Karena queue Redis sebenarnya
-    memakai list + worker proses terpisah, di sini kita memakai Redis untuk
-    PERSISTENSI payload job dan tetap mengandalkan indeks prioritas lokal
-    (cukup untuk memvalidasi perilaku queue mode pada satu instance).
+#: Lua: ambil satu job dari ZSET `ready` SECARA ATOMIK + tandai running.
+#:
+#: Kenapa Lua: `ZPOPMIN` lalu `HSET` sebagai dua round-trip punya jendela balapan
+#: — dua worker bisa mengklaim job yang sama, atau job hilang bila worker mati
+#: di antara keduanya. Satu skrip = satu operasi atomik di server Redis, jadi
+#: klaim aman untuk BANYAK PROSES sekaligus (syarat horizontal scaling).
+#: KEYS[1]=ready  KEYS[2]=prefix job  KEYS[3]=inflight
+#: ARGV[1]=sekarang  ARGV[2]=deadline visibilitas
+_CLAIM_LUA = """
+local res = redis.call('ZPOPMIN', KEYS[1])
+if #res == 0 then return nil end
+local id = res[1]
+redis.call('HSET', KEYS[2] .. id, 'status', 'running', 'started_at', ARGV[1])
+redis.call('HINCRBY', KEYS[2] .. id, 'attempts', 1)
+redis.call('ZADD', KEYS[3], ARGV[2], id)
+return id
+"""
+
+#: Lua: simpan job + masukkan ke ZSET `ready` dalam SATU round-trip.
+#: `INCR seq` dan `ZADD` harus memakai nilai seq yang sama, jadi keduanya tidak
+#: bisa dipisah ke pipeline biasa. Satu skrip = 1 round-trip, penting untuk
+#: enqueue massal (10.000 job).
+#: KEYS[1]=seq  KEYS[2]=ready  KEYS[3]=job:<id>
+#: ARGV[1]=priority  ARGV[2]=job_id  ARGV[3..]=pasangan field,value
+_PUT_LUA = """
+local seq = redis.call('INCR', KEYS[1])
+local args = {}
+for i = 3, #ARGV do args[#args + 1] = ARGV[i] end
+redis.call('HSET', KEYS[3], unpack(args))
+local score = (-tonumber(ARGV[1])) * 1000000000000 + seq
+redis.call('ZADD', KEYS[2], score, ARGV[2])
+return seq
+"""
+
+
+class RedisQueueBackend:
+    """Backend antrian BERBASIS REDIS — dipakai lintas PROSES (horizontal).
+
+    Berbeda dari versi lama (yang hanya mencerminkan payload ke Redis sambil
+    tetap memakai indeks lokal), implementasi ini menjadikan Redis sebagai
+    antrian SEBENARNYA:
+
+      * `ready`     ZSET  score = (-prioritas, seq)  -> prioritas tinggi dulu,
+                          tie-break FIFO.
+      * `job:<id>`  HASH  seluruh field job (payload JSON, status, attempts…).
+      * `inflight`  ZSET  score = deadline visibilitas. Worker yang mati
+                          meninggalkan entri kedaluwarsa -> `reclaim_expired()`
+                          mengembalikannya ke `ready` (bukti "worker crash ->
+                          job requeued").
+      * `dlq`       LIST  id job yang habis retry.
+      * `seq`       INCR  nomor urut monotonik untuk tie-break FIFO.
+
+    Klaim job memakai Lua atomik (`_CLAIM_LUA`) supaya aman untuk banyak worker
+    di banyak proses sekaligus.
+
+    `redis` diimpor MALAS: nol dependensi wajib, dan Redis mati -> `available()`
+    False sehingga `QueueManager` turun ke backend memori.
     """
 
     name = "redis"
 
-    def __init__(self, url: str = "") -> None:
-        self.url = url or os.environ.get("KATALIR_REDIS_URL", "")
-        self._local = MemoryQueueBackend()
+    def __init__(self, url: str = "", namespace: str = REDIS_KEY_NS,
+                 visibility_timeout: float = 0.0) -> None:
+        self.url = (url or os.environ.get("KATALIR_REDIS_URL")
+                    or os.environ.get("REDIS_URL") or "")
+        self.ns = namespace
+        # `visibility_timeout` = lease job 'running'. Worker yang mati tidak
+        # pernah ack, jadi setelah lease lewat job diklaim ulang. Argumen
+        # eksplisit > env KATALIR_VISIBILITY_TIMEOUT > default 60 detik.
+        # (Sebelumnya env ini hanya didokumentasikan di worker_main.py tapi
+        # TIDAK PERNAH dibaca — bug nyata yang ketangkap hard test #3.)
+        if not visibility_timeout:
+            try:
+                visibility_timeout = float(
+                    os.environ.get("KATALIR_VISIBILITY_TIMEOUT") or 60.0)
+            except (TypeError, ValueError):
+                visibility_timeout = 60.0
+        self.visibility_timeout = float(visibility_timeout)
         self._r = None
+        self._sha: Optional[str] = None
+        self._sha_put: Optional[str] = None
+        self._lock = threading.RLock()
 
+    # -- kunci -------------------------------------------------------------
+    @property
+    def k_ready(self) -> str:
+        return f"{self.ns}:ready"
+
+    @property
+    def k_inflight(self) -> str:
+        return f"{self.ns}:inflight"
+
+    @property
+    def k_dlq(self) -> str:
+        return f"{self.ns}:dlq"
+
+    @property
+    def k_seq(self) -> str:
+        return f"{self.ns}:seq"
+
+    @property
+    def k_job_prefix(self) -> str:
+        return f"{self.ns}:job:"
+
+    def k_job(self, job_id: str) -> str:
+        return f"{self.k_job_prefix}{job_id}"
+
+    # -- koneksi -----------------------------------------------------------
     def available(self) -> bool:
         if not self.url:
             return False
@@ -181,43 +291,217 @@ class RedisQueueBackend:
     def _client(self):
         if self._r is None:
             import redis
-            self._r = redis.Redis.from_url(self.url, decode_responses=True)
+            self._r = redis.Redis.from_url(
+                self.url, decode_responses=True,
+                socket_connect_timeout=5, socket_timeout=10,
+                health_check_interval=30)
             self._r.ping()
         return self._r
 
-    # Redis tidak wajib di-hard-test (butuh server); operasi didelegasikan ke
-    # indeks lokal sambil mencerminkan payload ke Redis bila tersedia.
-    def put(self, job: Job) -> None:
-        self._local.put(job)
+    def info(self) -> dict:
+        """Info server nyata (bukti koneksi ke provider, bukan tiruan)."""
+        s = self._client().info("server")
+        return {"server": s.get("valkey_version") or s.get("redis_version"),
+                "mode": s.get("redis_mode", "standalone"),
+                "os": s.get("os"), "url_host": self.url.split("@")[-1]}
+
+    # -- serialisasi -------------------------------------------------------
+    @staticmethod
+    def _encode(job: Job) -> dict:
+        return {"id": job.id, "payload": json.dumps(job.payload or {}),
+                "priority": str(int(job.priority)),
+                "max_retries": str(int(job.max_retries)),
+                "timeout": "" if job.timeout is None else str(float(job.timeout)),
+                "attempts": str(int(job.attempts)), "status": job.status,
+                "error": job.error or "", "result": "",
+                "created_at": str(job.created_at),
+                "started_at": "" if job.started_at is None else str(job.started_at),
+                "ended_at": "" if job.ended_at is None else str(job.ended_at)}
+
+    @staticmethod
+    def _decode(h: dict) -> Job:
+        def _f(v, d=None):
+            try:
+                return float(v)
+            except (TypeError, ValueError):
+                return d
+
+        def _i(v, d=0):
+            try:
+                return int(v)
+            except (TypeError, ValueError):
+                return d
+
         try:
-            import json
-            self._client().set(f"katalir:job:{job.id}", json.dumps(job.to_dict()))
-        except Exception:  # noqa: BLE001 - Redis down -> tetap jalan lokal
-            pass
+            payload = json.loads(h.get("payload") or "{}")
+        except Exception:  # noqa: BLE001
+            payload = {}
+        return Job(
+            id=h.get("id", ""), payload=payload,
+            priority=_i(h.get("priority")), max_retries=_i(h.get("max_retries"), 3),
+            timeout=_f(h.get("timeout")), attempts=_i(h.get("attempts")),
+            status=h.get("status", QUEUED), error=h.get("error", ""),
+            created_at=_f(h.get("created_at"), time.time()),
+            started_at=_f(h.get("started_at")), ended_at=_f(h.get("ended_at")))
+
+    def _score(self, job: Job) -> float:
+        """Prioritas tinggi dulu, lalu FIFO. Skor lebih kecil = lebih dulu."""
+        seq = self._client().incr(self.k_seq)
+        return (-int(job.priority)) * 1e12 + seq
+
+    # -- operasi antrian ---------------------------------------------------
+    def put(self, job: Job) -> None:
+        """Enqueue dalam SATU round-trip lewat `_PUT_LUA`.
+
+        `INCR seq` dan `ZADD ready` harus memakai nilai seq yang SAMA, jadi
+        keduanya tidak bisa dipisah ke pipeline biasa. Satu skrip = 1 RTT —
+        penting agar enqueue 10.000 job tidak menjadi 30.000 round-trip.
+        """
+        r = self._client()
+        flat: list = []
+        for k, v in self._encode(job).items():
+            flat.append(k)
+            flat.append(v)
+        argv = [str(int(job.priority)), job.id] + flat
+        keys = (3, self.k_seq, self.k_ready, self.k_job(job.id))
+        if self._sha_put is None:
+            try:
+                self._sha_put = r.script_load(_PUT_LUA)
+            except Exception:  # noqa: BLE001 - EVALSHA tak didukung -> EVAL
+                self._sha_put = ""
+        try:
+            if self._sha_put:
+                r.evalsha(self._sha_put, *keys, *argv)
+            else:
+                r.eval(_PUT_LUA, *keys, *argv)
+        except Exception:  # noqa: BLE001 - script hilang setelah restart
+            self._sha_put = ""
+            r.eval(_PUT_LUA, *keys, *argv)
 
     def get(self, timeout: float = 0.0):
-        return self._local.get(timeout)
+        r = self._client()
+        if self._sha is None:
+            try:
+                self._sha = r.script_load(_CLAIM_LUA)
+            except Exception:  # noqa: BLE001 - EVALSHA tak didukung -> EVAL
+                self._sha = ""
+        batas = time.time() + max(0.0, timeout)
+        while True:
+            now = time.time()
+            try:
+                if self._sha:
+                    jid = r.evalsha(self._sha, 3, self.k_ready,
+                                    self.k_job_prefix, self.k_inflight,
+                                    repr(now), repr(now + self.visibility_timeout))
+                else:
+                    jid = r.eval(_CLAIM_LUA, 3, self.k_ready,
+                                 self.k_job_prefix, self.k_inflight,
+                                 repr(now), repr(now + self.visibility_timeout))
+            except Exception:  # noqa: BLE001 - script hilang setelah restart
+                self._sha = None
+                continue
+            if jid:
+                h = r.hgetall(self.k_job(jid))
+                if h:
+                    return self._decode(h)
+                continue
+            if time.time() >= batas:
+                return None
+            time.sleep(0.005)
 
-    def ack(self, job_id, result=None):
-        self._local.ack(job_id, result)
+    def _finish(self, job_id: str, status: str, error: str = "",
+                result: Any = None) -> None:
+        r = self._client()
+        pipe = r.pipeline(transaction=True)
+        pipe.hset(self.k_job(job_id), mapping={
+            "status": status, "error": error or "",
+            "result": "" if result is None else json.dumps(result, default=str),
+            "ended_at": repr(time.time())})
+        pipe.zrem(self.k_inflight, job_id)
+        if status == DEAD:
+            pipe.rpush(self.k_dlq, job_id)
+        pipe.execute()
 
-    def requeue(self, job_id):
-        self._local.requeue(job_id)
+    def ack(self, job_id: str, result: Any = None) -> None:
+        self._finish(job_id, COMPLETED, result=result)
 
-    def dead(self, job_id, error):
-        self._local.dead(job_id, error)
+    def requeue(self, job_id: str) -> None:
+        r = self._client()
+        h = r.hgetall(self.k_job(job_id))
+        if not h:
+            return
+        job = self._decode(h)
+        pipe = r.pipeline(transaction=True)
+        pipe.hset(self.k_job(job_id), mapping={"status": QUEUED, "error": ""})
+        pipe.zrem(self.k_inflight, job_id)
+        pipe.zadd(self.k_ready, {job_id: self._score(job)})
+        pipe.execute()
 
-    def inflight(self):
-        return self._local.inflight()
+    def dead(self, job_id: str, error: str) -> None:
+        self._finish(job_id, DEAD, error=error)
 
-    def dlq(self):
-        return self._local.dlq()
+    def inflight(self) -> list[str]:
+        return sorted(self._client().zrange(self.k_inflight, 0, -1))
 
-    def jobs(self):
-        return self._local.jobs()
+    def reclaim_expired(self, now: Optional[float] = None) -> list[str]:
+        """Kembalikan job 'running' yang deadline-nya LEWAT (worker mati).
 
-    def size(self):
-        return self._local.size()
+        Inilah mekanisme "worker crash -> job requeued": worker tidak pernah
+        memanggil ack, jadi entri `inflight` kedaluwarsa dan diklaim ulang.
+        """
+        r = self._client()
+        now = time.time() if now is None else now
+        kadaluarsa = r.zrangebyscore(self.k_inflight, "-inf", repr(now))
+        for jid in kadaluarsa:
+            self.requeue(jid)
+        return list(kadaluarsa)
+
+    def dlq(self) -> list[Job]:
+        ids = self._client().lrange(self.k_dlq, 0, -1)
+        out = []
+        for jid in ids:
+            h = self._client().hgetall(self.k_job(jid))
+            if h:
+                out.append(self._decode(h))
+        return out
+
+    def dlq_replay(self) -> list[str]:
+        """Pindahkan semua job DLQ kembali ke antrian (replay)."""
+        r = self._client()
+        ids = r.lrange(self.k_dlq, 0, -1)
+        for jid in ids:
+            h = r.hgetall(self.k_job(jid))
+            if not h:
+                continue
+            r.hset(self.k_job(jid), mapping={"status": QUEUED, "error": ""})
+            r.zadd(self.k_ready, {jid: self._score(self._decode(h))})
+        if ids:
+            r.delete(self.k_dlq)
+        return list(ids)
+
+    def jobs(self) -> list[Job]:
+        r = self._client()
+        out: list[Job] = []
+        for key in r.scan_iter(match=f"{self.k_job_prefix}*", count=500):
+            h = r.hgetall(key)
+            if h:
+                out.append(self._decode(h))
+        return out
+
+    def get_job(self, job_id: str) -> Optional[Job]:
+        h = self._client().hgetall(self.k_job(job_id))
+        return self._decode(h) if h else None
+
+    def size(self) -> int:
+        return int(self._client().zcard(self.k_ready))
+
+    def clear(self) -> None:
+        """Bersihkan SELURUH kunci antrian (dipakai test/benchmark)."""
+        r = self._client()
+        keys = list(r.scan_iter(match=f"{self.ns}:*", count=500))
+        if keys:
+            r.delete(*keys)
+
 
 
 # ---------------------------------------------------------------------------
@@ -264,7 +548,26 @@ class JobQueue:
             n += 1
         return n
 
+    def reclaim_expired(self) -> int:
+        """Requeue job yang deadline visibilitasnya LEWAT (worker mati).
+
+        Hanya backend Redis yang punya; backend memori mengembalikan 0 karena
+        seluruh state hidup di proses yang sama (tak ada worker terpisah).
+        """
+        fn = getattr(self.backend, "reclaim_expired", None)
+        return len(fn()) if callable(fn) else 0
+
+    def dlq_replay(self) -> int:
+        """Kembalikan job DLQ ke antrian. Hanya backend Redis."""
+        fn = getattr(self.backend, "dlq_replay", None)
+        return len(fn()) if callable(fn) else 0
+
     def _find(self, job_id: str) -> Optional[Job]:
+        # Backend modern punya `get_job` O(1) (Redis: HGETALL satu kunci).
+        # Jangan pindai seluruh job: pada 10.000 job itu O(n) per kegagalan.
+        getter = getattr(self.backend, "get_job", None)
+        if callable(getter):
+            return getter(job_id)
         for j in self.backend.jobs():
             if j.id == job_id:
                 return j
@@ -401,18 +704,34 @@ class WorkerPool:
 # ---------------------------------------------------------------------------
 
 class QueueManager:
-    """Pilih backend terbaik yang tersedia + sediakan worker pool."""
+    """Pilih backend terbaik yang tersedia + sediakan worker pool.
 
-    def __init__(self, backend: str = "auto") -> None:
+    `backend` = "auto" | "redis" | "memory". Pada "auto", Redis dipakai bila
+    `KATALIR_REDIS_URL`/`REDIS_URL` terisi DAN `PING` berhasil; kalau tidak,
+    turun ke memori (single instance) tanpa mematikan aplikasi.
+    """
+
+    def __init__(self, backend: str = "auto",
+                 redis_url: str = "",
+                 visibility_timeout: float = 0.0) -> None:
         self.backend_name = "memory"
+        self.redis_url = redis_url
+        self.redis_info: dict = {}
+        self.visibility_timeout = 0.0
         self.queue = JobQueue(MemoryQueueBackend())
         if backend in ("auto", "redis"):
-            r = RedisQueueBackend()
+            r = RedisQueueBackend(url=redis_url,
+                                  visibility_timeout=visibility_timeout)
             if r.available():
                 try:
-                    r._client()  # ping
+                    r._client()  # ping -> benar-benar tersambung
                     self.queue = JobQueue(r)
                     self.backend_name = "redis"
+                    self.visibility_timeout = r.visibility_timeout
+                    try:
+                        self.redis_info = r.info()
+                    except Exception:  # noqa: BLE001 - INFO opsional
+                        self.redis_info = {}
                 except Exception:  # noqa: BLE001 - Redis down -> memori
                     self.backend_name = "memory"
             elif backend == "redis":
@@ -424,4 +743,12 @@ class QueueManager:
         return WorkerPool(self.queue, handler, concurrency)
 
     def health(self) -> dict:
-        return {"backend": self.backend_name, **self.queue.stats()}
+        return {"backend": self.backend_name, "redis": self.redis_info,
+                "visibility_timeout": self.visibility_timeout,
+                **self.queue.stats()}
+
+    def reclaim_expired(self) -> int:
+        return self.queue.reclaim_expired()
+
+    def dlq_replay(self) -> int:
+        return self.queue.dlq_replay()

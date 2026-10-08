@@ -1,0 +1,70 @@
+{
+  "workers_before": {
+    "status": "success",
+    "backend": "redis",
+    "redis": {
+      "server": "9.1.2",
+      "mode": "standalone",
+      "os": "Windows_NT 10.0 x86_64",
+      "url_host": "redis://127.0.0.1:6379/0"
+    },
+    "visibility_timeout": 60.0,
+    "workers": {
+      "workers": 4,
+      "concurrency": 4,
+      "processed": 0,
+      "failed": 0,
+      "queue": {
+        "total": 0,
+        "queued": 0,
+        "inflight": 0,
+        "dlq": 0,
+        "by_status": {}
+      }
+    },
+    "depth": {
+      "ready": 0,
+      "inflight": 0,
+      "dlq": 0,
+      "total": 0
+    },
+    "by_status": {}
+  },
+  "workers_after": {
+    "status": "success",
+    "backend": "redis",
+    "redis": {
+      "server": "9.1.2",
+      "mode": "standalone",
+      "os": "Windows_NT 10.0 x86_64",
+      "url_host": "redis://127.0.0.1:6379/0"
+    },
+    "visibility_timeout": 60.0,
+    "workers": {
+      "workers": 4,
+      "concurrency": 4,
+      "processed": 25,
+      "failed": 0,
+      "queue": {
+        "total": 25,
+        "queued": 0,
+        "inflight": 0,
+        "dlq": 0,
+        "by_status": {
+          "completed": 25
+        }
+      }
+    },
+    "depth": {
+      "ready": 0,
+      "inflight": 0,
+      "dlq": 0,
+      "total": 25
+    },
+    "by_status": {
+      "completed": 25
+    }
+  },
+  "no_token_status": 401,
+  "local_ok": true
+}

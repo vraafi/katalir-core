@@ -195,3 +195,110 @@ def test_12_throughput_benchmark():
     dt = time.perf_counter() - t0
     tps = 500 / dt if dt else 0
     assert tps > 100, f"throughput terlalu rendah: {tps:.0f} job/s"
+
+
+# ---------------------------------------------------------------------------
+# Regresi temuan hard-test LIVE (Redis nyata) — Okt 2026
+# ---------------------------------------------------------------------------
+
+# 13. `KATALIR_VISIBILITY_TIMEOUT` BENAR-BENAR dibaca (dulu hanya didokumentasi)
+def test_13_visibility_timeout_dibaca_dari_env(monkeypatch):
+    monkeypatch.setenv("KATALIR_VISIBILITY_TIMEOUT", "1.5")
+    b = qm.RedisQueueBackend(url="redis://127.0.0.1:6379/0")
+    assert b.visibility_timeout == 1.5
+    # argumen eksplisit MENANG atas env
+    b2 = qm.RedisQueueBackend(url="redis://127.0.0.1:6379/0",
+                              visibility_timeout=7.0)
+    assert b2.visibility_timeout == 7.0
+    monkeypatch.delenv("KATALIR_VISIBILITY_TIMEOUT", raising=False)
+    assert qm.RedisQueueBackend(url="redis://127.0.0.1:6379/0").visibility_timeout == 60.0
+
+
+# 14. QueueManager meneruskan visibility_timeout + melaporkannya di health()
+def test_14_queue_manager_laporkan_visibility_timeout(monkeypatch):
+    monkeypatch.setenv("KATALIR_VISIBILITY_TIMEOUT", "2.5")
+    m = qm.QueueManager(backend="auto", redis_url="redis://127.0.0.1:6399/0")
+    assert "visibility_timeout" in m.health()
+    # backend memori -> tidak ada lease (0.0), tapi kuncinya tetap ada
+    assert m.health()["visibility_timeout"] == 0.0
+
+
+# 15. queue_bridge: fungsi sinkron ber-`asyncio.create_task` dari thread worker
+def test_15_queue_bridge_memberi_event_loop_ke_thread():
+    """Tanpa bridge ini, `launch_execution` gagal 'no running event loop'."""
+    import asyncio
+
+    import queue_bridge
+
+    def sinkron_yang_butuh_loop(x):
+        # persis pola execution_engine.launch_execution
+        return asyncio.create_task(asyncio.sleep(0, result=x * 2))
+
+    async def _tunggu(task):
+        return await task
+
+    runner = queue_bridge.LoopRunner(name="test-bridge")
+    try:
+        # dipanggil dari THREAD BIASA (tanpa event loop) -> dulu RuntimeError
+        hasil: list = []
+        th = threading.Thread(target=lambda: hasil.append(
+            runner.call(sinkron_yang_butuh_loop, 21)))
+        th.start()
+        th.join(timeout=10)
+        assert not th.is_alive(), "run_sync menggantung"
+        assert hasil, "run_sync tidak mengembalikan Task"
+
+        task = hasil[0]
+        # Task harus benar-benar SELESAI (bukan dibatalkan saat loop ditutup).
+        # Kalau implementasinya `asyncio.run()` sekali jalan, loop ditutup dan
+        # task ini langsung dibatalkan -> assert di bawah GAGAL.
+        fut = asyncio.run_coroutine_threadsafe(_tunggu(task), runner.start())
+        assert fut.result(timeout=5) == 42
+        assert task.done() and not task.cancelled()
+    finally:
+        runner.stop()
+
+
+# 16. /queue/* endpoint baru terdaftar + wajib token
+def test_16_endpoint_queue_baru_terdaftar():
+    import api_server
+    paths = {r.path for r in api_server.app.routes}
+    for p in ("/queue/health", "/queue/stats", "/queue/enqueue", "/queue/dlq",
+              "/queue/recover", "/queue/workers", "/queue/reclaim",
+              "/queue/dlq/replay", "/queue/ui"):
+        assert p in paths, f"endpoint hilang: {p}"
+    # tanpa token -> 401 (bukan 500)
+    from fastapi.testclient import TestClient
+    with TestClient(api_server.app) as c:
+        for p in ("/queue/workers", "/queue/stats", "/queue/dlq"):
+            assert c.get(p).status_code == 401
+        assert c.get("/queue/ui").status_code == 200
+
+
+# 17. put() memakai satu skrip Lua (1 round-trip) — inti throughput 10k job
+def test_17_put_pakai_lua_satu_round_trip(monkeypatch):
+    """Kalau put() kembali ke pipeline 2 perintah, throughput jatuh -> gagal."""
+    calls: list = []
+
+    class FakeRedis:
+        def __init__(self):
+            self.store = {}
+
+        def script_load(self, src):
+            calls.append("script_load")
+            return "sha-put"
+
+        def evalsha(self, sha, numkeys, *args):
+            calls.append("evalsha")
+            return 1
+
+        def eval(self, src, numkeys, *args):  # noqa: A003
+            calls.append("eval")
+            return 1
+
+    b = qm.RedisQueueBackend(url="redis://x/0")
+    fake = FakeRedis()
+    monkeypatch.setattr(b, "_client", lambda: fake)
+    b.put(qm.Job(id="j1", payload={"n": 1}))
+    assert "evalsha" in calls, f"put() tidak memakai Lua: {calls}"
+    assert "script_load" in calls
