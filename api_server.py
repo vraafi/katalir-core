@@ -4453,6 +4453,12 @@ _FEATURE_MODULES = {
     "09_memory": "memory_manager",
     "10_templates": "workflow_templates",
     "11_testkit": "workflow_testkit",
+    # Penutup gap n8n (8 Okt 2026)
+    "12_guardrails": "guardrails",
+    "13_vector_store": "vector_store",
+    "14_hitl": "hitl",
+    "15_evaluation": "evaluation",
+    "16_insights": "insights",
 }
 
 
@@ -4465,6 +4471,111 @@ def _feature_status() -> dict:
         except Exception:  # noqa: BLE001
             out[key] = False
     return out
+
+
+# ---------------------------------------------------------------------------
+# ENDPOINT HITL (fitur #3) — Human-in-the-Loop
+# Workflow yang dijeda `waiting_approval` dilanjutkan/dihentikan di sini.
+# ---------------------------------------------------------------------------
+class HitlDecisionRequest(BaseModel):
+    """Body POST /hitl/{id}/resume. `token` untuk tautan publik (tanpa login)."""
+    decision: str            # "approve" | "reject"
+    token: str = ""
+    approver: str = ""
+
+
+@app.get("/hitl/pending")
+def hitl_pending(authorization: str | None = Header(None)):
+    """Daftar permintaan persetujuan yang masih menunggu milik user ini."""
+    user = security.get_current_user(authorization)
+    import hitl
+    hitl.expire_due()  # terapkan timeout yang sudah lewat sebelum menjawab
+    rows = [r for r in hitl._backend().list_pending()
+            if str(r.get("owner") or "") == str(user["email"])]
+    return {"status": "success", "pending": [
+        {"request_id": r.get("request_id"), "message": r.get("message"),
+         "channel": r.get("channel"), "node_id": r.get("node_id"),
+         "execution_id": r.get("execution_id"),
+         "timeout_at": r.get("timeout_at"), "created_at": r.get("created_at")}
+        for r in rows]}
+
+
+@app.get("/hitl/{request_id}")
+def hitl_detail(request_id: str, authorization: str | None = Header(None)):
+    """Detail + jejak audit satu permintaan (hanya pemilik)."""
+    user = security.get_current_user(authorization)
+    import hitl
+    row = hitl.get_request(request_id)
+    if not row:
+        raise HTTPException(404, "Permintaan tidak ditemukan.")
+    if str(row.get("owner") or "") != str(user["email"]):
+        raise HTTPException(403, "Bukan permintaan Anda.")
+    return {"status": "success",
+            "request": {k: row.get(k) for k in (
+                "request_id", "status", "channel", "message", "approvers",
+                "approval_mode", "on_timeout", "timeout_at", "resolved_at",
+                "decisions", "execution_id", "node_id")},
+            "audit": hitl.audit_trail(request_id)}
+
+
+@app.post("/hitl/{request_id}/resume")
+def hitl_resume(request_id: str, req: HitlDecisionRequest,
+                authorization: str | None = Header(None)):
+    """Catat keputusan approve/reject.
+
+    Dua cara otorisasi (salah satu):
+      * `token` resume bertanda tangan (tautan di email/Slack) — publik;
+      * JWT user yang merupakan PEMILIK permintaan.
+    """
+    import hitl
+    row = hitl.get_request(request_id)
+    if not row:
+        raise HTTPException(404, "Permintaan tidak ditemukan.")
+
+    token_ok = bool(req.token) and hitl.verify_token(request_id, req.token)
+    approver = str(req.approver or "").strip()
+    if not token_ok:
+        user = security.get_current_user(authorization)
+        if str(row.get("owner") or "") != str(user["email"]):
+            raise HTTPException(403, "Bukan permintaan Anda.")
+        approver = approver or str(user["email"])
+    approver = approver or "anonymous"
+
+    try:
+        updated = hitl.record_decision(request_id, approver, req.decision,
+                                       token=req.token)
+    except hitl.HitlError as exc:
+        raise HTTPException(400, str(exc))
+    return {"status": "success", "decision": req.decision,
+            "request_status": updated.get("status"),
+            "request_id": request_id,
+            "retry_hint": ("resend_execution" if updated.get("status") == "approved"
+                           else None)}
+
+
+@app.get("/hitl/resume/{request_id}")
+def hitl_resume_link(request_id: str, token: str = "", decision: str = "approve"):
+    """Tautan resume satu-klik (dari email/Slack). Mengembalikan JSON ringkas."""
+    import hitl
+    if not hitl.verify_token(request_id, token):
+        raise HTTPException(403, "Token resume tidak valid.")
+    try:
+        updated = hitl.record_decision(request_id, "link", decision, token=token)
+    except hitl.HitlError as exc:
+        raise HTTPException(400, str(exc))
+    return {"status": "success", "request_id": request_id,
+            "decision": decision, "request_status": updated.get("status")}
+
+
+@app.post("/hitl/expire")
+def hitl_expire(authorization: str | None = Header(None)):
+    """Jalankan penyapu timeout HITL (dipanggil cron; idempoten)."""
+    security.get_current_user(authorization)
+    import hitl
+    changed = hitl.expire_due()
+    return {"status": "success", "expired": len(changed),
+            "requests": [{"request_id": r.get("request_id"),
+                          "status": r.get("status")} for r in changed]}
 
 
 @app.get("/health")

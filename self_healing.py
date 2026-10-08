@@ -117,6 +117,15 @@ RULES: tuple[Rule, ...] = (
                "Mengulang dengan teks yang SAMA akan diblokir lagi — "
                "perbaiki input atau longgarkan config guardrail.",
     ),
+    # ── HITL ditolak manusia (fitur #3) ───────────────────────────────────
+    # Deterministik: keputusan manusia tidak berubah karena retry.
+    Rule(
+        "hitl_rejected",
+        re.compile(r"HitlRejected"),
+        "abort", max_attempts=0, search=False,
+        reason="Workflow ditolak oleh approver (human-in-the-loop). "
+               "Mengulang tidak akan mengubah keputusan manusia.",
+    ),
     # ── Kode user gagal (fitur #6: node Code) ─────────────────────────────
     # DIPERIKSA PALING AWAL, dan itu disengaja.
     #

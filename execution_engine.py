@@ -372,6 +372,15 @@ class GuardrailViolationError(RuntimeError):
     """
 
 
+class HitlRejected(RuntimeError):
+    """Node WAIT_FOR_HUMAN ditolak manusia (fitur #3).
+
+    Deterministik: menolak berarti BERHENTI. Pesan diawali "HitlRejected: "
+    supaya `self_healing.classify_error` memetakan ke abort (0 retry) —
+    mengulang tidak akan mengubah keputusan manusia.
+    """
+
+
 class AgentExecutionError(RuntimeError):
     """Node AGENT mengembalikan status GAGAL sebagai dict, bukan exception.
 
@@ -394,6 +403,14 @@ class AgentExecutionError(RuntimeError):
     escalate). Pesan WAJIB memuat teks error aslinya (mis. "500",
     "InternalServerError", "timeout") supaya klasifikasi tepat.
     """
+
+
+def _int_or(value: Any, default: int) -> int:
+    """int(value) bila bisa, else default (config node sering string)."""
+    try:
+        return int(value)
+    except (TypeError, ValueError):
+        return default
 
 
 def _now_ts() -> float:
@@ -760,10 +777,14 @@ class StatefulOrchestrator:
                  trigger_input: Optional[dict] = None,
                  owner_email: str = "",
                  healing_factory: Optional[Callable[[], Any]] = None,
-                 reasoner: Optional[Callable[..., Awaitable[dict]]] = None):
+                 reasoner: Optional[Callable[..., Awaitable[dict]]] = None,
+                 execution_id: str = ""):
         self.graph = graph
         self.registry = registry or get_registry()
         self.trigger_input = dict(trigger_input or {})
+        # Fitur #3 (HITL): id eksekusi dipakai node wait_for_human untuk
+        # mencocokkan permintaan persetujuan yang sudah ada (resume).
+        self.execution_id = execution_id or ""
         # FASE 2.6: pemilik eksekusi (email) WAJIB diketahui node MCP — tool
         # kredensial (telegram/slack/gmail/…) membaca token dari Brankas milik
         # user. Tanpa ini setiap node ber-kredensial gagal "CredentialMissing"
@@ -1587,6 +1608,63 @@ class StatefulOrchestrator:
                 f"{hasil.get('operation')} gagal: {hasil.get('error')}")
         return {"type": "vector_store", **hasil}
 
+    async def _exec_wait_for_human(self, node: FlowNode, inp: dict,
+                                   _extra_roots: Optional[dict] = None) -> dict:
+        """Node WAIT_FOR_HUMAN (fitur #3 HITL): jeda sampai ada persetujuan.
+
+        TIGA jalur:
+          1. permintaan sudah `approved`  -> lewat (idempoten saat resume);
+          2. permintaan sudah `rejected`  -> HitlRejected (abort, tanpa retry);
+          3. belum ada / masih pending    -> buat + notifikasi + HitlPaused.
+        Pause memakai exception kontrol-alir (BUKAN error) supaya tidak
+        memblokir event loop; `execute_workflow_async` menangkapnya dan
+        menandai eksekusi `waiting_approval`.
+        """
+        import hitl
+
+        cfg = self._resolve_cfg(node.data.config or {},
+                                where=f"node '{node.id}'",
+                                extra_roots=_extra_roots)
+        owner = (getattr(self, "owner_email", None)
+                 or cfg.get("owner_email") or "")
+        execution_id = str(getattr(self, "execution_id", "") or "")
+        resume_id = str(cfg.get("resume_request_id") or "")
+
+        row = hitl.get_request(resume_id) if resume_id else None
+        if row is None:
+            row = hitl.find_request(execution_id=execution_id, node_id=node.id)
+
+        if row is not None:
+            status = str(row.get("status") or "")
+            if status == hitl.STATUS_APPROVED:
+                return {"type": "wait_for_human", "status": "approved",
+                        "approved": True, "request_id": row["request_id"],
+                        "decisions": row.get("decisions") or [],
+                        "resumed": True}
+            if status == hitl.STATUS_REJECTED:
+                raise HitlRejected(
+                    f"HitlRejected: node '{node.id}' ditolak manusia "
+                    f"(request {row['request_id']})")
+            # masih pending -> tetap jeda
+            raise hitl.HitlPaused(row)
+
+        row = hitl.create_request(
+            workflow_id=str(cfg.get("workflow_id") or ""),
+            execution_id=execution_id, node_id=node.id, owner=owner,
+            channel=str(cfg.get("channel") or "chat"),
+            message=str(cfg.get("message") or self._first_text(inp)),
+            approvers=cfg.get("approvers"),
+            approval_mode=str(cfg.get("approval_mode") or "any"),
+            timeout_s=_int_or(cfg.get("timeout_s"), hitl.DEFAULT_TIMEOUT_S),
+            on_timeout=str(cfg.get("on_timeout") or "resume"),
+            default_action=str(cfg.get("default_action") or "approve"),
+            escalate_to=cfg.get("escalate_to"),
+            context={"node": node.id, "input": {k: v for k, v in inp.items()
+                                                if k != "_from"}},
+        )
+        row["notify"] = hitl.notify(row)
+        raise hitl.HitlPaused(row)
+
     EXECUTORS: dict[NodeKind, Callable[[Any, FlowNode, dict], Awaitable[dict]]] = {
         NodeKind.TRIGGER: _exec_trigger,
         NodeKind.AGENT: _exec_agent,
@@ -1594,6 +1672,7 @@ class StatefulOrchestrator:
         NodeKind.CODE: _exec_code,
         NodeKind.GUARDRAILS: _exec_guardrails,
         NodeKind.VECTOR_STORE: _exec_vector_store,
+        NodeKind.WAIT_FOR_HUMAN: _exec_wait_for_human,
     }
 
     def _runnable(self, remaining: set[str]) -> list[str]:
@@ -1632,6 +1711,12 @@ class StatefulOrchestrator:
             )
             for nid, res in zip(wave, results):
                 if isinstance(res, Exception):
+                    # Fitur #3 (HITL): jeda BUKAN kegagalan node — teruskan
+                    # apa adanya supaya tidak dibungkus jadi RuntimeError
+                    # (yang akan terbaca sebagai "error" di klien).
+                    import hitl
+                    if isinstance(res, hitl.HitlPaused):
+                        raise res
                     raise RuntimeError(f"Nodo {nid} fallo: {res}") from res
                 remaining.discard(nid)
                 for t in self._succs[nid]:
@@ -1702,6 +1787,12 @@ class StatefulOrchestrator:
                 step.input = inp
                 step.output = self.outputs[node_id]
             except Exception as exc:  # noqa: BLE001
+                # Fitur #3 (HITL): pause BUKAN kegagalan. Teruskan apa adanya
+                # supaya `execute_workflow_async` menandai `waiting_approval`
+                # dan self-healing tidak mengulang (yang akan memblokir lagi).
+                import hitl
+                if isinstance(exc, hitl.HitlPaused):
+                    raise
                 plan = await healing.handle_failure(
                     node_id=node_id, error=exc, attempt=attempt)
                 if plan.action == "retry":
@@ -1782,7 +1873,9 @@ async def execute_workflow_async(workflow_id: str, flow_data: dict,
         db.append_execution_log(execution_id, step.node_id, step.kind.value, step.status, step.output)
 
     orch = StatefulOrchestrator(graph, trigger_input=trigger_input,
-                                owner_email=owner_email)
+                                owner_email=owner_email,
+                                execution_id=execution_id)
+    import hitl
     try:
         steps = await orch.run(on_step=_log_step)
         status = "completed"
@@ -1792,6 +1885,28 @@ async def execute_workflow_async(workflow_id: str, flow_data: dict,
             "workflow_id": workflow_id,
             "status": status,
             "steps": [s.model_dump() for s in steps],
+        }
+    except hitl.HitlPaused as pause:
+        # Fitur #3 (HITL): workflow DIJEDA menunggu manusia — bukan kegagalan.
+        # Status eksplisit `waiting_approval` supaya UI/klien tahu harus
+        # menunggu, bukan menampilkan "error".
+        status = "waiting_approval"
+        db.update_execution_status(execution_id, status)
+        req = pause.request
+        result = {
+            "execution_id": execution_id,
+            "workflow_id": workflow_id,
+            "status": status,
+            "hitl": {
+                "request_id": req.get("request_id"),
+                "channel": req.get("channel"),
+                "message": req.get("message"),
+                "approvers": req.get("approvers"),
+                "approval_mode": req.get("approval_mode"),
+                "timeout_at": req.get("timeout_at"),
+                "resume_token": req.get("resume_token"),
+                "node_id": req.get("node_id"),
+            },
         }
     except Exception as exc:  # noqa: BLE001
         status = "error"
@@ -1814,13 +1929,17 @@ async def _spawn_execution(workflow_id: str, flow_data: dict, execution_id: str,
     # FASE 2.5: id dari `launch_execution` DITERUSKAN ke runner supaya log dan
     # status akhir menempel pada baris `executions` yang di-pegang klien.
     try:
-        await execute_workflow_async(workflow_id, flow_data, trigger_input,
-                                     execution_id=execution_id,
-                                     owner_email=owner_email)
+        res = await execute_workflow_async(workflow_id, flow_data, trigger_input,
+                                           execution_id=execution_id,
+                                           owner_email=owner_email)
+        # Teruskan status SEBENARNYA (termasuk `waiting_approval` dari HITL) —
+        # versi lama selalu melaporkan "completed", menyembunyikan jeda HITL.
         return {
             "execution_id": execution_id,
             "workflow_id": workflow_id,
-            "status": "completed",
+            "status": (res or {}).get("status", "completed"),
+            "hitl": (res or {}).get("hitl"),
+            "error": (res or {}).get("error"),
         }
     except Exception as exc:  # noqa: BLE001
         return {
