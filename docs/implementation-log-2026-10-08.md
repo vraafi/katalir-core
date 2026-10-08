@@ -938,14 +938,18 @@ Selesai — lihat tabel final di bawah.
 | 11 | Testing Framework | ✅ HIJAU | 119 skenario + 11/11 adversarial + load 0 error | (sesi ini) |
 
 ## Ringkasan bukti akhir
+- **FULL PYTEST SUITE: 1227 passed, 42 subtests passed, EXIT=0** (7m45s) —
+  seluruh repo hijau, nol kegagalan.
 - **pytest fitur baru (sesi ini):** MCP 10/10, Templates 15/15, Testkit 12/12.
 - **Katalog testkit:** 119/119 lulus; adversarial keamanan 11/11.
 - **Load:** 50/100/200 konkuren → **0 error**.
 - **DDL diterapkan LIVE:** `workflow_templates` (+ RLS) — 15 statement + fungsi/trigger OK.
 - **Temuan keamanan nyata & diperbaiki:** `bot_token` tidak teredaksi → ditambahkan
-  ke `_SENSITIVE_KEYS`; `tools.py` Telegram vault JSON-aware (fix 8 Okt).
-- **Tidak ada** deploy produksi / push (menunggu GO user; push masih diblokir
-  GCM — lihat `docs/PUSH_BLOCKER.md`).
+  ke `_SENSITIVE_KEYS` (database + agent_redactor, parity dijaga);
+  `tools.py` Telegram vault JSON-aware (fix 8 Okt).
+- **PUSH SELESAI:** `origin/main = 4551104`, 0 commit belum terkirim
+  (pola bypass GCM terdokumentasi di `docs/PUSH_BLOCKER.md`).
+- Deploy produksi Railway TIDAK dilakukan (menunggu GO user).
 
 ## Deviasi brief (dicatat, bukan disembunyikan)
 - Paket contoh brief (`tickforge`, `pyergon`, `flux-core`, `agentbox-sandbox`,
