@@ -1,11 +1,12 @@
 """Verifikasi endpoint build/deploy (/health build + /version).
 
 Tujuan: membuktikan commit yang berjalan DI PRODUCTION bisa diverifikasi dari
-luar tanpa Railway API token, dan bahwa 11 modul fitur ada di image.
+luar tanpa Railway API token, dan bahwa SEMUA modul fitur terdaftar ada di
+image (16 per 8 Okt 2026: 11 lama + 5 penutup gap n8n).
 
 Skenario (6):
   1. GET /health menyertakan blok `build` (tanpa secret)
-  2. GET /version melaporkan 11 fitur
+  2. GET /version melaporkan semua modul fitur terdaftar
   3. /version tidak membocorkan secret apa pun
   4. `commit` mengikuti env RAILWAY_GIT_COMMIT_SHA
   5. fallback "unknown"/"local" saat env tidak ada
@@ -37,12 +38,24 @@ def test_01_health_punya_build(klien):
     print(f"[1] /health build = {body['build']}")
 
 
-def test_02_version_melaporkan_11_fitur(klien):
+def test_02_version_melaporkan_semua_fitur(klien):
+    """Semua modul terdaftar dilaporkan ADA (jumlah diturunkan dari sumber).
+
+    Sebelumnya tes ini mengunci angka 11; angka itu usang setelah 5 fitur
+    penutup gap n8n ditambahkan (guardrails/vector_store/hitl/evaluation/
+    insights). Menurunkan harapan dari `_FEATURE_MODULES` membuat kontrak ini
+    tetap bermakna tanpa perlu diedit setiap kali fitur bertambah.
+    """
     r = klien.get("/version")
     assert r.status_code == 200, r.text
     body = r.json()
-    assert body["features_total"] == 11, body
-    assert body["features_present"] == 11, f"fitur hilang: {body['features']}"
+    expected = len(api_server._FEATURE_MODULES)
+    assert body["features_total"] == expected, body
+    assert body["features_present"] == expected, f"fitur hilang: {body['features']}"
+    # Fitur penutup gap n8n (8 Okt 2026) WAJIB ada.
+    for key in ("12_guardrails", "13_vector_store", "14_hitl",
+                "15_evaluation", "16_insights"):
+        assert body["features"].get(key) is True, f"{key} tidak ada: {body['features']}"
     print(f"[2] /version features_present={body['features_present']}/"
           f"{body['features_total']}")
 
