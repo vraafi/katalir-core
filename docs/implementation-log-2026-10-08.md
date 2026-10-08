@@ -1004,7 +1004,7 @@ otomatis dari fixture sesi): **23/23 PASS — ALL GREEN.**
 
 ## 2.5 HARD TEST PRODUKSI
 
-Skrip `_prod_hard_test.py` — 6 kelompok:
+Skrip `_prod_hard_run.py` — 6 kelompok:
 
 | Kelompok | Hasil |
 |---|---|

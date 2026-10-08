@@ -14,7 +14,7 @@ Status rinci per komponen ada di `docs/deployment-status.md`.
 | # | Verifikasi | Cakupan | Hasil | Perintah |
 |---|---|---|---|---|
 | 1 | **E2E 11 fitur di produksi** | 23 pemeriksaan HTTP ke backend LIVE | **23/23 PASS** | `python _prod_e2e_11features.py` |
-| 2 | **Hard test produksi** | load + adversarial + durability + long + integrasi + n8n | **55/55 PASS** | `python _prod_hard_test.py` |
+| 2 | **Hard test produksi** | load + adversarial + durability + long + integrasi + n8n | **55/55 PASS** | `python _prod_hard_run.py` |
 | 3 | **Load terisolasi** | 50/100/200/500 konkuren + `/templates` ber-auth | **5/5 PASS** | `python _prod_load_isolated.py` |
 | 4 | **Playwright galeri (stub)** | 12 tes UI `/templates` | **12/12 PASS** | `--config=playwright.templates.config.ts` |
 | 5 | **Playwright galeri (LIVE)** | 1 tes tanpa stub, backend nyata | **1/1 PASS** | `E2E_SPEC=templates-live ...` |
@@ -134,7 +134,7 @@ sekali untuk GET idempoten (perilaku klien produksi).
 python _prod_e2e_11features.py            # -> TOTAL 23/23 PASS
 
 # Hard test produksi (6 kelompok)
-python _prod_hard_test.py                 # -> TOTAL 55/55 PASS
+python _prod_hard_run.py                 # -> TOTAL 55/55 PASS
 
 # Load terisolasi (angka bersih)
 python _prod_load_isolated.py             # -> TOTAL 5/5 PASS

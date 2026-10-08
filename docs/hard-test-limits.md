@@ -30,7 +30,19 @@ diperbaiki lalu diuji ulang dengan bukti mentah.
 | 11 | F2 Durable | Tidak ada batas eksplisit ukuran state | MEDIUM | ⚠️ ACCEPTED (dibatasi Postgres) |
 | 12 | F11 Testkit | Tidak ada self-test/meta-test eksplisit | MEDIUM | ⚠️ ACCEPTED (dokumentasi) |
 
-**Regresi setelah semua perbaikan: 255 tes lulus, 0 gagal.**
+### Verifikasi lanjutan (V1–V3)
+
+| # | Area | Temuan | Severity | Status |
+|---|---|---|---|---|
+| 13 | Suite tes | `pytest` polos dari root **tidak pernah selesai** (>1 jam): skrip harness `*_test.py` dijalankan **saat impor** (load test produksi) + kode vendored `_vdbos` | **HIGH** | ✅ FIXED (`pytest.ini`) |
+| 14 | F6 di Linux | Penegakan memori di Linux (Railway) **belum pernah dibuktikan** — hanya jalur Windows yang diuji | MEDIUM | ✅ VERIFIED (`RLIMIT_AS` aktif) |
+| 15 | F6 Sandbox | Penjaga `str.format` **dapat dilewati** dengan merakit string saat runtime (5/5 vektor rakitan bocor) | MEDIUM | ✅ FIXED (penjaga runtime) |
+| 16 | F6 Sandbox | Sandbox **tidak bisa mendefinisikan `class`** (`NameError: __metaclass__`) | LOW | ⚠️ DOCUMENTED |
+| 17 | F6 Sandbox | F6 **tidak punya jalur eksekusi di produksi** (tak ada node `code`, tak ada tool, tak ada endpoint) | MEDIUM | ⚠️ OPEN (keputusan produk) |
+
+**Regresi setelah semua perbaikan: suite penuh 1273 lulus, 0 gagal, 0 error
+dalam 8 m 23 s** (sebelumnya menggantung >1 jam), plus **26 tes pengunci**
+hard test lulus.
 
 ---
 
@@ -585,15 +597,383 @@ Ketiga jalur kini menerima/menolak pada titik yang sama.
 
 ---
 
+## VERIFIKASI LANJUTAN — V1/V2/V3
+
+Tiga hal yang pada kampanye pertama masih menggantung: suite tes yang
+menggantung, penegakan memori di Linux yang belum pernah diuji, dan apakah
+bypass `str.format` bisa dieskalasi.
+
+---
+
+## V1. `pytest` POLOS MENGGANTUNG >1 JAM
+
+### Gejala
+
+`pytest -q` dari root (tanpa argumen) tidak pernah selesai. Dua sesi
+berturut-turut. Yang mengejutkan: **koleksi saja sudah menggantung**.
+
+```
+$ pytest --co -q            # hanya koleksi, tidak menjalankan tes
+(TIDAK ADA OUTPUT — dihentikan setelah 120 s)
+```
+
+### Isolasi (bukti mentah)
+
+Probe per berkas (`_v1_probe.py`, `pytest <file> --co -q`, timeout keras 40–60 s)
+menjalankan **96 berkas** di `tests/`:
+
+```
+total file       : 96
+file hang        : 0
+total tes        : 1247
+waktu total probe : 436.7s
+```
+
+Koleksi `tests/` sebagai satu direktori:
+
+```
+$ pytest tests --co -q
+1273 tests collected in 8.25s        <-- CEPAT. Bukan penyebabnya.
+```
+
+Jadi hang-nya **di luar `tests/`**. Probe berkas di luar `tests/`:
+
+```
+HANG   40.06s exit=None tests=0 _prod_hard_test.py   | last: (no output before timeout)
+ok      3.00s exit=5    tests=0 _vps_public_dns_test.py
+ok      9.06s exit=5    tests=0 vps_ssh_test.py
+ok      3.27s exit=0    tests=4 tools\picgen-mcp\test_local.py
+```
+
+### Akar masalah
+
+`_prod_hard_test.py` **bukan modul tes** — ia program. Tidak ada satu pun
+fungsi `test_*`, dan **tidak ada penjaga `if __name__ == "__main__"`**
+(`grep -c "__main__" _prod_hard_test.py` → **0**). Seluruh isinya berjalan
+saat **impor**, termasuk:
+
+- load test **850 request konkuren** (50/100/200/500) ke backend produksi,
+- **30 vektor adversarial** ke produksi,
+- workflow **60 node** + polling sampai 90 s per eksekusi,
+- 10 skenario n8n.
+
+pytest menyapu berkas ini karena pola bawaan `python_files` mencakup
+`*_test.py`, bukan hanya `test_*.py`. Jadi "hang" sebenarnya adalah
+**hard test produksi yang dijalankan tanpa sengaja oleh kolektor tes**.
+
+Bukti langsung:
+
+```
+$ python -c "import _prod_hard_test"
+exit=124 elapsed=26s   (124 = timeout, TANPA satu baris output)
+```
+
+Bukti pendukung: koleksi seluruh repo **kecuali** `tests/` memakan
+**317 s** dan menghasilkan 15 error dari kode vendored:
+
+```
+exit=2 elapsed=321s
+113 tests collected, 15 errors in 317.14s (0:05:17)
+ERROR _vdbos/greenlet/tests/test_weakvars.py
+ERROR _vdbos/greenlet/tests/test_weakref.py   ... (15 berkas)
+```
+
+### Fix
+
+**`pytest.ini`** (baru) — membatasi suite pada tes milik proyek:
+
+```ini
+[pytest]
+testpaths = tests
+norecursedirs = .* _* node_modules __pycache__ .git build dist *.egg-info .venv venv gacha-purgatory
+python_files = test_*.py
+```
+
+Alasan tiap baris:
+
+| Baris | Alasan |
+|---|---|
+| `testpaths = tests` | `pytest` polos hanya menyentuh suite utama (1273 tes). Tes root butuh jaringan/kredensial (Playwright, Supabase, Gemini) sehingga dijalankan eksplisit. |
+| `norecursedirs` | Sabuk pengaman untuk `pytest .`: jangan pernah menyusuri kode vendored (`_vdbos`) atau skrip harness. |
+| `python_files = test_*.py` | **Inti perbaikan.** Pola `*_test.py` dibuang karena di repo ini pola itu dipakai skrip harness produksi, bukan modul tes. |
+
+Selain itu berkas harness lokal `_prod_hard_test.py` diganti nama menjadi
+`_prod_hard_run.py` supaya tidak pernah bisa dikoleksi lagi (berkas ini
+di-`.gitignore`, jadi tidak masuk repo).
+
+`pytest-timeout` **tidak** ditambahkan sebagai dependensi (ia akan ikut
+terpasang di image produksi hanya untuk kebutuhan tes). Rekomendasi tetap
+tertulis di `pytest.ini`: pasang lalu pakai `--timeout=120` bila suite
+kembali menggantung.
+
+### Hasil uji ulang
+
+```
+$ pytest --co -q
+1273 tests collected in 4.94s
+```
+
+Suite penuh (dua kali dijalankan):
+
+```
+# run 1 (mesin juga dipakai proses lain: 2 pytest + polling CI)
+1 failed, 1271 passed, 15 warnings, 1 error, 42 subtests passed in 529.69s (0:08:49)
+
+# run 2 (mesin tenang)
+1273 passed, 15 warnings, 42 subtests passed in 503.61s (0:08:23)   EXIT=0
+```
+
+Sebelum perbaikan: **tidak pernah selesai (>1 jam)**.
+Sesudah perbaikan: **1273 lulus, 0 gagal, 0 error, 8 m 23 s** — di bawah
+anggaran 10 menit.
+
+Dua kegagalan pada run 1 **bukan** regresi kode; keduanya hilang pada run 2
+dan lulus saat diuji terisolasi (rinciannya di tabel "Dua kegagalan suite
+penuh" pada bagian Bukti akhir).
+
+### Status
+
+✅ **FIXED** — akar masalahnya adalah konfigurasi koleksi, bukan tes yang
+menggantung. Tidak ada satu pun tes yang perlu diubah.
+
+---
+
+## V2. PENEGAKAN MEMORI DI LINUX (RAILWAY)
+
+### Pertanyaan
+
+Perbaikan batas memori sebelumnya memakai **Windows Job Object**. Railway
+berjalan di **Linux**, dengan mekanisme berbeda (`resource.setrlimit`).
+Apakah `RLIMIT_AS` benar-benar bekerja di sana? Sebelumnya belum diuji.
+
+### Temuan penting: tidak ada jalur eksekusi di produksi
+
+Pertanyaan brief adalah "kirim prompt → eksekusi workflow di produksi".
+Jalur itu **tidak ada**. Bukti:
+
+1. **Mesin workflow tidak punya node `code`.** Hanya tiga jenis node:
+   ```
+   class NodeKind(str, Enum):
+       TRIGGER = "trigger"
+       AGENT   = "agent"
+       MCP     = "mcp"
+   ```
+2. **Tidak ada endpoint sandbox.** Seluruh rute `api_server.py` tidak memuat
+   `/sandbox`, `/code`, atau serupa.
+3. **Tool MCP bawaan tidak memuat eksekutor kode:**
+   `create_workflow`, `update_workflow`, `list_workflows`,
+   `execute_workflow`, `get_execution_status`.
+4. **Tool agen chat** hanya `create_spreadsheet` + `append_row`.
+5. `code_sandbox` hanya dipanggil dari **dua** tempat: `/version`
+   (melaporkan `capabilities()`) dan `workflow_testkit.py`
+   (**validasi statis** `validate_python`, tanpa eksekusi).
+
+Konsekuensinya jujur: **di produksi saat ini batas memori sandbox tidak
+pernah ditegakkan karena sandbox tidak pernah dijalankan.** Ini dicatat
+sebagai temuan #17, bukan sebagai "terverifikasi aman".
+
+### Verifikasi jalur Linux (eksekusi nyata)
+
+Karena produksi tidak dapat dijangkau, jalur Linux diuji dengan
+**menjalankan kode runner yang sama di Linux sungguhan** —
+job CI `sandbox-linux-limit` pada `ubuntu-24.04` (GitHub Actions).
+Runner memakai `sys.executable`, jadi berkas yang dieksekusi identik
+dengan yang dipakai Railway.
+
+Capabilities yang dilaporkan di Linux:
+
+```
+platform        : linux
+capabilities    : {"languages": ["python","javascript"], "python_available": true,
+                   "javascript_available": true, "timeout_s": 30, "memory_mb": 128,
+                   "os_resource_limits": true, "memory_enforced": true,
+                   "memory_mechanism": "RLIMIT_AS",
+                   "platform": "linux"}
+```
+
+Hasil (mentah, dari log CI):
+
+```
+[trivial]       ok=True  os_limits=on killed=False dur=0.043s   error='None'
+[alokasi-64MB]  ok=True  os_limits=on killed=False dur=0.042s   error='None'
+[bomb-2GB]      ok=False os_limits=on killed=False dur=0.046s   error='MemoryError: '
+[bomb-512MB]    ok=False os_limits=on killed=False dur=0.046s   error='MemoryError: '
+[bomb-loop]     ok=False os_limits=on killed=False dur=0.045s   error='MemoryError: '
+
+=== HASIL ===
+trivial 64MB lolos     : True
+2GB   ditolak          : True
+512MB ditolak          : True
+loop  ditolak          : True
+OK: RLIMIT_AS menegakkan batas memori di Linux.
+```
+
+Arti tiap baris:
+
+| Kasus | Harapan | Hasil | Catatan |
+|---|---|---|---|
+| `print("halo")` | jalan | `ok=True` | **Penting**: runner tetap sanggup start dengan `RLIMIT_AS=128MB`; batas tidak membunuh interpreter. |
+| `bytes(64MB)` | jalan | `ok=True` | Alokasi wajar di bawah batas tidak terganggu. |
+| `bytes(2GB)` | gagal | `MemoryError` | Batas ditegakkan. |
+| `bytes(512MB)` | gagal | `MemoryError` | Ditegakkan. |
+| loop 1024×1MB | gagal | `MemoryError` | Alokasi bertahap juga tertahan. |
+
+### Status
+
+✅ **VERIFIED** — `RLIMIT_AS` menegakkan batas memori di Linux, dan
+`os_limits=on` mengonfirmasi lapis OS aktif. Tidak perlu cgroup v2,
+`systemd-run`, atau container per eksekusi.
+⚠️ Namun lihat temuan #17: jalur ini belum tersambung ke produksi.
+
+---
+
+## V3. APAKAH BYPASS `str.format` BISA DIESKALASI?
+
+### Latar
+
+Kampanye pertama menemukan `'{0.__class__}'.format(1)` melewati penjaga
+atribut, lalu memperbaikinya dengan **memindai konstanta string di AST**
+(`string.Formatter().parse`, tolak `__` di nama field). Pertanyaannya:
+apakah perbaikan itu memadai?
+
+### Hasil: perbaikan itu TIDAK memadai
+
+Pemindaian literal melihat tiap konstanta **satu per satu**. String yang
+**dirakit saat runtime** tidak pernah terlihat utuh oleh pemindai:
+
+```
+[ C1] LEAK  konkatenasi +              -> <class 'int'>
+[ C2] LEAK  konkatenasi + (bocor mro)  -> (<class 'int'>, <class 'object'>)
+[ C3] LEAK  chr(95) membangun dunder   -> <class 'int'>
+[ C4] LEAK  join() membangun dunder    -> <class 'int'>
+[ C7] LEAK  dunder dipecah variabel    -> <class 'int'>
+```
+
+**5/5 vektor rakitan bocor.** Contoh yang lolos:
+
+```python
+s = "{0." + "__class__" + "}"
+print(s.format(1))          # -> <class 'int'>
+```
+
+Sementara vektor langsung tetap diblokir (A1–A4, B1, B2, C8, C10, C14, C15).
+Jadi perbaikan lama hanya menutup bentuk literal.
+
+### Bisa dieskalasi ke eksekusi kode? TIDAK
+
+`str.format` **hanya membaca atribut**; ia tidak punya primitif pemanggilan.
+Semua rantai RCE klasik butuh memanggil sesuatu (`__subclasses__()` lalu
+`__init__.__globals__['__builtins__']['__import__']`), dan itu tidak mungkin
+lewat format. Vektor `__reduce__`/`__reduce_ex__` (kandidat RCE via pickle)
+juga diblokir. Karena itu klasifikasinya **MEDIUM (pengungkapan
+informasi), bukan HIGH** — tetapi tetap diperbaiki karena membocorkan
+hierarki kelas dan **alamat memori (ASLR)** adalah bahan baku eksploitasi
+lanjutan.
+
+### Fix: penjaga berbasis RUNTIME
+
+Pemindaian literal diganti **transformasi AST + pemeriksaan saat runtime**,
+sehingga string diperiksa **sesudah dirakit**:
+
+```python
+# X.format(...)      ->  katalir_attr_format(X)(...)
+# X.format_map(...)  ->  katalir_attr_format_map(X)(...)
+class _T(_a.NodeTransformer):
+    def visit_Attribute(self, node):
+        self.generic_visit(node)
+        if node.attr in ("format", "format_map"):
+            ...
+```
+
+Transformasi dilakukan di level **`Attribute`**, bukan `Call`, sehingga
+jalur "ambil atribut tanpa memanggil" ikut tertutup:
+
+```python
+f = ("{0." + "__class__" + "}").format   # C16
+print(f(1))                              # kini diblokir
+```
+
+Pemeriksa memindai **field dan format spec bersarang**:
+
+```python
+def _periksa(fmt, kedalaman=0):
+    for _lit, field, spec, _konv in _s.Formatter().parse(fmt):
+        if field and "__" in field:
+            raise AttributeError(...)
+        if spec:
+            _periksa(spec, kedalaman + 1)
+```
+
+### Hasil uji ulang (20 vektor, jalur produksi `run_python`)
+
+```
+=== RINGKASAN V3 ===
+BLOCKED : 20
+OK      : 4
+RUNTIME : 2
+vektor LEAK (bocor): 0
+```
+
+Format yang sah tetap jalan (kontrol fungsional):
+
+| Kontrol | Hasil |
+|---|---|
+| `'{0:.2f}'.format(3.14159)` | `3.14` ✅ |
+| `str.format('{0}-{1}', 'a', 'b')` | `a-b` ✅ |
+| `format(3.14159, '.2f')` | `3.14` ✅ |
+| `'%s' % (1,)` | `1` ✅ |
+| `'{}'.format` diambil lalu dipanggil | diblokir bila field memuat dunder ✅ |
+
+Diverifikasi ulang **di Linux** (job CI) — 6 vektor, `bocor: 0/6`:
+
+```
+BLOK jejak=[] 'print("{0.__class__}".format(1))'
+BLOK jejak=[] 'print("{0." + "__class__" + "}".format(1))'
+BLOK jejak=[] 'u = chr(95) * 2\nprint(("{0." + u + "class" + u + "}").format'
+BLOK jejak=[] 'f = ("{0." + "__class__" + "}").format\nprint(f(1))'
+BLOK jejak=[] 'f = str.format\nprint(f("{0." + "__class__" + "}", 1))'
+BLOK jejak=[] 's = "{a." + "__class__" + "}"\nprint(s.format_map({"a": 1}))'
+bocor: 0/6
+```
+
+### Temuan sampingan: `class` tidak didukung sandbox
+
+Vektor kontrol "objek non-str dengan `.format` sendiri" gagal:
+
+```
+class P:
+    def m(self): return 1
+print(P().m())
+-> NameError: name '__metaclass__' is not defined
+```
+
+Diuji pada versi **sebelum dan sesudah** perbaikan — hasilnya identik,
+jadi ini **bukan** akibat perubahan `str.format`, melainkan perilaku
+RestrictedPython (butuh `__metaclass__` di globals). Klasifikasi **LOW**
+(keterbatasan fungsional, bukan lubang keamanan). Tidak diaktifkan dalam
+kampanye ini karena menambah permukaan serangan (metaclass kustom) dan
+butuh peninjauan ancaman tersendiri.
+
+### Status
+
+✅ **FIXED** (penjaga runtime, 0/20 bocor) · **severity tetap MEDIUM**
+(pengungkapan, bukan eksekusi kode).
+
+---
+
 ## REKOMENDASI TUNING POST-LAUNCH
 
 | Prioritas | Item | Tindakan |
 |---|---|---|
-| Tinggi | Batas memori sandbox di Linux | Sudah ada (`RLIMIT_AS`). Verifikasi ulang di Railway dengan `capabilities()` → `memory_mechanism: RLIMIT_AS`. |
+| **Kritis** | Jalur eksekusi F6 | Sandbox sudah dikeraskan dan batas memori **terbukti** berlaku di Linux, tetapi **tidak tersambung ke apa pun**: tak ada node `code`, tak ada tool MCP/agen, tak ada endpoint. Selama ini belum tersambung, F6 tidak memberi nilai di produksi — dan batas memorinya tidak relevan karena tak pernah dijalankan. Sambungkan ke satu jalur resmi (node `code` atau tool MCP) lalu ulangi V2 lewat jalur itu. |
+| Tinggi | Batas memori sandbox di Linux | Sudah ada (`RLIMIT_AS`) dan **kini terbukti** (2GB/512MB/loop → `MemoryError`). Job CI `sandbox-linux-limit` menjaganya tetap begitu. |
 | Tinggi | Validasi statis JS | Perketat pola (`import(`, `constructor.constructor`) setelah suite JS sah dibangun, agar tidak ada *false positive*. |
 | Sedang | Ukuran state durable | Pertimbangkan `MAX_STATE_BYTES` aplikasi + kompresi (gzip) untuk output node besar. |
 | Sedang | Kuota jadwal per user | Keputusan produk: batasi jumlah jadwal/user, atau biarkan `MAX_DUE_PER_TICK` sebagai backpressure. |
 | Sedang | Meta-test testkit | Tambah `self_test()` yang sengaja menjalankan skenario gagal untuk membuktikan deteksi. |
+| Sedang | Penjaga hang suite | Pasang `pytest-timeout` dan tambahkan `--timeout=120` di `pytest.ini` supaya tes yang macet **dilaporkan**, bukan menggantung senyap. Belum dipasang karena dependensi tes akan ikut ke image produksi. |
+| Sedang | Asersi paralelisme rapuh | `test_parallel_fanout.py::test_12_performa_paralel_vs_seri` memakai ambang **absolut** (0,65 s) dengan margin hanya ~10 % terhadap hasil terukur (0,58 s), sehingga gagal saat mesin sibuk (terukur 1,11 s). Ubah menjadi **relatif terhadap baseline seri yang diukur pada mesin yang sama**, agar tetap jujur di bawah beban. |
+| Rendah | `class` di sandbox | Sandbox belum bisa mendefinisikan `class` (`NameError: __metaclass__`). Menambah `__metaclass__ = type` akan menutupnya, tetapi memperluas permukaan serangan (metaclass kustom) — butuh peninjauan ancaman tersendiri. |
 | Rendah | Prune memori otomatis | `ttl_seconds` sudah ada; tambah job terjadwal untuk `DELETE WHERE expires_at < now()`. |
 | Rendah | `MAX_BRANCHES` / `MAX_DEPTH` | Naikkan lewat env sesuai kapasitas worker/DB nyata. |
 
@@ -616,8 +996,25 @@ MEMORY_MAX_CONTENT_CHARS=20000  MEMORY_MAX_RECALL_TOP_K=50
 | Regresi `test_code_sandbox` + templates + secrets + flow + MCP | **65 lulus** |
 | Regresi retry + subworkflow + parallel + memory + sandbox e2e | **74 lulus + 19 subtests** |
 | Regresi workflow API/lifecycle/schedules/trigger/testkit/credential | **100 lulus** |
-| **Regresi baru** `tests/test_hard_test_fixes.py` (16 tes pengunci) | **16 lulus** |
-| **Total regresi** | **255 lulus, 0 gagal** |
+| **Regresi baru** `tests/test_hard_test_fixes.py` (26 tes pengunci) | **26 lulus** |
+| **Suite penuh `pytest -q`** (setelah `pytest.ini`) | **1273 lulus, 0 gagal, 0 error — 503,61 s (8 m 23 s)** |
+| Koleksi suite penuh | **1273 tes dalam 4,94 s** (sebelumnya: menggantung >1 jam) |
 | Sandbox escape Python (eksekusi nyata) | **0/50 berhasil** |
 | Sandbox escape JavaScript (eksekusi nyata) | **0/10 berhasil** |
-| Batas memori sandbox (64 MB vs 512 MB–4 GB) | **ditegakkan di semua platform** |
+| Batas memori sandbox di Windows (64 MB vs 512 MB–4 GB) | **ditegakkan** (Job Object) |
+| Batas memori sandbox di Linux (CI `ubuntu-24.04`) | **2 GB / 512 MB / loop → `MemoryError`**; 64 MB lolos |
+| Vektor `str.format` (20, jalur produksi) | **0 bocor** (20 diblokir, format sah tetap jalan) |
+| Vektor `str.format` di Linux (6, CI) | **0 bocor** |
+
+### Dua kegagalan pada run 1 — keduanya lingkungan, bukan kode
+
+Keduanya **tidak muncul** pada run 2 (mesin tenang → 1273 lulus, 0 gagal).
+
+| Item | Gejala saat suite penuh | Uji ulang terisolasi | Kesimpulan |
+|---|---|---|---|
+| `test_parallel_fanout.py::test_12_performa_paralel_vs_seri` | `AssertionError: tidak cukup paralel: 1.11s (seri 0.80s)` | **3/3 lulus**, `paralel=0.58 s` (ambang 0,65 s) | Asersi waktu dengan **margin hanya ~10 %**; runtuh saat mesin sibuk (saat itu ada 2 proses pytest + polling CI berjalan). Bukan regresi kode. |
+| `test_agent_memory.py::test_2c8_scale_1000_memories` (setup `pg`) | `psycopg2.OperationalError: SSL error: unexpected eof while reading` | **lulus dalam 61,18 s** | SSL transien ke pooler Supabase. Bukan regresi kode. |
+
+Rekomendasi dari temuan ini: jadikan asersi paralelisme **relatif terhadap
+baseline seri yang diukur pada mesin yang sama** (bukan ambang absolut),
+supaya suite tetap jujur saat mesin sibuk.

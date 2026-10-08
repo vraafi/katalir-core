@@ -3,6 +3,81 @@
 Format mengikuti [Keep a Changelog](https://keepachangelog.com/id/1.1.0/).
 Versi mengikuti tanggal kerja (proyek ini belum memakai semver rilis).
 
+## [2026-10-08] — Verifikasi lanjutan: suite tes, batas memori Linux, bypass str.format
+
+Brief "VERIFIKASI 3 HAL KRITIS DARI HARD TEST". Tiga hal yang masih
+menggantung setelah kampanye pertama. Laporan penuh:
+**`docs/hard-test-limits.md`** (bagian "VERIFIKASI LANJUTAN — V1/V2/V3").
+
+### V1 — `pytest` polos menggantung >1 jam ✅ FIXED
+
+**Akar masalahnya bukan tes yang menggantung, melainkan konfigurasi koleksi.**
+`pytest` tanpa argumen dari root menyapu skrip harness ad-hoc berpola
+`*_test.py` (pola bawaan `python_files` mencakup `*_test.py`). Salah satunya,
+`_prod_hard_test.py`, adalah **program**: tanpa fungsi `test_*` dan tanpa
+penjaga `if __name__ == "__main__"` (`grep -c "__main__"` → 0). Seluruh
+isinya berjalan saat **impor** — load test 850 request konkuren ke produksi,
+30 vektor adversarial, workflow 60 node. Jadi "hang" itu adalah hard test
+produksi yang dijalankan tanpa sengaja oleh kolektor tes.
+
+Bukti: `python -c "import _prod_hard_test"` → timeout 25 s tanpa output;
+`pytest _prod_hard_test.py --co -q` → timeout 40 s tanpa output;
+koleksi seluruh repo kecuali `tests/` → 317 s + 15 error dari kode vendored
+`_vdbos/greenlet`.
+
+→ **`pytest.ini`** baru: `testpaths = tests`, `norecursedirs` (kecualikan
+kode vendored & skrip harness), `python_files = test_*.py` (buang pola
+`*_test.py`). Berkas harness lokal diganti nama ke `_prod_hard_run.py`.
+
+Hasil: koleksi **1273 tes dalam 4,94 s**; suite penuh
+**1273 lulus, 0 gagal, 0 error dalam 503,61 s (8 m 23 s)** — sebelumnya
+tidak pernah selesai.
+
+### V2 — penegakan memori di Linux (Railway) ✅ VERIFIED
+
+`RLIMIT_AS` belum pernah dibuktikan. Karena **produksi tidak punya jalur
+eksekusi sandbox** (tak ada node `code`, tak ada tool MCP/agen, tak ada
+endpoint; `code_sandbox` hanya dipakai `/version` dan validasi statis
+testkit), jalur Linux diuji dengan menjalankan runner yang sama di Linux
+sungguhan lewat job CI baru `sandbox-linux-limit` (`ubuntu-24.04`):
+
+```
+[trivial]       ok=True  os_limits=on  dur=0.043s
+[alokasi-64MB]  ok=True  os_limits=on  dur=0.042s
+[bomb-2GB]      ok=False os_limits=on  error='MemoryError: '
+[bomb-512MB]    ok=False os_limits=on  error='MemoryError: '
+[bomb-loop]     ok=False os_limits=on  error='MemoryError: '
+```
+
+Tidak perlu cgroup v2 / `systemd-run` / container per eksekusi.
+Temuan sampingan (dicatat, belum ditutup): F6 belum tersambung ke produksi.
+
+### V3 — bypass `str.format` ✅ FIXED (severity tetap MEDIUM)
+
+Perbaikan kampanye pertama (pindai konstanta string di AST) **tidak memadai**:
+pemindai melihat literal satu per satu, sehingga string yang **dirakit saat
+runtime** lolos — **5/5 vektor rakitan bocor**:
+
+```python
+"{0." + "__class__" + "}".format(1)          # -> <class 'int'>
+("{0." + chr(95)*2 + "class" + chr(95)*2 + "}").format(1)
+f = ("{0." + "__class__" + "}").format; f(1)
+```
+
+Tidak bisa dieskalasi ke eksekusi kode (`str.format` hanya membaca atribut,
+tak punya primitif pemanggilan) → **MEDIUM (pengungkapan), bukan HIGH**.
+
+→ Penjaga **berbasis runtime**: transformasi AST `X.format`/`X.format_map`
+→ `katalir_attr_format(X)` (di level `Attribute`, sehingga jalur "ambil
+atribut tanpa memanggil" ikut tertutup), lalu string diperiksa **sesudah
+dirakit**, termasuk format spec bersarang. Hasil: **0 bocor dari 20 vektor**,
+format sah (`'{0:.2f}'`, `str.format(...)`, `format(x, '.2f')`) tetap jalan.
+Diverifikasi ulang di Linux: 0 bocor dari 6 vektor.
+
+Temuan sampingan: sandbox belum bisa mendefinisikan `class`
+(`NameError: __metaclass__`) — terbukti identik sebelum & sesudah perubahan,
+jadi bukan akibat fix ini; dicatat sebagai keterbatasan LOW.
+
 ## [2026-10-08] — Hard test batas 11 fitur: 10 batas ditemukan & diperbaiki
 
 Brief "HARD TEST 11 FITUR — TEMUKAN BATASAN & PERBAIKI". Tujuannya bukan

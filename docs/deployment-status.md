@@ -123,7 +123,7 @@ PROD_LIVE node di pratinjau = 4
 python _prod_e2e_11features.py            # -> TOTAL 23/23 PASS
 
 # 2. Hard test produksi (load/adversarial/durability/integrasi/n8n)
-python _prod_hard_test.py
+python _prod_hard_run.py
 
 # 3. Load terisolasi saja (angka bersih, tanpa beban saingan)
 python _prod_load_isolated.py             # -> TOTAL 5/5 PASS
