@@ -1563,12 +1563,37 @@ class StatefulOrchestrator:
                 return r
         return ""
 
+    async def _exec_vector_store(self, node: FlowNode, inp: dict,
+                                 _extra_roots: Optional[dict] = None) -> dict:
+        """Node VECTOR_STORE (fitur #2 RAG): insert/query/delete dokumen.
+
+        Tenant = `owner_email` (dipaksa di `VectorStore`, TIDAK bisa ditimpa
+        config) supaya satu workflow tidak pernah membaca data user lain.
+        Operasi berat (embedding) dijalankan di thread agar tidak membekukan
+        event loop paralel.
+        """
+        import vector_store
+
+        cfg = self._resolve_cfg(node.data.config or {},
+                                where=f"node '{node.id}'",
+                                extra_roots=_extra_roots)
+        owner = (getattr(self, "owner_email", None)
+                 or cfg.get("owner_email") or "anonymous")
+        hasil = await asyncio.to_thread(
+            vector_store.run_config, cfg, owner, self._first_text(inp))
+        if str(hasil.get("status")) != "success":
+            raise ToolExecutionError(
+                f"ToolExecutionError: node '{node.id}' vector_store "
+                f"{hasil.get('operation')} gagal: {hasil.get('error')}")
+        return {"type": "vector_store", **hasil}
+
     EXECUTORS: dict[NodeKind, Callable[[Any, FlowNode, dict], Awaitable[dict]]] = {
         NodeKind.TRIGGER: _exec_trigger,
         NodeKind.AGENT: _exec_agent,
         NodeKind.MCP: _exec_mcp,
         NodeKind.CODE: _exec_code,
         NodeKind.GUARDRAILS: _exec_guardrails,
+        NodeKind.VECTOR_STORE: _exec_vector_store,
     }
 
     def _runnable(self, remaining: set[str]) -> list[str]:
