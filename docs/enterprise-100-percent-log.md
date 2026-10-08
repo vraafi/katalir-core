@@ -760,7 +760,7 @@ dengan nama, status `tersinkron`.
 | Hash | Isi | Push |
 |---|---|---|
 | `7afd249` | `feat(collab): Fitur #10 — Real-Time Collaboration 100% production-ready (Yjs/WebSocket NYATA)` | `origin/main` ✅ |
-| _(fix menyusul)_ | `fix(collab): hindari tabrakan route/nama dengan REST kolaborasi lama (pindah ke /collab/rt/*)` | `origin/main` ✅ |
+| `73cad78` | `fix(collab): hindari tabrakan route/nama dengan REST kolaborasi lama (pindah ke /collab/rt/*)` | `origin/main` ✅ |
 
 ### Status: 100% COMPLETE ✅
 
