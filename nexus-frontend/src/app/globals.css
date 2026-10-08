@@ -112,6 +112,76 @@ html {
   contain-intrinsic-size: auto 78px;
 }
 
+/* ══════════════════════════════════════════════════════════════════════════
+   MOBILE VIEWPORT — /chat & /builder (shell)
+   ══════════════════════════════════════════════════════════════════════════
+   MASALAH NYATA: `h-screen` = `100vh`. Di mobile, 100vh adalah viewport
+   BESAR — tinggi layar saat toolbar browser DISEMBUNYIKAN. Selama address bar
+   masih tampil, layout 100vh lebih tinggi daripada area yang terlihat, jadi
+   baris TERAKHIR (composer) sudah berada di bawah layar bahkan sebelum
+   keyboard dibuka. Itu sebabnya kolom input "hilang" di mobile.
+
+   `100dvh` mengikuti tinggi viewport yang benar-benar tersedia dan ikut
+   mengecil saat keyboard muncul (dengan `interactive-widget=resizes-content`
+   di layout.tsx). Ditulis `100vh` LEBIH DULU sebagai fallback: browser lama
+   mengabaikan baris kedua dan tetap memakai vh.
+
+   Composer sengaja TIDAK `position: fixed`. Elemen fixed diposisikan terhadap
+   LAYOUT viewport; pada mode default (`resizes-visual`) viewport itu tidak
+   mengecil sehingga composer fixed berakhir di BAWAH keyboard. Composer di
+   dalam aliran flex/grid ikut terdorong naik oleh browser saat field difokus. */
+.k-chat-shell {
+  height: 100vh; /* fallback browser tanpa unit dinamis */
+  height: 100dvh;
+  /* Jangan biarkan gulir "menularkan" ke dokumen: hanya area pesan yang
+     menggulir. Tanpa ini, satu sapuan di daftar pesan menggulir seluruh
+     halaman dan header ikut hilang. */
+  overscroll-behavior: none;
+}
+
+/* Area gulir pesan: gulir vertikal saja, pinch-zoom tetap boleh. */
+.chat-scroll {
+  overscroll-behavior: contain;
+  touch-action: pan-y pinch-zoom;
+  /* Ruang cadangan di atas saat browser menggulir field yang difokus ke
+     dalam pandangan: header (sticky) tidak menutupi pesan pertama. */
+  scroll-padding-block-start: 3.5rem;
+}
+
+/* Footer composer: ruang aman untuk home-indicator iOS + poni.
+   `max()` menjaga padding desain tetap dipakai saat inset = 0 (desktop).
+   `--keyboard-inset` diisi oleh useKeyboardInset (visualViewport) dan bernilai
+   0 di Android (yang sudah mengecilkan layout viewport) sehingga tidak ada
+   hitung ganda; di iOS nilainya = tinggi keyboard sehingga composer naik
+   tepat di atasnya. */
+.k-chat-footer {
+  padding-bottom: max(1rem, env(safe-area-inset-bottom, 0px), var(--keyboard-inset, 0px));
+  padding-left: max(1.25rem, env(safe-area-inset-left, 0px));
+  padding-right: max(1.25rem, env(safe-area-inset-right, 0px));
+}
+
+/* Field yang difokus: browser hanya menjamin FIELD-nya terlihat, bukan tombol
+   kirim di sebelahnya. Margin ini meminta ruang ekstra di bawah field. */
+.k-chat-composer textarea {
+  scroll-margin-block-end: 96px;
+}
+
+/* Auto-resize: tinggi dikendalikan JS (scrollHeight), jadi transisi halus
+   supaya pertumbuhan 1→5 baris tidak "melompat". `field-sizing` belum dipakai
+   karena dukungannya belum merata pada target browser proyek ini. */
+.k-chat-composer textarea {
+  transition: height 120ms ease-out;
+  /* 16px: di bawah ini iOS Safari memperbesar (zoom) halaman saat field
+     difokus, dan layout ikut bergeser. */
+  font-size: 16px;
+  line-height: 1.5;
+}
+@media (prefers-reduced-motion: reduce) {
+  .k-chat-composer textarea {
+    transition: none;
+  }
+}
+
 /* Smooth scrollbar */
 ::-webkit-scrollbar {
   width: 8px;

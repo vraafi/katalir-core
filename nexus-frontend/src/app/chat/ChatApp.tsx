@@ -1,14 +1,13 @@
 "use client";
 
 import { Suspense, useCallback, useEffect, useRef, useState } from "react";
-import { Send, Square, Sparkles, User, KeyRound, RotateCcw, AlertTriangle, AlertCircle, Pencil, X, Clock, ChevronDown, ChevronRight } from "lucide-react";
+import { Sparkles, User, KeyRound, RotateCcw, AlertTriangle, AlertCircle, Pencil, X, Clock, ChevronDown, ChevronRight } from "lucide-react";
 import { motion } from "motion/react";
 import { toast } from "sonner";
 import { useQueryState, parseAsString } from "nuqs";
 import Shell from "@/components/shell";
 import { AuthProvider, useAuth } from "@/context/auth";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { QueryProvider } from "@/features/builder/provider";
 import { I18nProvider } from "@/i18n/context";
 import { apiFetch } from "@/lib/api";
@@ -18,6 +17,7 @@ import type { ChatMessage } from "@/features/chat/hooks/useChat";
 import { useQueryClient } from "@tanstack/react-query";
 import { chatKeys } from "@/lib/query-keys";
 import { ModelSelector } from "@/components/ModelSelector";
+import { ChatComposer } from "@/features/chat/ChatComposer";
 import { CHAT_MODELS, DEFAULT_MODEL_ID, pickerModels } from "@/lib/models";
 import Link from "next/link";
 // FASE 2.2: draf workflow dari Discovery Agent -> kanvas Builder.
@@ -722,12 +722,19 @@ function ChatApp() {
       setInput("");
       return;
     }
-    busyRef.current = true;
+    // BUG FIX (ditemukan saat menguji composer mobile): `busyRef.current = true`
+    // DULU berada di atas cabang "belum login". Akibatnya satu Enter saat belum
+    // login mengunci antrean SELAMANYA — penguras antrean di atas menolak jalan
+    // selama busyRef true, jadi setelah user login tanpa reload setiap kiriman
+    // hanya menumpuk di antrean FIFO dan tidak pernah terkirim. Kunci hanya
+    // boleh dipasang di jalur yang benar-benar mengirim.
     const em = emailRef.current;
     if (!em) {
+      // Teks user sengaja TIDAK dikosongkan supaya tidak hilang saat diminta login.
       alert("Silakan login dulu untuk mengirim pesan.");
       return;
     }
+    busyRef.current = true;
     setInput("");
     const controller = new AbortController();
     cancelRef.current = controller;
@@ -1297,7 +1304,7 @@ return (
           </div>
         )}
         {/* Input bar — flex-none, sticky di bawah, TIDAK ikut scroll */}
-        <div className="k-chat-footer flex-none bg-transparent px-5 pb-4 pt-2 dark:bg-zinc-900">
+        <div className="k-chat-footer flex-none bg-transparent pt-2 dark:bg-zinc-900">
           <div className="mx-auto max-w-[48rem]">
             {/* KUOTA-AREA: progress bar + warning pre-flight, DI ATAS composer
                 supaya terlihat sebelum user mengirim (bukan setelah gagal).
@@ -1348,57 +1355,36 @@ return (
                 <Button type="button" variant="secondary" size="sm" onClick={() => downloadChat("markdown")} aria-label={t("chat.exportChatMarkdown")}>{t("chat.exportChatMarkdown")}</Button>
               </div>
             )}
-            <form
-              onSubmit={(e) => {
-                e.preventDefault();
+            <ChatComposer
+              value={input}
+              onChange={setInput}
+              onSubmit={() => {
                 if (input.trim()) sendPrompt(input.trim());
               }}
-              className="k-chat-composer flex items-center gap-2 rounded-3xl border-0 bg-surface px-3 py-2 shadow-lg backdrop-blur transition-shadow duration-200 hover:shadow-xl focus-within:ring-2 focus-within:ring-accent/30 dark:bg-zinc-800"
-            >
-              {/* Model selector pill di kiri input (mastra #12407, clankie #49). */}
-              <ModelSelector
-                models={pickerModels(modelList)}
-                value={selectedModel}
-                onChange={setSelectedModel}
-                disabled={loadingMsg}
-                userTier={userTier}
-                degraded={modelsData?.degraded === true}
-              />
-              <Input
-                value={input}
-                onChange={(e) => setInput(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === "Escape" && showStop) {
-                    e.preventDefault();
-                    onStop();
-                  }
-                }}
-                placeholder={activeEmail ? t("chat.placeholder") : t("landing.loginCta")}
-                /* Helper prompt (BUG FIX 2026-10-03): validasi draf menolak
-                   workflow yang config provider-nya tidak lengkap, jadi user
-                   perlu tahu bahwa menyebut integrasi + target itu menentukan
-                   apakah draf bisa langsung jalan. Guide lengkap:
-                   docs/workflow-prompt-guide.md */
-                title={activeEmail ? `${t("chat.promptTip")} ${t("chat.promptGuide")}: docs/workflow-prompt-guide.md` : undefined}
-                aria-label={t("chat.messageLabel")}
-                /* HOOK STABIL UNTUK E2E: `aria-label` sengaja tetap
-                   diterjemahkan (a11y), jadi tes TIDAK boleh memakainya sebagai
-                   selector — dulu spec memakai [aria-label="Pesan"] dan pecah
-                   begitu bahasa aktif menjadi EN. data-testid tidak ikut bahasa. */
-                data-testid="composer-input"
-                className="h-9 border-0 shadow-none bg-transparent focus-visible:shadow-none"
-              />
-              <Button
-                type={showStop ? "button" : "submit"}
-                size="icon"
-                aria-label={showStop ? t("chat.stop") : t("chat.send")}
-                onClick={showStop ? onStop : undefined}
-                disabled={showStop ? false : !input.trim()}
-                data-testid="composer-send"
-              >
-                {showStop ? <Square size={16} strokeWidth={1.75} /> : <Send size={16} strokeWidth={1.75} />}
-              </Button>
-            </form>
+              onStop={onStop}
+              showStop={showStop}
+              placeholder={activeEmail ? t("chat.placeholder") : t("landing.loginCta")}
+              sendLabel={t("chat.send")}
+              stopLabel={t("chat.stop")}
+              messageLabel={t("chat.messageLabel")}
+              /* Helper prompt (BUG FIX 2026-10-03): validasi draf menolak
+                 workflow yang config provider-nya tidak lengkap, jadi user
+                 perlu tahu bahwa menyebut integrasi + target itu menentukan
+                 apakah draf bisa langsung jalan. Guide lengkap:
+                 docs/workflow-prompt-guide.md */
+              title={activeEmail ? `${t("chat.promptTip")} ${t("chat.promptGuide")}: docs/workflow-prompt-guide.md` : undefined}
+              modelSlot={
+                /* Model selector pill di kiri input (mastra #12407, clankie #49). */
+                <ModelSelector
+                  models={pickerModels(modelList)}
+                  value={selectedModel}
+                  onChange={setSelectedModel}
+                  disabled={loadingMsg}
+                  userTier={userTier}
+                  degraded={modelsData?.degraded === true}
+                />
+              }
+            />
           </div>
         </div>
       </div>

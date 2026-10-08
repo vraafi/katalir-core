@@ -44,6 +44,21 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  // `viewport-fit=cover` — layar berponi (iPhone notch/Dynamic Island, Android
+  // gesture bar) boleh memakai seluruh tinggi; padding aman ditangani
+  // `env(safe-area-inset-*)` di globals.css. Tanpa ini Safari menyisakan
+  // bilah putih dan composer tidak menempel di dasar layar.
+  viewportFit: "cover",
+  // `interactive-widget=resizes-content` — saat keyboard muncul, browser
+  // MENGECILKAN layout viewport (bukan hanya visual viewport). Inilah yang
+  // membuat `100dvh` ikut mengecil sehingga baris composer terdorong ke ATAS
+  // keyboard. Tanpa ini (default `resizes-visual`) layout tetap setinggi layar
+  // penuh dan composer tertutup keyboard.
+  // Chrome/Edge/Samsung 108+, Android Chrome. Browser lain mengabaikan nilai
+  // ini dan tetap memakai perilaku default yang sudah aman (lihat globals.css).
+  interactiveWidget: "resizes-content",
   themeColor: [
     { media: "(prefers-color-scheme: dark)", color: "#09090b" },
     { media: "(prefers-color-scheme: light)", color: "#4F46E5" },

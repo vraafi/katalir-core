@@ -1,0 +1,124 @@
+{
+  "innerW": 320,
+  "innerH": 568,
+  "docClientW": 320,
+  "docClientH": 568,
+  "docScrollW": 320,
+  "docScrollH": 568,
+  "visualH": 568,
+  "visualTop": 0,
+  "visualScale": 1,
+  "keyboardInset": "0px",
+  "shellCssHeight": "568px",
+  "shellRect": {
+    "x": 0,
+    "y": 0,
+    "w": 320,
+    "h": 568,
+    "bottom": 568
+  },
+  "headerRect": {
+    "x": 0,
+    "y": 0,
+    "w": 320,
+    "h": 60,
+    "bottom": 60
+  },
+  "footerRect": {
+    "x": 0,
+    "y": 448,
+    "w": 320,
+    "h": 120,
+    "bottom": 568
+  },
+  "footerPadBottom": "16px",
+  "composerRect": {
+    "x": 20,
+    "y": 456,
+    "w": 280,
+    "h": 96,
+    "bottom": 552
+  },
+  "composerPosition": "static",
+  "composerRadius": "24px",
+  "composerBg": "rgb(255, 255, 255)",
+  "composerBorder": "rgb(228, 228, 231)",
+  "composerShadow": "rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0.1) 0px 12px 32px -4px, rgba(0, 0, 0, 0.04) 0px 4px 8px -4px",
+  "composerChain": [
+    "form.k-chat-composer=static",
+    "div.mx-auto=static",
+    "div.k-chat-footer=static",
+    "div.k-chat-main=static",
+    "main.flex=static",
+    "div.k-chat-header=static",
+    "div.k-chat-shell=static"
+  ],
+  "inputRect": {
+    "x": 33,
+    "y": 467,
+    "w": 254,
+    "h": 24,
+    "bottom": 491
+  },
+  "inputFontSize": "16px",
+  "inputLineHeight": "24px",
+  "inputMinHeight": "24px",
+  "inputMaxHeight": "200px",
+  "inputOverflowY": "hidden",
+  "inputInlineHeight": "24px",
+  "inputScrollH": 24,
+  "inputClientH": 24,
+  "inputRows": 1,
+  "inputEnterKeyHint": "send",
+  "inputAriaLabel": "Message",
+  "sendRect": {
+    "x": 243,
+    "y": 497,
+    "w": 44,
+    "h": 44,
+    "bottom": 541
+  },
+  "sendDisabled": true,
+  "modelRect": {
+    "x": 33,
+    "y": 497,
+    "w": 124,
+    "h": 44,
+    "bottom": 541
+  },
+  "brandRect": {
+    "x": 12,
+    "y": 14,
+    "w": 32,
+    "h": 32,
+    "bottom": 46
+  },
+  "menuRect": {
+    "x": 52,
+    "y": 8,
+    "w": 44,
+    "h": 44,
+    "bottom": 52
+  },
+  "themeRect": {
+    "x": 214,
+    "y": 8,
+    "w": 44,
+    "h": 44,
+    "bottom": 52
+  },
+  "headerLinksVisible": 0,
+  "wordmarkVisible": false,
+  "scrollTouchAction": "pan-y pinch-zoom",
+  "scrollOverscroll": "contain",
+  "scrollOverflowY": "auto",
+  "scrollRect": {
+    "x": 0,
+    "y": 60,
+    "w": 320,
+    "h": 388,
+    "bottom": 448
+  },
+  "theme": "light",
+  "colorScheme": "light"
+}

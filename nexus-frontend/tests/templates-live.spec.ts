@@ -57,7 +57,13 @@ async function freshSession(): Promise<Record<string, unknown>> {
 test.describe("/templates PRODUKSI (backend nyata)", () => {
   test("memuat 10 template bawaan dari backend Railway tanpa stub", async ({ page }) => {
     const sess = await freshSession();
-    console.log(`PROD_LIVE storageKey=${STORAGE_KEY} user=${sess.user?.email}`);
+    // `freshSession()` mengembalikan hasil spread dari JSON respons, sehingga
+    // tipenya `{}` dan `sess.user` tidak dikenal TypeScript (error TS2339 yang
+    // membuat `tsc --noEmit` merah). Bentuk sesi di sini hanya dipakai untuk
+    // logging, jadi cukup sempitkan tipenya di titik pakai.
+    console.log(
+      `PROD_LIVE storageKey=${STORAGE_KEY} user=${(sess as { user?: { email?: string } }).user?.email}`,
+    );
 
     await page.addInitScript(
       ([k, v]) => window.localStorage.setItem(k, v),

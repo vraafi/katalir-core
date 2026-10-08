@@ -11,6 +11,7 @@ import { useI18n } from "@/i18n/context";
 import { StaggerList, StaggerItem } from "@/components/motion";
 import { SkipToContent } from "@/components/SkipToContent";
 import { useEffect, useState } from "react";
+import { useKeyboardInset } from "@/hooks/useKeyboardInset";
 import { Button } from "@/components/ui/button";
 import * as DropdownMenu from "@radix-ui/react-dropdown-menu";
 import * as Dialog from "@radix-ui/react-dialog";
@@ -58,6 +59,10 @@ export default function Shell({ children, sessions, currentSessionId, onSelectSe
   // FASE 1: drawer mobile (<768px) — sidebar off-canvas.
   const [mobileOpen, setMobileOpen] = useState(false);
 
+  // Tinggi keyboard sebagai `--keyboard-inset` (Safari iOS tidak mendukung
+  // `interactive-widget`, jadi `dvh` saja tidak cukup di sana).
+  useKeyboardInset();
+
   // Safety net (Radix #3141 / shadcn #7575): bila dialog modal sempat
   // meninggalkan body.pointerEvents="none" (stuck — seluruh halaman tak bisa
   // diklik, termasuk tombol Chat Baru), bersihkan pada unmount. Dialog sudah
@@ -86,7 +91,12 @@ export default function Shell({ children, sessions, currentSessionId, onSelectSe
   const closeMobile = () => setMobileOpen(false);
 
   return (
-    <div className="k-chat-shell flex h-screen overflow-hidden bg-bg dark:bg-zinc-900">
+    /* Tinggi diambil dari kelas `.k-chat-shell` (globals.css): 100vh sebagai
+       fallback, lalu 100dvh. `h-screen` (=100vh) DIBUANG karena di mobile
+       100vh = viewport BESAR (toolbar disembunyikan) sehingga baris terakhir —
+       composer — berada di bawah area terlihat begitu address bar masih tampil,
+       bahkan sebelum keyboard dibuka. */
+    <div className="k-chat-shell flex overflow-hidden bg-bg dark:bg-zinc-900">
       {/* FASE 5: tautan lewati-ke-konten — elemen fokusable PERTAMA di halaman
           (targetnya `<main id="main-content">` di bawah). */}
       <SkipToContent />
@@ -170,6 +180,21 @@ export default function Shell({ children, sessions, currentSessionId, onSelectSe
             <Button variant="secondary" size="md" onClick={() => { onNewChat(); closeMobile(); }} className="mx-3 mt-3">
               <Plus className="h-4 w-4" strokeWidth={1.75} /> {t("nav.newChat")}
             </Button>
+            {/* NAVIGASI UTAMA (<sm): tautan Chat/Builder/Templates disembunyikan
+                dari header karena tidak muat di 320-390px (lihat catatan di
+                header). Supaya tetap terjangkau, tautan yang sama ada di sini —
+                pola standar "nav sekunder masuk drawer". */}
+            <nav aria-label="Navigasi utama" className="mt-3 flex flex-col px-2">
+              <Link href="/chat" onClick={closeMobile} className="flex items-center gap-3 rounded-lg px-3 text-subhead font-medium text-fg-muted transition-colors hover:bg-bg-subtle hover:text-fg">
+                <MessageSquare className="h-4 w-4 shrink-0" strokeWidth={1.75} /> {t("nav.chat")}
+              </Link>
+              <Link href="/builder" onClick={closeMobile} className="flex items-center gap-3 rounded-lg px-3 text-subhead font-medium text-fg-muted transition-colors hover:bg-bg-subtle hover:text-fg">
+                <Workflow className="h-4 w-4 shrink-0" strokeWidth={1.75} /> {t("nav.builder")}
+              </Link>
+              <Link href="/templates" onClick={closeMobile} className="flex items-center gap-3 rounded-lg px-3 text-subhead font-medium text-fg-muted transition-colors hover:bg-bg-subtle hover:text-fg">
+                <LayoutTemplate className="h-4 w-4 shrink-0" strokeWidth={1.75} /> {t("nav.templates")}
+              </Link>
+            </nav>
             <div className="mt-4 flex-1 overflow-y-auto px-2">
               <p className="px-2 pb-2 text-caption font-semibold uppercase tracking-wide text-fg-subtle">{t("nav.history")}</p>
               {sessions.length === 0 && <p className="px-2 py-1 text-footnote text-fg-subtle">{t("nav.noHistory")}</p>}
@@ -191,9 +216,12 @@ export default function Shell({ children, sessions, currentSessionId, onSelectSe
       )}
 
       <div className="k-chat-header flex min-w-0 flex-1 flex-col dark:bg-zinc-900">
-        <header className="sticky top-0 z-10 flex items-center justify-between bg-bg/70 px-5 py-3 backdrop-blur-xl dark:bg-zinc-900">
-          <div className="flex items-center gap-2">
-            <BrandMark data-testid="header-logo" />
+        <header className="sticky top-0 z-10 flex items-center justify-between gap-2 bg-bg/70 px-3 py-2 backdrop-blur-xl dark:bg-zinc-900 sm:px-5 sm:py-3">
+          <div className="flex min-w-0 items-center gap-2">
+            {/* Wordmark disembunyikan < sm: di 320-390px logo + wordmark + lima
+                kontrol kanan tidak muat dan teksnya menimpa tombol tema.
+                Logo tetap tampil (lihat BrandMark). */}
+            <BrandMark data-testid="header-logo" wordmarkClassName="hidden sm:inline" />
             <button
               type="button"
               onClick={() => setMobileOpen(true)}
@@ -208,28 +236,38 @@ export default function Shell({ children, sessions, currentSessionId, onSelectSe
                 /builder: pembaca layar tidak punya penanda awal struktur. */}
             <h1 className="sr-only">Katalir</h1>
           </div>
-          <div className="flex items-center gap-2">
-            <ThemeToggle />
-            <Link href="/chat" className="flex h-9 items-center gap-2 rounded-md border-0 bg-surface px-3 text-subhead font-medium text-fg transition duration-200 hover:bg-bg-subtle" data-testid="shell-chat-link">
-              <MessageSquare className="h-4 w-4" strokeWidth={1.75} /> {t("nav.chat")}
-            </Link>
-            <Link href="/builder" className="flex h-9 items-center gap-2 rounded-md border-0 bg-surface px-3 text-subhead font-medium text-fg transition duration-200 hover:bg-bg-subtle">
-              <Workflow className="h-4 w-4" strokeWidth={1.75} /> {t("nav.builder")}
-            </Link>
-            <Link href="/templates" className="flex h-9 items-center gap-2 rounded-md border-0 bg-surface px-3 text-subhead font-medium text-fg transition duration-200 hover:bg-bg-subtle" data-testid="shell-templates-link">
-              <LayoutTemplate className="h-4 w-4" strokeWidth={1.75} /> {t("nav.templates")}
-            </Link>
-            {email && (
-              <Button variant="secondary" size="md" onClick={() => setVaultOpen(true)}>
-                <KeyRound className="h-4 w-4" strokeWidth={1.75} /> {t("nav.vault")}
-              </Button>
-            )}
-            {email ? <UserMenu userTier={userTier} compact /> : (
-              <Button variant="secondary" size="md" onClick={signInWithGoogle}>
-                <LogIn className="h-4 w-4" strokeWidth={1.75} /> {t("nav.loginGoogle")}
-              </Button>
-            )}
-          </div>
+          {/* MOBILE (<lg): hanya IKON. Tiga tautan berlabel + Brankas + akun
+              tidak muat di 320-390px dan memaksa gulir horizontal — penyebab
+              layout mobile pecah. Label kembali pada ≥lg, tempat ruangnya ada.
+              `shrink-0` pada grup kanan mencegah ikon terkompresi. */}
+            <div className="flex shrink-0 items-center gap-1.5 sm:gap-2">
+              <ThemeToggle />
+              {/* Tautan sekunder disembunyikan < sm. Terukur di 320px: lima
+                  kontrol 44x44 (WCAG 2.5.5, aturan `@media (pointer: coarse)` di
+                  globals.css) = 244px + logo 32 + tombol menu 44 + celah =
+                  336px, sedangkan ruang header hanya 296px. Akibatnya grup kiri
+                  terkompresi dan LOGO jadi 0px (tak terlihat). Tautan yang sama
+                  kini ada di drawer mobile di bawah. */}
+              <Link href="/chat" aria-label={t("nav.chat")} title={t("nav.chat")} className="hidden h-9 items-center gap-2 rounded-md border-0 bg-surface px-2 text-subhead font-medium text-fg transition duration-200 hover:bg-bg-subtle sm:flex lg:px-3" data-testid="shell-chat-link">
+                <MessageSquare className="h-4 w-4 shrink-0" strokeWidth={1.75} /> <span className="hidden lg:inline">{t("nav.chat")}</span>
+              </Link>
+              <Link href="/builder" aria-label={t("nav.builder")} title={t("nav.builder")} className="hidden h-9 items-center gap-2 rounded-md border-0 bg-surface px-2 text-subhead font-medium text-fg transition duration-200 hover:bg-bg-subtle sm:flex lg:px-3">
+                <Workflow className="h-4 w-4 shrink-0" strokeWidth={1.75} /> <span className="hidden lg:inline">{t("nav.builder")}</span>
+              </Link>
+              <Link href="/templates" aria-label={t("nav.templates")} title={t("nav.templates")} className="hidden h-9 items-center gap-2 rounded-md border-0 bg-surface px-2 text-subhead font-medium text-fg transition duration-200 hover:bg-bg-subtle sm:flex lg:px-3" data-testid="shell-templates-link">
+                <LayoutTemplate className="h-4 w-4 shrink-0" strokeWidth={1.75} /> <span className="hidden lg:inline">{t("nav.templates")}</span>
+              </Link>
+              {email && (
+                <Button variant="secondary" size="md" onClick={() => setVaultOpen(true)} aria-label={t("nav.vault")} title={t("nav.vault")} className="px-2 lg:px-3">
+                  <KeyRound className="h-4 w-4 shrink-0" strokeWidth={1.75} /> <span className="hidden lg:inline">{t("nav.vault")}</span>
+                </Button>
+              )}
+              {email ? <UserMenu userTier={userTier} compact /> : (
+                <Button variant="secondary" size="md" onClick={signInWithGoogle} aria-label={t("nav.loginGoogle")} title={t("nav.loginGoogle")} className="px-2 lg:px-3">
+                  <LogIn className="h-4 w-4 shrink-0" strokeWidth={1.75} /> <span className="hidden lg:inline">{t("nav.loginGoogle")}</span>
+                </Button>
+              )}
+            </div>
         </header>
         {/* FASE 5: `children` dibungkus landmark <main> supaya tautan
             lewati-ke-konten punya target nyata dan pembaca layar bisa melompat
