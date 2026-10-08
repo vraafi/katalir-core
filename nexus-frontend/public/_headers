@@ -49,19 +49,62 @@
 # `images: { unoptimized: true }` pada `output: "export"`, jadi Next.js
 # tidak memproses URL gambar sama sekali - yang mengunci unduhan adalah CSP.
 
+# ===========================================================================
+# FIX CSP 2026-10-08: Cloudflare Web Analytics / RUM beacon DIBLOKIR CSP.
+#
+# GEJALA: setiap pemuatan halaman produksi mencatat satu pelanggaran CSP di
+# Console ("Refused to load the script ... because it violates the following
+# Content Security Policy directive: script-src 'self' 'unsafe-inline'").
+# Akibat sebenarnya: ANALITIK CLOUDFLARE TIDAK PERNAH BERJALAN - beacon tidak
+# pernah dieksekusi, jadi tidak ada satu pun data yang masuk ke dashboard.
+#
+# BUKTI (diambil dari produksi, bukan dugaan):
+#   1. Cloudflare MENYUNTIKKAN beacon ke HTML hanya bila request terlihat
+#      seperti navigasi browser. `curl` polos tidak melihatnya; dengan
+#      User-Agent browser barulah muncul:
+#        <script type="module"
+#          src="https://static.cloudflareinsights.com/beacon.min.js/v4bc70e..."
+#          integrity="sha512-L0ha0OXavK/..." crossorigin="anonymous"
+#          data-cf-beacon='{"version":"2024.11.0","token":"f37dfc69...",
+#                           "r":1,"spa":2}'>
+#   2. Endpoint POST beacon dibaca langsung dari isi beacon.min.js:
+#        https://cloudflareinsights.com/cdn-cgi/rum
+#
+# DOKUMENTASI RESMI (Cloudflare, Content Security Policies, diperbarui
+# 2026-04-20) menyebut untuk fitur Web Analytics:
+#        script-src static.cloudflareinsights.com;
+#        connect-src cloudflareinsights.com
+# Dua host itu persis yang ditambahkan di bawah.
+#
+# KENAPA TIDAK PAKAI WILDCARD / unsafe-eval:
+#   - `https:` di script-src mengizinkan skrip dari host MANA PUN. Itu
+#     menghapus hampir seluruh nilai CSP terhadap XSS.
+#   - `unsafe-eval` tidak dibutuhkan beacon (ia tidak memakai eval/Function)
+#     dan Next.js produksi juga tidak membutuhkannya.
+#   - `cloudflareinsights.com` ditulis EKSPLISIT (bukan `*.cloudflareinsights
+#     .com`) karena endpoint-nya memang di host itu.
+#
+# KENAPA `https://static.cloudflareinsights.com` TIDAK IKUT KE connect-src:
+# beacon memakai SATU endpoint POST saja (cdn-cgi/rum di atas). Menambah host
+# yang tidak dipakai hanya memperluas permukaan tanpa manfaat.
+#
+# Dampak keamanan: kedua host dimiliki Cloudflare dan sudah menjadi bagian dari
+# jalur pengiriman situs ini (Pages + DNS + TLS). Yang berubah hanyalah CSP
+# sekarang MENGAKUI kenyataan itu, alih-alih memblokirnya diam-diam.
+#
+# CATATAN HIGIENE: enam baris komentar yatim (potongan komentar lama soal
+# avatar OAuth) sebelumnya terselip DI DALAM blok header di bawah ini. Isinya
+# sudah ada lengkap di bagian atas berkas, jadi baris-baris itu dihapus -
+# bukan diubah isinya.
+# ===========================================================================
+
 /*
   Strict-Transport-Security: max-age=31536000; includeSubDomains
   X-Frame-Options: DENY
   X-Content-Type-Options: nosniff
   Referrer-Policy: strict-origin-when-cross-origin
   Permissions-Policy: camera=(), microphone=(), geolocation=()
-# data: blob:` tanpa host Google/GitHub, sementara `auth.tsx` mengambil
-# `user_metadata.avatar_url` (GitHub) / `user_metadata.picture` (Google).
-# Symptom: avatar Google/GitHub = kotak kosong; inisial tidak munculjugak
-# karena fallback di UserMenu hanya menyala bila `avatarUrl` null.
-#
-# ini - aplikasi memakai tag <img> polos (bukan next/image) dengan
-  Content-Security-Policy: default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'none'; form-action 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https://lh3.googleusercontent.com https://avatars.githubusercontent.com; font-src 'self' data:; connect-src 'self' https://web-production-dc90b.up.railway.app https://qmukkphwaajzbqjrcvaz.supabase.co wss://qmukkphwaajzbqjrcvaz.supabase.co
+  Content-Security-Policy: default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'none'; form-action 'self'; script-src 'self' 'unsafe-inline' https://static.cloudflareinsights.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https://lh3.googleusercontent.com https://avatars.githubusercontent.com; font-src 'self' data:; connect-src 'self' https://web-production-dc90b.up.railway.app https://qmukkphwaajzbqjrcvaz.supabase.co wss://qmukkphwaajzbqjrcvaz.supabase.co https://cloudflareinsights.com
 
 # Aset ber-hash di /_next/static aman di-cache lama (Cloudflare docs).
 /_next/static/*
