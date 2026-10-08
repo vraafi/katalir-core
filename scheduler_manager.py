@@ -318,11 +318,69 @@ async def tick(user_id: Optional[str] = None) -> int:
             ).eq("id", sched["id"]).execute()
             _log.warning("[scheduler] skip missed >24h schedule=%s", sched["id"])
             continue
+        # Fitur #2 (Advanced Scheduling): gerbang kondisi + dependency.
+        # Di-skip TANPA claim -> jadwal tetap due dan dicoba lagi tick berikut.
+        boleh, alasan = advanced_gate(sched, now)
+        if not boleh:
+            _log.info("[scheduler] SKIP schedule=%s alasan=%s", sched["id"], alasan)
+            continue
         if not claim_schedule(sched, now):
             continue  # replica lain yang menang
         fired += 1
         await _fire(sched)
     return fired
+
+
+def _dep_has_fired(dep_id: str) -> bool:
+    """True bila jadwal dependency pernah menembak (punya last_fired_at)."""
+    try:
+        res = (
+            _svc().table("workflow_schedules")
+            .select("last_fired_at")
+            .eq("id", dep_id)
+            .limit(1)
+            .execute()
+        )
+        rows = res.data or []
+        return bool(rows and rows[0].get("last_fired_at"))
+    except Exception:  # noqa: BLE001 - tak bisa diverifikasi -> anggap belum
+        return False
+
+
+def advanced_gate(sched: dict, now: datetime) -> tuple[bool, str]:
+    """Gerbang kondisi + dependency (Fitur #2). Return (boleh, alasan).
+
+    Gagal-aman: bila modul advanced tidak tersedia, izinkan (perilaku lama).
+    """
+    try:
+        import advanced_scheduling as adv
+    except Exception:  # noqa: BLE001
+        return True, "ok"
+    spec = {
+        "enabled": sched.get("enabled", True),
+        "condition": sched.get("condition"),
+        "after": [],
+    }
+    ctx = {
+        "hour": now.hour,
+        "minute": now.minute,
+        "weekday": (now.weekday() + 1) % 7,  # 0=Minggu (samakan dgn cron)
+        "trigger": "cron",
+    }
+    hasil = adv.decide(spec, ctx, {})
+    if not hasil["fire"]:
+        return False, hasil["reason"]
+    deps = sched.get("depends_on") or []
+    if isinstance(deps, str):
+        try:
+            import json as _json
+            deps = _json.loads(deps)
+        except Exception:  # noqa: BLE001
+            deps = []
+    for dep in deps or []:
+        if not _dep_has_fired(str(dep)):
+            return False, f"dependency belum pernah jalan: {dep}"
+    return True, "ok"
 
 
 async def scheduler_loop(stop_event: asyncio.Event) -> None:

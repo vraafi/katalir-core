@@ -66,3 +66,62 @@ Bukti raw: `31 passed in 0.99s`.
 - Fitur #2 — Advanced Scheduling.
 
 ---
+
+## FITUR #2: Advanced Scheduling
+
+### Research
+| Paket | Versi | Verdict | Alasan |
+|-------|-------|---------|--------|
+| croniter (existing) | stabil | **DIPAKAI** | pure-python, sudah dipakai scheduler_manager |
+| APScheduler | 4.x pre | DITOLAK | masih pre-release |
+| fastscheduler | 0.2.x | DITOLAK | terlalu muda (v0.x) |
+| dateparser/parsedatetime | — | DITOLAK | berat & ambigu untuk cron |
+
+**Pilihan:** `advanced_scheduling.py` (murni) + croniter. **Alasan:** nol
+dependensi baru, DST diuji nyata, dan NL parser kecil sendiri (EN + ID).
+
+### Implementasi
+- File: `advanced_scheduling.py` (baru, ~330 baris, MURNI tanpa DB/jaringan)
+- Fungsi: `build_cron` (builder visual), `natural_to_cron` (EN/ID),
+  `next_fire`/`next_fires` (DST-safe), `evaluate_condition` (tanpa `eval`),
+  `decide` (fire + alasan), `build_workflow_schedules` (multiple),
+  `validate_spec`, `COMMON_TIMEZONES` (50).
+- Integrasi: `scheduler_manager.advanced_gate()` dipanggil di `tick()` —
+  kondisi + dependency dihormati; jadwal yang di-skip TIDAK di-claim.
+- DDL: `migrations/2026_advanced_scheduling.sql` → kolom `condition`,
+  `depends_on`, `label` (diterapkan ke Supabase: **5/5 OK**).
+- API: `GET /schedules/timezones`, `POST /schedules/build`,
+  `POST /schedules/parse`, `POST /schedules/preview`, `POST /schedules/validate`.
+- Registry `/version`: `18_advanced_scheduling`.
+
+### Hard Test — `tests/test_advanced_scheduling.py` (26 kasus, PASS)
+| # | Skenario | Status |
+|---|----------|--------|
+| 1 | Builder visual → cron valid + tolak invalid | PASS |
+| 2 | Natural EN → cron (8 frasa) | PASS |
+| 3 | Natural ID → cron (6 frasa) | PASS |
+| 4 | DST spring-forward: 09:00 lokal tetap 09:00 | PASS |
+| 5 | DST fall-back: 09:00 lokal tetap 09:00 | PASS |
+| 6 | Multiple schedule per workflow | PASS |
+| 7 | Conditional schedule | PASS |
+| 8 | Dependency (A selesai → B) | PASS |
+| 9 | 50 timezone valid | PASS |
+| 10 | Validasi ekspresi (tolak 4/6 field) | PASS |
+| 11 | Performa 1000 next_fire < 2s | PASS |
+| 12 | Alasan fire/skip untuk log | PASS |
+| 13 | Deret next_fires menaik | PASS |
+
+Bukti raw: `26 passed in 0.70s` + `66 passed` (seluruh tes scheduler).
+
+### Deviasi dari brief
+- **BUG DITEMUKAN & DIPERBAIKI:** croniter dengan base tz-aware menghasilkan
+  waktu spurious (08:00) pada hari spring-forward DST. Diperbaiki dengan
+  iterasi pada dinding jam lokal (naive) lalu lokalisasi.
+
+### Blocker
+- Tidak ada.
+
+### Next
+- Fitur #3 — Advanced Monitoring & Alerting.
+
+---

@@ -4461,7 +4461,7 @@ _FEATURE_MODULES = {
     "16_insights": "insights",
     # 11 fitur enterprise n8n (Okt 2026)
     "17_secrets_enterprise": "secrets_provider",
-    "18_advanced_scheduling": "scheduler_manager",
+    "18_advanced_scheduling": "advanced_scheduling",
     "19_monitoring": "monitoring",
     "20_environments": "environments",
     "21_source_control": "source_control",
@@ -4791,6 +4791,95 @@ def secrets_history(ref: str, authorization: str | None = Header(None)):
     return {"status": "success", "path": jalur, "history": hist,
             "current_version": sp.rotation_store().current_version(
                 str(user["email"]), jalur)}
+
+
+# ---------------------------------------------------------------------------
+# ENDPOINT ADVANCED SCHEDULING (fitur #2) — builder, NL, preview, kondisi
+# ---------------------------------------------------------------------------
+class CronBuildRequest(BaseModel):
+    minute: str = "*"
+    hour: str = "*"
+    dom: str = "*"
+    month: str = "*"
+    dow: str = "*"
+
+
+class CronParseRequest(BaseModel):
+    text: str
+
+
+class SchedulePreviewRequest(BaseModel):
+    cron: str
+    timezone: str = "UTC"
+    count: int = 5
+
+
+@app.get("/schedules/timezones")
+def schedules_timezones(authorization: str | None = Header(None)):
+    """Daftar timezone IANA untuk picker (DST-aware via zoneinfo)."""
+    security.get_current_user(authorization)
+    import advanced_scheduling as sch
+    return {"status": "success", "timezones": sch.COMMON_TIMEZONES}
+
+
+@app.post("/schedules/build")
+def schedules_build(body: CronBuildRequest,
+                    authorization: str | None = Header(None)):
+    """Builder visual -> cron expression."""
+    security.get_current_user(authorization)
+    import advanced_scheduling as sch
+    try:
+        expr = sch.build_cron(body.minute, body.hour, body.dom, body.month,
+                              body.dow)
+    except sch.ScheduleError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
+    return {"status": "success", "cron": expr}
+
+
+@app.post("/schedules/parse")
+def schedules_parse(body: CronParseRequest,
+                    authorization: str | None = Header(None)):
+    """Natural language (EN/ID) -> cron expression."""
+    security.get_current_user(authorization)
+    import advanced_scheduling as sch
+    expr = sch.natural_to_cron(body.text)
+    if not expr:
+        raise HTTPException(status_code=422,
+                            detail="Frasa jadwal tidak dikenali")
+    return {"status": "success", "cron": expr}
+
+
+@app.post("/schedules/preview")
+def schedules_preview(body: SchedulePreviewRequest,
+                      authorization: str | None = Header(None)):
+    """Pratinjau N waktu tembak berikutnya (UTC ISO) — membuktikan DST."""
+    security.get_current_user(authorization)
+    import advanced_scheduling as sch
+    if not sch.is_valid_cron(body.cron):
+        raise HTTPException(status_code=400, detail="cron tidak valid")
+    if not sch.is_valid_timezone(body.timezone):
+        raise HTTPException(status_code=400, detail="timezone tidak valid")
+    n = max(1, min(int(body.count or 5), 50))
+    fires = sch.next_fires(body.cron, body.timezone, count=n)
+    return {"status": "success", "cron": body.cron, "timezone": body.timezone,
+            "next": [f.isoformat() for f in fires]}
+
+
+@app.post("/schedules/validate")
+def schedules_validate(body: dict,
+                       authorization: str | None = Header(None)):
+    """Validasi daftar spec jadwal (multiple/conditional/dependency)."""
+    security.get_current_user(authorization)
+    import advanced_scheduling as sch
+    specs = (body or {}).get("specs") or []
+    hasil = []
+    ok = True
+    for i, s in enumerate(specs):
+        errs = sch.validate_spec(s)
+        if errs:
+            ok = False
+        hasil.append({"index": i, "valid": not errs, "errors": errs})
+    return {"status": "success", "valid": ok, "results": hasil}
 
 
 @app.get("/health")
