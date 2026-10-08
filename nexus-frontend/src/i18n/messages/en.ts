@@ -14,6 +14,7 @@ export const en = {
   nav: {
     chat: "Chat",
     builder: "Builder",
+    templates: "Templates",
     vault: "Vault",
     login: "Sign in",
     logout: "Sign out",

@@ -5,7 +5,7 @@
 // render untuk anon) — route terproteksi cukup menampilkan empty/login state.
 import { test, expect } from "@playwright/test";
 
-const ROUTES = ["/", "/chat", "/settings", "/billing", "/help", "/builder"];
+const ROUTES = ["/", "/chat", "/settings", "/billing", "/help", "/builder", "/templates"];
 
 for (const route of ROUTES) {
   test(`no-crash ${route}`, async ({ page }) => {

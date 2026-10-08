@@ -15,6 +15,7 @@ export const id = {
   nav: {
     chat: "Chat",
     builder: "Builder",
+    templates: "Template",
     vault: "Brankas",
     login: "Masuk",
     logout: "Keluar",

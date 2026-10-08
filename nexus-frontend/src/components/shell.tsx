@@ -1,7 +1,7 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import { Plus, LogIn, MessageSquare, Menu, X, Workflow, KeyRound, MoreHorizontal, Trash2 } from "lucide-react";
+import { Plus, LogIn, MessageSquare, Menu, X, Workflow, LayoutTemplate, KeyRound, MoreHorizontal, Trash2 } from "lucide-react";
 import Link from "next/link";
 import { useAuth } from "@/context/auth";
 import ThemeToggle from "@/components/ThemeToggle";
@@ -215,6 +215,9 @@ export default function Shell({ children, sessions, currentSessionId, onSelectSe
             </Link>
             <Link href="/builder" className="flex h-9 items-center gap-2 rounded-md border-0 bg-surface px-3 text-subhead font-medium text-fg transition duration-200 hover:bg-bg-subtle">
               <Workflow className="h-4 w-4" strokeWidth={1.75} /> {t("nav.builder")}
+            </Link>
+            <Link href="/templates" className="flex h-9 items-center gap-2 rounded-md border-0 bg-surface px-3 text-subhead font-medium text-fg transition duration-200 hover:bg-bg-subtle" data-testid="shell-templates-link">
+              <LayoutTemplate className="h-4 w-4" strokeWidth={1.75} /> {t("nav.templates")}
             </Link>
             {email && (
               <Button variant="secondary" size="md" onClick={() => setVaultOpen(true)}>
