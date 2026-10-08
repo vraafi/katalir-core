@@ -4693,6 +4693,35 @@ def evaluations_detail(run_id: str, authorization: str | None = Header(None)):
         "created_at": row.get("created_at")}}
 
 
+# ---------------------------------------------------------------------------
+# ENDPOINT INSIGHTS (fitur #5) — success rate, latensi, error, time saved, ROI
+# ---------------------------------------------------------------------------
+@app.get("/insights")
+def insights_report(days: int = 30, workflow_id: str = "",
+                    latency: bool = False,
+                    authorization: str | None = Header(None)):
+    """Laporan analitik owner-scoped (time series, time saved, ROI)."""
+    user = security.get_current_user(authorization)
+    import insights
+    ins = insights.Insight(str(user["id"]))
+    rep = ins.report(days=days, workflow_id=workflow_id, with_latency=latency)
+    rep["status"] = "success"
+    return rep
+
+
+@app.get("/insights/export")
+def insights_export(days: int = 30, workflow_id: str = "",
+                    authorization: str | None = Header(None)):
+    """Unduh deret harian sebagai CSV."""
+    user = security.get_current_user(authorization)
+    import insights
+    from fastapi.responses import Response
+    csv_text = insights.Insight(str(user["id"])).export_csv(days=days,
+                                                           workflow_id=workflow_id)
+    return Response(content=csv_text, media_type="text/csv", headers={
+        "Content-Disposition": f'attachment; filename="insights-{days}d.csv"'})
+
+
 @app.get("/health")
 def health():
     return {
