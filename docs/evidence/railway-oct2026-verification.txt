@@ -1,0 +1,25 @@
+VERIFIKASI RAILWAY — dokumentasi Okt 2026 (docs.railway.com/integrations/api)
+Endpoint: https://backboard.railway.com/graphql/v2
+==========================================================================
+[1] SALAH (dulu): project token via 'Authorization: Bearer'
+    HTTP 200: {"errors":[{"message":"Project Token not found","locations":[{"line":1,"column":9}],"path":["projectToken"],"extensions":{"code":"INTERNAL_SERVER_ERROR"},"traceId":"817617135072434
+[2] BENAR (docs Okt 2026): header 'Project-Access-Token'
+    HTTP 200: {"data":{"projectToken":{"projectId":"5c471234-02d3-4009-be71-9cd304e4d809","environmentId":"b332795c-7882-490b-95fd-0f1079cd66b3"}}}
+
+[3] Proyek nyata via project token:
+    HTTP 400: {"errors":[{"message":"Cannot query field \"source\" on type \"Service\".","locations":[{"line":1,"column":97}],"extensions":{"code":"GRAPHQL_VALIDATION_FAILED"},"traceId":"6978221178133411634"},{"message":"Cannot query field \"domains\" on type \"Service\".","locations":[{"line":1,"column":113}],"extensions":{"code":"GRAPHQL_VALIDATION_FAILED"},"traceId":"6978221178133411634"}]}
+
+[4] Status deployment terakhir (5):
+    HTTP 200: {"data":{"service":{"deployments":{"edges":[{"node":{"status":"FAILED","createdAt":"2026-09-09T10:15:16.453Z"}},{"node":{"status":"FAILED","createdAt":"2026-09-09T10:05:05.908Z"}},{"node":{"status":"FAILED","createdAt":"2026-09-09T09:59:18.839Z"}},{"node":{"status":"FAILED","createdAt":"2026-09-09T09:34:23.196Z"}},{"node":{"status":"FAILED","createdAt":"2026-09-07T18:17:16.099Z"}}]}}}}
+
+[5] Variabel service (nama saja, 50): SUPABASE_URL, SUPABASE_KEY, GOOGLE_CLIENT_ID,
+    GOOGLE_CLIENT_SECRET, VAULT_SECRET_KEY, ALLOWED_HOSTS, GEMINI_KEY_1..13, dst.
+[6] Build log gagal (penyebab): pip ResolutionImpossible —
+    'The user requested langchain-core==0.3.34' vs 'langchain-google-genai 2.1.2
+     depends on langchain-core<0.4.0 and >=0.3.4' (lintasan resolver lama)
+    + langchain-openai 0.3.7 menuntut core <1.0.0 vs google-genai >=1.3.2.
+    FIX: requirements.txt -> core 1.4.0 + google-genai 4.2.3 + groq 1.1.3 +
+    openai 1.2.2 (pip --dry-run: resolvable). Commit cbcb712, pushed.
+[7] Percobaan deploy ulang (serviceInstanceDeployV2, commit cbcb712):
+    HTTP 200: {"errors":[{"message":"Your trial has expired. Please select a plan to continue using Railway.","locations":[{"line":1,"column":12}],"path":["serviceInstanceDeployV2"],"extensions":{"code":"BAD_USER_INPUT"},"traceId":"7069066578647074205"}],"data":null}
+

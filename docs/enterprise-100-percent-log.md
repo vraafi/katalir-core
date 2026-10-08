@@ -860,3 +860,33 @@ Bukti: `docs/evidence/f10-collab-vps-live.{txt,json}` (12/12).
 | #7 SSO | Google OAuth + Redis VPS | 12/12 | f07-sso-env-live |
 | #1 Secrets | Nango + Metorial + Vault | 12/12 | f01-secrets-env-live |
 | #10 Collab | Yjs WS server @ VPS | 12/12 | f10-collab-vps-live |
+
+## KOREKSI RAILWAY (verifikasi dokumentasi Okt 2026) — argumen user TERBUKTI BENAR
+
+Kesimpulan lama ("Railway 404 = gangguan eksternal") **SALAH**. Setelah membaca
+`docs.railway.com/integrations/api` (Okt 2026) + thread Station.railway.com
+(Sep 2026), rantai akar masalah:
+
+1. **Header salah**: project token WAJIB lewat header `Project-Access-Token`,
+   BUKAN `Authorization: Bearer`.
+   - `Authorization: Bearer`      → `Project Token not found` (salah jalur auth)
+   - `Project-Access-Token`       → **200** `projectId 5c471234…`, `environmentId b332795c…`
+   Token di `.env` valid sepanjang masa.
+2. **Proyek & service tetap ada**: project `sunny-vibrancy`, service `web`
+   (repo `vraafi/katalir-core`), domain `web-production-dc90b.up.railway.app`,
+   50 variabel env (SUPABASE_URL, GOOGLE_CLIENT_ID/SECRET, VAULT_SECRET_KEY, …).
+3. **Kenapa 404 "Application not found"**: 5 deployment terakhir semuanya
+   **FAILED** (build Sep 2026) → tidak ada deployment hidup di belakang domain.
+4. **Penyebab build gagal**: pip `ResolutionImpossible` di `requirements.txt` —
+   `langchain-openai==0.3.7` menuntut `langchain-core<1.0.0` sementara
+   `langchain-google-genai` menuntut `>=1.3.2`. **DIPERBAIKI** (commit `cbcb712`,
+   ter-push): core 1.4.0 + google-genai 4.2.3 + groq 1.1.3 + openai 1.2.2 —
+   diverifikasi `pip --dry-run` resolvable.
+5. **Penghalang terakhir (bukti raw)**: `serviceInstanceDeployV2` →
+   `{"message":"Your trial has expired. Please select a plan to continue using
+   Railway.","code":"BAD_USER_INPUT"}` — Railway menuntut **paket berbayar**
+   untuk deploy baru. Sesuai aturan misi (butuh akun berbayar/kartu kredit),
+   dipindah ke **alternatif gratis yang sudah jalan**: VPS (Redis 7.0.15 +
+   server Yjs/CRDT live, hard test 12/12 masing-masing).
+   TODO: begitu akun Railway di-upgrade, deploy otomatis bisa dipicu dengan
+   `serviceInstanceDeployV2` (contoh lengkap: `docs/evidence/railway-oct2026-verification.txt`).
