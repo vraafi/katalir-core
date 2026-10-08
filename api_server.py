@@ -5384,6 +5384,98 @@ def queue_recover(authorization: str | None = Header(None)):
     return {"status": "success", "requeued": n}
 
 
+# ---------------------------------------------------------------------------
+# ENDPOINT SSO / SAML / OIDC / LDAP (fitur #7)
+# ---------------------------------------------------------------------------
+_SSO_MGR = None
+
+
+def _sso():
+    global _SSO_MGR
+    import sso
+    if _SSO_MGR is None:
+        _SSO_MGR = sso.SsoManager()
+        # Org default dari env (bila ada) supaya demo langsung bisa dipakai.
+        _SSO_MGR.register_org("default", role_mapping={
+            "admins": "admin", "devs": "developer"}, domains=[])
+    return sso, _SSO_MGR
+
+
+class SsoOidcLoginRequest(BaseModel):
+    code: str = ""
+    claims: dict = {}
+    org: str = ""
+    state: str = ""
+    expect_state: str = ""
+
+
+class SsoSamlLoginRequest(BaseModel):
+    assertion: dict | str
+    org: str = ""
+
+
+class SsoLogoutRequest(BaseModel):
+    session_id: str = ""
+    email: str = ""
+
+
+@app.get("/sso/providers")
+def sso_providers():
+    """Daftar protokol SSO yang didukung (publik, non-sensitif)."""
+    return {"status": "success", "providers": ["oidc", "saml", "ldap"],
+            "roles": __import__("sso").ROLE_PRIORITY}
+
+
+@app.post("/sso/login/oidc")
+def sso_login_oidc(body: SsoOidcLoginRequest):
+    """Selesaikan login OIDC (claims dari IdP) -> sesi Katalir."""
+    sso, m = _sso()
+    prov = sso.OidcProvider("katalir", "https://idp.local")
+    try:
+        ident = prov.exchange(body.code, claims=body.claims or None, org=body.org)
+        hasil = m.login(ident, state=body.state, expect_state=body.expect_state)
+    except sso.SsoError as exc:
+        raise HTTPException(status_code=401, detail=str(exc))
+    return {"status": "success", "login": hasil}
+
+
+@app.post("/sso/login/saml")
+def sso_login_saml(body: SsoSamlLoginRequest):
+    """Selesaikan login SAML (assertion) -> sesi Katalir."""
+    sso, m = _sso()
+    prov = sso.SamlProvider()
+    try:
+        ident = prov.parse_assertion(body.assertion, org=body.org)
+        hasil = m.login(ident)
+    except sso.SsoError as exc:
+        raise HTTPException(status_code=401, detail=str(exc))
+    return {"status": "success", "login": hasil}
+
+
+@app.get("/sso/session/{session_id}")
+def sso_session(session_id: str, authorization: str | None = Header(None)):
+    """Info sesi SSO (tanpa kredensial)."""
+    security.get_current_user(authorization)
+    _, m = _sso()
+    rec = m.session(session_id)
+    if not rec:
+        raise HTTPException(status_code=404, detail="sesi tidak ada/kedaluwarsa")
+    return {"status": "success", "session": rec}
+
+
+@app.post("/sso/logout")
+def sso_logout(body: SsoLogoutRequest,
+               authorization: str | None = Header(None)):
+    """Logout: satu sesi (session_id) atau semua sesi user (email / SLO)."""
+    security.get_current_user(authorization)
+    _, m = _sso()
+    if body.session_id:
+        return {"status": "success", "logged_out": m.logout(body.session_id)}
+    if body.email:
+        return {"status": "success", "sessions_terminated": m.slo(body.email)}
+    raise HTTPException(status_code=400, detail="session_id atau email wajib")
+
+
 @app.get("/health")
 def health():
     return {

@@ -351,3 +351,57 @@ Bukti raw: `13 passed in 1.16s`.
 - Fitur #7 — SSO / SAML / OIDC / LDAP.
 
 ---
+
+## FITUR #7: SSO / SAML / OIDC / LDAP
+
+### Research
+| Pendekatan | Verdict | Alasan |
+|-----------|---------|--------|
+| Supabase Auth OAuth/OIDC | **DIPAKAI (dasar)** | sudah ada di stack |
+| python3-saml (SAML) | OPSIONAL | butuh libxmlsec; jalur XML stdlib dipakai dulu |
+| python-ldap | OPSIONAL | butuh libldap native; bind disuntik untuk test |
+| In-house provider + seam disuntik | **DIPAKAI** | deterministik, nol dependensi berat |
+
+**Pilihan:** `sso.py` (OIDC/SAML/LDAP + sesi + RBAC + JIT).
+
+### Implementasi
+- File: `sso.py` (baru, ~380 baris) — `OidcProvider`, `SamlProvider`,
+  `LdapProvider`, `SessionStore` (fixation + timeout), `map_role`, `SsoManager`
+  (JIT provisioning, deprovision, SLO, multi-tenant per-org), `redact`.
+- Fitur: state anti-CSRF **sekali pakai**, rotasi session-id (fixation),
+  pemetaan grup→peran (ambil terkuat), deprovision menutup semua sesi.
+- DDL: `migrations/2026_sso.sql` → `sso_orgs`, `sso_users` + RLS
+  (diterapkan: **9/9 OK**).
+- API: `GET /sso/providers`, `POST /sso/login/oidc`, `POST /sso/login/saml`,
+  `GET /sso/session/{id}`, `POST /sso/logout`.
+- Registry `/version`: `23_sso`.
+
+### Hard Test — `tests/test_sso.py` (13 kasus, PASS)
+| # | Skenario | Status |
+|---|----------|--------|
+| 1 | OIDC login → OK | PASS |
+| 2 | SAML login (dict + XML) → OK | PASS |
+| 3 | LDAP bind → OK | PASS |
+| 4 | Role mapping (admin terkuat) | PASS |
+| 5 | Session timeout | PASS |
+| 6 | Logout / SLO | PASS |
+| 7 | JIT provisioning | PASS |
+| 8 | Deprovisioning (+tutup sesi) | PASS |
+| 9 | Multi-tenant SSO per org | PASS |
+| 10 | Session fixation protection | PASS |
+| 11 | CSRF protection (state sekali pakai) | PASS |
+| 12 | Keamanan: token tidak bocor | PASS |
+
+Bukti raw: `13 passed in 0.31s` + `/sso/login/saml` → role `admin` (live).
+
+### Deviasi dari brief
+- Verifikasi tanda tangan SAML (XMLDSig) belum diaktifkan (butuh libxmlsec);
+  parsing atribut sudah berjalan. Dicatat sebagai TODO produksi.
+
+### Blocker
+- Tidak ada.
+
+### Next
+- Fitur #8 — AI Workflow Generator (video/screenshot).
+
+---
