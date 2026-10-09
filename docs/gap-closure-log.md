@@ -604,7 +604,10 @@ di registry (2: `google-ads`, `sentry-oauth`) · `OAUTH2_CC` tanpa `token_url`
 
 ### 8. Commit + Push
 
-_(diisi setelah push)_
+- Commit: **`8263d4f`** — `feat(connectors): TASK 4 - OAuth generik untuk 1.024 provider Nango`
+- Push: `3e7e407..8263d4f  main -> main` (terverifikasi via `git ls-remote origin main`; 0 unpushed)
+- Berkas: `nango_oauth.py` (baru), `tests/test_nango_oauth.py` (baru),
+  `api_server.py` (+4 endpoint, +feature key), `docs/gap-closure-log.md`
 
 ### Status: 100% COMPLETE ✅
 
