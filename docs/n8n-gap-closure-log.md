@@ -12,8 +12,8 @@ dan `docs/enterprise-100-percent-log.md`.
 
 | # | Fitur | Modul | Hard Test | Commit | Status |
 |---|---|---|---|---|---|
-| 7 | Metric-based Evaluations | `metrics_eval.py` | 16/16 | — | ✅ |
-| 12 | External Memory Provider | — | — | — | pending |
+| 7 | Metric-based Evaluations | `metrics_eval.py` | 16/16 | `916e5f9` | ✅ |
+| 12 | External Memory Provider | `memory_provider.py` | 14/14 | — | ✅ |
 | 11 | Redaction + Enforce 2FA | — | — | — | pending |
 | 4 | Log Streaming SIEM | — | — | — | pending |
 | 8 | OTel / LangSmith Tracing | — | — | — | pending |
@@ -114,3 +114,91 @@ run_id      = 4a76a33a
 Persistensi ke Supabase terverifikasi (201 Created pada `eval_runs`).
 
 ### Status: 100% COMPLETE ✅
+Commit: `916e5f9`
+
+---
+
+## FITUR #12: EXTERNAL MEMORY PROVIDER (Supermemory / Mem0 / Zep / Letta)
+
+### Research (link Okt 2026)
+
+| Sumber | Link | Temuan | Keputusan |
+|---|---|---|---|
+| Supermemory API reference | https://supermemory.ai/docs/api-reference/overview | Base `https://api.supermemory.ai`, `Authorization: Bearer sm_...`. Ingest `POST /v3/documents`, search `POST /v4/search`. **v3/v4 DEPRECATED — shutdown 31 Des 2026** (v5 menyusul) | Implementasi v3/v4 + catat TODO migrasi v5 |
+| Mem0 REST API | https://docs.mem0.ai/open-source/features/rest-api | OSS server **tanpa** prefix `/v1`: `POST /memories` (`messages`,`user_id`,`agent_id`), `POST /search` (`query`,`user_id`), `DELETE /memories/{id}`. Auth `X-API-Key` atau Bearer JWT | Pakai path OSS tanpa `/v1` + Bearer (kompatibel platform) |
+| Zep docs | https://help.getzep.com/v2/sdk-reference/memory/add | Sesi eksplisit: `POST /api/v2/sessions/{sid}/memory`; pencarian `GET .../memory/search` | Sesi deterministik `user::agent` (tanpa panggilan create) |
+| Letta docs | https://docs.letta.com/agent-sdk/memory | Memori = **blocks** per agent (`GET/POST /v1/agents/{id}/memory/blocks`) | Adapter block + filter query lokal |
+| Perbandingan provider 2026 | https://agentram.dev/ai-agent-memory-providers-compared.html | Tidak ada pemenang tunggal; biaya/kualitas berbeda per use case | **Adapter pattern + fallback internal**, bukan pilih satu |
+
+### Kredensial .env
+- `.env` **TIDAK** memuat kunci Supermemory/Mem0/Zep/Letta (diverifikasi LANGKAH 0).
+- Karena itu: kunci disimpan **per user** di `user_settings` lewat UI/API, dan
+  bila kosong → **fallback otomatis ke `internal`** (pgvector Supabase, sudah
+  berjalan). Tidak ada mock: provider `internal` adalah implementasi nyata,
+  dan provider eksternal diuji terhadap kontrak HTTP nyata (mock transport
+  in-process + probe server asli).
+
+### Implementasi
+- File: `memory_provider.py` (BARU). Interface tunggal:
+  `remember / recall / forget / search / health`.
+- Provider: `InternalProvider` (default+fallback), `SupermemoryProvider`,
+  `Mem0Provider`, `ZepProvider`, `LettaProvider` — semua via `httpx`
+  (**NOL dependensi vendor baru**; `httpx` sudah dipakai repo).
+- `MemoryService` — provider aktif + fallback + `sync()` (eksternal→internal).
+- `resolve_provider()` / `service_for()` — config per user; kunci kosong →
+  `internal` secara diam-diam (fail-safe).
+- API: `GET /memory/provider`, `POST /memory/provider`,
+  `POST /memory/provider/sync`, `GET /memory/provider/health`.
+- Registry `/version`: `29_memory_provider`.
+
+### Hard Test — `tests/test_memory_provider.py` (14/14 PASS)
+```
+14 passed in 2.27s
+```
+
+| # | Skenario | Status | Raw Output |
+|---|----------|--------|------------|
+| 1 | Internal roundtrip (remember/recall/forget) | PASS | id + 1 hit |
+| 2 | Isolasi multi-tenant internal | PASS | A melihat "rahasia A" saja |
+| 3 | Supermemory: bentuk request + Bearer | PASS | `containerTags=['user:u1','agent:ag1','user:u1:agent:ag1']` |
+| 4 | Supermemory: search SATU `containerTag` | PASS | `body['containerTag']` str, tanpa `containerTags` |
+| 5 | Mem0: `/memories` + parse ids | PASS | `id='mem-9'`, `user_id='u2'` |
+| 6 | Mem0: `memory`→`content` | PASS | `content='teh manis'` |
+| 7 | Zep: sesi deterministik + path search | PASS | `/api/v2/sessions/u9::agX/memory/search` |
+| 8 | Letta: block + filter query | PASS | 1 dari 2 blok (jakarta) |
+| 9 | Fallback tanpa kunci → internal | PASS | `provider=internal` (3 varian config) |
+| 10 | Kunci ada → provider eksternal | PASS | `name=mem0 external=True` |
+| 11 | Provider error 500 → fallback internal | PASS | `primary_ok=False`, recall dari internal |
+| 12 | Sinkron eksternal → internal | PASS | `synced=2`, lokal `{alfa,beta}` |
+| 13 | Tanpa kunci tetap jalan end-to-end | PASS | `primary_ok=True` |
+| 14 | Performa 200 remember < 1 s + tag | PASS | `_scope_tags` deterministik |
+
+### Bug NYATA yang ditemukan (dan diperbaiki)
+
+**BUG kontrak — Supermemory `/v4/search` menolak >1 `containerTag`.**
+Probe terhadap server NYATA (`https://api.supermemory.ai/v4/search`) via endpoint
+`POST /memory/provider/sync` mengembalikan:
+```
+MemoryProviderError: supermemory: HTTP 400
+{"error":"v4 search is single-space: pass one containerTag, or use /v3/search for multi-tag search"}
+```
+Diperbaiki: ingest mengirim **tiga** tag (user + agent + tag gabungan
+`user:<u>:agent:<a>`), sedangkan search memakai **satu** `containerTag`
+gabungan tersebut — deterministik sehingga dokumen tetap bisa ditemukan.
+Setelah perbaikan, error bergeser ke `401 Unauthorized` (kunci palsu) =
+**kontrak sekarang benar**. Dikunci oleh uji #4 (regresi).
+
+### Verifikasi Production (endpoint nyata via TestClient)
+```
+GET  /memory/provider -> 200 {'provider':'internal','has_key':False,
+     'supported':['internal','supermemory','mem0','zep','letta']}
+POST /memory/provider {"provider":"supermemory","api_key":"sm_secret_xyz"}
+     -> 200 {'provider':'supermemory','has_key':True}   # KUNCI tidak dikembalikan
+POST /memory/provider {"provider":"nope"} -> 422 'Provider tidak dikenal: nope'
+GET  /memory/provider/health -> 200 {'active':'supermemory', provider.ok=True}
+```
+Bukti isolasi kunci: `assert "sm_secret_xyz" not in r.text` LULUS.
+
+### Status: 100% COMPLETE ✅
+Catatan TODO: Supermemory v3/v4 dimatikan **31 Des 2026** → migrasi ke v5
+sebelum tanggal itu (satu file, `SupermemoryProvider`).

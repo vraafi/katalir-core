@@ -4157,6 +4157,99 @@ def memory_preferences_put(key: str, body: MemoryPreferenceRequest,
             "value": row.get("value"), "confidence": row.get("confidence")}
 
 
+# ---------------------------------------------------------------------------
+# ENDPOINT EXTERNAL MEMORY PROVIDER (fitur #12, 9 Okt 2026)
+# Adapter memori eksternal (Supermemory/Mem0/Zep/Letta) dengan fallback
+# internal. Konfigurasi provider per user — kunci TIDAK pernah dikembalikan.
+# ---------------------------------------------------------------------------
+class MemoryProviderConfigRequest(BaseModel):
+    """Body POST /memory/provider. `provider` = internal|supermemory|mem0|zep|letta."""
+    provider: str = "internal"
+    api_key: str = ""
+    base_url: str = ""
+    enabled: bool = True
+
+
+def _memory_provider_config(user_id: str) -> dict:
+    """Ambil konfigurasi provider memori milik user (tanpa membocorkan kunci)."""
+    try:
+        row = db.get_write_client().table("user_settings").select(
+            "value").eq("user_id", str(user_id)).eq(
+            "key", "memory_provider").limit(1).execute()
+        rows = row.data or []
+        if rows:
+            return rows[0].get("value") or {}
+    except Exception as exc:  # noqa: BLE001
+        print(f"[memory] config provider gagal dibaca: {exc}")
+    return {"provider": "internal"}
+
+
+@app.get("/memory/provider")
+def memory_provider_get(authorization: str | None = Header(None)):
+    """Provider memori aktif + daftar provider yang didukung."""
+    user = security.get_current_user(authorization)
+    import memory_provider as mp
+    cfg = _memory_provider_config(str(user["id"]))
+    safe = {"provider": cfg.get("provider") or "internal",
+            "base_url": cfg.get("base_url") or "",
+            "has_key": bool(cfg.get("api_key")),
+            "enabled": cfg.get("enabled", True) is not False}
+    return {"status": "success", "config": safe,
+            "supported": list(mp.KNOWN_PROVIDERS)}
+
+
+@app.post("/memory/provider")
+def memory_provider_set(body: MemoryProviderConfigRequest,
+                        authorization: str | None = Header(None)):
+    """Set provider memori per user. Kunci disimpan, TIDAK dikembalikan."""
+    user = security.get_current_user(authorization)
+    import memory_provider as mp
+    name = (body.provider or "internal").strip().lower()
+    if name not in mp.KNOWN_PROVIDERS:
+        raise HTTPException(422, f"Provider tidak dikenal: {body.provider}")
+    existing = _memory_provider_config(str(user["id"]))
+    # Kunci lama dipertahankan bila body tidak mengirim kunci baru.
+    api_key = body.api_key or (existing.get("api_key") if name == existing.get(
+        "provider") else "")
+    value = {"provider": name, "api_key": api_key,
+             "base_url": body.base_url or existing.get("base_url") or "",
+             "enabled": bool(body.enabled)}
+    try:
+        db.get_write_client().table("user_settings").upsert(
+            {"user_id": str(user["id"]), "key": "memory_provider",
+             "value": value},
+            on_conflict="user_id,key").execute()
+    except Exception as exc:  # noqa: BLE001
+        raise HTTPException(500, f"Gagal menyimpan konfigurasi: {exc}")
+    return {"status": "success",
+            "config": {"provider": name, "base_url": value["base_url"],
+                       "has_key": bool(api_key), "enabled": value["enabled"]}}
+
+
+@app.post("/memory/provider/sync")
+def memory_provider_sync(query: str = "", top_k: int = 20,
+                         authorization: str | None = Header(None)):
+    """Sinkronkan memori dari provider eksternal ke penyimpanan internal."""
+    user = security.get_current_user(authorization)
+    import memory_provider as mp
+    cfg = _memory_provider_config(str(user["id"]))
+    svc = mp.service_for(cfg, user_id=str(user["id"]))
+    if svc.provider.name == "internal":
+        return {"status": "success", "skipped": True,
+                "reason": "provider aktif = internal (tidak ada yang disinkronkan)"}
+    res = svc.sync(query=query, top_k=max(1, min(int(top_k), 100)))
+    return {"status": "success", "provider": svc.provider.name, **res}
+
+
+@app.get("/memory/provider/health")
+def memory_provider_health(authorization: str | None = Header(None)):
+    user = security.get_current_user(authorization)
+    import memory_provider as mp
+    cfg = _memory_provider_config(str(user["id"]))
+    svc = mp.service_for(cfg, user_id=str(user["id"]))
+    return {"status": "success", **svc.health()}
+
+
 @app.get("/executions/{execution_id}")
 def get_execution(execution_id: str, authorization: str | None = Header(None),
                   accept_language: str | None = Header(None)):
@@ -4549,6 +4642,7 @@ _FEATURE_MODULES = {
     "27_plugins": "plugin_system",
     # 12 fitur n8n gap lanjutan (9 Okt 2026)
     "28_metric_eval": "metrics_eval",
+    "29_memory_provider": "memory_provider",
 }
 
 
