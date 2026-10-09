@@ -1,0 +1,282 @@
+[
+ {
+  "id": "glama-connector/sbc4ha3lzh",
+  "url": "https://mcp.empiriolabs.ai/mcp",
+  "http": 401,
+  "tools": null,
+  "note": "{\"jsonrpc\":\"2.0\",\"id\":null,\"error\":{\"code\":-32001,\"message\":"
+ },
+ {
+  "id": "glama-connector/z6nxrfbphg",
+  "url": "https://mcp.flexorch.com/mcp",
+  "http": 200,
+  "tools": 9,
+  "note": "OK"
+ },
+ {
+  "id": "glama-connector/vc3i618210",
+  "url": "https://mcp.tesouroemfoco.com/mcp",
+  "http": 200,
+  "tools": 8,
+  "note": "OK"
+ },
+ {
+  "id": "glama-connector/f7ff5obqzc",
+  "url": "https://api.glasser.ai/mcp",
+  "http": 401,
+  "tools": null,
+  "note": "{\"error\":{\"code\":\"unauthorized\",\"message\":\"Invalid or missin"
+ },
+ {
+  "id": "glama-connector/x0d3f1a6oc",
+  "url": "https://mcp.webmcp-eval.com/mcp",
+  "http": 401,
+  "tools": null,
+  "note": "{\"jsonrpc\":\"2.0\",\"id\":null,\"error\":{\"code\":-32001,\"message\":"
+ },
+ {
+  "id": "glama-connector/mokofyepug",
+  "url": "https://mcp.proofcore.org",
+  "http": 200,
+  "tools": 4,
+  "note": "OK"
+ },
+ {
+  "id": "glama-connector/dl9vg3o9p5",
+  "url": "https://smartmoney77.com/mcp",
+  "http": 200,
+  "tools": 14,
+  "note": "OK"
+ },
+ {
+  "id": "glama-connector/j81orh5l61",
+  "url": "https://api.simfuse.app/agentic/mcp",
+  "http": null,
+  "tools": null,
+  "note": "ProxyError"
+ },
+ {
+  "id": "glama-connector/c186ztfwpg",
+  "url": "https://mcp.singaporemobileproxy.com/mcp",
+  "http": 200,
+  "tools": 4,
+  "note": "OK"
+ },
+ {
+  "id": "glama-connector/f06nlzvc8r",
+  "url": "https://redm-mcp.fivem.no/mcp",
+  "http": 401,
+  "tools": null,
+  "note": "{\"error\":\"unauthorized\",\"error_description\":\"Sign in with Di"
+ },
+ {
+  "id": "glama-connector/s4r2cibgla",
+  "url": "https://curbspec.com/api/mcp",
+  "http": 200,
+  "tools": 1,
+  "note": "OK"
+ },
+ {
+  "id": "glama-connector/rlvinvvubl",
+  "url": "https://documentplayer.com/mcp",
+  "http": 401,
+  "tools": null,
+  "note": "{\"error\":\"invalid_token\",\"error_description\":\"Missing Author"
+ },
+ {
+  "id": "glama-connector/ocghgw9unf",
+  "url": "https://quiet-menders-mcp.brianbooms.workers.dev/mcp",
+  "http": 200,
+  "tools": 34,
+  "note": "OK"
+ },
+ {
+  "id": "glama-connector/wokfs8q8zw",
+  "url": "https://ashtonforge.com/mcp/directory",
+  "http": 200,
+  "tools": 3,
+  "note": "OK"
+ },
+ {
+  "id": "glama-connector/xn0hqr3bto",
+  "url": "https://marketnow.site/api/mcp",
+  "http": 200,
+  "tools": 9,
+  "note": "OK"
+ },
+ {
+  "id": "glama-connector/vnj0icwily",
+  "url": "https://mcp.criticalpathpartners.ca/mcp",
+  "http": 200,
+  "tools": 13,
+  "note": "OK"
+ },
+ {
+  "id": "glama-connector/zftt5bvqqa",
+  "url": "https://developer.playgama.com/api/mcp",
+  "http": 401,
+  "tools": null,
+  "note": "{\"message\":\"Unauthorized\",\"statusCode\":401}"
+ },
+ {
+  "id": "glama-connector/g7fwh3e1f8",
+  "url": "https://mcp.resemble.ai/mcp",
+  "http": 200,
+  "tools": 18,
+  "note": "OK"
+ },
+ {
+  "id": "glama-connector/ccw8sa65sj",
+  "url": "https://maisondetalents.com/api/mcp",
+  "http": 200,
+  "tools": 3,
+  "note": "OK"
+ },
+ {
+  "id": "glama-connector/z6d0k0hr0g",
+  "url": "https://mcp.toolsnap.app/mcp",
+  "http": 200,
+  "tools": 17,
+  "note": "OK"
+ },
+ {
+  "id": "glama-connector/sku8h6n3n0",
+  "url": "https://jidec.horizonshield.dev/mcp",
+  "http": 200,
+  "tools": 9,
+  "note": "OK"
+ },
+ {
+  "id": "glama-connector/vn801hi80p",
+  "url": "https://mcp.esimfly.net/mcp",
+  "http": 401,
+  "tools": null,
+  "note": "{\"jsonrpc\":\"2.0\",\"error\":{\"code\":-32001,\"message\":\"Missing o"
+ },
+ {
+  "id": "glama-connector/s86n2u6g3u",
+  "url": "https://api.assetfare.dev/mcp",
+  "http": 200,
+  "tools": 9,
+  "note": "OK"
+ },
+ {
+  "id": "glama-connector/h4wwdihw1c",
+  "url": "https://taokeh.my/mcp",
+  "http": 401,
+  "tools": null,
+  "note": "{\"jsonrpc\":\"2.0\",\"error\":{\"code\":-32001,\"message\":\"Unauthori"
+ },
+ {
+  "id": "glama-connector/h64own4fs0",
+  "url": "https://api.pennyforge.org/mcp",
+  "http": 200,
+  "tools": 3,
+  "note": "OK"
+ },
+ {
+  "id": "glama-connector/jfrjd52ktt",
+  "url": "https://foundry-mcp.com/mcp",
+  "http": 401,
+  "tools": null,
+  "note": "{\"error\":\"invalid_token\",\"error_description\":\"Missing or inv"
+ },
+ {
+  "id": "glama-connector/i5kk0ur7ec",
+  "url": "https://api.heynimo.com/try-mcp?source=glama",
+  "http": 200,
+  "tools": 3,
+  "note": "OK"
+ },
+ {
+  "id": "glama-connector/z138gcd7kn",
+  "url": "https://api.repsworkout.com/mcp",
+  "http": 401,
+  "tools": null,
+  "note": "{\"error\":\"invalid_token\",\"error_description\":\"Missing Author"
+ },
+ {
+  "id": "glama-connector/odhw5cocom",
+  "url": "https://mcp.dimhour.com/mcp",
+  "http": 200,
+  "tools": 9,
+  "note": "OK"
+ },
+ {
+  "id": "glama-connector/kutdzerbot",
+  "url": "https://vitafin.io/mcp",
+  "http": 401,
+  "tools": null,
+  "note": "{\"error\":\"invalid_token\",\"error_description\":\"Missing Author"
+ },
+ {
+  "id": "glama-connector/kwwjevghud",
+  "url": "https://api.nephia.cc/mcp",
+  "http": 401,
+  "tools": null,
+  "note": "{\"error\":\"invalid_token\",\"message\":\"Missing bearer token.\"}"
+ },
+ {
+  "id": "glama-connector/mxccg8rlof",
+  "url": "https://rnvizion-rnv-color-mcp.hf.space/mcp",
+  "http": 200,
+  "tools": 10,
+  "note": "OK"
+ },
+ {
+  "id": "glama-connector/rdbpth0qcb",
+  "url": "https://mcp.klarix.ai/mcp",
+  "http": 200,
+  "tools": 15,
+  "note": "OK"
+ },
+ {
+  "id": "glama-connector/y7qz8sq7q6",
+  "url": "https://www.affiliatespy.io/api/mcp",
+  "http": 401,
+  "tools": null,
+  "note": "{\"error\":\"invalid_token\",\"error_description\":\"No authorizati"
+ },
+ {
+  "id": "glama-connector/ao5gkwl5yb",
+  "url": "https://www.vidguy.ai/api/mcp",
+  "http": 401,
+  "tools": null,
+  "note": "{\"error\":\"invalid_token\",\"error_description\":\"Missing bearer"
+ },
+ {
+  "id": "glama-connector/xrvncthxn3",
+  "url": "https://api.snapback.sh/mcp",
+  "http": 200,
+  "tools": 23,
+  "note": "OK"
+ },
+ {
+  "id": "glama-connector/o5un515v3d",
+  "url": "https://mcp.pubfi.ai",
+  "http": 200,
+  "tools": null,
+  "note": "tools/list 400"
+ },
+ {
+  "id": "glama-connector/mrtcg9ug6t",
+  "url": "https://api.fruitstand.dev/mcp",
+  "http": 200,
+  "tools": 6,
+  "note": "OK"
+ },
+ {
+  "id": "glama-connector/l84wqe3jg5",
+  "url": "https://data.goagentcy.com/mcp",
+  "http": 401,
+  "tools": null,
+  "note": "{\"error\":\"invalid_token\",\"error_description\":\"Missing or inv"
+ },
+ {
+  "id": "glama-connector/fa4od94f3d",
+  "url": "https://aanet.space/mcp",
+  "http": 200,
+  "tools": 31,
+  "note": "OK"
+ }
+]
