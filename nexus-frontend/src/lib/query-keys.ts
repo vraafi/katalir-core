@@ -15,3 +15,13 @@ export const templateKeys = {
     [...templateKeys.all, "list", category, q] as const,
   info: () => [...templateKeys.all, "info"] as const,
 };
+
+// Query keys untuk Agents (TASK 5 / Fitur #1). Agent adalah entitas kelas satu
+// dengan siklus hidup; filter status dikirim ke server, jadi status masuk ke
+// dalam key agar cache tidak menyajikan daftar terfilter yang salah.
+export const agentKeys = {
+  all: ["agents"] as const,
+  list: (status: string) => [...agentKeys.all, "list", status] as const,
+  detail: (id: string) => [...agentKeys.all, "detail", id] as const,
+  mcp: (id: string) => [...agentKeys.all, "mcp", id] as const,
+};

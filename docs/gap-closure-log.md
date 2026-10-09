@@ -25,10 +25,10 @@ TASK 2 → TASK 5 → TASK 6**.
 | # | Task | Artefak utama | Hard test | Commit | Status |
 |---|------|---------------|-----------|--------|--------|
 | 1 | Aktifkan 25.902 connector `metadata_only` | `connector_activator.py` | 23/23 + 40 E2E | `a557489` | ✅ |
-| 3 | APIs.guru 2.500 spec integration | `apisguru_generator.py` | 19/19 + 27 E2E | _(lihat §TASK 3)_ | ✅ |
-| 4 | OAuth generik 1.024 Nango provider | `nango_oauth.py` | 22/22 + 27 E2E | _(lihat §TASK 4)_ | ✅ |
-| 2 | Batch execution FASE 3 | `connector_batch_executor.py` | 14/14 + 20 E2E | _(lihat §TASK 2)_ | ✅ |
-| 5 | Fitur #1 n8n Agents first-class entity | — | — | — | ⏳ |
+| 3 | APIs.guru 2.500 spec integration | `apisguru_generator.py` | 19/19 + 27 E2E | `3e7e407` | ✅ |
+| 4 | OAuth generik 1.024 Nango provider | `nango_oauth.py` | 22/22 + 27 E2E | `8263d4f` | ✅ |
+| 2 | Batch execution FASE 3 | `connector_batch_executor.py` | 14/14 + 20 E2E | `b601644` | ✅ |
+| 5 | Fitur #1 n8n Agents first-class entity | `agents.py` + `/agents` UI | 13/13 + 22 E2E | _(lihat §TASK 5)_ | ✅ |
 | 6 | Fitur #9 Dapr durable execution | — | — | — | ⏳ |
 
 ---
@@ -757,3 +757,126 @@ diverifikasi: (a) pagar auth benar-benar **menolak** permintaan tanpa token
   progres persistable, resume aman, berhenti pada kegagalan
 - Memakai ulang `BatchGate` + mesin TASK 1 — **nol duplikasi mesin**
 - 2 bug nyata diperbaiki (audit per-connector, batch ekor)
+
+---
+
+## TASK 5 — Fitur #1: n8n Agents sebagai Entitas Kelas Satu
+
+**Tujuan**: memberi "agent" posisi warga kelas satu seperti n8n AI Agent node —
+entitas persisten dengan siklus hidup (draft → active → paused → archived),
+kanal multi-tipe, eksposur MCP, dan UI `/agents`.
+
+### 1. Riset (Web-First, sebelum implementasi)
+
+| Sumber | Temuan | Dipakai untuk |
+|--------|--------|---------------|
+| docs.n8n.io — AI Agent node | Agent = kombinasi **model + memory + tools + output parser**; "Tools Agent" adalah tipe terpadu | Skema `model`/`tools`/`memory_enabled` pada tabel `agents` |
+| mcp.directory — n8n MCP server guide (2026) | n8n mengekspos workflow/agent sebagai **MCP server** agar bisa dipakai agent lain sebagai alat | `mcp_descriptor()` → hanya agent **aktif** yang diekspos, endpoint `/mcp/agents/{id}` |
+| n8n.io/mcp + theagentecosystem.com (2026) | MCP Client Tool memungkinkan agent memanggil setiap alat yang diekspos server MCP | Model kanal `type="mcp"` |
+
+Keputusan desain: status tidak bebas diubah — divalidasi oleh `AGENT_TRANSITIONS`
+(alasan: mencegah agent "hidup" tanpa model/instruksi yang lengkap).
+
+### 2. Implementasi
+
+| Berkas | Perubahan |
+|--------|-----------|
+| `agents.py` (baru, ~470 baris) | Entitas agent lengkap: validasi, siklus hidup, kanal, MCP, isolasi tenant |
+| `migrations/2026-10-09-agents.sql` (baru) | Tabel `agents` (13 kolom) + `agent_channels` (7 kolom), RLS, trigger `touch_agents()` |
+| `api_server.py` (+ modifikasi) | 9 endpoint `/agents*` + feature key `44_agents_entity` |
+| `nexus-frontend/src/features/agents/*` (baru) | `types.ts`, `api.ts`, `AgentList.tsx`, `index.ts` |
+| `nexus-frontend/src/app/agents/page.tsx` (baru) | Halaman `/agents` |
+| `nexus-frontend/src/lib/query-keys.ts` | `agentKeys` |
+| `nexus-frontend/tests/routes-no-crash.spec.ts` | Rute `/agents` ditambahkan |
+| `tests/test_agents.py` (baru) | 13 hard test |
+
+Endpoint terdaftar (diverifikasi via AST, 9 rute):
+
+| Metode | Path | Fungsi |
+|--------|------|--------|
+| GET | `/agents` | `agents_list` |
+| POST | `/agents` | `agents_create` |
+| GET | `/agents/schema` | `agents_schema` |
+| GET | `/agents/{agent_id}` | `agents_get` |
+| PATCH | `/agents/{agent_id}` | `agents_update` |
+| DELETE | `/agents/{agent_id}` | `agents_delete` |
+| GET | `/agents/{agent_id}/channels` | `agents_channels` |
+| GET | `/agents/{agent_id}/mcp` | `agents_mcp` |
+| POST | `/agents/{agent_id}/status` | `agents_set_status` |
+
+Batasan (dari `/agents/schema`): agent/user 200 · kanal/agent 20 · tools/agent 100 ·
+nama 120 · instruksi 20.000 karakter. Transisi: draft→{active,archived},
+active→{paused,archived}, paused→{active,archived}, archived→∅.
+
+### 3. Hard Test (13 unit + 22 E2E)
+
+| ID | Kategori | Kasus | Hasil |
+|----|----------|-------|-------|
+| B1 | Basic | create → selalu `draft` | PASS |
+| B2 | Basic | list + filter status | PASS |
+| E1 | Edge | transisi status yang sah | PASS |
+| E2 | Edge | transisi terlarang ditolak | PASS |
+| X1 | Error | nama kosong / >120 | PASS |
+| X2 | Error | instruksi >20.000 | PASS |
+| X3 | Error | tools >100 | PASS |
+| X4 | Error | kanal tidak dikenal | PASS |
+| X5 | Error | agent tak ditemukan → `None` (bukan 500) | PASS |
+| P1 | Performance | 200 agent/list cepat | PASS |
+| P2 | Performance | update berulang | PASS |
+| S1 | Security | isolasi tenant (user lain → `None`) | PASS |
+| I1 | Integrasi | MCP hanya untuk agent aktif | PASS |
+| A1–A6 | E2E | feature gate `44_agents_entity` + `/agents/schema` | PASS |
+| A7/A7b/A7c | E2E | pagar auth 401 pada 5 endpoint | PASS |
+| A8–A16 | E2E | create→active→MCP→arsip→hapus vs **DB Supabase NYATA** | PASS |
+
+**Verifikasi urutan validasi (A7b/A7c)**: `POST /agents` tanpa auth tapi body
+**kosong** → `422`; dengan body **valid** → `401`. Ini urutan normal FastAPI
+(body-schema diselesaikan sebelum dependency auth) dan **bukan kebocoran**:
+tidak ada satu pun jalur yang mengembalikan `2xx` tanpa token.
+
+### 4. Verifikasi Production
+
+| Bukti | Hasil mentah |
+|-------|--------------|
+| Migrasi live Supabase | `agents` 13 kolom, `agent_channels` 7 kolom, semua policy RLS ada |
+| Siklus hidup vs DB nyata | `created: <uuid> draft channels 2` → `active: active v 2` → `mcp exposed: True` → `deleted: True` → `after delete: None` |
+| Isolasi tenant | user asing → `foreign none: None` |
+| E2E server hidup | `RESULT: 22/22 PASS` |
+| Build frontend | `○ /agents 4.96 kB 284 kB` di output Next; artefak `out/agents.html` (13.706 byte) |
+| Typecheck | `tsc --noEmit` exit 0 |
+
+### 5. Bug Nyata yang Diperbaiki
+
+1. **Tabel tidak ada** (`PGRST205 Could not find the table 'public.agents'`) —
+   Supabase **memang** terkonfigurasi di lingkungan ini. Dibuat + diterapkan
+   `migrations/2026-10-09-agents.sql`.
+2. **`date/time field value out of range: "1791554774"`** — integer epoch dikirim
+   ke kolom `timestamptz`. Diperbaiki dengan helper `_iso()` (ISO-8601 UTC) pada
+   insert/update/`agent_channels.created_at`.
+3. **Typecheck frontend (4×)** — `variant="outline"` tidak ada; varian Button
+   proyek adalah `primary|secondary|ghost|danger`. Juga kelas warna Tailwind
+   mentah (`muted-foreground`, `primary`, `destructive`, `emerald`, `amber`)
+   diganti token proyek (`fg-muted`, `accent`, `danger`, `success`, `warning`).
+4. **Assertion E2E salah**, bukan bug produksi — `POST /agents` dengan body `{}`
+   diharapkan `401`, ternyata `422` (validasi body mendahului auth). Assertion
+   diperbaiki agar mengukur pagar auth dengan benar + ditambah A7b/A7c.
+
+### 6. Hasil Akhir
+
+| Metrik | Nilai |
+|--------|-------|
+| Rute API agent | **9** |
+| Tabel baru | 2 (`agents`, `agent_channels`) |
+| Status siklus hidup | 4 (draft/active/paused/archived) |
+| Tipe kanal | 7 (web/api/webhook/slack/schedule/mcp/embed) |
+| Unit test | **13/13 PASS** |
+| E2E test | **22/22 PASS** |
+| Regresi (TASK 1–5) | **150 PASS** (nol regresi) |
+
+### Status: 100% COMPLETE ✅
+
+- Entitas agent kelas satu dengan siklus hidup tervalidasi, kanal multi-tipe,
+  eksposur MCP (hanya saat aktif), dan isolasi tenant
+- 13/13 unit + 22/22 E2E + 150 regresi PASS (nol regresi)
+- UI `/agents` ter-build (`out/agents.html`), typecheck bersih
+- 3 bug nyata diperbaiki + 1 assertion uji dikoreksi

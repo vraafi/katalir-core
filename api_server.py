@@ -7134,6 +7134,150 @@ def connectors_batch_run(req: BatchRunRequest,
     return {"status": "success", **result}
 
 
+# ---------------------------------------------------------------------------
+# TASK 5 / Fitur #1 — n8n Agents sebagai first-class entity
+# ---------------------------------------------------------------------------
+
+
+def _agents_mod():
+    import importlib
+
+    return importlib.import_module("agents")
+
+
+class AgentCreateRequest(BaseModel):
+    name: str
+    instruction: str = ""
+    model: str = ""
+    tools: list[str] = []
+    channels: list[dict] = []
+    memory_enabled: bool = True
+    workflow_id: str | None = None
+    description: str = ""
+    status: str = "draft"
+
+
+class AgentUpdateRequest(BaseModel):
+    name: str | None = None
+    instruction: str | None = None
+    model: str | None = None
+    tools: list[str] | None = None
+    channels: list[dict] | None = None
+    memory_enabled: bool | None = None
+    workflow_id: str | None = None
+    description: str | None = None
+    status: str | None = None
+
+
+class AgentStatusRequest(BaseModel):
+    status: str
+
+
+@app.get("/agents/schema")
+def agents_schema():
+    """Kosakata & aturan entitas agent (jujur apa adanya)."""
+    return {"status": "success", **_agents_mod().describe()}
+
+
+@app.get("/agents")
+def agents_list(status: str | None = None,
+                authorization: str | None = Header(None)):
+    """Daftar agent milik user."""
+    user = security.get_current_user(authorization)
+    ag = _agents_mod()
+    try:
+        return {"status": "success", "agents": ag.list_agents(user["email"], status)}
+    except ag.AgentError as exc:
+        raise HTTPException(422, str(exc)) from exc
+
+
+@app.post("/agents")
+def agents_create(req: AgentCreateRequest,
+                  authorization: str | None = Header(None)):
+    """Buat agent baru (status awal selalu `draft`)."""
+    user = security.get_current_user(authorization)
+    ag = _agents_mod()
+    payload = req.model_dump(exclude_none=True)
+    payload.pop("status", None)  # agent baru SELALU draft
+    try:
+        return {"status": "success", "agent": ag.create_agent(user["email"], payload)}
+    except ag.AgentError as exc:
+        raise HTTPException(422, str(exc)) from exc
+
+
+@app.get("/agents/{agent_id}")
+def agents_get(agent_id: str, authorization: str | None = Header(None)):
+    """Ambil satu agent."""
+    user = security.get_current_user(authorization)
+    ag = _agents_mod()
+    a = ag.get_agent(agent_id, user["email"])
+    if not a:
+        raise HTTPException(404, "agent tidak ditemukan")
+    return {"status": "success", "agent": a}
+
+
+@app.patch("/agents/{agent_id}")
+def agents_update(agent_id: str, req: AgentUpdateRequest,
+                  authorization: str | None = Header(None)):
+    """Perbarui agent (partial); transisi status divalidasi."""
+    user = security.get_current_user(authorization)
+    ag = _agents_mod()
+    patch = req.model_dump(exclude_none=True)
+    try:
+        return {"status": "success", "agent": ag.update_agent(agent_id, user["email"], patch)}
+    except ag.AgentError as exc:
+        raise HTTPException(422, str(exc)) from exc
+
+
+@app.post("/agents/{agent_id}/status")
+def agents_set_status(agent_id: str, req: AgentStatusRequest,
+                      authorization: str | None = Header(None)):
+    """Ubah status agent lewat siklus hidup yang divalidasi."""
+    user = security.get_current_user(authorization)
+    ag = _agents_mod()
+    try:
+        return {"status": "success",
+                "agent": ag.set_status(agent_id, user["email"], req.status)}
+    except ag.AgentError as exc:
+        raise HTTPException(422, str(exc)) from exc
+
+
+@app.delete("/agents/{agent_id}")
+def agents_delete(agent_id: str, authorization: str | None = Header(None)):
+    """Hapus agent (agent aktif harus dijeda/diarsip dulu)."""
+    user = security.get_current_user(authorization)
+    ag = _agents_mod()
+    try:
+        ok = ag.delete_agent(agent_id, user["email"])
+    except ag.AgentError as exc:
+        raise HTTPException(422, str(exc)) from exc
+    if not ok:
+        raise HTTPException(404, "agent tidak ditemukan")
+    return {"status": "success", "deleted": True}
+
+
+@app.get("/agents/{agent_id}/channels")
+def agents_channels(agent_id: str, authorization: str | None = Header(None)):
+    """Kanal terhubung ke agent."""
+    user = security.get_current_user(authorization)
+    ag = _agents_mod()
+    a = ag.get_agent(agent_id, user["email"])
+    if not a:
+        raise HTTPException(404, "agent tidak ditemukan")
+    return {"status": "success", "channels": ag.agent_channels(agent_id, user["email"])}
+
+
+@app.get("/agents/{agent_id}/mcp")
+def agents_mcp(agent_id: str, authorization: str | None = Header(None)):
+    """Deskripsi MCP agent. Hanya agent `active` yang diekspos."""
+    user = security.get_current_user(authorization)
+    ag = _agents_mod()
+    desc = ag.mcp_descriptor(agent_id, user["email"])
+    if not desc:
+        raise HTTPException(404, "agent tidak ditemukan")
+    return {"status": "success", **desc}
+
+
 @app.post("/2fa/policy")
 def two_factor_set_policy(req: TwoFactorPolicyRequest,
                           authorization: str | None = Header(None)):
@@ -7618,6 +7762,7 @@ _FEATURE_MODULES = {
     "41_apisguru_generator": "apisguru_generator",
     "42_nango_oauth": "nango_oauth",
     "43_batch_executor": "connector_batch_executor",
+    "44_agents_entity": "agents",
 }
 
 
