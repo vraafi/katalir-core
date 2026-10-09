@@ -18,6 +18,7 @@ import os
 import json
 import threading
 import time
+from datetime import datetime, timezone
 from contextlib import asynccontextmanager
 
 from fastapi import BackgroundTasks, FastAPI, Header, HTTPException, Request
@@ -4250,6 +4251,396 @@ def memory_provider_health(authorization: str | None = Header(None)):
     return {"status": "success", **svc.health()}
 
 
+# ---------------------------------------------------------------------------
+# ENDPOINT EXECUTION DATA REDACTION (fitur #11a, 9 Okt 2026)
+# Kebijakan redaksi PER WORKFLOW (level off|production|all) + PII
+# (email/telepon/SSN/kartu kredit/IP) + regex kustom. Ditambah penegakan
+# instance-wide sebagai LANTAI MINIMUM yang tidak bisa dilemahkan workflow.
+# ---------------------------------------------------------------------------
+REDACTION_TABLE = "workflow_redaction"
+
+
+class RedactionPolicyRequest(BaseModel):
+    """Body POST /workflows/{id}/redaction."""
+    level: str = "off"
+    pii_types: Any = None
+    custom_patterns: Any = None
+    #: Opsional: uncap saat enforcement instance-wide aktif.
+    force: bool = False
+
+
+class RedactionPreviewRequest(BaseModel):
+    """Body POST /redaction/preview — uji kebijakan pada contoh payload."""
+    payload: Any = None
+    level: str = "all"
+    pii_types: Any = None
+    custom_patterns: Any = None
+    trigger: str = "production"
+    workflow_id: str = ""
+
+
+def _env_first(*names: str) -> str:
+    """Nilai env pertama yang tidak kosong dari `names` (module-level).
+
+    `/version` punya helper lokal dengan nama serupa; helper ini dipakai oleh
+    endpoint Fitur #11 (redaksi/2FA) yang berada di luar scope tersebut.
+    """
+    for name in names:
+        val = (os.getenv(name) or "").strip()
+        if val:
+            return val
+    return ""
+
+
+def _enforced_redaction_level() -> str:
+    """Level penegakan instance-wide (env > default off)."""
+    raw = _env_first("KATALIR_REDACTION_ENFORCE", "REDACTION_ENFORCE").lower()
+    if raw in ("all", "manual+production", "both"):
+        return "all"
+    if raw in ("production", "prod", "true", "1"):
+        return "production"
+    return "off"
+
+
+def _workflow_redaction_row(workflow_id: str) -> dict | None:
+    try:
+        res = (db.get_write_client().table(REDACTION_TABLE).select("*")
+               .eq("workflow_id", str(workflow_id)).limit(1).execute())
+        rows = res.data or []
+        return rows[0] if rows else None
+    except Exception as exc:  # noqa: BLE001
+        print(f"[redaction] gagal baca kebijakan workflow: {exc}")
+        return None
+
+
+@app.get("/redaction/policy")
+def redaction_policy_catalog():
+    """Katalog level, jenis PII, dan penegakan aktif (tanpa auth)."""
+    import execution_redaction as er
+    return {"status": "success",
+            "levels": list(er.REDACTION_LEVELS),
+            "pii_types": list(er.REDACTABLE_PII),
+            "max_pattern_len": er.MAX_PATTERN_LEN,
+            "enforced": _enforced_redaction_level(),
+            "placeholders": dict(er.PII_PLACEHOLDERS)}
+
+
+@app.get("/workflows/{workflow_id}/redaction")
+def get_workflow_redaction(workflow_id: str,
+                           authorization: str | None = Header(None)):
+    """Kebijakan redaksi + level EFEKTIF setelah penegakan instance."""
+    user = security.get_current_user(authorization)
+    owner = db.get_workflow_owner(str(workflow_id))
+    if owner != user["id"]:
+        raise HTTPException(404, "Workflow tidak ditemukan.")
+    import execution_redaction as er
+    row = _workflow_redaction_row(workflow_id)
+    policy = er.RedactionPolicy.from_dict(row)
+    enforced = _enforced_redaction_level()
+    return {"status": "success",
+            "policy": policy.to_dict(),
+            "enforced": enforced,
+            "effective_level": policy.effective_level(enforced),
+            "weaker_than_enforcement": policy.weaker_than(enforced)}
+
+
+@app.post("/workflows/{workflow_id}/redaction")
+def set_workflow_redaction(workflow_id: str,
+                           req: RedactionPolicyRequest,
+                           authorization: str | None = Header(None)):
+    """Set kebijakan redaksi workflow. Menolak yang LEBIH LEMAH dari
+    penegakan instance-wide (perilaku n8n 2.26.0)."""
+    user = security.get_current_user(authorization)
+    owner = db.get_workflow_owner(str(workflow_id))
+    if owner != user["id"]:
+        raise HTTPException(404, "Workflow tidak ditemukan.")
+    import execution_redaction as er
+    try:
+        policy = er.RedactionPolicy(
+            level=req.level,
+            pii_types=req.pii_types if isinstance(req.pii_types, list) else None,
+            custom_patterns=(req.custom_patterns
+                             if isinstance(req.custom_patterns, list) else None),
+            updated_by=str(user["email"]))
+    except er.RedactionPolicyError as exc:
+        raise HTTPException(422, str(exc))
+    enforced = _enforced_redaction_level()
+    if policy.weaker_than(enforced) and not req.force:
+        raise HTTPException(
+            409,
+            f"Kebijakan '{policy.level}' lebih lemah dari penegakan instance "
+            f"'{enforced}'. Penegakan adalah lantai minimum dan tidak bisa "
+            "dilemahkan oleh workflow.")
+    value = policy.to_dict()
+    try:
+        db.get_write_client().table(REDACTION_TABLE).upsert(
+            {"workflow_id": str(workflow_id), "owner": str(user["id"]),
+             "policy": value}, on_conflict="workflow_id").execute()
+    except Exception as exc:  # noqa: BLE001
+        raise HTTPException(500, f"Gagal menyimpan kebijakan redaksi: {exc}")
+    return {"status": "success", "policy": value, "enforced": enforced,
+            "effective_level": policy.effective_level(enforced)}
+
+
+@app.post("/redaction/preview")
+def redaction_preview(req: RedactionPreviewRequest,
+                      authorization: str | None = Header(None)):
+    """Terapkan kebijakan pada contoh payload (tanpa menyimpan apa pun)."""
+    security.get_current_user(authorization)
+    import execution_redaction as er
+    try:
+        policy = er.RedactionPolicy(
+            level=req.level,
+            pii_types=req.pii_types if isinstance(req.pii_types, list) else None,
+            custom_patterns=(req.custom_patterns
+                             if isinstance(req.custom_patterns, list) else None))
+    except er.RedactionPolicyError as exc:
+        raise HTTPException(422, str(exc))
+    if req.workflow_id:
+        enforced = _enforced_redaction_level()
+        if policy.weaker_than(enforced):
+            policy = er.RedactionPolicy.from_dict(
+                {**policy.to_dict(), "level": enforced})
+    out, counts = er.apply_policy(req.payload, policy, trigger=req.trigger)
+    return {"status": "success", "redacted": out, "counts": counts,
+            "effective_level": policy.level,
+            "applies": policy.applies_to(req.trigger),
+            "description": er.describe(policy)}
+
+
+class RevealRequest(BaseModel):
+    """Body POST /redaction/reveal-audit — catat akses data teredaksi."""
+    workflow_id: str = ""
+    execution_id: str = ""
+    reason: str = ""
+
+
+@app.post("/redaction/reveal-audit")
+def redaction_reveal_audit(req: RevealRequest,
+                           authorization: str | None = Header(None)):
+    """Catat niat membuka data teredaksi (audit event gaya n8n).
+
+    n8n memancarkan `n8n.audit.execution.data.revealed`; di sini kita
+    menulis baris audit yang sama ke `execution_logs` supaya bisa dialirkan
+    ke SIEM (Fitur #4).
+    """
+    user = security.get_current_user(authorization)
+    event = {"event": "katalir.audit.execution.data.revealed",
+             "user_id": str(user["id"]), "user_email": str(user["email"]),
+             "workflow_id": req.workflow_id, "execution_id": req.execution_id,
+             "reason": req.reason, "ts": datetime.now(timezone.utc).isoformat()}
+    try:
+        db.get_write_client().table("execution_logs").insert(
+            {"execution_id": req.execution_id or None,
+             "node_id": "audit", "node_type": "audit.reveal",
+             "status": "audit", "output_data": event,
+             "finished_at": event["ts"]}).execute()
+    except Exception as exc:  # noqa: BLE001
+        print(f"[redaction] audit reveal gagal disimpan: {exc}")
+    return {"status": "success", "event": event}
+
+
+# ---------------------------------------------------------------------------
+# ENDPOINT 2FA / MFA + PENEGAKAN (fitur #11b, 9 Okt 2026)
+# TOTP (authenticator app) + WebAuthn/passkey + recovery codes sekali-pakai.
+# Penegakan instance-wide: wajib 2FA untuk semua user (login email/password).
+# ---------------------------------------------------------------------------
+class TotpConfirmRequest(BaseModel):
+    code: str = ""
+
+
+class TotpDisableRequest(BaseModel):
+    code: str = ""
+    password_ok: bool = True
+
+
+class TwoFactorVerifyRequest(BaseModel):
+    user_id: str = ""
+    code: str = ""
+
+
+class TwoFactorPolicyRequest(BaseModel):
+    enforced: Optional[bool] = None
+    allow_webauthn: Optional[bool] = None
+    enforce_for_sso: Optional[bool] = None
+
+
+class WebauthnCredentialRequest(BaseModel):
+    credential: Any = None
+    label: str = ""
+
+
+class Reset2FARequest(BaseModel):
+    user_id: str = ""
+    reason: str = ""
+
+
+def _2fa_admin(user: dict) -> None:
+    """Gerbang admin: owner pertama ATAU email di `KATALIR_ADMIN_EMAILS`."""
+    allow = {e.strip().lower() for e in
+             _env_first("KATALIR_ADMIN_EMAILS").split(",") if e.strip()}
+    email = str(user.get("email") or "").lower()
+    if email and email in allow:
+        return
+    raise HTTPException(403, "Butuh peran admin untuk aksi ini.")
+
+
+@app.get("/2fa/status")
+def two_factor_status(authorization: str | None = Header(None)):
+    """Status 2FA user saat ini + kewajiban yang berlaku."""
+    user = security.get_current_user(authorization)
+    import two_factor as tf
+    tf.policy_from_env()
+    return {"status": "success", **tf.status(str(user["id"]))}
+
+
+@app.post("/2fa/totp/setup")
+def two_factor_totp_setup(authorization: str | None = Header(None)):
+    """Langkah 1: secret + QR (belum mengaktifkan)."""
+    user = security.get_current_user(authorization)
+    import two_factor as tf
+    out = tf.begin_totp_setup(str(user["id"]), str(user["email"]))
+    # Secret dikembalikan SEKALI di sini agar UI bisa menampilkan manual key.
+    return {"status": "success", **out}
+
+
+@app.post("/2fa/totp/confirm")
+def two_factor_totp_confirm(req: TotpConfirmRequest,
+                            authorization: str | None = Header(None)):
+    """Langkah 2: verifikasi kode -> aktif + recovery codes (sekali tampil)."""
+    user = security.get_current_user(authorization)
+    import two_factor as tf
+    try:
+        out = tf.confirm_totp_setup(str(user["id"]), req.code)
+    except tf.InvalidCodeError as exc:
+        raise HTTPException(400, str(exc))
+    except tf.TwoFactorError as exc:
+        raise HTTPException(409, str(exc))
+    return {"status": "success", **out}
+
+
+@app.post("/2fa/totp/disable")
+def two_factor_totp_disable(req: TotpDisableRequest,
+                            authorization: str | None = Header(None)):
+    """Matikan 2FA (ditolak bila penegakan instance menyala)."""
+    user = security.get_current_user(authorization)
+    import two_factor as tf
+    try:
+        out = tf.disable_totp(str(user["id"]), req.code,
+                              password_ok=req.password_ok)
+    except tf.TwoFactorRequiredError as exc:
+        raise HTTPException(409, str(exc))
+    except tf.InvalidCodeError as exc:
+        raise HTTPException(400, str(exc))
+    except tf.TwoFactorError as exc:
+        raise HTTPException(400, str(exc))
+    return {"status": "success", **out}
+
+
+@app.post("/2fa/verify")
+def two_factor_verify(req: TwoFactorVerifyRequest,
+                      authorization: str | None = Header(None)):
+    """Verifikasi langkah kedua (TOTP atau kode cadangan sekali-pakai)."""
+    user = security.get_current_user(authorization)
+    import two_factor as tf
+    target = req.user_id or str(user["id"])
+    if target != str(user["id"]):
+        raise HTTPException(403, "Hanya bisa memverifikasi akun sendiri.")
+    try:
+        out = tf.verify_login(target, req.code)
+    except tf.InvalidCodeError as exc:
+        raise HTTPException(401, str(exc))
+    except tf.TwoFactorError as exc:
+        raise HTTPException(409, str(exc))
+    return {"status": "success", **out}
+
+
+@app.get("/2fa/overview")
+def two_factor_overview(authorization: str | None = Header(None)):
+    """Ringkasan 2FA instance (admin)."""
+    user = security.get_current_user(authorization)
+    _2fa_admin(user)
+    import two_factor as tf
+    return {"status": "success", **tf.overview()}
+
+
+@app.post("/2fa/policy")
+def two_factor_set_policy(req: TwoFactorPolicyRequest,
+                          authorization: str | None = Header(None)):
+    """Ubah kebijakan keamanan instance (admin)."""
+    user = security.get_current_user(authorization)
+    _2fa_admin(user)
+    import two_factor as tf
+    out = tf.set_policy(enforced=req.enforced, allow_webauthn=req.allow_webauthn,
+                        enforce_for_sso=req.enforce_for_sso,
+                        updated_by=str(user["email"]))
+    return {"status": "success", "policy": out}
+
+
+@app.post("/2fa/admin/reset")
+def two_factor_admin_reset(req: Reset2FARequest,
+                           authorization: str | None = Header(None)):
+    """Reset paksa 2FA seorang user + cabut semua sesinya (admin)."""
+    user = security.get_current_user(authorization)
+    _2fa_admin(user)
+    import two_factor as tf
+    if not req.user_id:
+        raise HTTPException(422, "user_id wajib diisi.")
+    return {"status": "success", **tf.reset_user_2fa(req.user_id, req.reason)}
+
+
+@app.post("/2fa/webauthn/register/begin")
+def webauthn_register_begin(authorization: str | None = Header(None)):
+    """Mulai pendaftaran passkey (challenge)."""
+    user = security.get_current_user(authorization)
+    import two_factor as tf
+    if not tf.webauthn_available():
+        raise HTTPException(409, "WebAuthn tidak tersedia/diizinkan.")
+    return {"status": "success", **tf.webauthn_register_begin(
+        str(user["id"]), str(user["email"]))}
+
+
+@app.post("/2fa/webauthn/register/complete")
+def webauthn_register_complete(req: WebauthnCredentialRequest,
+                               authorization: str | None = Header(None)):
+    """Selesaikan pendaftaran passkey (verifikasi attestation)."""
+    user = security.get_current_user(authorization)
+    import two_factor as tf
+    try:
+        out = tf.webauthn_register_complete(str(user["id"]),
+                                            req.credential or {}, req.label)
+    except tf.InvalidCodeError as exc:
+        raise HTTPException(400, str(exc))
+    except tf.TwoFactorError as exc:
+        raise HTTPException(409, str(exc))
+    return {"status": "success", **out}
+
+
+@app.post("/2fa/webauthn/auth/begin")
+def webauthn_auth_begin(authorization: str | None = Header(None)):
+    """Mulai autentikasi passkey (challenge)."""
+    user = security.get_current_user(authorization)
+    import two_factor as tf
+    if not tf.webauthn_available():
+        raise HTTPException(409, "WebAuthn tidak tersedia/diizinkan.")
+    return {"status": "success", **tf.webauthn_auth_begin(str(user["id"]))}
+
+
+@app.post("/2fa/webauthn/auth/complete")
+def webauthn_auth_complete(req: WebauthnCredentialRequest,
+                           authorization: str | None = Header(None)):
+    """Selesaikan autentikasi passkey (verifikasi signature + counter)."""
+    user = security.get_current_user(authorization)
+    import two_factor as tf
+    try:
+        out = tf.webauthn_auth_complete(str(user["id"]), req.credential or {})
+    except tf.InvalidCodeError as exc:
+        raise HTTPException(401, str(exc))
+    except tf.TwoFactorError as exc:
+        raise HTTPException(409, str(exc))
+    return {"status": "success", **out}
+
+
 @app.get("/executions/{execution_id}")
 def get_execution(execution_id: str, authorization: str | None = Header(None),
                   accept_language: str | None = Header(None)):
@@ -4643,6 +5034,8 @@ _FEATURE_MODULES = {
     # 12 fitur n8n gap lanjutan (9 Okt 2026)
     "28_metric_eval": "metrics_eval",
     "29_memory_provider": "memory_provider",
+    "30_execution_redaction": "execution_redaction",
+    "31_two_factor": "two_factor",
 }
 
 

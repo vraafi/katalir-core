@@ -1091,8 +1091,84 @@ def redact_log_row(row: dict) -> tuple[dict, bool]:
 
 
 
+#: Cache kebijakan redaksi per-workflow (Fitur #11a). `None` = belum dimuat.
+_REDACTION_POLICY_CACHE: dict = {}
+_REDACTION_ENFORCED_CACHE: dict = {"value": None, "at": 0.0}
+#: TTL cache kebijakan (detik). Cukup pendek agar perubahan cepat terasa,
+#: cukup panjang agar tidak memanggil DB pada SETIAP baris log.
+REDACTION_CACHE_TTL = 30.0
+#: Nama tabel kebijakan (dibaca lewat service client).
+REDACTION_TABLE = "workflow_redaction"
+
+
+def _enforced_redaction_level() -> str:
+    """Level penegakan instance-wide (dibaca dari env, di-cache singkat)."""
+    now = time.time()
+    if (_REDACTION_ENFORCED_CACHE["value"] is not None
+            and now - _REDACTION_ENFORCED_CACHE["at"] < REDACTION_CACHE_TTL):
+        return _REDACTION_ENFORCED_CACHE["value"]
+    raw = (os.getenv("KATALIR_REDACTION_ENFORCE")
+           or os.getenv("REDACTION_ENFORCE") or "").strip().lower()
+    level = "off"
+    if raw in ("all", "manual+production", "both"):
+        level = "all"
+    elif raw in ("production", "prod", "true", "1"):
+        level = "production"
+    _REDACTION_ENFORCED_CACHE.update({"value": level, "at": now})
+    return level
+
+
+def redaction_policy_for(workflow_id: str | None):
+    """Kebijakan redaksi efektif untuk `workflow_id` (Fitur #11a).
+
+    Mengembalikan objek `execution_redaction.RedactionPolicy` atau `None`
+    bila modul belum tersedia / workflow tidak punya kebijakan. Penegakan
+    instance-wide SELALU menaikkan level minimum (lantai tidak bisa
+    dilemahkan workflow) — invarian yang sama dengan API.
+    """
+    if not workflow_id:
+        return None
+    import time as _t
+    key = str(workflow_id)
+    cached = _REDACTION_POLICY_CACHE.get(key)
+    now = _t.time()
+    if cached and now - cached[1] < REDACTION_CACHE_TTL:
+        return cached[0]
+    policy = None
+    try:
+        import execution_redaction as _er
+        row = None
+        if is_configured():
+            try:
+                res = (get_write_client().table(REDACTION_TABLE).select("policy")
+                       .eq("workflow_id", key).limit(1).execute())
+                rows = res.data or []
+                row = rows[0] if rows else None
+            except Exception:  # noqa: BLE001 - tabel absen -> hanya enforcement
+                row = None
+        base = _er.RedactionPolicy.from_dict((row or {}).get("policy"))
+        enforced = _enforced_redaction_level()
+        if enforced != "off" and base.weaker_than(enforced):
+            base = _er.RedactionPolicy.from_dict(
+                {**base.to_dict(), "level": enforced})
+        policy = base if base.active else None
+    except Exception:  # noqa: BLE001 - redaksi gagal memuat bukan alasan crash
+        policy = None
+    _REDACTION_POLICY_CACHE[key] = (policy, now)
+    return policy
+
+
+def invalidate_redaction_cache(workflow_id: str | None = None) -> None:
+    """Buang cache kebijakan (dipakai API setelah kebijakan diubah)."""
+    if workflow_id is None:
+        _REDACTION_POLICY_CACHE.clear()
+    else:
+        _REDACTION_POLICY_CACHE.pop(str(workflow_id), None)
+
+
 def execution_log_row(execution_id: str, node_id: str, step_kind: str,
-                      status: str, payload: dict) -> dict:
+                      status: str, payload: dict, *, workflow_id: str | None = None,
+                      trigger: str = "production") -> dict:
     """Baris `execution_logs` sesuai skema nyata (murni, mudah diuji).
 
     `step_kind` dipetakan ke `node_type`, `payload` ke `output_data`, dan pesan
@@ -1103,6 +1179,16 @@ def execution_log_row(execution_id: str, node_id: str, step_kind: str,
     # tidak ada jalur tulis execution_logs yang terlewat -- baik itu node MCP,
     # Trigger (payload webhook + header Authorization), maupun error_message.
     data = redact_sensitive(data)
+    # Fitur #11a: lapisan KEDUA -- kebijakan per-workflow (PII + regex kustom).
+    # Diterapkan SEBELUM baris dibentuk sehingga payload sensitif tidak pernah
+    # menyentuh disk, bukan disaring saat dibaca.
+    _pol = redaction_policy_for(workflow_id)
+    if _pol is not None:
+        try:
+            import execution_redaction as _er
+            data = _er.redact_payload(data, _pol, trigger=trigger)
+        except Exception as exc:  # noqa: BLE001 - jangan gagalkan eksekusi
+            print(f"[database] redaksi kebijakan workflow gagal: {exc}")
     row: dict = {
         "execution_id": execution_id,
         "node_id": node_id,
@@ -1146,14 +1232,24 @@ def _normalize_log(row: dict) -> dict:
     }
 
 
-def append_execution_log(execution_id: str, node_id: str, step_kind: str, status: str, payload: dict):
+def append_execution_log(execution_id: str, node_id: str, step_kind: str,
+                         status: str, payload: dict, *,
+                         workflow_id: str | None = None,
+                         trigger: str = "production"):
     """Persiste un paso de ejecucion en execution_logs (kolom sesuai skema).
+
+    `workflow_id` (opsional) mengaktifkan kebijakan redaksi per-workflow
+    (Fitur #11a) pada baris ini. Bila tidak diberikan, workflow ditelusuri
+    dari `execution_id` — TIDAK dilakukan di sini karena akan menambah satu
+    query pada setiap langkah; pemanggil yang sudah tahu `workflow_id`
+    sebaiknya meneruskannya.
 
     Sama seperti `get_execution`: kegagalan tulis tidak mematikan `_configured`
     secara global (satu kegagalan akan mengalihkan SEMUA penulisan berikutnya ke
     memori sehingga log hilang dari DB tanpa jejak).
     """
-    row = execution_log_row(execution_id, node_id, step_kind, status, payload)
+    row = execution_log_row(execution_id, node_id, step_kind, status, payload,
+                            workflow_id=workflow_id, trigger=trigger)
     try:
         if is_configured():
             _get_write_client().table("execution_logs").insert(row).execute()
@@ -1163,7 +1259,7 @@ def append_execution_log(execution_id: str, node_id: str, step_kind: str, status
               "disimpan di memori")
     _L_EXLOG.setdefault(execution_id, []).append(
         {"node_id": node_id, "step_kind": step_kind, "status": status,
-         "payload": redact_sensitive(payload or {}), "ts": _now()}
+         "payload": row.get("output_data") or {}, "ts": _now()}
     )
 
 

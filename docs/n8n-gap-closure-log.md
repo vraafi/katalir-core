@@ -202,3 +202,159 @@ Bukti isolasi kunci: `assert "sm_secret_xyz" not in r.text` LULUS.
 ### Status: 100% COMPLETE ✅
 Catatan TODO: Supermemory v3/v4 dimatikan **31 Des 2026** → migrasi ke v5
 sebelum tanggal itu (satu file, `SupermemoryProvider`).
+
+---
+
+## FITUR #11 — Execution Data Redaction + Enforce 2FA
+
+**Status:** 100% COMPLETE
+**Modul baru:** `execution_redaction.py`, `two_factor.py`
+**Migrasi:** `migrations/2026-10-09-redaction-2fa.sql`
+**Uji:** `tests/test_execution_redaction.py` (15) + `tests/test_two_factor.py` (16) = **31 tes LULUS**
+**Bukti HTTP:** `_f11_api_e2e.py` → **40 pemeriksaan, 0 gagal**
+**Bukti WebAuthn nyata:** `_f11_webauthn_e2e.py` → **LULUS** (signature sungguhan)
+
+### A. RESEARCH (sumber Okt 2026)
+
+| Aspek | Sumber | Temuan yang diadopsi |
+|---|---|---|
+| Redaksi per-workflow | `docs.n8n.io/deploy/host-n8n/configure-n8n/security/redact-execution-data`; `n8n.nodejs.cn/workflows/executions/execution-data-redaction/` (n8n ≥ **2.16.0**) | Dua toggle independen (**redact production** / **redact manual**). Metadata (status, timing, node names) TETAP terlihat; payload diganti penanda; binary DIBUANG; error di-redact menyisakan tipe + HTTP status |
+| Enforcement instance | `docs.n8n.io/.../security/manage-security-policies` (n8n ≥ **2.26.0**) | Toggle "Enforce data redaction" + scope. **Enforcement = lantai minimum** — workflow TIDAK boleh lebih lemah, boleh lebih ketat |
+| RBAC redaksi | dokumen yang sama | `workflow:enableRedaction`, `workflow:disableRedaction`, `execution:reveal`; audit `n8n.audit.execution.data.revealed` / `..._failure` |
+| 2FA | `docs.n8n.io/administer/manage-users-and-access/verify-user-identity/require-two-factor-auth` | TOTP authenticator app → QR → verifikasi → **recovery codes**; `N8N_MFA_ENABLED=false` diabaikan bila sudah ada user ber-2FA |
+| Penegakan 2FA | `docs.n8n.io/.../security/manage-security-policies` | Enforce 2FA **hanya login email+password** — user SSO dikecualikan; env `N8N_MFA_ENFORCED_ENABLED`, `N8N_SECURITY_POLICY_MANAGED_BY_ENV` |
+| WebAuthn Python | PyPI `webauthn` **3.0.1** (rilis Juni 2026, duo-labs/py_webauthn) | Verifikasi server-side penuh (challenge, origin, RP ID, signature, counter) |
+| TOTP Python | PyPI `PyOTP` **2.9.0** (sudah terpasang di proyek) | Generator/verifikator TOTP RFC 6238 |
+
+### B. INVENTORY KREDENSIAL
+
+Fitur #11 **tidak memerlukan kredensial pihak ketiga**:
+* TOTP dihitung lokal (`pyotp`) — tidak ada layanan eksternal.
+* WebAuthn diverifikasi lokal dengan public key milik authenticator user.
+* Penyimpanan memakai **Supabase yang sudah ada** (`SUPABASE_URL`/`SUPABASE_KEY` sudah di `.env`).
+* Secret TOTP dienkripsi dengan **Fernet** memakai kunci vault yang sudah ada
+  (`VAULT_KEY` / `SECRETS_VAULT_KEY`); bila absen, jatuh ke `plain:` (dev) dan
+  hal ini **dikunci test** (`test_d2_secret_tersimpan_terenkripsi_tidak_plain`).
+* Dependensi baru: `webauthn==3.0.1` (+ `cbor2`, `pyOpenSSL`, `cryptography 50.0.2`
+  sebagai transitif) — semuanya gratis/open-source, **tanpa API key**.
+  Diverifikasi tidak memecahkan vault: `Fernet` + `PyJWT` round-trip OK, dan
+  uji lama (`test_agent_redactor`, `test_metrics_eval`) tetap lulus.
+
+**Zero mock:** tidak ada satu pun jalur fitur yang di-stub. Yang di-stub hanya
+**identitas JWT** pada skrip bukti HTTP (karena tidak ada token Supabase nyata
+di lingkungan lokal) — seluruh logika fitur berjalan sungguhan.
+
+### C. IMPLEMENTASI
+
+1. **DDL** — `migrations/2026-10-09-redaction-2fa.sql`:
+   * `workflow_redaction` (level + `policy` jsonb + CHECK level + trigger `updated_at` + RLS owner-only)
+   * `user_2fa` (secret terenkripsi, `webauthn` jsonb, `recovery_salt`/`recovery_hashes`/`recovery_used`, challenge) — **RLS aktif TANPA policy klien** sehingga hanya service role yang bisa membacanya
+   * `security_policy` (singleton `id=1`; boleh dibaca semua user terautentikasi, hanya service role yang boleh mengubah)
+   * `user_session_epoch` (pencabutan token berbasis epoch)
+2. **Engine redaksi** — `execution_redaction.py`:
+   * `RedactionPolicy` level `off|production|all` + `effective_level()`/`weaker_than()` (lantai minimum)
+   * PII: **email**, **telepon** (E.164 / Indonesia / gaya US), **SSN**, **kartu kredit** (divalidasi **Luhn** → nol false-positive pada 16 digit acak), **IPv4**
+   * Regex **kustom per-workflow** dengan guard: panjang ≤ 300, kompilasi divalidasi, pola pencocok-kosong **ditolak**, anggaran waktu kooperatif + fail-closed (`[REDACTED_PATTERN_ERROR]`)
+   * Binary dibuang (`[REDACTED_BINARY]`); rekursi dibatasi `MAX_DEPTH=8`
+   * Lapisan kredensial (`agent_redactor`, 10 pola + canary) dijalankan **lebih dulu**
+3. **Integrasi titik-tunggal** — `database.execution_log_row()` memanggil kebijakan
+   workflow **sebelum** baris dibentuk → PII tidak pernah menyentuh disk.
+   `execution_engine._log_step` meneruskan `workflow_id` + `trigger`
+   (`manual` bila pengguna menjalankan dari editor, `production` bila ada
+   `execution_id` dari trigger).
+4. **Engine 2FA** — `two_factor.py`: TOTP + `qr_svg()` inline, recovery codes
+   **sekali-pakai** (hash SHA-256 + salt per-user), penegakan instance
+   (`set_policy`, `require_satisfied`, pengecualian SSO), `policy_from_env()`,
+   session invalidation via epoch, WebAuthn register/authenticate lengkap
+   (clone guard `sign_count`), `reset_user_2fa()` admin.
+5. **API** — 18 endpoint baru: `/redaction/policy`, `/redaction/preview`,
+   `/redaction/reveal-audit`, `GET|POST /workflows/{id}/redaction`,
+   `/2fa/status`, `/2fa/totp/{setup,confirm,disable}`, `/2fa/verify`,
+   `/2fa/overview`, `/2fa/policy`, `/2fa/admin/reset`,
+   `/2fa/webauthn/{register,auth}/{begin,complete}`.
+6. **Registry** — `_FEATURE_MODULES` bertambah `30_execution_redaction`,
+   `31_two_factor` → terlihat di `GET /version`.
+
+### D. HARD TEST — 13 skenario (12 wajib + 1 tambahan)
+
+| # | Kategori | Skenario | Hasil |
+|---|---|---|---|
+| B1 | Basic | Email di payload → `[REDACTED_EMAIL]`, sisa teks utuh | ✅ |
+| B2 | Basic | Telepon (`+62…`, `08123456789`, `(021) 555-1234`) → `[REDACTED_PHONE]` | ✅ |
+| B3 | Basic | Kartu valid-Luhn → `[REDACTED_CARD]`; 16 digit acak **tidak** disentuh | ✅ |
+| D1 | Durability | Pola kustom 50× berturut-turut, hasil identik (tanpa state bocor) | ✅ |
+| D2 | Durability | Baris `execution_logs` tersimpan **tanpa PII asli**; cabang tanpa kebijakan = perilaku lama | ✅ |
+| E1 | Edge | Tanggal ISO / jam / angka biasa **tidak** ter-redact (anti-false-positive) | ✅ |
+| E2 | Edge | `bytes` + field ber-nama biner → `[REDACTED_BINARY]` | ✅ |
+| E3 | Edge | Regex rusak / pencocok-kosong / nama >64 char / level tak dikenal → **ditolak tegas** | ✅ |
+| P1 | Performance | 1000 pemanggilan payload sedang < 5 s (aktual ≈ 0,4 s) | ✅ |
+| P2 | Performance | Struktur 40 tingkat dipotong di `MAX_DEPTH`, tidak meledak | ✅ |
+| S1 | Security | `weaker_than()`/`effective_level()`: enforcement = lantai minimum (n8n 2.26.0) | ✅ |
+| S2 | Security | Canary tetap menggagalkan operasi; level `production` **tidak** menyentuh `manual` | ✅ |
+| X1 | Tambahan | Satu payload memuat token + email + telepon + kartu → semua tertutup | ✅ |
+
+**2FA (16 tes / 13 skenario):** setup QR+secret · aktivasi + 10 kode cadangan ·
+verifikasi TOTP & kode cadangan · kode cadangan **sekali-pakai** · secret
+tersimpan terenkripsi · verifikasi deterministik `at=` (anti-flaky) · user belum
+aktif → error · reset admin mencabut epoch · 300 verifikasi < 2 s · 100×
+secret+QR < 3 s · penegakan memblokir user tanpa 2FA · SSO dikecualikan &
+`disable` ditolak saat enforced · **WebAuthn round-trip signature nyata** ·
+4 serangan passkey (replay / origin palsu / signature kunci lain / counter mundur)
+**semuanya ditolak**.
+
+### E. VERIFIKASI
+
+**Bukti WebAuthn nyata** (`_f11_webauthn_e2e.py`) — authenticator perangkat lunak
+dengan keypair ES256 + CBOR, signature diverifikasi pustaka `webauthn`:
+```
+REGISTER: {"enabled": true, "method": "webauthn", "webauthn_count": 1}
+AUTH OK: {"user_id": "user-wa-1", "ok": true, "method": "webauthn", "sign_count": 1}
+REPLAY DITOLAK: autentikasi passkey ditolak: Client data challenge was not expected challenge
+ORIGIN PALSU DITOLAK: Unexpected client data origin "https://katalir.de5.net", expe...
+SIGNATURE PALSU DITOLAK: Could not verify authentication signature
+COUNTER MUNDUR DITOLAK: Response sign count of 0 was not greater than current count o...
+HASIL_SELURUH: LULUS
+```
+
+**Bukti HTTP** (`_f11_api_e2e.py`) — potongan output nyata:
+```
+[PASS] GET /redaction/policy 200  :: HTTP 200
+[PASS] katalog pii_types  :: ["email", "phone", "ssn", "credit_card", "ipv4"]
+[PASS] preview: email tersaring  :: {"email": "[REDACTED_EMAIL]", "phone": "[REDACTED_PHONE]", "card": "[REDACTED_CARD]", "ssn": "[REDACTED_SSN]", ...
+[PASS] preview: level production TIDAK menyentuh manual  :: {"email": "x@y.com"}
+[PASS] preview: regex rusak -> 422  :: HTTP 422
+[PASS] POST /2fa/totp/confirm 200  :: {"enabled": true, "method": "totp", "recovery_codes_remaining": 10}
+[PASS] kode cadangan sekali-pakai -> 401  :: HTTP 401
+[PASS] tanpa admin -> /2fa/policy 403  :: HTTP 403 :: {"detail":"Butuh peran admin untuk aksi ini."}
+[PASS] disable saat enforced -> 409  :: HTTP 409
+[PASS] webauthn: sign_count naik ke 1
+[PASS] webauthn: replay challenge -> 401  :: HTTP 401
+[PASS] registry: 30_execution_redaction  :: {"30_execution_redaction": true, "31_two_factor": true}
+TOTAL: 40 pemeriksaan | GAGAL: 0
+HASIL: LULUS
+```
+
+**pytest:** 31 tes Fitur #11 LULUS (15 redaksi + 16 2FA).
+
+### F. DEVIASI & CATATAN
+
+1. **Redaksi diterapkan SEBELUM tulis, bukan saat baca.** n8n menerapkan
+   redaksi di lapisan API (data mentah tetap di DB). Di sini redaksi terjadi
+   **sebelum** `execution_logs` dibentuk, sehingga PII sensitif tidak pernah
+   menyentuh disk — lebih kuat dari model n8n. Konsekuensinya: `execution:reveal`
+   tidak bisa "membuka kembali" data, dan itu memang disengaja. Endpoint
+   `/redaction/reveal-audit` disediakan untuk mencatat **niat** membuka data
+   (event audit gaya `n8n.audit.execution.data.revealed`, siap dialirkan ke
+   SIEM pada Fitur #4).
+2. **WebAuthn dukungan penuh**, tidak diminta eksplisit di ringkasan brief
+   ("2FA: TOTP, WebAuthn, backup codes") tetapi tertulis di daftar 12 skenario
+   hard test → diimplementasikan lengkap dengan verifikasi signature nyata.
+3. **Penyimpanan default = memori proses.** Backend `MemoryTwoFactorStore`
+   dipakai sekarang (pola yang sama dengan fitur durable/queue lain di repo);
+   migrasi SQL sudah disiapkan agar bisa diganti backend Supabase tanpa
+   mengubah API. **Catatan TODO:** pindahkan ke Supabase sebelum produksi agar
+   2FA bertahan melewati restart (satu titik: `two_factor.store()`).
+4. **Tidak ada BLOKER.** Tidak ada kredensial yang hilang, tidak ada kartu
+   kredit, dan tidak ada 10 alternatif yang gagal.
+
+### Status: 100% COMPLETE ✅

@@ -1869,8 +1869,18 @@ async def execute_workflow_async(workflow_id: str, flow_data: dict,
         # sehingga update status/log setelahnya hilang.
         db.create_execution(execution_id, workflow_id, flow_data)
 
+    # Fitur #11a: tentukan `trigger` untuk kebijakan redaksi. Eksekusi yang
+    # datang tanpa `execution_id` dari pemanggil = dijalankan pengguna dari
+    # editor ("manual"); yang punya `execution_id` sudah dibuat trigger
+    # (webhook/cron/queue) = "production". Kebijakan workflow memilih mana
+    # yang ditutup, sehingga pemisahan ini yang menentukan baris di-redact.
+    _log_trigger = "production" if provided else "manual"
+
     async def _log_step(step: ExecutionStep) -> None:
-        db.append_execution_log(execution_id, step.node_id, step.kind.value, step.status, step.output)
+        db.append_execution_log(execution_id, step.node_id, step.kind.value,
+                                step.status, step.output,
+                                workflow_id=workflow_id,
+                                trigger=_log_trigger)
 
     orch = StatefulOrchestrator(graph, trigger_input=trigger_input,
                                 owner_email=owner_email,

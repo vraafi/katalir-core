@@ -141,3 +141,19 @@ pycrdt==0.14.8
 pycrdt-websocket==0.16.5
 pycrdt-store==0.1.5
 
+
+# --- Fitur #11: Execution Redaction + Enforce 2FA (Okt 2026) ----------------
+# pyotp 2.9.0      — TOTP RFC 6238 (authenticator app). Sudah terpasang.
+# qrcode 7.4.2     — QR `otpauth://` sebagai SVG inline (tanpa PIL/jaringan).
+# webauthn 3.0.1   — verifikasi server-side WebAuthn/passkey (challenge,
+#                    origin, RP ID, signature, sign_count). Rilis Juni 2026,
+#                    duo-labs/py_webauthn. Sumber: https://pypi.org/project/webauthn/
+# cbor2 6.1.5      — transitif `webauthn` (attestationObject CBOR).
+# cryptography     — Fernet untuk enkripsi secret TOTP + verifikasi ES256.
+#                    50.0.2 (dipasang oleh `webauthn`; batas bawah >=48 dijaga).
+# Redaksi PII memakai `re` stdlib — TIDAK ada dependensi baru untuk itu.
+pyotp==2.9.0
+qrcode==7.4.2
+webauthn==3.0.1
+cbor2==6.1.5
+cryptography>=48.0.0

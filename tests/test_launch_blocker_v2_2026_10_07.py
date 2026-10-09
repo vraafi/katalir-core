@@ -51,7 +51,8 @@ class _MemDB:
         self.executions.setdefault(
             execution_id, {"workflow_id": workflow_id, "status": "pending"})
 
-    def append_execution_log(self, execution_id, node_id, kind, status, payload):
+    def append_execution_log(self, execution_id, node_id, kind, status,
+                            payload, **kwargs):
         self.logs.append({"execution_id": execution_id, "node_id": node_id,
                           "kind": kind, "status": status, "payload": payload})
 
