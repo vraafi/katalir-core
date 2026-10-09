@@ -5366,6 +5366,219 @@ def recovery_guard_stats():
     return {"status": "success", **_rc.guard().stats()}
 
 
+# ---------------------------------------------------------------------------
+# ENDPOINT END-USER CREDENTIALS (fitur #6) — kredensial per-pengguna pemicu
+# Padanan n8n "End-user credentials": template dibuat admin sekali, setiap
+# pengguna menghubungkan akunnya; resolusi mengikuti pengguna yang memicu.
+# Token disimpan terenkripsi + rotasi RFC 9700 §4.14.
+# ---------------------------------------------------------------------------
+class EUCTemplateRequest(BaseModel):
+    """Body POST /end-user-credentials/templates."""
+    template_id: str = ""
+    name: str = ""
+    kind: str = "oauth2"
+    provider: str = ""
+    owner_project: str = ""
+    scopes: list[str] | None = None
+    client_id: str = ""
+    allowed_modes: list[str] | None = None
+    required: bool = False
+
+
+class EUCConnectRequest(BaseModel):
+    """Body POST /end-user-credentials/connections — hubungkan akun sendiri."""
+    template_id: str
+    tokens: dict | None = None
+    account_label: str = ""
+    scopes: list[str] | None = None
+    refresh_token: str = ""
+
+
+class EUCResolveRequest(BaseModel):
+    """Body POST /end-user-credentials/resolve — resolusi gaya trigger."""
+    template_id: str
+    trigger_mode: str = "manual"
+    auth: str = ""
+    chat_mode: str = "hosted"
+    requested_scopes: list[str] | None = None
+    user_id: str = ""
+    required: bool | None = None
+
+
+class EUCRedactRequest(BaseModel):
+    """Body POST /end-user-credentials/redact — isolasi data eksekusi."""
+    execution: dict
+    trigger_user_id: str = ""
+    viewer_id: str = ""
+
+
+def _euc_resolver():
+    import end_user_credentials as _euc
+    return _euc.resolver(), _euc
+
+
+@app.get("/end-user-credentials/overview")
+def euc_overview():
+    """Katalog trigger yang didukung + kebijakan (tanpa rahasia)."""
+    r, _euc = _euc_resolver()
+    return {"status": "success", "config": _euc.describe(),
+            "stats": r.stats()}
+
+
+@app.get("/end-user-credentials/templates")
+def euc_list_templates():
+    r, _euc = _euc_resolver()
+    return {"status": "success",
+            "templates": [t.to_dict() for t in r.templates.values()
+                          if not t.deleted]}
+
+
+@app.post("/end-user-credentials/templates")
+def euc_create_template(req: EUCTemplateRequest,
+                        authorization: str | None = Header(None)):
+    """Buat template kredensial end-user (admin)."""
+    user = security.get_current_user(authorization)
+    r, _euc = _euc_resolver()
+    cfg = req.model_dump()
+    cfg["created_by"] = str(user.get("email") or user.get("id") or "")
+    try:
+        t = _euc.template_from_config(cfg)
+    except _euc.EndUserCredentialError as exc:
+        raise HTTPException(422, str(exc))
+    r.add_template(t)
+    return {"status": "success", "template": t.to_dict()}
+
+
+@app.delete("/end-user-credentials/templates/{template_id}")
+def euc_delete_template(template_id: str,
+                        authorization: str | None = Header(None)):
+    """Hapus template = hapus SEMUA koneksi pengguna (perilaku n8n)."""
+    security.get_current_user(authorization)
+    r, _euc = _euc_resolver()
+    try:
+        out = r.delete_template(template_id)
+    except _euc.TemplateNotFound as exc:
+        raise HTTPException(404, str(exc))
+    return {"status": "success", **out}
+
+
+@app.get("/end-user-credentials/templates/{template_id}/summary")
+def euc_admin_summary(template_id: str,
+                      authorization: str | None = Header(None)):
+    """Ringkasan AGREGAT untuk admin — jumlah koneksi saja, tanpa isi."""
+    security.get_current_user(authorization)
+    r, _euc = _euc_resolver()
+    try:
+        return {"status": "success", **r.admin_summary(template_id)}
+    except _euc.TemplateNotFound as exc:
+        raise HTTPException(404, str(exc))
+
+
+@app.get("/end-user-credentials/connections")
+def euc_list_connections(authorization: str | None = Header(None)):
+    """Koneksi MILIK pengguna yang memanggil (bukan milik orang lain)."""
+    user = security.get_current_user(authorization)
+    r, _ = _euc_resolver()
+    uid = str(user["id"])
+    mine = [c.to_dict() for c in r.connections.values()
+            if c.user_id == uid and not c.revoked]
+    return {"status": "success", "total": len(mine), "connections": mine}
+
+
+@app.post("/end-user-credentials/connections")
+def euc_connect(req: EUCConnectRequest,
+                authorization: str | None = Header(None)):
+    """Hubungkan akun pengguna ini ke sebuah template."""
+    user = security.get_current_user(authorization)
+    r, _euc = _euc_resolver()
+    tokens = dict(req.tokens or {})
+    if req.refresh_token:
+        tokens.setdefault("refresh_token", req.refresh_token)
+    try:
+        conn = r.connect(req.template_id, str(user["id"]), tokens,
+                         account_label=req.account_label,
+                         scopes=req.scopes)
+    except (_euc.TemplateNotFound, _euc.EndUserCredentialError) as exc:
+        raise HTTPException(422, str(exc))
+    return {"status": "success", "connection": conn.to_dict()}
+
+
+@app.delete("/end-user-credentials/connections/{template_id}")
+def euc_disconnect(template_id: str,
+                   authorization: str | None = Header(None)):
+    """Putuskan koneksi pengguna ini (logout)."""
+    user = security.get_current_user(authorization)
+    r, _ = _euc_resolver()
+    ok = r.disconnect(template_id, str(user["id"]))
+    return {"status": "success", "disconnected": bool(ok)}
+
+
+@app.post("/end-user-credentials/resolve")
+def euc_resolve(req: EUCResolveRequest,
+                authorization: str | None = Header(None)):
+    """Resolusi kredensial untuk pengguna PEMICU (padanan runtime n8n).
+
+    Respons TIDAK memuat token: hanya metadata koneksi.
+    """
+    user = security.get_current_user(authorization)
+    r, _euc = _euc_resolver()
+    uid = req.user_id or str(user["id"])
+    try:
+        out = r.resolve(req.template_id, trigger_mode=req.trigger_mode,
+                        user_id=uid, auth=req.auth, chat_mode=req.chat_mode,
+                        requested_scopes=req.requested_scopes,
+                        required=req.required)
+    except _euc.TriggerNotSupported as exc:
+        raise HTTPException(422, str(exc))
+    except _euc.ConnectionMissing as exc:
+        raise HTTPException(409, str(exc))
+    except _euc.ScopeViolation as exc:
+        raise HTTPException(403, str(exc))
+    except _euc.TemplateNotFound as exc:
+        raise HTTPException(404, str(exc))
+    # Jangan pernah kirim token lewat API.
+    safe = {k: v for k, v in out.items() if k != "tokens"}
+    safe["has_tokens"] = bool(out.get("tokens"))
+    return {"status": "success", **safe}
+
+
+@app.post("/end-user-credentials/rotate")
+def euc_rotate(req: EUCConnectRequest,
+               authorization: str | None = Header(None)):
+    """Rotasi refresh token (RFC 9700). Reuse token lama -> 409."""
+    user = security.get_current_user(authorization)
+    r, _euc = _euc_resolver()
+    try:
+        conn = r.get_connection(req.template_id, str(user["id"]))
+    except _euc.ConnectionMissing as exc:
+        raise HTTPException(404, str(exc))
+    try:
+        r.store.rotate(conn, dict(req.tokens or {}),
+                       presented_refresh=req.refresh_token)
+    except _euc.RotationReuseDetected as exc:
+        raise HTTPException(409, str(exc))
+    return {"status": "success", "generation": conn.generation,
+            "connection": conn.to_dict()}
+
+
+@app.post("/end-user-credentials/redact")
+def euc_redact(req: EUCRedactRequest,
+               authorization: str | None = Header(None)):
+    """Terapkan isolasi data eksekusi (hanya pengguna pemicu lihat I/O)."""
+    user = security.get_current_user(authorization)
+    r, _euc = _euc_resolver()
+    out = r.redact_for(req.execution,
+                       trigger_user_id=req.trigger_user_id or str(user["id"]),
+                       viewer_id=req.viewer_id or str(user["id"]))
+    return {"status": "success", "execution": out}
+
+
+@app.get("/end-user-credentials/stats")
+def euc_stats():
+    r, _euc = _euc_resolver()
+    return {"status": "success", **_euc.describe(), **r.stats()}
+
+
 @app.get("/2fa/overview")
 
 
@@ -5844,6 +6057,7 @@ _FEATURE_MODULES = {
     "32_log_streaming": "log_streaming",
     "33_tracing": "tracing",
     "34_self_healing": "recovery",
+    "35_end_user_credentials": "end_user_credentials",
 }
 
 

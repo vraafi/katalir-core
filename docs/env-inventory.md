@@ -155,3 +155,27 @@ ss -ltnp -> 127.0.0.1:3011 (agentgateway, python3), 127.0.0.1:8081, 127.0.0.1:80
 | Metorial API base & endpoint | https://metorial.com/docs/api-getting-started | Base `https://api.metorial.com`, `GET /provider-deployments`, butuh UA browser |
 | Google OIDC token endpoint | https://developers.google.com/identity/protocols/oauth2 | Validasi client via `invalid_grant` vs `invalid_client` |
 | Redis di VPS (keamanan) | https://redis.io/docs/latest/operate/oss_and_stack/management/security/ | Jangan ekspos 6379 ke internet; bind loopback + password + akses via **SSH tunnel** |
+
+---
+
+## 7. Verifikasi ulang — 9 Okt 2026 (fitur #3 → #6)
+
+Scan ulang `.env` menemukan **101 pasangan nama** (sebelumnya tercatat 98).
+Selisihnya bukan rahasia baru, melainkan:
+
+| Nama | Keterangan |
+|---|---|
+| `GEMINI_KEY_2` … `GEMINI_KEY_12` | sudah terwakili sebagai rentang `GEMINI_KEY_1…GEMINI_KEY_13` di §2.1; kuncinya kini dijabarkan satu per satu |
+| `COMPOSIO_API_KEY_consumer` | varian consumer dari `COMPOSIO_API_KEY` |
+| `beatapi`, `promptpilot_mcp` | variabel kerja non-rahasia (bukan kredensial) |
+
+**Tidak ada nilai yang dibaca atau ditulis.** Inventaris tetap memuat nama saja.
+
+### Relevansi untuk fitur yang tersisa
+* **#6 End-user credentials** — tidak butuh kredensial baru; memakai
+  `VAULT_SECRET_KEY` / `VAULT_PASSWORD` yang sudah ada (Fernet).
+* **#10 Custom RBAC** — tanpa kredensial baru.
+* **#5 Agent sandbox isolation** — tanpa kredensial baru.
+* **#2 MCP build workflow** — tanpa kredensial baru.
+* **#1 n8n Agents first-class** — memakai `*_API_KEY` LLM yang sudah ada.
+* **#9 Durable Execution via Dapr** — tanpa kredensial baru.

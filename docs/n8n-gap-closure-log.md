@@ -18,7 +18,7 @@ dan `docs/enterprise-100-percent-log.md`.
 | 4 | Log Streaming SIEM | `log_streaming.py` | 22/22 + 40 E2E | — | ✅ |
 | 8 | OTel / LangSmith Tracing | `tracing.py` | 19/19 + 75 E2E | — | ✅ |
 | 3 | Self-healing Persistence | `recovery.py` | 19/19 + 62 E2E | — | ✅ |
-| 6 | End-user Credentials | — | — | — | pending |
+| 6 | End-user Credentials | `end_user_credentials.py` | 16/16 + 54 E2E | — | ✅ |
 | 10 | Custom RBAC | — | — | — | pending |
 | 5 | Agent Sandbox Isolation | — | — | — | pending |
 | 2 | MCP Build Workflow | — | — | — | pending |
@@ -927,5 +927,153 @@ HASIL: 62/62 LULUS
    `deactivation_timeout_sec` (default 4× visibility, seperti n8n).
 6. **Tidak ada BLOKER.** Tidak butuh kredensial, kartu kredit, atau alternatif
    gagal.
+
+### Status: 100% COMPLETE ✅
+
+---
+
+## FITUR #6: END-USER CREDENTIALS (BERBASIS TRIGGER)
+
+### Research (link Okt 2026)
+
+1. **n8n Docs — "End-user credentials"** (Enterprise, **Preview**):
+   kredensial **template** dibuat admin sekali; setiap pengguna menghubungkan
+   akunnya sendiri; saat runtime kredensial di-*resolve* ke akun **pengguna
+   yang memicu**. Batasan eksplisit: **OAuth saja**, **satu koneksi per
+   pengguna**, **team project saja**, pembuatan hanya oleh admin/custom role.
+   Trigger yang me-resolve: `manual`, `Chat Hub`, `MCP Server Trigger`,
+   `Form Trigger` (**butuh n8n User Auth**), `Chat Trigger` (**Hosted Chat
+   saja**, bukan Embedded/webhook). Privasi: hanya pengguna pemicu melihat
+   I/O node; semua pihak lain (termasuk admin) melihat output **teredaksi**.
+   Admin hanya melihat **jumlah koneksi**, tidak pernah isi koneksi.
+   Menghapus template menghapus **seluruh** koneksi pengguna.
+2. **n8n GitHub — sumber dokumen di atas** (dipakai untuk memastikan wording
+   persis & status `preview`).
+3. **RFC 9700 — OAuth 2.0 Security Best Current Practice**, §4.14:
+   refresh token **MUST** rahasia di transit & penyimpanan; **MUST** terikat
+   ke client; untuk public client **MUST** *sender-constrained* **atau**
+   **refresh token rotation** — token lama tidak berlaku tetapi **relasinya
+   dipertahankan**; bila token lama muncul lagi → indikasi kebocoran →
+   **cabut grant yang aktif**; **SHOULD** cabut saat ganti sandi/logout;
+   refresh token **MAY** kedaluwarsa bila klien tidak aktif.
+
+### B. Inventory kredensial
+
+Tidak butuh kredensial eksternal baru. Memakai `VAULT_SECRET_KEY` /
+`VAULT_PASSWORD` yang sudah ada untuk cipher Fernet (lihat `docs/env-inventory.md`).
+
+### C. Implementasi
+
+* `end_user_credentials.py` (~700 baris) — NEW
+  * `SUPPORTED_TRIGGER_MODES` (5) + `TRIGGER_AUTH_REQUIREMENTS`
+    (`form`/`chat` → `n8n-user-auth`) + `CHAT_ALLOWED_MODES=("hosted",)`
+  * `supports_end_user_credentials()` + `iter_supported_triggers()`
+  * `EndUserCredentialTemplate` — metadata + `allowed_modes` + `required`
+  * `EndUserConnection` — token **terenkripsi**, `generation`,
+    `refresh_fingerprint`; `to_dict()` tidak pernah memuat token
+  * `RotatingTokenStore` — rotasi + `_retired` (retensi relasi) + deteksi
+    reuse → cabut grant + `expire_idle()` + `revoke_all()`
+  * `CredentialResolver` — `add_template/get_template/delete_template`,
+    `connect/disconnect/get_connection`, `resolve()` (gerbang trigger +
+    scope + required), `redact_for()`, `admin_summary()`, `stats()`
+  * `redact_execution_data()` — isolasi I/O node end-user
+  * `resolver()/set_resolver()/resolver_from_env()/describe()`
+* `api_server.py` — **12 endpoint** `/end-user-credentials/*`
+  (overview, templates list/create/delete/summary, connections
+  list/connect/disconnect, resolve, rotate, redact, stats)
+* `_FEATURE_MODULES["35_end_user_credentials"] = "end_user_credentials"`
+* `migrations/2026-10-09-end-user-credentials.sql` — 4 tabel
+  (`..._templates`, `..._connections`, `..._retired_tokens`, `..._events`)
+  + trigger `touch_updated_at` + RLS per-pemilik + **view agregat admin**
+  yang tidak memuat `user_id`/token/label
+
+### D. Hard Test (12 kategori)
+
+`tests/test_end_user_credentials.py` — **16 tes / 16 LULUS** (jam palsu,
+tanpa `sleep`; cipher mainan untuk menguji alur enkripsi deterministik).
+
+| # | Kategori | Skenario | Hasil |
+|---|---|---|---|
+| B1 | Basic | hanya OAuth yang boleh jadi template | ✅ |
+| B2 | Basic | resolve ke akun pengguna pemicu | ✅ |
+| B3 | Basic | opsional → `resolved=False`; wajib → `ConnectionMissing` | ✅ |
+| D1 | Durability | serialisasi aman (token tidak ikut) + muat ulang | ✅ |
+| D2 | Durability | rotasi menaikkan generation & MEMPERTAHANKAN relasi | ✅ |
+| E1 | Edge | matriks trigger persis n8n (Form/Chat/Hosted) | ✅ |
+| E2 | Edge | satu koneksi per pengguna per template | ✅ |
+| E3 | Edge | `allowed_modes` membatasi; delete template hapus semua koneksi | ✅ |
+| P1 | Perf | 1000 koneksi + 1000 resolusi < 2 s | ✅ |
+| P2 | Perf | 500 rotasi < 2 s, generation = 501 | ✅ |
+| S1 | Security | reuse token lama → grant dicabut (§4.14.2) | ✅ |
+| S2 | Security | token terenkripsi; `to_dict`/`admin_summary`/`denials` bebas token | ✅ |
+| X1 | Extra | isolasi data eksekusi (hanya pemicu lihat I/O) | ✅ |
+| X2 | Extra | gerbang scope + factory env injectable | ✅ |
+| X3 | Extra | kedaluwarsa karena diam + logout mencabut (idempoten) | ✅ |
+| X4 | Extra | registry proses + statistik | ✅ |
+
+`_f6_api_e2e.py` — **54/54 LULUS** (HTTP nyata, **Fernet sungguhan**):
+katalog & fitur di `/version`, 12 endpoint, matriks trigger 9 kombinasi,
+isolasi data eksekusi, agregat admin, rotasi + reuse 409, ciphertext Fernet
+diverifikasi bisa didekripsi, 500 koneksi lewat HTTP, tanpa kebocoran token,
+auth 401 tanpa token, isolasi antar-pengguna.
+
+### Raw output (bukti)
+
+```
+$ pytest tests/test_end_user_credentials.py -q
+................                                                         [100%]
+16 passed in 0.44s
+
+$ python _f6_api_e2e.py
+[PASS] 5 trigger didukung persis n8n
+[PASS] form butuh n8n User Auth
+[PASS] chat hanya Hosted
+[PASS] GET /version memuat fitur #6
+[PASS] token TIDAK dikirim lewat API
+[PASS] trigger manual -> lolos
+[PASS] trigger form -> ditolak
+[PASS] trigger form{'auth': 'n8n-user-auth'} -> lolos
+[PASS] trigger chat{'auth': 'n8n-user-auth', 'chat_mode': 'embedded'} -> ditolak
+[PASS] output node end-user = marker
+[PASS] isi pribadi tidak bocor ke pengguna lain
+[PASS] rahasia TIDAK terlihat
+[PASS] token tersimpan sebagai ciphertext Fernet  :: gAAAAABqyH8s
+[PASS] ciphertext bisa didekripsi (kunci benar)
+[PASS] reuse token lama -> 409  :: HTTP 409
+[PASS] tanpa Authorization -> ditolak  :: HTTP 401
+HASIL: 54/54 LULUS
+```
+
+### E. Verifikasi + Commit
+
+* `pytest tests/test_recovery.py tests/test_end_user_credentials.py
+  tests/test_log_streaming.py tests/test_log_streaming_owner_bus.py
+  tests/test_tracing.py -q` → **76 passed**
+
+### F. Temuan (bug nyata, ditangkap uji)
+
+1. **TEMUAN (TypeError).** `_env_float(name, default)` ditulis dengan tanda
+   tangan lama tetapi dipanggil sebagai `_env_float(e, name, default)` →
+   `resolver_from_env(env)` melempar `TypeError` sehingga registry proses
+   gagal dibangun. Diperbaiki; dikunci `test_x2` + `test_x4`.
+   (Bug yang sama juga ditemukan & diperbaiki di `recovery.py` fitur #3.)
+2. **TEMUAN (idempotensi API).** `disconnect()` semula mengembalikan `True`
+   walau koneksi sudah dicabut sebelumnya. Kini `True` hanya bila ada koneksi
+   **hidup** yang benar-benar dicabut; dikunci `test_x3`.
+3. **Pemahaman semantik.** Awalnya saya menulis tes yang mengharapkan
+   `ConnectionMissing` muncul untuk template **opsional** yang penggunanya
+   belum terhubung. Perilaku yang benar (dan sesuai n8n) adalah
+   `resolved=False`; exception hanya untuk template **wajib**. Tes diperbaiki,
+   dan kedua jalur kini diuji (`test_s1`, `test_b3`).
+4. **Cipher produksi = Fernet sungguhan.** E2E memverifikasi ciphertext
+   diawali `gAAAAA` (format Fernet), tidak memuat token mentah, dan **bisa
+   didekripsi** dengan kunci yang sama — bukan sekadar penanda palsu.
+5. **Divergensi yang disengaja.** Semua batasan n8n (Enterprise-only,
+   team-project-only, Preview) saya pertahankan sebagai **perilaku**, bukan
+   sebagai gerbang lisensi — modul tetap dapat dipakai pada instance apa pun.
+   Batas "team project only" dijaga di lapisan aplikasi (project personal
+   tidak dapat membuat template), sesuai catatan n8n.
+6. **Tidak ada BLOKER.** Tidak butuh kredensial baru, kartu kredit, atau
+   alternatif gagal.
 
 ### Status: 100% COMPLETE ✅
