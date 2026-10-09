@@ -1,0 +1,259 @@
+# Dihasilkan otomatis oleh apisguru_generator.py (TASK 3).
+# Sumber: APIs.guru openapi-directory.
+# verification.level = 'listed': BELUM dijalankan. Tingkat 'callable'/
+# 'call_verified' hanya diberikan harness setelah panggilan nyata.
+manifest_version: 1
+id: apisguru.apideck_com_accounting
+slug: apisguru_apideck_com_accounting
+display_name: Accounting API (APIs.guru)
+description: 'Connector dihasilkan otomatis dari spesifikasi OpenAPI publik Accounting API v9.3.0. Sumber:
+  APIs.guru openapi-directory.'
+category: apisguru
+source: apisguru
+tenant_scope: per-user
+deprecated: false
+minimum_supported_release: 1.0.0
+credential_free: false
+auth:
+  type: api_key
+  credential_form: api_key_header
+  key_name: authorization
+actions:
+- name: balancesheetone
+  description: Get BalanceSheet
+  operation_type: read
+  method: GET
+  url_base: https://unify.apideck.com
+  path: /accounting/balance-sheet
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: billsall
+  description: List Bills
+  operation_type: read
+  method: GET
+  url_base: https://unify.apideck.com
+  path: /accounting/bills
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: companyinfoone
+  description: Get company info
+  operation_type: read
+  method: GET
+  url_base: https://unify.apideck.com
+  path: /accounting/company-info
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: creditnotesall
+  description: List Credit Notes
+  operation_type: read
+  method: GET
+  url_base: https://unify.apideck.com
+  path: /accounting/credit-notes
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: customersall
+  description: List Customers
+  operation_type: read
+  method: GET
+  url_base: https://unify.apideck.com
+  path: /accounting/customers
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: invoiceitemsall
+  description: List Invoice Items
+  operation_type: read
+  method: GET
+  url_base: https://unify.apideck.com
+  path: /accounting/invoice-items
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: invoicesall
+  description: List Invoices
+  operation_type: read
+  method: GET
+  url_base: https://unify.apideck.com
+  path: /accounting/invoices
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: journalentriesall
+  description: List Journal Entries
+  operation_type: read
+  method: GET
+  url_base: https://unify.apideck.com
+  path: /accounting/journal-entries
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: ledgeraccountsall
+  description: List Ledger Accounts
+  operation_type: read
+  method: GET
+  url_base: https://unify.apideck.com
+  path: /accounting/ledger-accounts
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: paymentsall
+  description: List Payments
+  operation_type: read
+  method: GET
+  url_base: https://unify.apideck.com
+  path: /accounting/payments
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: profitandlossone
+  description: Get Profit and Loss
+  operation_type: read
+  method: GET
+  url_base: https://unify.apideck.com
+  path: /accounting/profit-and-loss
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: suppliersall
+  description: List Suppliers
+  operation_type: read
+  method: GET
+  url_base: https://unify.apideck.com
+  path: /accounting/suppliers
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: taxratesall
+  description: List Tax Rates
+  operation_type: read
+  method: GET
+  url_base: https://unify.apideck.com
+  path: /accounting/tax-rates
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+rate_limit:
+  type: FixedWindowCallRatePolicy
+  max_calls: 60
+  window_seconds: 60

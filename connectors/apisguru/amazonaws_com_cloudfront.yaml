@@ -1,0 +1,342 @@
+# Dihasilkan otomatis oleh apisguru_generator.py (TASK 3).
+# Sumber: APIs.guru openapi-directory.
+# verification.level = 'listed': BELUM dijalankan. Tingkat 'callable'/
+# 'call_verified' hanya diberikan harness setelah panggilan nyata.
+manifest_version: 1
+id: apisguru.amazonaws_com_cloudfront
+slug: apisguru_amazonaws_com_cloudfront
+display_name: Amazon CloudFront (APIs.guru)
+description: 'Connector dihasilkan otomatis dari spesifikasi OpenAPI publik Amazon CloudFront v2020-05-31.
+  Sumber: APIs.guru openapi-directory.'
+category: apisguru
+source: apisguru
+tenant_scope: per-user
+deprecated: false
+minimum_supported_release: 1.0.0
+credential_free: false
+auth:
+  type: api_key
+  credential_form: api_key_header
+  key_name: authorization
+actions:
+- name: listcachepolicies2020_05_31
+  description: <p>Gets a list of cache policies.</p> <p>You can optionally apply a filter to return only
+    the managed policies created by Amazon Web Services, or only the custom policies created in your Amazon
+    Web Services account.</p> <p>You can optionally specify the maximum number of items to receive in
+    the resp
+  operation_type: read
+  method: GET
+  url_base: https://cloudfront.amazonaws.com
+  path: /2020-05-31/cache-policy
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: listconflictingaliases2020_05_31
+  description: <p>Gets a list of aliases (also called CNAMEs or alternate domain names) that conflict
+    or overlap with the provided alias, and the associated CloudFront distributions and Amazon Web Services
+    accounts for each conflicting alias. In the returned list, the distribution and account IDs are partially
+    hid
+  operation_type: read
+  method: GET
+  url_base: https://cloudfront.amazonaws.com
+  path: /2020-05-31/conflicting-alias#DistributionId&Alias
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: listcontinuousdeploymentpolicies2020_05_31
+  description: <p>Gets a list of the continuous deployment policies in your Amazon Web Services account.</p>
+    <p>You can optionally specify the maximum number of items to receive in the response. If the total
+    number of items in the list exceeds the maximum that you specify, or the default maximum, the response
+    is p
+  operation_type: read
+  method: GET
+  url_base: https://cloudfront.amazonaws.com
+  path: /2020-05-31/continuous-deployment-policy
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: listdistributions2020_05_31
+  description: List CloudFront distributions.
+  operation_type: read
+  method: GET
+  url_base: https://cloudfront.amazonaws.com
+  path: /2020-05-31/distribution
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: listfieldlevelencryptionconfigs2020_05_31
+  description: List all field-level encryption configurations that have been created in CloudFront for
+    this account.
+  operation_type: read
+  method: GET
+  url_base: https://cloudfront.amazonaws.com
+  path: /2020-05-31/field-level-encryption
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: listfieldlevelencryptionprofiles2020_05_31
+  description: Request a list of field-level encryption profiles that have been created in CloudFront
+    for this account.
+  operation_type: read
+  method: GET
+  url_base: https://cloudfront.amazonaws.com
+  path: /2020-05-31/field-level-encryption-profile
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: listfunctions2020_05_31
+  description: <p>Gets a list of all CloudFront functions in your Amazon Web Services account.</p> <p>You
+    can optionally apply a filter to return only the functions that are in the specified stage, either
+    <code>DEVELOPMENT</code> or <code>LIVE</code>.</p> <p>You can optionally specify the maximum number
+    of items t
+  operation_type: read
+  method: GET
+  url_base: https://cloudfront.amazonaws.com
+  path: /2020-05-31/function
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: listkeygroups2020_05_31
+  description: <p>Gets a list of key groups.</p> <p>You can optionally specify the maximum number of items
+    to receive in the response. If the total number of items in the list exceeds the maximum that you
+    specify, or the default maximum, the response is paginated. To get the next page of items, send a
+    subsequent r
+  operation_type: read
+  method: GET
+  url_base: https://cloudfront.amazonaws.com
+  path: /2020-05-31/key-group
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: listoriginaccesscontrols2020_05_31
+  description: '<p>Gets the list of CloudFront origin access controls in this Amazon Web Services account.</p>
+    <p>You can optionally specify the maximum number of items to receive in the response. If the total
+    number of items in the list exceeds the maximum that you specify, or the default maximum, the response
+    is '
+  operation_type: read
+  method: GET
+  url_base: https://cloudfront.amazonaws.com
+  path: /2020-05-31/origin-access-control
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: listcloudfrontoriginaccessidentities2020_05_31
+  description: Lists origin access identities.
+  operation_type: read
+  method: GET
+  url_base: https://cloudfront.amazonaws.com
+  path: /2020-05-31/origin-access-identity/cloudfront
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: listoriginrequestpolicies2020_05_31
+  description: <p>Gets a list of origin request policies.</p> <p>You can optionally apply a filter to
+    return only the managed policies created by Amazon Web Services, or only the custom policies created
+    in your Amazon Web Services account.</p> <p>You can optionally specify the maximum number of items
+    to receive in
+  operation_type: read
+  method: GET
+  url_base: https://cloudfront.amazonaws.com
+  path: /2020-05-31/origin-request-policy
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: listpublickeys2020_05_31
+  description: List all public keys that have been added to CloudFront for this account.
+  operation_type: read
+  method: GET
+  url_base: https://cloudfront.amazonaws.com
+  path: /2020-05-31/public-key
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: listrealtimelogconfigs2020_05_31
+  description: <p>Gets a list of real-time log configurations.</p> <p>You can optionally specify the maximum
+    number of items to receive in the response. If the total number of items in the list exceeds the maximum
+    that you specify, or the default maximum, the response is paginated. To get the next page of items,
+    s
+  operation_type: read
+  method: GET
+  url_base: https://cloudfront.amazonaws.com
+  path: /2020-05-31/realtime-log-config
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: listresponseheaderspolicies2020_05_31
+  description: '<p>Gets a list of response headers policies.</p> <p>You can optionally apply a filter
+    to get only the managed policies created by Amazon Web Services, or only the custom policies created
+    in your Amazon Web Services account.</p> <p>You can optionally specify the maximum number of items
+    to receive in '
+  operation_type: read
+  method: GET
+  url_base: https://cloudfront.amazonaws.com
+  path: /2020-05-31/response-headers-policy
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: liststreamingdistributions2020_05_31
+  description: List streaming distributions.
+  operation_type: read
+  method: GET
+  url_base: https://cloudfront.amazonaws.com
+  path: /2020-05-31/streaming-distribution
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: listtagsforresource2020_05_31
+  description: List tags for a CloudFront resource.
+  operation_type: read
+  method: GET
+  url_base: https://cloudfront.amazonaws.com
+  path: /2020-05-31/tagging#Resource
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+rate_limit:
+  type: FixedWindowCallRatePolicy
+  max_calls: 60
+  window_seconds: 60

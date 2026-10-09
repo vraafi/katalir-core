@@ -1,0 +1,92 @@
+# Dihasilkan otomatis oleh apisguru_generator.py (TASK 3).
+# Sumber: APIs.guru openapi-directory.
+# verification.level = 'listed': BELUM dijalankan. Tingkat 'callable'/
+# 'call_verified' hanya diberikan harness setelah panggilan nyata.
+manifest_version: 1
+id: apisguru.apisetu_gov_in_enibandhanjh
+slug: apisguru_apisetu_gov_in_enibandhanjh
+display_name: Revenue, Registration & Land Reforms Department, Jharkhand (APIs.guru)
+description: 'Connector dihasilkan otomatis dari spesifikasi OpenAPI publik Revenue, Registration & Land
+  Reforms Department, Jharkhand v3.0.0. Sumber: APIs.guru openapi-directory.'
+category: apisguru
+source: apisguru
+tenant_scope: public
+deprecated: false
+minimum_supported_release: 1.0.0
+credential_free: true
+auth:
+  type: none
+actions:
+- name: rdcer
+  description: Copy of Registered Deed
+  operation_type: write
+  method: POST
+  url_base: https://apisetu.gov.in/enibandhanjh/v3
+  path: /rdcer/certificate
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+  request_body_json:
+    certificateParameters: ''
+    consentArtifact: ''
+    format: ''
+    txnId: ''
+- name: regrii
+  description: ROR Register 2
+  operation_type: write
+  method: POST
+  url_base: https://apisetu.gov.in/enibandhanjh/v3
+  path: /regrii/certificate
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+  request_body_json:
+    certificateParameters: ''
+    consentArtifact: ''
+    format: ''
+    txnId: ''
+- name: rmcer
+  description: Marriage Certificate
+  operation_type: write
+  method: POST
+  url_base: https://apisetu.gov.in/enibandhanjh/v3
+  path: /rmcer/certificate
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+  request_body_json:
+    certificateParameters: ''
+    consentArtifact: ''
+    format: ''
+    txnId: ''
+rate_limit:
+  type: FixedWindowCallRatePolicy
+  max_calls: 60
+  window_seconds: 60

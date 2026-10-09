@@ -1,0 +1,59 @@
+# Dihasilkan otomatis oleh apisguru_generator.py (TASK 3).
+# Sumber: APIs.guru openapi-directory.
+# verification.level = 'listed': BELUM dijalankan. Tingkat 'callable'/
+# 'call_verified' hanya diberikan harness setelah panggilan nyata.
+manifest_version: 1
+id: apisguru.amadeus_com_amadeus_points_of_interest
+slug: apisguru_amadeus_com_amadeus_points_of_interest
+display_name: Points of Interest (APIs.guru)
+description: 'Connector dihasilkan otomatis dari spesifikasi OpenAPI publik Points of Interest v1.1.1.
+  Sumber: APIs.guru openapi-directory.'
+category: apisguru
+source: apisguru
+tenant_scope: public
+deprecated: false
+minimum_supported_release: 1.0.0
+credential_free: true
+auth:
+  type: none
+actions:
+- name: getpointsofinterest
+  description: Returns points of interest for a given location and radius.
+  operation_type: read
+  method: GET
+  url_base: https://test.api.amadeus.com/v1
+  path: /reference-data/locations/pois
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: getpointsofinterestbysquare
+  description: Returns points of interest for a given area
+  operation_type: read
+  method: GET
+  url_base: https://test.api.amadeus.com/v1
+  path: /reference-data/locations/pois/by-square
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+rate_limit:
+  type: FixedWindowCallRatePolicy
+  max_calls: 60
+  window_seconds: 60

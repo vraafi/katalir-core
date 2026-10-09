@@ -1,0 +1,605 @@
+# Dihasilkan otomatis oleh apisguru_generator.py (TASK 3).
+# Sumber: APIs.guru openapi-directory.
+# verification.level = 'listed': BELUM dijalankan. Tingkat 'callable'/
+# 'call_verified' hanya diberikan harness setelah panggilan nyata.
+manifest_version: 1
+id: apisguru.amazonaws_com_elasticloadbalancing
+slug: apisguru_amazonaws_com_elasticloadbalancing
+display_name: Elastic Load Balancing (APIs.guru)
+description: 'Connector dihasilkan otomatis dari spesifikasi OpenAPI publik Elastic Load Balancing v2012-06-01.
+  Sumber: APIs.guru openapi-directory.'
+category: apisguru
+source: apisguru
+tenant_scope: per-user
+deprecated: false
+minimum_supported_release: 1.0.0
+credential_free: false
+auth:
+  type: api_key
+  credential_form: api_key_header
+  key_name: authorization
+actions:
+- name: get_addtags
+  description: <p>Adds the specified tags to the specified load balancer. Each load balancer can have
+    a maximum of 10 tags.</p> <p>Each tag consists of a key and an optional value. If a tag with the same
+    key is already associated with the load balancer, <code>AddTags</code> updates its value.</p> <p>For
+    more infor
+  operation_type: read
+  method: GET
+  url_base: https://elasticloadbalancing.amazonaws.com
+  path: /#Action=AddTags
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: get_applysecuritygroupstoloadbalancer
+  description: <p>Associates one or more security groups with your load balancer in a virtual private
+    cloud (VPC). The specified security groups override the previously associated security groups.</p>
+    <p>For more information, see <a href="https://docs.aws.amazon.com/elasticloadbalancing/latest/classic/elb-security
+  operation_type: read
+  method: GET
+  url_base: https://elasticloadbalancing.amazonaws.com
+  path: /#Action=ApplySecurityGroupsToLoadBalancer
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: get_attachloadbalancertosubnets
+  description: <p>Adds one or more subnets to the set of configured subnets for the specified load balancer.</p>
+    <p>The load balancer evenly distributes requests across all registered subnets. For more information,
+    see <a href="https://docs.aws.amazon.com/elasticloadbalancing/latest/classic/elb-manage-subnets.html
+  operation_type: read
+  method: GET
+  url_base: https://elasticloadbalancing.amazonaws.com
+  path: /#Action=AttachLoadBalancerToSubnets
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: get_configurehealthcheck
+  description: '<p>Specifies the health check settings to use when evaluating the health state of your
+    EC2 instances.</p> <p>For more information, see <a href="https://docs.aws.amazon.com/elasticloadbalancing/latest/classic/elb-healthchecks.html">Configure
+    Health Checks for Your Load Balancer</a> in the <i>Classic '
+  operation_type: read
+  method: GET
+  url_base: https://elasticloadbalancing.amazonaws.com
+  path: /#Action=ConfigureHealthCheck
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: get_createappcookiestickinesspolicy
+  description: '<p>Generates a stickiness policy with sticky session lifetimes that follow that of an
+    application-generated cookie. This policy can be associated only with HTTP/HTTPS listeners.</p> <p>This
+    policy is similar to the policy created by <a>CreateLBCookieStickinessPolicy</a>, except that the
+    lifetime of '
+  operation_type: read
+  method: GET
+  url_base: https://elasticloadbalancing.amazonaws.com
+  path: /#Action=CreateAppCookieStickinessPolicy
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: get_createlbcookiestickinesspolicy
+  description: <p>Generates a stickiness policy with sticky session lifetimes controlled by the lifetime
+    of the browser (user-agent) or a specified expiration period. This policy can be associated only with
+    HTTP/HTTPS listeners.</p> <p>When a load balancer implements this policy, the load balancer uses a
+    special c
+  operation_type: read
+  method: GET
+  url_base: https://elasticloadbalancing.amazonaws.com
+  path: /#Action=CreateLBCookieStickinessPolicy
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: get_createloadbalancer
+  description: <p>Creates a Classic Load Balancer.</p> <p>You can add listeners, security groups, subnets,
+    and tags when you create your load balancer, or you can add them later using <a>CreateLoadBalancerListeners</a>,
+    <a>ApplySecurityGroupsToLoadBalancer</a>, <a>AttachLoadBalancerToSubnets</a>, and <a>AddTags</a
+  operation_type: read
+  method: GET
+  url_base: https://elasticloadbalancing.amazonaws.com
+  path: /#Action=CreateLoadBalancer
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: get_createloadbalancerlisteners
+  description: <p>Creates one or more listeners for the specified load balancer. If a listener with the
+    specified port does not already exist, it is created; otherwise, the properties of the new listener
+    must match the properties of the existing listener.</p> <p>For more information, see <a href="https://docs.aws.
+  operation_type: read
+  method: GET
+  url_base: https://elasticloadbalancing.amazonaws.com
+  path: /#Action=CreateLoadBalancerListeners
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: get_createloadbalancerpolicy
+  description: <p>Creates a policy with the specified attributes for the specified load balancer.</p>
+    <p>Policies are settings that are saved for your load balancer and that can be applied to the listener
+    or the application server, depending on the policy type.</p>
+  operation_type: read
+  method: GET
+  url_base: https://elasticloadbalancing.amazonaws.com
+  path: /#Action=CreateLoadBalancerPolicy
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: get_deleteloadbalancer
+  description: '<p>Deletes the specified load balancer.</p> <p>If you are attempting to recreate a load
+    balancer, you must reconfigure all settings. The DNS name associated with a deleted load balancer
+    are no longer usable. The name and associated DNS record of the deleted load balancer no longer exist
+    and traffic '
+  operation_type: read
+  method: GET
+  url_base: https://elasticloadbalancing.amazonaws.com
+  path: /#Action=DeleteLoadBalancer
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: get_deleteloadbalancerlisteners
+  description: Deletes the specified listeners from the specified load balancer.
+  operation_type: read
+  method: GET
+  url_base: https://elasticloadbalancing.amazonaws.com
+  path: /#Action=DeleteLoadBalancerListeners
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: get_deleteloadbalancerpolicy
+  description: Deletes the specified policy from the specified load balancer. This policy must not be
+    enabled for any listeners.
+  operation_type: read
+  method: GET
+  url_base: https://elasticloadbalancing.amazonaws.com
+  path: /#Action=DeleteLoadBalancerPolicy
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: get_deregisterinstancesfromloadbalancer
+  description: <p>Deregisters the specified instances from the specified load balancer. After the instance
+    is deregistered, it no longer receives traffic from the load balancer.</p> <p>You can use <a>DescribeLoadBalancers</a>
+    to verify that the instance is deregistered from the load balancer.</p> <p>For more infor
+  operation_type: read
+  method: GET
+  url_base: https://elasticloadbalancing.amazonaws.com
+  path: /#Action=DeregisterInstancesFromLoadBalancer
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: get_describeaccountlimits
+  description: <p>Describes the current Elastic Load Balancing resource limits for your AWS account.</p>
+    <p>For more information, see <a href="https://docs.aws.amazon.com/elasticloadbalancing/latest/classic/elb-limits.html">Limits
+    for Your Classic Load Balancer</a> in the <i>Classic Load Balancers Guide</i>.</p>
+  operation_type: read
+  method: GET
+  url_base: https://elasticloadbalancing.amazonaws.com
+  path: /#Action=DescribeAccountLimits
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: get_describeinstancehealth
+  description: Describes the state of the specified instances with respect to the specified load balancer.
+    If no instances are specified, the call describes the state of all instances that are currently registered
+    with the load balancer. If instances are specified, their state is returned even if they are no longe
+  operation_type: read
+  method: GET
+  url_base: https://elasticloadbalancing.amazonaws.com
+  path: /#Action=DescribeInstanceHealth
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: get_describeloadbalancerattributes
+  description: Describes the attributes for the specified load balancer.
+  operation_type: read
+  method: GET
+  url_base: https://elasticloadbalancing.amazonaws.com
+  path: /#Action=DescribeLoadBalancerAttributes
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: get_describeloadbalancerpolicies
+  description: <p>Describes the specified policies.</p> <p>If you specify a load balancer name, the action
+    returns the descriptions of all policies created for the load balancer. If you specify a policy name
+    associated with your load balancer, the action returns the description of that policy. If you don't
+    specify
+  operation_type: read
+  method: GET
+  url_base: https://elasticloadbalancing.amazonaws.com
+  path: /#Action=DescribeLoadBalancerPolicies
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: get_describeloadbalancerpolicytypes
+  description: '<p>Describes the specified load balancer policy types or all load balancer policy types.</p>
+    <p>The description of each type indicates how it can be used. For example, some policies can be used
+    only with layer 7 listeners, some policies can be used only with layer 4 listeners, and some policies
+    can '
+  operation_type: read
+  method: GET
+  url_base: https://elasticloadbalancing.amazonaws.com
+  path: /#Action=DescribeLoadBalancerPolicyTypes
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: get_describeloadbalancers
+  description: Describes the specified the load balancers. If no load balancers are specified, the call
+    describes all of your load balancers.
+  operation_type: read
+  method: GET
+  url_base: https://elasticloadbalancing.amazonaws.com
+  path: /#Action=DescribeLoadBalancers
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: get_describetags
+  description: Describes the tags associated with the specified load balancers.
+  operation_type: read
+  method: GET
+  url_base: https://elasticloadbalancing.amazonaws.com
+  path: /#Action=DescribeTags
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: get_detachloadbalancerfromsubnets
+  description: <p>Removes the specified subnets from the set of configured subnets for the load balancer.</p>
+    <p>After a subnet is removed, all EC2 instances registered with the load balancer in the removed subnet
+    go into the <code>OutOfService</code> state. Then, the load balancer balances the traffic among the
+    r
+  operation_type: read
+  method: GET
+  url_base: https://elasticloadbalancing.amazonaws.com
+  path: /#Action=DetachLoadBalancerFromSubnets
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: get_disableavailabilityzonesforloadbalancer
+  description: <p>Removes the specified Availability Zones from the set of Availability Zones for the
+    specified load balancer in EC2-Classic or a default VPC.</p> <p>For load balancers in a non-default
+    VPC, use <a>DetachLoadBalancerFromSubnets</a>.</p> <p>There must be at least one Availability Zone
+    registered wit
+  operation_type: read
+  method: GET
+  url_base: https://elasticloadbalancing.amazonaws.com
+  path: /#Action=DisableAvailabilityZonesForLoadBalancer
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: get_enableavailabilityzonesforloadbalancer
+  description: <p>Adds the specified Availability Zones to the set of Availability Zones for the specified
+    load balancer in EC2-Classic or a default VPC.</p> <p>For load balancers in a non-default VPC, use
+    <a>AttachLoadBalancerToSubnets</a>.</p> <p>The load balancer evenly distributes requests across all
+    its regis
+  operation_type: read
+  method: GET
+  url_base: https://elasticloadbalancing.amazonaws.com
+  path: /#Action=EnableAvailabilityZonesForLoadBalancer
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: get_modifyloadbalancerattributes
+  description: <p>Modifies the attributes of the specified load balancer.</p> <p>You can modify the load
+    balancer attributes, such as <code>AccessLogs</code>, <code>ConnectionDraining</code>, and <code>CrossZoneLoadBalancing</code>
+    by either enabling or disabling them. Or, you can modify the load balancer attribut
+  operation_type: read
+  method: GET
+  url_base: https://elasticloadbalancing.amazonaws.com
+  path: /#Action=ModifyLoadBalancerAttributes
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: get_registerinstanceswithloadbalancer
+  description: <p>Adds the specified instances to the specified load balancer.</p> <p>The instance must
+    be a running instance in the same network as the load balancer (EC2-Classic or the same VPC). If you
+    have EC2-Classic instances and a load balancer in a VPC with ClassicLink enabled, you can link the
+    EC2-Classic
+  operation_type: read
+  method: GET
+  url_base: https://elasticloadbalancing.amazonaws.com
+  path: /#Action=RegisterInstancesWithLoadBalancer
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: get_removetags
+  description: Removes one or more tags from the specified load balancer.
+  operation_type: read
+  method: GET
+  url_base: https://elasticloadbalancing.amazonaws.com
+  path: /#Action=RemoveTags
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: get_setloadbalancerlistenersslcertificate
+  description: <p>Sets the certificate that terminates the specified listener's SSL connections. The specified
+    certificate replaces any prior certificate that was used on the same load balancer and port.</p> <p>For
+    more information about updating your SSL certificate, see <a href="https://docs.aws.amazon.com/elast
+  operation_type: read
+  method: GET
+  url_base: https://elasticloadbalancing.amazonaws.com
+  path: /#Action=SetLoadBalancerListenerSSLCertificate
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: get_setloadbalancerpoliciesforbackendserver
+  description: <p>Replaces the set of policies associated with the specified port on which the EC2 instance
+    is listening with a new set of policies. At this time, only the back-end server authentication policy
+    type can be applied to the instance ports; this policy type is composed of multiple public key policies.<
+  operation_type: read
+  method: GET
+  url_base: https://elasticloadbalancing.amazonaws.com
+  path: /#Action=SetLoadBalancerPoliciesForBackendServer
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: get_setloadbalancerpoliciesoflistener
+  description: <p>Replaces the current set of policies for the specified load balancer port with the specified
+    set of policies.</p> <p>To enable back-end server authentication, use <a>SetLoadBalancerPoliciesForBackendServer</a>.</p>
+    <p>For more information about setting policies, see <a href="https://docs.aws.amaz
+  operation_type: read
+  method: GET
+  url_base: https://elasticloadbalancing.amazonaws.com
+  path: /#Action=SetLoadBalancerPoliciesOfListener
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+rate_limit:
+  type: FixedWindowCallRatePolicy
+  max_calls: 60
+  window_seconds: 60

@@ -1,0 +1,190 @@
+# Dihasilkan otomatis oleh apisguru_generator.py (TASK 3).
+# Sumber: APIs.guru openapi-directory.
+# verification.level = 'listed': BELUM dijalankan. Tingkat 'callable'/
+# 'call_verified' hanya diberikan harness setelah panggilan nyata.
+manifest_version: 1
+id: apisguru.amazonaws_com_sts
+slug: apisguru_amazonaws_com_sts
+display_name: AWS Security Token Service (APIs.guru)
+description: 'Connector dihasilkan otomatis dari spesifikasi OpenAPI publik AWS Security Token Service
+  v2011-06-15. Sumber: APIs.guru openapi-directory.'
+category: apisguru
+source: apisguru
+tenant_scope: per-user
+deprecated: false
+minimum_supported_release: 1.0.0
+credential_free: false
+auth:
+  type: api_key
+  credential_form: api_key_header
+  key_name: authorization
+actions:
+- name: get_assumerole
+  description: <p>Returns a set of temporary security credentials that you can use to access Amazon Web
+    Services resources. These temporary credentials consist of an access key ID, a secret access key,
+    and a security token. Typically, you use <code>AssumeRole</code> within your account or for cross-account
+    access.
+  operation_type: read
+  method: GET
+  url_base: https://sts.amazonaws.com
+  path: /#Action=AssumeRole
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: get_assumerolewithsaml
+  description: <p>Returns a set of temporary security credentials for users who have been authenticated
+    via a SAML authentication response. This operation provides a mechanism for tying an enterprise identity
+    store or directory to role-based Amazon Web Services access without user-specific credentials or configura
+  operation_type: read
+  method: GET
+  url_base: https://sts.amazonaws.com
+  path: /#Action=AssumeRoleWithSAML
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: get_assumerolewithwebidentity
+  description: <p>Returns a set of temporary security credentials for users who have been authenticated
+    in a mobile or web application with a web identity provider. Example providers include the OAuth 2.0
+    providers Login with Amazon and Facebook, or any OpenID Connect-compatible identity provider such
+    as Google or
+  operation_type: read
+  method: GET
+  url_base: https://sts.amazonaws.com
+  path: /#Action=AssumeRoleWithWebIdentity
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: get_decodeauthorizationmessage
+  description: <p>Decodes additional information about the authorization status of a request from an encoded
+    message returned in response to an Amazon Web Services request.</p> <p>For example, if a user is not
+    authorized to perform an operation that he or she has requested, the request returns a <code>Client.Unaut
+  operation_type: read
+  method: GET
+  url_base: https://sts.amazonaws.com
+  path: /#Action=DecodeAuthorizationMessage
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: get_getaccesskeyinfo
+  description: '<p>Returns the account identifier for the specified access key ID.</p> <p>Access keys
+    consist of two parts: an access key ID (for example, <code>AKIAIOSFODNN7EXAMPLE</code>) and a secret
+    access key (for example, <code>wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY</code>). For more information
+    about acces'
+  operation_type: read
+  method: GET
+  url_base: https://sts.amazonaws.com
+  path: /#Action=GetAccessKeyInfo
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: get_getcalleridentity
+  description: <p>Returns details about the IAM user or role whose credentials are used to call the operation.</p>
+    <note> <p>No permissions are required to perform this operation. If an administrator adds a policy
+    to your IAM user or role that explicitly denies access to the <code>sts:GetCallerIdentity</code> acti
+  operation_type: read
+  method: GET
+  url_base: https://sts.amazonaws.com
+  path: /#Action=GetCallerIdentity
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: get_getfederationtoken
+  description: '<p>Returns a set of temporary security credentials (consisting of an access key ID, a
+    secret access key, and a security token) for a federated user. A typical use is in a proxy application
+    that gets temporary security credentials on behalf of distributed applications inside a corporate
+    network. You '
+  operation_type: read
+  method: GET
+  url_base: https://sts.amazonaws.com
+  path: /#Action=GetFederationToken
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: get_getsessiontoken
+  description: <p>Returns a set of temporary credentials for an Amazon Web Services account or IAM user.
+    The credentials consist of an access key ID, a secret access key, and a security token. Typically,
+    you use <code>GetSessionToken</code> if you want to use MFA to protect programmatic calls to specific
+    Amazon We
+  operation_type: read
+  method: GET
+  url_base: https://sts.amazonaws.com
+  path: /#Action=GetSessionToken
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+rate_limit:
+  type: FixedWindowCallRatePolicy
+  max_calls: 60
+  window_seconds: 60

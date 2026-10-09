@@ -1,0 +1,371 @@
+# Dihasilkan otomatis oleh apisguru_generator.py (TASK 3).
+# Sumber: APIs.guru openapi-directory.
+# verification.level = 'listed': BELUM dijalankan. Tingkat 'callable'/
+# 'call_verified' hanya diberikan harness setelah panggilan nyata.
+manifest_version: 1
+id: apisguru.appcenter_ms
+slug: apisguru_appcenter_ms
+display_name: App Center Client (APIs.guru)
+description: 'Connector dihasilkan otomatis dari spesifikasi OpenAPI publik App Center Client vv0.1. Sumber:
+  APIs.guru openapi-directory.'
+category: apisguru
+source: apisguru
+tenant_scope: public
+deprecated: false
+minimum_supported_release: 1.0.0
+credential_free: true
+auth:
+  type: none
+actions:
+- name: test_gdprexportaccounts
+  description: Lists all the endpoints available for Test accounts data
+  operation_type: read
+  method: GET
+  url_base: https://api.appcenter.ms
+  path: /v0.1/account/test/export
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: test_gdprexportaccount
+  description: Lists account data
+  operation_type: read
+  method: GET
+  url_base: https://api.appcenter.ms
+  path: /v0.1/account/test/export/accounts
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: test_gdprexportfeatureflag
+  description: Lists feature flag data
+  operation_type: read
+  method: GET
+  url_base: https://api.appcenter.ms
+  path: /v0.1/account/test/export/featureFlags
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: organizations_listadministered
+  description: Returns a list organizations in which the requesting user is an admin
+  operation_type: read
+  method: GET
+  url_base: https://api.appcenter.ms
+  path: /v0.1/administeredOrgs
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: userapitokens_list
+  description: Returns api tokens for the authenticated user
+  operation_type: read
+  method: GET
+  url_base: https://api.appcenter.ms
+  path: /v0.1/api_tokens
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: apps_list
+  description: Returns a list of apps
+  operation_type: read
+  method: GET
+  url_base: https://api.appcenter.ms
+  path: /v0.1/apps
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: azuresubscription_listforuser
+  description: Returns a list of azure subscriptions for the user
+  operation_type: read
+  method: GET
+  url_base: https://api.appcenter.ms
+  path: /v0.1/azure_subscriptions
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: billingaggregatedinformation_getall
+  description: Aggregated Billing Information for the requesting user and the organizations in which the
+    user is an admin.
+  operation_type: read
+  method: GET
+  url_base: https://api.appcenter.ms
+  path: /v0.1/billing/allAccountsAggregated
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: invitations_sent
+  description: Returns all invitations sent by the caller
+  operation_type: read
+  method: GET
+  url_base: https://api.appcenter.ms
+  path: /v0.1/invitations/sent
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: legacycodepushacquisition_updatecheck
+  description: Check for updates
+  operation_type: read
+  method: GET
+  url_base: https://api.appcenter.ms
+  path: /v0.1/legacy/updateCheck
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: organizations_list
+  description: Returns a list of organizations the requesting user has access to
+  operation_type: read
+  method: GET
+  url_base: https://api.appcenter.ms
+  path: /v0.1/orgs
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: organizations_createorupdate
+  description: Creates a new organization and returns it to the caller
+  operation_type: write
+  method: POST
+  url_base: https://api.appcenter.ms
+  path: /v0.1/orgs
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+  request_body_json:
+    display_name: ''
+    name: ''
+- name: codepushacquisition_getacquisitionstatus
+  description: Returns the acquisition service status to the caller
+  operation_type: read
+  method: GET
+  url_base: https://api.appcenter.ms
+  path: /v0.1/public/codepush/status
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: codepushacquisition_updatecheck
+  description: Check for updates
+  operation_type: read
+  method: GET
+  url_base: https://api.appcenter.ms
+  path: /v0.1/public/codepush/update_check
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: users_get
+  description: Returns the user profile data
+  operation_type: read
+  method: GET
+  url_base: https://api.appcenter.ms
+  path: /v0.1/user
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: users_update
+  description: Updates the user profile and returns the updated user data
+  operation_type: write
+  method: PATCH
+  url_base: https://api.appcenter.ms
+  path: /v0.1/user
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+  request_body_json:
+    display_name: ''
+- name: devices_userdeviceslist
+  description: Returns all devices associated with the given user.
+  operation_type: read
+  method: GET
+  url_base: https://api.appcenter.ms
+  path: /v0.1/user/devices
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: sharedconnection_connections
+  description: Gets all service connections of the service type for GDPR export.
+  operation_type: read
+  method: GET
+  url_base: https://api.appcenter.ms
+  path: /v0.1/user/export/serviceConnections
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: notifications_getuseremailsettings
+  description: Get Default email notification settings for the user
+  operation_type: read
+  method: GET
+  url_base: https://api.appcenter.ms
+  path: /v0.1/user/notifications/emailSettings
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+rate_limit:
+  type: FixedWindowCallRatePolicy
+  max_calls: 60
+  window_seconds: 60

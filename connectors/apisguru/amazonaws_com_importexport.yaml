@@ -1,0 +1,146 @@
+# Dihasilkan otomatis oleh apisguru_generator.py (TASK 3).
+# Sumber: APIs.guru openapi-directory.
+# verification.level = 'listed': BELUM dijalankan. Tingkat 'callable'/
+# 'call_verified' hanya diberikan harness setelah panggilan nyata.
+manifest_version: 1
+id: apisguru.amazonaws_com_importexport
+slug: apisguru_amazonaws_com_importexport
+display_name: AWS Import/Export (APIs.guru)
+description: 'Connector dihasilkan otomatis dari spesifikasi OpenAPI publik AWS Import/Export v2010-06-01.
+  Sumber: APIs.guru openapi-directory.'
+category: apisguru
+source: apisguru
+tenant_scope: per-user
+deprecated: false
+minimum_supported_release: 1.0.0
+credential_free: false
+auth:
+  type: api_key
+  credential_form: api_key_header
+  key_name: authorization
+actions:
+- name: get_canceljob
+  description: This operation cancels a specified job. Only the job owner can cancel it. The operation
+    fails if the job has already started or is complete.
+  operation_type: read
+  method: GET
+  url_base: https://importexport.amazonaws.com
+  path: /#Operation=CancelJob&Action=CancelJob
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: get_createjob
+  description: This operation initiates the process of scheduling an upload or download of your data.
+    You include in the request a manifest that describes the data transfer specifics. The response to
+    the request includes a job ID, which you can use in other operations, a signature that you use to
+    identify your sto
+  operation_type: read
+  method: GET
+  url_base: https://importexport.amazonaws.com
+  path: /#Operation=CreateJob&Action=CreateJob
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: get_getshippinglabel
+  description: This operation generates a pre-paid UPS shipping label that you will use to ship your device
+    to AWS for processing.
+  operation_type: read
+  method: GET
+  url_base: https://importexport.amazonaws.com
+  path: /#Operation=GetShippingLabel&Action=GetShippingLabel
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: get_getstatus
+  description: This operation returns information about a job, including where the job is in the processing
+    pipeline, the status of the results, and the signature value associated with the job. You can only
+    return information about jobs you own.
+  operation_type: read
+  method: GET
+  url_base: https://importexport.amazonaws.com
+  path: /#Operation=GetStatus&Action=GetStatus
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: get_listjobs
+  description: This operation returns the jobs associated with the requester. AWS Import/Export lists
+    the jobs in reverse chronological order based on the date of creation. For example if Job Test1 was
+    created 2009Dec30 and Test2 was created 2010Feb05, the ListJobs operation would return Test2 followed
+    by Test1.
+  operation_type: read
+  method: GET
+  url_base: https://importexport.amazonaws.com
+  path: /#Operation=ListJobs&Action=ListJobs
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: get_updatejob
+  description: You use this operation to change the parameters specified in the original manifest file
+    by supplying a new manifest file. The manifest file attached to this request replaces the original
+    manifest file. You can only use the operation after a CreateJob request but before the data transfer
+    starts and y
+  operation_type: read
+  method: GET
+  url_base: https://importexport.amazonaws.com
+  path: /#Operation=UpdateJob&Action=UpdateJob
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+rate_limit:
+  type: FixedWindowCallRatePolicy
+  max_calls: 60
+  window_seconds: 60

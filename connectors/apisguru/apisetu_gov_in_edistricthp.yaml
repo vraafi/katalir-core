@@ -1,0 +1,759 @@
+# Dihasilkan otomatis oleh apisguru_generator.py (TASK 3).
+# Sumber: APIs.guru openapi-directory.
+# verification.level = 'listed': BELUM dijalankan. Tingkat 'callable'/
+# 'call_verified' hanya diberikan harness setelah panggilan nyata.
+manifest_version: 1
+id: apisguru.apisetu_gov_in_edistricthp
+slug: apisguru_apisetu_gov_in_edistricthp
+display_name: eDistrict Himachal Pradesh, Himachal Pradesh (APIs.guru)
+description: 'Connector dihasilkan otomatis dari spesifikasi OpenAPI publik eDistrict Himachal Pradesh,
+  Himachal Pradesh v3.0.0. Sumber: APIs.guru openapi-directory.'
+category: apisguru
+source: apisguru
+tenant_scope: public
+deprecated: false
+minimum_supported_release: 1.0.0
+credential_free: true
+auth:
+  type: none
+actions:
+- name: aecmw
+  description: Application for Renewal of Contractor Migrant Workmen license
+  operation_type: write
+  method: POST
+  url_base: https://apisetu.gov.in/edistricthp/v3
+  path: /aecmw/certificate
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+  request_body_json:
+    certificateParameters: ''
+    consentArtifact: ''
+    format: ''
+    txnId: ''
+- name: aemtw
+  description: Application for Renewal of Motor Transport Worker Registration
+  operation_type: write
+  method: POST
+  url_base: https://apisetu.gov.in/edistricthp/v3
+  path: /aemtw/certificate
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+  request_body_json:
+    certificateParameters: ''
+    consentArtifact: ''
+    format: ''
+    txnId: ''
+- name: agcer
+  description: Agriculture/ Agriculturist Certificate
+  operation_type: write
+  method: POST
+  url_base: https://apisetu.gov.in/edistricthp/v3
+  path: /agcer/certificate
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+  request_body_json:
+    certificateParameters: ''
+    consentArtifact: ''
+    format: ''
+    txnId: ''
+- name: alimw
+  description: Application for License for Inter State Migrant Workmen
+  operation_type: write
+  method: POST
+  url_base: https://apisetu.gov.in/edistricthp/v3
+  path: /alimw/certificate
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+  request_body_json:
+    certificateParameters: ''
+    consentArtifact: ''
+    format: ''
+    txnId: ''
+- name: arcmw
+  description: Application for Registration of Contractor Migrant Workmen license
+  operation_type: write
+  method: POST
+  url_base: https://apisetu.gov.in/edistricthp/v3
+  path: /arcmw/certificate
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+  request_body_json:
+    certificateParameters: ''
+    consentArtifact: ''
+    format: ''
+    txnId: ''
+- name: armtw
+  description: Application for Registration of Motor Transport Worker Registration
+  operation_type: write
+  method: POST
+  url_base: https://apisetu.gov.in/edistricthp/v3
+  path: /armtw/certificate
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+  request_body_json:
+    certificateParameters: ''
+    consentArtifact: ''
+    format: ''
+    txnId: ''
+- name: bacer
+  description: Backward Area Certificate
+  operation_type: write
+  method: POST
+  url_base: https://apisetu.gov.in/edistricthp/v3
+  path: /bacer/certificate
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+  request_body_json:
+    certificateParameters: ''
+    consentArtifact: ''
+    format: ''
+    txnId: ''
+- name: bhcer
+  description: Bonafide Certificate
+  operation_type: write
+  method: POST
+  url_base: https://apisetu.gov.in/edistricthp/v3
+  path: /bhcer/certificate
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+  request_body_json:
+    certificateParameters: ''
+    consentArtifact: ''
+    format: ''
+    txnId: ''
+- name: bpcrd
+  description: BPL Card
+  operation_type: write
+  method: POST
+  url_base: https://apisetu.gov.in/edistricthp/v3
+  path: /bpcrd/certificate
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+  request_body_json:
+    certificateParameters: ''
+    consentArtifact: ''
+    format: ''
+    txnId: ''
+- name: btcer
+  description: Birth Certificate
+  operation_type: write
+  method: POST
+  url_base: https://apisetu.gov.in/edistricthp/v3
+  path: /btcer/certificate
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+  request_body_json:
+    certificateParameters: ''
+    consentArtifact: ''
+    format: ''
+    txnId: ''
+- name: cecer
+  description: Renewal Certificate of Contract Labour License
+  operation_type: write
+  method: POST
+  url_base: https://apisetu.gov.in/edistricthp/v3
+  path: /cecer/certificate
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+  request_body_json:
+    certificateParameters: ''
+    consentArtifact: ''
+    format: ''
+    txnId: ''
+- name: chcer
+  description: Character Certificate
+  operation_type: write
+  method: POST
+  url_base: https://apisetu.gov.in/edistricthp/v3
+  path: /chcer/certificate
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+  request_body_json:
+    certificateParameters: ''
+    consentArtifact: ''
+    format: ''
+    txnId: ''
+- name: clcer
+  description: Registration Certificate for Contract Labour License
+  operation_type: write
+  method: POST
+  url_base: https://apisetu.gov.in/edistricthp/v3
+  path: /clcer/certificate
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+  request_body_json:
+    certificateParameters: ''
+    consentArtifact: ''
+    format: ''
+    txnId: ''
+- name: coprg
+  description: Copy of Pariwar Register
+  operation_type: write
+  method: POST
+  url_base: https://apisetu.gov.in/edistricthp/v3
+  path: /coprg/certificate
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+  request_body_json:
+    certificateParameters: ''
+    consentArtifact: ''
+    format: ''
+    txnId: ''
+- name: dccer
+  description: Dogra Class Certificate
+  operation_type: write
+  method: POST
+  url_base: https://apisetu.gov.in/edistricthp/v3
+  path: /dccer/certificate
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+  request_body_json:
+    certificateParameters: ''
+    consentArtifact: ''
+    format: ''
+    txnId: ''
+- name: dmcer
+  description: Domicile Certificate
+  operation_type: write
+  method: POST
+  url_base: https://apisetu.gov.in/edistricthp/v3
+  path: /dmcer/certificate
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+  request_body_json:
+    certificateParameters: ''
+    consentArtifact: ''
+    format: ''
+    txnId: ''
+- name: dpicr
+  description: Disabled Person Identity Card/ Certificate
+  operation_type: write
+  method: POST
+  url_base: https://apisetu.gov.in/edistricthp/v3
+  path: /dpicr/certificate
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+  request_body_json:
+    certificateParameters: ''
+    consentArtifact: ''
+    format: ''
+    txnId: ''
+- name: dtcer
+  description: Death Certificate
+  operation_type: write
+  method: POST
+  url_base: https://apisetu.gov.in/edistricthp/v3
+  path: /dtcer/certificate
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+  request_body_json:
+    certificateParameters: ''
+    consentArtifact: ''
+    format: ''
+    txnId: ''
+- name: ercer
+  description: Registration Certificate of Establishment Employing Contract Labour
+  operation_type: write
+  method: POST
+  url_base: https://apisetu.gov.in/edistricthp/v3
+  path: /ercer/certificate
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+  request_body_json:
+    certificateParameters: ''
+    consentArtifact: ''
+    format: ''
+    txnId: ''
+- name: ffcer
+  description: Freedom Fighter Certificate
+  operation_type: write
+  method: POST
+  url_base: https://apisetu.gov.in/edistricthp/v3
+  path: /ffcer/certificate
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+  request_body_json:
+    certificateParameters: ''
+    consentArtifact: ''
+    format: ''
+    txnId: ''
+- name: igcer
+  description: Indigent (Needy Person) Certificate
+  operation_type: write
+  method: POST
+  url_base: https://apisetu.gov.in/edistricthp/v3
+  path: /igcer/certificate
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+  request_body_json:
+    certificateParameters: ''
+    consentArtifact: ''
+    format: ''
+    txnId: ''
+- name: incer
+  description: Income Certificate
+  operation_type: write
+  method: POST
+  url_base: https://apisetu.gov.in/edistricthp/v3
+  path: /incer/certificate
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+  request_body_json:
+    certificateParameters: ''
+    consentArtifact: ''
+    format: ''
+    txnId: ''
+- name: lhcer
+  description: Legal Heir Certificate
+  operation_type: write
+  method: POST
+  url_base: https://apisetu.gov.in/edistricthp/v3
+  path: /lhcer/certificate
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+  request_body_json:
+    certificateParameters: ''
+    consentArtifact: ''
+    format: ''
+    txnId: ''
+- name: mncer
+  description: Minority Certificate
+  operation_type: write
+  method: POST
+  url_base: https://apisetu.gov.in/edistricthp/v3
+  path: /mncer/certificate
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+  request_body_json:
+    certificateParameters: ''
+    consentArtifact: ''
+    format: ''
+    txnId: ''
+- name: mnrga
+  description: MNREGA Job Card
+  operation_type: write
+  method: POST
+  url_base: https://apisetu.gov.in/edistricthp/v3
+  path: /mnrga/certificate
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+  request_body_json:
+    certificateParameters: ''
+    consentArtifact: ''
+    format: ''
+    txnId: ''
+- name: obcer
+  description: OBC Certificate
+  operation_type: write
+  method: POST
+  url_base: https://apisetu.gov.in/edistricthp/v3
+  path: /obcer/certificate
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+  request_body_json:
+    certificateParameters: ''
+    consentArtifact: ''
+    format: ''
+    txnId: ''
+- name: racer
+  description: Rural Area Certificate
+  operation_type: write
+  method: POST
+  url_base: https://apisetu.gov.in/edistricthp/v3
+  path: /racer/certificate
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+  request_body_json:
+    certificateParameters: ''
+    consentArtifact: ''
+    format: ''
+    txnId: ''
+- name: rmcer
+  description: Marriage Certificate
+  operation_type: write
+  method: POST
+  url_base: https://apisetu.gov.in/edistricthp/v3
+  path: /rmcer/certificate
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+  request_body_json:
+    certificateParameters: ''
+    consentArtifact: ''
+    format: ''
+    txnId: ''
+- name: secer
+  description: Renewal Certificate of Shops And Commercial Establishment
+  operation_type: write
+  method: POST
+  url_base: https://apisetu.gov.in/edistricthp/v3
+  path: /secer/certificate
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+  request_body_json:
+    certificateParameters: ''
+    consentArtifact: ''
+    format: ''
+    txnId: ''
+- name: shcer
+  description: SC/ST Certificate
+  operation_type: write
+  method: POST
+  url_base: https://apisetu.gov.in/edistricthp/v3
+  path: /shcer/certificate
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+  request_body_json:
+    certificateParameters: ''
+    consentArtifact: ''
+    format: ''
+    txnId: ''
+- name: sicrd
+  description: Senior Citizen Identity Card/ Certificate
+  operation_type: write
+  method: POST
+  url_base: https://apisetu.gov.in/edistricthp/v3
+  path: /sicrd/certificate
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+  request_body_json:
+    certificateParameters: ''
+    consentArtifact: ''
+    format: ''
+    txnId: ''
+- name: srcer
+  description: Registration Certificate of Shops And Commercial Establishment
+  operation_type: write
+  method: POST
+  url_base: https://apisetu.gov.in/edistricthp/v3
+  path: /srcer/certificate
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+  request_body_json:
+    certificateParameters: ''
+    consentArtifact: ''
+    format: ''
+    txnId: ''
+rate_limit:
+  type: FixedWindowCallRatePolicy
+  max_calls: 60
+  window_seconds: 60

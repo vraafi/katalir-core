@@ -1,0 +1,59 @@
+# Dihasilkan otomatis oleh apisguru_generator.py (TASK 3).
+# Sumber: APIs.guru openapi-directory.
+# verification.level = 'listed': BELUM dijalankan. Tingkat 'callable'/
+# 'call_verified' hanya diberikan harness setelah panggilan nyata.
+manifest_version: 1
+id: apisguru.azure_com_alertsmanagement_alertsmanagement
+slug: apisguru_azure_com_alertsmanagement_alertsmanagement
+display_name: Azure Alerts Management Service Resource Provider (APIs.guru)
+description: 'Connector dihasilkan otomatis dari spesifikasi OpenAPI publik Azure Alerts Management Service
+  Resource Provider v2019-05-05-preview. Sumber: APIs.guru openapi-directory.'
+category: apisguru
+source: apisguru
+tenant_scope: public
+deprecated: false
+minimum_supported_release: 1.0.0
+credential_free: true
+auth:
+  type: none
+actions:
+- name: alerts_metadata
+  description: List alerts meta data information based on value of identifier parameter.
+  operation_type: read
+  method: GET
+  url_base: https://management.azure.com
+  path: /providers/Microsoft.AlertsManagement/alertsMetaData
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: operations_list
+  description: List all operations available through Azure Alerts Management Resource Provider.
+  operation_type: read
+  method: GET
+  url_base: https://management.azure.com
+  path: /providers/Microsoft.AlertsManagement/operations
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+rate_limit:
+  type: FixedWindowCallRatePolicy
+  max_calls: 60
+  window_seconds: 60

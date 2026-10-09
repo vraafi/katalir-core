@@ -1,0 +1,814 @@
+# Dihasilkan otomatis oleh apisguru_generator.py (TASK 3).
+# Sumber: APIs.guru openapi-directory.
+# verification.level = 'listed': BELUM dijalankan. Tingkat 'callable'/
+# 'call_verified' hanya diberikan harness setelah panggilan nyata.
+manifest_version: 1
+id: apisguru.amazonaws_com_rds
+slug: apisguru_amazonaws_com_rds
+display_name: Amazon Relational Database Service (APIs.guru)
+description: 'Connector dihasilkan otomatis dari spesifikasi OpenAPI publik Amazon Relational Database
+  Service v2014-10-31. Sumber: APIs.guru openapi-directory.'
+category: apisguru
+source: apisguru
+tenant_scope: per-user
+deprecated: false
+minimum_supported_release: 1.0.0
+credential_free: false
+auth:
+  type: api_key
+  credential_form: api_key_header
+  key_name: authorization
+actions:
+- name: get_addroletodbcluster
+  description: Associates an Identity and Access Management (IAM) role with a DB cluster.
+  operation_type: read
+  method: GET
+  url_base: https://rds.amazonaws.com
+  path: /#Action=AddRoleToDBCluster
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: get_addroletodbinstance
+  description: <p>Associates an Amazon Web Services Identity and Access Management (IAM) role with a DB
+    instance.</p> <note> <p>To add a role to a DB instance, the status of the DB instance must be <code>available</code>.</p>
+    </note> <p>This command doesn't apply to RDS Custom.</p>
+  operation_type: read
+  method: GET
+  url_base: https://rds.amazonaws.com
+  path: /#Action=AddRoleToDBInstance
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: get_addsourceidentifiertosubscription
+  description: Adds a source identifier to an existing RDS event notification subscription.
+  operation_type: read
+  method: GET
+  url_base: https://rds.amazonaws.com
+  path: /#Action=AddSourceIdentifierToSubscription
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: get_addtagstoresource
+  description: <p>Adds metadata tags to an Amazon RDS resource. These tags can also be used with cost
+    allocation reporting to track cost associated with Amazon RDS resources, or used in a Condition statement
+    in an IAM policy for Amazon RDS.</p> <p>For an overview on tagging Amazon RDS resources, see <a href="https
+  operation_type: read
+  method: GET
+  url_base: https://rds.amazonaws.com
+  path: /#Action=AddTagsToResource
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: get_applypendingmaintenanceaction
+  description: Applies a pending maintenance action to a resource (for example, to a DB instance).
+  operation_type: read
+  method: GET
+  url_base: https://rds.amazonaws.com
+  path: /#Action=ApplyPendingMaintenanceAction
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: get_authorizedbsecuritygroupingress
+  description: '<p>Enables ingress to a DBSecurityGroup using one of two forms of authorization. First,
+    EC2 or VPC security groups can be added to the DBSecurityGroup if the application using the database
+    is running on EC2 or VPC instances. Second, IP ranges are available if the application accessing your
+    database '
+  operation_type: read
+  method: GET
+  url_base: https://rds.amazonaws.com
+  path: /#Action=AuthorizeDBSecurityGroupIngress
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: get_backtrackdbcluster
+  description: <p>Backtracks a DB cluster to a specific time, without creating a new DB cluster.</p> <p>For
+    more information on backtracking, see <a href="https://docs.aws.amazon.com/AmazonRDS/latest/AuroraUserGuide/AuroraMySQL.Managing.Backtrack.html">
+    Backtracking an Aurora DB Cluster</a> in the <i>Amazon Aurora
+  operation_type: read
+  method: GET
+  url_base: https://rds.amazonaws.com
+  path: /#Action=BacktrackDBCluster
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: get_cancelexporttask
+  description: Cancels an export task in progress that is exporting a snapshot or cluster to Amazon S3.
+    Any data that has already been written to the S3 bucket isn't removed.
+  operation_type: read
+  method: GET
+  url_base: https://rds.amazonaws.com
+  path: /#Action=CancelExportTask
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: get_copydbclusterparametergroup
+  description: Copies the specified DB cluster parameter group.
+  operation_type: read
+  method: GET
+  url_base: https://rds.amazonaws.com
+  path: /#Action=CopyDBClusterParameterGroup
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: get_copydbclustersnapshot
+  description: <p>Copies a snapshot of a DB cluster.</p> <p>To copy a DB cluster snapshot from a shared
+    manual DB cluster snapshot, <code>SourceDBClusterSnapshotIdentifier</code> must be the Amazon Resource
+    Name (ARN) of the shared DB cluster snapshot.</p> <p>You can copy an encrypted DB cluster snapshot
+    from anot
+  operation_type: read
+  method: GET
+  url_base: https://rds.amazonaws.com
+  path: /#Action=CopyDBClusterSnapshot
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: get_copydbparametergroup
+  description: Copies the specified DB parameter group.
+  operation_type: read
+  method: GET
+  url_base: https://rds.amazonaws.com
+  path: /#Action=CopyDBParameterGroup
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: get_copydbsnapshot
+  description: <p>Copies the specified DB snapshot. The source DB snapshot must be in the <code>available</code>
+    state.</p> <p>You can copy a snapshot from one Amazon Web Services Region to another. In that case,
+    the Amazon Web Services Region where you call the <code>CopyDBSnapshot</code> operation is the destina
+  operation_type: read
+  method: GET
+  url_base: https://rds.amazonaws.com
+  path: /#Action=CopyDBSnapshot
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: get_copyoptiongroup
+  description: Copies the specified option group.
+  operation_type: read
+  method: GET
+  url_base: https://rds.amazonaws.com
+  path: /#Action=CopyOptionGroup
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: get_createbluegreendeployment
+  description: <p>Creates a blue/green deployment.</p> <p>A blue/green deployment creates a staging environment
+    that copies the production environment. In a blue/green deployment, the blue environment is the current
+    production environment. The green environment is the staging environment. The staging environment
+    s
+  operation_type: read
+  method: GET
+  url_base: https://rds.amazonaws.com
+  path: /#Action=CreateBlueGreenDeployment
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: get_createcustomdbengineversion
+  description: Creates a custom DB engine version (CEV).
+  operation_type: read
+  method: GET
+  url_base: https://rds.amazonaws.com
+  path: /#Action=CreateCustomDBEngineVersion
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: get_createdbcluster
+  description: <p>Creates a new Amazon Aurora DB cluster or Multi-AZ DB cluster.</p> <p>If you create
+    an Aurora DB cluster, the request creates an empty cluster. You must explicitly create the writer
+    instance for your DB cluster using the <a href="https://docs.aws.amazon.com/AmazonRDS/latest/APIReference/API_Creat
+  operation_type: read
+  method: GET
+  url_base: https://rds.amazonaws.com
+  path: /#Action=CreateDBCluster
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: get_createdbclusterendpoint
+  description: <p>Creates a new custom endpoint and associates it with an Amazon Aurora DB cluster.</p>
+    <note> <p>This action applies only to Aurora DB clusters.</p> </note>
+  operation_type: read
+  method: GET
+  url_base: https://rds.amazonaws.com
+  path: /#Action=CreateDBClusterEndpoint
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: get_createdbclusterparametergroup
+  description: <p>Creates a new DB cluster parameter group.</p> <p>Parameters in a DB cluster parameter
+    group apply to all of the instances in a DB cluster.</p> <p>A DB cluster parameter group is initially
+    created with the default parameters for the database engine used by instances in the DB cluster. To
+    provide c
+  operation_type: read
+  method: GET
+  url_base: https://rds.amazonaws.com
+  path: /#Action=CreateDBClusterParameterGroup
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: get_createdbclustersnapshot
+  description: <p>Creates a snapshot of a DB cluster.</p> <p>For more information on Amazon Aurora, see
+    <a href="https://docs.aws.amazon.com/AmazonRDS/latest/AuroraUserGuide/CHAP_AuroraOverview.html"> What
+    is Amazon Aurora?</a> in the <i>Amazon Aurora User Guide</i>.</p> <p>For more information on Multi-AZ
+    DB clus
+  operation_type: read
+  method: GET
+  url_base: https://rds.amazonaws.com
+  path: /#Action=CreateDBClusterSnapshot
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: get_createdbinstance
+  description: '<p>Creates a new DB instance.</p> <p>The new DB instance can be an RDS DB instance, or
+    it can be a DB instance in an Aurora DB cluster. For an Aurora DB cluster, you can call this operation
+    multiple times to add more than one DB instance to the cluster.</p> <p>For more information about
+    creating an '
+  operation_type: read
+  method: GET
+  url_base: https://rds.amazonaws.com
+  path: /#Action=CreateDBInstance
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: get_createdbinstancereadreplica
+  description: <p>Creates a new DB instance that acts as a read replica for an existing source DB instance
+    or Multi-AZ DB cluster. You can create a read replica for a DB instance running MySQL, MariaDB, Oracle,
+    PostgreSQL, or SQL Server. You can create a read replica for a Multi-AZ DB cluster running MySQL or
+    Post
+  operation_type: read
+  method: GET
+  url_base: https://rds.amazonaws.com
+  path: /#Action=CreateDBInstanceReadReplica
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: get_createdbparametergroup
+  description: <p>Creates a new DB parameter group.</p> <p>A DB parameter group is initially created with
+    the default parameters for the database engine used by the DB instance. To provide custom values for
+    any of the parameters, you must modify the group after creating it using <code>ModifyDBParameterGroup</code>
+  operation_type: read
+  method: GET
+  url_base: https://rds.amazonaws.com
+  path: /#Action=CreateDBParameterGroup
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: get_createdbproxy
+  description: Creates a new DB proxy.
+  operation_type: read
+  method: GET
+  url_base: https://rds.amazonaws.com
+  path: /#Action=CreateDBProxy
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: get_createdbproxyendpoint
+  description: Creates a <code>DBProxyEndpoint</code>. Only applies to proxies that are associated with
+    Aurora DB clusters. You can use DB proxy endpoints to specify read/write or read-only access to the
+    DB cluster. You can also use DB proxy endpoints to access a DB proxy through a different VPC than
+    the proxy's d
+  operation_type: read
+  method: GET
+  url_base: https://rds.amazonaws.com
+  path: /#Action=CreateDBProxyEndpoint
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: get_createdbsecuritygroup
+  description: <p>Creates a new DB security group. DB security groups control access to a DB instance.</p>
+    <p>A DB security group controls access to EC2-Classic DB instances that are not in a VPC.</p> <note>
+    <p>EC2-Classic was retired on August 15, 2022. If you haven't migrated from EC2-Classic to a VPC,
+    we recomm
+  operation_type: read
+  method: GET
+  url_base: https://rds.amazonaws.com
+  path: /#Action=CreateDBSecurityGroup
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: get_createdbsnapshot
+  description: Creates a snapshot of a DB instance. The source DB instance must be in the <code>available</code>
+    or <code>storage-optimization</code> state.
+  operation_type: read
+  method: GET
+  url_base: https://rds.amazonaws.com
+  path: /#Action=CreateDBSnapshot
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: get_createdbsubnetgroup
+  description: Creates a new DB subnet group. DB subnet groups must contain at least one subnet in at
+    least two AZs in the Amazon Web Services Region.
+  operation_type: read
+  method: GET
+  url_base: https://rds.amazonaws.com
+  path: /#Action=CreateDBSubnetGroup
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: get_createeventsubscription
+  description: <p>Creates an RDS event notification subscription. This operation requires a topic Amazon
+    Resource Name (ARN) created by either the RDS console, the SNS console, or the SNS API. To obtain
+    an ARN with SNS, you must create a topic in Amazon SNS and subscribe to the topic. The ARN is displayed
+    in the S
+  operation_type: read
+  method: GET
+  url_base: https://rds.amazonaws.com
+  path: /#Action=CreateEventSubscription
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: get_createglobalcluster
+  description: <p>Creates an Aurora global database spread across multiple Amazon Web Services Regions.
+    The global database contains a single primary cluster with read-write capability, and a read-only
+    secondary cluster that receives data from the primary cluster through high-speed replication performed
+    by the Aur
+  operation_type: read
+  method: GET
+  url_base: https://rds.amazonaws.com
+  path: /#Action=CreateGlobalCluster
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: get_createoptiongroup
+  description: <p>Creates a new option group. You can create up to 20 option groups.</p> <p>This command
+    doesn't apply to RDS Custom.</p>
+  operation_type: read
+  method: GET
+  url_base: https://rds.amazonaws.com
+  path: /#Action=CreateOptionGroup
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: get_deletebluegreendeployment
+  description: <p>Deletes a blue/green deployment.</p> <p>For more information, see <a href="https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/blue-green-deployments.html">Using
+    Amazon RDS Blue/Green Deployments for database updates</a> in the <i>Amazon RDS User Guide</i> and
+    <a href="https://docs.aws.amazon.
+  operation_type: read
+  method: GET
+  url_base: https://rds.amazonaws.com
+  path: /#Action=DeleteBlueGreenDeployment
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: get_deletecustomdbengineversion
+  description: <p>Deletes a custom engine version. To run this command, make sure you meet the following
+    prerequisites:</p> <ul> <li> <p>The CEV must not be the default for RDS Custom. If it is, change the
+    default before running this command.</p> </li> <li> <p>The CEV must not be associated with an RDS
+    Custom DB i
+  operation_type: read
+  method: GET
+  url_base: https://rds.amazonaws.com
+  path: /#Action=DeleteCustomDBEngineVersion
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: get_deletedbcluster
+  description: <p>The DeleteDBCluster action deletes a previously provisioned DB cluster. When you delete
+    a DB cluster, all automated backups for that DB cluster are deleted and can't be recovered. Manual
+    DB cluster snapshots of the specified DB cluster are not deleted.</p> <p>If you're deleting a Multi-AZ
+    DB clus
+  operation_type: read
+  method: GET
+  url_base: https://rds.amazonaws.com
+  path: /#Action=DeleteDBCluster
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: get_deletedbclusterendpoint
+  description: <p>Deletes a custom endpoint and removes it from an Amazon Aurora DB cluster.</p> <note>
+    <p>This action only applies to Aurora DB clusters.</p> </note>
+  operation_type: read
+  method: GET
+  url_base: https://rds.amazonaws.com
+  path: /#Action=DeleteDBClusterEndpoint
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: get_deletedbclusterparametergroup
+  description: '<p>Deletes a specified DB cluster parameter group. The DB cluster parameter group to be
+    deleted can''t be associated with any DB clusters.</p> <p>For more information on Amazon Aurora, see
+    <a href="https://docs.aws.amazon.com/AmazonRDS/latest/AuroraUserGuide/CHAP_AuroraOverview.html"> What
+    is Amazon '
+  operation_type: read
+  method: GET
+  url_base: https://rds.amazonaws.com
+  path: /#Action=DeleteDBClusterParameterGroup
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: get_deletedbclustersnapshot
+  description: <p>Deletes a DB cluster snapshot. If the snapshot is being copied, the copy operation is
+    terminated.</p> <note> <p>The DB cluster snapshot must be in the <code>available</code> state to be
+    deleted.</p> </note> <p>For more information on Amazon Aurora, see <a href="https://docs.aws.amazon.com/AmazonR
+  operation_type: read
+  method: GET
+  url_base: https://rds.amazonaws.com
+  path: /#Action=DeleteDBClusterSnapshot
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: get_deletedbinstance
+  description: <p>The DeleteDBInstance action deletes a previously provisioned DB instance. When you delete
+    a DB instance, all automated backups for that instance are deleted and can't be recovered. Manual
+    DB snapshots of the DB instance to be deleted by <code>DeleteDBInstance</code> are not deleted.</p>
+    <p>If you
+  operation_type: read
+  method: GET
+  url_base: https://rds.amazonaws.com
+  path: /#Action=DeleteDBInstance
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: get_deletedbinstanceautomatedbackup
+  description: Deletes automated backups using the <code>DbiResourceId</code> value of the source DB instance
+    or the Amazon Resource Name (ARN) of the automated backups.
+  operation_type: read
+  method: GET
+  url_base: https://rds.amazonaws.com
+  path: /#Action=DeleteDBInstanceAutomatedBackup
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: get_deletedbparametergroup
+  description: Deletes a specified DB parameter group. The DB parameter group to be deleted can't be associated
+    with any DB instances.
+  operation_type: read
+  method: GET
+  url_base: https://rds.amazonaws.com
+  path: /#Action=DeleteDBParameterGroup
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: get_deletedbproxy
+  description: Deletes an existing DB proxy.
+  operation_type: read
+  method: GET
+  url_base: https://rds.amazonaws.com
+  path: /#Action=DeleteDBProxy
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+rate_limit:
+  type: FixedWindowCallRatePolicy
+  max_calls: 60
+  window_seconds: 60

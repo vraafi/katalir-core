@@ -1,0 +1,698 @@
+# Dihasilkan otomatis oleh apisguru_generator.py (TASK 3).
+# Sumber: APIs.guru openapi-directory.
+# verification.level = 'listed': BELUM dijalankan. Tingkat 'callable'/
+# 'call_verified' hanya diberikan harness setelah panggilan nyata.
+manifest_version: 1
+id: apisguru.amazonaws_com_elasticloadbalancingv2
+slug: apisguru_amazonaws_com_elasticloadbalancingv2
+display_name: Elastic Load Balancing (APIs.guru)
+description: 'Connector dihasilkan otomatis dari spesifikasi OpenAPI publik Elastic Load Balancing v2015-12-01.
+  Sumber: APIs.guru openapi-directory.'
+category: apisguru
+source: apisguru
+tenant_scope: per-user
+deprecated: false
+minimum_supported_release: 1.0.0
+credential_free: false
+auth:
+  type: api_key
+  credential_form: api_key_header
+  key_name: authorization
+actions:
+- name: get_addlistenercertificates
+  description: <p>Adds the specified SSL server certificate to the certificate list for the specified
+    HTTPS or TLS listener.</p> <p>If the certificate in already in the certificate list, the call is successful
+    but the certificate is not added again.</p> <p>For more information, see <a href="https://docs.aws.amazon
+  operation_type: read
+  method: GET
+  url_base: https://elasticloadbalancing.amazonaws.com
+  path: /#Action=AddListenerCertificates
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: get_addtags
+  description: <p>Adds the specified tags to the specified Elastic Load Balancing resource. You can tag
+    your Application Load Balancers, Network Load Balancers, Gateway Load Balancers, target groups, listeners,
+    and rules.</p> <p>Each tag consists of a key and an optional value. If a resource already has a tag
+    with
+  operation_type: read
+  method: GET
+  url_base: https://elasticloadbalancing.amazonaws.com
+  path: /#Action=AddTags
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: get_createlistener
+  description: <p>Creates a listener for the specified Application Load Balancer, Network Load Balancer,
+    or Gateway Load Balancer.</p> <p>For more information, see the following:</p> <ul> <li> <p> <a href="https://docs.aws.amazon.com/elasticloadbalancing/latest/application/load-balancer-listeners.html">Listeners
+    f
+  operation_type: read
+  method: GET
+  url_base: https://elasticloadbalancing.amazonaws.com
+  path: /#Action=CreateListener
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: get_createloadbalancer
+  description: <p>Creates an Application Load Balancer, Network Load Balancer, or Gateway Load Balancer.</p>
+    <p>For more information, see the following:</p> <ul> <li> <p> <a href="https://docs.aws.amazon.com/elasticloadbalancing/latest/application/application-load-balancers.html">Application
+    Load Balancers</a> </p
+  operation_type: read
+  method: GET
+  url_base: https://elasticloadbalancing.amazonaws.com
+  path: /#Action=CreateLoadBalancer
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: get_createrule
+  description: <p>Creates a rule for the specified listener. The listener must be associated with an Application
+    Load Balancer.</p> <p>Each rule consists of a priority, one or more actions, and one or more conditions.
+    Rules are evaluated in priority order, from the lowest value to the highest value. When the condi
+  operation_type: read
+  method: GET
+  url_base: https://elasticloadbalancing.amazonaws.com
+  path: /#Action=CreateRule
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: get_createtargetgroup
+  description: <p>Creates a target group.</p> <p>For more information, see the following:</p> <ul> <li>
+    <p> <a href="https://docs.aws.amazon.com/elasticloadbalancing/latest/application/load-balancer-target-groups.html">Target
+    groups for your Application Load Balancers</a> </p> </li> <li> <p> <a href="https://docs.
+  operation_type: read
+  method: GET
+  url_base: https://elasticloadbalancing.amazonaws.com
+  path: /#Action=CreateTargetGroup
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: get_deletelistener
+  description: <p>Deletes the specified listener.</p> <p>Alternatively, your listener is deleted when
+    you delete the load balancer to which it is attached.</p>
+  operation_type: read
+  method: GET
+  url_base: https://elasticloadbalancing.amazonaws.com
+  path: /#Action=DeleteListener
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: get_deleteloadbalancer
+  description: <p>Deletes the specified Application Load Balancer, Network Load Balancer, or Gateway Load
+    Balancer. Deleting a load balancer also deletes its listeners.</p> <p>You can't delete a load balancer
+    if deletion protection is enabled. If the load balancer does not exist or has already been deleted,
+    the ca
+  operation_type: read
+  method: GET
+  url_base: https://elasticloadbalancing.amazonaws.com
+  path: /#Action=DeleteLoadBalancer
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: get_deleterule
+  description: <p>Deletes the specified rule.</p> <p>You can't delete the default rule.</p>
+  operation_type: read
+  method: GET
+  url_base: https://elasticloadbalancing.amazonaws.com
+  path: /#Action=DeleteRule
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: get_deletetargetgroup
+  description: '<p>Deletes the specified target group.</p> <p>You can delete a target group if it is not
+    referenced by any actions. Deleting a target group also deletes any associated health checks. Deleting
+    a target group does not affect its registered targets. For example, any EC2 instances continue to
+    run until '
+  operation_type: read
+  method: GET
+  url_base: https://elasticloadbalancing.amazonaws.com
+  path: /#Action=DeleteTargetGroup
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: get_deregistertargets
+  description: Deregisters the specified targets from the specified target group. After the targets are
+    deregistered, they no longer receive traffic from the load balancer.
+  operation_type: read
+  method: GET
+  url_base: https://elasticloadbalancing.amazonaws.com
+  path: /#Action=DeregisterTargets
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: get_describeaccountlimits
+  description: '<p>Describes the current Elastic Load Balancing resource limits for your Amazon Web Services
+    account.</p> <p>For more information, see the following:</p> <ul> <li> <p> <a href="https://docs.aws.amazon.com/elasticloadbalancing/latest/application/load-balancer-limits.html">Quotas
+    for your Application '
+  operation_type: read
+  method: GET
+  url_base: https://elasticloadbalancing.amazonaws.com
+  path: /#Action=DescribeAccountLimits
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: get_describelistenercertificates
+  description: <p>Describes the default certificate and the certificate list for the specified HTTPS or
+    TLS listener.</p> <p>If the default certificate is also in the certificate list, it appears twice
+    in the results (once with <code>IsDefault</code> set to true and once with <code>IsDefault</code>
+    set to false).<
+  operation_type: read
+  method: GET
+  url_base: https://elasticloadbalancing.amazonaws.com
+  path: /#Action=DescribeListenerCertificates
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: get_describelisteners
+  description: Describes the specified listeners or the listeners for the specified Application Load Balancer,
+    Network Load Balancer, or Gateway Load Balancer. You must specify either a load balancer or one or
+    more listeners.
+  operation_type: read
+  method: GET
+  url_base: https://elasticloadbalancing.amazonaws.com
+  path: /#Action=DescribeListeners
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: get_describeloadbalancerattributes
+  description: <p>Describes the attributes for the specified Application Load Balancer, Network Load Balancer,
+    or Gateway Load Balancer.</p> <p>For more information, see the following:</p> <ul> <li> <p> <a href="https://docs.aws.amazon.com/elasticloadbalancing/latest/application/application-load-balancers.html#loa
+  operation_type: read
+  method: GET
+  url_base: https://elasticloadbalancing.amazonaws.com
+  path: /#Action=DescribeLoadBalancerAttributes
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: get_describeloadbalancers
+  description: Describes the specified load balancers or all of your load balancers.
+  operation_type: read
+  method: GET
+  url_base: https://elasticloadbalancing.amazonaws.com
+  path: /#Action=DescribeLoadBalancers
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: get_describerules
+  description: Describes the specified rules or the rules for the specified listener. You must specify
+    either a listener or one or more rules.
+  operation_type: read
+  method: GET
+  url_base: https://elasticloadbalancing.amazonaws.com
+  path: /#Action=DescribeRules
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: get_describesslpolicies
+  description: <p>Describes the specified policies or all policies used for SSL negotiation.</p> <p>For
+    more information, see <a href="https://docs.aws.amazon.com/elasticloadbalancing/latest/application/create-https-listener.html#describe-ssl-policies">Security
+    policies</a> in the <i>Application Load Balancers Gui
+  operation_type: read
+  method: GET
+  url_base: https://elasticloadbalancing.amazonaws.com
+  path: /#Action=DescribeSSLPolicies
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: get_describetags
+  description: Describes the tags for the specified Elastic Load Balancing resources. You can describe
+    the tags for one or more Application Load Balancers, Network Load Balancers, Gateway Load Balancers,
+    target groups, listeners, or rules.
+  operation_type: read
+  method: GET
+  url_base: https://elasticloadbalancing.amazonaws.com
+  path: /#Action=DescribeTags
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: get_describetargetgroupattributes
+  description: <p>Describes the attributes for the specified target group.</p> <p>For more information,
+    see the following:</p> <ul> <li> <p> <a href="https://docs.aws.amazon.com/elasticloadbalancing/latest/application/load-balancer-target-groups.html#target-group-attributes">Target
+    group attributes</a> in the <i>A
+  operation_type: read
+  method: GET
+  url_base: https://elasticloadbalancing.amazonaws.com
+  path: /#Action=DescribeTargetGroupAttributes
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: get_describetargetgroups
+  description: 'Describes the specified target groups or all of your target groups. By default, all target
+    groups are described. Alternatively, you can specify one of the following to filter the results: the
+    ARN of the load balancer, the names of one or more target groups, or the ARNs of one or more target
+    groups.'
+  operation_type: read
+  method: GET
+  url_base: https://elasticloadbalancing.amazonaws.com
+  path: /#Action=DescribeTargetGroups
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: get_describetargethealth
+  description: Describes the health of the specified targets or all of your targets.
+  operation_type: read
+  method: GET
+  url_base: https://elasticloadbalancing.amazonaws.com
+  path: /#Action=DescribeTargetHealth
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: get_modifylistener
+  description: <p>Replaces the specified properties of the specified listener. Any properties that you
+    do not specify remain unchanged.</p> <p>Changing the protocol from HTTPS to HTTP, or from TLS to TCP,
+    removes the security policy and default certificate properties. If you change the protocol from HTTP
+    to HTTPS,
+  operation_type: read
+  method: GET
+  url_base: https://elasticloadbalancing.amazonaws.com
+  path: /#Action=ModifyListener
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: get_modifyloadbalancerattributes
+  description: <p>Modifies the specified attributes of the specified Application Load Balancer, Network
+    Load Balancer, or Gateway Load Balancer.</p> <p>If any of the specified attributes can't be modified
+    as requested, the call fails. Any existing attributes that you do not modify retain their current
+    values.</p>
+  operation_type: read
+  method: GET
+  url_base: https://elasticloadbalancing.amazonaws.com
+  path: /#Action=ModifyLoadBalancerAttributes
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: get_modifyrule
+  description: <p>Replaces the specified properties of the specified rule. Any properties that you do
+    not specify are unchanged.</p> <p>To add an item to a list, remove an item from a list, or update
+    an item in a list, you must provide the entire list. For example, to add an action, specify a list
+    with the current
+  operation_type: read
+  method: GET
+  url_base: https://elasticloadbalancing.amazonaws.com
+  path: /#Action=ModifyRule
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: get_modifytargetgroup
+  description: Modifies the health checks used when evaluating the health state of the targets in the
+    specified target group.
+  operation_type: read
+  method: GET
+  url_base: https://elasticloadbalancing.amazonaws.com
+  path: /#Action=ModifyTargetGroup
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: get_modifytargetgroupattributes
+  description: Modifies the specified attributes of the specified target group.
+  operation_type: read
+  method: GET
+  url_base: https://elasticloadbalancing.amazonaws.com
+  path: /#Action=ModifyTargetGroupAttributes
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: get_registertargets
+  description: <p>Registers the specified targets with the specified target group.</p> <p>If the target
+    is an EC2 instance, it must be in the <code>running</code> state when you register it.</p> <p>By default,
+    the load balancer routes requests to registered targets using the protocol and port for the target
+    group.
+  operation_type: read
+  method: GET
+  url_base: https://elasticloadbalancing.amazonaws.com
+  path: /#Action=RegisterTargets
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: get_removelistenercertificates
+  description: Removes the specified certificate from the certificate list for the specified HTTPS or
+    TLS listener.
+  operation_type: read
+  method: GET
+  url_base: https://elasticloadbalancing.amazonaws.com
+  path: /#Action=RemoveListenerCertificates
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: get_removetags
+  description: Removes the specified tags from the specified Elastic Load Balancing resources. You can
+    remove the tags for one or more Application Load Balancers, Network Load Balancers, Gateway Load Balancers,
+    target groups, listeners, or rules.
+  operation_type: read
+  method: GET
+  url_base: https://elasticloadbalancing.amazonaws.com
+  path: /#Action=RemoveTags
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: get_setipaddresstype
+  description: Sets the type of IP addresses used by the subnets of the specified load balancer.
+  operation_type: read
+  method: GET
+  url_base: https://elasticloadbalancing.amazonaws.com
+  path: /#Action=SetIpAddressType
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: get_setrulepriorities
+  description: <p>Sets the priorities of the specified rules.</p> <p>You can reorder the rules as long
+    as there are no priority conflicts in the new order. Any existing rules that you do not specify retain
+    their current priority.</p>
+  operation_type: read
+  method: GET
+  url_base: https://elasticloadbalancing.amazonaws.com
+  path: /#Action=SetRulePriorities
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: get_setsecuritygroups
+  description: <p>Associates the specified security groups with the specified Application Load Balancer.
+    The specified security groups override the previously associated security groups.</p> <p>You can't
+    specify a security group for a Network Load Balancer or Gateway Load Balancer.</p>
+  operation_type: read
+  method: GET
+  url_base: https://elasticloadbalancing.amazonaws.com
+  path: /#Action=SetSecurityGroups
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: get_setsubnets
+  description: <p>Enables the Availability Zones for the specified public subnets for the specified Application
+    Load Balancer or Network Load Balancer. The specified subnets replace the previously enabled subnets.</p>
+    <p>When you specify subnets for a Network Load Balancer, you must include all subnets that were e
+  operation_type: read
+  method: GET
+  url_base: https://elasticloadbalancing.amazonaws.com
+  path: /#Action=SetSubnets
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+rate_limit:
+  type: FixedWindowCallRatePolicy
+  max_calls: 60
+  window_seconds: 60

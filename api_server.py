@@ -6804,6 +6804,119 @@ def connectors_activation_status():
     return out
 
 
+# ---------------------------------------------------------------------------
+# TASK 3 — integrasi direktori APIs.guru -> manifest connector
+# ---------------------------------------------------------------------------
+
+
+def _apisguru_mod():
+    import importlib
+
+    return importlib.import_module("apisguru_generator")
+
+
+class ApisguruGenerateRequest(BaseModel):
+    limit: int = 100
+    url: str = ""
+    name: str = ""
+    write: bool = False
+
+
+@app.get("/connectors/apisguru/directory")
+def connectors_apisguru_directory(limit: int = 20):
+    """Ringkasan direktori APIs.guru. TIDAK mengunduh spesifikasi apa pun."""
+    ag = _apisguru_mod()
+    try:
+        directory = ag.load_directory()
+    except Exception as exc:  # noqa: BLE001
+        return {"status": "error", "error": f"{type(exc).__name__}: {exc}",
+                "hint": "berkas _apisguru_list.json belum ada / rusak"}
+
+    eligible = [n for n, e in directory.items() if ag.spec_is_eligible(e)[0]]
+    plan = ag.plan_batch(directory, limit=max(1, min(limit, 500)))
+    out: dict = {
+        "status": "success",
+        "total": len(directory),
+        "eligible": len(eligible),
+        "sample": [
+            {"name": n,
+             "title": str(((ag.preferred_spec(directory[n]) or (None, {}))[1]
+                           .get("info") or {}).get("title") or n),
+             "spec_url": ag.spec_url(directory[n])}
+            for n in plan[: max(1, min(limit, 100))]
+        ],
+    }
+    return out
+
+
+@app.get("/connectors/apisguru/schema")
+def connectors_apisguru_schema():
+    """Kosakata & aturan generator (jujur apa adanya)."""
+    ag = _apisguru_mod()
+    return {
+        "status": "success",
+        "max_actions": ag.MAX_ACTIONS,
+        "max_path_segments": ag.MAX_PATH_SEGMENTS,
+        "method_map": dict(ag._METHOD_MAP),
+        "rules": [
+            "operasi wajib punya path & method nyata",
+            "operation_type diturunkan dari method (GET->read, POST->write, DELETE->delete)",
+            "operasi ber-parameter path hanya dibuat bila SEMUA punya example/default/enum",
+            "verification.level selalu 'listed' (generator tidak pernah mengklaim terverifikasi)",
+            "auth tidak dikenal -> api_key, bukan none",
+            "server loopback/privat/template ditolak (SSRF)",
+            "fallback Swagger 2.0: host + basePath + schemes",
+        ],
+    }
+
+
+@app.post("/connectors/apisguru/generate")
+def connectors_apisguru_generate(req: ApisguruGenerateRequest,
+                                 authorization: str | None = Header(None)):
+    """Hasilkan manifest dari direktori. `write=true` menulis ke disk."""
+    user = security.get_current_user(authorization)
+    ag = _apisguru_mod()
+
+    specs: list[tuple[str, dict]] = []
+    if req.url:
+        # Satu spesifikasi eksplisit: unduh, lalu hasilkan.
+        try:
+            import httpx
+            import yaml as _yaml
+            with httpx.Client(timeout=30.0, follow_redirects=True) as c:
+                resp = c.get(req.url)
+            resp.raise_for_status()
+            spec = _yaml.safe_load(resp.text)
+        except Exception as exc:  # noqa: BLE001
+            raise HTTPException(422, f"spesifikasi tidak dapat dibaca: {exc}") from exc
+        specs = [(req.name or "spesifikasi", spec)]
+    else:
+        try:
+            directory = ag.load_directory()
+        except Exception as exc:  # noqa: BLE001
+            raise HTTPException(500, f"direktori APIs.guru tidak dapat dibaca: {exc}") from exc
+        # Tanpa jaringan, endpoint ini hanya mengembalikan RENCANA + validasi
+        # metadata direktori; pengunduhan dilakukan oleh skrip batch.
+        plan = ag.plan_batch(directory, limit=max(1, min(req.limit, 300)))
+        return {
+            "status": "success",
+            "planned": len(plan),
+            "sample": plan[:50],
+            "note": ("pengunduhan spesifikasi dilakukan oleh _t3_live_gen.py; "
+                     "endpoint ini hanya merencanakan tanpa membanjiri jaringan"),
+        }
+
+    results = ag.generate_batch(specs, write=bool(req.write))
+    ok = [r for r in results if r.ok]
+    return {
+        "status": "success",
+        "generated": len(ok),
+        "failed": len(results) - len(ok),
+        "summary": ag.summarize(results),
+        "results": [r.to_dict() for r in results[:50]],
+    }
+
+
 @app.post("/2fa/policy")
 def two_factor_set_policy(req: TwoFactorPolicyRequest,
                           authorization: str | None = Header(None)):
@@ -7285,6 +7398,7 @@ _FEATURE_MODULES = {
     "38_mcp_build_workflow": "mcp_build_workflow",
     "39_connector_manifest": "connector_manifest",
     "40_connector_activator": "connector_activator",
+    "41_apisguru_generator": "apisguru_generator",
 }
 
 

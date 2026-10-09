@@ -1,0 +1,793 @@
+# Dihasilkan otomatis oleh apisguru_generator.py (TASK 3).
+# Sumber: APIs.guru openapi-directory.
+# verification.level = 'listed': BELUM dijalankan. Tingkat 'callable'/
+# 'call_verified' hanya diberikan harness setelah panggilan nyata.
+manifest_version: 1
+id: apisguru.amazonaws_com_neptune
+slug: apisguru_amazonaws_com_neptune
+display_name: Amazon Neptune (APIs.guru)
+description: 'Connector dihasilkan otomatis dari spesifikasi OpenAPI publik Amazon Neptune v2014-10-31.
+  Sumber: APIs.guru openapi-directory.'
+category: apisguru
+source: apisguru
+tenant_scope: per-user
+deprecated: false
+minimum_supported_release: 1.0.0
+credential_free: false
+auth:
+  type: api_key
+  credential_form: api_key_header
+  key_name: authorization
+actions:
+- name: get_addroletodbcluster
+  description: Associates an Identity and Access Management (IAM) role with an Neptune DB cluster.
+  operation_type: read
+  method: GET
+  url_base: https://rds.amazonaws.com
+  path: /#Action=AddRoleToDBCluster
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: get_addsourceidentifiertosubscription
+  description: Adds a source identifier to an existing event notification subscription.
+  operation_type: read
+  method: GET
+  url_base: https://rds.amazonaws.com
+  path: /#Action=AddSourceIdentifierToSubscription
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: get_addtagstoresource
+  description: Adds metadata tags to an Amazon Neptune resource. These tags can also be used with cost
+    allocation reporting to track cost associated with Amazon Neptune resources, or used in a Condition
+    statement in an IAM policy for Amazon Neptune.
+  operation_type: read
+  method: GET
+  url_base: https://rds.amazonaws.com
+  path: /#Action=AddTagsToResource
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: get_applypendingmaintenanceaction
+  description: Applies a pending maintenance action to a resource (for example, to a DB instance).
+  operation_type: read
+  method: GET
+  url_base: https://rds.amazonaws.com
+  path: /#Action=ApplyPendingMaintenanceAction
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: get_copydbclusterparametergroup
+  description: Copies the specified DB cluster parameter group.
+  operation_type: read
+  method: GET
+  url_base: https://rds.amazonaws.com
+  path: /#Action=CopyDBClusterParameterGroup
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: get_copydbclustersnapshot
+  description: <p>Copies a snapshot of a DB cluster.</p> <p>To copy a DB cluster snapshot from a shared
+    manual DB cluster snapshot, <code>SourceDBClusterSnapshotIdentifier</code> must be the Amazon Resource
+    Name (ARN) of the shared DB cluster snapshot.</p>
+  operation_type: read
+  method: GET
+  url_base: https://rds.amazonaws.com
+  path: /#Action=CopyDBClusterSnapshot
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: get_copydbparametergroup
+  description: Copies the specified DB parameter group.
+  operation_type: read
+  method: GET
+  url_base: https://rds.amazonaws.com
+  path: /#Action=CopyDBParameterGroup
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: get_createdbcluster
+  description: <p>Creates a new Amazon Neptune DB cluster.</p> <p>You can use the <code>ReplicationSourceIdentifier</code>
+    parameter to create the DB cluster as a Read Replica of another DB cluster or Amazon Neptune DB instance.</p>
+    <p>Note that when you create a new cluster using <code>CreateDBCluster</code> dire
+  operation_type: read
+  method: GET
+  url_base: https://rds.amazonaws.com
+  path: /#Action=CreateDBCluster
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: get_createdbclusterendpoint
+  description: Creates a new custom endpoint and associates it with an Amazon Neptune DB cluster.
+  operation_type: read
+  method: GET
+  url_base: https://rds.amazonaws.com
+  path: /#Action=CreateDBClusterEndpoint
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: get_createdbclusterparametergroup
+  description: '<p>Creates a new DB cluster parameter group.</p> <p>Parameters in a DB cluster parameter
+    group apply to all of the instances in a DB cluster.</p> <p> A DB cluster parameter group is initially
+    created with the default parameters for the database engine used by instances in the DB cluster. To
+    provide '
+  operation_type: read
+  method: GET
+  url_base: https://rds.amazonaws.com
+  path: /#Action=CreateDBClusterParameterGroup
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: get_createdbclustersnapshot
+  description: Creates a snapshot of a DB cluster.
+  operation_type: read
+  method: GET
+  url_base: https://rds.amazonaws.com
+  path: /#Action=CreateDBClusterSnapshot
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: get_createdbinstance
+  description: Creates a new DB instance.
+  operation_type: read
+  method: GET
+  url_base: https://rds.amazonaws.com
+  path: /#Action=CreateDBInstance
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: get_createdbparametergroup
+  description: <p>Creates a new DB parameter group.</p> <p>A DB parameter group is initially created with
+    the default parameters for the database engine used by the DB instance. To provide custom values for
+    any of the parameters, you must modify the group after creating it using <i>ModifyDBParameterGroup</i>.
+    Once
+  operation_type: read
+  method: GET
+  url_base: https://rds.amazonaws.com
+  path: /#Action=CreateDBParameterGroup
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: get_createdbsubnetgroup
+  description: Creates a new DB subnet group. DB subnet groups must contain at least one subnet in at
+    least two AZs in the Amazon Region.
+  operation_type: read
+  method: GET
+  url_base: https://rds.amazonaws.com
+  path: /#Action=CreateDBSubnetGroup
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: get_createeventsubscription
+  description: '<p>Creates an event notification subscription. This action requires a topic ARN (Amazon
+    Resource Name) created by either the Neptune console, the SNS console, or the SNS API. To obtain an
+    ARN with SNS, you must create a topic in Amazon SNS and subscribe to the topic. The ARN is displayed
+    in the SNS '
+  operation_type: read
+  method: GET
+  url_base: https://rds.amazonaws.com
+  path: /#Action=CreateEventSubscription
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: get_createglobalcluster
+  description: <p>Creates a Neptune global database spread across multiple Amazon Regions. The global
+    database contains a single primary cluster with read-write capability, and read-only secondary clusters
+    that receive data from the primary cluster through high-speed replication performed by the Neptune
+    storage su
+  operation_type: read
+  method: GET
+  url_base: https://rds.amazonaws.com
+  path: /#Action=CreateGlobalCluster
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: get_deletedbcluster
+  description: <p>The DeleteDBCluster action deletes a previously provisioned DB cluster. When you delete
+    a DB cluster, all automated backups for that DB cluster are deleted and can't be recovered. Manual
+    DB cluster snapshots of the specified DB cluster are not deleted.</p> <p>Note that the DB Cluster
+    cannot be de
+  operation_type: read
+  method: GET
+  url_base: https://rds.amazonaws.com
+  path: /#Action=DeleteDBCluster
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: get_deletedbclusterendpoint
+  description: Deletes a custom endpoint and removes it from an Amazon Neptune DB cluster.
+  operation_type: read
+  method: GET
+  url_base: https://rds.amazonaws.com
+  path: /#Action=DeleteDBClusterEndpoint
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: get_deletedbclusterparametergroup
+  description: Deletes a specified DB cluster parameter group. The DB cluster parameter group to be deleted
+    can't be associated with any DB clusters.
+  operation_type: read
+  method: GET
+  url_base: https://rds.amazonaws.com
+  path: /#Action=DeleteDBClusterParameterGroup
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: get_deletedbclustersnapshot
+  description: <p>Deletes a DB cluster snapshot. If the snapshot is being copied, the copy operation is
+    terminated.</p> <note> <p>The DB cluster snapshot must be in the <code>available</code> state to be
+    deleted.</p> </note>
+  operation_type: read
+  method: GET
+  url_base: https://rds.amazonaws.com
+  path: /#Action=DeleteDBClusterSnapshot
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: get_deletedbinstance
+  description: <p>The DeleteDBInstance action deletes a previously provisioned DB instance. When you delete
+    a DB instance, all automated backups for that instance are deleted and can't be recovered. Manual
+    DB snapshots of the DB instance to be deleted by <code>DeleteDBInstance</code> are not deleted.</p>
+    <p> If yo
+  operation_type: read
+  method: GET
+  url_base: https://rds.amazonaws.com
+  path: /#Action=DeleteDBInstance
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: get_deletedbparametergroup
+  description: Deletes a specified DBParameterGroup. The DBParameterGroup to be deleted can't be associated
+    with any DB instances.
+  operation_type: read
+  method: GET
+  url_base: https://rds.amazonaws.com
+  path: /#Action=DeleteDBParameterGroup
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: get_deletedbsubnetgroup
+  description: <p>Deletes a DB subnet group.</p> <note> <p>The specified database subnet group must not
+    be associated with any DB instances.</p> </note>
+  operation_type: read
+  method: GET
+  url_base: https://rds.amazonaws.com
+  path: /#Action=DeleteDBSubnetGroup
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: get_deleteeventsubscription
+  description: Deletes an event notification subscription.
+  operation_type: read
+  method: GET
+  url_base: https://rds.amazonaws.com
+  path: /#Action=DeleteEventSubscription
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: get_deleteglobalcluster
+  description: Deletes a global database. The primary and all secondary clusters must already be detached
+    or deleted first.
+  operation_type: read
+  method: GET
+  url_base: https://rds.amazonaws.com
+  path: /#Action=DeleteGlobalCluster
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: get_describedbclusterendpoints
+  description: <p>Returns information about endpoints for an Amazon Neptune DB cluster.</p> <note> <p>This
+    operation can also return information for Amazon RDS clusters and Amazon DocDB clusters.</p> </note>
+  operation_type: read
+  method: GET
+  url_base: https://rds.amazonaws.com
+  path: /#Action=DescribeDBClusterEndpoints
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: get_describedbclusterparametergroups
+  description: Returns a list of <code>DBClusterParameterGroup</code> descriptions. If a <code>DBClusterParameterGroupName</code>
+    parameter is specified, the list will contain only the description of the specified DB cluster parameter
+    group.
+  operation_type: read
+  method: GET
+  url_base: https://rds.amazonaws.com
+  path: /#Action=DescribeDBClusterParameterGroups
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: get_describedbclusterparameters
+  description: Returns the detailed parameter list for a particular DB cluster parameter group.
+  operation_type: read
+  method: GET
+  url_base: https://rds.amazonaws.com
+  path: /#Action=DescribeDBClusterParameters
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: get_describedbclustersnapshotattributes
+  description: <p>Returns a list of DB cluster snapshot attribute names and values for a manual DB cluster
+    snapshot.</p> <p>When sharing snapshots with other Amazon accounts, <code>DescribeDBClusterSnapshotAttributes</code>
+    returns the <code>restore</code> attribute and a list of IDs for the Amazon accounts that a
+  operation_type: read
+  method: GET
+  url_base: https://rds.amazonaws.com
+  path: /#Action=DescribeDBClusterSnapshotAttributes
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: get_describedbclustersnapshots
+  description: Returns information about DB cluster snapshots. This API action supports pagination.
+  operation_type: read
+  method: GET
+  url_base: https://rds.amazonaws.com
+  path: /#Action=DescribeDBClusterSnapshots
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: get_describedbclusters
+  description: <p>Returns information about provisioned DB clusters, and supports pagination.</p> <note>
+    <p>This operation can also return information for Amazon RDS clusters and Amazon DocDB clusters.</p>
+    </note>
+  operation_type: read
+  method: GET
+  url_base: https://rds.amazonaws.com
+  path: /#Action=DescribeDBClusters
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: get_describedbengineversions
+  description: Returns a list of the available DB engines.
+  operation_type: read
+  method: GET
+  url_base: https://rds.amazonaws.com
+  path: /#Action=DescribeDBEngineVersions
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: get_describedbinstances
+  description: <p>Returns information about provisioned instances, and supports pagination.</p> <note>
+    <p>This operation can also return information for Amazon RDS instances and Amazon DocDB instances.</p>
+    </note>
+  operation_type: read
+  method: GET
+  url_base: https://rds.amazonaws.com
+  path: /#Action=DescribeDBInstances
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: get_describedbparametergroups
+  description: Returns a list of <code>DBParameterGroup</code> descriptions. If a <code>DBParameterGroupName</code>
+    is specified, the list will contain only the description of the specified DB parameter group.
+  operation_type: read
+  method: GET
+  url_base: https://rds.amazonaws.com
+  path: /#Action=DescribeDBParameterGroups
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: get_describedbparameters
+  description: Returns the detailed parameter list for a particular DB parameter group.
+  operation_type: read
+  method: GET
+  url_base: https://rds.amazonaws.com
+  path: /#Action=DescribeDBParameters
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: get_describedbsubnetgroups
+  description: <p>Returns a list of DBSubnetGroup descriptions. If a DBSubnetGroupName is specified, the
+    list will contain only the descriptions of the specified DBSubnetGroup.</p> <p>For an overview of
+    CIDR ranges, go to the <a href="http://en.wikipedia.org/wiki/Classless_Inter-Domain_Routing">Wikipedia
+    Tutorial<
+  operation_type: read
+  method: GET
+  url_base: https://rds.amazonaws.com
+  path: /#Action=DescribeDBSubnetGroups
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: get_describeenginedefaultclusterparameters
+  description: Returns the default engine and system parameter information for the cluster database engine.
+  operation_type: read
+  method: GET
+  url_base: https://rds.amazonaws.com
+  path: /#Action=DescribeEngineDefaultClusterParameters
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: get_describeenginedefaultparameters
+  description: Returns the default engine and system parameter information for the specified database
+    engine.
+  operation_type: read
+  method: GET
+  url_base: https://rds.amazonaws.com
+  path: /#Action=DescribeEngineDefaultParameters
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: get_describeeventcategories
+  description: Displays a list of categories for all event source types, or, if specified, for a specified
+    source type.
+  operation_type: read
+  method: GET
+  url_base: https://rds.amazonaws.com
+  path: /#Action=DescribeEventCategories
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: get_describeeventsubscriptions
+  description: <p>Lists all the subscription descriptions for a customer account. The description for
+    a subscription includes SubscriptionName, SNSTopicARN, CustomerID, SourceType, SourceID, CreationTime,
+    and Status.</p> <p>If you specify a SubscriptionName, lists the description for that subscription.</p>
+  operation_type: read
+  method: GET
+  url_base: https://rds.amazonaws.com
+  path: /#Action=DescribeEventSubscriptions
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+rate_limit:
+  type: FixedWindowCallRatePolicy
+  max_calls: 60
+  window_seconds: 60

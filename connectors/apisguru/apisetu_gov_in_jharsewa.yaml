@@ -1,0 +1,184 @@
+# Dihasilkan otomatis oleh apisguru_generator.py (TASK 3).
+# Sumber: APIs.guru openapi-directory.
+# verification.level = 'listed': BELUM dijalankan. Tingkat 'callable'/
+# 'call_verified' hanya diberikan harness setelah panggilan nyata.
+manifest_version: 1
+id: apisguru.apisetu_gov_in_jharsewa
+slug: apisguru_apisetu_gov_in_jharsewa
+display_name: Jharsewa (eDistrict), Jharkhand (APIs.guru)
+description: 'Connector dihasilkan otomatis dari spesifikasi OpenAPI publik Jharsewa (eDistrict), Jharkhand
+  v3.0.0. Sumber: APIs.guru openapi-directory.'
+category: apisguru
+source: apisguru
+tenant_scope: public
+deprecated: false
+minimum_supported_release: 1.0.0
+credential_free: true
+auth:
+  type: none
+actions:
+- name: btcer
+  description: Birth Certificate
+  operation_type: write
+  method: POST
+  url_base: https://apisetu.gov.in/jharsewa/v3
+  path: /btcer/certificate
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+  request_body_json:
+    certificateParameters: ''
+    consentArtifact: ''
+    format: ''
+    txnId: ''
+- name: ctcer
+  description: Caste Certificate
+  operation_type: write
+  method: POST
+  url_base: https://apisetu.gov.in/jharsewa/v3
+  path: /ctcer/certificate
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+  request_body_json:
+    certificateParameters: ''
+    consentArtifact: ''
+    format: ''
+    txnId: ''
+- name: dtcer
+  description: Death Certificate
+  operation_type: write
+  method: POST
+  url_base: https://apisetu.gov.in/jharsewa/v3
+  path: /dtcer/certificate
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+  request_body_json:
+    certificateParameters: ''
+    consentArtifact: ''
+    format: ''
+    txnId: ''
+- name: ewcer
+  description: Economically Weaker Section Certificate
+  operation_type: write
+  method: POST
+  url_base: https://apisetu.gov.in/jharsewa/v3
+  path: /ewcer/certificate
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+  request_body_json:
+    certificateParameters: ''
+    consentArtifact: ''
+    format: ''
+    txnId: ''
+- name: incer
+  description: Income Certificate
+  operation_type: write
+  method: POST
+  url_base: https://apisetu.gov.in/jharsewa/v3
+  path: /incer/certificate
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+  request_body_json:
+    certificateParameters: ''
+    consentArtifact: ''
+    format: ''
+    txnId: ''
+- name: rmcer
+  description: Marriage Certificate
+  operation_type: write
+  method: POST
+  url_base: https://apisetu.gov.in/jharsewa/v3
+  path: /rmcer/certificate
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+  request_body_json:
+    certificateParameters: ''
+    consentArtifact: ''
+    format: ''
+    txnId: ''
+- name: rscer
+  description: Residence Certificate
+  operation_type: write
+  method: POST
+  url_base: https://apisetu.gov.in/jharsewa/v3
+  path: /rscer/certificate
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+  request_body_json:
+    certificateParameters: ''
+    consentArtifact: ''
+    format: ''
+    txnId: ''
+rate_limit:
+  type: FixedWindowCallRatePolicy
+  max_calls: 60
+  window_seconds: 60

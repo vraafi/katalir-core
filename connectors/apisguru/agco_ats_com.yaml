@@ -1,0 +1,745 @@
+# Dihasilkan otomatis oleh apisguru_generator.py (TASK 3).
+# Sumber: APIs.guru openapi-directory.
+# verification.level = 'listed': BELUM dijalankan. Tingkat 'callable'/
+# 'call_verified' hanya diberikan harness setelah panggilan nyata.
+manifest_version: 1
+id: apisguru.agco_ats_com
+slug: apisguru_agco_ats_com
+display_name: AGCO API (APIs.guru)
+description: 'Connector dihasilkan otomatis dari spesifikasi OpenAPI publik AGCO API vv1. Sumber: APIs.guru
+  openapi-directory.'
+category: apisguru
+source: apisguru
+tenant_scope: public
+deprecated: false
+minimum_supported_release: 1.0.0
+credential_free: true
+auth:
+  type: none
+actions:
+- name: aftermarketservices_getcerts
+  description: No Documentation Found.
+  operation_type: read
+  method: GET
+  url_base: https://secure.agco-ats.com
+  path: /api/v2/AftermarketServices/Certificates
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: aftermarketservices_getconnectionstatus
+  description: Check whether there is connectivity to AGCO Power Web Services
+  operation_type: read
+  method: GET
+  url_base: https://secure.agco-ats.com
+  path: /api/v2/AftermarketServices/Hello
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: aftermarketservices_getuserstatus
+  description: Retrieve the status of an EDT Kit Registration with AGCO Power Web Services
+  operation_type: read
+  method: GET
+  url_base: https://secure.agco-ats.com
+  path: /api/v2/AftermarketServices/UserStatuses
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: authentication_isalive
+  description: Acknowledges the connection to the API
+  operation_type: read
+  method: GET
+  url_base: https://secure.agco-ats.com
+  path: /api/v2/Authentication/IsAlive
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: authorizationcategories_get
+  description: Get authorization categories.
+  operation_type: read
+  method: GET
+  url_base: https://secure.agco-ats.com
+  path: /api/v2/AuthorizationCategories
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: authorizationcategories_getusers
+  description: Returns a report of access that users have to Authorization Categories.
+  operation_type: read
+  method: GET
+  url_base: https://secure.agco-ats.com
+  path: /api/v2/AuthorizationCategories/Users
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: authorizationcodedefinitions_getauthorizationcodedefinition
+  description: Get authorization code definitions.
+  operation_type: read
+  method: GET
+  url_base: https://secure.agco-ats.com
+  path: /api/v2/AuthorizationCodeDefinitions
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: authorizationcodes_getauthorizationcodes
+  description: Get authorization codes.
+  operation_type: read
+  method: GET
+  url_base: https://secure.agco-ats.com
+  path: /api/v2/AuthorizationCodes
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: authorizationcontactinformation_get
+  description: Get contact information for authorization codes.
+  operation_type: read
+  method: GET
+  url_base: https://secure.agco-ats.com
+  path: /api/v2/AuthorizationContactInformation
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: brands_brands
+  description: Gets a list of Brands.
+  operation_type: read
+  method: GET
+  url_base: https://secure.agco-ats.com
+  path: /api/v2/Brands
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: bundles_getbundles
+  description: Get the list of bundles.
+  operation_type: read
+  method: GET
+  url_base: https://secure.agco-ats.com
+  path: /api/v2/Bundles
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: clients_get
+  description: Get a List of Clients in the Update System.
+  operation_type: read
+  method: GET
+  url_base: https://secure.agco-ats.com
+  path: /api/v2/Clients
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: contentdefinitions_getcontentdefinitions
+  description: Get ContentDefinitions
+  operation_type: read
+  method: GET
+  url_base: https://secure.agco-ats.com
+  path: /api/v2/ContentDefinitions
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: contentrelease_getcontentreleaseversion
+  description: Get ContentReleaseVersion
+  operation_type: read
+  method: GET
+  url_base: https://secure.agco-ats.com
+  path: /api/v2/ContentReleases
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: contentsubmissiontypes_getcontentsubmissiontypes
+  description: Returns available Content Submission Types.
+  operation_type: read
+  method: GET
+  url_base: https://secure.agco-ats.com
+  path: /api/v2/ContentSubmissionTypes
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: contentsubmissions_getcontentsubmissions
+  description: Get ContentSubmissions
+  operation_type: read
+  method: GET
+  url_base: https://secure.agco-ats.com
+  path: /api/v2/ContentSubmissions
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: dealerbycountry_getcountries
+  description: Get a total count of dealers per country
+  operation_type: read
+  method: GET
+  url_base: https://secure.agco-ats.com
+  path: /api/v2/DealerByCountry
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: dealers_getdealers
+  description: Get a list of dealers.
+  operation_type: read
+  method: GET
+  url_base: https://secure.agco-ats.com
+  path: /api/v2/Dealers
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: files_getfiles
+  description: Get a paged response of file metadata.
+  operation_type: read
+  method: GET
+  url_base: https://secure.agco-ats.com
+  path: /api/v2/Files
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: globalimagecategories_getfiles
+  description: Get a paged response of file metadata.
+  operation_type: read
+  method: GET
+  url_base: https://secure.agco-ats.com
+  path: /api/v2/GlobalImageCategories
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: globalimages_getglobalimages
+  description: Get a paged response of GlobalImage.
+  operation_type: read
+  method: GET
+  url_base: https://secure.agco-ats.com
+  path: /api/v2/GlobalImages
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: languages_getlanguages
+  description: Get a list of the languages for which translations are supported. Returns a PagedResponse
+    of Language objects.
+  operation_type: read
+  method: GET
+  url_base: https://secure.agco-ats.com
+  path: /api/v2/Languages
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: licenses_get
+  description: Gets a list of licenses with the specified criteria.
+  operation_type: read
+  method: GET
+  url_base: https://secure.agco-ats.com
+  path: /api/v2/Licenses
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: logs_getlogs
+  description: Get the API System logs, most recent first.
+  operation_type: read
+  method: GET
+  url_base: https://secure.agco-ats.com
+  path: /api/v2/Logs
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: packagetypes_get
+  description: Get all of the Package Types.
+  operation_type: read
+  method: GET
+  url_base: https://secure.agco-ats.com
+  path: /api/v2/PackageTypes
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: packagetypetobundles_get
+  description: Get all of the Package Type to Bundle Relationships.
+  operation_type: read
+  method: GET
+  url_base: https://secure.agco-ats.com
+  path: /api/v2/PackageTypetoBundles
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: packages_getpackages
+  description: List Packages.
+  operation_type: read
+  method: GET
+  url_base: https://secure.agco-ats.com
+  path: /api/v2/Packages
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: permissions_getpermissions
+  description: List Permissions
+  operation_type: read
+  method: GET
+  url_base: https://secure.agco-ats.com
+  path: /api/v2/Permissions
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: prioritypackages_getprioritypackages
+  description: Get a list of Priority Packages by Client.
+  operation_type: read
+  method: GET
+  url_base: https://secure.agco-ats.com
+  path: /api/v2/PriorityPackages
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: release_getreleases
+  description: Get Release
+  operation_type: read
+  method: GET
+  url_base: https://secure.agco-ats.com
+  path: /api/v2/Releases
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: reporting_bundlestatussummary
+  description: Get a summary of all Packages in a Bundle
+  operation_type: read
+  method: GET
+  url_base: https://secure.agco-ats.com
+  path: /api/v2/Reporting/BundleStatusSummary
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: reporting_bundlesinupdategroup
+  description: Get a list of bundles for UpdateGroup.
+  operation_type: read
+  method: GET
+  url_base: https://secure.agco-ats.com
+  path: /api/v2/Reporting/BundlesInUpdateGroup
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: reporting_clientinfo
+  description: Get Client Information
+  operation_type: read
+  method: GET
+  url_base: https://secure.agco-ats.com
+  path: /api/v2/Reporting/ClientInfo
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: reporting_currentpackagesinupdategroup
+  description: Get the current packages for an update group.
+  operation_type: read
+  method: GET
+  url_base: https://secure.agco-ats.com
+  path: /api/v2/Reporting/CurrentPackagesInUpdateGroup
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: reporting_getclient
+  description: Get a Client in the Update System.
+  operation_type: read
+  method: GET
+  url_base: https://secure.agco-ats.com
+  path: /api/v2/Reporting/GetClient
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: reporting_getsubscriptions
+  description: Get a list of current Client Subscriptions.
+  operation_type: read
+  method: GET
+  url_base: https://secure.agco-ats.com
+  path: /api/v2/Reporting/GetSubscriptions
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: reporting_packagestatussummary
+  description: Get a summary report for a Specific Package
+  operation_type: read
+  method: GET
+  url_base: https://secure.agco-ats.com
+  path: /api/v2/Reporting/PackageStatusSummary
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: reporting_registeredclients
+  description: Get a list of subscribed clients
+  operation_type: read
+  method: GET
+  url_base: https://secure.agco-ats.com
+  path: /api/v2/Reporting/RegisteredClients
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: reporting_updategroups
+  description: Get a list of Update Groups. Update Groups are used by the client to register for a specific
+    type of update.
+  operation_type: read
+  method: GET
+  url_base: https://secure.agco-ats.com
+  path: /api/v2/Reporting/UpdateGroups
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: reporting_updatemetrics
+  description: Get data for pie charts in UpdateMetrics.
+  operation_type: read
+  method: GET
+  url_base: https://secure.agco-ats.com
+  path: /api/v2/Reporting/UpdateMetrics
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+rate_limit:
+  type: FixedWindowCallRatePolicy
+  max_calls: 60
+  window_seconds: 60

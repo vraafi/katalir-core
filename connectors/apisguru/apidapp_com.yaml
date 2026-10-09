@@ -1,0 +1,113 @@
+# Dihasilkan otomatis oleh apisguru_generator.py (TASK 3).
+# Sumber: APIs.guru openapi-directory.
+# verification.level = 'listed': BELUM dijalankan. Tingkat 'callable'/
+# 'call_verified' hanya diberikan harness setelah panggilan nyata.
+manifest_version: 1
+id: apisguru.apidapp_com
+slug: apisguru_apidapp_com
+display_name: ApiDapp (APIs.guru)
+description: 'Connector dihasilkan otomatis dari spesifikasi OpenAPI publik ApiDapp v2019-02-14T16:47:01Z.
+  Sumber: APIs.guru openapi-directory.'
+category: apisguru
+source: apisguru
+tenant_scope: public
+deprecated: false
+minimum_supported_release: 1.0.0
+credential_free: true
+auth:
+  type: none
+actions:
+- name: get_block
+  description: Access detailed block information
+  operation_type: read
+  method: GET
+  url_base: https://ethereum.apidapp.com/1
+  path: /block
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: get_blockchain
+  description: Get a list of supported blockchains
+  operation_type: read
+  method: GET
+  url_base: https://ethereum.apidapp.com/1
+  path: /blockchain
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: get_erc20
+  description: Get token information such as name, total amount in circulation, etc
+  operation_type: read
+  method: GET
+  url_base: https://ethereum.apidapp.com/1
+  path: /erc20
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: get_version
+  description: Get API version info
+  operation_type: read
+  method: GET
+  url_base: https://ethereum.apidapp.com/1
+  path: /version
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: get_wallet
+  description: Get current account balance
+  operation_type: read
+  method: GET
+  url_base: https://ethereum.apidapp.com/1
+  path: /wallet
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+rate_limit:
+  type: FixedWindowCallRatePolicy
+  max_calls: 60
+  window_seconds: 60

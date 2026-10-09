@@ -1,0 +1,421 @@
+# Dihasilkan otomatis oleh apisguru_generator.py (TASK 3).
+# Sumber: APIs.guru openapi-directory.
+# verification.level = 'listed': BELUM dijalankan. Tingkat 'callable'/
+# 'call_verified' hanya diberikan harness setelah panggilan nyata.
+manifest_version: 1
+id: apisguru.art19_com
+slug: apisguru_art19_com
+display_name: ART19 Content API Documentation (APIs.guru)
+description: 'Connector dihasilkan otomatis dari spesifikasi OpenAPI publik ART19 Content API Documentation
+  v1.0.0. Sumber: APIs.guru openapi-directory.'
+category: apisguru
+source: apisguru
+tenant_scope: per-user
+deprecated: false
+minimum_supported_release: 1.0.0
+credential_free: false
+auth:
+  type: api_key
+  credential_form: api_key_header
+  key_name: authorization
+actions:
+- name: get_classification_inclusions
+  description: Get ClassificationInclusion records
+  operation_type: read
+  method: GET
+  url_base: https://art19.com
+  path: /classification_inclusions
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: get_classification_inclusions_id
+  description: Get a specific classification inclusion
+  operation_type: read
+  method: GET
+  url_base: https://art19.com
+  path: /classification_inclusions/d1d90de9-c143-42e7-9e00-eca75e984847
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: get_classifications
+  description: Get a list of classifications
+  operation_type: read
+  method: GET
+  url_base: https://art19.com
+  path: /classifications
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: get_classifications_id
+  description: Get a specific classification
+  operation_type: read
+  method: GET
+  url_base: https://art19.com
+  path: /classifications/6fb61aa8-e221-4caf-b166-30b7ccda7114
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: get_credits
+  description: Get a list of credits
+  operation_type: read
+  method: GET
+  url_base: https://art19.com
+  path: /credits
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: get_credits_id
+  description: Get a specific credit
+  operation_type: read
+  method: GET
+  url_base: https://art19.com
+  path: /credits/e345d7b6-cc47-437c-b06e-032a04a2c8cf
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: get_episodes
+  description: Get a list of episodes
+  operation_type: read
+  method: GET
+  url_base: https://art19.com
+  path: /episodes
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: get_episodes_id
+  description: Get a specific episode
+  operation_type: read
+  method: GET
+  url_base: https://art19.com
+  path: /episodes/00fb9e1b-88b3-43e5-a974-28551e8e4ca8
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: get_episodes_id_next_sibling
+  description: Get the episode released right after the specified one
+  operation_type: read
+  method: GET
+  url_base: https://art19.com
+  path: /episodes/e9ac30cf-db68-4629-ac87-df8ba85d41ad/next_sibling
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: get_episodes_id_previous_sibling
+  description: Get the episode released right before the specified one
+  operation_type: read
+  method: GET
+  url_base: https://art19.com
+  path: /episodes/7a8006b1-30d9-4d54-9484-e22532c298f4/previous_sibling
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: get_images
+  description: Get a list of images
+  operation_type: read
+  method: GET
+  url_base: https://art19.com
+  path: /images
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: get_images_id
+  description: Get a specific image
+  operation_type: read
+  method: GET
+  url_base: https://art19.com
+  path: /images/e63cb0b7-2a08-4cd9-bee7-cf34f54c1ce2
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: get_media_assets
+  description: Get a list of media assets
+  operation_type: read
+  method: GET
+  url_base: https://art19.com
+  path: /media_assets
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: get_media_assets_id
+  description: Get a specific media asset
+  operation_type: read
+  method: GET
+  url_base: https://art19.com
+  path: /media_assets/80803e71-1ebf-4a66-ac69-662eac0039b8
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: get_networks
+  description: Get a list of networks
+  operation_type: read
+  method: GET
+  url_base: https://art19.com
+  path: /networks
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: get_networks_id
+  description: Get a specific network
+  operation_type: read
+  method: GET
+  url_base: https://art19.com
+  path: /networks/04f32378-5ad0-422b-a271-c98f81a9e3fb
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: get_people
+  description: Get a list of people
+  operation_type: read
+  method: GET
+  url_base: https://art19.com
+  path: /people
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: get_people_id
+  description: Get a specific person
+  operation_type: read
+  method: GET
+  url_base: https://art19.com
+  path: /people/b934651d-d80d-4565-a342-65ade270c804
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: get_seasons
+  description: Get a list of seasons
+  operation_type: read
+  method: GET
+  url_base: https://art19.com
+  path: /seasons
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: get_seasons_id
+  description: Get a specific season
+  operation_type: read
+  method: GET
+  url_base: https://art19.com
+  path: /seasons/8b92fc98-1e8c-4d1a-88ae-e40bd7d96dad
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: get_series
+  description: Get a list of series
+  operation_type: read
+  method: GET
+  url_base: https://art19.com
+  path: /series
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: get_series_id
+  description: Get a specific series
+  operation_type: read
+  method: GET
+  url_base: https://art19.com
+  path: /series/c96cba77-1677-4053-a070-70c110f13d1b
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+rate_limit:
+  type: FixedWindowCallRatePolicy
+  max_calls: 60
+  window_seconds: 60

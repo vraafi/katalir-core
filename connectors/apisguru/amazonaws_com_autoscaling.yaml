@@ -1,0 +1,814 @@
+# Dihasilkan otomatis oleh apisguru_generator.py (TASK 3).
+# Sumber: APIs.guru openapi-directory.
+# verification.level = 'listed': BELUM dijalankan. Tingkat 'callable'/
+# 'call_verified' hanya diberikan harness setelah panggilan nyata.
+manifest_version: 1
+id: apisguru.amazonaws_com_autoscaling
+slug: apisguru_amazonaws_com_autoscaling
+display_name: Auto Scaling (APIs.guru)
+description: 'Connector dihasilkan otomatis dari spesifikasi OpenAPI publik Auto Scaling v2011-01-01.
+  Sumber: APIs.guru openapi-directory.'
+category: apisguru
+source: apisguru
+tenant_scope: per-user
+deprecated: false
+minimum_supported_release: 1.0.0
+credential_free: false
+auth:
+  type: api_key
+  credential_form: api_key_header
+  key_name: authorization
+actions:
+- name: get_attachinstances
+  description: <p>Attaches one or more EC2 instances to the specified Auto Scaling group.</p> <p>When
+    you attach instances, Amazon EC2 Auto Scaling increases the desired capacity of the group by the number
+    of instances being attached. If the number of instances being attached plus the desired capacity of
+    the group
+  operation_type: read
+  method: GET
+  url_base: https://autoscaling.amazonaws.com
+  path: /#Action=AttachInstances
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: get_attachloadbalancertargetgroups
+  description: <note> <p>This API operation is superseded by <a>AttachTrafficSources</a>, which can attach
+    multiple traffic sources types. We recommend using <code>AttachTrafficSources</code> to simplify how
+    you manage traffic sources. However, we continue to support <code>AttachLoadBalancerTargetGroups</code>.
+    Yo
+  operation_type: read
+  method: GET
+  url_base: https://autoscaling.amazonaws.com
+  path: /#Action=AttachLoadBalancerTargetGroups
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: get_attachloadbalancers
+  description: <note> <p>This API operation is superseded by <a>AttachTrafficSources</a>, which can attach
+    multiple traffic sources types. We recommend using <code>AttachTrafficSources</code> to simplify how
+    you manage traffic sources. However, we continue to support <code>AttachLoadBalancers</code>. You
+    can use b
+  operation_type: read
+  method: GET
+  url_base: https://autoscaling.amazonaws.com
+  path: /#Action=AttachLoadBalancers
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: get_attachtrafficsources
+  description: <p>Attaches one or more traffic sources to the specified Auto Scaling group.</p> <p>You
+    can use any of the following as traffic sources for an Auto Scaling group:</p> <ul> <li> <p>Application
+    Load Balancer</p> </li> <li> <p>Classic Load Balancer</p> </li> <li> <p>Gateway Load Balancer</p>
+    </li> <li>
+  operation_type: read
+  method: GET
+  url_base: https://autoscaling.amazonaws.com
+  path: /#Action=AttachTrafficSources
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: get_batchdeletescheduledaction
+  description: Deletes one or more scheduled actions for the specified Auto Scaling group.
+  operation_type: read
+  method: GET
+  url_base: https://autoscaling.amazonaws.com
+  path: /#Action=BatchDeleteScheduledAction
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: get_batchputscheduledupdategroupaction
+  description: Creates or updates one or more scheduled scaling actions for an Auto Scaling group.
+  operation_type: read
+  method: GET
+  url_base: https://autoscaling.amazonaws.com
+  path: /#Action=BatchPutScheduledUpdateGroupAction
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: get_cancelinstancerefresh
+  description: <p>Cancels an instance refresh or rollback that is in progress. If an instance refresh
+    or rollback is not in progress, an <code>ActiveInstanceRefreshNotFound</code> error occurs.</p> <p>This
+    operation is part of the <a href="https://docs.aws.amazon.com/autoscaling/ec2/userguide/asg-instance-refresh.
+  operation_type: read
+  method: GET
+  url_base: https://autoscaling.amazonaws.com
+  path: /#Action=CancelInstanceRefresh
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: get_completelifecycleaction
+  description: <p>Completes the lifecycle action for the specified token or instance with the specified
+    result.</p> <p>This step is a part of the procedure for adding a lifecycle hook to an Auto Scaling
+    group:</p> <ol> <li> <p>(Optional) Create a launch template or launch configuration with a user data
+    script that
+  operation_type: read
+  method: GET
+  url_base: https://autoscaling.amazonaws.com
+  path: /#Action=CompleteLifecycleAction
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: get_createautoscalinggroup
+  description: <p> <b>We strongly recommend using a launch template when calling this operation to ensure
+    full functionality for Amazon EC2 Auto Scaling and Amazon EC2.</b> </p> <p>Creates an Auto Scaling
+    group with the specified name and attributes. </p> <p>If you exceed your maximum limit of Auto Scaling
+    groups,
+  operation_type: read
+  method: GET
+  url_base: https://autoscaling.amazonaws.com
+  path: /#Action=CreateAutoScalingGroup
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: get_createlaunchconfiguration
+  description: <p>Creates a launch configuration.</p> <p>If you exceed your maximum limit of launch configurations,
+    the call fails. To query this limit, call the <a>DescribeAccountLimits</a> API. For information about
+    updating this limit, see <a href="https://docs.aws.amazon.com/autoscaling/ec2/userguide/ec2-auto-
+  operation_type: read
+  method: GET
+  url_base: https://autoscaling.amazonaws.com
+  path: /#Action=CreateLaunchConfiguration
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: get_createorupdatetags
+  description: <p>Creates or updates tags for the specified Auto Scaling group.</p> <p>When you specify
+    a tag with a key that already exists, the operation overwrites the previous tag definition, and you
+    do not get an error message.</p> <p>For more information, see <a href="https://docs.aws.amazon.com/autoscaling/
+  operation_type: read
+  method: GET
+  url_base: https://autoscaling.amazonaws.com
+  path: /#Action=CreateOrUpdateTags
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: get_deleteautoscalinggroup
+  description: <p>Deletes the specified Auto Scaling group.</p> <p>If the group has instances or scaling
+    activities in progress, you must specify the option to force the deletion in order for it to succeed.
+    The force delete operation will also terminate the EC2 instances. If the group has a warm pool, the
+    force de
+  operation_type: read
+  method: GET
+  url_base: https://autoscaling.amazonaws.com
+  path: /#Action=DeleteAutoScalingGroup
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: get_deletelaunchconfiguration
+  description: <p>Deletes the specified launch configuration.</p> <p>The launch configuration must not
+    be attached to an Auto Scaling group. When this call completes, the launch configuration is no longer
+    available for use.</p>
+  operation_type: read
+  method: GET
+  url_base: https://autoscaling.amazonaws.com
+  path: /#Action=DeleteLaunchConfiguration
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: get_deletelifecyclehook
+  description: <p>Deletes the specified lifecycle hook.</p> <p>If there are any outstanding lifecycle
+    actions, they are completed first (<code>ABANDON</code> for launching instances, <code>CONTINUE</code>
+    for terminating instances).</p>
+  operation_type: read
+  method: GET
+  url_base: https://autoscaling.amazonaws.com
+  path: /#Action=DeleteLifecycleHook
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: get_deletenotificationconfiguration
+  description: Deletes the specified notification.
+  operation_type: read
+  method: GET
+  url_base: https://autoscaling.amazonaws.com
+  path: /#Action=DeleteNotificationConfiguration
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: get_deletepolicy
+  description: <p>Deletes the specified scaling policy.</p> <p>Deleting either a step scaling policy or
+    a simple scaling policy deletes the underlying alarm action, but does not delete the alarm, even if
+    it no longer has an associated action.</p> <p>For more information, see <a href="https://docs.aws.amazon.com/au
+  operation_type: read
+  method: GET
+  url_base: https://autoscaling.amazonaws.com
+  path: /#Action=DeletePolicy
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: get_deletescheduledaction
+  description: Deletes the specified scheduled action.
+  operation_type: read
+  method: GET
+  url_base: https://autoscaling.amazonaws.com
+  path: /#Action=DeleteScheduledAction
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: get_deletetags
+  description: Deletes the specified tags.
+  operation_type: read
+  method: GET
+  url_base: https://autoscaling.amazonaws.com
+  path: /#Action=DeleteTags
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: get_deletewarmpool
+  description: <p>Deletes the warm pool for the specified Auto Scaling group.</p> <p>For more information,
+    see <a href="https://docs.aws.amazon.com/autoscaling/ec2/userguide/ec2-auto-scaling-warm-pools.html">Warm
+    pools for Amazon EC2 Auto Scaling</a> in the <i>Amazon EC2 Auto Scaling User Guide</i>.</p>
+  operation_type: read
+  method: GET
+  url_base: https://autoscaling.amazonaws.com
+  path: /#Action=DeleteWarmPool
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: get_describeaccountlimits
+  description: <p>Describes the current Amazon EC2 Auto Scaling resource quotas for your account.</p>
+    <p>When you establish an Amazon Web Services account, the account has initial quotas on the maximum
+    number of Auto Scaling groups and launch configurations that you can create in a given Region. For
+    more informati
+  operation_type: read
+  method: GET
+  url_base: https://autoscaling.amazonaws.com
+  path: /#Action=DescribeAccountLimits
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: get_describeadjustmenttypes
+  description: '<p>Describes the available adjustment types for step scaling and simple scaling policies.</p>
+    <p>The following adjustment types are supported:</p> <ul> <li> <p> <code>ChangeInCapacity</code> </p>
+    </li> <li> <p> <code>ExactCapacity</code> </p> </li> <li> <p> <code>PercentChangeInCapacity</code>
+    </p> '
+  operation_type: read
+  method: GET
+  url_base: https://autoscaling.amazonaws.com
+  path: /#Action=DescribeAdjustmentTypes
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: get_describeautoscalinggroups
+  description: <p>Gets information about the Auto Scaling groups in the account and Region.</p> <p>If
+    you specify Auto Scaling group names, the output includes information for only the specified Auto
+    Scaling groups. If you specify filters, the output includes information for only those Auto Scaling
+    groups that mee
+  operation_type: read
+  method: GET
+  url_base: https://autoscaling.amazonaws.com
+  path: /#Action=DescribeAutoScalingGroups
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: get_describeautoscalinginstances
+  description: Gets information about the Auto Scaling instances in the account and Region.
+  operation_type: read
+  method: GET
+  url_base: https://autoscaling.amazonaws.com
+  path: /#Action=DescribeAutoScalingInstances
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: get_describeautoscalingnotificationtypes
+  description: Describes the notification types that are supported by Amazon EC2 Auto Scaling.
+  operation_type: read
+  method: GET
+  url_base: https://autoscaling.amazonaws.com
+  path: /#Action=DescribeAutoScalingNotificationTypes
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: get_describeinstancerefreshes
+  description: <p>Gets information about the instance refreshes for the specified Auto Scaling group.</p>
+    <p>This operation is part of the <a href="https://docs.aws.amazon.com/autoscaling/ec2/userguide/asg-instance-refresh.html">instance
+    refresh feature</a> in Amazon EC2 Auto Scaling, which helps you update instan
+  operation_type: read
+  method: GET
+  url_base: https://autoscaling.amazonaws.com
+  path: /#Action=DescribeInstanceRefreshes
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: get_describelaunchconfigurations
+  description: Gets information about the launch configurations in the account and Region.
+  operation_type: read
+  method: GET
+  url_base: https://autoscaling.amazonaws.com
+  path: /#Action=DescribeLaunchConfigurations
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: get_describelifecyclehooktypes
+  description: <p>Describes the available types of lifecycle hooks.</p> <p>The following hook types are
+    supported:</p> <ul> <li> <p> <code>autoscaling:EC2_INSTANCE_LAUNCHING</code> </p> </li> <li> <p> <code>autoscaling:EC2_INSTANCE_TERMINATING</code>
+    </p> </li> </ul>
+  operation_type: read
+  method: GET
+  url_base: https://autoscaling.amazonaws.com
+  path: /#Action=DescribeLifecycleHookTypes
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: get_describelifecyclehooks
+  description: Gets information about the lifecycle hooks for the specified Auto Scaling group.
+  operation_type: read
+  method: GET
+  url_base: https://autoscaling.amazonaws.com
+  path: /#Action=DescribeLifecycleHooks
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: get_describeloadbalancertargetgroups
+  description: <note> <p>This API operation is superseded by <a>DescribeTrafficSources</a>, which can
+    describe multiple traffic sources types. We recommend using <code>DetachTrafficSources</code> to simplify
+    how you manage traffic sources. However, we continue to support <code>DescribeLoadBalancerTargetGroups</cod
+  operation_type: read
+  method: GET
+  url_base: https://autoscaling.amazonaws.com
+  path: /#Action=DescribeLoadBalancerTargetGroups
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: get_describeloadbalancers
+  description: <note> <p>This API operation is superseded by <a>DescribeTrafficSources</a>, which can
+    describe multiple traffic sources types. We recommend using <code>DescribeTrafficSources</code> to
+    simplify how you manage traffic sources. However, we continue to support <code>DescribeLoadBalancers</code>.
+    You c
+  operation_type: read
+  method: GET
+  url_base: https://autoscaling.amazonaws.com
+  path: /#Action=DescribeLoadBalancers
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: get_describemetriccollectiontypes
+  description: Describes the available CloudWatch metrics for Amazon EC2 Auto Scaling.
+  operation_type: read
+  method: GET
+  url_base: https://autoscaling.amazonaws.com
+  path: /#Action=DescribeMetricCollectionTypes
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: get_describenotificationconfigurations
+  description: Gets information about the Amazon SNS notifications that are configured for one or more
+    Auto Scaling groups.
+  operation_type: read
+  method: GET
+  url_base: https://autoscaling.amazonaws.com
+  path: /#Action=DescribeNotificationConfigurations
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: get_describepolicies
+  description: Gets information about the scaling policies in the account and Region.
+  operation_type: read
+  method: GET
+  url_base: https://autoscaling.amazonaws.com
+  path: /#Action=DescribePolicies
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: get_describescalingactivities
+  description: <p>Gets information about the scaling activities in the account and Region.</p> <p>When
+    scaling events occur, you see a record of the scaling activity in the scaling activities. For more
+    information, see <a href="https://docs.aws.amazon.com/autoscaling/ec2/userguide/as-verify-scaling-activity.html">
+  operation_type: read
+  method: GET
+  url_base: https://autoscaling.amazonaws.com
+  path: /#Action=DescribeScalingActivities
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: get_describescalingprocesstypes
+  description: Describes the scaling process types for use with the <a>ResumeProcesses</a> and <a>SuspendProcesses</a>
+    APIs.
+  operation_type: read
+  method: GET
+  url_base: https://autoscaling.amazonaws.com
+  path: /#Action=DescribeScalingProcessTypes
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: get_describescheduledactions
+  description: <p>Gets information about the scheduled actions that haven't run or that have not reached
+    their end time.</p> <p>To describe the scaling activities for scheduled actions that have already
+    run, call the <a>DescribeScalingActivities</a> API.</p>
+  operation_type: read
+  method: GET
+  url_base: https://autoscaling.amazonaws.com
+  path: /#Action=DescribeScheduledActions
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: get_describetags
+  description: <p>Describes the specified tags.</p> <p>You can use filters to limit the results. For example,
+    you can query for the tags for a specific Auto Scaling group. You can specify multiple values for
+    a filter. A tag must match at least one of the specified values for it to be included in the results.</p>
+    <
+  operation_type: read
+  method: GET
+  url_base: https://autoscaling.amazonaws.com
+  path: /#Action=DescribeTags
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: get_describeterminationpolicytypes
+  description: <p>Describes the termination policies supported by Amazon EC2 Auto Scaling.</p> <p>For
+    more information, see <a href="https://docs.aws.amazon.com/autoscaling/ec2/userguide/ec2-auto-scaling-termination-policies.html">Work
+    with Amazon EC2 Auto Scaling termination policies</a> in the <i>Amazon EC2 Auto
+  operation_type: read
+  method: GET
+  url_base: https://autoscaling.amazonaws.com
+  path: /#Action=DescribeTerminationPolicyTypes
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: get_describetrafficsources
+  description: <p>Gets information about the traffic sources for the specified Auto Scaling group.</p>
+    <p>You can optionally provide a traffic source type. If you provide a traffic source type, then the
+    results only include that traffic source type.</p> <p>If you do not provide a traffic source type,
+    then the resu
+  operation_type: read
+  method: GET
+  url_base: https://autoscaling.amazonaws.com
+  path: /#Action=DescribeTrafficSources
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: get_describewarmpool
+  description: <p>Gets information about a warm pool and its instances.</p> <p>For more information, see
+    <a href="https://docs.aws.amazon.com/autoscaling/ec2/userguide/ec2-auto-scaling-warm-pools.html">Warm
+    pools for Amazon EC2 Auto Scaling</a> in the <i>Amazon EC2 Auto Scaling User Guide</i>.</p>
+  operation_type: read
+  method: GET
+  url_base: https://autoscaling.amazonaws.com
+  path: /#Action=DescribeWarmPool
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+rate_limit:
+  type: FixedWindowCallRatePolicy
+  max_calls: 60
+  window_seconds: 60

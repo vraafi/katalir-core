@@ -1,0 +1,138 @@
+# Dihasilkan otomatis oleh apisguru_generator.py (TASK 3).
+# Sumber: APIs.guru openapi-directory.
+# verification.level = 'listed': BELUM dijalankan. Tingkat 'callable'/
+# 'call_verified' hanya diberikan harness setelah panggilan nyata.
+manifest_version: 1
+id: apisguru.apisetu_gov_in_sbigeneral
+slug: apisguru_apisetu_gov_in_sbigeneral
+display_name: SBI General Insurance Company Ltd (APIs.guru)
+description: 'Connector dihasilkan otomatis dari spesifikasi OpenAPI publik SBI General Insurance Company
+  Ltd v3.0.0. Sumber: APIs.guru openapi-directory.'
+category: apisguru
+source: apisguru
+tenant_scope: public
+deprecated: false
+minimum_supported_release: 1.0.0
+credential_free: true
+auth:
+  type: none
+actions:
+- name: cripc
+  description: Insurance Policy - Car
+  operation_type: write
+  method: POST
+  url_base: https://apisetu.gov.in/sbigeneral/v3
+  path: /cripc/certificate
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+  request_body_json:
+    certificateParameters: ''
+    consentArtifact: ''
+    format: ''
+    txnId: ''
+- name: cvipc
+  description: Insurance Policy - Commercial Vehicle
+  operation_type: write
+  method: POST
+  url_base: https://apisetu.gov.in/sbigeneral/v3
+  path: /cvipc/certificate
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+  request_body_json:
+    certificateParameters: ''
+    consentArtifact: ''
+    format: ''
+    txnId: ''
+- name: hlipc
+  description: Insurance Policy - Health
+  operation_type: write
+  method: POST
+  url_base: https://apisetu.gov.in/sbigeneral/v3
+  path: /hlipc/certificate
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+  request_body_json:
+    certificateParameters: ''
+    consentArtifact: ''
+    format: ''
+    txnId: ''
+- name: tripc
+  description: Insurance Policy - Travel
+  operation_type: write
+  method: POST
+  url_base: https://apisetu.gov.in/sbigeneral/v3
+  path: /tripc/certificate
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+  request_body_json:
+    certificateParameters: ''
+    consentArtifact: ''
+    format: ''
+    txnId: ''
+- name: twipc
+  description: Insurance Policy - Two Wheeler
+  operation_type: write
+  method: POST
+  url_base: https://apisetu.gov.in/sbigeneral/v3
+  path: /twipc/certificate
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+  request_body_json:
+    certificateParameters: ''
+    consentArtifact: ''
+    format: ''
+    txnId: ''
+rate_limit:
+  type: FixedWindowCallRatePolicy
+  max_calls: 60
+  window_seconds: 60

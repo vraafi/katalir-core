@@ -1,0 +1,229 @@
+# Dihasilkan otomatis oleh apisguru_generator.py (TASK 3).
+# Sumber: APIs.guru openapi-directory.
+# verification.level = 'listed': BELUM dijalankan. Tingkat 'callable'/
+# 'call_verified' hanya diberikan harness setelah panggilan nyata.
+manifest_version: 1
+id: apisguru.amazonaws_com_sdb
+slug: apisguru_amazonaws_com_sdb
+display_name: Amazon SimpleDB (APIs.guru)
+description: 'Connector dihasilkan otomatis dari spesifikasi OpenAPI publik Amazon SimpleDB v2009-04-15.
+  Sumber: APIs.guru openapi-directory.'
+category: apisguru
+source: apisguru
+tenant_scope: per-user
+deprecated: false
+minimum_supported_release: 1.0.0
+credential_free: false
+auth:
+  type: api_key
+  credential_form: api_key_header
+  key_name: authorization
+actions:
+- name: get_batchdeleteattributes
+  description: <p> Performs multiple DeleteAttributes operations in a single call, which reduces round
+    trips and latencies. This enables Amazon SimpleDB to optimize requests, which generally yields better
+    throughput. </p> <note> <p> If you specify BatchDeleteAttributes without attributes or values, all
+    the attribu
+  operation_type: read
+  method: GET
+  url_base: https://sdb.amazonaws.com
+  path: /#Action=BatchDeleteAttributes
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: get_batchputattributes
+  description: <p> The <code>BatchPutAttributes</code> operation creates or replaces attributes within
+    one or more items. By using this operation, the client can perform multiple <a>PutAttribute</a> operation
+    with a single call. This helps yield savings in round trips and latencies, enabling Amazon SimpleDB
+    to opt
+  operation_type: read
+  method: GET
+  url_base: https://sdb.amazonaws.com
+  path: /#Action=BatchPutAttributes
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: get_createdomain
+  description: <p> The <code>CreateDomain</code> operation creates a new domain. The domain name should
+    be unique among the domains associated with the Access Key ID provided in the request. The <code>CreateDomain</code>
+    operation may take 10 or more seconds to complete. </p> <note> CreateDomain is an idempotent o
+  operation_type: read
+  method: GET
+  url_base: https://sdb.amazonaws.com
+  path: /#Action=CreateDomain
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: get_deleteattributes
+  description: <p> Deletes one or more attributes associated with an item. If all attributes of the item
+    are deleted, the item is deleted. </p> <note> If <code>DeleteAttributes</code> is called without being
+    passed any attributes or values specified, all the attributes for the item are deleted. </note> <p>
+    <code>D
+  operation_type: read
+  method: GET
+  url_base: https://sdb.amazonaws.com
+  path: /#Action=DeleteAttributes
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: get_deletedomain
+  description: <p> The <code>DeleteDomain</code> operation deletes a domain. Any items (and their attributes)
+    in the domain are deleted as well. The <code>DeleteDomain</code> operation might take 10 or more seconds
+    to complete. </p> <note> Running <code>DeleteDomain</code> on a domain that does not exist or runnin
+  operation_type: read
+  method: GET
+  url_base: https://sdb.amazonaws.com
+  path: /#Action=DeleteDomain
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: get_domainmetadata
+  description: Returns information about the domain, including when the domain was created, the number
+    of items and attributes in the domain, and the size of the attribute names and values.
+  operation_type: read
+  method: GET
+  url_base: https://sdb.amazonaws.com
+  path: /#Action=DomainMetadata
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: get_getattributes
+  description: <p> Returns all of the attributes associated with the specified item. Optionally, the attributes
+    returned can be limited to one or more attributes by specifying an attribute name parameter. </p>
+    <p> If the item does not exist on the replica that was accessed for this operation, an empty set is
+    retur
+  operation_type: read
+  method: GET
+  url_base: https://sdb.amazonaws.com
+  path: /#Action=GetAttributes
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: get_listdomains
+  description: The <code>ListDomains</code> operation lists all domains associated with the Access Key
+    ID. It returns domain names up to the limit set by <a href="#MaxNumberOfDomains">MaxNumberOfDomains</a>.
+    A <a href="#NextToken">NextToken</a> is returned if there are more than <code>MaxNumberOfDomains</code>
+    dom
+  operation_type: read
+  method: GET
+  url_base: https://sdb.amazonaws.com
+  path: /#Action=ListDomains
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: get_putattributes
+  description: <p> The PutAttributes operation creates or replaces attributes in an item. The client may
+    specify new attributes using a combination of the <code>Attribute.X.Name</code> and <code>Attribute.X.Value</code>
+    parameters. The client specifies the first attribute by the parameters <code>Attribute.0.Name</
+  operation_type: read
+  method: GET
+  url_base: https://sdb.amazonaws.com
+  path: /#Action=PutAttributes
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: get_select
+  description: '<p> The <code>Select</code> operation returns a set of attributes for <code>ItemNames</code>
+    that match the select expression. <code>Select</code> is similar to the standard SQL SELECT statement.
+    </p> <p> The total size of the response cannot exceed 1 MB in total size. Amazon SimpleDB automatically '
+  operation_type: read
+  method: GET
+  url_base: https://sdb.amazonaws.com
+  path: /#Action=Select
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+rate_limit:
+  type: FixedWindowCallRatePolicy
+  max_calls: 60
+  window_seconds: 60

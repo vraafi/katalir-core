@@ -1,0 +1,820 @@
+# Dihasilkan otomatis oleh apisguru_generator.py (TASK 3).
+# Sumber: APIs.guru openapi-directory.
+# verification.level = 'listed': BELUM dijalankan. Tingkat 'callable'/
+# 'call_verified' hanya diberikan harness setelah panggilan nyata.
+manifest_version: 1
+id: apisguru.amazonaws_com_ec2
+slug: apisguru_amazonaws_com_ec2
+display_name: Amazon Elastic Compute Cloud (APIs.guru)
+description: 'Connector dihasilkan otomatis dari spesifikasi OpenAPI publik Amazon Elastic Compute Cloud
+  v2016-11-15. Sumber: APIs.guru openapi-directory.'
+category: apisguru
+source: apisguru
+tenant_scope: per-user
+deprecated: false
+minimum_supported_release: 1.0.0
+credential_free: false
+auth:
+  type: api_key
+  credential_form: api_key_header
+  key_name: authorization
+actions:
+- name: get_acceptaddresstransfer
+  description: Accepts an Elastic IP address transfer. For more information, see <a href="https://docs.aws.amazon.com/vpc/latest/userguide/vpc-eips.html#using-instance-addressing-eips-transfer-accept">Accept
+    a transferred Elastic IP address</a> in the <i>Amazon Virtual Private Cloud User Guide</i>.
+  operation_type: read
+  method: GET
+  url_base: https://ec2.amazonaws.com
+  path: /#Action=AcceptAddressTransfer
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: get_acceptreservedinstancesexchangequote
+  description: Accepts the Convertible Reserved Instance exchange quote described in the <a>GetReservedInstancesExchangeQuote</a>
+    call.
+  operation_type: read
+  method: GET
+  url_base: https://ec2.amazonaws.com
+  path: /#Action=AcceptReservedInstancesExchangeQuote
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: get_accepttransitgatewaymulticastdomainassociations
+  description: Accepts a request to associate subnets with a transit gateway multicast domain.
+  operation_type: read
+  method: GET
+  url_base: https://ec2.amazonaws.com
+  path: /#Action=AcceptTransitGatewayMulticastDomainAssociations
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: get_accepttransitgatewaypeeringattachment
+  description: Accepts a transit gateway peering attachment request. The peering attachment must be in
+    the <code>pendingAcceptance</code> state.
+  operation_type: read
+  method: GET
+  url_base: https://ec2.amazonaws.com
+  path: /#Action=AcceptTransitGatewayPeeringAttachment
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: get_accepttransitgatewayvpcattachment
+  description: <p>Accepts a request to attach a VPC to a transit gateway.</p> <p>The VPC attachment must
+    be in the <code>pendingAcceptance</code> state. Use <a>DescribeTransitGatewayVpcAttachments</a> to
+    view your pending VPC attachment requests. Use <a>RejectTransitGatewayVpcAttachment</a> to reject
+    a VPC attachm
+  operation_type: read
+  method: GET
+  url_base: https://ec2.amazonaws.com
+  path: /#Action=AcceptTransitGatewayVpcAttachment
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: get_acceptvpcendpointconnections
+  description: Accepts connection requests to your VPC endpoint service.
+  operation_type: read
+  method: GET
+  url_base: https://ec2.amazonaws.com
+  path: /#Action=AcceptVpcEndpointConnections
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: get_acceptvpcpeeringconnection
+  description: <p>Accept a VPC peering connection request. To accept a request, the VPC peering connection
+    must be in the <code>pending-acceptance</code> state, and you must be the owner of the peer VPC. Use
+    <a>DescribeVpcPeeringConnections</a> to view your outstanding VPC peering connection requests.</p>
+    <p>For a
+  operation_type: read
+  method: GET
+  url_base: https://ec2.amazonaws.com
+  path: /#Action=AcceptVpcPeeringConnection
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: get_advertisebyoipcidr
+  description: <p>Advertises an IPv4 or IPv6 address range that is provisioned for use with your Amazon
+    Web Services resources through bring your own IP addresses (BYOIP).</p> <p>You can perform this operation
+    at most once every 10 seconds, even if you specify different address ranges each time.</p> <p>We recommen
+  operation_type: read
+  method: GET
+  url_base: https://ec2.amazonaws.com
+  path: /#Action=AdvertiseByoipCidr
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: get_allocateaddress
+  description: '<p>Allocates an Elastic IP address to your Amazon Web Services account. After you allocate
+    the Elastic IP address you can associate it with an instance or network interface. After you release
+    an Elastic IP address, it is released to the IP address pool and can be allocated to a different Amazon
+    Web '
+  operation_type: read
+  method: GET
+  url_base: https://ec2.amazonaws.com
+  path: /#Action=AllocateAddress
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: get_allocatehosts
+  description: Allocates a Dedicated Host to your account. At a minimum, specify the supported instance
+    type or instance family, the Availability Zone in which to allocate the host, and the number of hosts
+    to allocate.
+  operation_type: read
+  method: GET
+  url_base: https://ec2.amazonaws.com
+  path: /#Action=AllocateHosts
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: get_allocateipampoolcidr
+  description: <p>Allocate a CIDR from an IPAM pool. In IPAM, an allocation is a CIDR assignment from
+    an IPAM pool to another IPAM pool or to a resource. For more information, see <a href="https://docs.aws.amazon.com/vpc/latest/ipam/allocate-cidrs-ipam.html">Allocate
+    CIDRs</a> in the <i>Amazon VPC IPAM User Guide<
+  operation_type: read
+  method: GET
+  url_base: https://ec2.amazonaws.com
+  path: /#Action=AllocateIpamPoolCidr
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: get_applysecuritygroupstoclientvpntargetnetwork
+  description: Applies a security group to the association between the target network and the Client VPN
+    endpoint. This action replaces the existing security groups with the specified security groups.
+  operation_type: read
+  method: GET
+  url_base: https://ec2.amazonaws.com
+  path: /#Action=ApplySecurityGroupsToClientVpnTargetNetwork
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: get_assignipv6addresses
+  description: <p>Assigns one or more IPv6 addresses to the specified network interface. You can specify
+    one or more specific IPv6 addresses, or you can specify the number of IPv6 addresses to be automatically
+    assigned from within the subnet's IPv6 CIDR block range. You can assign as many IPv6 addresses to
+    a netwo
+  operation_type: read
+  method: GET
+  url_base: https://ec2.amazonaws.com
+  path: /#Action=AssignIpv6Addresses
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: get_assignprivateipaddresses
+  description: <p>Assigns one or more secondary private IP addresses to the specified network interface.</p>
+    <p>You can specify one or more specific secondary IP addresses, or you can specify the number of secondary
+    IP addresses to be automatically assigned within the subnet's CIDR block range. The number of secon
+  operation_type: read
+  method: GET
+  url_base: https://ec2.amazonaws.com
+  path: /#Action=AssignPrivateIpAddresses
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: get_assignprivatenatgatewayaddress
+  description: Assigns one or more private IPv4 addresses to a private NAT gateway. For more information,
+    see <a href="https://docs.aws.amazon.com/vpc/latest/userguide/vpc-nat-gateway.html#nat-gateway-working-with">Work
+    with NAT gateways</a> in the <i>Amazon Virtual Private Cloud User Guide</i>.
+  operation_type: read
+  method: GET
+  url_base: https://ec2.amazonaws.com
+  path: /#Action=AssignPrivateNatGatewayAddress
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: get_associateaddress
+  description: <p>Associates an Elastic IP address, or carrier IP address (for instances that are in subnets
+    in Wavelength Zones) with an instance or a network interface. Before you can use an Elastic IP address,
+    you must allocate it to your account.</p> <p>An Elastic IP address is for use in either the EC2-Classi
+  operation_type: read
+  method: GET
+  url_base: https://ec2.amazonaws.com
+  path: /#Action=AssociateAddress
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: get_associateclientvpntargetnetwork
+  description: <p>Associates a target network with a Client VPN endpoint. A target network is a subnet
+    in a VPC. You can associate multiple subnets from the same VPC with a Client VPN endpoint. You can
+    associate only one subnet in each Availability Zone. We recommend that you associate at least two
+    subnets to prov
+  operation_type: read
+  method: GET
+  url_base: https://ec2.amazonaws.com
+  path: /#Action=AssociateClientVpnTargetNetwork
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: get_associatedhcpoptions
+  description: <p>Associates a set of DHCP options (that you've previously created) with the specified
+    VPC, or associates no DHCP options with the VPC.</p> <p>After you associate the options with the VPC,
+    any existing instances and all new instances that you launch in that VPC use the options. You don't
+    need to re
+  operation_type: read
+  method: GET
+  url_base: https://ec2.amazonaws.com
+  path: /#Action=AssociateDhcpOptions
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: get_associateenclavecertificateiamrole
+  description: <p>Associates an Identity and Access Management (IAM) role with an Certificate Manager
+    (ACM) certificate. This enables the certificate to be used by the ACM for Nitro Enclaves application
+    inside an enclave. For more information, see <a href="https://docs.aws.amazon.com/enclaves/latest/user/nitro-enc
+  operation_type: read
+  method: GET
+  url_base: https://ec2.amazonaws.com
+  path: /#Action=AssociateEnclaveCertificateIamRole
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: get_associateiaminstanceprofile
+  description: Associates an IAM instance profile with a running or stopped instance. You cannot associate
+    more than one IAM instance profile with an instance.
+  operation_type: read
+  method: GET
+  url_base: https://ec2.amazonaws.com
+  path: /#Action=AssociateIamInstanceProfile
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: get_associateinstanceeventwindow
+  description: <p>Associates one or more targets with an event window. Only one type of target (instance
+    IDs, Dedicated Host IDs, or tags) can be specified with an event window.</p> <p>For more information,
+    see <a href="https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/event-windows.html">Define event
+    windows fo
+  operation_type: read
+  method: GET
+  url_base: https://ec2.amazonaws.com
+  path: /#Action=AssociateInstanceEventWindow
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: get_associateipamresourcediscovery
+  description: Associates an IPAM resource discovery with an Amazon VPC IPAM. A resource discovery is
+    an IPAM component that enables IPAM to manage and monitor resources that belong to the owning account.
+  operation_type: read
+  method: GET
+  url_base: https://ec2.amazonaws.com
+  path: /#Action=AssociateIpamResourceDiscovery
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: get_associatenatgatewayaddress
+  description: <p>Associates Elastic IP addresses (EIPs) and private IPv4 addresses with a public NAT
+    gateway. For more information, see <a href="https://docs.aws.amazon.com/vpc/latest/userguide/vpc-nat-gateway.html#nat-gateway-working-with">Work
+    with NAT gateways</a> in the <i>Amazon Virtual Private Cloud User Gu
+  operation_type: read
+  method: GET
+  url_base: https://ec2.amazonaws.com
+  path: /#Action=AssociateNatGatewayAddress
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: get_associateroutetable
+  description: <p>Associates a subnet in your VPC or an internet gateway or virtual private gateway attached
+    to your VPC with a route table in your VPC. This association causes traffic from the subnet or gateway
+    to be routed according to the routes in the route table. The action returns an association ID, which
+    yo
+  operation_type: read
+  method: GET
+  url_base: https://ec2.amazonaws.com
+  path: /#Action=AssociateRouteTable
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: get_associatesubnetcidrblock
+  description: Associates a CIDR block with your subnet. You can only associate a single IPv6 CIDR block
+    with your subnet. An IPv6 CIDR block must have a prefix length of /64.
+  operation_type: read
+  method: GET
+  url_base: https://ec2.amazonaws.com
+  path: /#Action=AssociateSubnetCidrBlock
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: get_associatetransitgatewaymulticastdomain
+  description: <p>Associates the specified subnets and transit gateway attachments with the specified
+    transit gateway multicast domain.</p> <p>The transit gateway attachment must be in the available state
+    before you can add a resource. Use <a href="https://docs.aws.amazon.com/AWSEC2/latest/APIReference/API_Describ
+  operation_type: read
+  method: GET
+  url_base: https://ec2.amazonaws.com
+  path: /#Action=AssociateTransitGatewayMulticastDomain
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: get_associatetransitgatewaypolicytable
+  description: Associates the specified transit gateway attachment with a transit gateway policy table.
+  operation_type: read
+  method: GET
+  url_base: https://ec2.amazonaws.com
+  path: /#Action=AssociateTransitGatewayPolicyTable
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: get_associatetransitgatewayroutetable
+  description: Associates the specified attachment with the specified transit gateway route table. You
+    can associate only one route table with an attachment.
+  operation_type: read
+  method: GET
+  url_base: https://ec2.amazonaws.com
+  path: /#Action=AssociateTransitGatewayRouteTable
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: get_associatetrunkinterface
+  description: <note> <p>This API action is currently in <b>limited preview only</b>. If you are interested
+    in using this feature, contact your account manager.</p> </note> <p>Associates a branch network interface
+    with a trunk network interface.</p> <p>Before you create the association, run the <a href="https://do
+  operation_type: read
+  method: GET
+  url_base: https://ec2.amazonaws.com
+  path: /#Action=AssociateTrunkInterface
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: get_associatevpccidrblock
+  description: <p>Associates a CIDR block with your VPC. You can associate a secondary IPv4 CIDR block,
+    an Amazon-provided IPv6 CIDR block, or an IPv6 CIDR block from an IPv6 address pool that you provisioned
+    through bring your own IP addresses (<a href="https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/ec2-byoi
+  operation_type: read
+  method: GET
+  url_base: https://ec2.amazonaws.com
+  path: /#Action=AssociateVpcCidrBlock
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: get_attachclassiclinkvpc
+  description: <note> <p>We are retiring EC2-Classic. We recommend that you migrate from EC2-Classic to
+    a VPC. For more information, see <a href="https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/vpc-migrate.html">Migrate
+    from EC2-Classic to a VPC</a> in the <i>Amazon Elastic Compute Cloud User Guide</i>.</p> </
+  operation_type: read
+  method: GET
+  url_base: https://ec2.amazonaws.com
+  path: /#Action=AttachClassicLinkVpc
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: get_attachinternetgateway
+  description: Attaches an internet gateway or a virtual private gateway to a VPC, enabling connectivity
+    between the internet and the VPC. For more information about your VPC and internet gateway, see the
+    <a href="https://docs.aws.amazon.com/vpc/latest/userguide/">Amazon Virtual Private Cloud User Guide</a>.
+  operation_type: read
+  method: GET
+  url_base: https://ec2.amazonaws.com
+  path: /#Action=AttachInternetGateway
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: get_attachnetworkinterface
+  description: Attaches a network interface to an instance.
+  operation_type: read
+  method: GET
+  url_base: https://ec2.amazonaws.com
+  path: /#Action=AttachNetworkInterface
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: get_attachverifiedaccesstrustprovider
+  description: A trust provider is a third-party entity that creates, maintains, and manages identity
+    information for users and devices. One or more trust providers can be attached to an Amazon Web Services
+    Verified Access instance.
+  operation_type: read
+  method: GET
+  url_base: https://ec2.amazonaws.com
+  path: /#Action=AttachVerifiedAccessTrustProvider
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: get_attachvolume
+  description: <p>Attaches an EBS volume to a running or stopped instance and exposes it to the instance
+    with the specified device name.</p> <p>Encrypted EBS volumes must be attached to instances that support
+    Amazon EBS encryption. For more information, see <a href="https://docs.aws.amazon.com/AWSEC2/latest/UserGu
+  operation_type: read
+  method: GET
+  url_base: https://ec2.amazonaws.com
+  path: /#Action=AttachVolume
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: get_attachvpngateway
+  description: <p>Attaches a virtual private gateway to a VPC. You can attach one virtual private gateway
+    to one VPC at a time.</p> <p>For more information, see <a href="https://docs.aws.amazon.com/vpn/latest/s2svpn/VPC_VPN.html">Amazon
+    Web Services Site-to-Site VPN</a> in the <i>Amazon Web Services Site-to-Site V
+  operation_type: read
+  method: GET
+  url_base: https://ec2.amazonaws.com
+  path: /#Action=AttachVpnGateway
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: get_authorizeclientvpningress
+  description: Adds an ingress authorization rule to a Client VPN endpoint. Ingress authorization rules
+    act as firewall rules that grant access to networks. You must configure ingress authorization rules
+    to enable clients to access resources in Amazon Web Services or on-premises networks.
+  operation_type: read
+  method: GET
+  url_base: https://ec2.amazonaws.com
+  path: /#Action=AuthorizeClientVpnIngress
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: get_authorizesecuritygroupegress
+  description: <p>[VPC only] Adds the specified outbound (egress) rules to a security group for use with
+    a VPC.</p> <p>An outbound rule permits instances to send traffic to the specified IPv4 or IPv6 CIDR
+    address ranges, or to the instances that are associated with the specified source security groups.
+    When specif
+  operation_type: read
+  method: GET
+  url_base: https://ec2.amazonaws.com
+  path: /#Action=AuthorizeSecurityGroupEgress
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: get_authorizesecuritygroupingress
+  description: <p>Adds the specified inbound (ingress) rules to a security group.</p> <p>An inbound rule
+    permits instances to receive traffic from the specified IPv4 or IPv6 CIDR address range, or from the
+    instances that are associated with the specified destination security groups. When specifying an inbound
+    rule
+  operation_type: read
+  method: GET
+  url_base: https://ec2.amazonaws.com
+  path: /#Action=AuthorizeSecurityGroupIngress
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: get_bundleinstance
+  description: <p>Bundles an Amazon instance store-backed Windows instance.</p> <p>During bundling, only
+    the root device volume (C:\) is bundled. Data on other instance store volumes is not preserved.</p>
+    <note> <p>This action is not applicable for Linux/Unix instances or Windows instances that are backed
+    by Amazo
+  operation_type: read
+  method: GET
+  url_base: https://ec2.amazonaws.com
+  path: /#Action=BundleInstance
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+rate_limit:
+  type: FixedWindowCallRatePolicy
+  max_calls: 60
+  window_seconds: 60

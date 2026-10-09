@@ -1,0 +1,671 @@
+# Dihasilkan otomatis oleh apisguru_generator.py (TASK 3).
+# Sumber: APIs.guru openapi-directory.
+# verification.level = 'listed': BELUM dijalankan. Tingkat 'callable'/
+# 'call_verified' hanya diberikan harness setelah panggilan nyata.
+manifest_version: 1
+id: apisguru.avaza_com
+slug: apisguru_avaza_com
+display_name: Avaza API Documentation (APIs.guru)
+description: 'Connector dihasilkan otomatis dari spesifikasi OpenAPI publik Avaza API Documentation vv1.
+  Sumber: APIs.guru openapi-directory.'
+category: apisguru
+source: apisguru
+tenant_scope: public
+deprecated: false
+minimum_supported_release: 1.0.0
+credential_free: true
+auth:
+  type: none
+actions:
+- name: account_get
+  description: Account Details
+  operation_type: read
+  method: GET
+  url_base: https://api.avaza.com
+  path: /api/Account
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: bill_get
+  description: Gets list of Bills
+  operation_type: read
+  method: GET
+  url_base: https://api.avaza.com
+  path: /api/Bill
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: billpayment_get
+  description: Gets list of Bill Payments
+  operation_type: read
+  method: GET
+  url_base: https://api.avaza.com
+  path: /api/BillPayment
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: company_get
+  description: Gets list of Companies
+  operation_type: read
+  method: GET
+  url_base: https://api.avaza.com
+  path: /api/Company
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: companylookup
+  description: Gets minimal list of Companies.
+  operation_type: read
+  method: GET
+  url_base: https://api.avaza.com
+  path: /api/Company/Lookup
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: contact_get
+  description: Gets list of Contacts
+  operation_type: read
+  method: GET
+  url_base: https://api.avaza.com
+  path: /api/Contact
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: creditnote_get
+  description: Gets list of CreditNotes
+  operation_type: read
+  method: GET
+  url_base: https://api.avaza.com
+  path: /api/CreditNote
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: currency_get
+  description: Gets list of Currencies
+  operation_type: read
+  method: GET
+  url_base: https://api.avaza.com
+  path: /api/Currency
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: estimate_get
+  description: Gets list of Estimates
+  operation_type: read
+  method: GET
+  url_base: https://api.avaza.com
+  path: /api/Estimate
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: expense_get
+  description: Gets list of Expenses
+  operation_type: read
+  method: GET
+  url_base: https://api.avaza.com
+  path: /api/Expense
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: expensecategory_get
+  description: Gets list of Expense Categories
+  operation_type: read
+  method: GET
+  url_base: https://api.avaza.com
+  path: /api/ExpenseCategory
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: expensegrouplookup
+  description: Gets minimal list of Expense Groups.
+  operation_type: read
+  method: GET
+  url_base: https://api.avaza.com
+  path: /api/ExpenseGroup/Lookup
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: expensemerchangelookup
+  description: Gets minimal list of Expense Merchants.
+  operation_type: read
+  method: GET
+  url_base: https://api.avaza.com
+  path: /api/ExpenseMerchant/Lookup
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: expensepaymentmethodlookup
+  description: Gets minimal list of Expense Payment Methods.
+  operation_type: read
+  method: GET
+  url_base: https://api.avaza.com
+  path: /api/ExpensePaymentMethod/Lookup
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: expensesummary_get
+  description: Gets Basic Summary of Expense Statistics
+  operation_type: read
+  method: GET
+  url_base: https://api.avaza.com
+  path: /api/ExpenseSummary
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: fixedamount_get
+  description: Gets list of Fixed Amounts
+  operation_type: read
+  method: GET
+  url_base: https://api.avaza.com
+  path: /api/FixedAmount
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: inventory_get
+  description: Gets list of Inventory
+  operation_type: read
+  method: GET
+  url_base: https://api.avaza.com
+  path: /api/Inventory
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: invoice_get
+  description: Gets list of Invoices
+  operation_type: read
+  method: GET
+  url_base: https://api.avaza.com
+  path: /api/Invoice
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: payment_get
+  description: Gets list of Payments
+  operation_type: read
+  method: GET
+  url_base: https://api.avaza.com
+  path: /api/Payment
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: project_get
+  description: Gets list of Projects
+  operation_type: read
+  method: GET
+  url_base: https://api.avaza.com
+  path: /api/Project
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: projectlookup
+  description: Gets minimal list of active Projects for the current user
+  operation_type: read
+  method: GET
+  url_base: https://api.avaza.com
+  path: /api/Project/Lookup
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: projectmember_get
+  description: Gets list of Project Members
+  operation_type: read
+  method: GET
+  url_base: https://api.avaza.com
+  path: /api/ProjectMember
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: projecttimesheetcategory_get
+  description: Gets list of Project Timesheet Categories
+  operation_type: read
+  method: GET
+  url_base: https://api.avaza.com
+  path: /api/ProjectTimesheetCategory
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: scheduleassignment_get
+  description: Gets list of Schedule Assignments.
+  operation_type: read
+  method: GET
+  url_base: https://api.avaza.com
+  path: /api/ScheduleAssignment
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: scheduleseries_get
+  description: Gets list of Schedule Series
+  operation_type: read
+  method: GET
+  url_base: https://api.avaza.com
+  path: /api/ScheduleSeries
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: section_get
+  description: Gets list of Sections
+  operation_type: read
+  method: GET
+  url_base: https://api.avaza.com
+  path: /api/Section
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: task_get
+  description: Gets list of Tasks
+  operation_type: read
+  method: GET
+  url_base: https://api.avaza.com
+  path: /api/Task
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: tasklookup
+  description: Gets minimal list of Tasks for the current user
+  operation_type: read
+  method: GET
+  url_base: https://api.avaza.com
+  path: /api/Task/Lookup
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: taskstatus_get
+  description: Gets list of Task Statuses
+  operation_type: read
+  method: GET
+  url_base: https://api.avaza.com
+  path: /api/TaskStatus
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: tasktype_get
+  description: Gets list of Task Types
+  operation_type: read
+  method: GET
+  url_base: https://api.avaza.com
+  path: /api/TaskType
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: tax_get
+  description: Get List of Taxes configured in the Avaza account.
+  operation_type: read
+  method: GET
+  url_base: https://api.avaza.com
+  path: /api/Tax
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: timesheet_get
+  description: Gets list of Timsheets
+  operation_type: read
+  method: GET
+  url_base: https://api.avaza.com
+  path: /api/Timesheet
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: timesheetsummary_get
+  description: Gets Basic Summary of Timesheet Statistics
+  operation_type: read
+  method: GET
+  url_base: https://api.avaza.com
+  path: /api/TimesheetSummary
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: timesheettimer_getrunningtimer
+  description: Gets the Running Timer if there is one for a user.
+  operation_type: read
+  method: GET
+  url_base: https://api.avaza.com
+  path: /api/TimesheetTimer
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: userprofile_get
+  description: Get Collection of Users who have roles in the current Avaza account.
+  operation_type: read
+  method: GET
+  url_base: https://api.avaza.com
+  path: /api/UserProfile
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: webhook_get
+  description: Get list of Webhook Subscriptions
+  operation_type: read
+  method: GET
+  url_base: https://api.avaza.com
+  path: /api/Webhook
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+rate_limit:
+  type: FixedWindowCallRatePolicy
+  max_calls: 60
+  window_seconds: 60

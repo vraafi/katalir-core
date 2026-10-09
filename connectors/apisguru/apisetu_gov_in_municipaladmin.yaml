@@ -1,0 +1,115 @@
+# Dihasilkan otomatis oleh apisguru_generator.py (TASK 3).
+# Sumber: APIs.guru openapi-directory.
+# verification.level = 'listed': BELUM dijalankan. Tingkat 'callable'/
+# 'call_verified' hanya diberikan harness setelah panggilan nyata.
+manifest_version: 1
+id: apisguru.apisetu_gov_in_municipaladmin
+slug: apisguru_apisetu_gov_in_municipaladmin
+display_name: Directorate of Municipal Administration, Karnataka (APIs.guru)
+description: 'Connector dihasilkan otomatis dari spesifikasi OpenAPI publik Directorate of Municipal Administration,
+  Karnataka v3.0.0. Sumber: APIs.guru openapi-directory.'
+category: apisguru
+source: apisguru
+tenant_scope: public
+deprecated: false
+minimum_supported_release: 1.0.0
+credential_free: true
+auth:
+  type: none
+actions:
+- name: kecer
+  description: Khatha Extract / Certificate
+  operation_type: write
+  method: POST
+  url_base: https://apisetu.gov.in/municipaladmin/v3
+  path: /kecer/certificate
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+  request_body_json:
+    certificateParameters: ''
+    consentArtifact: ''
+    format: ''
+    txnId: ''
+- name: tapcn
+  description: New Tap Connection
+  operation_type: write
+  method: POST
+  url_base: https://apisetu.gov.in/municipaladmin/v3
+  path: /tapcn/certificate
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+  request_body_json:
+    certificateParameters: ''
+    consentArtifact: ''
+    format: ''
+    txnId: ''
+- name: tdlcs
+  description: Trade License/ Certificate
+  operation_type: write
+  method: POST
+  url_base: https://apisetu.gov.in/municipaladmin/v3
+  path: /tdlcs/certificate
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+  request_body_json:
+    certificateParameters: ''
+    consentArtifact: ''
+    format: ''
+    txnId: ''
+- name: ugdcn
+  description: Jalanidhi - New UGD Connection
+  operation_type: write
+  method: POST
+  url_base: https://apisetu.gov.in/municipaladmin/v3
+  path: /ugdcn/certificate
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+  request_body_json:
+    certificateParameters: ''
+    consentArtifact: ''
+    format: ''
+    txnId: ''
+rate_limit:
+  type: FixedWindowCallRatePolicy
+  max_calls: 60
+  window_seconds: 60

@@ -1,0 +1,62 @@
+# Dihasilkan otomatis oleh apisguru_generator.py (TASK 3).
+# Sumber: APIs.guru openapi-directory.
+# verification.level = 'listed': BELUM dijalankan. Tingkat 'callable'/
+# 'call_verified' hanya diberikan harness setelah panggilan nyata.
+manifest_version: 1
+id: apisguru.amadeus_com_amadeus_seatmap_display
+slug: apisguru_amadeus_com_amadeus_seatmap_display
+display_name: Seatmap Display (APIs.guru)
+description: 'Connector dihasilkan otomatis dari spesifikasi OpenAPI publik Seatmap Display v1.9.2. Sumber:
+  APIs.guru openapi-directory.'
+category: apisguru
+source: apisguru
+tenant_scope: public
+deprecated: false
+minimum_supported_release: 1.0.0
+credential_free: true
+auth:
+  type: none
+actions:
+- name: getseatmapfromorder
+  description: Returns all the seat maps of a given order.
+  operation_type: read
+  method: GET
+  url_base: https://test.api.amadeus.com/v1
+  path: /shopping/seatmaps
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: getseatmapfromflightoffer
+  description: Returns all the seat maps of a given flightOffer.
+  operation_type: write
+  method: POST
+  url_base: https://test.api.amadeus.com/v1
+  path: /shopping/seatmaps
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+  request_body_json:
+    data: ''
+    included: ''
+rate_limit:
+  type: FixedWindowCallRatePolicy
+  max_calls: 60
+  window_seconds: 60

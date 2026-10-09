@@ -1,0 +1,795 @@
+# Dihasilkan otomatis oleh apisguru_generator.py (TASK 3).
+# Sumber: APIs.guru openapi-directory.
+# verification.level = 'listed': BELUM dijalankan. Tingkat 'callable'/
+# 'call_verified' hanya diberikan harness setelah panggilan nyata.
+manifest_version: 1
+id: apisguru.amazonaws_com_docdb
+slug: apisguru_amazonaws_com_docdb
+display_name: Amazon DocumentDB with MongoDB compatibility (APIs.guru)
+description: 'Connector dihasilkan otomatis dari spesifikasi OpenAPI publik Amazon DocumentDB with MongoDB
+  compatibility v2014-10-31. Sumber: APIs.guru openapi-directory.'
+category: apisguru
+source: apisguru
+tenant_scope: per-user
+deprecated: false
+minimum_supported_release: 1.0.0
+credential_free: false
+auth:
+  type: api_key
+  credential_form: api_key_header
+  key_name: authorization
+actions:
+- name: get_addsourceidentifiertosubscription
+  description: Adds a source identifier to an existing event notification subscription.
+  operation_type: read
+  method: GET
+  url_base: https://rds.amazonaws.com
+  path: /#Action=AddSourceIdentifierToSubscription
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: get_addtagstoresource
+  description: Adds metadata tags to an Amazon DocumentDB resource. You can use these tags with cost allocation
+    reporting to track costs that are associated with Amazon DocumentDB resources or in a <code>Condition</code>
+    statement in an Identity and Access Management (IAM) policy for Amazon DocumentDB.
+  operation_type: read
+  method: GET
+  url_base: https://rds.amazonaws.com
+  path: /#Action=AddTagsToResource
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: get_applypendingmaintenanceaction
+  description: Applies a pending maintenance action to a resource (for example, to an Amazon DocumentDB
+    instance).
+  operation_type: read
+  method: GET
+  url_base: https://rds.amazonaws.com
+  path: /#Action=ApplyPendingMaintenanceAction
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: get_copydbclusterparametergroup
+  description: Copies the specified cluster parameter group.
+  operation_type: read
+  method: GET
+  url_base: https://rds.amazonaws.com
+  path: /#Action=CopyDBClusterParameterGroup
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: get_copydbclustersnapshot
+  description: '<p>Copies a snapshot of a cluster.</p> <p>To copy a cluster snapshot from a shared manual
+    cluster snapshot, <code>SourceDBClusterSnapshotIdentifier</code> must be the Amazon Resource Name
+    (ARN) of the shared cluster snapshot. You can only copy a shared DB cluster snapshot, whether encrypted
+    or not, '
+  operation_type: read
+  method: GET
+  url_base: https://rds.amazonaws.com
+  path: /#Action=CopyDBClusterSnapshot
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: get_createdbcluster
+  description: Creates a new Amazon DocumentDB cluster.
+  operation_type: read
+  method: GET
+  url_base: https://rds.amazonaws.com
+  path: /#Action=CreateDBCluster
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: get_createdbclusterparametergroup
+  description: <p>Creates a new cluster parameter group.</p> <p>Parameters in a cluster parameter group
+    apply to all of the instances in a cluster.</p> <p>A cluster parameter group is initially created
+    with the default parameters for the database engine used by instances in the cluster. In Amazon DocumentDB,
+    you c
+  operation_type: read
+  method: GET
+  url_base: https://rds.amazonaws.com
+  path: /#Action=CreateDBClusterParameterGroup
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: get_createdbclustersnapshot
+  description: Creates a snapshot of a cluster.
+  operation_type: read
+  method: GET
+  url_base: https://rds.amazonaws.com
+  path: /#Action=CreateDBClusterSnapshot
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: get_createdbinstance
+  description: Creates a new instance.
+  operation_type: read
+  method: GET
+  url_base: https://rds.amazonaws.com
+  path: /#Action=CreateDBInstance
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: get_createdbsubnetgroup
+  description: Creates a new subnet group. subnet groups must contain at least one subnet in at least
+    two Availability Zones in the Amazon Web Services Region.
+  operation_type: read
+  method: GET
+  url_base: https://rds.amazonaws.com
+  path: /#Action=CreateDBSubnetGroup
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: get_createeventsubscription
+  description: <p>Creates an Amazon DocumentDB event notification subscription. This action requires a
+    topic Amazon Resource Name (ARN) created by using the Amazon DocumentDB console, the Amazon SNS console,
+    or the Amazon SNS API. To obtain an ARN with Amazon SNS, you must create a topic in Amazon SNS and
+    subscrib
+  operation_type: read
+  method: GET
+  url_base: https://rds.amazonaws.com
+  path: /#Action=CreateEventSubscription
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: get_createglobalcluster
+  description: <p>Creates an Amazon DocumentDB global cluster that can span multiple multiple Amazon Web
+    Services Regions. The global cluster contains one primary cluster with read-write capability, and
+    up-to give read-only secondary clusters. Global clusters uses storage-based fast replication across
+    regions with
+  operation_type: read
+  method: GET
+  url_base: https://rds.amazonaws.com
+  path: /#Action=CreateGlobalCluster
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: get_deletedbcluster
+  description: <p>Deletes a previously provisioned cluster. When you delete a cluster, all automated backups
+    for that cluster are deleted and can't be recovered. Manual DB cluster snapshots of the specified
+    cluster are not deleted.</p> <p/>
+  operation_type: read
+  method: GET
+  url_base: https://rds.amazonaws.com
+  path: /#Action=DeleteDBCluster
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: get_deletedbclusterparametergroup
+  description: Deletes a specified cluster parameter group. The cluster parameter group to be deleted
+    can't be associated with any clusters.
+  operation_type: read
+  method: GET
+  url_base: https://rds.amazonaws.com
+  path: /#Action=DeleteDBClusterParameterGroup
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: get_deletedbclustersnapshot
+  description: <p>Deletes a cluster snapshot. If the snapshot is being copied, the copy operation is terminated.</p>
+    <note> <p>The cluster snapshot must be in the <code>available</code> state to be deleted.</p> </note>
+  operation_type: read
+  method: GET
+  url_base: https://rds.amazonaws.com
+  path: /#Action=DeleteDBClusterSnapshot
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: get_deletedbinstance
+  description: Deletes a previously provisioned instance.
+  operation_type: read
+  method: GET
+  url_base: https://rds.amazonaws.com
+  path: /#Action=DeleteDBInstance
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: get_deletedbsubnetgroup
+  description: <p>Deletes a subnet group.</p> <note> <p>The specified database subnet group must not be
+    associated with any DB instances.</p> </note>
+  operation_type: read
+  method: GET
+  url_base: https://rds.amazonaws.com
+  path: /#Action=DeleteDBSubnetGroup
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: get_deleteeventsubscription
+  description: Deletes an Amazon DocumentDB event notification subscription.
+  operation_type: read
+  method: GET
+  url_base: https://rds.amazonaws.com
+  path: /#Action=DeleteEventSubscription
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: get_deleteglobalcluster
+  description: <p>Deletes a global cluster. The primary and secondary clusters must already be detached
+    or deleted before attempting to delete a global cluster.</p> <note> <p>This action only applies to
+    Amazon DocumentDB clusters.</p> </note>
+  operation_type: read
+  method: GET
+  url_base: https://rds.amazonaws.com
+  path: /#Action=DeleteGlobalCluster
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: get_describecertificates
+  description: Returns a list of certificate authority (CA) certificates provided by Amazon DocumentDB
+    for this Amazon Web Services account.
+  operation_type: read
+  method: GET
+  url_base: https://rds.amazonaws.com
+  path: /#Action=DescribeCertificates
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: get_describedbclusterparametergroups
+  description: Returns a list of <code>DBClusterParameterGroup</code> descriptions. If a <code>DBClusterParameterGroupName</code>
+    parameter is specified, the list contains only the description of the specified cluster parameter
+    group.
+  operation_type: read
+  method: GET
+  url_base: https://rds.amazonaws.com
+  path: /#Action=DescribeDBClusterParameterGroups
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: get_describedbclusterparameters
+  description: Returns the detailed parameter list for a particular cluster parameter group.
+  operation_type: read
+  method: GET
+  url_base: https://rds.amazonaws.com
+  path: /#Action=DescribeDBClusterParameters
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: get_describedbclustersnapshotattributes
+  description: <p>Returns a list of cluster snapshot attribute names and values for a manual DB cluster
+    snapshot.</p> <p>When you share snapshots with other Amazon Web Services accounts, <code>DescribeDBClusterSnapshotAttributes</code>
+    returns the <code>restore</code> attribute and a list of IDs for the Amazon Web
+  operation_type: read
+  method: GET
+  url_base: https://rds.amazonaws.com
+  path: /#Action=DescribeDBClusterSnapshotAttributes
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: get_describedbclustersnapshots
+  description: Returns information about cluster snapshots. This API operation supports pagination.
+  operation_type: read
+  method: GET
+  url_base: https://rds.amazonaws.com
+  path: /#Action=DescribeDBClusterSnapshots
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: get_describedbclusters
+  description: Returns information about provisioned Amazon DocumentDB clusters. This API operation supports
+    pagination. For certain management features such as cluster and instance lifecycle management, Amazon
+    DocumentDB leverages operational technology that is shared with Amazon RDS and Amazon Neptune. Use
+    the <
+  operation_type: read
+  method: GET
+  url_base: https://rds.amazonaws.com
+  path: /#Action=DescribeDBClusters
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: get_describedbengineversions
+  description: Returns a list of the available engines.
+  operation_type: read
+  method: GET
+  url_base: https://rds.amazonaws.com
+  path: /#Action=DescribeDBEngineVersions
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: get_describedbinstances
+  description: Returns information about provisioned Amazon DocumentDB instances. This API supports pagination.
+  operation_type: read
+  method: GET
+  url_base: https://rds.amazonaws.com
+  path: /#Action=DescribeDBInstances
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: get_describedbsubnetgroups
+  description: Returns a list of <code>DBSubnetGroup</code> descriptions. If a <code>DBSubnetGroupName</code>
+    is specified, the list will contain only the descriptions of the specified <code>DBSubnetGroup</code>.
+  operation_type: read
+  method: GET
+  url_base: https://rds.amazonaws.com
+  path: /#Action=DescribeDBSubnetGroups
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: get_describeenginedefaultclusterparameters
+  description: Returns the default engine and system parameter information for the cluster database engine.
+  operation_type: read
+  method: GET
+  url_base: https://rds.amazonaws.com
+  path: /#Action=DescribeEngineDefaultClusterParameters
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: get_describeeventcategories
+  description: Displays a list of categories for all event source types, or, if specified, for a specified
+    source type.
+  operation_type: read
+  method: GET
+  url_base: https://rds.amazonaws.com
+  path: /#Action=DescribeEventCategories
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: get_describeeventsubscriptions
+  description: <p>Lists all the subscription descriptions for a customer account. The description for
+    a subscription includes <code>SubscriptionName</code>, <code>SNSTopicARN</code>, <code>CustomerID</code>,
+    <code>SourceType</code>, <code>SourceID</code>, <code>CreationTime</code>, and <code>Status</code>.</p>
+    <p>
+  operation_type: read
+  method: GET
+  url_base: https://rds.amazonaws.com
+  path: /#Action=DescribeEventSubscriptions
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: get_describeevents
+  description: Returns events related to instances, security groups, snapshots, and DB parameter groups
+    for the past 14 days. You can obtain events specific to a particular DB instance, security group,
+    snapshot, or parameter group by providing the name as a parameter. By default, the events of the past
+    hour are re
+  operation_type: read
+  method: GET
+  url_base: https://rds.amazonaws.com
+  path: /#Action=DescribeEvents
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: get_describeglobalclusters
+  description: <p>Returns information about Amazon DocumentDB global clusters. This API supports pagination.</p>
+    <note> <p>This action only applies to Amazon DocumentDB clusters.</p> </note>
+  operation_type: read
+  method: GET
+  url_base: https://rds.amazonaws.com
+  path: /#Action=DescribeGlobalClusters
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: get_describeorderabledbinstanceoptions
+  description: Returns a list of orderable instance options for the specified engine.
+  operation_type: read
+  method: GET
+  url_base: https://rds.amazonaws.com
+  path: /#Action=DescribeOrderableDBInstanceOptions
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: get_describependingmaintenanceactions
+  description: Returns a list of resources (for example, instances) that have at least one pending maintenance
+    action.
+  operation_type: read
+  method: GET
+  url_base: https://rds.amazonaws.com
+  path: /#Action=DescribePendingMaintenanceActions
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: get_failoverdbcluster
+  description: <p>Forces a failover for a cluster.</p> <p>A failover for a cluster promotes one of the
+    Amazon DocumentDB replicas (read-only instances) in the cluster to be the primary instance (the cluster
+    writer).</p> <p>If the primary instance fails, Amazon DocumentDB automatically fails over to an Amazon
+    Docum
+  operation_type: read
+  method: GET
+  url_base: https://rds.amazonaws.com
+  path: /#Action=FailoverDBCluster
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: get_listtagsforresource
+  description: Lists all tags on an Amazon DocumentDB resource.
+  operation_type: read
+  method: GET
+  url_base: https://rds.amazonaws.com
+  path: /#Action=ListTagsForResource
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: get_modifydbcluster
+  description: Modifies a setting for an Amazon DocumentDB cluster. You can change one or more database
+    configuration parameters by specifying these parameters and the new values in the request.
+  operation_type: read
+  method: GET
+  url_base: https://rds.amazonaws.com
+  path: /#Action=ModifyDBCluster
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: get_modifydbclusterparametergroup
+  description: '<p> Modifies the parameters of a cluster parameter group. To modify more than one parameter,
+    submit a list of the following: <code>ParameterName</code>, <code>ParameterValue</code>, and <code>ApplyMethod</code>.
+    A maximum of 20 parameters can be modified in a single request. </p> <note> <p>Changes t'
+  operation_type: read
+  method: GET
+  url_base: https://rds.amazonaws.com
+  path: /#Action=ModifyDBClusterParameterGroup
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: get_modifydbclustersnapshotattribute
+  description: <p>Adds an attribute and values to, or removes an attribute and values from, a manual cluster
+    snapshot.</p> <p>To share a manual cluster snapshot with other Amazon Web Services accounts, specify
+    <code>restore</code> as the <code>AttributeName</code>, and use the <code>ValuesToAdd</code> parameter
+    to
+  operation_type: read
+  method: GET
+  url_base: https://rds.amazonaws.com
+  path: /#Action=ModifyDBClusterSnapshotAttribute
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+rate_limit:
+  type: FixedWindowCallRatePolicy
+  max_calls: 60
+  window_seconds: 60

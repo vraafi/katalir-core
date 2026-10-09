@@ -1,0 +1,582 @@
+# Dihasilkan otomatis oleh apisguru_generator.py (TASK 3).
+# Sumber: APIs.guru openapi-directory.
+# verification.level = 'listed': BELUM dijalankan. Tingkat 'callable'/
+# 'call_verified' hanya diberikan harness setelah panggilan nyata.
+manifest_version: 1
+id: apisguru.apigee_net_marketcheck_cars
+slug: apisguru_apigee_net_marketcheck_cars
+display_name: Marketcheck APIs (APIs.guru)
+description: 'Connector dihasilkan otomatis dari spesifikasi OpenAPI publik Marketcheck APIs v2.01. Sumber:
+  APIs.guru openapi-directory.'
+category: apisguru
+source: apisguru
+tenant_scope: per-user
+deprecated: false
+minimum_supported_release: 1.0.0
+credential_free: false
+auth:
+  type: basic
+  credential_form: user_pass
+actions:
+- name: get_car_dealer_inventory_active
+  description: Get dealers active inventory
+  operation_type: read
+  method: GET
+  url_base: https://marketcheck-prod.apigee.net/v2
+  path: /car/dealer/inventory/active
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: get
+  description: get client filters
+  operation_type: read
+  method: GET
+  url_base: https://marketcheck-prod.apigee.net/v2
+  path: /client/configure/get
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: dealersearch
+  description: Find car dealers around
+  operation_type: read
+  method: GET
+  url_base: https://marketcheck-prod.apigee.net/v2
+  path: /dealers/car
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: get_dealers_car_uk
+  description: Find car dealers around
+  operation_type: read
+  method: GET
+  url_base: https://marketcheck-prod.apigee.net/v2
+  path: /dealers/car/uk
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: get_dealers_heavy_equipment
+  description: Find car dealers around
+  operation_type: read
+  method: GET
+  url_base: https://marketcheck-prod.apigee.net/v2
+  path: /dealers/heavy-equipment
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: get_dealers_motorcycle
+  description: Find car dealers around
+  operation_type: read
+  method: GET
+  url_base: https://marketcheck-prod.apigee.net/v2
+  path: /dealers/motorcycle
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: get_dealers_rv
+  description: Find car dealers around
+  operation_type: read
+  method: GET
+  url_base: https://marketcheck-prod.apigee.net/v2
+  path: /dealers/rv
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: getmds
+  description: Market Days Supply
+  operation_type: read
+  method: GET
+  url_base: https://marketcheck-prod.apigee.net/v2
+  path: /mds/car
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: getpopularcars
+  description: Get make model wise top 50 popular cars on national, state, city level
+  operation_type: read
+  method: GET
+  url_base: https://marketcheck-prod.apigee.net/v2
+  path: /popular/cars
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: predictcarprice
+  description: Predict car price based on it's specifications
+  operation_type: read
+  method: GET
+  url_base: https://marketcheck-prod.apigee.net/v2
+  path: /predict/car/price
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: farevalue
+  description: Predict fare value of car for UK based on YMMT & miles
+  operation_type: read
+  method: GET
+  url_base: https://marketcheck-prod.apigee.net/v2
+  path: /predict/car/uk/fmv
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: predictukcarprice
+  description: Predict car price for UK based on it's specifications
+  operation_type: read
+  method: GET
+  url_base: https://marketcheck-prod.apigee.net/v2
+  path: /predict/car/uk/price
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: getsalescount
+  description: Get sales count by make, model, year, trim or taxonomy vin
+  operation_type: read
+  method: GET
+  url_base: https://marketcheck-prod.apigee.net/v2
+  path: /sales/car
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: get_search_car_active
+  description: Gets active car listings for the given search criteria
+  operation_type: read
+  method: GET
+  url_base: https://marketcheck-prod.apigee.net/v2
+  path: /search/car/active
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: get_search_car_auction_active
+  description: Gets active auction car listings for the given search criteria
+  operation_type: read
+  method: GET
+  url_base: https://marketcheck-prod.apigee.net/v2
+  path: /search/car/auction/active
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: autocomplete
+  description: API for auto-completion of inputs
+  operation_type: read
+  method: GET
+  url_base: https://marketcheck-prod.apigee.net/v2
+  path: /search/car/auto-complete
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: get_search_car_fsbo_active
+  description: Gets active private party car listings for the given search criteria
+  operation_type: read
+  method: GET
+  url_base: https://marketcheck-prod.apigee.net/v2
+  path: /search/car/fsbo/active
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: oemsearch
+  description: Gets oem incentive listings for the given search criteria
+  operation_type: read
+  method: GET
+  url_base: https://marketcheck-prod.apigee.net/v2
+  path: /search/car/incentive/oem
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: get_search_car_recents
+  description: Gets Recent car listings for the given search criteria
+  operation_type: read
+  method: GET
+  url_base: https://marketcheck-prod.apigee.net/v2
+  path: /search/car/recents
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: search
+  description: Gets active car listings in UK for the given search criteria
+  operation_type: read
+  method: GET
+  url_base: https://marketcheck-prod.apigee.net/v2
+  path: /search/car/uk/active
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: get_search_car_uk_recents
+  description: Gets Recent UK car listings for the given search criteria
+  operation_type: read
+  method: GET
+  url_base: https://marketcheck-prod.apigee.net/v2
+  path: /search/car/uk/recents
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: get_search_heavy_equipment_active
+  description: Gets active heavy equipment listings for the given search criteria
+  operation_type: read
+  method: GET
+  url_base: https://marketcheck-prod.apigee.net/v2
+  path: /search/heavy-equipment/active
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: get_search_heavy_equipment_auto_complete
+  description: API for auto-completion of inputs
+  operation_type: read
+  method: GET
+  url_base: https://marketcheck-prod.apigee.net/v2
+  path: /search/heavy-equipment/auto-complete
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: get_search_motorcycle_active
+  description: Gets active motorcycle listings for the given search criteria
+  operation_type: read
+  method: GET
+  url_base: https://marketcheck-prod.apigee.net/v2
+  path: /search/motorcycle/active
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: get_search_motorcycle_auto_complete
+  description: API for auto-completion of inputs
+  operation_type: read
+  method: GET
+  url_base: https://marketcheck-prod.apigee.net/v2
+  path: /search/motorcycle/auto-complete
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: get_search_rv_active
+  description: Gets active RV listings for the given search criteria
+  operation_type: read
+  method: GET
+  url_base: https://marketcheck-prod.apigee.net/v2
+  path: /search/rv/active
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: get_search_rv_auto_complete
+  description: API for auto-completion of inputs
+  operation_type: read
+  method: GET
+  url_base: https://marketcheck-prod.apigee.net/v2
+  path: /search/rv/auto-complete
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: get_search_rv_uk_active
+  description: Gets active RV listings for the given search criteria
+  operation_type: read
+  method: GET
+  url_base: https://marketcheck-prod.apigee.net/v2
+  path: /search/rv/uk/active
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: get_specs_car_auto_complete
+  description: API for auto-completion of inputs based on taxonomy
+  operation_type: read
+  method: GET
+  url_base: https://marketcheck-prod.apigee.net/v2
+  path: /specs/car/auto-complete
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: gettaxonomyterms
+  description: API for getting terms from taxonomy
+  operation_type: read
+  method: GET
+  url_base: https://marketcheck-prod.apigee.net/v2
+  path: /specs/car/terms
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: getdailystats
+  description: Price, Miles and Days on Market stats
+  operation_type: read
+  method: GET
+  url_base: https://marketcheck-prod.apigee.net/v2
+  path: /stats/car
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+rate_limit:
+  type: FixedWindowCallRatePolicy
+  max_calls: 60
+  window_seconds: 60

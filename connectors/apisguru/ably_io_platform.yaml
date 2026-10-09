@@ -1,0 +1,153 @@
+# Dihasilkan otomatis oleh apisguru_generator.py (TASK 3).
+# Sumber: APIs.guru openapi-directory.
+# verification.level = 'listed': BELUM dijalankan. Tingkat 'callable'/
+# 'call_verified' hanya diberikan harness setelah panggilan nyata.
+manifest_version: 1
+id: apisguru.ably_io_platform
+slug: apisguru_ably_io_platform
+display_name: Platform API (APIs.guru)
+description: 'Connector dihasilkan otomatis dari spesifikasi OpenAPI publik Platform API v1.1.0. Sumber:
+  APIs.guru openapi-directory.'
+category: apisguru
+source: apisguru
+tenant_scope: per-user
+deprecated: false
+minimum_supported_release: 1.0.0
+credential_free: false
+auth:
+  type: basic
+  credential_form: user_pass
+actions:
+- name: getmetadataofallchannels
+  description: Enumerate all active channels of the application
+  operation_type: read
+  method: GET
+  url_base: https://rest.ably.io
+  path: /channels
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: getpushsubscriptionsonchannels
+  description: List channel subscriptions
+  operation_type: read
+  method: GET
+  url_base: https://rest.ably.io
+  path: /push/channelSubscriptions
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: getchannelswithpushsubscribers
+  description: List all channels with at least one subscribed device
+  operation_type: read
+  method: GET
+  url_base: https://rest.ably.io
+  path: /push/channels
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: getregisteredpushdevices
+  description: List devices registered for receiving push notifications
+  operation_type: read
+  method: GET
+  url_base: https://rest.ably.io
+  path: /push/deviceRegistrations
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: publishpushnotificationtodevices
+  description: Publish a push notification to device(s)
+  operation_type: write
+  method: POST
+  url_base: https://rest.ably.io
+  path: /push/publish
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+  request_body_json:
+    push: ''
+    recipient: ''
+- name: getstats
+  description: Retrieve usage statistics for an application
+  operation_type: read
+  method: GET
+  url_base: https://rest.ably.io
+  path: /stats
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: gettime
+  description: Get the service time
+  operation_type: read
+  method: GET
+  url_base: https://rest.ably.io
+  path: /time
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+rate_limit:
+  type: FixedWindowCallRatePolicy
+  max_calls: 60
+  window_seconds: 60

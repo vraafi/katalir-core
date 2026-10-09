@@ -1,0 +1,385 @@
+# Dihasilkan otomatis oleh apisguru_generator.py (TASK 3).
+# Sumber: APIs.guru openapi-directory.
+# verification.level = 'listed': BELUM dijalankan. Tingkat 'callable'/
+# 'call_verified' hanya diberikan harness setelah panggilan nyata.
+manifest_version: 1
+id: apisguru.amazonaws_com_route53
+slug: apisguru_amazonaws_com_route53
+display_name: Amazon Route 53 (APIs.guru)
+description: 'Connector dihasilkan otomatis dari spesifikasi OpenAPI publik Amazon Route 53 v2013-04-01.
+  Sumber: APIs.guru openapi-directory.'
+category: apisguru
+source: apisguru
+tenant_scope: per-user
+deprecated: false
+minimum_supported_release: 1.0.0
+credential_free: false
+auth:
+  type: api_key
+  credential_form: api_key_header
+  key_name: authorization
+actions:
+- name: getcheckeripranges
+  description: <p>Route 53 does not perform authorization for this API because it retrieves information
+    that is already available to the public.</p> <important> <p> <code>GetCheckerIpRanges</code> still
+    works, but we recommend that you download ip-ranges.json, which includes IP address ranges for all
+    Amazon Web Se
+  operation_type: read
+  method: GET
+  url_base: https://route53.amazonaws.com
+  path: /2013-04-01/checkeripranges
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: listcidrcollections
+  description: Returns a paginated list of CIDR collections in the Amazon Web Services account (metadata
+    only).
+  operation_type: read
+  method: GET
+  url_base: https://route53.amazonaws.com
+  path: /2013-04-01/cidrcollection
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: listreusabledelegationsets
+  description: Retrieves a list of the reusable delegation sets that are associated with the current Amazon
+    Web Services account.
+  operation_type: read
+  method: GET
+  url_base: https://route53.amazonaws.com
+  path: /2013-04-01/delegationset
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: getgeolocation
+  description: <p>Gets information about whether a specified geographic location is supported for Amazon
+    Route 53 geolocation resource record sets.</p> <p>Route 53 does not perform authorization for this
+    API because it retrieves information that is already available to the public.</p> <p>Use the following
+    syntax t
+  operation_type: read
+  method: GET
+  url_base: https://route53.amazonaws.com
+  path: /2013-04-01/geolocation
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: listgeolocations
+  description: <p>Retrieves a list of supported geographic locations.</p> <p>Countries are listed first,
+    and continents are listed last. If Amazon Route 53 supports subdivisions for a country (for example,
+    states or provinces), the subdivisions for that country are listed in alphabetical order immediately
+    after th
+  operation_type: read
+  method: GET
+  url_base: https://route53.amazonaws.com
+  path: /2013-04-01/geolocations
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: listhealthchecks
+  description: Retrieve a list of the health checks that are associated with the current Amazon Web Services
+    account.
+  operation_type: read
+  method: GET
+  url_base: https://route53.amazonaws.com
+  path: /2013-04-01/healthcheck
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: gethealthcheckcount
+  description: Retrieves the number of health checks that are associated with the current Amazon Web Services
+    account.
+  operation_type: read
+  method: GET
+  url_base: https://route53.amazonaws.com
+  path: /2013-04-01/healthcheckcount
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: listhostedzones
+  description: '<p>Retrieves a list of the public and private hosted zones that are associated with the
+    current Amazon Web Services account. The response includes a <code>HostedZones</code> child element
+    for each hosted zone.</p> <p>Amazon Route 53 returns a maximum of 100 items in each response. If you
+    have a lot '
+  operation_type: read
+  method: GET
+  url_base: https://route53.amazonaws.com
+  path: /2013-04-01/hostedzone
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: gethostedzonecount
+  description: Retrieves the number of hosted zones that are associated with the current Amazon Web Services
+    account.
+  operation_type: read
+  method: GET
+  url_base: https://route53.amazonaws.com
+  path: /2013-04-01/hostedzonecount
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: listhostedzonesbyname
+  description: <p>Retrieves a list of your hosted zones in lexicographic order. The response includes
+    a <code>HostedZones</code> child element for each hosted zone created by the current Amazon Web Services
+    account. </p> <p> <code>ListHostedZonesByName</code> sorts hosted zones by name with the labels reversed.
+    Fo
+  operation_type: read
+  method: GET
+  url_base: https://route53.amazonaws.com
+  path: /2013-04-01/hostedzonesbyname
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: listhostedzonesbyvpc
+  description: <p>Lists all the private hosted zones that a specified VPC is associated with, regardless
+    of which Amazon Web Services account or Amazon Web Services service owns the hosted zones. The <code>HostedZoneOwner</code>
+    structure in the response contains one of the following values:</p> <ul> <li> <p>An <c
+  operation_type: read
+  method: GET
+  url_base: https://route53.amazonaws.com
+  path: /2013-04-01/hostedzonesbyvpc#vpcid&vpcregion
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: listqueryloggingconfigs
+  description: <p>Lists the configurations for DNS query logging that are associated with the current
+    Amazon Web Services account or the configuration that is associated with a specified hosted zone.</p>
+    <p>For more information about DNS query logs, see <a href="https://docs.aws.amazon.com/Route53/latest/APIRefere
+  operation_type: read
+  method: GET
+  url_base: https://route53.amazonaws.com
+  path: /2013-04-01/queryloggingconfig
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: testdnsanswer
+  description: <p>Gets the value that Amazon Route 53 returns in response to a DNS request for a specified
+    record name and type. You can optionally specify the IP address of a DNS resolver, an EDNS0 client
+    subnet IP address, and a subnet mask. </p> <p>This call only supports querying public hosted zones.</p>
+  operation_type: read
+  method: GET
+  url_base: https://route53.amazonaws.com
+  path: /2013-04-01/testdnsanswer#hostedzoneid&recordname&recordtype
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: listtrafficpolicies
+  description: <p>Gets information about the latest version for every traffic policy that is associated
+    with the current Amazon Web Services account. Policies are listed in the order that they were created
+    in. </p> <p>For information about how of deleting a traffic policy affects the response from <code>ListTraffi
+  operation_type: read
+  method: GET
+  url_base: https://route53.amazonaws.com
+  path: /2013-04-01/trafficpolicies
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: gettrafficpolicyinstancecount
+  description: Gets the number of traffic policy instances that are associated with the current Amazon
+    Web Services account.
+  operation_type: read
+  method: GET
+  url_base: https://route53.amazonaws.com
+  path: /2013-04-01/trafficpolicyinstancecount
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: listtrafficpolicyinstances
+  description: <p>Gets information about the traffic policy instances that you created by using the current
+    Amazon Web Services account.</p> <note> <p>After you submit an <code>UpdateTrafficPolicyInstance</code>
+    request, there's a brief delay while Amazon Route 53 creates the resource record sets that are specifie
+  operation_type: read
+  method: GET
+  url_base: https://route53.amazonaws.com
+  path: /2013-04-01/trafficpolicyinstances
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: listtrafficpolicyinstancesbyhostedzone
+  description: <p>Gets information about the traffic policy instances that you created in a specified
+    hosted zone.</p> <note> <p>After you submit a <code>CreateTrafficPolicyInstance</code> or an <code>UpdateTrafficPolicyInstance</code>
+    request, there's a brief delay while Amazon Route 53 creates the resource recor
+  operation_type: read
+  method: GET
+  url_base: https://route53.amazonaws.com
+  path: /2013-04-01/trafficpolicyinstances/hostedzone#id
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: listtrafficpolicyinstancesbypolicy
+  description: <p>Gets information about the traffic policy instances that you created by using a specify
+    traffic policy version.</p> <note> <p>After you submit a <code>CreateTrafficPolicyInstance</code>
+    or an <code>UpdateTrafficPolicyInstance</code> request, there's a brief delay while Amazon Route 53
+    creates the
+  operation_type: read
+  method: GET
+  url_base: https://route53.amazonaws.com
+  path: /2013-04-01/trafficpolicyinstances/trafficpolicy#id&version
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+rate_limit:
+  type: FixedWindowCallRatePolicy
+  max_calls: 60
+  window_seconds: 60

@@ -1,0 +1,311 @@
+# Dihasilkan otomatis oleh apisguru_generator.py (TASK 3).
+# Sumber: APIs.guru openapi-directory.
+# verification.level = 'listed': BELUM dijalankan. Tingkat 'callable'/
+# 'call_verified' hanya diberikan harness setelah panggilan nyata.
+manifest_version: 1
+id: apisguru.api_video
+slug: apisguru_api_video
+display_name: api.video (APIs.guru)
+description: 'Connector dihasilkan otomatis dari spesifikasi OpenAPI publik api.video v1. Sumber: APIs.guru
+  openapi-directory.'
+category: apisguru
+source: apisguru
+tenant_scope: public
+deprecated: false
+minimum_supported_release: 1.0.0
+credential_free: true
+auth:
+  type: none
+actions:
+- name: get_analytics_live_streams_livestreamid
+  description: List live stream player sessions
+  operation_type: read
+  method: GET
+  url_base: https://ws.api.video
+  path: /analytics/live-streams/vi4k0jvEUuaTdRAEjQ4Jfrgz
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: get_analytics_sessions_sessionid_events
+  description: List player session events
+  operation_type: read
+  method: GET
+  url_base: https://ws.api.video
+  path: /analytics/sessions/psEmFwGQUAXR2lFHj5nDOpy/events
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: get_analytics_videos_videoid
+  description: List video player sessions
+  operation_type: read
+  method: GET
+  url_base: https://ws.api.video
+  path: /analytics/videos/vi4k0jvEUuaTdRAEjQ4Prklg
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: get_live_streams
+  description: List all live streams
+  operation_type: read
+  method: GET
+  url_base: https://ws.api.video
+  path: /live-streams
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: get_live_streams_livestreamid
+  description: Show live stream
+  operation_type: read
+  method: GET
+  url_base: https://ws.api.video
+  path: /live-streams/li400mYKSgQ6xs7taUeSaEKr
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: get_players
+  description: List all players
+  operation_type: read
+  method: GET
+  url_base: https://ws.api.video
+  path: /players
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: get_players_playerid
+  description: Show a player
+  operation_type: read
+  method: GET
+  url_base: https://ws.api.video
+  path: /players/pl45d5vFFGrfdsdsd156dGhh
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: get_upload_tokens
+  description: List all active upload tokens.
+  operation_type: read
+  method: GET
+  url_base: https://ws.api.video
+  path: /upload-tokens
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: get_upload_tokens_uploadtoken
+  description: Show upload token
+  operation_type: read
+  method: GET
+  url_base: https://ws.api.video
+  path: /upload-tokens/to1tcmSFHeYY5KzyhOqVKMKb
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: list_videos
+  description: List all videos
+  operation_type: read
+  method: GET
+  url_base: https://ws.api.video
+  path: /videos
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: get_videos_videoid_captions
+  description: List video captions
+  operation_type: read
+  method: GET
+  url_base: https://ws.api.video
+  path: /videos/vi4k0jvEUuaTdRAEjQ4Prklg/captions
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: get_videos_videoid_captions_language
+  description: Show a caption
+  operation_type: read
+  method: GET
+  url_base: https://ws.api.video
+  path: /videos/vi4k0jvEUuaTdRAEjQ4Prklg/captions/en
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: get_videos_videoid_chapters
+  description: List video chapters
+  operation_type: read
+  method: GET
+  url_base: https://ws.api.video
+  path: /videos/vi4k0jvEUuaTdRAEjQ4Jfrgz/chapters
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: get_videos_videoid_chapters_language
+  description: Show a chapter
+  operation_type: read
+  method: GET
+  url_base: https://ws.api.video
+  path: /videos/vi4k0jvEUuaTdRAEjQ4Jfrgz/chapters/en
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: get_video_status
+  description: Show video status
+  operation_type: read
+  method: GET
+  url_base: https://ws.api.video
+  path: /videos/vi4k0jvEUuaTdRAEjQ4Jfrgz/status
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: list_webhooks
+  description: List all webhooks
+  operation_type: read
+  method: GET
+  url_base: https://ws.api.video
+  path: /webhooks
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+rate_limit:
+  type: FixedWindowCallRatePolicy
+  max_calls: 60
+  window_seconds: 60

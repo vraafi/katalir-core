@@ -1,0 +1,131 @@
+# Dihasilkan otomatis oleh apisguru_generator.py (TASK 3).
+# Sumber: APIs.guru openapi-directory.
+# verification.level = 'listed': BELUM dijalankan. Tingkat 'callable'/
+# 'call_verified' hanya diberikan harness setelah panggilan nyata.
+manifest_version: 1
+id: apisguru.adyen_com_managementservice
+slug: apisguru_adyen_com_managementservice
+display_name: Management API (APIs.guru)
+description: 'Connector dihasilkan otomatis dari spesifikasi OpenAPI publik Management API v1. Sumber:
+  APIs.guru openapi-directory.'
+category: apisguru
+source: apisguru
+tenant_scope: public
+deprecated: false
+minimum_supported_release: 1.0.0
+credential_free: true
+auth:
+  type: none
+actions:
+- name: get_companies
+  description: Get a list of company accounts
+  operation_type: read
+  method: GET
+  url_base: https://management-test.adyen.com/v1
+  path: /companies
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: get_me
+  description: Get API credential details
+  operation_type: read
+  method: GET
+  url_base: https://management-test.adyen.com/v1
+  path: /me
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: get_me_allowedorigins
+  description: Get allowed origins
+  operation_type: read
+  method: GET
+  url_base: https://management-test.adyen.com/v1
+  path: /me/allowedOrigins
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: get_merchants
+  description: Get a list of merchant accounts
+  operation_type: read
+  method: GET
+  url_base: https://management-test.adyen.com/v1
+  path: /merchants
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: get_stores
+  description: Get a list of stores
+  operation_type: read
+  method: GET
+  url_base: https://management-test.adyen.com/v1
+  path: /stores
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: get_terminals
+  description: Get a list of terminals
+  operation_type: read
+  method: GET
+  url_base: https://management-test.adyen.com/v1
+  path: /terminals
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+rate_limit:
+  type: FixedWindowCallRatePolicy
+  max_calls: 60
+  window_seconds: 60

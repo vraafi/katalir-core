@@ -1,0 +1,743 @@
+# Dihasilkan otomatis oleh apisguru_generator.py (TASK 3).
+# Sumber: APIs.guru openapi-directory.
+# verification.level = 'listed': BELUM dijalankan. Tingkat 'callable'/
+# 'call_verified' hanya diberikan harness setelah panggilan nyata.
+manifest_version: 1
+id: apisguru.atlassian_com_jira
+slug: apisguru_atlassian_com_jira
+display_name: The Jira Cloud platform REST API (APIs.guru)
+description: 'Connector dihasilkan otomatis dari spesifikasi OpenAPI publik The Jira Cloud platform REST
+  API v1001.0.0-SNAPSHOT. Sumber: APIs.guru openapi-directory.'
+category: apisguru
+source: apisguru
+tenant_scope: public
+deprecated: false
+minimum_supported_release: 1.0.0
+credential_free: true
+auth:
+  type: none
+actions:
+- name: getbanner
+  description: Get announcement banner configuration
+  operation_type: read
+  method: GET
+  url_base: https://your-domain.atlassian.net
+  path: /rest/api/3/announcementBanner
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: getapplicationproperty
+  description: Get application property
+  operation_type: read
+  method: GET
+  url_base: https://your-domain.atlassian.net
+  path: /rest/api/3/application-properties
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: getadvancedsettings
+  description: Get advanced settings
+  operation_type: read
+  method: GET
+  url_base: https://your-domain.atlassian.net
+  path: /rest/api/3/application-properties/advanced-settings
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: getallapplicationroles
+  description: Get all application roles
+  operation_type: read
+  method: GET
+  url_base: https://your-domain.atlassian.net
+  path: /rest/api/3/applicationrole
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: getattachmentmeta
+  description: Get Jira attachment settings
+  operation_type: read
+  method: GET
+  url_base: https://your-domain.atlassian.net
+  path: /rest/api/3/attachment/meta
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: getauditrecords
+  description: Get audit records
+  operation_type: read
+  method: GET
+  url_base: https://your-domain.atlassian.net
+  path: /rest/api/3/auditing/record
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: getconfiguration
+  description: Get global settings
+  operation_type: read
+  method: GET
+  url_base: https://your-domain.atlassian.net
+  path: /rest/api/3/configuration
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: getselectedtimetrackingimplementation
+  description: Get selected time tracking provider
+  operation_type: read
+  method: GET
+  url_base: https://your-domain.atlassian.net
+  path: /rest/api/3/configuration/timetracking
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: getavailabletimetrackingimplementations
+  description: Get all time tracking providers
+  operation_type: read
+  method: GET
+  url_base: https://your-domain.atlassian.net
+  path: /rest/api/3/configuration/timetracking/list
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: getsharedtimetrackingconfiguration
+  description: Get time tracking settings
+  operation_type: read
+  method: GET
+  url_base: https://your-domain.atlassian.net
+  path: /rest/api/3/configuration/timetracking/options
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: getalldashboards
+  description: Get all dashboards
+  operation_type: read
+  method: GET
+  url_base: https://your-domain.atlassian.net
+  path: /rest/api/3/dashboard
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: getallavailabledashboardgadgets
+  description: Get available gadgets
+  operation_type: read
+  method: GET
+  url_base: https://your-domain.atlassian.net
+  path: /rest/api/3/dashboard/gadgets
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: getdashboardspaginated
+  description: Search for dashboards
+  operation_type: read
+  method: GET
+  url_base: https://your-domain.atlassian.net
+  path: /rest/api/3/dashboard/search
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: getevents
+  description: Get events
+  operation_type: read
+  method: GET
+  url_base: https://your-domain.atlassian.net
+  path: /rest/api/3/events
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: getfields
+  description: Get fields
+  operation_type: read
+  method: GET
+  url_base: https://your-domain.atlassian.net
+  path: /rest/api/3/field
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: getfieldspaginated
+  description: Get fields paginated
+  operation_type: read
+  method: GET
+  url_base: https://your-domain.atlassian.net
+  path: /rest/api/3/field/search
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: gettrashedfieldspaginated
+  description: Get fields in trash paginated
+  operation_type: read
+  method: GET
+  url_base: https://your-domain.atlassian.net
+  path: /rest/api/3/field/search/trashed
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: getallfieldconfigurations
+  description: Get all field configurations
+  operation_type: read
+  method: GET
+  url_base: https://your-domain.atlassian.net
+  path: /rest/api/3/fieldconfiguration
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: getallfieldconfigurationschemes
+  description: Get all field configuration schemes
+  operation_type: read
+  method: GET
+  url_base: https://your-domain.atlassian.net
+  path: /rest/api/3/fieldconfigurationscheme
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: getfieldconfigurationschememappings
+  description: Get field configuration issue type items
+  operation_type: read
+  method: GET
+  url_base: https://your-domain.atlassian.net
+  path: /rest/api/3/fieldconfigurationscheme/mapping
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: getfieldconfigurationschemeprojectmapping
+  description: Get field configuration schemes for projects
+  operation_type: read
+  method: GET
+  url_base: https://your-domain.atlassian.net
+  path: /rest/api/3/fieldconfigurationscheme/project
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: getdefaultsharescope
+  description: Get default share scope
+  operation_type: read
+  method: GET
+  url_base: https://your-domain.atlassian.net
+  path: /rest/api/3/filter/defaultShareScope
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: getfavouritefilters
+  description: Get favorite filters
+  operation_type: read
+  method: GET
+  url_base: https://your-domain.atlassian.net
+  path: /rest/api/3/filter/favourite
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: getmyfilters
+  description: Get my filters
+  operation_type: read
+  method: GET
+  url_base: https://your-domain.atlassian.net
+  path: /rest/api/3/filter/my
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: getfilterspaginated
+  description: Search for filters
+  operation_type: read
+  method: GET
+  url_base: https://your-domain.atlassian.net
+  path: /rest/api/3/filter/search
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: bulkgetgroups
+  description: Bulk get groups
+  operation_type: read
+  method: GET
+  url_base: https://your-domain.atlassian.net
+  path: /rest/api/3/group/bulk
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: getusersfromgroup
+  description: Get users from group
+  operation_type: read
+  method: GET
+  url_base: https://your-domain.atlassian.net
+  path: /rest/api/3/group/member
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: findgroups
+  description: Find groups
+  operation_type: read
+  method: GET
+  url_base: https://your-domain.atlassian.net
+  path: /rest/api/3/groups/picker
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: findusersandgroups
+  description: Find users and groups
+  operation_type: read
+  method: GET
+  url_base: https://your-domain.atlassian.net
+  path: /rest/api/3/groupuserpicker
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: getlicense
+  description: Get license
+  operation_type: read
+  method: GET
+  url_base: https://your-domain.atlassian.net
+  path: /rest/api/3/instance/license
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: getcreateissuemeta
+  description: Get create issue metadata
+  operation_type: read
+  method: GET
+  url_base: https://your-domain.atlassian.net
+  path: /rest/api/3/issue/createmeta
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: getissuepickerresource
+  description: Get issue picker suggestions
+  operation_type: read
+  method: GET
+  url_base: https://your-domain.atlassian.net
+  path: /rest/api/3/issue/picker
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: getissuelinktypes
+  description: Get issue link types
+  operation_type: read
+  method: GET
+  url_base: https://your-domain.atlassian.net
+  path: /rest/api/3/issueLinkType
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: getissuesecurityschemes
+  description: Get issue security schemes
+  operation_type: read
+  method: GET
+  url_base: https://your-domain.atlassian.net
+  path: /rest/api/3/issuesecurityschemes
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: getissuealltypes
+  description: Get all issue types for user
+  operation_type: read
+  method: GET
+  url_base: https://your-domain.atlassian.net
+  path: /rest/api/3/issuetype
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: getissuetypesforproject
+  description: Get issue types for project
+  operation_type: read
+  method: GET
+  url_base: https://your-domain.atlassian.net
+  path: /rest/api/3/issuetype/project
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: getallissuetypeschemes
+  description: Get all issue type schemes
+  operation_type: read
+  method: GET
+  url_base: https://your-domain.atlassian.net
+  path: /rest/api/3/issuetypescheme
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: getissuetypeschemesmapping
+  description: Get issue type scheme items
+  operation_type: read
+  method: GET
+  url_base: https://your-domain.atlassian.net
+  path: /rest/api/3/issuetypescheme/mapping
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: getissuetypeschemeforprojects
+  description: Get issue type schemes for projects
+  operation_type: read
+  method: GET
+  url_base: https://your-domain.atlassian.net
+  path: /rest/api/3/issuetypescheme/project
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: getissuetypescreenschemes
+  description: Get issue type screen schemes
+  operation_type: read
+  method: GET
+  url_base: https://your-domain.atlassian.net
+  path: /rest/api/3/issuetypescreenscheme
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+rate_limit:
+  type: FixedWindowCallRatePolicy
+  max_calls: 60
+  window_seconds: 60

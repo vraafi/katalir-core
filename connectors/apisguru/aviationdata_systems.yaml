@@ -1,0 +1,41 @@
+# Dihasilkan otomatis oleh apisguru_generator.py (TASK 3).
+# Sumber: APIs.guru openapi-directory.
+# verification.level = 'listed': BELUM dijalankan. Tingkat 'callable'/
+# 'call_verified' hanya diberikan harness setelah panggilan nyata.
+manifest_version: 1
+id: apisguru.aviationdata_systems
+slug: apisguru_aviationdata_systems
+display_name: AviationData.Systems Airports API V1 (APIs.guru)
+description: 'Connector dihasilkan otomatis dari spesifikasi OpenAPI publik AviationData.Systems Airports
+  API V1 vv1. Sumber: APIs.guru openapi-directory.'
+category: apisguru
+source: apisguru
+tenant_scope: public
+deprecated: false
+minimum_supported_release: 1.0.0
+credential_free: true
+auth:
+  type: none
+actions:
+- name: countrylist_countryairportlist
+  description: Country list. Returns a list of countries where airport data is available
+  operation_type: read
+  method: GET
+  url_base: https://api.aviationdata.systems
+  path: /v1/country_list
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+rate_limit:
+  type: FixedWindowCallRatePolicy
+  max_calls: 60
+  window_seconds: 60

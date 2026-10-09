@@ -1,0 +1,744 @@
+# Dihasilkan otomatis oleh apisguru_generator.py (TASK 3).
+# Sumber: APIs.guru openapi-directory.
+# verification.level = 'listed': BELUM dijalankan. Tingkat 'callable'/
+# 'call_verified' hanya diberikan harness setelah panggilan nyata.
+manifest_version: 1
+id: apisguru.api2cart_com
+slug: apisguru_api2cart_com
+display_name: Swagger API2Cart (APIs.guru)
+description: 'Connector dihasilkan otomatis dari spesifikasi OpenAPI publik Swagger API2Cart v1.1. Sumber:
+  APIs.guru openapi-directory.'
+category: apisguru
+source: apisguru
+tenant_scope: public
+deprecated: false
+minimum_supported_release: 1.0.0
+credential_free: true
+auth:
+  type: none
+actions:
+- name: accountcartlist
+  description: Get list of carts.
+  operation_type: read
+  method: GET
+  url_base: https://api.api2cart.com/v1.1
+  path: /account.cart.list.json
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: accountfailedwebhooks
+  description: List webhooks that was not delivered to the callback.
+  operation_type: read
+  method: GET
+  url_base: https://api.api2cart.com/v1.1
+  path: /account.failed_webhooks.json
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: accountsupportedplatforms
+  description: Get list of supported platforms
+  operation_type: read
+  method: GET
+  url_base: https://api.api2cart.com/v1.1
+  path: /account.supported_platforms.json
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: attributeattributesetlist
+  description: Get attribute_set list
+  operation_type: read
+  method: GET
+  url_base: https://api.api2cart.com/v1.1
+  path: /attribute.attributeset.list.json
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: attributecount
+  description: Get attributes count
+  operation_type: read
+  method: GET
+  url_base: https://api.api2cart.com/v1.1
+  path: /attribute.count.json
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: attributegrouplist
+  description: Get attribute group list
+  operation_type: read
+  method: GET
+  url_base: https://api.api2cart.com/v1.1
+  path: /attribute.group.list.json
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: attributeinfo
+  description: Get attribute info
+  operation_type: read
+  method: GET
+  url_base: https://api.api2cart.com/v1.1
+  path: /attribute.info.json
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: attributelist
+  description: Get attributes list
+  operation_type: read
+  method: GET
+  url_base: https://api.api2cart.com/v1.1
+  path: /attribute.list.json
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: attributetypelist
+  description: Get list of supported attributes types
+  operation_type: read
+  method: GET
+  url_base: https://api.api2cart.com/v1.1
+  path: /attribute.type.list.json
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: basketinfo
+  description: Retrieve basket information.
+  operation_type: read
+  method: GET
+  url_base: https://api.api2cart.com/v1.1
+  path: /basket.info.json
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: basketliveshippingservicelist
+  description: Retrieve a list of live shipping rate services. (Beta)
+  operation_type: read
+  method: GET
+  url_base: https://api.api2cart.com/v1.1
+  path: /basket.live_shipping_service.list.json
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: bridgedownload
+  description: Download bridge for store
+  operation_type: read
+  method: GET
+  url_base: https://api.api2cart.com/v1.1
+  path: /bridge.download.file
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: cartbridge
+  description: Get bridge key and store key
+  operation_type: read
+  method: GET
+  url_base: https://api.api2cart.com/v1.1
+  path: /cart.bridge.json
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: cartcatalogpricerulescount
+  description: Get count of cart catalog price rules discounts.
+  operation_type: read
+  method: GET
+  url_base: https://api.api2cart.com/v1.1
+  path: /cart.catalog_price_rules.count.json
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: cartcatalogpriceruleslist
+  description: Get cart catalog price rules discounts.
+  operation_type: read
+  method: GET
+  url_base: https://api.api2cart.com/v1.1
+  path: /cart.catalog_price_rules.list.json
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: cartconfig
+  description: Get list of cart configs
+  operation_type: read
+  method: GET
+  url_base: https://api.api2cart.com/v1.1
+  path: /cart.config.json
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: cartcouponcount
+  description: Get cart coupons count.
+  operation_type: read
+  method: GET
+  url_base: https://api.api2cart.com/v1.1
+  path: /cart.coupon.count.json
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: cartcouponlist
+  description: Get cart coupon discounts.
+  operation_type: read
+  method: GET
+  url_base: https://api.api2cart.com/v1.1
+  path: /cart.coupon.list.json
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: cartgiftcardcount
+  description: Get gift cards count.
+  operation_type: read
+  method: GET
+  url_base: https://api.api2cart.com/v1.1
+  path: /cart.giftcard.count.json
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: cartgiftcardlist
+  description: Get gift cards list.
+  operation_type: read
+  method: GET
+  url_base: https://api.api2cart.com/v1.1
+  path: /cart.giftcard.list.json
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: cartinfo
+  description: Get cart information
+  operation_type: read
+  method: GET
+  url_base: https://api.api2cart.com/v1.1
+  path: /cart.info.json
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: cartmetadatalist
+  description: Get entity meta data
+  operation_type: read
+  method: GET
+  url_base: https://api.api2cart.com/v1.1
+  path: /cart.meta_data.list.json
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: cartmethods
+  description: Get list of cart methods
+  operation_type: read
+  method: GET
+  url_base: https://api.api2cart.com/v1.1
+  path: /cart.methods.json
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: cartpluginlist
+  description: Get list of installed plugins
+  operation_type: read
+  method: GET
+  url_base: https://api.api2cart.com/v1.1
+  path: /cart.plugin.list.json
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: cartscriptlist
+  description: Get scripts installed to the storefront
+  operation_type: read
+  method: GET
+  url_base: https://api.api2cart.com/v1.1
+  path: /cart.script.list.json
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: cartshippingzoneslist
+  description: Get list of shipping zones
+  operation_type: read
+  method: GET
+  url_base: https://api.api2cart.com/v1.1
+  path: /cart.shipping_zones.list.json
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: cartvalidate
+  description: Check store availability, bridge connection for the downloadable carts, identify DB prefix,
+    validate API accesses for API carts.
+  operation_type: read
+  method: GET
+  url_base: https://api.api2cart.com/v1.1
+  path: /cart.validate.json
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: categorycount
+  description: Count categories in store.
+  operation_type: read
+  method: GET
+  url_base: https://api.api2cart.com/v1.1
+  path: /category.count.json
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: categoryfind
+  description: Search category in store. "Laptop" is specified here by default.
+  operation_type: read
+  method: GET
+  url_base: https://api.api2cart.com/v1.1
+  path: /category.find.json
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: categoryinfo
+  description: Get category info about category ID*** or specify other category ID.
+  operation_type: read
+  method: GET
+  url_base: https://api.api2cart.com/v1.1
+  path: /category.info.json
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: categorylist
+  description: Get list of categories from store.
+  operation_type: read
+  method: GET
+  url_base: https://api.api2cart.com/v1.1
+  path: /category.list.json
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: customerattributelist
+  description: Get attributes for specific customer
+  operation_type: read
+  method: GET
+  url_base: https://api.api2cart.com/v1.1
+  path: /customer.attribute.list.json
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: customercount
+  description: Get number of customers from store.
+  operation_type: read
+  method: GET
+  url_base: https://api.api2cart.com/v1.1
+  path: /customer.count.json
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: customerfind
+  description: Find customers in store.
+  operation_type: read
+  method: GET
+  url_base: https://api.api2cart.com/v1.1
+  path: /customer.find.json
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: customergrouplist
+  description: Get list of customers groups.
+  operation_type: read
+  method: GET
+  url_base: https://api.api2cart.com/v1.1
+  path: /customer.group.list.json
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: customerinfo
+  description: Get customers' details from store.
+  operation_type: read
+  method: GET
+  url_base: https://api.api2cart.com/v1.1
+  path: /customer.info.json
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: customerlist
+  description: Get list of customers from store.
+  operation_type: read
+  method: GET
+  url_base: https://api.api2cart.com/v1.1
+  path: /customer.list.json
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: orderabandonedlist
+  description: Get list of orders that were left by customers before completing the order.
+  operation_type: read
+  method: GET
+  url_base: https://api.api2cart.com/v1.1
+  path: /order.abandoned.list.json
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: ordercount
+  description: Count orders in store
+  operation_type: read
+  method: GET
+  url_base: https://api.api2cart.com/v1.1
+  path: /order.count.json
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: orderfinancialstatuslist
+  description: Retrieve list of financial statuses
+  operation_type: read
+  method: GET
+  url_base: https://api.api2cart.com/v1.1
+  path: /order.financial_status.list.json
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+rate_limit:
+  type: FixedWindowCallRatePolicy
+  max_calls: 60
+  window_seconds: 60

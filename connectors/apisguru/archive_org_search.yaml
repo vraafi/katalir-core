@@ -1,0 +1,77 @@
+# Dihasilkan otomatis oleh apisguru_generator.py (TASK 3).
+# Sumber: APIs.guru openapi-directory.
+# verification.level = 'listed': BELUM dijalankan. Tingkat 'callable'/
+# 'call_verified' hanya diberikan harness setelah panggilan nyata.
+manifest_version: 1
+id: apisguru.archive_org_search
+slug: apisguru_archive_org_search
+display_name: Search Services (APIs.guru)
+description: 'Connector dihasilkan otomatis dari spesifikasi OpenAPI publik Search Services v1.0.0. Sumber:
+  APIs.guru openapi-directory.'
+category: apisguru
+source: apisguru
+tenant_scope: public
+deprecated: false
+minimum_supported_release: 1.0.0
+credential_free: true
+auth:
+  type: none
+actions:
+- name: get_search_v1_fields
+  description: Fields that can be requested
+  operation_type: read
+  method: GET
+  url_base: https://api.archive.org
+  path: /search/v1/fields
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: get_search_v1_organic
+  description: Return relevance-based results from search queries
+  operation_type: read
+  method: GET
+  url_base: https://api.archive.org
+  path: /search/v1/organic
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: get_search_v1_scrape
+  description: Scrape search results from Internet Archive, allowing a scrolling cursor
+  operation_type: read
+  method: GET
+  url_base: https://api.archive.org
+  path: /search/v1/scrape
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+rate_limit:
+  type: FixedWindowCallRatePolicy
+  max_calls: 60
+  window_seconds: 60

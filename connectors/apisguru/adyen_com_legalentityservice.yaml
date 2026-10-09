@@ -1,0 +1,41 @@
+# Dihasilkan otomatis oleh apisguru_generator.py (TASK 3).
+# Sumber: APIs.guru openapi-directory.
+# verification.level = 'listed': BELUM dijalankan. Tingkat 'callable'/
+# 'call_verified' hanya diberikan harness setelah panggilan nyata.
+manifest_version: 1
+id: apisguru.adyen_com_legalentityservice
+slug: apisguru_adyen_com_legalentityservice
+display_name: Legal Entity Management API (APIs.guru)
+description: 'Connector dihasilkan otomatis dari spesifikasi OpenAPI publik Legal Entity Management API
+  v3. Sumber: APIs.guru openapi-directory.'
+category: apisguru
+source: apisguru
+tenant_scope: public
+deprecated: false
+minimum_supported_release: 1.0.0
+credential_free: true
+auth:
+  type: none
+actions:
+- name: get_themes
+  description: Get a list of hosted onboarding page themes
+  operation_type: read
+  method: GET
+  url_base: https://kyc-test.adyen.com/lem/v3
+  path: /themes
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+rate_limit:
+  type: FixedWindowCallRatePolicy
+  max_calls: 60
+  window_seconds: 60

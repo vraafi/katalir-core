@@ -1,0 +1,788 @@
+# Dihasilkan otomatis oleh apisguru_generator.py (TASK 3).
+# Sumber: APIs.guru openapi-directory.
+# verification.level = 'listed': BELUM dijalankan. Tingkat 'callable'/
+# 'call_verified' hanya diberikan harness setelah panggilan nyata.
+manifest_version: 1
+id: apisguru.asana_com
+slug: apisguru_asana_com
+display_name: Asana (APIs.guru)
+description: 'Connector dihasilkan otomatis dari spesifikasi OpenAPI publik Asana v1.0. Sumber: APIs.guru
+  openapi-directory.'
+category: apisguru
+source: apisguru
+tenant_scope: per-user
+deprecated: false
+minimum_supported_release: 1.0.0
+credential_free: false
+auth:
+  type: bearer
+  credential_form: token_paste
+actions:
+- name: getattachmentsforobject
+  description: Get attachments from an object
+  operation_type: read
+  method: GET
+  url_base: https://app.asana.com/api/1.0
+  path: /attachments
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: getattachment
+  description: Get an attachment
+  operation_type: read
+  method: GET
+  url_base: https://app.asana.com/api/1.0
+  path: /attachments/12345
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: createbatchrequest
+  description: Submit parallel requests
+  operation_type: write
+  method: POST
+  url_base: https://app.asana.com/api/1.0
+  path: /batch
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+  request_body_json:
+    data: ''
+- name: createcustomfield
+  description: Create a custom field
+  operation_type: write
+  method: POST
+  url_base: https://app.asana.com/api/1.0
+  path: /custom_fields
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+  request_body_json:
+    data: ''
+- name: getcustomfield
+  description: Get a custom field
+  operation_type: read
+  method: GET
+  url_base: https://app.asana.com/api/1.0
+  path: /custom_fields/12345
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: updatecustomfield
+  description: Update a custom field
+  operation_type: write
+  method: PUT
+  url_base: https://app.asana.com/api/1.0
+  path: /custom_fields/12345
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+  request_body_json:
+    data: ''
+- name: createenumoptionforcustomfield
+  description: Create an enum option
+  operation_type: write
+  method: POST
+  url_base: https://app.asana.com/api/1.0
+  path: /custom_fields/12345/enum_options
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+  request_body_json:
+    data: ''
+- name: insertenumoptionforcustomfield
+  description: Reorder a custom field's enum
+  operation_type: write
+  method: POST
+  url_base: https://app.asana.com/api/1.0
+  path: /custom_fields/12345/enum_options/insert
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+  request_body_json:
+    data: ''
+- name: updateenumoption
+  description: Update an enum option
+  operation_type: write
+  method: PUT
+  url_base: https://app.asana.com/api/1.0
+  path: /enum_options/124578
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+  request_body_json:
+    data: ''
+- name: getevents
+  description: Get events on a resource
+  operation_type: read
+  method: GET
+  url_base: https://app.asana.com/api/1.0
+  path: /events
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: getgoalrelationships
+  description: Get goal relationships
+  operation_type: read
+  method: GET
+  url_base: https://app.asana.com/api/1.0
+  path: /goal_relationships
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: getgoalrelationship
+  description: Get a goal relationship
+  operation_type: read
+  method: GET
+  url_base: https://app.asana.com/api/1.0
+  path: /goal_relationships/12345
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: updategoalrelationship
+  description: Update a goal relationship
+  operation_type: write
+  method: PUT
+  url_base: https://app.asana.com/api/1.0
+  path: /goal_relationships/12345
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+  request_body_json:
+    data: ''
+- name: getgoals
+  description: Get goals
+  operation_type: read
+  method: GET
+  url_base: https://app.asana.com/api/1.0
+  path: /goals
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: creategoal
+  description: Create a goal
+  operation_type: write
+  method: POST
+  url_base: https://app.asana.com/api/1.0
+  path: /goals
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+  request_body_json:
+    data: ''
+- name: getgoal
+  description: Get a goal
+  operation_type: read
+  method: GET
+  url_base: https://app.asana.com/api/1.0
+  path: /goals/12345
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: updategoal
+  description: Update a goal
+  operation_type: write
+  method: PUT
+  url_base: https://app.asana.com/api/1.0
+  path: /goals/12345
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+  request_body_json:
+    data: ''
+- name: addfollowers
+  description: Add a collaborator to a goal
+  operation_type: write
+  method: POST
+  url_base: https://app.asana.com/api/1.0
+  path: /goals/12345/addFollowers
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+  request_body_json:
+    data: ''
+- name: addsupportingrelationship
+  description: Add a supporting goal relationship
+  operation_type: write
+  method: POST
+  url_base: https://app.asana.com/api/1.0
+  path: /goals/12345/addSupportingRelationship
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+  request_body_json:
+    data: ''
+- name: getparentgoalsforgoal
+  description: Get parent goals from a goal
+  operation_type: read
+  method: GET
+  url_base: https://app.asana.com/api/1.0
+  path: /goals/12345/parentGoals
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: removefollowers
+  description: Remove a collaborator from a goal
+  operation_type: write
+  method: POST
+  url_base: https://app.asana.com/api/1.0
+  path: /goals/12345/removeFollowers
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+  request_body_json:
+    data: ''
+- name: removesupportingrelationship
+  description: Removes a supporting goal relationship
+  operation_type: write
+  method: POST
+  url_base: https://app.asana.com/api/1.0
+  path: /goals/12345/removeSupportingRelationship
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+  request_body_json:
+    data: ''
+- name: creategoalmetric
+  description: Create a goal metric
+  operation_type: write
+  method: POST
+  url_base: https://app.asana.com/api/1.0
+  path: /goals/12345/setMetric
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+  request_body_json:
+    data: ''
+- name: updategoalmetric
+  description: Update a goal metric
+  operation_type: write
+  method: POST
+  url_base: https://app.asana.com/api/1.0
+  path: /goals/12345/setMetricCurrentValue
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+  request_body_json:
+    data: ''
+- name: getjob
+  description: Get a job by id
+  operation_type: read
+  method: GET
+  url_base: https://app.asana.com/api/1.0
+  path: /jobs/12345
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: createorganizationexport
+  description: Create an organization export request
+  operation_type: write
+  method: POST
+  url_base: https://app.asana.com/api/1.0
+  path: /organization_exports
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+  request_body_json:
+    data: ''
+- name: getorganizationexport
+  description: Get details on an org export request
+  operation_type: read
+  method: GET
+  url_base: https://app.asana.com/api/1.0
+  path: /organization_exports/12345
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: getportfoliomemberships
+  description: Get multiple portfolio memberships
+  operation_type: read
+  method: GET
+  url_base: https://app.asana.com/api/1.0
+  path: /portfolio_memberships
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: getportfoliomembership
+  description: Get a portfolio membership
+  operation_type: read
+  method: GET
+  url_base: https://app.asana.com/api/1.0
+  path: /portfolio_memberships/1331
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: getportfolios
+  description: Get multiple portfolios
+  operation_type: read
+  method: GET
+  url_base: https://app.asana.com/api/1.0
+  path: /portfolios
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: createportfolio
+  description: Create a portfolio
+  operation_type: write
+  method: POST
+  url_base: https://app.asana.com/api/1.0
+  path: /portfolios
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+  request_body_json:
+    data: ''
+- name: getportfolio
+  description: Get a portfolio
+  operation_type: read
+  method: GET
+  url_base: https://app.asana.com/api/1.0
+  path: /portfolios/12345
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: updateportfolio
+  description: Update a portfolio
+  operation_type: write
+  method: PUT
+  url_base: https://app.asana.com/api/1.0
+  path: /portfolios/12345
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+  request_body_json:
+    data: ''
+- name: addcustomfieldsettingforportfolio
+  description: Add a custom field to a portfolio
+  operation_type: write
+  method: POST
+  url_base: https://app.asana.com/api/1.0
+  path: /portfolios/12345/addCustomFieldSetting
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+  request_body_json:
+    data: ''
+- name: additemforportfolio
+  description: Add a portfolio item
+  operation_type: write
+  method: POST
+  url_base: https://app.asana.com/api/1.0
+  path: /portfolios/12345/addItem
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+  request_body_json:
+    data: ''
+- name: addmembersforportfolio
+  description: Add users to a portfolio
+  operation_type: write
+  method: POST
+  url_base: https://app.asana.com/api/1.0
+  path: /portfolios/12345/addMembers
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+  request_body_json:
+    data: ''
+- name: getcustomfieldsettingsforportfolio
+  description: Get a portfolio's custom fields
+  operation_type: read
+  method: GET
+  url_base: https://app.asana.com/api/1.0
+  path: /portfolios/12345/custom_field_settings
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: getitemsforportfolio
+  description: Get portfolio items
+  operation_type: read
+  method: GET
+  url_base: https://app.asana.com/api/1.0
+  path: /portfolios/12345/items
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: getportfoliomembershipsforportfolio
+  description: Get memberships from a portfolio
+  operation_type: read
+  method: GET
+  url_base: https://app.asana.com/api/1.0
+  path: /portfolios/12345/portfolio_memberships
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: removecustomfieldsettingforportfolio
+  description: Remove a custom field from a portfolio
+  operation_type: write
+  method: POST
+  url_base: https://app.asana.com/api/1.0
+  path: /portfolios/12345/removeCustomFieldSetting
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+  request_body_json:
+    data: ''
+rate_limit:
+  type: FixedWindowCallRatePolicy
+  max_calls: 60
+  window_seconds: 60

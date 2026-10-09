@@ -1,0 +1,560 @@
+# Dihasilkan otomatis oleh apisguru_generator.py (TASK 3).
+# Sumber: APIs.guru openapi-directory.
+# verification.level = 'listed': BELUM dijalankan. Tingkat 'callable'/
+# 'call_verified' hanya diberikan harness setelah panggilan nyata.
+manifest_version: 1
+id: apisguru.appwrite_io_client
+slug: apisguru_appwrite_io_client
+display_name: Appwrite (APIs.guru)
+description: 'Connector dihasilkan otomatis dari spesifikasi OpenAPI publik Appwrite v0.9.3. Sumber: APIs.guru
+  openapi-directory.'
+category: apisguru
+source: apisguru
+tenant_scope: public
+deprecated: false
+minimum_supported_release: 1.0.0
+credential_free: true
+auth:
+  type: none
+actions:
+- name: accountget
+  description: Get Account
+  operation_type: read
+  method: GET
+  url_base: https://appwrite.io/v1
+  path: /account
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: accountcreate
+  description: Create Account
+  operation_type: write
+  method: POST
+  url_base: https://appwrite.io/v1
+  path: /account
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+  request_body_json:
+    email: ''
+    name: ''
+    password: ''
+- name: accountupdateemail
+  description: Update Account Email
+  operation_type: write
+  method: PATCH
+  url_base: https://appwrite.io/v1
+  path: /account/email
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+  request_body_json:
+    email: ''
+    password: ''
+- name: accountgetlogs
+  description: Get Account Logs
+  operation_type: read
+  method: GET
+  url_base: https://appwrite.io/v1
+  path: /account/logs
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: accountupdatename
+  description: Update Account Name
+  operation_type: write
+  method: PATCH
+  url_base: https://appwrite.io/v1
+  path: /account/name
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+  request_body_json:
+    name: ''
+- name: accountupdatepassword
+  description: Update Account Password
+  operation_type: write
+  method: PATCH
+  url_base: https://appwrite.io/v1
+  path: /account/password
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+  request_body_json:
+    oldPassword: ''
+    password: ''
+- name: accountgetprefs
+  description: Get Account Preferences
+  operation_type: read
+  method: GET
+  url_base: https://appwrite.io/v1
+  path: /account/prefs
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: accountupdateprefs
+  description: Update Account Preferences
+  operation_type: write
+  method: PATCH
+  url_base: https://appwrite.io/v1
+  path: /account/prefs
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+  request_body_json:
+    prefs: ''
+- name: accountcreaterecovery
+  description: Create Password Recovery
+  operation_type: write
+  method: POST
+  url_base: https://appwrite.io/v1
+  path: /account/recovery
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+  request_body_json:
+    email: ''
+    url: ''
+- name: accountupdaterecovery
+  description: Complete Password Recovery
+  operation_type: write
+  method: PUT
+  url_base: https://appwrite.io/v1
+  path: /account/recovery
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+  request_body_json:
+    password: ''
+    passwordAgain: ''
+    secret: ''
+    userId: ''
+- name: accountgetsessions
+  description: Get Account Sessions
+  operation_type: read
+  method: GET
+  url_base: https://appwrite.io/v1
+  path: /account/sessions
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: accountcreatesession
+  description: Create Account Session
+  operation_type: write
+  method: POST
+  url_base: https://appwrite.io/v1
+  path: /account/sessions
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+  request_body_json:
+    email: ''
+    password: ''
+- name: accountcreateverification
+  description: Create Email Verification
+  operation_type: write
+  method: POST
+  url_base: https://appwrite.io/v1
+  path: /account/verification
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+  request_body_json:
+    url: ''
+- name: accountupdateverification
+  description: Complete Email Verification
+  operation_type: write
+  method: PUT
+  url_base: https://appwrite.io/v1
+  path: /account/verification
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+  request_body_json:
+    secret: ''
+    userId: ''
+- name: avatarsgetfavicon
+  description: Get Favicon
+  operation_type: read
+  method: GET
+  url_base: https://appwrite.io/v1
+  path: /avatars/favicon
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: avatarsgetimage
+  description: Get Image from URL
+  operation_type: read
+  method: GET
+  url_base: https://appwrite.io/v1
+  path: /avatars/image
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: avatarsgetinitials
+  description: Get User Initials
+  operation_type: read
+  method: GET
+  url_base: https://appwrite.io/v1
+  path: /avatars/initials
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: avatarsgetqr
+  description: Get QR Code
+  operation_type: read
+  method: GET
+  url_base: https://appwrite.io/v1
+  path: /avatars/qr
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: localeget
+  description: Get User Locale
+  operation_type: read
+  method: GET
+  url_base: https://appwrite.io/v1
+  path: /locale
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: localegetcontinents
+  description: List Continents
+  operation_type: read
+  method: GET
+  url_base: https://appwrite.io/v1
+  path: /locale/continents
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: localegetcountries
+  description: List Countries
+  operation_type: read
+  method: GET
+  url_base: https://appwrite.io/v1
+  path: /locale/countries
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: localegetcountrieseu
+  description: List EU Countries
+  operation_type: read
+  method: GET
+  url_base: https://appwrite.io/v1
+  path: /locale/countries/eu
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: localegetcountriesphones
+  description: List Countries Phone Codes
+  operation_type: read
+  method: GET
+  url_base: https://appwrite.io/v1
+  path: /locale/countries/phones
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: localegetcurrencies
+  description: List Currencies
+  operation_type: read
+  method: GET
+  url_base: https://appwrite.io/v1
+  path: /locale/currencies
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: localegetlanguages
+  description: List Languages
+  operation_type: read
+  method: GET
+  url_base: https://appwrite.io/v1
+  path: /locale/languages
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: storagelistfiles
+  description: List Files
+  operation_type: read
+  method: GET
+  url_base: https://appwrite.io/v1
+  path: /storage/files
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: teamslist
+  description: List Teams
+  operation_type: read
+  method: GET
+  url_base: https://appwrite.io/v1
+  path: /teams
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: teamscreate
+  description: Create Team
+  operation_type: write
+  method: POST
+  url_base: https://appwrite.io/v1
+  path: /teams
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+  request_body_json:
+    name: ''
+    roles: ''
+rate_limit:
+  type: FixedWindowCallRatePolicy
+  max_calls: 60
+  window_seconds: 60

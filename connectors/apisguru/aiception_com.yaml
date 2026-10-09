@@ -1,0 +1,131 @@
+# Dihasilkan otomatis oleh apisguru_generator.py (TASK 3).
+# Sumber: APIs.guru openapi-directory.
+# verification.level = 'listed': BELUM dijalankan. Tingkat 'callable'/
+# 'call_verified' hanya diberikan harness setelah panggilan nyata.
+manifest_version: 1
+id: apisguru.aiception_com
+slug: apisguru_aiception_com
+display_name: AIception Interactive (APIs.guru)
+description: 'Connector dihasilkan otomatis dari spesifikasi OpenAPI publik AIception Interactive v1.0.0.
+  Sumber: APIs.guru openapi-directory.'
+category: apisguru
+source: apisguru
+tenant_scope: per-user
+deprecated: false
+minimum_supported_release: 1.0.0
+credential_free: false
+auth:
+  type: api_key
+  credential_form: api_key_header
+  key_name: api_key
+actions:
+- name: post_adult_content
+  description: Image contains nudity or sexually explicit content? [ image_url -> id ]
+  operation_type: write
+  method: POST
+  url_base: https://aiception.com/api/v2.1
+  path: /adult_content
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+  request_body_json:
+    async: ''
+    image_url: ''
+- name: post_artistic_image
+  description: Create an artistic image [ image_url, style_url -> id ]
+  operation_type: write
+  method: POST
+  url_base: https://aiception.com/api/v2.1
+  path: /artistic_image
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+  request_body_json:
+    async: ''
+    image_url: ''
+    style_url: ''
+- name: post_detect_object
+  description: What is that object? [ image_url -> id ]
+  operation_type: write
+  method: POST
+  url_base: https://aiception.com/api/v2.1
+  path: /detect_object
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+  request_body_json:
+    async: ''
+    image_url: ''
+- name: post_face
+  description: Find all faces in the image [ image_url -> id ]
+  operation_type: write
+  method: POST
+  url_base: https://aiception.com/api/v2.1
+  path: /face
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+  request_body_json:
+    async: ''
+    image_url: ''
+- name: post_face_age
+  description: How old is the person in the image? [ image_url -> id ]
+  operation_type: write
+  method: POST
+  url_base: https://aiception.com/api/v2.1
+  path: /face_age
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+  request_body_json:
+    async: ''
+    image_url: ''
+rate_limit:
+  type: FixedWindowCallRatePolicy
+  max_calls: 60
+  window_seconds: 60

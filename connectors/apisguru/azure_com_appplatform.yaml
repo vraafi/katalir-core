@@ -1,0 +1,43 @@
+# Dihasilkan otomatis oleh apisguru_generator.py (TASK 3).
+# Sumber: APIs.guru openapi-directory.
+# verification.level = 'listed': BELUM dijalankan. Tingkat 'callable'/
+# 'call_verified' hanya diberikan harness setelah panggilan nyata.
+manifest_version: 1
+id: apisguru.azure_com_appplatform
+slug: apisguru_azure_com_appplatform
+display_name: AppPlatformManagementClient (APIs.guru)
+description: 'Connector dihasilkan otomatis dari spesifikasi OpenAPI publik AppPlatformManagementClient
+  v2019-05-01-preview. Sumber: APIs.guru openapi-directory.'
+category: apisguru
+source: apisguru
+tenant_scope: per-user
+deprecated: false
+minimum_supported_release: 1.0.0
+credential_free: false
+auth:
+  type: api_key
+  credential_form: api_key_header
+  key_name: api_key
+actions:
+- name: operations_list
+  description: Lists all of the available REST API operations of the Microsoft.AppPlatform provider.
+  operation_type: read
+  method: GET
+  url_base: https://management.azure.com
+  path: /providers/Microsoft.AppPlatform/operations
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+rate_limit:
+  type: FixedWindowCallRatePolicy
+  max_calls: 60
+  window_seconds: 60

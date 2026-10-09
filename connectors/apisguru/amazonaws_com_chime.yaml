@@ -1,0 +1,863 @@
+# Dihasilkan otomatis oleh apisguru_generator.py (TASK 3).
+# Sumber: APIs.guru openapi-directory.
+# verification.level = 'listed': BELUM dijalankan. Tingkat 'callable'/
+# 'call_verified' hanya diberikan harness setelah panggilan nyata.
+manifest_version: 1
+id: apisguru.amazonaws_com_chime
+slug: apisguru_amazonaws_com_chime
+display_name: Amazon Chime (APIs.guru)
+description: 'Connector dihasilkan otomatis dari spesifikasi OpenAPI publik Amazon Chime v2018-05-01.
+  Sumber: APIs.guru openapi-directory.'
+category: apisguru
+source: apisguru
+tenant_scope: per-user
+deprecated: false
+minimum_supported_release: 1.0.0
+credential_free: false
+auth:
+  type: api_key
+  credential_form: api_key_header
+  key_name: authorization
+actions:
+- name: listaccounts
+  description: Lists the Amazon Chime accounts under the administrator's AWS account. You can filter accounts
+    by account name prefix. To find out which Amazon Chime account a user belongs to, you can filter by
+    the user's email address, which returns one account result.
+  operation_type: read
+  method: GET
+  url_base: https://service.chime.aws.amazon.com
+  path: /accounts
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: createaccount
+  description: Creates an Amazon Chime account under the administrator's AWS account. Only <code>Team</code>
+    account types are currently supported for this action. For more information about different account
+    types, see <a href="https://docs.aws.amazon.com/chime/latest/ag/manage-chime-account.html">Managing
+    Your A
+  operation_type: write
+  method: POST
+  url_base: https://service.chime.aws.amazon.com
+  path: /accounts
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+  request_body_json:
+    Name: ''
+- name: createappinstanceuser
+  description: Creates a user under an Amazon Chime <code>AppInstance</code>. The request consists of
+    a unique <code>appInstanceUserId</code> and <code>Name</code> for that user.
+  operation_type: write
+  method: POST
+  url_base: https://service.chime.aws.amazon.com
+  path: /app-instance-users
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+  request_body_json:
+    AppInstanceArn: ''
+    AppInstanceUserId: ''
+    Name: ''
+    Metadata: ''
+    ClientRequestToken: ''
+    Tags: ''
+- name: listappinstanceusers
+  description: List all <code>AppInstanceUsers</code> created under a single <code>AppInstance</code>.
+  operation_type: read
+  method: GET
+  url_base: https://service.chime.aws.amazon.com
+  path: /app-instance-users#app-instance-arn
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: listappinstances
+  description: Lists all Amazon Chime <code>AppInstance</code>s created under a single AWS account.
+  operation_type: read
+  method: GET
+  url_base: https://service.chime.aws.amazon.com
+  path: /app-instances
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: createappinstance
+  description: Creates an Amazon Chime SDK messaging <code>AppInstance</code> under an AWS account. Only
+    SDK messaging customers use this API. <code>CreateAppInstance</code> supports idempotency behavior
+    as described in the AWS API Standard.
+  operation_type: write
+  method: POST
+  url_base: https://service.chime.aws.amazon.com
+  path: /app-instances
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+  request_body_json:
+    Name: ''
+    Metadata: ''
+    ClientRequestToken: ''
+    Tags: ''
+- name: createchannel
+  description: '<p>Creates a channel to which you can add users and send messages.</p> <p> <b>Restriction</b>:
+    You can''t change a channel''s privacy.</p> <note> <p>The <code>x-amz-chime-bearer</code> request
+    header is mandatory. Use the <code>AppInstanceUserArn</code> of the user that makes the API call as
+    the value'
+  operation_type: write
+  method: POST
+  url_base: https://service.chime.aws.amazon.com
+  path: /channels
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+  request_body_json:
+    AppInstanceArn: ''
+    Name: ''
+    Mode: ''
+    Privacy: ''
+    Metadata: ''
+    ClientRequestToken: ''
+    Tags: ''
+- name: listchannels
+  description: <p>Lists all Channels created under a single Chime App as a paginated list. You can specify
+    filters to narrow results.</p> <p class="title"> <b>Functionality &amp; restrictions</b> </p> <ul>
+    <li> <p>Use privacy = <code>PUBLIC</code> to retrieve all public channels in the account.</p> </li>
+    <li> <p>O
+  operation_type: read
+  method: GET
+  url_base: https://service.chime.aws.amazon.com
+  path: /channels#app-instance-arn
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: listchannelmembershipsforappinstanceuser
+  description: <p> Lists all channels that a particular <code>AppInstanceUser</code> is a part of. Only
+    an <code>AppInstanceAdmin</code> can call the API with a user ARN that is not their own. </p> <note>
+    <p>The <code>x-amz-chime-bearer</code> request header is mandatory. Use the <code>AppInstanceUserArn</code>
+    of
+  operation_type: read
+  method: GET
+  url_base: https://service.chime.aws.amazon.com
+  path: /channels#scope=app-instance-user-memberships
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: listchannelsmoderatedbyappinstanceuser
+  description: <p>A list of the channels moderated by an <code>AppInstanceUser</code>.</p> <note> <p>The
+    <code>x-amz-chime-bearer</code> request header is mandatory. Use the <code>AppInstanceUserArn</code>
+    of the user that makes the API call as the value in the header.</p> </note>
+  operation_type: read
+  method: GET
+  url_base: https://service.chime.aws.amazon.com
+  path: /channels#scope=app-instance-user-moderated-channels
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: validatee911address
+  description: Validates an address to be used for 911 calls made with Amazon Chime Voice Connectors.
+    You can use validated addresses in a Presence Information Data Format Location Object file that you
+    include in SIP requests. That helps ensure that addresses are routed to the appropriate Public Safety
+    Answering P
+  operation_type: write
+  method: POST
+  url_base: https://service.chime.aws.amazon.com
+  path: /emergency-calling/address
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+  request_body_json:
+    AwsAccountId: ''
+    StreetNumber: ''
+    StreetInfo: ''
+    City: ''
+    State: ''
+    Country: ''
+    PostalCode: ''
+- name: getmessagingsessionendpoint
+  description: The details of the endpoint for the messaging session.
+  operation_type: read
+  method: GET
+  url_base: https://service.chime.aws.amazon.com
+  path: /endpoints/messaging-session
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: listmediacapturepipelines
+  description: Returns a list of media capture pipelines.
+  operation_type: read
+  method: GET
+  url_base: https://service.chime.aws.amazon.com
+  path: /media-capture-pipelines
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: createmediacapturepipeline
+  description: Creates a media capture pipeline.
+  operation_type: write
+  method: POST
+  url_base: https://service.chime.aws.amazon.com
+  path: /media-capture-pipelines
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+  request_body_json:
+    SourceType: ''
+    SourceArn: ''
+    SinkType: ''
+    SinkArn: ''
+    ClientRequestToken: ''
+    ChimeSdkMeetingConfiguration: ''
+- name: listmeetings
+  description: Lists up to 100 active Amazon Chime SDK meetings. For more information about the Amazon
+    Chime SDK, see <a href="https://docs.aws.amazon.com/chime-sdk/latest/dg/meetings-sdk.html">Using the
+    Amazon Chime SDK</a> in the <i>Amazon Chime SDK Developer Guide</i>.
+  operation_type: read
+  method: GET
+  url_base: https://service.chime.aws.amazon.com
+  path: /meetings
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: createmeeting
+  description: Creates a new Amazon Chime SDK meeting in the specified media Region with no initial attendees.
+    For more information about specifying media Regions, see <a href="https://docs.aws.amazon.com/chime-sdk/latest/dg/chime-sdk-meetings-regions.html">Amazon
+    Chime SDK Media Regions</a> in the <i>Amazon Chime
+  operation_type: write
+  method: POST
+  url_base: https://service.chime.aws.amazon.com
+  path: /meetings
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+  request_body_json:
+    ClientRequestToken: ''
+    ExternalMeetingId: ''
+    MeetingHostId: ''
+    MediaRegion: ''
+    Tags: ''
+    NotificationsConfiguration: ''
+- name: createmeetingwithattendees
+  description: Creates a new Amazon Chime SDK meeting in the specified media Region, with attendees. For
+    more information about specifying media Regions, see <a href="https://docs.aws.amazon.com/chime-sdk/latest/dg/chime-sdk-meetings-regions.html">Amazon
+    Chime SDK Media Regions</a> in the <i>Amazon Chime SDK Devel
+  operation_type: write
+  method: POST
+  url_base: https://service.chime.aws.amazon.com
+  path: /meetings#operation=create-attendees
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+  request_body_json:
+    ClientRequestToken: ''
+    ExternalMeetingId: ''
+    MeetingHostId: ''
+    MediaRegion: ''
+    Tags: ''
+    NotificationsConfiguration: ''
+    Attendees: ''
+- name: listsupportedphonenumbercountries
+  description: Lists supported phone number countries.
+  operation_type: read
+  method: GET
+  url_base: https://service.chime.aws.amazon.com
+  path: /phone-number-countries#product-type
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: listphonenumberorders
+  description: Lists the phone number orders for the administrator's Amazon Chime account.
+  operation_type: read
+  method: GET
+  url_base: https://service.chime.aws.amazon.com
+  path: /phone-number-orders
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: createphonenumberorder
+  description: Creates an order for phone numbers to be provisioned. For toll-free numbers, you cannot
+    use the Amazon Chime Business Calling product type. For numbers outside the U.S., you must use the
+    Amazon Chime SIP Media Application Dial-In product type.
+  operation_type: write
+  method: POST
+  url_base: https://service.chime.aws.amazon.com
+  path: /phone-number-orders
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+  request_body_json:
+    ProductType: ''
+    E164PhoneNumbers: ''
+- name: listphonenumbers
+  description: Lists the phone numbers for the specified Amazon Chime account, Amazon Chime user, Amazon
+    Chime Voice Connector, or Amazon Chime Voice Connector group.
+  operation_type: read
+  method: GET
+  url_base: https://service.chime.aws.amazon.com
+  path: /phone-numbers
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: batchdeletephonenumber
+  description: <p> Moves phone numbers into the <b>Deletion queue</b>. Phone numbers must be disassociated
+    from any users or Amazon Chime Voice Connectors before they can be deleted. </p> <p> Phone numbers
+    remain in the <b>Deletion queue</b> for 7 days before they are deleted permanently. </p>
+  operation_type: write
+  method: POST
+  url_base: https://service.chime.aws.amazon.com
+  path: /phone-numbers#operation=batch-delete
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+  request_body_json:
+    PhoneNumberIds: ''
+- name: batchupdatephonenumber
+  description: '<p>Updates phone number product types or calling names. You can update one attribute at
+    a time for each <code>UpdatePhoneNumberRequestItem</code>. For example, you can update the product
+    type or the calling name.</p> <p>For toll-free numbers, you cannot use the Amazon Chime Business Calling
+    product '
+  operation_type: write
+  method: POST
+  url_base: https://service.chime.aws.amazon.com
+  path: /phone-numbers#operation=batch-update
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+  request_body_json:
+    UpdatePhoneNumberRequestItems: ''
+- name: searchavailablephonenumbers
+  description: 'Searches for phone numbers that can be ordered. For US numbers, provide at least one of
+    the following search filters: <code>AreaCode</code>, <code>City</code>, <code>State</code>, or <code>TollFreePrefix</code>.
+    If you provide <code>City</code>, you must also provide <code>State</code>. Numbers outs'
+  operation_type: read
+  method: GET
+  url_base: https://service.chime.aws.amazon.com
+  path: /search#type=phone-numbers
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: getglobalsettings
+  description: Retrieves global settings for the administrator's AWS account, such as Amazon Chime Business
+    Calling and Amazon Chime Voice Connector settings.
+  operation_type: read
+  method: GET
+  url_base: https://service.chime.aws.amazon.com
+  path: /settings
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: updateglobalsettings
+  description: Updates global settings for the administrator's AWS account, such as Amazon Chime Business
+    Calling and Amazon Chime Voice Connector settings.
+  operation_type: write
+  method: PUT
+  url_base: https://service.chime.aws.amazon.com
+  path: /settings
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+  request_body_json:
+    BusinessCalling: ''
+    VoiceConnector: ''
+- name: getphonenumbersettings
+  description: Retrieves the phone number settings for the administrator's AWS account, such as the default
+    outbound calling name.
+  operation_type: read
+  method: GET
+  url_base: https://service.chime.aws.amazon.com
+  path: /settings/phone-number
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: updatephonenumbersettings
+  description: Updates the phone number settings for the administrator's AWS account, such as the default
+    outbound calling name. You can update the default outbound calling name once every seven days. Outbound
+    calling names can take up to 72 hours to update.
+  operation_type: write
+  method: PUT
+  url_base: https://service.chime.aws.amazon.com
+  path: /settings/phone-number
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+  request_body_json:
+    CallingName: ''
+- name: listsipmediaapplications
+  description: Lists the SIP media applications under the administrator's AWS account.
+  operation_type: read
+  method: GET
+  url_base: https://service.chime.aws.amazon.com
+  path: /sip-media-applications
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: createsipmediaapplication
+  description: Creates a SIP media application.
+  operation_type: write
+  method: POST
+  url_base: https://service.chime.aws.amazon.com
+  path: /sip-media-applications
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+  request_body_json:
+    AwsRegion: ''
+    Name: ''
+    Endpoints: ''
+- name: listsiprules
+  description: Lists the SIP rules under the administrator's AWS account.
+  operation_type: read
+  method: GET
+  url_base: https://service.chime.aws.amazon.com
+  path: /sip-rules
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: createsiprule
+  description: Creates a SIP rule which can be used to run a SIP media application as a target for a specific
+    trigger type.
+  operation_type: write
+  method: POST
+  url_base: https://service.chime.aws.amazon.com
+  path: /sip-rules
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+  request_body_json:
+    Name: ''
+    TriggerType: ''
+    TriggerValue: ''
+    Disabled: ''
+    TargetApplications: ''
+- name: listtagsforresource
+  description: Lists the tags applied to an Amazon Chime SDK meeting resource.
+  operation_type: read
+  method: GET
+  url_base: https://service.chime.aws.amazon.com
+  path: /tags#arn
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: tagresource
+  description: Applies the specified tags to the specified Amazon Chime SDK meeting resource.
+  operation_type: write
+  method: POST
+  url_base: https://service.chime.aws.amazon.com
+  path: /tags#operation=tag-resource
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+  request_body_json:
+    ResourceARN: ''
+    Tags: ''
+- name: untagresource
+  description: Untags the specified tags from the specified Amazon Chime SDK meeting resource.
+  operation_type: write
+  method: POST
+  url_base: https://service.chime.aws.amazon.com
+  path: /tags#operation=untag-resource
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+  request_body_json:
+    ResourceARN: ''
+    TagKeys: ''
+- name: listvoiceconnectorgroups
+  description: Lists the Amazon Chime Voice Connector groups for the administrator's AWS account.
+  operation_type: read
+  method: GET
+  url_base: https://service.chime.aws.amazon.com
+  path: /voice-connector-groups
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: createvoiceconnectorgroup
+  description: '<p>Creates an Amazon Chime Voice Connector group under the administrator''s AWS account.
+    You can associate Amazon Chime Voice Connectors with the Amazon Chime Voice Connector group by including
+    <code>VoiceConnectorItems</code> in the request.</p> <p>You can include Amazon Chime Voice Connectors
+    from '
+  operation_type: write
+  method: POST
+  url_base: https://service.chime.aws.amazon.com
+  path: /voice-connector-groups
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+  request_body_json:
+    Name: ''
+    VoiceConnectorItems: ''
+- name: listvoiceconnectors
+  description: Lists the Amazon Chime Voice Connectors for the administrator's AWS account.
+  operation_type: read
+  method: GET
+  url_base: https://service.chime.aws.amazon.com
+  path: /voice-connectors
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: createvoiceconnector
+  description: <p>Creates an Amazon Chime Voice Connector under the administrator's AWS account. You can
+    choose to create an Amazon Chime Voice Connector in a specific AWS Region.</p> <p> Enabling <a>CreateVoiceConnectorRequest$RequireEncryption</a>
+    configures your Amazon Chime Voice Connector to use TLS transport
+  operation_type: write
+  method: POST
+  url_base: https://service.chime.aws.amazon.com
+  path: /voice-connectors
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+  request_body_json:
+    Name: ''
+    AwsRegion: ''
+    RequireEncryption: ''
+rate_limit:
+  type: FixedWindowCallRatePolicy
+  max_calls: 60
+  window_seconds: 60

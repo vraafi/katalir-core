@@ -1,0 +1,790 @@
+# Dihasilkan otomatis oleh apisguru_generator.py (TASK 3).
+# Sumber: APIs.guru openapi-directory.
+# verification.level = 'listed': BELUM dijalankan. Tingkat 'callable'/
+# 'call_verified' hanya diberikan harness setelah panggilan nyata.
+manifest_version: 1
+id: apisguru.apacta_com
+slug: apisguru_apacta_com
+display_name: Apacta (APIs.guru)
+description: 'Connector dihasilkan otomatis dari spesifikasi OpenAPI publik Apacta v0.0.42. Sumber: APIs.guru
+  openapi-directory.'
+category: apisguru
+source: apisguru
+tenant_scope: public
+deprecated: false
+minimum_supported_release: 1.0.0
+credential_free: true
+auth:
+  type: none
+actions:
+- name: get_activities
+  description: Get a list of activities
+  operation_type: read
+  method: GET
+  url_base: https://app.apacta.com/api/v1
+  path: /activities
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: get_cities
+  description: Get list of cities supported in Apacta
+  operation_type: read
+  method: GET
+  url_base: https://app.apacta.com/api/v1
+  path: /cities
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: get_clocking_records
+  description: Get a list of clocking records
+  operation_type: read
+  method: GET
+  url_base: https://app.apacta.com/api/v1
+  path: /clocking_records
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: post_clocking_records
+  description: Create clocking record for authenticated user
+  operation_type: write
+  method: POST
+  url_base: https://app.apacta.com/api/v1
+  path: /clocking_records
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+  request_body_json:
+    checkin_latitude: ''
+    checkin_longitude: ''
+    checkout_latitude: ''
+    checkout_longitude: ''
+    project_id: ''
+- name: get_companies
+  description: Get a list of companies
+  operation_type: read
+  method: GET
+  url_base: https://app.apacta.com/api/v1
+  path: /companies
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: get_companies_subscription_self_service
+  description: URL for subscription selfservice
+  operation_type: read
+  method: GET
+  url_base: https://app.apacta.com/api/v1
+  path: /companies/subscription_self_service
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: getcompaiesvendorslist
+  description: Get a list of companies vendors
+  operation_type: read
+  method: GET
+  url_base: https://app.apacta.com/api/v1
+  path: /companies_vendors
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: getcompaysettingslist
+  description: Get a list of company settings
+  operation_type: read
+  method: GET
+  url_base: https://app.apacta.com/api/v1
+  path: /company_settings
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: get_contact_custom_field_attributes
+  description: Get a list of contact custom field attributes
+  operation_type: read
+  method: GET
+  url_base: https://app.apacta.com/api/v1
+  path: /contact_custom_field_attributes
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: get_contact_types
+  description: Get list of contact types supported in Apacta
+  operation_type: read
+  method: GET
+  url_base: https://app.apacta.com/api/v1
+  path: /contact_types
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: get_contacts
+  description: Get a list of contacts
+  operation_type: read
+  method: GET
+  url_base: https://app.apacta.com/api/v1
+  path: /contacts
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: get_countries
+  description: Get list of countries supported in Apacta
+  operation_type: read
+  method: GET
+  url_base: https://app.apacta.com/api/v1
+  path: /countries
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: get_currencies
+  description: Get list of currencies supported in Apacta
+  operation_type: read
+  method: GET
+  url_base: https://app.apacta.com/api/v1
+  path: /currencies
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: get_driving_types
+  description: List the driving types of the company
+  operation_type: read
+  method: GET
+  url_base: https://app.apacta.com/api/v1
+  path: /driving_types
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: post_driving_types
+  description: Create driving type
+  operation_type: write
+  method: POST
+  url_base: https://app.apacta.com/api/v1
+  path: /driving_types
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+  request_body_json:
+    company_id: ''
+    employee_price: ''
+    erp_id: ''
+    invoice_price: ''
+    name: ''
+    salary_id: ''
+- name: get_employee_hours
+  description: Used to retrieve details about the logged in user's hours
+  operation_type: read
+  method: GET
+  url_base: https://app.apacta.com/api/v1
+  path: /employee_hours
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: get_events
+  description: Show list of events
+  operation_type: read
+  method: GET
+  url_base: https://app.apacta.com/api/v1
+  path: /events
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: post_events
+  description: Create event
+  operation_type: write
+  method: POST
+  url_base: https://app.apacta.com/api/v1
+  path: /events
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+  request_body_json:
+    description: ''
+    end: ''
+    name: ''
+    project_id: ''
+    start: ''
+    user_id: ''
+- name: get_events_is_user_free
+  description: Check if user is available at given datetime range
+  operation_type: read
+  method: GET
+  url_base: https://app.apacta.com/api/v1
+  path: /events/is_user_free
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: get_expense_files
+  description: Show list of expense files
+  operation_type: read
+  method: GET
+  url_base: https://app.apacta.com/api/v1
+  path: /expense_files
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: get_expense_lines
+  description: Show list of expense lines
+  operation_type: read
+  method: GET
+  url_base: https://app.apacta.com/api/v1
+  path: /expense_lines
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: post_expense_lines
+  description: Add line to expense
+  operation_type: write
+  method: POST
+  url_base: https://app.apacta.com/api/v1
+  path: /expense_lines
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+  request_body_json:
+    buying_price: ''
+    currency_id: ''
+    expense_id: ''
+    quantity: ''
+    selling_price: ''
+    text: ''
+- name: get_expenses
+  description: Show list of expenses
+  operation_type: read
+  method: GET
+  url_base: https://app.apacta.com/api/v1
+  path: /expenses
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: post_expenses
+  description: Add line to expense
+  operation_type: write
+  method: POST
+  url_base: https://app.apacta.com/api/v1
+  path: /expenses
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+  request_body_json:
+    contact_id: ''
+    currency_id: ''
+    delivery_date: ''
+    description: ''
+    project_id: ''
+    reference: ''
+    short_text: ''
+    supplier_invoice_number: ''
+- name: get_expenses_highest_amount
+  description: Show highest Expense amount(`total_selling_price`)
+  operation_type: read
+  method: GET
+  url_base: https://app.apacta.com/api/v1
+  path: /expenses/highest_amount
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: getfinancialstatistics
+  description: Get general statistics
+  operation_type: read
+  method: GET
+  url_base: https://app.apacta.com/api/v1
+  path: /financial_statistics
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: getexpensessalesprice
+  description: Get expenses sales price
+  operation_type: read
+  method: GET
+  url_base: https://app.apacta.com/api/v1
+  path: /financial_statistics/expensesSalesPrice
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: getinvoicedamount
+  description: Get invoiced amount
+  operation_type: read
+  method: GET
+  url_base: https://app.apacta.com/api/v1
+  path: /financial_statistics/invoicedAmount
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: getmargin
+  description: Get margin
+  operation_type: read
+  method: GET
+  url_base: https://app.apacta.com/api/v1
+  path: /financial_statistics/margin
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: getmaterialrentalscostprice
+  description: Get products material rentals cost price
+  operation_type: read
+  method: GET
+  url_base: https://app.apacta.com/api/v1
+  path: /financial_statistics/materialRentalsCostPrice
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: getfinancialstatisticsoverview
+  description: Get statistics overview
+  operation_type: read
+  method: GET
+  url_base: https://app.apacta.com/api/v1
+  path: /financial_statistics/overview
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: getproductscostprice
+  description: Get products cost price
+  operation_type: read
+  method: GET
+  url_base: https://app.apacta.com/api/v1
+  path: /financial_statistics/productsCostPrice
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: get_financial_statistics_workinghours
+  description: Get Total working hours grouped by time entry type
+  operation_type: read
+  method: GET
+  url_base: https://app.apacta.com/api/v1
+  path: /financial_statistics/workingHours
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: get_form_field_types
+  description: Get list of form field types
+  operation_type: read
+  method: GET
+  url_base: https://app.apacta.com/api/v1
+  path: /form_field_types
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: post_form_fields
+  description: Add a new field to a `Form`
+  operation_type: write
+  method: POST
+  url_base: https://app.apacta.com/api/v1
+  path: /form_fields
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+  request_body_json:
+    comment: ''
+    content_value: ''
+    file_id: ''
+    form_field_type_id: ''
+    form_id: ''
+    form_template_field_id: ''
+    placement: ''
+- name: get_form_templates
+  description: Get array of form_templates for your company
+  operation_type: read
+  method: GET
+  url_base: https://app.apacta.com/api/v1
+  path: /form_templates
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: get_forms
+  description: Retrieve array of forms
+  operation_type: read
+  method: GET
+  url_base: https://app.apacta.com/api/v1
+  path: /forms
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: post_forms
+  description: Add new form
+  operation_type: write
+  method: POST
+  url_base: https://app.apacta.com/api/v1
+  path: /forms
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+  request_body_json:
+    form_template_id: ''
+    project_id: ''
+- name: get_integrations_list
+  description: Get integrations list
+  operation_type: read
+  method: GET
+  url_base: https://app.apacta.com/api/v1
+  path: /integrations
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+- name: get_integrations_contactssync
+  description: Force Synchronization with ERP systems
+  operation_type: read
+  method: GET
+  url_base: https://app.apacta.com/api/v1
+  path: /integrations/contactsSync
+  record_selector:
+    type: DpathExtractor
+    field_path:
+    - '*'
+  paginator: NoPagination
+  error_handler:
+    type: DefaultErrorHandler
+    retry:
+      type: ExponentialBackoffStrategy
+      max_retries: 3
+  verification:
+    level: listed
+rate_limit:
+  type: FixedWindowCallRatePolicy
+  max_calls: 60
+  window_seconds: 60
