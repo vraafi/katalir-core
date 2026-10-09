@@ -18,8 +18,8 @@ dan `docs/enterprise-100-percent-log.md`.
 | 4 | Log Streaming SIEM | `log_streaming.py` | 22/22 + 40 E2E | — | ✅ |
 | 8 | OTel / LangSmith Tracing | `tracing.py` | 19/19 + 75 E2E | — | ✅ |
 | 3 | Self-healing Persistence | `recovery.py` | 19/19 + 62 E2E | — | ✅ |
-| 6 | End-user Credentials | `end_user_credentials.py` | 16/16 + 54 E2E | — | ✅ |
-| 10 | Custom RBAC | — | — | — | pending |
+| 6 | End-user Credentials | `end_user_credentials.py` | 16/16 + 54 E2E | `58037a4` | ✅ |
+| 10 | Custom RBAC | `rbac.py` | 21/21 + 88 E2E | — | ✅ |
 | 5 | Agent Sandbox Isolation | — | — | — | pending |
 | 2 | MCP Build Workflow | — | — | — | pending |
 | 1 | n8n Agents (first-class) | — | — | — | pending |
@@ -1074,6 +1074,202 @@ HASIL: 54/54 LULUS
    Batas "team project only" dijaga di lapisan aplikasi (project personal
    tidak dapat membuat template), sesuai catatan n8n.
 6. **Tidak ada BLOKER.** Tidak butuh kredensial baru, kartu kredit, atau
+   alternatif gagal.
+
+### Status: 100% COMPLETE ✅
+
+---
+
+## FITUR #10: CUSTOM RBAC (PERAN KUSTOM DUA TINGKAT)
+
+### Research (link Okt 2026)
+
+1. **n8n Docs — "See available roles"**: n8n punya **dua tingkat peran**.
+   **Instance roles** (Owner/Admin/Member) berlaku di seluruh instance;
+   **Project roles** (Admin/Editor/Viewer) berlaku **hanya di dalam satu
+   project** — pengguna yang sama dapat memiliki peran berbeda di project
+   berbeda. Setiap peran adalah kumpulan **scope** (`<resource>:<action>`).
+2. **n8n Docs — "Create custom project roles"** (tersedia sejak n8n
+   **1.122.0**): editor "Project roles" menampilkan scope **bergrup**.
+   Kosakata verbatim yang saya himpun — **42 scope dalam 10 grup**:
+   Workflow (9), Credential (7), Project (3), Folder (5), Execution (1),
+   Secrets vaults (5), Secrets (1), Data table (6), Project variable (4),
+   Source control (1).
+3. **n8n Docs — "Create custom instance roles"** (tersedia sejak n8n
+   **2.30.0**, 7 Juli 2026): **10 scope instance** — `instanceSettings:manage`,
+   `members:manage`, `roles:manageProject`, `roles:manageAll`,
+   `apiKeys:manageOwn`, `apiKeys:manageOthers`, `tags:read`, `tags:manage`,
+   `projects:create`, `insights:read`.
+4. **n8n Docs — "Automatically granted scopes"**: aturan implikasi yang
+   harus dipertahankan — `<resource>:read` otomatis memberi
+   `<resource>:list`; `workflow:publish` → `workflow:unpublish`;
+   `roles:manageAll` → `roles:manageProject`; `apiKeys:manageOthers` →
+   `apiKeys:manageOwn`.
+5. **n8n Docs — peringatan privilege escalation**: dokumentasi n8n secara
+   eksplisit memperingatkan bahwa `roles:manageAll`, `roles:manageProject`,
+   dan `members:manage` memungkinkan pemegangnya **menaikkan izinnya
+   sendiri** (mengubah peran yang ia pegang, atau mengundang akun yang ia
+   kendalikan lalu memberinya Admin). Peran yang **masih dipakai** tidak
+   dapat dihapus — pengguna harus dipindahkan lebih dulu.
+
+### B. Inventory kredensial
+
+Tidak butuh kredensial eksternal. Satu variabel perilaku baru:
+`KATALIR_RBAC_STRICT` (default `"1"`) — menggerbangi penolakan definisi peran
+berisiko eskalasi. Lihat `docs/env-inventory.md`.
+
+### C. Implementasi
+
+* `rbac.py` (~790 baris) — NEW
+  * `SCOPE_GROUPS` (10 grup / 42 scope) + `PROJECT_SCOPES` +
+    `INSTANCE_SCOPES` (10) + `LISTABLE_RESOURCES` + `IMPLIED_SCOPES` +
+    `DERIVED_SCOPES` (10: `workflow:unpublish` + 9 `:list`)
+  * `implied_for()` / `expand_scopes()` (tutup transitif) / `scope_known()` /
+    `validate_scopes()` / `ALL_SCOPES` (61) + `DERIVED_SCOPES` (10)
+  * `PROJECT_PRESETS` (admin/editor/viewer) + `INSTANCE_PRESETS`
+    (owner/admin/member) + `ESCALATION_FLAGS`
+  * `class Role` — `granted` (eksplisit) vs `scopes` (efektif),
+    `escalation_risks()`, `to_dict()` dengan `implied` terpisah
+  * `class RoleRegistry` — `_merge_preset()` (dipakai bersama create/update),
+    `create_role/update_role/duplicate_role/delete_role/get_role/list_roles`,
+    `assign/unassign/assign_instance`, `roles_for/effective_scopes`,
+    `members_of/projects_of`, `audit`, `stats()`
+  * `class Authorizer` — `allow/allows_any/require/require_all`,
+    `assert_can_grant()` (anti-escalation), `describe_request()`, `stats()`
+  * Pengecualian ber-kontrak: `ScopeUnknown`, `RoleNotFound`, `RoleInUse`,
+    `RoleImmutable`, `NotAuthorized`, `PrivilegeEscalationRisk`
+  * `registry()/set_registry()/authorizer()/set_authorizer()/rbac_from_env()/describe()`
+* `api_server.py` — **19 endpoint** `/rbac/*` (overview, scopes, roles
+  list/create/get/update/duplicate/delete, role-usage, assignments
+  list/create/delete, instance-assignments, effective-scopes, authorize,
+  can-grant, audit, stats, reset) + pemetaan pengecualian → HTTP
+  (422/404/409 `role_in_use`/409 `role_immutable`/403 `privilege_escalation`)
+* `_FEATURE_MODULES["36_custom_rbac"] = "rbac"`
+* `migrations/2026-10-09-custom-rbac.sql` — 4 tabel (`rbac_roles`,
+  `rbac_project_assignments`, `rbac_instance_assignments`, `rbac_audit`) +
+  seed 6 peran bawaan + `constraint rbac_roles_builtin_immutable_chk` +
+  **FK `on delete restrict`** (gerbang "role in use" ditegakkan di basis data,
+  bukan hanya di aplikasi) + 2 view (`rbac_role_usage`, `rbac_effective_scopes`)
+  + RLS (tulis = service_role; baca peran = authenticated; baca penetapan =
+  pemiliknya saja)
+
+### D. Hard Test (12 kategori)
+
+`tests/test_rbac.py` — **21 tes / 21 LULUS** (jam palsu, tanpa `sleep`).
+
+| # | Kategori | Skenario | Hasil |
+|---|---|---|---|
+| B1 | Basic | kosakata persis n8n: 42 project / 10 grup / 10 instance | ✅ |
+| B2 | Basic | 6 preset bawaan; matriks izin sesuai docs (viewer ≠ execute) | ✅ |
+| B3 | Basic | CRUD peran kustom + preset sebagai basis + duplikasi | ✅ |
+| D1 | Durability | peran project terisolasi per project; instance berlaku global | ✅ |
+| D2 | Durability | peran masih dipakai → `RoleInUse`; unassign idempoten | ✅ |
+| E1 | Edge | peran bawaan `RoleImmutable` (ubah & hapus) | ✅ |
+| E2 | Edge | scope tak dikenal, slug tidak sah, level salah, duplikat, 404 | ✅ |
+| E3 | Edge | tutup transitif implikasi + `allow`/`require`/`describe` | ✅ |
+| P1 | Perf | 200 peran + 1000 penetapan + 1000 otorisasi < 5 s | ✅ |
+| P2 | Perf | 8 thread × 500 cek; 8000 `checks`, 4000 `denials` (thread-safe) | ✅ |
+| S1 | Security | gerbang eskalasi strict + `allow_escalation` + mode longgar | ✅ |
+| S2 | Security | `assert_can_grant` menolak pemberian melebihi milik aktor | ✅ |
+| X1–X9 | Extra | describe env-injectable, factory, jam disuntik, `members_of`, `allows_any` fail-closed, implikasi per-resource, audit lengkap, **regresi `update_role` mempertahankan basis preset** | ✅ |
+
+`_f10_api_e2e.py` — **88/88 LULUS** (HTTP nyata via TestClient) dalam 7 bagian
+(A katalog, B basic, C durability, D edge, E performa, F keamanan, G audit).
+
+### Raw output (bukti)
+
+```
+$ pytest tests/test_rbac.py -q
+.....................                                                    [100%]
+21 passed in 0.56s
+
+$ python _f10_api_e2e.py
+[PASS] 42 scope project  :: 42
+[PASS] 10 scope instance  :: 10
+[PASS] 10 grup scope project  :: 10
+[PASS] jumlah per grup persis n8n  :: {"Workflow": 9, "Credential": 7, "Project": 3, "Folder": 5, "Execution": 1, "Secrets vaults": 5, "Secrets": 1, "Data table": 6, "Project variable": 4, "Source control": 1}
+[PASS] GET /version memuat fitur #10  :: HTTP 200
+[PASS] ubah peran bawaan -> 409 role_immutable  :: HTTP 409
+[PASS] scope tak dikenal -> 422  :: HTTP 422
+[PASS] peran tak ada -> 404  :: HTTP 404
+[PASS] proj-1 memberi workflow:publish
+[PASS] proj-2 TIDAK memberi workflow:publish
+[PASS] 1000 penetapan via HTTP < 30 s  :: 6.70s
+[PASS] 500 otorisasi langsung < 2 s  :: 0.001s
+[PASS] eskalasi esc-all -> 403 privilege_escalation  :: HTTP 403
+[PASS] allow_escalation=True -> 200 (jalan keluar eksplisit)  :: HTTP 200
+[PASS] can-grant publish ditolak  :: {"allowed": false, "reason": "privilege_escalation", "missing": ["workflow:publish"]}
+[PASS] can-grant oleh tak-berwenang ditolak (fail-closed)
+[PASS] authorize all -> ditolak karena credential:share
+[PASS] hapus peran terpakai -> 409 role_in_use  :: HTTP 409
+[PASS] non-admin membuat peran -> 403  :: HTTP 403
+[PASS] GET /rbac/roles tanpa auth -> 401/403  :: HTTP 401
+[PASS] semua jenis peristiwa tercatat  :: ["instance_role_assigned", "role_assigned", "role_created", "role_deleted", "role_duplicated", "role_unassigned", "role_updated"]
+HASIL: 88/88 LULUS
+```
+
+### E. Verifikasi + Commit
+
+* `pytest tests/test_rbac.py -q` → **21 passed**
+* `python _f10_api_e2e.py` → **88/88 LULUS**
+* Migrasi divalidasi sintaksis dengan `pglast` (parser Postgres asli):
+  **6/6 migrasi 2026-10-09 OK**
+* Suite penuh dijalankan (lihat bagian verifikasi akhir).
+
+### F. Temuan (bug nyata, ditangkap uji)
+
+1. **TEMUAN (keamanan — fail-open).** `Authorizer.allows_any()` ditulis
+   `bool(need) and bool(need & have) or need <= have`. Karena himpunan
+   kosong selalu memenuhi `need <= have`, `allows_any(user, [])`
+   mengembalikan **`True`** — aktor tanpa satu scope pun dinyatakan lolos.
+   Diperbaiki menjadi "punya **setidaknya satu** scope yang diminta;
+   permintaan kosong → `False`". Dikunci `test_x5` + E2E bagian F.
+2. **TEMUAN (logika implikasi).** `_read_implies_list("project:read")`
+   menghasilkan `project:list`, padahal n8n **tidak mengenal** scope itu.
+   Implikasi hanya sah untuk resource yang memang punya daftar. Ditambahkan
+   `LISTABLE_RESOURCES` (dan `ALL_SCOPES` kini menurunkannya dari himpunan
+   itu, bukan lagi hardcode `workflow:list`). Dikunci `test_x6`.
+3. **TEMUAN (semantik mutasi peran).** `update_role(name, scopes=[...])`
+   **mengganti** himpunan eksplisit tanpa mempertahankan basis preset —
+   sehingga peran yang dibuat dari `project:viewer` lalu diedit **kehilangan**
+   `project:read`/`credential:read`/`folder:read`. Di UI n8n kotak preset
+   sudah tercentang saat mengedit, jadi basis harus bertahan. Ditambahkan
+   `_merge_preset()` yang dipakai bersama `create_role` dan `update_role`.
+   Dikunci `test_x8` (khusus regresi) + E2E.
+4. **TEMUAN (duplikasi menggandakan izin).** `duplicate_role()` meneruskan
+   `preset=src.preset_of` ke `create_role()`, yang **menambahkan basis preset
+   lagi** di atas scope yang sudah memuatnya → duplikat lebih luas dari
+   aslinya. Kini duplikat menyalin himpunan efektif apa adanya dengan
+   `preset_of=""`. Dikunci `test_b3`.
+5. **TEMUAN (sisa edit lama di `api_server.py`).** Ditemukan dekorator
+   `@app.get("/2fa/overview")` **tanpa badan fungsi** (sisa edit saya di fitur
+   #11 ketika menyisipkan blok recovery). Karena tanpa badan, dekorator itu
+   menempel ke `two_factor_set_policy` dan mendaftarkan rute hantu
+   `POST /2fa/overview`. Dihapus; implementasi asli di baris 4575 tidak
+   pernah rusak. Diverifikasi `grep -c` = 1 dan `py_compile` OK.
+6. **Divergensi yang disengaja.** n8n menyajikan peran kustom sebagai fitur
+   Enterprise. Saya pertahankan **perilaku**-nya (dua tingkat, kosakata,
+   implikasi, gerbang eskalasi, `RoleInUse`) tanpa gerbang lisensi, supaya
+   instance apa pun dapat memakainya. Satu scope n8n yang saya perlakukan
+   sebagai turunan murni (`workflow:list`) karena editor n8n tidak
+   menampilkannya sebagai kotak terpisah.
+7. **TEMUAN (kosakata — scope turunan tidak dikenal).** Audit konsistensi
+   menyeluruh (bukan bagian dari 12 kategori wajib, saya jalankan sebagai
+   jaring pengaman) menemukan `workflow:unpublish` **tidak ada di
+   `ALL_SCOPES`** padahal ia dihasilkan oleh implikasi `workflow:publish`
+   dan dipakai oleh `project:admin`. Akibatnya
+   `validate_scopes(["workflow:unpublish"])` keliru menolaknya sebagai scope
+   tak dikenal. Diperbaiki dengan memperkenalkan `DERIVED_SCOPES` (10
+   anggota: `workflow:unpublish` + 9 `:list`), sehingga `ALL_SCOPES` = 61.
+   Dikunci `test_x9` (invarians kosakata) + 2 pemeriksaan E2E baru.
+   Bonus temuan: `project:admin` memang punya **49 scope efektif** (42 + 7
+   `:list`), kebetulan cocok dengan angka "49" di catatan riset awal.
+8. **Batas yang terdokumentasi.** Basis data menyimpan scope **eksplisit**
+   (`granted`) dan tidak menduplikasi logika implikasi di SQL — implikasi
+   dihitung di `rbac.expand_scopes()` saja, agar tidak ada dua sumber
+   kebenaran yang bisa menyimpang. View `rbac_effective_scopes` diberi
+   komentar eksplisit soal ini.
+9. **Tidak ada BLOKER.** Tidak butuh kredensial baru, kartu kredit, atau
    alternatif gagal.
 
 ### Status: 100% COMPLETE ✅

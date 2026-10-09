@@ -179,3 +179,21 @@ Selisihnya bukan rahasia baru, melainkan:
 * **#2 MCP build workflow** — tanpa kredensial baru.
 * **#1 n8n Agents first-class** — memakai `*_API_KEY` LLM yang sudah ada.
 * **#9 Durable Execution via Dapr** — tanpa kredensial baru.
+
+---
+
+## 8. Verifikasi ulang — 9 Okt 2026 (fitur #10 dan seterusnya)
+
+Scan ulang `.env` tetap **101 nama** — tidak ada kredensial baru yang
+diperlukan untuk fitur #10. Yang ditambahkan hanya **variabel perilaku**
+(bukan rahasia, boleh dibiarkan kosong):
+
+| Nama | Default | Keterangan |
+|---|---|---|
+| `KATALIR_RBAC_STRICT` | `"1"` | Gerbang penolakan definisi peran yang mengandung risiko privilege escalation. `"0"` mematikan gerbang (tidak disarankan di produksi). |
+| `KATALIR_RECOVERY_*` | lihat `docs/sandbox-production.md` | Ambang detektor self-healing (fitur #3). |
+| `KATALIR_TRACING_*`, `KATALIR_LOG_SIEM_*`, `KATALIR_EUC_*` | lihat `docs/n8n-gap-closure-log.md` | Ambang/flag fitur #8, #4, #6. |
+
+Semua variabel di atas **tidak wajib diisi**: modul terkait punya default
+aman. Tidak ada nilai `.env` yang dibaca atau ditulis; inventaris tetap
+memuat nama saja.

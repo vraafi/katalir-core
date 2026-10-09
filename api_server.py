@@ -5579,7 +5579,384 @@ def euc_stats():
     return {"status": "success", **_euc.describe(), **r.stats()}
 
 
-@app.get("/2fa/overview")
+# ---------------------------------------------------------------------------
+# ENDPOINT CUSTOM RBAC (fitur #10) — peran kustom dua tingkat
+# Padanan n8n "Custom roles" (Enterprise, docs Okt 2026):
+#   * kosakata scope persis n8n (42 project + 10 instance)
+#   * peran project hanya berlaku di project tempat ia ditetapkan
+#   * peran bawaan tidak dapat diubah/dihapus
+#   * peran yang masih dipakai tidak dapat dihapus
+#   * gerbang risiko privilege escalation (mode strict default)
+# ---------------------------------------------------------------------------
+class RBACRoleRequest(BaseModel):
+    """Body POST /rbac/roles — buat peran kustom."""
+    name: str
+    scopes: list[str] = []
+    level: str = "project"          # "project" | "instance"
+    description: str = ""
+    preset: str = ""                # basis peran bawaan n8n
+    allow_escalation: bool = False
+
+
+class RBACRoleUpdateRequest(BaseModel):
+    """Body PATCH /rbac/roles/{name} — ubah peran kustom."""
+    scopes: list[str] | None = None
+    description: str | None = None
+    allow_escalation: bool = False
+
+
+class RBACDuplicateRequest(BaseModel):
+    """Body POST /rbac/roles/{name}/duplicate."""
+    new_name: str
+
+
+class RBACAssignRequest(BaseModel):
+    """Body POST /rbac/assignments — tetapkan peran project."""
+    project_id: str
+    user_id: str
+    role: str
+
+
+class RBACInstanceAssignRequest(BaseModel):
+    """Body POST /rbac/instance-assignments — tetapkan peran instance."""
+    user_id: str
+    role: str
+
+
+class RBACAuthorizeRequest(BaseModel):
+    """Body POST /rbac/authorize — periksa satu/lebih scope."""
+    user_id: str
+    scope: str = ""
+    scopes: list[str] | None = None
+    project_id: str = ""
+    mode: str = "all"               # "all" | "any"
+
+
+class RBACGrantCheckRequest(BaseModel):
+    """Body POST /rbac/can-grant — cek anti-escalation."""
+    actor_id: str
+    scopes: list[str]
+    project_id: str = ""
+
+
+def _rbac_err(exc: Exception) -> HTTPException:
+    """Petakan pengecualian rbac ke kode HTTP (kontrak error stabil)."""
+    import rbac as _rbac
+    if isinstance(exc, _rbac.ScopeUnknown):
+        return HTTPException(422, str(exc))
+    if isinstance(exc, _rbac.RoleNotFound):
+        return HTTPException(404, str(exc))
+    if isinstance(exc, _rbac.RoleInUse):
+        return HTTPException(409, f"role_in_use: {exc}")
+    if isinstance(exc, _rbac.RoleImmutable):
+        return HTTPException(409, f"role_immutable: {exc}")
+    if isinstance(exc, _rbac.PrivilegeEscalationRisk):
+        return HTTPException(403, f"privilege_escalation: {exc}")
+    if isinstance(exc, _rbac.NotAuthorized):
+        return HTTPException(403, str(exc))
+    return HTTPException(400, str(exc))
+
+
+def _rbac_mod():
+    import rbac as _rbac
+    return _rbac
+
+
+def _rbac_admin(user: dict) -> None:
+    """Gerbang admin untuk operasi definisi peran tingkat instance."""
+    role = str(user.get("role", "")).lower()
+    if role in ("admin", "owner", "superadmin"):
+        return
+    import rbac as _rbac
+    au = _rbac.authorizer()
+    if au.allow(str(user.get("id", "")), "roles:manageAll"):
+        return
+    raise HTTPException(403, "Hanya admin yang boleh mengelola definisi peran.")
+
+
+@app.get("/rbac/overview")
+def rbac_overview():
+    """Kosakata scope, preset bawaan, level, dan kebijakan (tanpa rahasia)."""
+    _r = _rbac_mod()
+    reg = _r.registry()
+    return {"status": "success", "config": _r.describe(), "stats": reg.stats()}
+
+
+@app.get("/rbac/scopes")
+def rbac_scopes(level: str = ""):
+    """Kosakata scope: project (bergrup) atau instance."""
+    _r = _rbac_mod()
+    lvl = str(level).strip().lower()
+    if lvl == "instance":
+        return {"status": "success", "level": "instance",
+                "scopes": [{"scope": k, "description": v}
+                           for k, v in sorted(_r.INSTANCE_SCOPES.items())],
+                "count": len(_r.INSTANCE_SCOPES)}
+    if lvl == "project":
+        return {"status": "success", "level": "project",
+                "groups": {k: sorted(v) for k, v in _r.SCOPE_GROUPS.items()},
+                "scopes": list(_r.PROJECT_SCOPES),
+                "count": len(_r.PROJECT_SCOPES)}
+    return {
+        "status": "success",
+        "project_groups": {k: sorted(v) for k, v in _r.SCOPE_GROUPS.items()},
+        "project_scopes": list(_r.PROJECT_SCOPES),
+        "project_count": len(_r.PROJECT_SCOPES),
+        "instance_scopes": sorted(_r.INSTANCE_SCOPES),
+        "instance_count": len(_r.INSTANCE_SCOPES),
+        "implied": {k: list(v) for k, v in _r.IMPLIED_SCOPES.items()},
+        "read_implies_list": sorted(_r.LISTABLE_RESOURCES),
+    }
+
+
+@app.get("/rbac/roles")
+def rbac_list_roles(level: str = "", authorization: str | None = Header(None)):
+    """Daftar peran (bawaan + kustom)."""
+    security.get_current_user(authorization)
+    reg = _rbac_mod().registry()
+    return {"status": "success", "roles": reg.list_roles(level=level),
+            "builtin": reg.builtin_names()}
+
+
+@app.post("/rbac/roles")
+def rbac_create_role(req: RBACRoleRequest,
+                     authorization: str | None = Header(None)):
+    """Buat peran kustom. Ditolak bila mengandung risiko eskalasi (strict)."""
+    user = security.get_current_user(authorization)
+    _rbac_admin(user)
+    _r = _rbac_mod()
+    try:
+        role = _r.registry().create_role(
+            req.name, req.scopes, level=req.level,
+            description=req.description, preset=req.preset,
+            created_by=str(user.get("id", "")),
+            allow_escalation=req.allow_escalation)
+    except Exception as exc:  # noqa: BLE001
+        raise _rbac_err(exc)
+    return {"status": "success", "role": role.to_dict()}
+
+
+@app.get("/rbac/roles/{name}")
+def rbac_get_role(name: str, authorization: str | None = Header(None)):
+    """Detail satu peran."""
+    security.get_current_user(authorization)
+    _r = _rbac_mod()
+    try:
+        return {"status": "success", "role": _r.registry().get_role(name).to_dict()}
+    except Exception as exc:  # noqa: BLE001
+        raise _rbac_err(exc)
+
+
+@app.patch("/rbac/roles/{name}")
+def rbac_update_role(name: str, req: RBACRoleUpdateRequest,
+                     authorization: str | None = Header(None)):
+    """Ubah peran kustom (peran bawaan ditolak)."""
+    user = security.get_current_user(authorization)
+    _rbac_admin(user)
+    _r = _rbac_mod()
+    try:
+        role = _r.registry().update_role(
+            name, scopes=req.scopes, description=req.description,
+            allow_escalation=req.allow_escalation)
+    except Exception as exc:  # noqa: BLE001
+        raise _rbac_err(exc)
+    return {"status": "success", "role": role.to_dict()}
+
+
+@app.post("/rbac/roles/{name}/duplicate")
+def rbac_duplicate_role(name: str, req: RBACDuplicateRequest,
+                        authorization: str | None = Header(None)):
+    """Salin peran (himpunan scope efektif disalin apa adanya)."""
+    user = security.get_current_user(authorization)
+    _rbac_admin(user)
+    _r = _rbac_mod()
+    try:
+        role = _r.registry().duplicate_role(name, req.new_name,
+                                            created_by=str(user.get("id", "")))
+    except Exception as exc:  # noqa: BLE001
+        raise _rbac_err(exc)
+    return {"status": "success", "role": role.to_dict()}
+
+
+@app.delete("/rbac/roles/{name}")
+def rbac_delete_role(name: str, authorization: str | None = Header(None)):
+    """Hapus peran kustom. Gagal 409 bila masih dipakai (perilaku n8n)."""
+    user = security.get_current_user(authorization)
+    _rbac_admin(user)
+    _r = _rbac_mod()
+    try:
+        out = _r.registry().delete_role(name)
+    except Exception as exc:  # noqa: BLE001
+        raise _rbac_err(exc)
+    return {"status": "success", **out}
+
+
+@app.get("/rbac/role-usage")
+def rbac_role_usage(authorization: str | None = Header(None)):
+    """Jumlah pemakaian tiap peran (gerbang 'role in use')."""
+    security.get_current_user(authorization)
+    reg = _rbac_mod().registry()
+    proj: dict[str, int] = {}
+    inst: dict[str, int] = {}
+    for _k, v in reg.assignments.items():
+        proj[v] = proj.get(v, 0) + 1
+    for _u, v in reg.instance_assignments.items():
+        inst[v] = inst.get(v, 0) + 1
+    rows = []
+    for name, r in sorted(reg.roles.items()):
+        pu, iu = proj.get(name, 0), inst.get(name, 0)
+        rows.append({"role": name, "level": r.level, "builtin": r.builtin,
+                     "project_uses": pu, "instance_uses": iu,
+                     "total_uses": pu + iu, "deletable": (not r.builtin)
+                     and (pu + iu) == 0})
+    return {"status": "success", "roles": rows}
+
+
+@app.get("/rbac/assignments")
+def rbac_list_assignments(project_id: str = "", user_id: str = "",
+                          authorization: str | None = Header(None)):
+    """Daftar penetapan peran (per project atau per pengguna)."""
+    security.get_current_user(authorization)
+    reg = _rbac_mod().registry()
+    if project_id:
+        return {"status": "success", "project_id": project_id,
+                "members": reg.members_of(project_id)}
+    if user_id:
+        return {"status": "success", "user_id": user_id,
+                "projects": reg.projects_of(user_id),
+                "instance_role": reg.instance_assignments.get(user_id, ""),
+                "roles": [r.to_dict() for r in reg.roles_for(user_id)]}
+    return {"status": "success",
+            "assignments": [{"project_id": p, "user_id": u, "role": v}
+                            for (p, u), v in sorted(reg.assignments.items())],
+            "instance_assignments": sorted(reg.instance_assignments.items()),
+            "total": len(reg.assignments) + len(reg.instance_assignments)}
+
+
+@app.post("/rbac/assignments")
+def rbac_assign(req: RBACAssignRequest,
+                authorization: str | None = Header(None)):
+    """Tetapkan peran project ke pengguna."""
+    security.get_current_user(authorization)
+    _r = _rbac_mod()
+    if not req.project_id or not req.user_id or not req.role:
+        raise HTTPException(422, "project_id, user_id, dan role wajib diisi.")
+    try:
+        out = _r.registry().assign(req.project_id, req.user_id, req.role)
+    except Exception as exc:  # noqa: BLE001
+        raise _rbac_err(exc)
+    return {"status": "success", **out}
+
+
+@app.delete("/rbac/assignments")
+def rbac_unassign(project_id: str, user_id: str,
+                  authorization: str | None = Header(None)):
+    """Lepas peran project dari pengguna."""
+    security.get_current_user(authorization)
+    removed = _rbac_mod().registry().unassign(project_id, user_id)
+    return {"status": "success", "project_id": project_id, "user_id": user_id,
+            "unassigned": removed}
+
+
+@app.post("/rbac/instance-assignments")
+def rbac_assign_instance(req: RBACInstanceAssignRequest,
+                         authorization: str | None = Header(None)):
+    """Tetapkan peran instance (satu per pengguna)."""
+    user = security.get_current_user(authorization)
+    _rbac_admin(user)
+    _r = _rbac_mod()
+    try:
+        out = _r.registry().assign_instance(req.user_id, req.role)
+    except Exception as exc:  # noqa: BLE001
+        raise _rbac_err(exc)
+    return {"status": "success", **out}
+
+
+@app.get("/rbac/effective-scopes")
+def rbac_effective_scopes(user_id: str, project_id: str = "",
+                          authorization: str | None = Header(None)):
+    """Himpunan scope efektif pengguna (instance + project bila diberi)."""
+    security.get_current_user(authorization)
+    reg = _rbac_mod().registry()
+    scopes = reg.effective_scopes(user_id, project_id)
+    return {"status": "success", "user_id": user_id, "project_id": project_id,
+            "roles": [r.name for r in reg.roles_for(user_id, project_id)],
+            "scopes": sorted(scopes), "count": len(scopes)}
+
+
+@app.post("/rbac/authorize")
+def rbac_authorize(req: RBACAuthorizeRequest,
+                   authorization: str | None = Header(None)):
+    """Periksa otorisasi: mode 'all' (default) atau 'any'."""
+    security.get_current_user(authorization)
+    _r = _rbac_mod()
+    au = _r.authorizer()
+    want = list(req.scopes or ([] if not req.scope else [req.scope]))
+    if not want:
+        raise HTTPException(422, "scope atau scopes wajib diisi.")
+    if req.mode == "any":
+        allowed = au.allows_any(req.user_id, want, project_id=req.project_id)
+        detail = {s: au.allow(req.user_id, s, project_id=req.project_id)
+                  for s in want}
+    else:
+        detail = {s: au.allow(req.user_id, s, project_id=req.project_id)
+                  for s in want}
+        allowed = all(detail.values())
+    return {"status": "success", "user_id": req.user_id,
+            "project_id": req.project_id, "mode": req.mode,
+            "allowed": allowed, "detail": detail,
+            "effective_count": len(au.scopes(req.user_id, req.project_id))}
+
+
+@app.post("/rbac/can-grant")
+def rbac_can_grant(req: RBACGrantCheckRequest,
+                   authorization: str | None = Header(None)):
+    """Cek anti-escalation: bolehkah aktor memberi scope ini?"""
+    security.get_current_user(authorization)
+    _r = _rbac_mod()
+    au = _r.authorizer()
+    try:
+        au.assert_can_grant(req.actor_id, req.scopes,
+                            project_id=req.project_id)
+    except Exception as exc:  # noqa: BLE001
+        if isinstance(exc, _r.PrivilegeEscalationRisk):
+            return {"status": "success", "allowed": False,
+                    "reason": "privilege_escalation",
+                    "missing": [s for s in req.scopes
+                                if not au.allow(req.actor_id, s,
+                                                project_id=req.project_id)],
+                    "detail": str(exc)}
+        raise _rbac_err(exc)
+    return {"status": "success", "allowed": True, "missing": []}
+
+
+@app.get("/rbac/audit")
+def rbac_audit(limit: int = 50, authorization: str | None = Header(None)):
+    """Jejak audit mutasi peran/penetapan (terbaru dulu)."""
+    security.get_current_user(authorization)
+    reg = _rbac_mod().registry()
+    n = max(1, min(int(limit or 50), 5000))
+    return {"status": "success", "events": list(reversed(reg.audit))[:n],
+            "total": len(reg.audit)}
+
+
+@app.get("/rbac/stats")
+def rbac_stats():
+    """Statistik registry + authorizer."""
+    _r = _rbac_mod()
+    return {"status": "success", **_r.describe(), **_r.registry().stats(),
+            "authorizer": _r.authorizer().stats()}
+
+
+@app.post("/rbac/reset")
+def rbac_reset(authorization: str | None = Header(None)):
+    """Reset registry ke peran bawaan (admin). Berguna untuk uji & pemulihan."""
+    user = security.get_current_user(authorization)
+    _rbac_admin(user)
+    _r = _rbac_mod()
+    _r.set_registry(None)
+    reg = _r.registry()
+    return {"status": "success", **reg.stats()}
 
 
 @app.post("/2fa/policy")
@@ -6058,6 +6435,7 @@ _FEATURE_MODULES = {
     "33_tracing": "tracing",
     "34_self_healing": "recovery",
     "35_end_user_credentials": "end_user_credentials",
+    "36_custom_rbac": "rbac",
 }
 
 
