@@ -39,9 +39,9 @@ semua dihitung runtime).
 |---|---|---|---|
 | **Prasyarat** | Audit fitur yang sudah ada + daftar dedup | ✅ **SELESAI** | `docs/connector-existing-audit.md` |
 | **FASE 1** | Riset 5 repo → keputusan arsitektur | ✅ **SELESAI** | `docs/connector-architecture-decision.md` |
-| **FASE 2** | Master framework: skema manifest + harness 10 test | ✅ **SELESAI** | `connector_manifest.py`, `connector_harness.py`, `connectors/_template/connector.yaml` |
+| **FASE 2** | Master framework: skema manifest + harness 10 test | ✅ **SELESAI** | `connector_manifest.py`, `connector_harness.py`, `connectors/_template/connector.yaml` — commit **`6fc9760`** |
 | **FASE 3** | Batch eksekusi 20 connector / 200 test, gerbang 100% PASS | ⏳ **BELUM** | butuh FASE 2 ✅ (kini siap) |
-| **FASE 4** | 10 hard test per connector | ✅ **TERDEFINISI + TERJALAN** | `connector_harness.py` (10 test, `describe()`) |
+| **FASE 4** | 10 hard test per connector | ✅ **TERDEFINISI + TERJALAN** | `connector_harness.py` (10 test, `describe()`) — commit **`6fc9760`** |
 | **FASE 5** | OpenAPI → auto-generate | ⏳ **BELUM** | `scripts/openapi_to_mcp.py` sudah ada (889 tool); perluasan ke APIs.guru belum |
 
 ---
