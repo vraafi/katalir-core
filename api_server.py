@@ -6666,6 +6666,144 @@ def connectors_coverage():
     return out
 
 
+# ---------------------------------------------------------------------------
+# TASK 1 — aktivasi connector metadata_only -> executable
+# ---------------------------------------------------------------------------
+
+
+def _activator_mod():
+    """Import lazy `connector_activator` (mengikuti pola `_conn_mod`)."""
+    import importlib
+
+    return importlib.import_module("connector_activator")
+
+
+class ActivateRequest(BaseModel):
+    ids: list[str] = []
+    limit: int = 500
+    verify_network: bool = False
+    timeout_s: float = 8.0
+
+
+def _activation_payload(entry: dict) -> dict:
+    ca = _activator_mod()
+    return {
+        "id": str(entry.get("id") or ""),
+        "transport": str((entry.get("install_config") or {}).get("transport") or ""),
+        "endpoint_url": str(entry.get("endpoint_url") or ""),
+        "auth_type": str(entry.get("auth_type") or ""),
+        "healthy": entry.get("healthy"),
+        "tools_count": int(entry.get("tools_count") or 0),
+    }
+
+
+@app.get("/connectors/activation/plan")
+def connectors_activation_plan(limit: int = 2000, kind: str | None = None):
+    """Rencana aktivasi TANPA efek samping: entri mana yang bisa dieksekusi.
+
+    Angka di sini berasal dari `activation_plan()` — fungsi murni yang sama
+    yang dipakai aktivasi sungguhan. Jadi tidak ada laporan "bisa" yang
+    berbeda dari kenyataan.
+    """
+    ca = _activator_mod()
+    try:
+        catalog = ca.load_catalog()
+    except Exception as exc:  # noqa: BLE001
+        return {"status": "error", "error": f"{type(exc).__name__}: {exc}"}
+
+    buckets: dict[str, list[dict]] = {}
+    for e in catalog:
+        plan = ca.activation_plan(e)
+        k = str(plan.get("kind") or "unknown")
+        buckets.setdefault(k, []).append({**_activation_payload(e),
+                                          "reason": plan.get("reason", "")})
+
+    out: dict = {
+        "status": "success",
+        "catalog_total": len(catalog),
+        "ready": len(buckets.get("ready", [])),
+        "buckets": {k: len(v) for k, v in sorted(buckets.items(),
+                                                 key=lambda kv: -len(kv[1]))},
+        "rules": ca.describe()["rules"],
+    }
+    if kind:
+        out["sample"] = buckets.get(kind, [])[: max(1, min(limit, 500))]
+    else:
+        out["sample"] = buckets.get("ready", [])[: max(1, min(limit, 500))]
+    return out
+
+
+@app.post("/connectors/activation/run")
+def connectors_activation_run(req: ActivateRequest,
+                              authorization: str | None = Header(None)):
+    """Aktivasi nyata (admin). Mengembalikan ledger + laporan bertahap."""
+    user = security.get_current_user(authorization)
+    _2fa_admin(user)
+    ca = _activator_mod()
+
+    try:
+        catalog = ca.load_catalog()
+    except Exception as exc:  # noqa: BLE001
+        raise HTTPException(500, f"katalog tidak dapat dimuat: {exc}") from exc
+
+    if req.ids:
+        wanted = set(req.ids)
+        catalog = [e for e in catalog if str(e.get("id") or "") in wanted]
+
+    ledger, report = ca.bulk_activate(
+        catalog[: max(1, req.limit)], verify_network=bool(req.verify_network),
+        timeout=max(1.0, min(req.timeout_s, 60.0)))
+    # Persist supaya `executable_servers()`/`coverage()` benar-benar bertambah.
+    persisted = ca.persist(ledger)
+
+    return {
+        "status": "success",
+        "activated": report["stats"]["activated"],
+        "skipped": report["stats"]["skipped"],
+        "tools_total": report["stats"]["tools_total"],
+        "by_transport": report["stats"]["by_transport"],
+        "by_auth": report["stats"]["by_auth"],
+        "skip_reasons": report["stats"]["skip_reasons"],
+        "duration_s": report["duration_s"],
+        "stage": report["stage"],
+        "persisted": persisted,
+        "network_evidence": report.get("network_evidence", []),
+        "blocked_hosts": report.get("blocked_hosts", []),
+    }
+
+
+@app.get("/connectors/activation/describe")
+def connectors_activation_describe():
+    """Kosakata transport + executor konkret yang tersedia (jujur apa adanya)."""
+    ca = _activator_mod()
+    return {"status": "success", **ca.describe()}
+
+
+@app.get("/connectors/activation/status")
+def connectors_activation_status():
+    """Status aktivasi tersimpan + bukti bahwa katalog benar-benar berubah.
+
+    `executable_now` dihitung dari `mcp_registry.executable_servers()` —
+    jalur yang sama dengan Marketplace — jadi tidak mungkin berbeda dari
+    yang dilihat pengguna.
+    """
+    out: dict = {"status": "success"}
+    try:
+        import mcp_registry as catalog
+
+        ids = catalog._activated_ids()
+        out["activated_persisted"] = len(ids)
+        out["executable_now"] = len(catalog.executable_servers())
+        cov = catalog.coverage()
+        out["coverage"] = cov
+        out["baseline_executable"] = 23
+        out["increase"] = max(0, out["executable_now"] - 23)
+    except Exception as exc:  # noqa: BLE001
+        out["status"] = "error"
+        out["error"] = f"{type(exc).__name__}: {exc}"
+    return out
+
+
 @app.post("/2fa/policy")
 def two_factor_set_policy(req: TwoFactorPolicyRequest,
                           authorization: str | None = Header(None)):
@@ -7146,6 +7284,7 @@ _FEATURE_MODULES = {
     "37_sandbox_isolation": "sandbox_isolation",
     "38_mcp_build_workflow": "mcp_build_workflow",
     "39_connector_manifest": "connector_manifest",
+    "40_connector_activator": "connector_activator",
 }
 
 

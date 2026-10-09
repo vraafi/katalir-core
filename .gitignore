@@ -119,3 +119,8 @@ nexus-frontend/f6-shots/
 
 # Sandbox E2E: snapshot backup bisa memuat data produksi (teredaksi)
 tests/sandbox/backups/
+
+# Status aktivasi connector (TASK 1) — state runtime, dihasilkan ulang oleh
+# POST /connectors/activation/run. Bukan sumber; jangan di-commit supaya
+# tidak menimpa aktivasi produksi dengan isi mesin pengembang.
+connector_activation.json

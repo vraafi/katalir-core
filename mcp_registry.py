@@ -522,5 +522,82 @@ def executable_servers():
     """Return only registry entries with an explicit executable transport.
 
     ToolSDK metadata is currently metadata-only; do not treat it as runnable.
+
+    Sejak TASK 1 (`connector_activator`), transport `streamable_http` juga
+    dihitung executable **hanya bila** entri tersebut sudah pernah diaktivasi
+    lewat ledger. Ledger itu dipersist ke `connector_activation.json` oleh
+    `save_activation_ledger()`. Tanpa langkah persist ini, aktivasi hanyalah
+    label di memori dan `coverage()['executable']` tetap 23 — persis kegagalan
+    yang dilarang brief.
     """
-    return [x for x in load_cached().values() if isinstance(x, dict) and (x.get('runtime_verified') is True or x.get('install_config', {}).get('transport') in {'stdio','http','sse'})]
+    active = _activated_ids()
+    out=[]
+    for x in load_cached().values():
+        if not isinstance(x, dict): continue
+        tr=(x.get('install_config') or {}).get('transport')
+        if x.get('runtime_verified') is True or tr in {'stdio','http','sse'}:
+            out.append(x); continue
+        if tr=='streamable_http' and str(x.get('id') or '') in active:
+            out.append(x)
+    return out
+
+
+ACTIVATION_PATH=Path(__file__).with_name('connector_activation.json')
+_ACTIVATED_IDS:set[str]|None=None
+
+
+def _activated_ids() -> set[str]:
+    """Baca himpunan id yang pernah diaktivasi (cache di memori)."""
+    global _ACTIVATED_IDS
+    if _ACTIVATED_IDS is not None:
+        return _ACTIVATED_IDS
+    ids:set[str]=set()
+    if ACTIVATION_PATH.exists():
+        try:
+            data=json.loads(ACTIVATION_PATH.read_text(encoding='utf-8'))
+            if isinstance(data, dict):
+                rows=data.get('activated') or {}
+                if isinstance(rows, dict):
+                    ids={str(k) for k in rows}
+        except (OSError,ValueError,TypeError):
+            ids=set()
+    _ACTIVATED_IDS=ids
+    return ids
+
+
+def save_activation_ledger(ledger) -> dict:
+    """Persist ledger `connector_activator.ActivationLedger` ke disk.
+
+    Setiap id yang diaktivasi ditandai `runtime_verified=True` di katalog
+    sehingga `executable_servers()` (dan `coverage()['executable']`) benar-benar
+    bertambah. Idempoten: memanggil dua kali menghasilkan himpunan yang sama.
+
+    Hanya id yang **benar-benar ada di katalog** yang ditulis. Mncatat id asing
+    akan membuat `executable_servers()` tetap tidak menemukannya (karena ia
+    mengiterasi katalog), sehingga laporan "bertambah" akan bohong.
+    """
+    global _ACTIVATED_IDS
+    existing=_activated_ids()
+    cache=load_cached()
+    added=0
+    unknown=[]
+    for cid, rec in (getattr(ledger,'activated',{}) or {}).items():
+        if cid not in cache:
+            unknown.append(cid)
+            continue
+        if cid not in existing:
+            added+=1
+        existing.add(cid)
+        entry=cache.get(cid)
+        if isinstance(entry, dict):
+            entry['runtime_verified']=True
+            entry['activation']={'transport':rec.get('transport'),
+                                 'endpoint_url':rec.get('endpoint_url'),
+                                 'call_verified':bool(rec.get('call_verified'))}
+    payload={'version':1,'count':len(existing),'activated':{i:True for i in sorted(existing)}}
+    tmp=ACTIVATION_PATH.with_suffix('.tmp')
+    tmp.write_text(json.dumps(payload,ensure_ascii=False),encoding='utf-8')
+    tmp.replace(ACTIVATION_PATH)
+    _ACTIVATED_IDS=existing
+    return {'total':len(existing),'added':added,'unknown_ids':len(unknown)}
+
