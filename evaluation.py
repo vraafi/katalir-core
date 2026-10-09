@@ -184,11 +184,19 @@ def estimate_cost(tokens_in: Any, tokens_out: Any,
 
 
 def _percentile(vals: list[float], p: float) -> float:
+    """Percentile nearest-rank (definisi standar: ceil(p/100 * N)).
+
+    Temuan hard test Fitur #7: rumus lama `round(p/100*(N-1))` memberi
+    p50=51 pada 1..100 (seharusnya 50) — galat satu langkah pada N genap.
+    Rumus nearest-rank memberi hasil yang diharapkan operator.
+    """
     if not vals:
         return 0.0
+    import math
     s = sorted(vals)
-    k = max(0, min(len(s) - 1, int(round((p / 100.0) * (len(s) - 1)))))
-    return round(s[k], 3)
+    n = len(s)
+    rank = max(1, min(n, int(math.ceil((p / 100.0) * n))))
+    return round(s[rank - 1], 3)
 
 
 # ---------------------------------------------------------------------------

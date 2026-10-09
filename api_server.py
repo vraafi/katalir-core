@@ -4547,6 +4547,8 @@ _FEATURE_MODULES = {
     "25_workflow_optimizer": "workflow_optimizer",
     "26_collab": "collab",
     "27_plugins": "plugin_system",
+    # 12 fitur n8n gap lanjutan (9 Okt 2026)
+    "28_metric_eval": "metrics_eval",
 }
 
 
@@ -4779,6 +4781,79 @@ def evaluations_detail(run_id: str, authorization: str | None = Header(None)):
         "run_id": row.get("run_id"), "name": row.get("name"),
         "summary": row.get("summary"), "results": row.get("results"),
         "created_at": row.get("created_at")}}
+
+
+# ---------------------------------------------------------------------------
+# ENDPOINT METRIC-BASED EVALUATIONS (fitur #7, 9 Okt 2026)
+# Metrik klasifikasi penuh (accuracy/precision/recall/F1/confusion) +
+# latensi p50/p95/p99 + biaya + perbandingan baseline + ekspor laporan.
+# ---------------------------------------------------------------------------
+class MetricEvalRequest(BaseModel):
+    """Body POST /evaluations/metrics. Dataset + workflow + opsi metrik."""
+    workflow_id: str = ""
+    dataset: Any = None
+    dataset_format: str = ""
+    dataset_name: str = ""
+    name: str = "metric-eval"
+    threshold: float = 0.8
+    compare_mode: str = "fuzzy"
+    baseline: Any = None
+    metrics: Any = None
+    max_cases: int = 50
+    export: str = ""
+
+
+@app.post("/evaluations/metrics")
+def evaluations_metrics(req: MetricEvalRequest,
+                        authorization: str | None = Header(None)):
+    """Evaluasi + metrik berbasis angka (klasifikasi, latensi, biaya)."""
+    user = security.get_current_user(authorization)
+    import evaluation
+    import metrics_eval
+
+    try:
+        cases = evaluation.load_dataset(req.dataset, req.dataset_format)
+    except ValueError as exc:
+        raise HTTPException(422, str(exc))
+    if not cases:
+        raise HTTPException(422, "Dataset kosong atau tidak bisa dibaca.")
+    cases = cases[:max(1, min(int(req.max_cases or 50), evaluation.MAX_CASES))]
+
+    runner = _eval_runner(req.workflow_id, user["email"])
+    out = metrics_eval.evaluate_with_metrics(
+        cases, runner, name=req.name, threshold=req.threshold,
+        compare_mode=req.compare_mode, baseline=req.baseline,
+        metrics=req.metrics if isinstance(req.metrics, list) else None)
+
+    row = evaluation.save_run(user["email"], out["summary"], out["results"],
+                              dataset_name=req.dataset_name)
+    payload = {
+        "status": "success",
+        "run_id": row["run_id"],
+        "summary": out["summary"],
+        "classification": out["classification"],
+        "latency": out["latency"],
+        "cost": out["cost"],
+        "comparison": out["comparison"],
+        "charts": out["charts"],
+        "results": out["results"],
+    }
+    fmt = (req.export or "").strip().lower()
+    if fmt:
+        report = {"name": req.name, **(out["classification"] or {}),
+                  "latency": out["latency"], "cost": out["cost"]}
+        payload["export"] = {
+            "format": fmt,
+            "content": metrics_eval.export_report(report, fmt, req.baseline),
+        }
+    return payload
+
+
+@app.get("/evaluations/metrics/metrics")
+def evaluations_metrics_catalog():
+    """Daftar metrik yang didukung (tanpa auth — katalog publik)."""
+    import metrics_eval
+    return {"status": "success", "metrics": list(metrics_eval.SUPPORTED_METRICS)}
 
 
 # ---------------------------------------------------------------------------
