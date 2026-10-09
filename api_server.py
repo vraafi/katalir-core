@@ -5132,6 +5132,240 @@ def tracing_test(req: TracingTestRequest,
             "detail": exp.last_error or "collector menerima span uji"}
 
 
+# ---------------------------------------------------------------------------
+# ENDPOINT SELF-HEALING PERSISTENCE (fitur #3) — pemulihan eksekusi otonom
+# Detektor gaya n8n (stall / queue-recovery / startup-recovery / start-failure
+# / workflow-deactivation) + classify -> decide -> remediate, dilindungi
+# idempotency guard + compensating action.
+# ---------------------------------------------------------------------------
+class RecoveryRegisterRequest(BaseModel):
+    """Body POST /recovery/executions — daftarkan eksekusi ke pemantau."""
+    execution_id: str
+    workflow_id: str = ""
+    mode: str = "manual"
+    max_attempts: int | None = None
+    owner: str = ""
+
+
+class RecoveryEventRequest(BaseModel):
+    """Body untuk start/heartbeat/finish/fail."""
+    execution_id: str
+    worker_id: str = ""
+    node_id: str = ""
+    status: str = "success"
+    error: str = ""
+    http_status: int | None = None
+    detector: str = ""
+    known_worker_ids: list[str] | None = None
+
+
+class RecoveryGuardRequest(BaseModel):
+    """Body operasi idempotency guard."""
+    key: str = ""
+    parts: list[Any] | None = None
+    meta: dict | None = None
+
+
+def _recovery_env() -> dict:
+    """Env proses sebagai dict, agar konfigurasi supervisor bisa diuji."""
+    import os as _os
+    return dict(_os.environ)
+
+
+def _recovery_sup():
+    import recovery as _rc
+    return _rc.supervisor(), _rc
+
+
+@app.get("/recovery/overview")
+def recovery_overview():
+    """Ringkasan konfigurasi + statistik supervisor dan guard."""
+    sup, _rc = _recovery_sup()
+    return {"status": "success", "config": _rc.describe(_recovery_env()),
+            "stats": sup.stats(), "guard": _rc.guard().stats()}
+
+
+@app.get("/recovery/executions")
+def recovery_list(status: str = "", limit: int = 100):
+    """Daftar eksekusi yang dipantau (terbaru lebih dulu)."""
+    sup, _rc = _recovery_sup()
+    rows = sup.list_records(status=status or None)
+    try:
+        n = int(limit)
+    except (TypeError, ValueError):
+        n = 100
+    return {"status": "success", "total": len(rows),
+            "executions": rows[:max(1, n)]}
+
+
+@app.post("/recovery/executions")
+def recovery_register(req: RecoveryRegisterRequest,
+                      authorization: str | None = Header(None)):
+    """Daftarkan eksekusi baru ke pemantau pemulihan."""
+    user = security.get_current_user(authorization)
+    sup, _rc = _recovery_sup()
+    kw: dict[str, Any] = {"workflow_id": req.workflow_id, "mode": req.mode,
+                          "owner": req.owner or str(user["id"])}
+    if req.max_attempts is not None:
+        kw["max_attempts"] = int(req.max_attempts)
+    try:
+        rec = sup.register(req.execution_id, **kw)
+    except _rc.RecoveryError as exc:
+        raise HTTPException(422, str(exc))
+    return {"status": "success", "execution": rec.to_dict()}
+
+
+@app.post("/recovery/executions/start")
+def recovery_start(req: RecoveryEventRequest,
+                   authorization: str | None = Header(None)):
+    security.get_current_user(authorization)
+    sup, _rc = _recovery_sup()
+    try:
+        rec = sup.start(req.execution_id, worker_id=req.worker_id,
+                        node_id=req.node_id)
+    except _rc.RecoveryError as exc:
+        raise HTTPException(404, str(exc))
+    return {"status": "success", "execution": rec.to_dict()}
+
+
+@app.post("/recovery/executions/heartbeat")
+def recovery_heartbeat(req: RecoveryEventRequest,
+                       authorization: str | None = Header(None)):
+    security.get_current_user(authorization)
+    sup, _ = _recovery_sup()
+    ok = sup.heartbeat(req.execution_id, node_id=req.node_id)
+    if not ok:
+        raise HTTPException(409, "eksekusi tidak dikenal atau sudah terminal")
+    return {"status": "success", "alive": True}
+
+
+@app.post("/recovery/executions/finish")
+def recovery_finish(req: RecoveryEventRequest,
+                    authorization: str | None = Header(None)):
+    security.get_current_user(authorization)
+    sup, _rc = _recovery_sup()
+    try:
+        rec = sup.finish(req.execution_id, status=req.status,
+                         error=req.error or None)
+    except _rc.RecoveryError as exc:
+        raise HTTPException(404, str(exc))
+    return {"status": "success", "execution": rec.to_dict()}
+
+
+@app.post("/recovery/executions/fail")
+def recovery_fail(req: RecoveryEventRequest,
+                  authorization: str | None = Header(None)):
+    """Catat kegagalan + klasifikasi error (retryable atau tidak)."""
+    security.get_current_user(authorization)
+    sup, _rc = _recovery_sup()
+    try:
+        rec = sup.fail(req.execution_id, req.error or "unknown error",
+                       status=req.http_status)
+    except _rc.RecoveryError as exc:
+        raise HTTPException(404, str(exc))
+    return {"status": "success", "execution": rec.to_dict(),
+            "classification": _rc.classify_error(req.error or "unknown error",
+                                                 status=req.http_status)}
+
+
+@app.post("/recovery/scan")
+def recovery_scan(authorization: str | None = Header(None)):
+    """Deteksi masalah (tanpa mengubah state)."""
+    security.get_current_user(authorization)
+    sup, _ = _recovery_sup()
+    found = sup.scan()
+    return {"status": "success", "found": len(found),
+            "findings": [{k: v for k, v in f.items() if k != "record"}
+                         for f in found]}
+
+
+@app.post("/recovery/run-once")
+def recovery_run_once(include_startup: bool = False,
+                      authorization: str | None = Header(None)):
+    """Satu putaran penuh: deteksi -> putuskan -> jalankan pemulihan."""
+    security.get_current_user(authorization)
+    sup, _ = _recovery_sup()
+    out = sup.run_once(include_startup=include_startup)
+    return {"status": "success", **out}
+
+
+@app.post("/recovery/crash")
+def recovery_crash(req: RecoveryEventRequest,
+                   authorization: str | None = Header(None)):
+    """Tandai eksekusi CRASH (mode worker queue) — idempoten."""
+    security.get_current_user(authorization)
+    sup, _rc = _recovery_sup()
+    try:
+        out = sup.signal_crash(req.execution_id, req.detector or "stall")
+    except _rc.RecoveryError as exc:
+        raise HTTPException(422, str(exc))
+    return {"status": "success", **out}
+
+
+@app.post("/recovery/startup-scan")
+def recovery_startup_scan(req: RecoveryEventRequest,
+                          authorization: str | None = Header(None)):
+    """Cari eksekusi yatim setelah instance restart."""
+    security.get_current_user(authorization)
+    sup, _ = _recovery_sup()
+    found = sup.startup_scan(known_worker_ids=req.known_worker_ids)
+    return {"status": "success", "found": len(found),
+            "findings": [{k: v for k, v in f.items() if k != "record"}
+                         for f in found]}
+
+
+@app.post("/recovery/executions/start-failure")
+def recovery_start_failure(req: RecoveryEventRequest,
+                           authorization: str | None = Header(None)):
+    """Catat kegagalan START (detektor start-failure)."""
+    security.get_current_user(authorization)
+    sup, _rc = _recovery_sup()
+    try:
+        out = sup.mark_start_failure(req.execution_id,
+                                     req.error or "start gagal")
+    except _rc.RecoveryError as exc:
+        raise HTTPException(404, str(exc))
+    return {"status": "success", **out}
+
+
+@app.get("/recovery/actions")
+def recovery_actions(limit: int = 100):
+    """Riwayat aksi pemulihan yang sudah dijalankan."""
+    sup, _ = _recovery_sup()
+    try:
+        n = int(limit)
+    except (TypeError, ValueError):
+        n = 100
+    rows = sup.actions[-max(1, n):]
+    return {"status": "success", "total": len(sup.actions), "actions": rows}
+
+
+@app.post("/recovery/guard/claim")
+def recovery_guard_claim(req: RecoveryGuardRequest,
+                         authorization: str | None = Header(None)):
+    """Klaim kunci idempotensi. `claimed=false` berarti duplikat."""
+    security.get_current_user(authorization)
+    _, _rc = _recovery_sup()
+    key = req.key or _rc.idempotency_key(*(req.parts or []))
+    return {"status": "success", "key": key,
+            "claimed": _rc.guard().claim(key, meta=req.meta)}
+
+
+@app.post("/recovery/guard/commit")
+def recovery_guard_commit(req: RecoveryGuardRequest,
+                          authorization: str | None = Header(None)):
+    security.get_current_user(authorization)
+    _, _rc = _recovery_sup()
+    _rc.guard().commit(req.key, result=req.meta)
+    return {"status": "success", "key": req.key, "state": "committed"}
+
+
+@app.get("/recovery/guard/stats")
+def recovery_guard_stats():
+    _, _rc = _recovery_sup()
+    return {"status": "success", **_rc.guard().stats()}
+
+
 @app.get("/2fa/overview")
 
 
@@ -5609,6 +5843,7 @@ _FEATURE_MODULES = {
     "31_two_factor": "two_factor",
     "32_log_streaming": "log_streaming",
     "33_tracing": "tracing",
+    "34_self_healing": "recovery",
 }
 
 

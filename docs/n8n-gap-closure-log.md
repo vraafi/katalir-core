@@ -17,7 +17,7 @@ dan `docs/enterprise-100-percent-log.md`.
 | 11 | Redaction + Enforce 2FA | `execution_redaction.py`, `two_factor.py` | 31/31 | `8446284` | ✅ |
 | 4 | Log Streaming SIEM | `log_streaming.py` | 22/22 + 40 E2E | — | ✅ |
 | 8 | OTel / LangSmith Tracing | `tracing.py` | 19/19 + 75 E2E | — | ✅ |
-| 3 | Self-healing Persistence | — | — | — | pending |
+| 3 | Self-healing Persistence | `recovery.py` | 19/19 + 62 E2E | — | ✅ |
 | 6 | End-user Credentials | — | — | — | pending |
 | 10 | Custom RBAC | — | — | — | pending |
 | 5 | Agent Sandbox Isolation | — | — | — | pending |
@@ -781,5 +781,151 @@ HASIL: LULUS
 6. **Tidak ada BLOKER.** Tracing nonaktif tanpa endpoint; seluruh pengujian
    memakai collector lokal. Tidak ada kredensial wajib, kartu kredit, atau
    10 alternatif yang gagal.
+
+### Status: 100% COMPLETE ✅
+
+---
+
+## FITUR #3: SELF-HEALING PERSISTENCE (EXECUTION RECOVERY OTONOM)
+
+### Research (link Okt 2026)
+
+Sumber yang dibaca (3, sesuai mandat):
+
+1. **Forum komunitas n8n — "Worker crashed, what happens to the job?"**
+   (`community.n8n.io/t/.../json` — API `.json` dipakai karena HTML-nya
+   diblokir checkpoint Vercel). Temuan kunci:
+   * Job pada worker yang crash **TIDAK** otomatis dioper ke worker lain.
+   * **Tidak ada checkpoint** di tengah workflow: retry selalu mulai dari awal
+     → efek samping WAJIB idempoten.
+   * `QUEUE_WORKER_MAX_STALLED_COUNT` **deprecated**.
+2. **Dokumentasi n8n — OpenTelemetry / crash detection (2.42.0).**
+   5 detektor: `stall`, `queue-recovery`, `startup-recovery`, `start-failure`,
+   `workflow-deactivation`. n8n **mendeteksi lalu berhenti**.
+3. **Playbook produksi AIFLOXIUM 2026 — "Self-healing workflows".**
+   5 lapisan: idempotency → smart retry (exponential backoff + **full jitter**)
+   → compensating action → DLQ → observability. 7 mode kegagalan dipetakan ke
+   jenis pemulihan; aturan retry: **5xx/429/401 diulang, 422 TIDAK pernah**.
+
+### B. Inventory kredensial
+
+Tidak butuh kredensial eksternal. Seluruh perilaku in-process; konfigurasi
+lewat env `KATALIR_*`. Spool file ditulis di disk lokal untuk durability.
+
+### C. Implementasi
+
+* `recovery.py` (~900 baris) — NEW
+  * `DETECTORS` (5, persis n8n), status const, `TERMINAL`/`NON_TERMINAL`
+  * `idempotency_key()` (SHA-256), `recovery_key(execution_id, attempt)`
+  * `classify_error()` → `{kind, http_status, retryable, reason}` dengan 9 regex
+  * `backoff_delay_ms()` — eksponensial + **full jitter** `[expo/2, expo]`
+  * `ExecutionRecord` + `ExecutionSupervisor`
+    (`register/start/heartbeat/finish/fail/scan/startup_scan/mark_start_failure/
+    signal_crash/decide/remediate/run_once/stats/list_records`)
+  * `IdempotencyGuard` (`claim/seen/commit/compensate/release/flush/stats`)
+  * `supervisor_from_env()`, `describe()`, registry `supervisor()`/`guard()`
+* `api_server.py` — 16 endpoint `/recovery/*` (overview, executions CRUD,
+  start/heartbeat/finish/fail, scan, run-once, crash, startup-scan,
+  start-failure, actions, guard claim/commit/stats)
+* `_FEATURE_MODULES["34_self_healing"] = "recovery"`
+* `migrations/2026-10-09-self-healing.sql` — `execution_recovery_state`,
+  `idempotency_keys`, `recovery_actions` + trigger `touch_updated_at` + RLS
+
+**Divergensi yang disengaja dari n8n:** n8n *mendeteksi lalu berhenti*.
+`recovery.py` *menyembuhkan*: deteksi → klasifikasi → putuskan → jalankan,
+di bawah gerbang idempotensi sehingga restart tidak pernah menggandakan efek
+samping.
+
+### D. Hard Test (12 kategori)
+
+`tests/test_recovery.py` — **19 tes / 19 LULUS** (tanpa `sleep`; jam palsu).
+
+| # | Kategori | Skenario | Hasil |
+|---|---|---|---|
+| B1 | Basic | `idempotency_key` deterministik & sensitif input; `recovery_key` per-attempt berbeda | ✅ |
+| B2 | Basic | stall terdeteksi lalu di-restart | ✅ |
+| B3 | Basic | klasifikasi error (503/429/422/network/401) | ✅ |
+| D1 | Durability | state supervisor bertahan restart proses | ✅ |
+| D2 | Durability | `recovered_keys` bertahan restart | ✅ |
+| E1 | Edge | jatah habis → quarantine | ✅ |
+| E2 | Edge | pending terlalu lama → queue-recovery | ✅ |
+| E3 | Edge | 5 detektor + start-failure + backoff menolak attempt < 1 | ✅ |
+| P1 | Perf | scan 5000 eksekusi | ✅ |
+| P2 | Perf | backoff dibatasi cap + jittered | ✅ |
+| S1 | Security | compensating action dijalankan sekali | ✅ |
+| S2 | Security | sinyal crash idempoten; hook rusak tidak merusak supervisor | ✅ |
+| X1 | Extra | spool guard bertahan restart | ✅ |
+| X2 | Extra | startup-scan mendeteksi worker yatim | ✅ |
+| X3 | Extra | `run_once` + statistik akurat | ✅ |
+| X4 | Extra | `describe` + factory env (default & nilai rusak) | ✅ |
+| X5 | Extra | tulis spool digabung, tetapi `commit()` memaksa tulis | ✅ |
+| X6 | Extra | `deactivation_timeout_sec` dapat dikonfigurasi | ✅ |
+| X7 | Extra | `created_at` memakai jam yang disuntik | ✅ |
+
+`_f3_api_e2e.py` — **62/62 LULUS** (HTTP nyata via TestClient, spool nyata di
+disk, "restart" = instance baru membaca file yang sama):
+register/start/heartbeat/finish, 5 detektor, eksekusi yatim, crash idempoten,
+restart→durability, restart vs quarantine, 422 tidak diulang, scan 3000
+eksekusi, 3000 klaim guard, auth 401 tanpa token, tanpa kebocoran rahasia.
+
+### Raw output (bukti)
+
+```
+$ pytest tests/test_recovery.py -q
+...................                                                      [100%]
+19 passed in 3.11s
+
+$ python _f3_api_e2e.py
+[PASS] 5 detektor n8n persis
+[PASS] GET /version memuat fitur #3
+[PASS] stall terdeteksi di 35 s
+[PASS] queue-recovery terdeteksi
+[PASS] workflow-deactivation terdeteksi
+[PASS] startup-recovery: worker yatim terdeteksi
+[PASS] crash kedua: duplicate=true
+[PASS] restart: crash_signalled ex-c5 tetap true
+[PASS] jatah habis -> quarantine
+[PASS] 422 dikarantina meski jatah banyak
+[PASS] scan 3000+ eksekusi < 2 s  :: 0.0040 s
+[PASS] 3000 klaim guard langsung < 2 s  :: 0.0091 s
+[PASS] tanpa Authorization -> ditolak  :: HTTP 401
+HASIL: 62/62 LULUS
+```
+
+### E. Verifikasi + Commit
+
+* `pytest tests/test_recovery.py tests/test_log_streaming.py
+  tests/test_log_streaming_owner_bus.py tests/test_tracing.py -q`
+  → **60 passed**
+* Suite penuh: **1736 passed**, 3 gagal = flaky lama (`test_parallel_fanout`
+  timeout cabang & performa paralel, `test_queue_mode::test_06_timeout`) —
+  ketiganya tidak mengimpor modul baru dan gagal juga sebelum sesi ini.
+
+### F. Temuan (bug nyata, ditangkap uji)
+
+1. **TEMUAN (durability).** `IdempotencyGuard.commit()` semula **tidak**
+   menulis spool. Proses yang restart akan kehilangan tanda "sudah commit" dan
+   bisa menjalankan efek samping **dua kali**. Kini `commit()` memanggil
+   `_persist(force=True)`; dikunci `test_x1` + `test_x5`.
+2. **TEMUAN (detektor buta).** `register()` memakai `created_at` bawaan
+   `time.time()`, sementara seluruh uji waktu memakai jam palsu → `age_sec` /
+   `silent_sec` menjadi **negatif** (di-clamp 0) sehingga tidak ada detektor
+   yang pernah menyala. Kini `created_at` diambil dari jam yang disuntik;
+   dikunci `test_x7`.
+3. **TEMUAN (injectability).** `_env_float()` membaca `os.environ`, bukan dict
+   env yang di-inject → `supervisor_from_env(env)` **mengabaikan** konfigurasi
+   yang diberikan (terukur `30.0` padahal env berisi `15`). Kini bertanda
+   tangan `(env, name, default)`; dikunci `test_x4`.
+4. **TEMUAN (performa O(n²)).** `claim()` menulis ulang **seluruh** berkas
+   spool setiap panggilan → 3000 klaim memakan **55 s**. Ditambahkan jendela
+   penggabungan tulis (`persist_interval_sec`) + `flush()` eksplisit; jalur
+   langsung kini **0,0091 s** untuk 3000 klaim (≈6000× lebih cepat).
+   `commit`/`compensate`/`release` tetap memaksa tulis karena kritis.
+5. **`scan()` tidak lagi meledak** pada status tak dikenal (mis. dari versi n8n
+   yang lebih baru) dan melewati record `CRASHED` (sudah ditangani
+   `signal_crash`). Ambang `workflow-deactivation` dipisah menjadi
+   `deactivation_timeout_sec` (default 4× visibility, seperti n8n).
+6. **Tidak ada BLOKER.** Tidak butuh kredensial, kartu kredit, atau alternatif
+   gagal.
 
 ### Status: 100% COMPLETE ✅
