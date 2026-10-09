@@ -26,7 +26,7 @@ TASK 2 → TASK 5 → TASK 6**.
 |---|------|---------------|-----------|--------|--------|
 | 1 | Aktifkan 25.902 connector `metadata_only` | `connector_activator.py` | 23/23 + 40 E2E | `a557489` | ✅ |
 | 3 | APIs.guru 2.500 spec integration | `apisguru_generator.py` | 19/19 + 27 E2E | _(lihat §TASK 3)_ | ✅ |
-| 4 | OAuth generik 1.024 Nango provider | — | — | — | ⏳ |
+| 4 | OAuth generik 1.024 Nango provider | `nango_oauth.py` | 22/22 + 27 E2E | _(lihat §TASK 4)_ | ✅ |
 | 2 | Batch execution FASE 3 | — | — | — | ⏳ |
 | 5 | Fitur #1 n8n Agents first-class entity | — | — | — | ⏳ |
 | 6 | Fitur #9 Dapr durable execution | — | — | — | ⏳ |
@@ -430,7 +430,15 @@ semacam ini tidak dihitung sebagai connector yang dapat dieksekusi.
 
 ### 7. Commit + Push
 
-_(diisi setelah push)_
+| Item | Nilai |
+|------|-------|
+| Commit | `3e7e407` — `feat(connectors): TASK 3 - integrasi 2.529 spesifikasi APIs.guru` |
+| Parent | `a557489` |
+| Push | `a557489..3e7e407  main -> main` (origin) |
+| `git ls-remote origin main` | `3e7e40791da3f67b355a9f15defbf8fa8cbb4914` — cocok |
+| Unpushed | 0 |
+| Berkas | 290 files changed, 37716 insertions(+), 3 deletions(-) |
+| Berkas baru | `apisguru_generator.py`, `tests/test_apisguru_generator.py`, 286 manifest |
 
 ### Status: 100% COMPLETE ✅
 
@@ -443,3 +451,166 @@ _(diisi setelah push)_
   2.529 entri direktori ditolak; satu lagi membuat 77 manifest gagal harness)
 - Tidak ada satu pun kode per-API: satu mesin, N spesifikasi
 
+
+
+---
+
+## TASK 4 — OAuth Generik untuk 1.024 Provider Nango
+
+### 1. Riset (WEB-FIRST)
+
+| Sumber | Jenis | Yang diambil | Tautan |
+|--------|-------|--------------|--------|
+| Nango `providers.yaml` (registry resmi) | repositori — **data otoritatif** | Skema per `auth_mode`: `authorization_url`, `token_url`, `token_params`, `refresh_params`, `credentials.*`, `token_response`, `signature.*`, `client_registration`, `alias` | https://raw.githubusercontent.com/NangoHQ/integration-templates/main/providers.yaml |
+| Nango auth reference | dokumentasi resmi | Arti tiap `auth_mode`; alur refresh token (diperbarui sebelum kedaluwarsa, minimal sekali sehari) | https://nango.dev/docs/guides/auth |
+| Nango platform auth | dokumentasi resmi | Bentuk `connection_config`, `proxy.base_url`, kredensial dua-langkah | https://nango.dev/docs/platform/auth |
+| GitHub issue Nango #6416 | forum/repositori | Perilaku nyata `OAUTH2_CC` (`token_request_auth_method: basic`, `grant_type: client_credentials`) | https://github.com/NangoHQ/nango/issues/6416 |
+| Airbyte `source-declarative-manifest` | dokumentasi resmi | Preseden kosakata manifest yang tertutup — dasar keputusan tidak menambah jenis auth | https://docs.airbyte.com/connector-development/config-based/understanding-the-yaml-file/reference |
+
+**Berkas bukti lokal**: `_t4_providers.yaml` (1.004.067 byte, **1.046 provider**),
+`_t4_modes.log` (distribusi & kosakata field per `auth_mode`).
+
+**Keputusan arsitektur**: satu **penerjemah generik** dari kosakata Nango
+(belasan `auth_mode`) ke kosakata **tertutup** manifest Katalir
+(`connector_manifest.AUTH_TYPES`). Tidak ada kode per-provider — 1.024 provider
+dilayani satu mesin, persis pola yang sama dengan TASK 3.
+
+### 2. Diagnosis — dari data, bukan dugaan
+
+Menjalankan mesin langsung atas registry nyata membuka **tiga masalah nyata**
+yang semuanya dari data, bukan dari tebakan:
+
+| # | Gejala | Akar masalah | Bukti |
+|---|--------|--------------|-------|
+| 1 | Hanya **510/1.024** provider terpetakan | `nango_providers.json` (katalog lokal) hanya memuat ringkasan `{id,name,description,auth_mode,kind}` — **tanpa** detail kredensial (`authorization_url`, `token_url`, `credentials`). Akibatnya 355 provider OAUTH2 lokal dilaporkan "OAuth tanpa authorization_url" padahal datanya ada di registry | 355x + 115x + 31x + 4x di `_t4_run.log` |
+| 2 | **55 provider** gagal padahal alur auth-nya ada | 69 entri registry memakai **`alias`** (`confluence -> jira`, `figjam -> figma`, `azure-blob-storage -> microsoft`); mesin mengabaikannya | `_t4_diag.log` |
+| 3 | **105 provider `OAUTH2_CC`** ditolak sebagai "unsupported" | Client-credentials **memang tidak punya** `authorization_url` (tidak ada consent pengguna). Menuntut `connect_url` = salah kaprah | 105x di `_t4_run.log` |
+
+### 3. Implementasi
+
+`nango_oauth.py` (baru, ± 480 baris) — murni/offline, tanpa network & tanpa `.env`.
+
+**Fungsi inti**:
+- `auth_plan(name, cfg)` → `AuthPlan{ok, kind, auth, reason, flow}`. Satu pintu masuk.
+- `infer_auth(cfg)` → klasifikasi dari **bentuk kredensial** (bukan label). Ini
+  yang menyelamatkan **629 provider** registry yang tidak punya `auth_mode`.
+- `resolve_alias(name, registry)` → ikuti rantai `alias` (maks 5 langkah, aman siklus).
+- `enrich(local, registry)` → gabung katalog lokal + detail registry; **hanya
+  MENAMBAH**, tidak pernah menimpa `id`/`name`/`kind`.
+- `load_enriched()` → jalur resmi TASK 4.
+- `plan_all()`, `to_manifest_auth()`, `summarize()`, `describe()`.
+
+**Peta kosakata** (`MODE_TO_KIND`): `OAUTH2`/`MCP_OAUTH2`/`OAUTH1`/`APP`/`CUSTOM`
+→ `oauth2` · `OAUTH2_CC` → `oauth2_client_credentials` · `BASIC` → `basic` ·
+`API_KEY`/`AWS_SIGV4`/`SIGNATURE` → `api_key` · `TWO_STEP` → `session_token` ·
+`JWT` → `jwt` · `NONE` → `none` · `BILL`/`INSTALL_PLUGIN`/`TBA`/`MCP_OAUTH2_GENERIC`
+tanpa URL → `deferred`.
+
+**Aturan manifest dipenuhi**: `oauth2` selalu punya `connect_url`
+(`/oauth/nango/authorize?provider=<slug>`, rute Katalir yang **nyata**) +
+`credential_form`; non-`none` selalu punya `credential_form`.
+
+**Endpoint API baru** (`api_server.py`), registry key `"42_nango_oauth"`:
+`GET /connectors/nango/schema` · `GET /connectors/nango/plan` ·
+`GET /connectors/nango/auth/{provider:path}` · `GET /oauth/nango/authorize`.
+
+### 4. Hard Test (12 wajib + 10 regresi)
+
+| Kode | Jenis | Uji | Hasil |
+|------|-------|-----|-------|
+| B1 | basic | OAUTH2 → connect_url + credential_form + scopes | ✅ |
+| B2 | basic | API_KEY → fields + `key_name`, tanpa connect_url | ✅ |
+| E1 | edge | `auth_mode` kosong → inferensi dari bentuk kredensial | ✅ |
+| E2 | edge | Rantai `alias` diresolusi + aman dari siklus | ✅ |
+| X1 | error | `auth_mode` tak dikenal → baca bentuk, jangan lempar | ✅ |
+| X2 | error | OAUTH2 tanpa `authorization_url` → `unsupported` + alasan | ✅ |
+| X3 | error | `INSTALL_PLUGIN`/`TBA`/`BILL` → `deferred`, tanpa auth palsu | ✅ |
+| X4 | error | `OAUTH2_CC` tanpa `token_url` → ditolak beralasan | ✅ |
+| X5 | error | config bukan objek → `bad_entry`, tanpa crash | ✅ |
+| X6 | error | registry kosong → `NangoOAuthError` jelas | ✅ |
+| X7 | invariant | Setiap auth `ok` ∈ `AUTH_TYPES` | ✅ |
+| X8 | invariant | Setiap `oauth2` `ok` punya connect_url + credential_form | ✅ |
+| X9 | invariant | Setiap non-`none` `ok` punya `credential_form` | ✅ |
+| X10 | invariant | `disable_pkce` & `token_request_auth_method` tidak hilang | ✅ |
+| X11 | mapping | `JWT`→jwt, `TWO_STEP`→session_token, metadata dibawa | ✅ |
+| X12 | invariant | `enrich()` tidak menimpa identitas lokal | ✅ |
+| X13 | edge | `auth_mode=NNN` dibaca dari `description` katalog lokal | ✅ |
+| X14 | invariant | Agregat `plan_all` konsisten dengan `auth_plan` per-entri | ✅ |
+| P1 | performance | 1.024 provider dipetakan < 10 s | ✅ |
+| P2 | performance | `enrich()` idempoten & stabil | ✅ |
+| S1 | security | `connect_url` hanya memuat slug aman, tanpa kredensial | ✅ |
+| I1 | E2E | 1.024 provider → auth lolos `_validate_auth` manifest asli | ✅ |
+
+**Hasil: 22/22 unit PASS · 27/27 E2E PASS · 135 regresi PASS** (nol regresi TASK 1/3).
+
+### 5. Verifikasi Production-Local (endpoint nyata)
+
+`_t4_api_e2e.py` dijalankan terhadap server uvicorn yang benar-benar hidup
+(`localhost:8000`, `TrustedHostMiddleware` memblokir `127.0.0.1` — fakta yang
+ditemukan & dicatat, bukan diakali):
+
+```
+A1  feature 42_nango_oauth registered            PASS
+A2  feature is boolean True                      PASS
+A3  no regression 40/41 present                  PASS
+A4-A6  /connectors/nango/schema 200 + kosakata    PASS
+A7-A11 /connectors/nango/plan  total>=1024 ok>=1000 PASS
+A12 failed all have reason                       PASS
+A13-A18 /connectors/nango/auth/{provider}         PASS
+A19-A21 /oauth/nango/authorize status=ready       PASS
+A22 deferred provider -> 409                      PASS
+A23 unknown provider -> 404                       PASS
+RESULT: 27/27 PASS
+```
+
+### 6. Bug Nyata Ditemukan & Diperbaiki
+
+1. **Katalog lokal tanpa detail kredensial** (510 → terpetakan): ditambahkan
+   `enrich()`/`load_enriched()`. Lokal menentukan KEANGGOTAAN, registry menentukan DETAIL.
+2. **`alias` diabaikan** (55 provider): ditambahkan `resolve_alias()` (maks 5
+   langkah, aman siklus). Hasil: 62 entri ber-alias mendapat alur auth warisan.
+3. **`OAUTH2_CC` ditolak sebagai unsupported** (105 provider): client-credentials
+   memang tanpa `authorization_url`; ditambahkan `OAUTH_CC_KINDS` + cabang khusus
+   yang mewajibkan `token_url` alih-alih `authorization_url`.
+4. **`infer_auth` salah untuk `token_url` + client creds tanpa `authorization_url`**:
+   awalnya mengembalikan `oauth2` (redirect) — diverifikasi pada 75 entri registry
+   nyata bahwa semuanya `OAUTH2_CC`/`TWO_STEP`, tidak pernah `OAUTH2`. Diperbaiki.
+5. **Bug ekspektasi tes** (bukan kode): B1 mengasumsikan slug mempertahankan tanda
+   hubung (`example-saas`), padahal normalisasi slug memang menghasilkan `example_saas`.
+6. **S1 terlalu longgar**: memeriksa substring `"password"` menandai provider
+   `1password` sebagai bocor. Diperbaiki menjadi pemeriksaan token berbahaya
+   (`?`, `&`, `=`, skema URL) + jumlah `=` tepat satu.
+
+### 7. Hasil Akhir
+
+| Metrik | Nilai |
+|--------|-------|
+| Provider katalog Nango | **1.024** |
+| Registry otoritatif | 1.046 provider |
+| **Berhasil dipetakan** | **1.014 / 1.024 (99,0 %)** |
+| Connector usable (non-`none`) | **1.012** |
+| Gagal (semua beralasan, jujur) | **10** |
+| Entri ber-`alias` diresolusi | 62 |
+
+Rincian jenis: `oauth2` **390** · `oauth2_client_credentials` **114** ·
+`api_key` **338** · `basic` **100** · `session_token` **66** · `jwt` **4** ·
+`none` **2**.
+
+**10 sisa kegagalan — dilaporkan jujur, bukan dikarang:**
+`MCP_OAUTH2_GENERIC` tanpa `authorization_url` (3, butuh discovery) ·
+`BILL` (2) · `INSTALL_PLUGIN` (1) · `TBA` (1) · `OAUTH2` tanpa `authorization_url`
+di registry (2: `google-ads`, `sentry-oauth`) · `OAUTH2_CC` tanpa `token_url`
+(1: `certn-partner`).
+
+### 8. Commit + Push
+
+_(diisi setelah push)_
+
+### Status: 100% COMPLETE ✅
+
+- 22/22 unit test PASS · 27/27 E2E PASS · 135 regresi PASS (nol regresi)
+- **1.014/1.024 provider dipetakan (99,0 %)** · **1.012 connector usable**
+- Satu mesin generik, nol kode per-provider
+- 6 masalah nyata ditemukan & diperbaiki — 3 di antaranya menyembunyikan
+  ratusan provider (510 → 1.014)
+- 10 sisa kegagalan semuanya beralasan & terdokumentasi

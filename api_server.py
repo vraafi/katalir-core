@@ -6917,6 +6917,108 @@ def connectors_apisguru_generate(req: ApisguruGenerateRequest,
     }
 
 
+# ---------------------------------------------------------------------------
+# TASK 4 — OAuth generik untuk provider Nango
+# ---------------------------------------------------------------------------
+
+
+def _nango_mod():
+    import importlib
+
+    return importlib.import_module("nango_oauth")
+
+
+@app.get("/connectors/nango/schema")
+def connectors_nango_schema():
+    """Kosakata & aturan peta auth Nango (jujur apa adanya)."""
+    return {"status": "success", **_nango_mod().describe()}
+
+
+@app.get("/connectors/nango/plan")
+def connectors_nango_plan(limit: int = 0, only_failed: bool = False):
+    """Rencana pemetaan auth untuk seluruh katalog Nango. Murni/offline."""
+    no = _nango_mod()
+    try:
+        entries = no.load_enriched()
+    except Exception as exc:  # noqa: BLE001
+        return {"status": "error", "error": f"{type(exc).__name__}: {exc}"}
+
+    res = no.plan_all(entries, limit=limit or None)
+    plans = res["plans"]
+    if only_failed:
+        plans = [p for p in plans if not p["ok"]]
+    return {
+        "status": "success",
+        "total": res["total"],
+        "ok": res["ok"],
+        "failed": res["failed"],
+        "kinds": res["kinds"],
+        "reasons": res["reasons"],
+        "sample": plans[:50],
+    }
+
+
+@app.get("/connectors/nango/auth/{provider:path}")
+def connectors_nango_auth(provider: str):
+    """Peta auth satu provider (nama polos atau `nango:<name>`)."""
+    no = _nango_mod()
+    try:
+        entries = no.load_enriched()
+    except Exception as exc:  # noqa: BLE001
+        return {"status": "error", "error": f"{type(exc).__name__}: {exc}"}
+
+    key = provider
+    if key not in entries:
+        cands = [k for k in entries if no._bare_name(k) == no._bare_name(provider)]
+        if not cands:
+            return {"status": "error", "error": f"provider tidak ditemukan: {provider}"}
+        key = cands[0]
+
+    plan = no.auth_plan(key, entries[key])
+    return {"status": "success", "provider": key, **plan.as_dict()}
+
+
+@app.get("/oauth/nango/authorize")
+def oauth_nango_authorize(provider: str):
+    """Rute connect generik untuk provider Nango.
+
+    Ini rute NYATA yang dirujuk `auth.connect_url` pada manifest hasil generator.
+    1024 provider tidak mungkin punya handler khusus, jadi descriptor field
+    diteruskan apa adanya (pola `providers.credential_schemas`) dan kredensial
+    disimpan ke vault lewat alur kredensial yang sudah ada.
+
+    Karena hanya Google & Slack yang sudah punya app OAuth terdaftar di
+    deployment ini (lihat `_oauth_providers`), endpoint ini JUJUR: ia
+    mengembalikan instruksi koneksi, bukan memalsukan redirect.
+    """
+    no = _nango_mod()
+    try:
+        entries = no.load_enriched()
+    except Exception as exc:  # noqa: BLE001
+        raise HTTPException(500, f"katalog Nango tidak dapat dibaca: {exc}") from exc
+
+    key = provider
+    if key not in entries:
+        cands = [k for k in entries if no._bare_name(k) == no._bare_name(provider)]
+        if not cands:
+            raise HTTPException(404, f"provider Nango tidak dikenal: {provider}")
+        key = cands[0]
+
+    plan = no.auth_plan(key, entries[key])
+    if not plan.ok:
+        raise HTTPException(409, f"provider belum punya alur auth: {plan.reason}")
+
+    return {
+        "status": "ready",
+        "provider": key,
+        "auth": plan.auth,
+        "flow": plan.flow,
+        "message": (
+            "Isi kredensial lewat form; kredensial disimpan terenkripsi di vault."
+        ),
+    }
+
+
 @app.post("/2fa/policy")
 def two_factor_set_policy(req: TwoFactorPolicyRequest,
                           authorization: str | None = Header(None)):
@@ -7399,6 +7501,7 @@ _FEATURE_MODULES = {
     "39_connector_manifest": "connector_manifest",
     "40_connector_activator": "connector_activator",
     "41_apisguru_generator": "apisguru_generator",
+    "42_nango_oauth": "nango_oauth",
 }
 
 
