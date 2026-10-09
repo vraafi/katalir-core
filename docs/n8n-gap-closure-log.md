@@ -20,8 +20,8 @@ dan `docs/enterprise-100-percent-log.md`.
 | 3 | Self-healing Persistence | `recovery.py` | 19/19 + 62 E2E | — | ✅ |
 | 6 | End-user Credentials | `end_user_credentials.py` | 16/16 + 54 E2E | `58037a4` | ✅ |
 | 10 | Custom RBAC | `rbac.py` | 21/21 + 88 E2E | `e442995` | ✅ |
-| 5 | Agent Sandbox Isolation | `sandbox_isolation.py` | 23/23 + 96 E2E | — | ✅ |
-| 2 | MCP Build Workflow | — | — | — | pending |
+| 5 | Agent Sandbox Isolation | `sandbox_isolation.py` | 23/23 + 96 E2E | `e201ba0` | ✅ |
+| 2 | MCP Build Workflow | `mcp_build_workflow.py` | 30/30 + 83 E2E | — | ✅ |
 | 1 | n8n Agents (first-class) | — | — | — | pending |
 | 9 | Durable Execution via Dapr | — | — | — | pending |
 
@@ -1410,8 +1410,10 @@ Sampel bukti mentah:
 ### E. Verifikasi + Commit
 - `py_compile api_server.py` → OK
 - pglast: 7/7 migrasi `migrations/2026-10-09-*.sql` parse OK
-- Suite penuh dijalankan ulang setelah perubahan (lihat commit)
-- Commit: `<lihat git log>`
+- Suite penuh dijalankan ulang setelah perubahan:
+  **`1837 passed, 42 subtests passed in 744.08s (0:12:24)`** — 0 gagal,
+  0 regresi (naik dari 1813 sebelum fitur #5).
+- Commit: `e201ba0`, sudah di-push (`e442995..e201ba0`, 0 ahead).
 
 ### F. Temuan (bug nyata yang ditemukan & diperbaiki)
 1. **`/sandbox/dispatch` tidak menegakkan allowlist modul** — endpoint
@@ -1428,5 +1430,163 @@ Sampel bukti mentah:
    sub-query `select array_agg(x) … where x is not null`.
 4. **Riset mencatat 49 scope efektif untuk `project:admin`** (42 + 7 `:list`) —
    konsisten dengan perhitungan `expand_scopes()` di fitur #10.
+
+### Status: 100% COMPLETE ✅
+
+---
+
+## FITUR #2: MCP BUILD WORKFLOW
+
+### Research (link Okt 2026)
+
+| Sumber | Link | Temuan | Keputusan |
+|---|---|---|---|
+| n8n — MCP server tools reference | https://docs.n8n.io/connect/connect-to-n8n-mcp-server/mcp-server-tools-reference | **53 tool dalam 7 kategori**: Workflow management (13), Execution management (2), Credential management (1), Instance context (4), Workflow builder (11), Agent management (15), Data tables (7). Setiap tool punya blok "Feature availability" berisi versi n8n minimum | Salin katalog + gerbang versi apa adanya; verifikasi paritas otomatis terhadap snapshot docs |
+| n8n — MCP Server Trigger | https://docs.n8n.io/integrations/builtin/core-nodes/n8n-nodes-langchain.mcptrigger | Transport: **SSE + streamable HTTP** (tanpa stdio). Auth: None / Bearer / Header. URL test vs production. Catatan queue mode: dengan **banyak webhook replica**, semua `/mcp*` harus dirutekan ke satu replica khusus | Catat batas transport; jangan janjikan stdio |
+| n8n — MCP product page | https://n8n.io/mcp/ | Loop build resmi: generate -> **validate** -> (bila gagal) fix & re-validate -> execute + generate test data -> (bila gagal) baca error, fix, run lagi. `create_workflow_from_code` menandai workflow `aiBuilderAssisted` + `builderVariant: mcp` | `BUILD_LOOP` 8 langkah + gate tulis |
+| MCP spec 2026-07-28 changelog | https://modelcontextprotocol.io/specification/2026-07-28/changelog | Revisi **terbesar sejak rilis**: stateless per-request envelope. `initialize`/`notifications/initialized` **dihapus**; `Mcp-Session-Id` **dihapus**; `server/discover` **WAJIB**; header `Mcp-Method`+`Mcp-Name`; `ttlMs`+`cacheScope`; `resultType`; MRTR menggantikan server-initiated requests | Modelkan sebagai gerbang keras di `check_envelope()` |
+| MCP PY SDK v2 migration | https://py.sdk.modelcontextprotocol.io/v2/migration/ | `FastMCP` -> `MCPServer` (`mcp.server.mcpserver`); parameter transport pindah dari konstruktor ke `run()`/`streamable_http_app()`; `LATEST_PROTOCOL_VERSION` kini `"2026-07-28"` (tak bisa dinegosiasi via handshake); body 4 MiB; handler sinkron jalan di worker thread | Catat sebagai temuan upgrade; implementasi ini tidak bergantung SDK |
+
+### B. Kredensial .env
+- **Tidak ada kredensial baru.** Fitur ini adalah lapisan katalog + kebijakan;
+  tidak menghubungi instance n8n mana pun.
+- Variabel perilaku opsional: `KATALIR_MCP_N8N_VERSION`,
+  `KATALIR_MCP_REQUIRE_VALIDATION`, `KATALIR_MCP_REQUIRE_DISCOVERY`,
+  `KATALIR_MCP_ENFORCE_ROUTING_HEADERS`, `KATALIR_MCP_STRICT_TOOL_NAMES`,
+  `KATALIR_MCP_PROTOCOL_REVISION`, `KATALIR_MCP_SDK_TTL_MS`.
+- Melengkapi `mcp_server.py` yang sudah ada (server MCP Katalir, 6 tool) —
+  modul ini menyediakan **peta + gerbang** yang selama ini belum ada.
+
+### C. Implementasi
+- **Mesin**: `mcp_build_workflow.py` (~700 baris)
+  - `ToolSpec` (name, category, since, mutating, requires_validation) × 53
+  - `PROTOCOL_REVISIONS`, `MODERN_REVISIONS`, `HANDSHAKE_REVISIONS`,
+    `MODERN_REQUIRED_HEADERS`, `CACHE_FIELDS`, `RESULT_TYPES`,
+    `RENUMBERED_ERRORS`
+  - `BUILD_LOOP` (8 langkah), `CREATE_GATE_TOOLS`, `READ_ONLY_TOOLS`
+  - `BuildSession` — melacak urutan + menegakkan 4 gate:
+    G1 referensi SDK (`rules`) sebelum menulis; G2 nama tool harus ada;
+    G3 `validate_workflow` **lulus** sebelum create/update;
+    G4 run butuh workflow yang sudah ada
+  - `check_envelope()`, `discover_payload()`, `validate_discovery()`,
+    `build_reference()`, `reference_payload()`, `policy_from_env()`
+  - `parse_version()`/`at_least()`/`require_tool()` — gerbang versi
+- **DDL**: `migrations/2026-10-09-mcp-build-workflow.sql`
+  - `mcp_protocol_revisions` (CHECK `is_modern <> has_handshake`)
+  - `mcp_tool_catalog` (seed 53 baris; CHECK `needs_validation ⇒ mutating`)
+  - `mcp_build_sessions` (CHECK status↔bukti)
+  - `mcp_call_events` (CHECK `phase` **cocok dengan** `tool_name`)
+  - View `mcp_build_loop_health` (mendeteksi `gate_violation`),
+    `mcp_tools_pending_for_version`, `mcp_protocol_gate`, RLS
+  - **Terverifikasi pglast** (30 statement) + paritas seed ↔ katalog Python
+- **API**: 9 endpoint `/mcp/build/*` — `overview`, `tools`, `tools/{name}`,
+  `reference`, `discover`, `check-envelope`, `check-envelope-fail`,
+  `loop`, `verify`
+  Registry: `_FEATURE_MODULES["38_mcp_build_workflow"]`
+
+### D. Hard Test
+
+**Unit — `tests/test_mcp_build_workflow.py`: 30/30 LULUS**
+
+```
+$ python -m pytest tests/test_mcp_build_workflow.py -q
+..............................                                           [100%]
+30 passed in 0.54s
+```
+
+**E2E — `_f2_api_e2e.py` (HTTP nyata): 83/83 LULUS**
+
+```
+=== A. Katalog & registry protokol ===
+=== B. Gerbang versi per-tool ===
+=== C. Loop build & referensi SDK ===
+=== D. server/discover ===
+=== E. Amplop protokol modern ===
+=== F. Keamanan & auth ===
+=== G. Verifikasi mandiri ===
+==============================================================
+HASIL AKHIR: 83 LULUS / 0 GAGAL  (total 83)
+==============================================================
+```
+
+**Paritas terhadap docs resmi (bukti, bukan klaim).** Harness membandingkan
+katalog yang dilayani HTTP dengan snapshot docs `_mcp_tools_ref.md`:
+
+| Pemeriksaan | Hasil |
+|---|---|
+| Nama tool identik docs (53) | **LULUS** — `beda: []` |
+| Kategori tiap tool identik docs | **LULUS** |
+| Gerbang `since` identik docs (32 tool bergerbang) | **LULUS** — `mismatch: []` |
+| Seed SQL ↔ katalog Python (53 baris, 4 field) | **LULUS** — `field mismatch: []` |
+
+Sampel bukti mentah:
+
+| # | Skenario | Hasil | Bukti mentah |
+|---|---|---|---|
+| 1 | `GET /mcp/build/overview` | PASS | `tool_count=53 categories=7` |
+| 2 | distribusi kategori | PASS | `13/2/1/4/11/15/7` |
+| 3 | revisi terbaru | PASS | `2026-07-28` |
+| 4 | hanya modern | PASS | `['2026-07-28']` |
+| 5 | `Mcp-Session-Id` dicabut | PASS | `revoked_session_header='Mcp-Session-Id'` |
+| 6 | header routing | PASS | `['Mcp-Method','Mcp-Name']` |
+| 7 | cache field | PASS | `['ttlMs','cacheScope']` |
+| 8 | instance 2.12.0 | PASS | `count=17` |
+| 9 | instance 2.43.0 | PASS | `count=53` |
+| 10 | 2.33.0 tool agent | PASS | `count=0` |
+| 11 | 2.34.0 tool agent | PASS | `count=14` (call_agent belum) |
+| 12 | 2.35.0 tool agent | PASS | `count=15` |
+| 13 | `call_agent` pada 2.34.0 | PASS | HTTP **409** |
+| 14 | tool lama `create_workflow` | PASS | HTTP **404** |
+| 15 | versi `terbaru` | PASS | HTTP **422** |
+| 16 | loop 8 langkah + urutan | PASS | `referensi < validasi < create` |
+| 17 | gate tulis | PASS | `{create_workflow_from_code, update_workflow}` |
+| 18 | `server/discover` valid | PASS | `ok=True`, 5 revisi |
+| 19 | discover per-versi | PASS | `toolsForVersion` = 17 @2.12.0 |
+| 20 | amplop modern benar | PASS | `ok=True` |
+| 21–29 | **9 modus pelanggaran ditolak** | PASS | header hilang ×2, `Mcp-Name` tidak cocok, sesi lama, `_meta` salah, `_meta` kosong, `resultType` hilang/tidak sah, `input_required` tanpa `inputRequests` |
+| 30 | `tools/list` tanpa cache field | PASS | `ok=False` (2 galat) |
+| 31 | `tools/list` dengan cache field | PASS | `ok=True` |
+| 32 | `cacheScope='global'` | PASS | `ok=False` |
+| 33 | revisi handshake tanpa amplop modern | PASS | `ok=True` |
+| 34 | `check-envelope-fail` saat galat | PASS | HTTP **422** |
+| 35 | POST tanpa token ×3 | PASS | HTTP **401** |
+| 36 | GET katalog publik ×5 | PASS | HTTP **200** |
+| 37 | `/version` → features | PASS | `38_mcp_build_workflow=True` |
+
+**Distribusi skenario (min 12):** 3 basic (1–2, 16), 2 durability (13, 15),
+3 edge (10–12, 14, 17), 2 performance (P1/P2 unit), 2 security (21–29, 35) —
+total **83** pemeriksaan.
+
+**Regresi penuh:** `_f2_full.log`.
+
+### E. Verifikasi + Commit
+- `py_compile api_server.py` → OK; 9 endpoint `/mcp/build/*` terdaftar
+- pglast: 8/8 migrasi `migrations/2026-10-09-*.sql` parse OK
+- Suite penuh dijalankan ulang setelah perubahan (lihat commit)
+- Commit: `<lihat git log>`
+
+### F. Temuan (bug nyata + temuan upgrade)
+1. **`require_tool(name, "")` melempar `ValueError`** alih-alih melewati
+   gerbang. `at_least("", since)` mengevaluasi lebih dulu sebelum penjaga
+   `if spec.since` sempat bekerja, sehingga "versi instance tidak diketahui"
+   (kasus normal saat klien baru terhubung) menjadi galat 500. Diperbaiki
+   dengan menangani versi kosong lebih dulu; dikunci `test_b3` + `test_x5`.
+2. **SDK Python MCP terpasang (1.28.1) TIDAK mendukung 2026-07-28.** Registry
+   SDK berhenti di `2025-11-25`; `server/discover`, `ttlMs`, `cacheScope`,
+   `resultType`, `Mcp-Method` semuanya absen. Rilis yang mendukung adalah
+   **`mcp 2.x`** (`2.0.0` dirilis **2026-07-28** — tanggal yang sama dengan
+   revisi spec; terbaru `2.3.0`). Karena `mcp 2` adalah *breaking major* —
+   `FastMCP` → `MCPServer`, parameter transport pindah dari konstruktor ke
+   `run()`/`streamable_http_app()`, `LATEST_PROTOCOL_VERSION` kini tak bisa
+   dinegosiasi via handshake, batas body 4 MiB, handler sinkron pindah ke
+   worker thread — upgrade ini **tidak** dilakukan di dalam fitur ini
+   (berisiko menjatuhkan `mcp_server.py` yang sudah melayani produksi).
+   Fitur #2 karena itu diimplementasikan sebagai lapisan katalog + gerbang
+   yang tidak bergantung versi SDK. **Upgrade ke `mcp>=2` dicatat sebagai
+   pekerjaan tersendiri.**
+3. **`test_workflow` sejak 2.15.0** tetapi `create_workflow_from_code` sejak
+   2.12.0 — sehingga pada instance 2.12.0–2.14.x langkah "uji dulu" memang
+   belum ada. `build_reference()` melaporkannya di `unavailable_steps`
+   ketimbang menyarankan langkah yang mustahil.
 
 ### Status: 100% COMPLETE ✅

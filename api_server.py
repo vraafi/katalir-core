@@ -6188,6 +6188,262 @@ def sandbox_verify():
             "cve": _si.KNOWN_CVES[0]["id"]}
 
 
+# ---------------------------------------------------------------------------
+# ENDPOINT MCP BUILD WORKFLOW (fitur #2)
+# Padanan n8n "instance-level MCP server": katalog 53 tool dalam 7 kategori
+# (docs Okt 2026) + loop build kanonik (referensi -> cari -> tipe -> validasi
+# -> tulis -> jalankan) + gerbang protokol MCP 2026-07-28 (stateless, WAJIB
+# `server/discover`, header Mcp-Method/Mcp-Name, ttlMs/cacheScope).
+# ---------------------------------------------------------------------------
+class McpBuildReferenceRequest(BaseModel):
+    """Body POST /mcp/build/reference — peta loop untuk satu versi n8n."""
+    version: str = ""
+    section: str = "all"
+
+
+class McpBuildEnvelopeRequest(BaseModel):
+    """Body POST /mcp/build/check-envelope — uji amplop protokol."""
+    method: str = "tools/call"
+    revision: str = "2026-07-28"
+    headers: dict = {}
+    meta: dict = {}
+    result: dict | None = None
+    tool_name: str = ""
+
+
+def _mcp_build_mod():
+    import mcp_build_workflow as _mb
+    return _mb
+
+
+def _mcp_build_err(exc: Exception) -> HTTPException:
+    """Petakan galat modul ke kode HTTP yang tepat (bukan selalu 500)."""
+    _mb = _mcp_build_mod()
+    if isinstance(exc, _mb.UnknownTool):
+        return HTTPException(404, str(exc))
+    if isinstance(exc, _mb.VersionTooOld):
+        return HTTPException(409, str(exc))
+    if isinstance(exc, (_mb.ProtocolMismatch, _mb.DiscoveryMissing,
+                       _mb.SessionHeaderForbidden)):
+        return HTTPException(422, str(exc))
+    if isinstance(exc, _mb.BuildLoopViolation):
+        return HTTPException(409, str(exc))
+    if isinstance(exc, ValueError):
+        return HTTPException(422, str(exc))
+    return HTTPException(400, str(exc))
+
+
+@app.get("/mcp/build/overview")
+def mcp_build_overview(version: str = ""):
+    """Katalog 53 tool + registry revisi protokol + loop build."""
+    _mb = _mcp_build_mod()
+    out = {"status": "success", "catalog": _mb.describe(),
+           "protocol_gate": {
+               "latest": _mb.LATEST_REVISION,
+               "modern": list(_mb.MODERN_REVISIONS),
+               "revoked_session_header": _mb.REVOKED_SESSION_HEADER,
+               "required_headers": list(_mb.MODERN_REQUIRED_HEADERS),
+               "cache_fields": list(_mb.CACHE_FIELDS),
+           }}
+    if version:
+        try:
+            out["tools_for_version"] = [
+                t.name for t in _mb.tools_for_version(version)]
+        except ValueError as exc:
+            raise _mcp_build_err(exc)
+    return out
+
+
+@app.get("/mcp/build/tools")
+def mcp_build_tools(version: str = "", category: str = ""):
+    """Daftar tool; bisa disaring per kategori dan/atau versi n8n."""
+    _mb = _mcp_build_mod()
+    if category:
+        rows = _mb.tools_in_category(category)
+        if not rows:
+            raise HTTPException(404, f"kategori tidak dikenal: {category!r}")
+    else:
+        rows = _mb.TOOLS
+    if version:
+        try:
+            allowed = {t.name for t in _mb.tools_for_version(version)}
+            rows = tuple(t for t in rows if t.name in allowed)
+        except ValueError as exc:
+            raise _mcp_build_err(exc)
+    return {"status": "success", "count": len(rows),
+            "version": version, "category": category,
+            "tools": [t.to_dict() for t in rows]}
+
+
+@app.get("/mcp/build/tools/{tool_name}")
+def mcp_build_tool(tool_name: str, version: str = ""):
+    """Detail satu tool; bila `version` diberi, gerbang versi ikut diuji."""
+    _mb = _mcp_build_mod()
+    try:
+        if version:
+            spec = _mb.require_tool(tool_name, version)
+        else:
+            spec = _mb.tool_by_name(tool_name)
+    except Exception as exc:  # noqa: BLE001
+        raise _mcp_build_err(exc)
+    return {"status": "success", "tool": spec.to_dict()}
+
+
+@app.post("/mcp/build/reference")
+def mcp_build_reference(req: McpBuildReferenceRequest,
+                        authorization: str | None = Header(None)):
+    """Peta loop build untuk sebuah versi n8n (tanpa menyentuh instance)."""
+    security.get_current_user(authorization)
+    _mb = _mcp_build_mod()
+    if req.section not in _mb.SDK_SECTIONS:
+        raise HTTPException(422, f"section tidak dikenal: {req.section!r}")
+    try:
+        return {"status": "success",
+                **_mb.build_reference(req.version, [req.section])}
+    except Exception as exc:  # noqa: BLE001
+        raise _mcp_build_err(exc)
+
+
+@app.get("/mcp/build/discover")
+def mcp_build_discover(version: str = ""):
+    """Contoh balasan `server/discover` + validasinya.
+
+    `server/discover` adalah MUST pada revisi 2026-07-28: tanpa itu klien
+    modern akan melaporkan permintaan tak terduga lalu jatuh ke handshake.
+    """
+    _mb = _mcp_build_mod()
+    try:
+        payload = _mb.discover_payload(version)
+    except ValueError as exc:
+        raise _mcp_build_err(exc)
+    return {"status": "success", "discover": payload,
+            "validation": _mb.validate_discovery(payload),
+            "method": _mb.DISCOVER_METHOD}
+
+
+@app.post("/mcp/build/check-envelope")
+def mcp_build_check_envelope(req: McpBuildEnvelopeRequest,
+                             authorization: str | None = Header(None)):
+    """Periksa satu pertukaran MCP terhadap revisi yang diklaim."""
+    security.get_current_user(authorization)
+    _mb = _mcp_build_mod()
+    out = _mb.check_envelope(
+        req.method, revision=req.revision, headers=req.headers,
+        meta=req.meta, result=req.result, tool_name=req.tool_name)
+    return {"status": "success", **out}
+
+
+@app.post("/mcp/build/check-envelope-fail")
+def mcp_build_check_envelope_fail(req: McpBuildEnvelopeRequest,
+                                  authorization: str | None = Header(None)):
+    """Sama seperti check-envelope, tetapi 422 bila ada galat.
+
+    Dipakai sebagai gerbang CI: pertukaran yang tidak sesuai revisi harus
+    MENGGAGALKAN pipeline, bukan hanya melaporkan.
+    """
+    security.get_current_user(authorization)
+    _mb = _mcp_build_mod()
+    out = _mb.check_envelope(
+        req.method, revision=req.revision, headers=req.headers,
+        meta=req.meta, result=req.result, tool_name=req.tool_name)
+    if not out["ok"]:
+        raise HTTPException(422, "; ".join(out["errors"]))
+    return {"status": "success", **out}
+
+
+@app.get("/mcp/build/loop")
+def mcp_build_loop():
+    """Urutan loop build kanonik + prakondisi tiap langkah."""
+    _mb = _mcp_build_mod()
+    steps = []
+    for name in _mb.BUILD_LOOP:
+        spec = _mb.tool_by_name(name)
+        steps.append({
+            "tool": name,
+            "category": spec.category,
+            "since": spec.since,
+            "mutating": spec.mutating,
+        })
+    return {"status": "success", "loop": list(_mb.BUILD_LOOP),
+            "steps": steps,
+            "create_gate_tools": sorted(_mb.CREATE_GATE_TOOLS),
+            "required_sdk_section": _mb.REQUIRED_SDK_SECTION}
+
+
+@app.get("/mcp/build/verify")
+def mcp_build_verify():
+    """Uji mandiri: buktikan katalog & gerbang protokol benar-benar ditegakkan."""
+    _mb = _mcp_build_mod()
+    checks: list[dict] = []
+
+    def ck(name: str, cond: bool, detail: str = "") -> None:
+        checks.append({"name": name, "pass": bool(cond), "detail": detail})
+
+    ck("katalog berisi 53 tool", len(_mb.TOOLS) == 53, str(len(_mb.TOOLS)))
+    ck("7 kategori", len(_mb.TOOL_CATEGORIES) == 7)
+    ck("nama tool unik", len(set(_mb.TOOL_NAMES)) == 53)
+    ck("revisi terbaru 2026-07-28",
+       _mb.LATEST_REVISION == "2026-07-28", _mb.LATEST_REVISION)
+    ck("hanya 2026-07-28 yang modern",
+       list(_mb.MODERN_REVISIONS) == ["2026-07-28"])
+    ck("Mcp-Session-Id dicabut",
+       _mb.REVOKED_SESSION_HEADER == "Mcp-Session-Id")
+    ck("header routing Mcp-Method + Mcp-Name",
+       set(_mb.MODERN_REQUIRED_HEADERS) == {"Mcp-Method", "Mcp-Name"})
+    ck("gate tulis = create + update",
+       _mb.CREATE_GATE_TOOLS == {"create_workflow_from_code",
+                                 "update_workflow"},
+       str(sorted(_mb.CREATE_GATE_TOOLS)))
+    ck("server/discover tersedia dan sah",
+       _mb.validate_discovery(_mb.discover_payload())["ok"] is True)
+    ck("tanpa discover -> gagal validasi",
+       _mb.validate_discovery(None)["ok"] is False)
+    ck("impor terlarang: instance 2.30.0 tak punya tool agent",
+       not ({t.name for t in _mb.tools_for_version("2.30.0")}
+            & {t.name for t in _mb.tools_in_category("Agent management")}))
+    ck("instance 2.43.0 punya semua tool",
+       len(_mb.tools_for_version("2.43.0")) == 53,
+       str(len(_mb.tools_for_version("2.43.0"))))
+
+    try:
+        _mb.require_tool("call_agent", "2.34.0")
+        ck("call_agent ditolak pada 2.34.0", False)
+    except _mb.VersionTooOld:
+        ck("call_agent ditolak pada 2.34.0", True)
+
+    env_ok = _mb.check_envelope(
+        "tools/call",
+        headers={"Mcp-Method": "tools/call", "Mcp-Name": "search_nodes"},
+        meta={_mb.META_PROTOCOL_VERSION: _mb.LATEST_MODERN_REVISION,
+              _mb.META_CLIENT_INFO: {"name": "t", "version": "1"},
+              _mb.META_CLIENT_CAPABILITIES: {"tools": {}}},
+        result={"resultType": "complete"}, tool_name="search_nodes")
+    ck("amplop modern yang benar lulus", env_ok["ok"] is True,
+       str(env_ok["errors"]))
+
+    env_sess = _mb.check_envelope(
+        "tools/call",
+        headers={"Mcp-Method": "tools/call", "Mcp-Name": "search_nodes",
+                 "Mcp-Session-Id": "x"},
+        meta={_mb.META_PROTOCOL_VERSION: _mb.LATEST_MODERN_REVISION,
+              _mb.META_CLIENT_INFO: {"name": "t", "version": "1"},
+              _mb.META_CLIENT_CAPABILITIES: {"tools": {}}},
+        result={"resultType": "complete"}, tool_name="search_nodes")
+    ck("header sesi lama ditolak", env_sess["ok"] is False)
+
+    s = _mb.BuildSession(version="2.43.0")
+    try:
+        s.call("create_workflow_from_code")
+        ck("menulis tanpa referensi+validasi ditolak", False)
+    except _mb.BuildLoopViolation:
+        ck("menulis tanpa referensi+validasi ditolak", True)
+
+    passed = sum(1 for c in checks if c["pass"])
+    return {"status": "success", "checks": checks, "passed": passed,
+            "total": len(checks), "all_pass": passed == len(checks),
+            "latest_revision": _mb.LATEST_REVISION}
+
+
 @app.post("/2fa/policy")
 def two_factor_set_policy(req: TwoFactorPolicyRequest,
                           authorization: str | None = Header(None)):
@@ -6666,6 +6922,7 @@ _FEATURE_MODULES = {
     "35_end_user_credentials": "end_user_credentials",
     "36_custom_rbac": "rbac",
     "37_sandbox_isolation": "sandbox_isolation",
+    "38_mcp_build_workflow": "mcp_build_workflow",
 }
 
 
