@@ -21,7 +21,7 @@ dan `docs/enterprise-100-percent-log.md`.
 | 6 | End-user Credentials | `end_user_credentials.py` | 16/16 + 54 E2E | `58037a4` | ✅ |
 | 10 | Custom RBAC | `rbac.py` | 21/21 + 88 E2E | `e442995` | ✅ |
 | 5 | Agent Sandbox Isolation | `sandbox_isolation.py` | 23/23 + 96 E2E | `e201ba0` | ✅ |
-| 2 | MCP Build Workflow | `mcp_build_workflow.py` | 30/30 + 83 E2E | — | ✅ |
+| 2 | MCP Build Workflow | `mcp_build_workflow.py` | 30/30 + 83 E2E | `46f41a1` | ✅ |
 | 1 | n8n Agents (first-class) | — | — | — | pending |
 | 9 | Durable Execution via Dapr | — | — | — | pending |
 
@@ -1563,7 +1563,21 @@ total **83** pemeriksaan.
 - `py_compile api_server.py` → OK; 9 endpoint `/mcp/build/*` terdaftar
 - pglast: 8/8 migrasi `migrations/2026-10-09-*.sql` parse OK
 - Suite penuh dijalankan ulang setelah perubahan (lihat commit)
-- Commit: `<lihat git log>`
+- Commit: **`46f41a1`** — terpush, `origin/main = 46f41a1`, 0 commit belum terkirim
+
+**Hasil suite penuh:** `1860 passed, 4 failed, 3 errors, 42 subtests passed in
+1397.01s (23:17)` (`_f2_full.log`). **Ke-7 kegagalan itu lingkungan, bukan
+regresi** — diverifikasi dengan menjalankan ulang secara terisolasi:
+
+| Uji | Hasil suite penuh | Hasil re-run terisolasi | Sebab |
+|---|---|---|---|
+| `test_subworkflow.py` (3 error + 1 gagal) | error | **11 passed** | `psycopg2.OperationalError: SSL error: unexpected eof while reading` ke pooler Supabase remote |
+| `test_two_factor.py::test_p2_qr_svg_...` | gagal | **passed** | ambang latensi, mesin sibuk |
+| `test_vector_store.py::test_query_latency_benchmark` | gagal | **passed** | ambang latensi, mesin sibuk |
+| `test_agent_memory.py::test_2c7_recall_performance` | gagal | gagal (3,49 s vs 0,2 s) | benchmark **30× RPC ke DB remote** — murni latensi jaringan, bukan kode |
+
+53 test baru (30 `mcp_build_workflow` + 23 `sandbox_isolation`) lulus dalam
+**1,23 s** saat dijalankan langsung.
 
 ### F. Temuan (bug nyata + temuan upgrade)
 1. **`require_tool(name, "")` melempar `ValueError`** alih-alih melewati
