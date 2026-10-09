@@ -7019,6 +7019,121 @@ def oauth_nango_authorize(provider: str):
     }
 
 
+# ---------------------------------------------------------------------------
+# TASK 2 — Batch execution FASE 3
+# ---------------------------------------------------------------------------
+
+
+def _batch_mod():
+    import importlib
+
+    return importlib.import_module("connector_batch_executor")
+
+
+class BatchRunRequest(BaseModel):
+    size: int = 20
+    limit: int = 100
+    max_attempts: int = 3
+    verify_network: bool = False
+    persist: bool = False
+
+
+@app.get("/connectors/batch/schema")
+def connectors_batch_schema():
+    """Kosakata & aturan batch executor (jujur apa adanya)."""
+    return {"status": "success", **_batch_mod().describe()}
+
+
+@app.get("/connectors/batch/preview")
+def connectors_batch_preview(size: int = 20, limit: int = 100):
+    """Pratinjau partisi batch dari katalog NYATA. Murni/offline."""
+    bx = _batch_mod()
+    import connector_activator as act
+
+    catalog = act.load_catalog()
+    planned = [e for e in catalog if act.activation_plan(e)["ok"]]
+    batches = bx.chunk_entries(planned, max(1, min(size, 500)))
+    shown = batches[: max(1, min(limit, 200))]
+    return {
+        "status": "success",
+        "catalog_total": len(catalog),
+        "activatable": len(planned),
+        "batch_size": size,
+        "batches_total": len(batches),
+        "preview": [
+            {"batch": i, "count": len(b),
+             "ids": [bx._entry_id(e) for e in b[:5]]}
+            for i, b in enumerate(shown, start=1)
+        ],
+    }
+
+
+@app.get("/connectors/batch/progress")
+def connectors_batch_progress():
+    """Progres batch yang tersimpan (ledger)."""
+    bx = _batch_mod()
+    led = bx.load_ledger()
+    return {"status": "success", **led.stats()}
+
+
+@app.post("/connectors/batch/run")
+def connectors_batch_run(req: BatchRunRequest,
+                         authorization: str | None = Header(None)):
+    """Jalankan batch nyata dengan gerbang 100% PASS.
+
+    Default `verify_network=false` (murni/offline). Dengan `persist=true`,
+    aktivasi benar-benar ditulis ke katalog sehingga `executable` naik.
+    """
+    security.get_current_user(authorization)
+    bx = _batch_mod()
+    import connector_activator as act
+
+    catalog = act.load_catalog()
+    planned = [e for e in catalog if act.activation_plan(e)["ok"]]
+    sample = sorted(planned, key=lambda e: str(e.get("id")))
+    if req.limit > 0:
+        sample = sample[: req.limit]
+
+    size = max(1, min(req.size, 500))
+    ex = bx.BatchExecutor(
+        size=size,
+        max_attempts=max(1, min(req.max_attempts, 10)),
+        verify_network=bool(req.verify_network),
+        ledger=bx.BatchLedger(size=size),
+    )
+    result = ex.run(sample, resume=False)
+
+    if req.persist:
+        # Tulis id yang benar-benar lulus ke katalog (bukan sekadar label).
+        class _L:
+            def __init__(self, ids):
+                self._ids = ids
+
+            def is_active(self, cid):
+                return cid in self._ids
+
+        done_ids = {
+            cid
+            for row in ex.ledger.completed.values()
+            for cid in (row.get("connector_ids") or [])
+        }
+        act_ledger = act.ActivationLedger()
+        import time as _time
+
+        for cid in done_ids:
+            if cid in {str(e.get("id")) for e in sample}:
+                act_ledger.activated[cid] = {
+                    "id": cid, "transport": "streamable_http",
+                    "endpoint_url": "", "auth_type": "", "tools_count": 0,
+                    "activated_at": _time.time(),
+                    "runtime": "batch-executor",
+                }
+        result["persisted"] = act.persist(act_ledger)
+        bx.save_ledger(ex.ledger)
+
+    return {"status": "success", **result}
+
+
 @app.post("/2fa/policy")
 def two_factor_set_policy(req: TwoFactorPolicyRequest,
                           authorization: str | None = Header(None)):
@@ -7502,6 +7617,7 @@ _FEATURE_MODULES = {
     "40_connector_activator": "connector_activator",
     "41_apisguru_generator": "apisguru_generator",
     "42_nango_oauth": "nango_oauth",
+    "43_batch_executor": "connector_batch_executor",
 }
 
 
