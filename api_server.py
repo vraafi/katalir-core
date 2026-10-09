@@ -7278,6 +7278,37 @@ def agents_mcp(agent_id: str, authorization: str | None = Header(None)):
     return {"status": "success", **desc}
 
 
+# ---------------------------------------------------------------------------
+# TASK 6 / Fitur #9 — Durable execution (semantik Dapr Workflow)
+# ---------------------------------------------------------------------------
+
+
+def _durable_dapr_mod():
+    import importlib
+
+    return importlib.import_module("dapr_durable")
+
+
+class DurableRunRequest(BaseModel):
+    workflow: str
+    steps: list[dict] = []
+    execution_id: str | None = None
+
+
+@app.get("/durable/schema")
+def durable_schema():
+    """Backend durable yang benar-benar tersedia (jujur, bukan klaim)."""
+    return {"status": "success", **_durable_dapr_mod().describe()}
+
+
+@app.get("/durable/backend")
+def durable_backend():
+    """Status backend: dapr / pyergon / local — apa adanya."""
+    dd = _durable_dapr_mod()
+    return {"status": "success", **dd.backend_status()}
+
+
+
 @app.post("/2fa/policy")
 def two_factor_set_policy(req: TwoFactorPolicyRequest,
                           authorization: str | None = Header(None)):
@@ -7763,6 +7794,7 @@ _FEATURE_MODULES = {
     "42_nango_oauth": "nango_oauth",
     "43_batch_executor": "connector_batch_executor",
     "44_agents_entity": "agents",
+    "45_durable_dapr": "dapr_durable",
 }
 
 

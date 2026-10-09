@@ -28,8 +28,8 @@ TASK 2 → TASK 5 → TASK 6**.
 | 3 | APIs.guru 2.500 spec integration | `apisguru_generator.py` | 19/19 + 27 E2E | `3e7e407` | ✅ |
 | 4 | OAuth generik 1.024 Nango provider | `nango_oauth.py` | 22/22 + 27 E2E | `8263d4f` | ✅ |
 | 2 | Batch execution FASE 3 | `connector_batch_executor.py` | 14/14 + 20 E2E | `b601644` | ✅ |
-| 5 | Fitur #1 n8n Agents first-class entity | `agents.py` + `/agents` UI | 13/13 + 22 E2E | _(lihat §TASK 5)_ | ✅ |
-| 6 | Fitur #9 Dapr durable execution | — | — | — | ⏳ |
+| 5 | Fitur #1 n8n Agents first-class entity | `agents.py` + `/agents` UI | 13/13 + 22 E2E | `b90522b` | ✅ |
+| 6 | Fitur #9 Dapr durable execution | `dapr_durable.py` | 19/19 + 19 E2E | _(lihat §TASK 6)_ | ✅ |
 
 ---
 
@@ -880,3 +880,142 @@ tidak ada satu pun jalur yang mengembalikan `2xx` tanpa token.
 - 13/13 unit + 22/22 E2E + 150 regresi PASS (nol regresi)
 - UI `/agents` ter-build (`out/agents.html`), typecheck bersih
 - 3 bug nyata diperbaiki + 1 assertion uji dikoreksi
+
+---
+
+## TASK 6 — Fitur #9: Durable Execution via Dapr
+
+**Tujuan**: menutup celah terbesar n8n — worker yang mati di tengah workflow
+membuat eksekusi **diulang dari node pertama**. Dapr Workflow menyelesaikannya
+dengan durable execution. Brief meminta: Dapr + fallback pyergon + saga
+compensation.
+
+### 1. Riset (WEB-FIRST, sebelum implementasi)
+
+| Sumber | Jenis | Yang diambil | Tautan |
+|--------|-------|--------------|--------|
+| Diagrid, "Making n8n Workflows Durable with Dapr" (6 Okt 2026) | vendor blog + pengumuman resmi | "each node becomes a durable unit of work"; checkpoint setelah tiap node; "completed work stays completed"; **durability saja tidak cukup** — butuh idempotency ledger dengan kunci `workflow execution + node identifier` | https://www.diagrid.io/blog/durable-n8n-workflows-dapr |
+| Dapr docs — Python Workflow SDK extension | dokumentasi resmi | API nyata: `dapr.ext.workflow.WorkflowRuntime`, `@wfr.workflow`, `@wfr.activity`, `ctx.call_activity`, `DaprWorkflowClient.schedule_new_workflow`, `wait_for_workflow_completion`; paket `dapr-ext-workflow` (PyPI, update 15 Jul 2026) | https://docs.dapr.io/developing-applications/sdks/python/python-sdk-extensions/python-workflow-ext/ |
+| OneUptime, "How to Implement the Saga Pattern with Dapr" (31 Mar 2026) | artikel teknis | Tiap langkah = activity + **compensating activity**; kompensasi dijalankan **dalam urutan terbalik** ("Compensate in reverse order") | https://oneuptime.com/blog/post/2026-03-31-dapr-saga-pattern/view |
+| richinex/pyergon (GitHub) | repositori | Fallback murni-Python (SQLite/Redis): `@flow`/`@step`, `Executor`, `SqliteExecutionLog`, `RetryPolicy`, `await_external_signal`; "resumes from the last successful step"; Python >= 3.11; MIT/Apache-2.0 | https://github.com/richinex/pyergon |
+
+**Pemeriksaan versi paket (aturan brief — wajib sebelum dipakai):**
+
+| Paket | Terpasang | Bukti |
+|-------|-----------|-------|
+| `pyergon` | **0.8.1** | `pip install pyergon` → `Successfully installed ... pyergon-0.8.1` |
+| `dapr-ext-workflow` | **tidak terpasang** | `import dapr.ext.workflow` → `ModuleNotFoundError` |
+| CLI `dapr` | **tidak ada** | `which dapr` → `no dapr in (...)` |
+
+### 2. Keputusan Arsitektur (dinyatakan terbuka)
+
+`dapr.ext.workflow` membutuhkan **sidecar Dapr** (`dapr init`, placement +
+state store) yang tidak tersedia di lingkungan ini dan tidak bisa disediakan
+tanpa Docker/kredensial baru. Sesuai izin brief ("pyergon fallback"), modul
+ini **menerapkan semantik Dapr Workflow** di atas checkpoint Katalir:
+
+- **Nol duplikasi**: checkpoint/replay memakai `executions` +
+  `execution_steps` dari `durable_execution.py` (fitur #2). Modul ini tidak
+  menulis tabel checkpoint sendiri — hanya menambah **ledger idempotensi**.
+- **Nol infrastruktur & kredensial baru**.
+- `detect_backend()` memilih `dapr` → `pyergon` → `local`, dan **tidak pernah
+  mengklaim** Dapr bila modulnya tidak ada. Terbukti: sebelum pyergon
+  dipasang → `local`; sesudah → `pyergon`.
+
+### 3. Implementasi
+
+| Berkas | Perubahan |
+|--------|-----------|
+| `dapr_durable.py` (baru, ~740 baris) | Mesin durable: `activity()`, `Workflow`, `WorkflowRunner`, `LocalStore`, adaptor Supabase, saga compensation, idempotency ledger |
+| `migrations/2026-10-09-durable-dapr.sql` (baru) | Tabel `durable_ledger` + 3 index unik + FK CASCADE + RLS (diterapkan ke Supabase produksi) |
+| `api_server.py` | 2 endpoint: `/durable/schema`, `/durable/backend` + feature key `45_durable_dapr` |
+| `tests/test_dapr_durable.py` (baru) | 19 hard test |
+
+Kontrak pemulihan yang diterapkan:
+
+1. **node = activity** — checkpoint setelah tiap node.
+2. **replay** — langkah berstatus `success` tidak dijalankan ulang; keluarannya
+   diambil dari checkpoint.
+3. **idempotency key** `workflow:execution:node` — efek samping hanya sekali
+   walau checkpoint hilang (kasus crash setelah efek terjadi).
+4. **saga** — tiap activity boleh punya `compensate`; kegagalan langkah ke-N
+   memicu kompensasi langkah N-1..1 **terbalik**.
+5. **dua sumbu terpisah** — backend *runtime* (dapr/pyergon/local) berbeda dari
+   backend *penyimpanan* (Supabase/memori). Bug awal menyamakan keduanya dan
+   sudah diperbaiki.
+
+### 4. Hard Test (19 unit + 19 E2E)
+
+| ID | Kategori | Kasus | Hasil |
+|----|----------|-------|-------|
+| B1 | Basic | 3 langkah berurutan | PASS |
+| B2 | Basic | output N jadi input N+1 | PASS |
+| E1 | Edge | replay: langkah sukses tidak dijalankan ulang | PASS |
+| E2 | Edge | resume dari tengah (s1 sudah sukses) | PASS |
+| X1 | Error | gagal → kompensasi **terbalik** | PASS |
+| X2 | Error | kompensasi gagal tidak menelan error asli | PASS |
+| X3–X5 | Error | activity tak terdaftar / step_id duplikat / workflow kosong | PASS |
+| P1 | Performance | 200 langkah < 5 s | PASS |
+| P2 | Performance | replay 200 langkah < 2 s, activity tidak dipanggil lagi | PASS |
+| S1 | Security | ledger idempoten: kartu **tidak** ditagih dua kali | PASS |
+| I1 | Integrasi | crash & recover (proses sama) | PASS |
+| **I2** | **E2E** | **proses OS TERPISAH + Supabase Postgres** | PASS |
+| I3 | E2E | Supabase menolak checkpoint tanpa `workflow_uuid` (FK) | PASS |
+| A1–A19 | E2E API | gerbang fitur, schema, kejujuran backend, crash-recover, saga | PASS |
+
+### 5. Verifikasi Production
+
+| Bukti | Hasil mentah |
+|-------|--------------|
+| Migrasi live Supabase | `durable_ledger` 6 kolom; index `uq_durable_ledger_exec_step`, `uq_durable_ledger_key`, `ix_durable_ledger_execution`; policy `durable_ledger_select_own` (SELECT) |
+| FK dijaga | ledger → eksekusi hantu → `ForeignKeyViolation` **DITOLAK** |
+| Unik dijaga | duplikat `(execution_id, step_id)` → `UniqueViolation` **DITOLAK** |
+| CASCADE | hapus eksekusi → baris ledger sisa **0** |
+| Recover lintas-PROSES | subprocess terpisah: `SUBPROSES replayed: ['s1','s2','s3'] executed: []` |
+| Ledger di Postgres | `{'step_id':'s1','key':'SB6:13d332db-...:s1','result':'P1'}` |
+| Fallback pyergon | flow nyata: `hasil: SHIPPED`; run ke-2 jejak `[]` (tidak diulang) |
+| Deteksi backend jujur | sebelum pyergon → `local`; sesudah → `pyergon`; `available: {dapr: false, pyergon: true}` |
+| E2E API | `RESULT: 19/19 PASS` (store `_Store` = Supabase) |
+
+### 6. Bug Nyata yang Diperbaiki
+
+1. **Migrasi menunjuk kolom yang tidak ada** — policy RLS awal memakai
+   `e.user_id`, padahal `executions` tidak punya kolom itu (kepemilikan ada di
+   `workflows.user_id`). Diperbaiki jadi JOIN
+   `executions → workflows → user_id = auth.uid()`.
+2. **Tipe kolom salah diasumsikan** — semula `execution_id text`; skema nyata
+   `uuid`. Diperbaiki + ditambah FK CASCADE.
+3. **Dua sumbu tertukar** (paling penting) — `default_store()` menggantungkan
+   diri pada `detect_backend() == "local"`, sehingga checkpoint jatuh ke memori
+   padahal Supabase aktif → replay lintas-proses mustahil di produksi.
+   Dipisahkan: runtime vs penyimpanan.
+4. **Nama workflow dikirim sebagai `workflow_id`** — kolomnya `uuid` + FK ke
+   `workflows`. Ditambah kontrak `ensure_execution()` + `Workflow.workflow_uuid`
+   dengan error yang jelas bila kosong.
+5. **`run_workflow`/`resume_workflow` tidak meneruskan `workflow_uuid`** —
+   celah API; ditambahkan parameter eksplisit.
+6. **Assertion uji salah hitung** — I2 mengharapkan `3 0` padahal proses-1
+   hanya menjalankan 2 langkah, jadi `2 1` yang benar. Diperbaiki.
+
+### 7. Hasil Akhir
+
+| Metrik | Nilai |
+|--------|-------|
+| Backend | `dapr` (bila sidecar ada) → **`pyergon 0.8.1` (aktif)** → `local` |
+| Status workflow | 6 (PENDING/RUNNING/COMPLETED/FAILED/COMPENSATED/TERMINATED) |
+| Batas langkah | 500 |
+| Tabel baru | 1 (`durable_ledger`) |
+| Endpoint baru | 2 (`/durable/schema`, `/durable/backend`) |
+| Unit test | **19/19 PASS** |
+| E2E test | **19/19 PASS** |
+| Regresi (TASK 1–6) | **169 PASS** (nol regresi) |
+
+### Status: 100% COMPLETE ✅
+
+- Semantik Dapr Workflow diterapkan di atas checkpoint Katalir: **nol duplikasi
+  mesin**, nol infrastruktur/kredensial baru
+- Fallback pyergon **terpasang dan terbukti berjalan** (flow + replay nyata)
+- Saga compensation urutan terbalik + ledger idempotensi (unik + FK + CASCADE
+  diverifikasi di Supabase produksi)
+- Pulih lintas-proses **terbukti dengan proses OS terpisah**
+- 19/19 unit + 19/19 E2E + 169 regresi PASS · 6 bug nyata diperbaiki
