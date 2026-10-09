@@ -193,7 +193,41 @@ diperlukan untuk fitur #10. Yang ditambahkan hanya **variabel perilaku**
 | `KATALIR_RBAC_STRICT` | `"1"` | Gerbang penolakan definisi peran yang mengandung risiko privilege escalation. `"0"` mematikan gerbang (tidak disarankan di produksi). |
 | `KATALIR_RECOVERY_*` | lihat `docs/sandbox-production.md` | Ambang detektor self-healing (fitur #3). |
 | `KATALIR_TRACING_*`, `KATALIR_LOG_SIEM_*`, `KATALIR_EUC_*` | lihat `docs/n8n-gap-closure-log.md` | Ambang/flag fitur #8, #4, #6. |
+| `KATALIR_SANDBOX_*` | lihat tabel di bawah | Kebijakan isolasi eksekusi kode (fitur #5). |
 
 Semua variabel di atas **tidak wajib diisi**: modul terkait punya default
 aman. Tidak ada nilai `.env` yang dibaca atau ditulis; inventaris tetap
 memuat nama saja.
+
+### 8a. `KATALIR_SANDBOX_*` (fitur #5, 22 nama, semua opsional)
+
+Default diturunkan dari default resmi n8n Task Runners agar perilaku sepadan
+tanpa konfigurasi apa pun.
+
+| Nama | Default | Keterangan |
+|---|---|---|
+| `KATALIR_SANDBOX_MODE` | `internal` | `internal` \| `external`. Hanya `external` yang `production_safe`. |
+| `KATALIR_SANDBOX_DISTROLESS` | `0` | Image distroless (butuh uid/gid 65532). |
+| `KATALIR_SANDBOX_UID` | `1000` | UID runner. **Wajib 65532** bila distroless. |
+| `KATALIR_SANDBOX_GID` | `1000` | GID runner. |
+| `KATALIR_SANDBOX_READONLY_ROOT` | `0` | Root filesystem read-only (temp di `emptyDir /tmp`). |
+| `KATALIR_SANDBOX_APPARMOR` | `0` | Profil AppArmor menolak `/proc/<pid>/{environ,mounts}`. |
+| `KATALIR_SANDBOX_MAX_CONCURRENCY` | `5` | Tugas paralel per runner. |
+| `KATALIR_SANDBOX_BROKER_PORT` | `5679` | Port WebSocket broker (padanan `N8N_RUNNERS_BROKER_PORT`). |
+| `KATALIR_SANDBOX_BROKER_LISTEN_ADDRESS` | `127.0.0.1` | Alamat bind broker; `0.0.0.0` hanya bila runner di kontainer lain. |
+| `KATALIR_SANDBOX_TASK_TIMEOUT_S` | `300` | Batas waktu satu tugas. |
+| `KATALIR_SANDBOX_HEARTBEAT_INTERVAL_S` | `30` | Interval heartbeat (**wajib** < task timeout). |
+| `KATALIR_SANDBOX_REQUEST_TIMEOUT_S` | `60` | Batas tunggu di antrean sebelum kedaluwarsa. |
+| `KATALIR_SANDBOX_MAX_PAYLOAD_BYTES` | `1073741824` | Ukuran payload maksimum (1 GiB). |
+| `KATALIR_SANDBOX_AUTOSHUTDOWN_S` | `15` | Idle sebelum runner dimatikan (`0` = nonaktif). |
+| `KATALIR_SANDBOX_ALLOW_BUILTIN` | *(kosong)* | Allowlist modul bawaan JS. Kosong = semua ditolak. |
+| `KATALIR_SANDBOX_ALLOW_EXTERNAL` | *(kosong)* | Allowlist modul eksternal JS. |
+| `KATALIR_SANDBOX_ALLOW_STDLIB` | *(kosong)* | Allowlist stdlib Python. |
+| `KATALIR_SANDBOX_ALLOW_PY_EXTERNAL` | *(kosong)* | Allowlist paket Python eksternal. |
+| `KATALIR_SANDBOX_BLOCK_ENV_ACCESS` | `1` | Blokir `os.environ` di dalam runner. |
+| `KATALIR_SANDBOX_INSECURE_MODE` | `0` | Matikan semua pengaman (**jangan** untuk produksi). |
+| `KATALIR_SANDBOX_ALLOW_PROTOTYPE_MUTATION` | `0` | Izinkan mutasi prototipe JS (prototype pollution). |
+| `KATALIR_SANDBOX_REQUIRE_PRODUCTION` | `0` | Tolak konfigurasi yang tidak siap produksi saat start. |
+
+Nilai allowlist menerima daftar dipisah koma; `*` berarti "izinkan semua"
+(memicu temuan `high` di `GET /sandbox/hardening`).

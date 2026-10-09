@@ -5959,6 +5959,235 @@ def rbac_reset(authorization: str | None = Header(None)):
     return {"status": "success", **reg.stats()}
 
 
+# ---------------------------------------------------------------------------
+# ENDPOINT SANDBOX ISOLATION (fitur #5) — isolasi eksekusi kode ala n8n
+# Padanan n8n "Task Runners" (docs Okt 2026): mode internal/external,
+# broker/runner/requester, batas sumber daya, allowlist modul, dan gerbang
+# hardening (distroless, nobody 65532, rootfs read-only, AppArmor).
+# Mengacu CVE-2026-27495 / GHSA-jjpj-p2wh-qf23 (sandbox escape, CVSS 9.4).
+# ---------------------------------------------------------------------------
+class SandboxPolicyRequest(BaseModel):
+    """Body POST /sandbox/policy — uji kebijakan tanpa menyentuh singleton."""
+    mode: str = "internal"
+    distroless: bool = False
+    uid: int = 1000
+    read_only_root: bool = False
+    apparmor: bool = False
+    max_concurrency: int = 5
+    task_timeout_s: int = 300
+    heartbeat_interval_s: int = 30
+    request_timeout_s: int = 60
+    max_payload_bytes: int = 1_073_741_824
+    auto_shutdown_s: int = 15
+    allow_builtin: list[str] = []
+    allow_external: list[str] = []
+    allow_stdlib: list[str] = []
+    allow_py_external: list[str] = []
+    block_env_access: bool = True
+    insecure_mode: bool = False
+    allow_prototype_mutation: bool = False
+    require_production: bool = False
+
+
+class SandboxModuleCheckRequest(BaseModel):
+    """Body POST /sandbox/check-module."""
+    runtime: str = "python"
+    module: str = ""
+    mode: str = "internal"
+
+
+class SandboxTaskRequest(BaseModel):
+    """Body POST /sandbox/dispatch — jalankan satu tugas lewat broker."""
+    runtime: str = "python"
+    code: str = ""
+    imports: list[str] = []
+    node: str = "Code"
+    mode: str = "internal"
+
+
+def _sandbox_mod():
+    import sandbox_isolation as _si
+    return _si
+
+
+def _sandbox_policy_of(mode: str = "internal"):
+    """Bangun kebijakan dari env saat ini, dengan `mode` ditimpa."""
+    _si = _sandbox_mod()
+    import os as _os
+    env = dict(_os.environ)
+    env["KATALIR_SANDBOX_MODE"] = str(mode or "internal")
+    # Mode prod-safe mematikan gerbang yang saling bertentangan.
+    env.pop("KATALIR_SANDBOX_REQUIRE_PRODUCTION", None)
+    env["KATALIR_SANDBOX_REQUIRE_PRODUCTION"] = "0"
+    return _si.policy_from_env(env)
+
+
+@app.get("/sandbox/overview")
+def sandbox_overview():
+    """Katalog: mode, runtime, default n8n, CVE terkait, kebijakan aktif."""
+    _si = _sandbox_mod()
+    return {"status": "success", "config": _si.describe(),
+            "capabilities": _sandbox_engine_caps()}
+
+
+def _sandbox_engine_caps() -> dict:
+    """Kemampuan mesin eksekusi nyata (`code_sandbox.py`), bila ada."""
+    try:
+        import code_sandbox as _cs
+        return _cs.capabilities()
+    except Exception as exc:  # noqa: BLE001
+        return {"error": f"{type(exc).__name__}: {exc}"}
+
+
+@app.get("/sandbox/policy")
+def sandbox_get_policy():
+    """Kebijakan isolasi aktif (dibaca dari env, tanpa singleton global)."""
+    _si = _sandbox_mod()
+    import os as _os
+    p = _si.policy_from_env(dict(_os.environ))
+    return {"status": "success", "policy": p.to_dict(),
+            "isolation_boundary": p.isolation_boundary,
+            "production_safe": p.production_safe,
+            "hardening_layers": list(p.hardening_layers)}
+
+
+@app.post("/sandbox/policy/evaluate")
+def sandbox_evaluate_policy(req: SandboxPolicyRequest,
+                            authorization: str | None = Header(None)):
+    """Uji suatu konfigurasi kebijakan tanpa menerapkannya (dry-run).
+
+    Berguna untuk menjawab "apakah konfigurasi ini aman?" sebelum deploy.
+    """
+    security.get_current_user(authorization)
+    _si = _sandbox_mod()
+    try:
+        pol = _si.SandboxPolicy(**req.model_dump())
+    except _si.UnsafeConfiguration as exc:
+        return {"status": "success", "accepted": False,
+                "reason": "unsafe_configuration", "detail": str(exc)}
+    except _si.SandboxPolicyError as exc:
+        return {"status": "success", "accepted": False,
+                "reason": "invalid_policy", "detail": str(exc)}
+    return {"status": "success", "accepted": True,
+            "policy": pol.to_dict(),
+            "isolation_boundary": pol.isolation_boundary,
+            "production_safe": pol.production_safe}
+
+
+@app.get("/sandbox/hardening")
+def sandbox_hardening(mode: str = ""):
+    """Laporan hardening + temuan risiko (tanpa rahasia)."""
+    _si = _sandbox_mod()
+    import os as _os
+    env = dict(_os.environ)
+    if mode:
+        env["KATALIR_SANDBOX_MODE"] = str(mode)
+    return {"status": "success", **_si.harden_report(env)}
+
+
+@app.get("/sandbox/cves")
+def sandbox_cves():
+    """CVE sandbox yang memotivasi gerbang mode (metadata advisory)."""
+    _si = _sandbox_mod()
+    return {"status": "success", "cves": [dict(c) for c in _si.KNOWN_CVES]}
+
+
+@app.post("/sandbox/check-module")
+def sandbox_check_module(req: SandboxModuleCheckRequest,
+                         authorization: str | None = Header(None)):
+    """Apakah modul boleh diimpor? (default allowlist kosong = ditolak)."""
+    security.get_current_user(authorization)
+    _si = _sandbox_mod()
+    if not req.module:
+        raise HTTPException(422, "module wajib diisi.")
+    pol = _sandbox_policy_of(req.mode)
+    try:
+        allowed = pol.module_allowed(req.runtime, req.module)
+    except _si.SandboxPolicyError as exc:
+        raise HTTPException(422, str(exc))
+    return {"status": "success", "runtime": req.runtime,
+            "module": req.module, "allowed": allowed}
+
+
+@app.post("/sandbox/dispatch")
+def sandbox_dispatch(req: SandboxTaskRequest,
+                     authorization: str | None = Header(None)):
+    """Kirim satu tugas ke broker/runner (executor bawaan: tidak mengeksekusi).
+
+    Menegakkan allowlist modul, batas payload, concurrency, dan heartbeat.
+    """
+    security.get_current_user(authorization)
+    _si = _sandbox_mod()
+    pol = _sandbox_policy_of(req.mode)
+    broker = _si.TaskBroker(policy=pol)
+    try:
+        runner = _si.TaskRunner(req.runtime, policy=pol)
+    except _si.SandboxPolicyError as exc:
+        # Runtime tak dikenal -> 422 (kesalahan klien), bukan 500.
+        raise HTTPException(422, str(exc))
+    try:
+        broker.register(runner)
+    except _si.SandboxPolicyError as exc:
+        raise HTTPException(409, str(exc))
+    out = _si.TaskRequester(broker, node_name=req.node,
+                            runtime=req.runtime).request(
+        req.code, imports=req.imports)
+    return {"status": "success", "dispatch": out, "broker": broker.stats(),
+            "runner": runner.stats()}
+
+
+@app.get("/sandbox/verify")
+def sandbox_verify():
+    """Uji mandiri: buktikan batas isolasi benar-benar ditegakkan.
+
+    Menjalankan pemeriksaan in-process (tanpa eksekusi kode berbahaya) lalu
+    mengembalikan ringkasan lulus/gagal.
+    """
+    _si = _sandbox_mod()
+    checks: list[dict] = []
+
+    def ck(name: str, cond: bool, detail: str = "") -> None:
+        checks.append({"name": name, "pass": bool(cond), "detail": detail})
+
+    pol = _si.SandboxPolicy()
+    ck("default mode internal", pol.mode == "internal")
+    ck("internal tidak siap produksi", pol.production_safe is False)
+    ck("batas isolasi jujur dilaporkan",
+       "SAMA" in pol.isolation_boundary, pol.isolation_boundary)
+    ck("allowlist kosong menolak impor",
+       pol.module_allowed("python", "os") is False)
+    ck("child_process JS ditolak",
+       pol.module_allowed("javascript", "child_process") is False)
+    ck("akses env diblokir secara default", pol.block_env_access is True)
+    ck("builtin python berbahaya ditolak",
+       len(_si.PY_BUILTINS_DENY_DEFAULT) == 18)
+
+    try:
+        _si.SandboxPolicy(mode="internal", require_production=True)
+        ck("internal+require_production ditolak", False)
+    except _si.UnsafeConfiguration:
+        ck("internal+require_production ditolak", True)
+
+    try:
+        _si.SandboxPolicy(distroless=True, uid=1000)
+        ck("distroless wajib uid 65532", False)
+    except _si.UnsafeConfiguration:
+        ck("distroless wajib uid 65532", True)
+
+    hard = _si.harden_report({
+        "KATALIR_SANDBOX_MODE": "external",
+        "KATALIR_SANDBOX_DISTROLESS": "1",
+        "KATALIR_SANDBOX_UID": "65532",
+        "KATALIR_SANDBOX_READONLY_ROOT": "1",
+        "KATALIR_SANDBOX_APPARMOR": "1"})
+    ck("konfigurasi ter-hardening lulus", hard["hardened"] is True)
+
+    passed = sum(1 for c in checks if c["pass"])
+    return {"status": "success", "checks": checks, "passed": passed,
+            "total": len(checks), "all_pass": passed == len(checks),
+            "cve": _si.KNOWN_CVES[0]["id"]}
+
+
 @app.post("/2fa/policy")
 def two_factor_set_policy(req: TwoFactorPolicyRequest,
                           authorization: str | None = Header(None)):
@@ -6436,6 +6665,7 @@ _FEATURE_MODULES = {
     "34_self_healing": "recovery",
     "35_end_user_credentials": "end_user_credentials",
     "36_custom_rbac": "rbac",
+    "37_sandbox_isolation": "sandbox_isolation",
 }
 
 

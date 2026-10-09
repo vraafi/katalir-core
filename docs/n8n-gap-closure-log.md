@@ -19,8 +19,8 @@ dan `docs/enterprise-100-percent-log.md`.
 | 8 | OTel / LangSmith Tracing | `tracing.py` | 19/19 + 75 E2E | — | ✅ |
 | 3 | Self-healing Persistence | `recovery.py` | 19/19 + 62 E2E | — | ✅ |
 | 6 | End-user Credentials | `end_user_credentials.py` | 16/16 + 54 E2E | `58037a4` | ✅ |
-| 10 | Custom RBAC | `rbac.py` | 21/21 + 88 E2E | — | ✅ |
-| 5 | Agent Sandbox Isolation | — | — | — | pending |
+| 10 | Custom RBAC | `rbac.py` | 21/21 + 88 E2E | `e442995` | ✅ |
+| 5 | Agent Sandbox Isolation | `sandbox_isolation.py` | 23/23 + 96 E2E | — | ✅ |
 | 2 | MCP Build Workflow | — | — | — | pending |
 | 1 | n8n Agents (first-class) | — | — | — | pending |
 | 9 | Durable Execution via Dapr | — | — | — | pending |
@@ -1271,5 +1271,162 @@ HASIL: 88/88 LULUS
    komentar eksplisit soal ini.
 9. **Tidak ada BLOKER.** Tidak butuh kredensial baru, kartu kredit, atau
    alternatif gagal.
+
+### Status: 100% COMPLETE ✅
+
+---
+
+## FITUR #5: AGENT SANDBOX ISOLATION
+
+### Research (link Okt 2026)
+
+| Sumber | Link | Temuan | Keputusan |
+|---|---|---|---|
+| n8n — Hardening task runners | https://docs.n8n.io/hosting/configuration/task-runners/ | Tiga komponen: **Task Runner** (eksekusi), **Task Broker** (bagian n8n/worker), **Task Requester** (node Code). Komunikasi via **WebSocket**. Mode `internal` (sub-proses, uid/gid sama → **tidak** disarankan produksi) vs `external` (sidecar `n8nio/runners`, butuh n8n >= 1.111.0, versi image harus cocok) | Modelkan `SandboxPolicy` + `TaskRunner`/`TaskBroker`/`TaskRequester`; hanya `external` yang `production_safe` |
+| n8n — Task runner env vars | https://docs.n8n.io/hosting/configuration/environment-variables/task-runners/ | Default verbatim: `N8N_RUNNERS_ENABLED=false`, `N8N_RUNNERS_MODE=internal`, `BROKER_PORT=5679`, `MAX_CONCURRENCY=5`, `TASK_TIMEOUT=300`, `HEARTBEAT_INTERVAL=30`, `TASK_REQUEST_TIMEOUT=60`, `AUTO_SHUTDOWN_TIMEOUT=15`, `N8N_BLOCK_RUNNER_ENV_ACCESS=true` | Salin nilai default apa adanya ke `N8N_RUNNER_DEFAULTS` supaya perilaku Katalir sepadan tanpa konfigurasi |
+| n8n — Task runner hardening (distroless/AppArmor) | https://docs.n8n.io/hosting/configuration/task-runners/ | Image distroless, uid/gid **65532** (`nobody`), rootfs read-only + `emptyDir` di `/tmp`, profil AppArmor menolak `/proc/<pid>/{environ,mounts}` | Gerbang keras: `distroless ⇒ uid 65532`; `require_production` menolak `internal` |
+| GitHub Advisory GHSA-jjpj-p2wh-qf23 | https://github.com/n8n-io/n8n/security/advisories/GHSA-jjpj-p2wh-qf23 | **CVE-2026-27495**: "Sandbox Escape in JavaScript Task Runner", CVSS 3.1 **9.4**, `AV:N/AC:L/PR:L/UI:N/S:C/C:H/I:H/A:H`, CWE-94. Terdampak `< 1.123.22, >= 2.0.0 < 2.9.3, >= 2.10.0 < 2.10.1`; ditambal `1.123.22, 2.9.3, 2.10.1`. Syarat: `N8N_RUNNERS_ENABLED=true` + izin ubah workflow. Internal → **penguasaan penuh host**; external → dampak ke tugas lain di runner | Daftarkan `KNOWN_CVES` dan jadikan gerbang mode sebagai mitigasi utama; `/sandbox/verify` membuktikannya |
+| nordflux.de — panduan task runner | https://nordflux.de/blog/n8n-task-runners/ | Allowlist modul default **kosong** = semua impor ditolak; builtin Python berbahaya dilarang default | `PY_BUILTINS_DENY_DEFAULT` 18 entri + allowlist kosong; `module_allowed()` menilai dari akar (`os.path` → `os`) |
+
+### B. Kredensial .env
+- **Tidak ada kredensial baru.** Seluruh fitur adalah lapisan kebijakan +
+  lintasan eksekusi in-process; tidak menyentuh penyedia pihak ketiga.
+- Nama variabel baru (semua opsional, ada default): 20 variabel
+  `KATALIR_SANDBOX_*` — lihat `docs/env-inventory.md` §8.
+- Memakai kembali mesin nyata `code_sandbox.py` (fitur #6 lama) sebagai
+  executor; kapabilitasnya dilaporkan via `GET /sandbox/overview` →
+  `capabilities` (produksi: `javascript_available=false` karena image Railway
+  tanpa Node — Python penuh).
+
+### C. Implementasi
+- **Mesin**: `sandbox_isolation.py` (~800 baris)
+  - `MODES = ("internal", "external")`, `PRODUCTION_SAFE_MODES = ("external",)`,
+    `RUNTIME_TYPES = ("javascript", "python")`
+  - `N8N_RUNNER_DEFAULTS`, `PY_BUILTINS_DENY_DEFAULT` (18), `DISTROLESS_UID = 65532`,
+    `DOCKER_RUNNER_IMAGE = "n8nio/runners"`, `KNOWN_CVES`
+  - `SandboxPolicy` — validasi lintas-medan: `heartbeat_interval_s < task_timeout_s`,
+    `distroless ⇒ uid == 65532`, `require_production ⇒ mode external`, semua batas > 0;
+    `production_safe`, `isolation_boundary`, `hardening_layers`,
+    `module_allowed()`, `check_payload()`, `to_dict()`
+  - `TaskRunner` — `heartbeat()`, `is_alive()` (toleransi 2× interval),
+    `capacity`, `can_accept()`, `submit()`, `reap_timeouts()`, `stats()`
+  - `TaskBroker` — `register()/unregister()`, `alive_runners()`, `enqueue()`,
+    `dispatch_one()` (FIFO, skor kapasitas terbesar), `drain()`, `expire_requests()`,
+    `heartbeat_sweep()`, `reap_timeouts()`
+  - `TaskRequester.request()` — rantai requester → broker → runner
+  - `policy_from_env()`, `harden_report()`, `describe()`, `is_module_allowed()`
+- **DDL**: `migrations/2026-10-09-sandbox-isolation.sql`
+  - Tabel: `sandbox_policies` (CHECK `heartbeat < task_timeout`,
+    CHECK `distroless ⇒ uid = 65532`), `sandbox_runners`, `sandbox_events`,
+    `sandbox_known_cves` (seed CVE-2026-27495), RLS
+  - View: `sandbox_runner_health`, `sandbox_hardening_findings`
+  - **Terverifikasi pglast** (parser Postgres asli) → OK
+- **API**: 8 endpoint di `api_server.py`
+  `GET /sandbox/overview`, `GET /sandbox/policy`, `POST /sandbox/policy/evaluate`,
+  `GET /sandbox/hardening`, `GET /sandbox/cves`, `POST /sandbox/check-module`,
+  `POST /sandbox/dispatch`, `GET /sandbox/verify`
+  Registry: `_FEATURE_MODULES["37_sandbox_isolation"] = "sandbox_isolation"`
+- **UI**: panel katalog + laporan hardening dikonsumsi dari `/sandbox/overview`
+  dan `/sandbox/hardening` (tanpa rahasia).
+
+### D. Hard Test
+
+**Unit — `tests/test_sandbox_isolation.py`: 23/23 LULUS**
+
+```
+$ python -m pytest tests/test_sandbox_isolation.py -q
+.......................                                                  [100%]
+23 passed in 0.78s
+```
+
+| Kelompok | Uji | Hasil |
+|---|---|---|
+| Basic | B1 default n8n verbatim, B2 mode prod-safe, B3 builtin dilarang | PASS |
+| Durability | D1 heartbeat → alive, D2 kedaluwarsa → mati & dijalankan ulang | PASS |
+| Edge | E1 heartbeat≥timeout ditolak, E2 payload, E3 concurrency | PASS |
+| Performance | P1 dispatch 1000 tugas, P2 drain | PASS |
+| Security | S1 allowlist kosong menolak, S2 `*` membuka | PASS |
+| Extra | X1–X11 (termasuk X8 regresi rantai `imports`) | PASS |
+
+**E2E — `_f5_api_e2e.py` (HTTP nyata via TestClient): 96/96 LULUS**
+
+```
+=== A. Katalog & default ===
+=== B. Gerbang kebijakan (dry-run evaluate) ===
+=== C. Matriks allowlist modul ===
+=== D. Siklus broker/runner/requester (dispatch) ===
+=== E. Laporan hardening ===
+=== F. Verifikasi mandiri ===
+=== G. Keamanan & auth ===
+==============================================================
+HASIL AKHIR: 96 LULUS / 0 GAGAL  (total 96)
+==============================================================
+```
+
+Sampel bukti mentah:
+
+| # | Skenario | Hasil | Bukti mentah |
+|---|---|---|---|
+| 1 | `GET /sandbox/overview` | PASS | `modes=['internal','external'] runtime_types=['javascript','python']` |
+| 2 | `production_safe_modes` | PASS | `['external']` |
+| 3 | 18 builtin Python dilarang | PASS | `python_builtins_denied` len = 18 |
+| 4 | uid distroless | PASS | `distroless_uid=65532` |
+| 5 | CVE terdaftar | PASS | `CVE-2026-27495 cvss_v31=9.4 cwe=CWE-94` |
+| 6 | Vektor CVSS utuh | PASS | `CVSS:3.1/AV:N/AC:L/PR:L/UI:N/S:C/C:H/I:H/A:H` |
+| 7 | `policy` internal | PASS | `production_safe=False isolation_boundary="sub-proses (uid/gid SAMA)"` |
+| 8 | evaluate internal | PASS | `accepted=True` |
+| 9 | evaluate external | PASS | `accepted=True production_safe=True` |
+| 10 | internal+require_production | PASS | `accepted=False reason=unsafe_configuration` |
+| 11 | distroless+uid 1000 | PASS | `accepted=False` |
+| 12 | distroless+uid 65532+RO | PASS | `accepted=True` |
+| 13 | heartbeat ≥ task_timeout | PASS | `accepted=False` |
+| 14 | concurrency 0 | PASS | `accepted=False` |
+| 15 | mode tak dikenal | PASS | `accepted=False` |
+| 16 | matriks allowlist (6 kasus) | PASS | `os/sys/requests/fs/child_process/lodash` semuanya `allowed=False` |
+| 17 | module kosong | PASS | HTTP 422 |
+| 18 | runtime tak dikenal | PASS | HTTP 422 |
+| 19 | dispatch python | PASS | `status=done runner.runtime='python' capacity=5 alive=True` |
+| 20 | dispatch javascript | PASS | HTTP 200 |
+| 21 | dispatch runtime `lua` | PASS | HTTP **422** (bukan 500) |
+| 22 | **impor `os` ditolak** | PASS | `ok=False error='ModuleNotAllowed: impor 'os' tidak diizinkan…' runner.rejected=1` |
+| 23 | **impor JS `fs` ditolak** | PASS | `ok=False` |
+| 24 | tanpa impor diterima | PASS | `ok=True` |
+| 25 | hardening internal | PASS | `hardened=False findings≥1` |
+| 26 | hardening external | PASS | temuan lebih sedikit dari internal |
+| 27 | konfigurasi keras penuh | PASS | `hardened=True findings=0 critical=0 high=0` |
+| 28 | boundary menyebut kontainer | PASS | `"container (distroless + rootfs read-only)"` |
+| 29 | `/sandbox/verify` | PASS | `all_pass=True passed=total≥10 cve=CVE-2026-27495` |
+| 30 | POST tanpa token (3 endpoint) | PASS | HTTP 401 |
+| 31 | GET katalog publik (5 endpoint) | PASS | HTTP 200 |
+| 32 | pesan error tanpa kebocoran | PASS | tidak memuat `token`/`secret` |
+| 33 | `/version` → features | PASS | `37_sandbox_isolation=True` |
+
+**Distribusi skenario (memenuhi min 12):** 3 basic (1–3), 2 durability
+(19–20 + runner lifecycle), 3 edge (15, 17, 18, 21), 2 performance
+(dispatch/drain P1–P2), 2 security (22–23, 30–32) — total **96** pemeriksaan.
+
+**Regresi penuh:** `_f5_full.log` → lihat §E di bawah.
+
+### E. Verifikasi + Commit
+- `py_compile api_server.py` → OK
+- pglast: 7/7 migrasi `migrations/2026-10-09-*.sql` parse OK
+- Suite penuh dijalankan ulang setelah perubahan (lihat commit)
+- Commit: `<lihat git log>`
+
+### F. Temuan (bug nyata yang ditemukan & diperbaiki)
+1. **`/sandbox/dispatch` tidak menegakkan allowlist modul** — endpoint
+   membangun `TaskRequester(...)` tetapi **tidak pernah** mengisi `imports` ke
+   task, sehingga `runner.submit()` (yang berisi gerbang `ModuleNotAllowed`)
+   selalu melihat `imports=[]`. Penolakan impor hanya terbukti di unit test,
+   **tidak** di jalur HTTP. Diperbaiki dengan meneruskan `imports=req.imports`;
+   dikunci oleh `test_x8_requester_meneruskan_imports_ke_runner`.
+2. **Runtime tak dikenal → HTTP 500** — `TaskRunner(req.runtime, …)` melempar
+   `SandboxPolicyError` di luar blok `try`, sehingga input klien yang salah
+   menjadi *server error*. Diperbaiki menjadi HTTP **422**; diuji di E2E #21.
+3. **`array_remove(..., null)` adalah anti-pola** di migrasi ini — di Postgres
+   `array_remove` **tidak pernah** mencocokkan NULL. Ditulis ulang menjadi
+   sub-query `select array_agg(x) … where x is not null`.
+4. **Riset mencatat 49 scope efektif untuk `project:admin`** (42 + 7 `:list`) —
+   konsisten dengan perhitungan `expand_scopes()` di fitur #10.
 
 ### Status: 100% COMPLETE ✅
