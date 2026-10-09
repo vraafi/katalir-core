@@ -7308,6 +7308,143 @@ def durable_backend():
     return {"status": "success", **dd.backend_status()}
 
 
+# ---------------------------------------------------------------------------
+# CONNECTOR HEALTH (FASE 2/3/6) — status nyata konektor, bukan klaim katalog
+# ---------------------------------------------------------------------------
+
+def _connector_store_mod():
+    import importlib
+
+    return importlib.import_module("connector_store")
+
+
+def _connector_prober_mod():
+    import importlib
+
+    return importlib.import_module("connector_prober")
+
+
+def _connector_repair_mod():
+    import importlib
+
+    return importlib.import_module("connector_repair")
+
+
+@app.get("/connectors/health")
+def connectors_health():
+    """Ringkasan verdict konektor: ALIVE / AUTH / DEAD / UNKNOWN.
+
+    Sumbernya tabel `connector_health` di Supabase (hasil probe live),
+    BUKAN metadata katalog. Katalog hanya dipakai untuk angka pembanding.
+    """
+    cs = _connector_store_mod()
+    import mcp_registry as mr
+    cov = mr.coverage()
+    return {
+        "status": "success",
+        "health": cs.health_summary(),
+        "catalog": {"total": cov.get("total"),
+                    "executable": cov.get("executable"),
+                    "metadata_only": cov.get("metadata_only")},
+        "store": cs.describe(),
+    }
+
+
+@app.get("/connectors/health/schema")
+def connectors_health_schema():
+    """Kontrak prober + repair (protokol, timeout, aturan verdict)."""
+    return {"status": "success",
+            "prober": _connector_prober_mod().describe(),
+            "repair": _connector_repair_mod().describe(),
+            "verdicts": list(_connector_store_mod().VERDICTS)}
+
+
+# PENTING: rute ini HARUS dideklarasikan SEBELUM `/connectors/health/{id}`.
+# FastAPI mencocokkan rute sesuai urutan deklarasi; `{connector_id:path}`
+# yang lebih dulu akan menelan "ALIVE/list" sebagai id (bug yang sempat
+# terjadi: GET /connectors/health/ALIVE/list -> 404).
+@app.get("/connectors/health/{verdict_filter}/list")
+def connectors_health_list(verdict_filter: str, limit: int = 100):
+    """Daftar konektor dengan verdict tertentu (ALIVE/AUTH/DEAD/UNKNOWN)."""
+    cs = _connector_store_mod()
+    verdict = verdict_filter.upper()
+    if verdict not in cs.VERDICTS:
+        raise HTTPException(
+            400, f"verdict tidak valid: {verdict_filter}. "
+                 f"Pilih salah satu dari {list(cs.VERDICTS)}")
+    if not cs.available():
+        raise HTTPException(503, "Supabase tidak terkonfigurasi.")
+    limit = max(1, min(int(limit), 500))
+    try:
+        res = (cs._read_client().table(cs.TABLE_HEALTH).select("*")
+               .eq("verdict", verdict).limit(limit).execute())
+    except Exception as exc:  # noqa: BLE001
+        raise HTTPException(503, f"Supabase error: {str(exc)[:200]}.")
+    return {"status": "success", "verdict": verdict,
+            "count": len(res.data or []), "connectors": res.data or []}
+
+
+@app.get("/connectors/health/{connector_id:path}")
+def connector_health_one(connector_id: str):
+    """Kesehatan satu konektor (dari tabel connector_health)."""
+    cs = _connector_store_mod()
+    if not cs.available():
+        raise HTTPException(503, "Supabase tidak terkonfigurasi.")
+    try:
+        res = cs._read_client().table(cs.TABLE_HEALTH).select("*").eq(
+            "connector_id", connector_id).execute()
+    except Exception as exc:  # noqa: BLE001
+        raise HTTPException(503, f"Supabase error: {str(exc)[:200]}.")
+    rows = res.data or []
+    if not rows:
+        raise HTTPException(404, "Belum ada catatan kesehatan untuk konektor ini.")
+    return {"status": "success", "connector": rows[0]}
+
+
+# ---------------------------------------------------------------------------
+# FASE 5/6 — federation discovery + pulse check berkala
+# ---------------------------------------------------------------------------
+
+def _connector_pulse_mod():
+    import importlib
+
+    return importlib.import_module("connector_pulse")
+
+
+def _connector_federation_mod():
+    import importlib
+
+    return importlib.import_module("connector_federation")
+
+
+@app.get("/connectors/pulse")
+def connectors_pulse_status():
+    """Status pulse berkala: kapan terakhir, kapan berikutnya, ringkasan."""
+    return {"status": "success", **_connector_pulse_mod().describe()}
+
+
+@app.post("/connectors/pulse/run")
+def connectors_pulse_run(limit: int | None = None, stale_only: bool = True):
+    """Jalankan satu putaran pulse sekarang (manual / cron eksternal)."""
+    p = _connector_pulse_mod()
+    return {"status": "success", **p.pulse(limit=limit, stale_only=stale_only)}
+
+
+@app.get("/connectors/federation")
+def connectors_federation_sources():
+    """Sumber federasi yang tersedia beserta status HTTP nyatanya."""
+    return {"status": "success", **_connector_federation_mod().describe()}
+
+
+@app.post("/connectors/federation/discover")
+def connectors_federation_discover(pages: int = 5, persist: bool = False):
+    """Jalankan penemuan federasi + dedup terhadap katalog."""
+    pages = max(1, min(int(pages), 20))
+    return {"status": "success",
+            **_connector_federation_mod().discover(pages=pages, persist=persist)}
+
+
+
 
 @app.post("/2fa/policy")
 def two_factor_set_policy(req: TwoFactorPolicyRequest,
@@ -7795,6 +7932,12 @@ _FEATURE_MODULES = {
     "43_batch_executor": "connector_batch_executor",
     "44_agents_entity": "agents",
     "45_durable_dapr": "dapr_durable",
+    "46_connector_store": "connector_store",
+    "47_connector_prober": "connector_prober",
+    "48_connector_repair": "connector_repair",
+    "49_openapi_connectors": "openapi_connectors",
+    "50_connector_federation": "connector_federation",
+    "51_connector_pulse": "connector_pulse",
 }
 
 

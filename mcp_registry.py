@@ -546,11 +546,8 @@ ACTIVATION_PATH=Path(__file__).with_name('connector_activation.json')
 _ACTIVATED_IDS:set[str]|None=None
 
 
-def _activated_ids() -> set[str]:
-    """Baca himpunan id yang pernah diaktivasi (cache di memori)."""
-    global _ACTIVATED_IDS
-    if _ACTIVATED_IDS is not None:
-        return _ACTIVATED_IDS
+def _read_activation_file() -> set[str]:
+    """Fallback: baca berkas lokal (format lama)."""
     ids:set[str]=set()
     if ACTIVATION_PATH.exists():
         try:
@@ -559,10 +556,44 @@ def _activated_ids() -> set[str]:
                 rows=data.get('activated') or {}
                 if isinstance(rows, dict):
                     ids={str(k) for k in rows}
+                elif isinstance(rows, list):
+                    ids={str(k) for k in rows}
         except (OSError,ValueError,TypeError):
             ids=set()
+    return ids
+
+
+def _activated_ids() -> set[str]:
+    """Himpunan id yang pernah diaktivasi (cache di memori).
+
+    FASE 1: Supabase (tabel `connector_activation`) adalah sumber kebenaran.
+    Berkas lokal hanya fallback. Sebelumnya berkas ini ada di `.gitignore:126`
+    sehingga ledger hilang di setiap deploy dan `coverage()['executable']`
+    selalu reset ke 23.
+    """
+    global _ACTIVATED_IDS
+    if _ACTIVATED_IDS is not None:
+        return _ACTIVATED_IDS
+    ids:set[str]=set()
+    try:
+        import connector_store as _cs
+        if _cs.available():
+            ids=_cs.load_activation_ids()
+    except Exception as exc:  # noqa: BLE001
+        print(f"[mcp-registry] ledger DB tidak terbaca ({type(exc).__name__}); "
+              f"pakai berkas lokal.")
+        ids=set()
+    if not ids:
+        ids=_read_activation_file()
     _ACTIVATED_IDS=ids
     return ids
+
+
+def refresh_activation_cache() -> int:
+    """Paksa baca ulang ledger dari DB. Kembalikan jumlah id."""
+    global _ACTIVATED_IDS
+    _ACTIVATED_IDS=None
+    return len(_activated_ids())
 
 
 def save_activation_ledger(ledger) -> dict:
@@ -581,6 +612,7 @@ def save_activation_ledger(ledger) -> dict:
     cache=load_cached()
     added=0
     unknown=[]
+    db_rows=[]
     for cid, rec in (getattr(ledger,'activated',{}) or {}).items():
         if cid not in cache:
             unknown.append(cid)
@@ -594,10 +626,25 @@ def save_activation_ledger(ledger) -> dict:
             entry['activation']={'transport':rec.get('transport'),
                                  'endpoint_url':rec.get('endpoint_url'),
                                  'call_verified':bool(rec.get('call_verified'))}
+            db_rows.append({'connector_id':cid,
+                            'transport':rec.get('transport') or (entry.get('install_config') or {}).get('transport'),
+                            'endpoint_url':rec.get('endpoint_url') or entry.get('endpoint_url'),
+                            'call_verified':bool(rec.get('call_verified')),
+                            'runtime_verified':True,
+                            'source':entry.get('source')})
+    # FASE 1: tulis ke Supabase (sumber kebenaran) + berkas lokal (cache).
+    db_result={'written':0,'backend':'file'}
+    try:
+        import connector_store as _cs
+        if db_rows:
+            db_result=_cs.upsert_activation(db_rows)
+    except Exception as exc:  # noqa: BLE001
+        print(f"[mcp-registry] gagal simpan ledger ke DB: {type(exc).__name__}: {exc}")
     payload={'version':1,'count':len(existing),'activated':{i:True for i in sorted(existing)}}
     tmp=ACTIVATION_PATH.with_suffix('.tmp')
     tmp.write_text(json.dumps(payload,ensure_ascii=False),encoding='utf-8')
     tmp.replace(ACTIVATION_PATH)
     _ACTIVATED_IDS=existing
-    return {'total':len(existing),'added':added,'unknown_ids':len(unknown)}
+    return {'total':len(existing),'added':added,'unknown_ids':len(unknown),
+            'db':db_result}
 

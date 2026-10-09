@@ -25,3 +25,14 @@ export const agentKeys = {
   detail: (id: string) => [...agentKeys.all, "detail", id] as const,
   mcp: (id: string) => [...agentKeys.all, "mcp", id] as const,
 };
+
+// Query keys untuk Connector Health (FASE 2/3/6). Angka dari tabel
+// `connector_health` (hasil probe live), bukan metadata katalog — verdict
+// masuk ke key karena endpoint memfilter per verdict.
+export const connectorHealthKeys = {
+  all: ["connector-health"] as const,
+  summary: () => [...connectorHealthKeys.all, "summary"] as const,
+  schema: () => [...connectorHealthKeys.all, "schema"] as const,
+  byVerdict: (verdict: string, limit: number) =>
+    [...connectorHealthKeys.all, "list", verdict, limit] as const,
+};
