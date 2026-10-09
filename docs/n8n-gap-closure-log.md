@@ -13,10 +13,10 @@ dan `docs/enterprise-100-percent-log.md`.
 | # | Fitur | Modul | Hard Test | Commit | Status |
 |---|---|---|---|---|---|
 | 7 | Metric-based Evaluations | `metrics_eval.py` | 16/16 | `916e5f9` | ✅ |
-| 12 | External Memory Provider | `memory_provider.py` | 14/14 | — | ✅ |
-| 11 | Redaction + Enforce 2FA | — | — | — | pending |
-| 4 | Log Streaming SIEM | — | — | — | pending |
-| 8 | OTel / LangSmith Tracing | — | — | — | pending |
+| 12 | External Memory Provider | `memory_provider.py` | 14/14 | `74f0dee` | ✅ |
+| 11 | Redaction + Enforce 2FA | `execution_redaction.py`, `two_factor.py` | 31/31 | `8446284` | ✅ |
+| 4 | Log Streaming SIEM | `log_streaming.py` | 22/22 + 40 E2E | — | ✅ |
+| 8 | OTel / LangSmith Tracing | `tracing.py` | 19/19 + 75 E2E | — | ✅ |
 | 3 | Self-healing Persistence | — | — | — | pending |
 | 6 | End-user Credentials | — | — | — | pending |
 | 10 | Custom RBAC | — | — | — | pending |
@@ -356,5 +356,430 @@ HASIL: LULUS
    2FA bertahan melewati restart (satu titik: `two_factor.store()`).
 4. **Tidak ada BLOKER.** Tidak ada kredensial yang hilang, tidak ada kartu
    kredit, dan tidak ada 10 alternatif yang gagal.
+
+### Status: 100% COMPLETE ✅
+
+---
+
+## FITUR #4: LOG STREAMING TO SIEM
+
+### A. RESEARCH (link Okt 2026)
+
+| Sumber | Link | Temuan | Keputusan |
+|---|---|---|---|
+| n8n Log Streaming (docs resmi) | https://n8n.nodejs.cn/log-streaming/ | 3 tipe tujuan: **webhook**, **syslog (RFC 5424)**, **Sentry**; field per-tipe berbeda | Implementasikan ketiga tipe dengan skema field 1:1 dari docs |
+| deepwiki n8n-docs 9.5 | https://deepwiki.com/n8n-io/n8n-docs/9.5-log-streaming-and-opentelemetry | Katalog event bergrup (`n8n.workflow.*`, `n8n.node.*`, `n8n.audit.*`, `n8n.worker.*`, `n8n.ai.*`, `n8n.runner.*`, `n8n.queue.*`); `subscribedEvents` menerima **prefiks grup** | `event_matches()` cocokkan grup, nama penuh, dan wildcard `*` |
+| n8n log streaming — keandalan | https://n8n.nodejs.cn/log-streaming/#circuit-breaker | **Circuit breaker** `{maxFailures, failureWindow}`; ada **event log lokal durabel** yang di-*re-emit* setelah pulih | `CircuitBreaker` sliding-window + spool durabel dengan `flush()` |
+| n8n log streaming — anonimisasi | https://n8n.nodejs.cn/log-streaming/#anonymize-audit-messages | `anonymizeAuditMessages`: pesan audit disamarkan sebelum keluar, **metadata tetap terlihat** | `Destination.prepare()` memakai kembali `redact_value` dari Fitur #11a |
+| n8n env-managed | https://n8n.nodejs.cn/log-streaming/#managed-by-env | Deployment bisa mengunci konfigurasi lewat env (`N8N_LOG_STREAMING_MANAGED_BY_ENV`, `N8N_LOG_STREAMING_DESTINATIONS`) | `destinations_from_env()` + flag `managed_by_env` di katalog |
+| RFC 5424 (syslog) | https://datatracker.ietf.org/doc/html/rfc5424 | Frame: `<PRI>VERSION TIMESTAMP HOSTNAME APP-NAME PROCID MSGID SD MSG`; PRI = `facility*8 + severity` | `format_rfc5424()` + `_default_hostname()` (bukan `-`) |
+| Sentry Envelope | https://develop.sentry.dev/sdk/envelopes/ | Amplop 3 baris: header JSON, item header, payload | `SentryDestination.envelope()` |
+
+### B. INVENTORY KREDENSIAL `.env`
+
+| Variabel | Ada? | Dipakai untuk |
+|---|---|---|
+| `KATALIR_LOG_STREAMING_MANAGED_BY_ENV` | tidak (opsional) | Kunci konfigurasi ke env (gaya n8n) |
+| `KATALIR_LOG_STREAMING_DESTINATIONS` | tidak (opsional) | JSON array tujuan bila managed-by-env |
+| `KATALIR_LOG_STREAMING_OWNER` | tidak (opsional) | Pemilik bus untuk hook audit non-HTTP (mis. reveal data) |
+
+**Tidak ada kredensial eksternal yang dibutuhkan.** Semua tujuan
+(webhook URL, syslog host/port, Sentry DSN) dikonfigurasi oleh pengguna
+lewat API dan disimpan per-pemilik. Tidak ada BLOKER.
+
+### C. IMPLEMENTASI
+
+1. **`log_streaming.py`** (baru, ~950 baris)
+   - `EVENT_GROUPS` (7 grup) + `EVENTS` (90 nama event, 53 di antaranya audit)
+   - `event_matches(event, subscribed)` — grup / nama penuh / wildcard / prefiks `n8n.`
+   - `CircuitBreaker` (sliding window, clock ter-injeksi) — `is_open`, `allows()`,
+     `record_failure()`, `record_success()`, `snapshot()`
+   - `Destination` (ABC) + `WebhookDestination` / `SyslogDestination` / `SentryDestination`
+   - `format_rfc5424()` — `<PRI>1 TIMESTAMP HOSTNAME APP PROCID MSGID - MSG`
+   - `sentry_dsn_parts()` + `envelope()` — amplop 3 baris
+   - `build_destination(spec, *, transport, clock)` — validasi + pabrik
+   - `destinations_from_env()` — mode managed-by-env
+   - `EventBus` + **spool durabel** (`flush()`, `spool_size()`, `_persist_spool()`)
+   - `BRIDGE_MAP` (19 nama Katalir → nama n8n) + `stream()`
+   - **`owner_bus()` / `invalidate_owner_bus()`** — bus per-pemilik dengan TTL
+     (lihat temuan di bagian F)
+2. **`api_server.py`** — 7 endpoint + 3 model Pydantic + registry `32_log_streaming`:
+   `GET /log-streaming/events`, `GET|POST /log-streaming/destinations`,
+   `DELETE /log-streaming/destinations/{label}`, `POST /log-streaming/test`,
+   `GET /log-streaming/stats`, `POST /log-streaming/flush`, `POST /log-streaming/emit`
+3. **Jembatan Fitur #11a → #4** — `/redaction/reveal-audit` memancarkan
+   `n8n.audit.execution.data.revealed` ke bus SIEM pemilik.
+4. **`migrations/2026-10-09-log-streaming.sql`** — tabel `log_stream_destinations`
+   (owner PK) + `log_stream_deliveries` + trigger `updated_at` + RLS.
+5. **Antarmuka** — katalog event + CRUD tujuan + tombol uji kirim + statistik
+   per-tujuan (endpoint di atas dipakai langsung oleh panel SIEM).
+
+### D. HARD TEST (12 skenario)
+
+Berkas: `tests/test_log_streaming.py` (16 tes) + `tests/test_log_streaming_owner_bus.py` (6 tes).
+
+| # | Kategori | Skenario | Hasil |
+|---|---|---|---|
+| B1 | Basic | Webhook POST nyata, body JSON berisi `event` | PASS |
+| B2 | Basic | Frame syslog RFC 5424 — `parts[0]=="<134>1"`, `parts[3]=="katalir"` (APP-NAME), `parts[4]=="-"` (PROCID), `parts[5]` (MSGID) | PASS |
+| B3 | Basic | Amplop Sentry 3 baris (header / item header / payload) | PASS |
+| D1 | Durability | Spool menampung event saat tujuan mati, `flush()` mengirim ulang | PASS |
+| D2 | Durability | Spool bertahan lintas "restart" (bangun bus baru dari `spool_path`) | PASS |
+| E1 | Edge | Langganan prefiks grup + wildcard + nama penuh | PASS |
+| E2 | Edge | Konfigurasi tak sah (webhook tanpa URL, syslog port cacat, DSN rusak) ditolak | PASS |
+| E3 | Edge | `anonymizeAuditMessages` menyamarkan pesan audit, metadata tetap | PASS |
+| P1 | Performance | 1.000 event × 3 tujuan tanpa degradasi | PASS |
+| P2 | Performance | `max_spool` membatasi memori (tidak tumbuh tanpa batas) | PASS |
+| S1 | Security | Circuit breaker membuka setelah `maxFailures`, lalu pulih | PASS |
+| S2 | Security | DSN/header rahasia TIDAK bocor di respons API maupun log | PASS |
+| X1 | Ekstra | Pabrik `destinations_from_env()` | PASS |
+| X2 | Ekstra | Fan-out satu event ke banyak tujuan | PASS |
+| X3 | Ekstra | `BRIDGE_MAP` menerjemahkan semua nama Katalir | PASS |
+| X4 | Ekstra | Normalisasi level log | PASS |
+| Y1 | Isolasi | Pemilik sama → bus sama (cache hit, pabrik 1×) | PASS |
+| Y2 | Isolasi | TTL habis → bus dibangun ulang | PASS |
+| Y3 | Isolasi | Dua pemilik → dua bus berbeda | PASS |
+| Y4 | Isolasi | `invalidate_owner_bus(id)` / `(None)` | PASS |
+| Y5 | Isolasi | Event bus A **tidak** membocor ke tujuan bus B | PASS |
+
+**E2E HTTP mentah** (`_f4_api_e2e.py`, server HTTP lokal + kolektor UDP nyata):
+
+```
+==========================================================================
+A. KATALOG EVENT
+==========================================================================
+[PASS] GET /log-streaming/events 200  :: HTTP 200
+[PASS] 3 grup inti tersedia  :: ["n8n.workflow", "n8n.node", "n8n.audit", "n8n.worker", "n8n.ai", "n8n.runner", "n8n.queue"]
+[PASS] tipe tujuan = webhook/syslog/sentry
+[PASS] katalog audit punya >= 20 event  :: 53
+  total event = 90
+==========================================================================
+B. SIMPAN TUJUAN (validasi + penyamaran rahasia)
+==========================================================================
+[PASS] POST /log-streaming/destinations 200  :: HTTP 200
+[PASS] rahasia header disamarkan di respons
+[PASS] POST syslog 200  :: HTTP 200
+[PASS] sentry DSN rusak -> 422  :: HTTP 422
+[PASS] webhook tanpa url -> 422  :: HTTP 422
+[PASS] GET daftar tujuan 200
+[PASS] 2 tujuan tersimpan  :: ["ops-hook", "soc-udp"]
+==========================================================================
+C. TES KIRIM NYATA (webhook HTTP + syslog UDP)
+==========================================================================
+[PASS] POST /log-streaming/test (webhook) 200  :: delivered:true
+[PASS] webhook: delivered=true
+[PASS] server lokal MENERIMA request  :: n=1
+[PASS] body berisi event n8n  :: {"event": "n8n.audit.user.login.success", "group": "n8n.audit", ...
+[PASS] Authorization header terkirim  :: Bearer topsecret123
+[PASS] POST /log-streaming/test (syslog) 200  :: delivered:true
+[PASS] syslog: delivered=true
+[PASS] UDP collector MENERIMA frame  :: n=1
+[PASS] frame berawalan <110>1  :: <110>1 2026-10-09T05:11:12Z DESKTOP-BKR2
+[PASS] frame memuat JSON event  :: ... DESKTOP-BKR2PJ9 katalir - n8n.workflow.success - {"data": {"source": "log-streaming/test", ...
+==========================================================================
+D. EMIT + STATISTIK + FLUSH
+==========================================================================
+[PASS] POST /log-streaming/emit 200  :: {"event":"n8n.workflow.success","delivered":{"ops-hook":true,"soc-udp":true},"any_delivered":true,"destinations":2}
+[PASS] emit: any_delivered=true  :: {"ops-hook": true, "soc-udp": true}
+[PASS] nama bridge diterjemahkan  :: n8n.workflow.success
+[PASS] webhook menerima emit
+[PASS] emit nama tak dikenal -> 422  :: HTTP 422
+[PASS] GET /log-streaming/stats 200
+[PASS] stats: 2 tujuan terlacak  :: ["ops-hook", "soc-udp"]
+[PASS] stats: bus SAMA dipakai (sent > 0)  :: {"ops-hook": 1, "soc-udp": 1}
+[PASS] stats: bus per-pemilik ter-cache
+  sent/failed per tujuan = {"ops-hook": [1, 0], "soc-udp": [1, 0]}
+[PASS] POST /log-streaming/flush 200  :: {"attempted":0,"delivered":0,"remaining":0,"had_destination":true}
+==========================================================================
+E. AUDIT REVEAL (Fitur #11a) MEMANCARKAN KE SIEM
+==========================================================================
+[PASS] POST /redaction/reveal-audit 200  :: HTTP 200
+[PASS] event audit reveal terbentuk
+[PASS] baris audit tertulis ke execution_logs
+[PASS] SIEM menerima event reveal  :: n=1
+[PASS] nama event reveal sesuai n8n  :: n8n.audit.execution.data.revealed
+[PASS] reveal dikirim ke PEMILIK bus (bukan proses-wide)  :: aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee
+[PASS] tanpa owner: audit tetap 200
+[PASS] tanpa owner: tujuan user TIDAK kebanjiran event  :: n=0
+==========================================================================
+F. REGISTRY /version
+==========================================================================
+[PASS] registry: 32_log_streaming  :: {"30_execution_redaction": true, "31_two_factor": true, "32_log_streaming": true}
+==========================================================================
+TOTAL: 40 pemeriksaan | GAGAL: 0
+HASIL: LULUS
+```
+
+### E. VERIFIKASI
+
+- `pytest tests/test_log_streaming.py tests/test_log_streaming_owner_bus.py` → **22 LULUS**
+- `pytest tests/test_log_streaming.py tests/test_execution_redaction.py tests/test_two_factor.py` → **47 LULUS**
+- E2E HTTP mentah → **40/40 LULUS** (webhook ke server HTTP lokal nyata, syslog lewat UDP socket nyata)
+- `/version` → `32_log_streaming: true`
+
+### F. DEVIASI & TEMUAN
+
+1. **TEMUAN (bug nyata, ditemukan oleh E2E — bukan tes unit).** Endpoint
+   `/log-streaming/stats` dan `/flush` semula membangun `EventBus` **baru**
+   pada setiap panggilan, sehingga penghitung `sent`/`failed` selalu nol
+   (tiap panggilan melihat bus yang belum pernah mengirim apa pun). Hal
+   yang sama juga mematikan re-emit spool. Perbaikan: `owner_bus()` di
+   `log_streaming.py` (cache per-pemilik + TTL) dipakai bersama oleh
+   `/stats`, `/flush`, dan `/emit`; cache dibuang saat tujuan
+   disimpan/dihapus. Dikunci oleh 6 tes di `test_log_streaming_owner_bus.py`.
+   *Ini persis alasan brief mewajibkan bukti keluaran mentah: tes unit 16/16
+   hijau sementara statistik produksi tetap nol.*
+2. **Hook audit non-HTTP butuh pemilik eksplisit.** `reveal-audit` dipanggil
+   dengan Authorization (pemilik jelas), tetapi jalur audit lain (worker,
+   cron, queue) tidak punya header. Karena itu `KATALIR_LOG_STREAMING_OWNER`
+   disediakan; tanpa itu hook jatuh ke bus proses-wide (default env) dan
+   **tidak** menyentuh tujuan milik pengguna — perilaku ini diuji eksplisit
+   ("tanpa owner: tujuan user TIDAK kebanjiran event").
+3. **Spool durabel berbasis berkas**, bukan Redis/DB (pola sama dengan
+   durable/queue lain di repo). Antarmuka `flush()`/`spool_size()` sudah
+   stabil sehingga backend bisa diganti tanpa mengubah API.
+4. **`destination` inline di `/log-streaming/test`** memungkinkan uji
+   konfigurasi tanpa menyimpannya dulu — berguna untuk tombol "Test" di UI.
+5. **Tidak ada BLOKER.** Tidak ada kredensial hilang, tidak ada kartu kredit,
+   tidak ada 10 alternatif yang gagal.
+
+### Status: 100% COMPLETE ✅
+
+---
+
+## FITUR #8: DISTRIBUTED TRACING (OPENTELEMETRY / LANGSMITH)
+
+### A. RESEARCH (link Okt 2026)
+
+| Sumber | Link | Temuan | Keputusan |
+|---|---|---|---|
+| n8n — Trace executions with OpenTelemetry | https://docs.n8n.io/deploy/host-n8n/keep-n8n-running/trace-executions-with-opentelemetry | Preview sejak 2.19.0. **Dua span per eksekusi**: `workflow.execute` (root) + `node.execute` (anak). Sejak 2.33.0 span agen `gen_ai.*`; sejak 2.42.0 span eksekusi *crashed*. Resource: `service.name` (default `n8n`), `service.version`, `n8n.instance.id`, `n8n.instance.role`. | Nama span + seluruh tabel atribut disalin 1:1; 5 detektor crash didukung |
+| n8n — OTel (protokol, sampling, env) | halaman yang sama | Default `http/protobuf`; endpoint = **BASE URL** dan exporter menambahkan `/v1/traces`. Protokol `grpc` (2.39.0) mengabaikan path & **butuh port eksplisit**. Sampling `N8N_OTEL_TRACES_SAMPLE_RATE` (trace-id ratio). Default **hanya produksi**. | `traces_url()` tidak menambah path bila sudah ada; grpc pakai endpoint apa adanya; sampler berbasis trace-id |
+| n8n — propagasi & konfigurasi UI | halaman yang sama | `traceparent` W3C masuk menjadi induk span workflow; keluar disuntik ke node HTTP. Sub-workflow memakai span induk. Resume setelah `wait` memakai **span link** + `n8n.continuation.reason`. Konfigurasi UI (2.27.0) tanpa restart; **env menang** atas UI. Ada tombol "Send test trace". | `link_previous()`, `inject_into_headers()`, `POST /tracing/config` (uji kirim) |
+| LangSmith — Trace with OpenTelemetry | https://docs.langchain.com/langsmith/trace-with-opentelemetry | `OTEL_EXPORTER_OTLP_ENDPOINT=https://api.smith.langchain.com/otel`; header `x-api-key`; `Langsmith-Project` untuk nama proyek. **Jangan** sertakan `/v1/traces` di base URL (jadi dobel → 404). | Preset `langsmith` di `BACKEND_PRESETS`; `traces_url()` mencegah path dobel |
+| W3C Trace Context | https://www.w3.org/TR/trace-context/ | `traceparent = 00-<32hex trace-id>-<16hex span-id>-<2hex flags>`; versi `ff` dilarang; **semua-nol tidak sah**. Huruf kecil wajib saat *menghasilkan*; penerima boleh menerima huruf besar. | `is_valid_traceparent()` menolak nol/`ff`/panjang salah; pengurai menormalkan ke huruf kecil |
+| OTLP TraceService proto | https://github.com/open-telemetry/opentelemetry-proto | Struktur `ExportTraceServiceRequest` → `ResourceSpans` → `ScopeSpans` → `Span` | Encoder protobuf ditulis tangan (nol dependensi) |
+
+### B. INVENTORY KREDENSIAL `.env`
+
+| Variabel | Ada? | Dipakai untuk |
+|---|---|---|
+| `N8N_OTEL_ENABLED` | tidak (opsional) | Gerbang utama tracing |
+| `N8N_OTEL_EXPORTER_OTLP_ENDPOINT` | **tidak** | Base URL collector |
+| `N8N_OTEL_EXPORTER_OTLP_HEADERS` | **tidak** | `k=v,k=v` (mis. `x-api-key=...`) |
+| `N8N_OTEL_EXPORTER_OTLP_PROTOCOL` | tidak (opsional) | `http/protobuf` (default) atau `grpc` |
+| `N8N_OTEL_TRACES_SAMPLE_RATE` | tidak (opsional) | Rasio sampling 0..1 |
+| `N8N_OTEL_TRACES_PRODUCTION_ONLY` | tidak (opsional) | Default `true` (manual tidak ditrace) |
+| `N8N_OTEL_TRACES_INCLUDE_NODE_SPANS` | tidak (opsional) | Matikan span node bila terlalu banyak |
+| `N8N_OTEL_TRACES_INJECT_TRACEPARENT` | tidak (opsional) | Matikan suntikan header keluar |
+| `N8N_AGENTS_TRACING_ENABLED` | tidak (opsional) | Span agen (butuh `N8N_OTEL_ENABLED` juga) |
+| `N8N_AGENTS_TRACING_RECORD_INPUTS` / `_OUTPUTS` | tidak (opsional) | Kecualikan prompt/argumen/hasil dari span |
+
+**Kredensial opsional yang mungkin sudah ada:** LangSmith/Honeycomb. Bila
+`N8N_OTEL_EXPORTER_OTLP_ENDPOINT` dan header-nya **tidak** diisi, tracing
+nonaktif — **bukan** BLOKER. Tanpa endpoint, seluruh fungsionalitas tetap
+diuji memakai **collector OTLP lokal nyata** (loopback), jadi tidak ada
+ketergantungan pada akun berbayar.
+
+### C. IMPLEMENTASI
+
+1. **`tracing.py`** (baru, ~1.248 baris) — nol dependensi OTel baru:
+   - **Encoder protobuf OTLP ditulis tangan**: `encode_any_value`,
+     `encode_key_value`, `encode_attributes`, `encode_resource`,
+     `encode_span`, `encode_scope_spans`, `encode_resource_spans`,
+     `encode_export_request` (varint + length-delimited + fixed64).
+   - **W3C Trace Context**: `new_trace_id`, `new_span_id`,
+     `is_valid_traceparent`, `parse_traceparent`, `format_traceparent`.
+   - `Sampler` (trace-id ratio), `Span` (dengan `links`, `status`, `events`,
+     `record_exception`), `ExecutionTrace` (+ `_NodeCtx` konteks `with`).
+   - `OTLPExporter` — transport **dapat disuntik**; `urllib` di produksi;
+     `build_headers`, `traces_url` (anti-dobel `/v1/traces`).
+   - Semantik n8n: `workflow_attributes` (16 atribut), `node_attributes`
+     (8 atribut), `agent_attributes` (`gen_ai.*` + `execute_tool`),
+     `crashed_attributes` (5 detektor), `agent_span_name`, `tool_span_name`.
+   - `start_execution`, `trace_crashed_execution`, `trace_workflow`,
+     `inject_into_headers`, `tracer_from_env`, `describe`, `BACKEND_PRESETS`.
+2. **`api_server.py`** — 6 endpoint + 3 model Pydantic + registry `33_tracing`:
+   `GET /tracing/config`, `GET /tracing/spans`, `GET /tracing/stats`,
+   `POST /tracing/flush`, `POST /tracing/config` (padanan *Send test trace*),
+   `POST /tracing/export`, `POST /tracing/test`.
+3. **`migrations/2026-10-09-tracing.sql`** — tabel `tracing_config`,
+   `tracing_config_secrets` (header terenkripsi, **tanpa policy RLS**),
+   `execution_trace_context` (propagasi lintas-proses gaya queue mode n8n),
+   `tracing_spans` (ringkasan untuk UI, indeks GIN pada `attributes`) +
+   trigger `updated_at` + RLS per-pemilik.
+4. **Antarmuka** — panel Settings > Tracing: status, endpoint, sampling,
+   opsi span, tombol uji kirim, dan daftar span terakhir.
+
+### D. HARD TEST (12 skenario)
+
+Berkas: `tests/test_tracing.py` (19 tes).
+
+| # | Kategori | Skenario | Hasil |
+|---|---|---|---|
+| B1 | Basic | `traceparent` versi 00 dibentuk & diurai bolak-balik | PASS |
+| B2 | Basic | Satu eksekusi → span `workflow.execute` + `node.execute` terkirim | PASS |
+| B3 | Basic | Header OTLP (auth, `Content-Type: application/x-protobuf`) + URL `/v1/traces` | PASS |
+| D1 | Durability | Ekspor gagal → span dikembalikan ke antrean, ulang berhasil | PASS |
+| D2 | Durability | Antrean dibatasi `MAX_SPOOL` saat backend mati terus-menerus | PASS |
+| E1 | Edge | Span node memakai span workflow sebagai induk (trace sama) | PASS |
+| E2 | Edge | Sub-workflow jadi anak; resume `wait` → span link + `n8n.continuation.reason` | PASS |
+| E3 | Edge | Konfigurasi tak sah ditolak (endpoint, protokol, header, sampler, detektor) | PASS |
+| P1 | Performance | 1.000 span (200 eksekusi × 5) dikodekan & diekspor | PASS |
+| P2 | Performance | Sampler konsisten per trace-id; rasio 0,25 terukur 0,256 | PASS |
+| S1 | Security | `traceparent` cacat DITOLAK (nol, `ff`, panjang salah, non-hex); keluaran selalu huruf kecil | PASS |
+| S2 | Security | Atribut tidak memuat kunci API; input/output agen dapat dikecualikan | PASS |
+| X1 | Ekstra | Semua env `N8N_OTEL_*` dibaca benar (incl. `BACKEND_PRESETS`) | PASS |
+| X2 | Ekstra | Span eksekusi crash (2.42.0): status, `error_type`, detektor, `reconstructed` | PASS |
+| X3 | Ekstra | Nama span agen/tool + seluruh atribut `gen_ai.*` | PASS |
+| X4 | Ekstra | Wire-format protobuf sah (trace_id/span_id biner, fixed64 start_ns) | PASS |
+| X5 | Ekstra | Suntikan `traceparent` keluar; dapat dimatikan lewat env | PASS |
+| X6 | Ekstra | Gerbang mode produksi (manual diblokir secara default) | PASS |
+| X7 | Ekstra | `trace_workflow` mengembalikan `None` saat tracing nonaktif | PASS |
+
+**E2E HTTP mentah** (`_f8_api_e2e.py`, **collector OTLP lokal nyata** di loopback
+menerima POST `/v1/traces`, payload diperiksa byte-level):
+
+```
+==========================================================================
+A. KATALOG + KONFIGURASI
+==========================================================================
+[PASS] GET /tracing/config 200  :: HTTP 200
+[PASS] enabled dari env
+[PASS] url = endpoint + /v1/traces  :: http://127.0.0.1:57941/v1/traces
+[PASS] nama header terbaca (nilai TIDAK)  :: ["Langsmith-Project", "x-api-key"]
+[PASS] rahasia tidak bocor di /tracing/config
+[PASS] service_name = katalir
+[PASS] span names sesuai n8n
+[PASS] 5 detektor crash n8n  :: ["stall", "queue-recovery", "startup-recovery", "start-failure", "workflow-deactivation"]
+[PASS] GET /tracing/spans 200
+[PASS] atribut workflow lengkap (16 = tabel n8n)  :: 16
+[PASS] atribut node lengkap (8)  :: 8
+[PASS] atribut agen gen_ai.* ada
+[PASS] 2 protokol OTLP  :: ["http/protobuf", "grpc"]
+[PASS] preset langsmith tersedia
+==========================================================================
+B. EKSPOR NYATA KE COLLECTOR (protobuf di byte-level)
+==========================================================================
+[PASS] POST /tracing/export 200  :: HTTP 200
+[PASS] span_count = 3 (root + 2 node)  :: 3
+[PASS] node_count_attribute = 2
+[PASS] exporter melaporkan sent_spans > 0  :: {"protocol": "http/protobuf", "url": "http://127.0.0.1:57941/v1/traces", "headers": ["Langsmith-Project", "x-api-key"], "sent_spans": 3, "failed_spans": 0, "last_status": 200, "last_error": ""}
+[PASS] collector MENERIMA POST /v1/traces  :: n=1
+[PASS] path = /v1/traces  :: /v1/traces
+[PASS] Content-Type protobuf  :: application/x-protobuf
+[PASS] payload protobuf tidak kosong  :: 985 B
+[PASS] resource: service.name=katalir
+[PASS] resource: n8n.instance.id
+[PASS] resource: n8n.instance.role=main
+[PASS] span name workflow.execute
+[PASS] span name node.execute
+[PASS] trace_id root ada di payload
+[PASS] span_id root ada di payload
+[PASS] span_id node #1 ada di payload
+[PASS] atribut n8n.workflow.id
+[PASS] atribut n8n.execution.mode=webhook
+[PASS] atribut n8n.node.type
+[PASS] atribut n8n.node.items.output
+[PASS] RAHASIA tidak masuk payload span
+[PASS] node span memakai root sebagai induk  :: cc4b28057a2774d1 vs cc4b28057a2774d1
+[PASS] semua span berada dalam satu trace
+==========================================================================
+C. PROPAGASI W3C traceparent (masuk & keluar)
+==========================================================================
+[PASS] trace_id mengikuti traceparent masuk  :: cccccccccccccccccccccccccccccccc
+[PASS] parent_span_id = span pemanggil
+[PASS] traceparent keluar dibentuk ulang dengan trace sama  :: 00-cccccccccccccccccccccccccccccccc-b14c3227951b8251-01
+[PASS] traceparent cacat diabaikan
+==========================================================================
+D. SPAN CRASH (n8n 2.42.0) + SPAN AGEN gen_ai.*
+==========================================================================
+[PASS] POST crash span 200
+[PASS] status crash
+[PASS] error_type = WorkflowCrashedError
+[PASS] detektor stall
+[PASS] reconstructed=false
+[PASS] span crash terkirim ke collector
+[PASS] detektor ngawur -> 422
+[PASS] POST agent span 200
+[PASS] span agen terkirim ke collector
+[PASS] gen_ai.operation.name
+[PASS] gen_ai.agent.name  :: Sales Bot
+[PASS] span agen .generate
+[PASS] span tool execute_tool search_web
+[PASS] gen_ai.tool.call.id
+[PASS] gen_ai.request.model openai/gpt-4o
+==========================================================================
+E. GERBANG MODE + SAMPLING
+==========================================================================
+[PASS] mode manual tetap diizinkan di endpoint eksplisit
+[PASS] gerbang produksi: manual DITOLAK
+[PASS] gerbang produksi: webhook DITERIMA
+[PASS] production_only=false -> manual diterima
+[PASS] sampler 0.25 memberi rasio wajar  :: ratio=0.256
+[PASS] sampler 1.0 selalu menerima
+==========================================================================
+F. UJI KONFIGURASI (padanan 'Send test trace')
+==========================================================================
+[PASS] POST /tracing/config 200
+[PASS] delivered=true
+[PASS] http_status 200
+[PASS] collector menerima span uji
+[PASS] skema endpoint salah -> 422  :: HTTP 422
+[PASS] protokol salah -> 422  :: HTTP 422
+==========================================================================
+G. STATISTIK + FLUSH + REGISTRY
+==========================================================================
+[PASS] GET /tracing/stats 200
+[PASS] sent_spans > 0  :: {"sent_spans": 36, "failed_spans": 0, "last_status": 200}
+[PASS] sample_rate terbaca  :: 1.0
+[PASS] auto_flush aktif
+[PASS] POST /tracing/flush 200
+[PASS] flush tanpa sisa  :: {"exported": 0, "ok": true, "pending": 0}
+[PASS] registry: 33_tracing  :: {"30_execution_redaction": true, "31_two_factor": true, "32_log_streaming": true, "33_tracing": true}
+==========================================================================
+TOTAL: 75 pemeriksaan | GAGAL: 0
+HASIL: LULUS
+```
+
+### E. VERIFIKASI
+
+- `pytest tests/test_tracing.py` → **19 LULUS**
+- `pytest tests/test_tracing.py tests/test_log_streaming*.py tests/test_execution_redaction.py tests/test_two_factor.py` → **72 LULUS**
+- E2E HTTP mentah → **75/75 LULUS** (collector OTLP lokal nyata, payload protobuf diperiksa byte-level)
+- `/version` → `33_tracing: true`
+
+### F. DEVIASI & TEMUAN
+
+1. **TEMUAN (bug nyata, ditangkap E2E).** `ExecutionTrace.finish()` tidak
+   menerima `error_type`, padahal n8n menulis atribut
+   `n8n.execution.error_type` pada span yang gagal. Endpoint
+   `/tracing/export` memanggilnya dengan kata kunci itu → `TypeError` (500).
+   Diperbaiki: `finish(error_type=...)` kini menulis atribut tersebut dan
+   menandai status span `ERROR`. Tes unit 19/19 hijau **tidak** menangkapnya
+   karena tidak memanggil jalur HTTP — sekali lagi alasan brief mewajibkan
+   bukti keluaran mentah.
+2. **TEMUAN (bug nyata, ditangkap uji).** `Sampler` semula mengambil 16 hex
+   **terakhir** trace-id. Karena `uuid4().hex` menaruh nibble versi/variant di
+   posisi tengah, sebaran nilai ekor terbukti tidak seragam — rasio terukur
+   **0,000** untuk rate 0,25. Diperbaiki memakai 16 hex **pertama**; rasio kini
+   0,256 (rate 0,25) dan 0,506 (rate 0,5).
+3. **TEMUAN (pemahaman spec).** Saya semula menganggap huruf besar pada
+   `traceparent` harus ditolak. W3C §3.2.2 mewajibkan huruf kecil saat
+   **menghasilkan**, tetapi penerima boleh menerima keduanya. `is_valid_traceparent`
+   tidak lagi menolak huruf besar; pengurai menormalkan sebelum memakai nilainya,
+   dan `format_traceparent` dijamin selalu huruf kecil. Perilaku ini dikunci tes.
+4. **`TracingError` dipetakan ke HTTP 422** di endpoint (detektor crash ngawur,
+   protokol salah, skema endpoint salah) — bukan 500.
+5. **Encoder protobuf ditulis tangan, bukan SDK `opentelemetry-*`.**
+   Alasannya: keep the production image lean (sandbox produksi memang tanpa
+   Node/Python berat), dan menghindari perubahan tak terduga pada
+   `cryptography`/Fernet yang sudah dipakai Fitur #11. Konsekuensinya: hanya
+   sinyal *traces* yang didukung (bukan metrics/logs) — sesuai cakupan n8n
+   yang juga baru traces. Dekode oleh collector tetap standar karena byte
+   yang dihasilkan mengikuti skema OTLP resmi.
+6. **Tidak ada BLOKER.** Tracing nonaktif tanpa endpoint; seluruh pengujian
+   memakai collector lokal. Tidak ada kredensial wajib, kartu kredit, atau
+   10 alternatif yang gagal.
 
 ### Status: 100% COMPLETE ✅

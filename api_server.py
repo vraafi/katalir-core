@@ -4437,6 +4437,23 @@ def redaction_reveal_audit(req: RevealRequest,
              "finished_at": event["ts"]}).execute()
     except Exception as exc:  # noqa: BLE001
         print(f"[redaction] audit reveal gagal disimpan: {exc}")
+    # Fitur #4: pancarkan ke SIEM (event yang sama dengan n8n
+    # `n8n.audit.execution.data.revealed`).
+    try:
+        import log_streaming as _ls
+        _owner = _env_first("KATALIR_LOG_STREAMING_OWNER")
+        _ev = _ls.make_event("n8n.audit.execution.data.revealed", level="warn",
+                             data={"reason": req.reason,
+                                   "email": str(user["email"])},
+                             user_id=str(user["id"]),
+                             workflow_id=req.workflow_id,
+                             execution_id=req.execution_id)
+        if _owner:
+            _publish_owner_event(_owner, _ev)
+        else:
+            _ls.bus().emit(_ev)
+    except Exception as exc:  # noqa: BLE001 - streaming tidak boleh memblokir audit
+        print(f"[log_streaming] reveal -> SIEM dilewati: {exc}")
     return {"status": "success", "event": event}
 
 
@@ -4562,6 +4579,560 @@ def two_factor_overview(authorization: str | None = Header(None)):
     _2fa_admin(user)
     import two_factor as tf
     return {"status": "success", **tf.overview()}
+
+
+# ---------------------------------------------------------------------------
+# ENDPOINT LOG STREAMING / SIEM (fitur #4, 9 Okt 2026)
+# Tiga jenis tujuan (webhook/syslog/sentry) + langganan event + anonimisasi
+# audit + circuit breaker + spool durable (re-emit). Konfigurasi per-owner.
+# ---------------------------------------------------------------------------
+LOG_STREAM_TABLE = "log_stream_destinations"
+
+
+class LogStreamDestinationRequest(BaseModel):
+    """Body POST /log-streaming/destinations — bentuk mengikuti n8n."""
+    type: str
+    label: str = ""
+    enabled: bool = True
+    subscribedEvents: Any = None
+    anonymizeAuditMessages: bool = False
+    circuitBreaker: Any = None
+    # webhook
+    url: str = ""
+    method: str = "POST"
+    sendQuery: bool = False
+    queryParameters: Any = None
+    jsonQuery: str = ""
+    sendHeaders: bool = False
+    headerParameters: Any = None
+    jsonHeaders: str = ""
+    options: Any = None
+    # syslog
+    host: str = ""
+    port: int = 514
+    protocol: str = "udp"
+    tlsCa: str = ""
+    facility: int = 16
+    app_name: str = "katalir"
+    # sentry
+    dsn: str = ""
+
+
+class LogStreamTestRequest(BaseModel):
+    """Body POST /log-streaming/test — kirim event uji ke satu tujuan."""
+    destination: Any = None
+    label: str = ""
+    event: str = "n8n.audit.user.login.success"
+
+
+def _log_stream_config(user_id: str) -> dict:
+    """Konfigurasi streaming milik user (tanpa membocorkan nilai rahasia)."""
+    try:
+        res = (db.get_write_client().table(LOG_STREAM_TABLE).select("config")
+               .eq("owner", str(user_id)).limit(1).execute())
+        rows = res.data or []
+        if rows:
+            return rows[0].get("config") or {}
+    except Exception as exc:  # noqa: BLE001 - tabel absen -> default
+        print(f"[log_streaming] config gagal dibaca: {exc}")
+    return {"destinations": []}
+
+
+def _desensitize(spec: dict) -> dict:
+    """Salin spec dengan nilai rahasia disamarkan (untuk respons API)."""
+    out = dict(spec or {})
+    for key in ("dsn", "url", "tlsCa"):
+        if out.get(key):
+            val = str(out[key])
+            out[key] = (val[:12] + "***") if len(val) > 12 else "***"
+    for key in ("headerParameters", "queryParameters"):
+        kp = out.get(key)
+        if isinstance(kp, dict) and isinstance(kp.get("parameters"), list):
+            items = []
+            for item in kp["parameters"]:
+                if isinstance(item, dict) and str(
+                        item.get("name", "")).lower() in (
+                        "authorization", "x-api-key", "cookie", "token"):
+                    items.append({**item, "value": "***"})
+                else:
+                    items.append(item)
+            out[key] = {**kp, "parameters": items}
+    return out
+
+
+def _build_owner_bus(user_id: str):
+    """Bangun EventBus BARU untuk SATU user dari konfigurasi tersimpan."""
+    import log_streaming as ls
+    cfg = _log_stream_config(user_id)
+    dests = []
+    for spec in (cfg.get("destinations") or []):
+        try:
+            dests.append(ls.build_destination(spec))
+        except ls.DestinationError as exc:
+            print(f"[log_streaming] tujuan '{spec.get('label')}' dilewati: {exc}")
+    return ls.EventBus(destinations=dests)
+
+
+def _owner_bus(user_id: str):
+    """Bus milik user, di-cache (per-pemilik) agar statistik tidak hilang.
+
+    Endpoint /stats, /flush, /emit harus melihat bus yang SAMA supaya
+    penghitung sent/failed nyata dan spool re-emit berfungsi.
+    """
+    import log_streaming as ls
+    return ls.owner_bus(user_id, _build_owner_bus)
+
+
+def _publish_owner_event(user_id: str, event: dict) -> dict:
+    """Pancarkan event ke tujuan SIEM milik `user_id` (jalur non-HTTP).
+
+    Dipakai hook audit (mis. reveal data teredaksi) yang tidak punya
+    Authorization header, tapi tetap harus sampai ke SIEM pemiliknya
+    bila `KATALIR_LOG_STREAMING_OWNER` diisi. Kembalikan hasil
+    pengiriman per-label (kosong bila tidak ada tujuan).
+    """
+    try:
+        import log_streaming as ls
+        b = _owner_bus(str(user_id))
+        return b.emit(event) if b.destinations else {}
+    except Exception as exc:  # noqa: BLE001 - streaming tak boleh memblokir audit
+        print(f"[log_streaming] publish gagal: {exc}")
+        return {}
+
+
+@app.get("/log-streaming/events")
+def log_streaming_events():
+    """Katalog grup + nama event yang bisa dilanggani (tanpa auth)."""
+    import log_streaming as ls
+    return {"status": "success",
+            "groups": list(ls.EVENT_GROUPS),
+            "events": {g: list(v) for g, v in ls.EVENTS.items()},
+            "all": ls.all_event_names(),
+            "levels": list(ls.LOG_LEVELS),
+            "types": ["webhook", "syslog", "sentry"],
+            "bridge": dict(ls.BRIDGE_MAP),
+            "managed_by_env": bool(_env_first(
+                "KATALIR_LOG_STREAMING_MANAGED_BY_ENV").lower() in
+                ("true", "1", "yes"))}
+
+
+@app.get("/log-streaming/destinations")
+def log_streaming_list(authorization: str | None = Header(None)):
+    """Daftar tujuan streaming milik user (nilai rahasia disamarkan)."""
+    user = security.get_current_user(authorization)
+    cfg = _log_stream_config(str(user["id"]))
+    specs = cfg.get("destinations") or []
+    return {"status": "success",
+            "destinations": [_desensitize(s) for s in specs],
+            "count": len(specs)}
+
+
+@app.post("/log-streaming/destinations")
+def log_streaming_save(body: LogStreamDestinationRequest,
+                       authorization: str | None = Header(None)):
+    """Tambah/perbarui tujuan streaming (key = label)."""
+    user = security.get_current_user(authorization)
+    import log_streaming as ls
+    spec = {k: v for k, v in body.model_dump().items() if v is not None}
+    spec.pop("label_", None)
+    try:
+        ls.build_destination(spec)      # validasi konfigurasi SEBELUM disimpan
+    except ls.DestinationError as exc:
+        raise HTTPException(422, str(exc))
+    label = spec.get("label") or spec.get("type")
+    spec["label"] = label
+    cfg = _log_stream_config(str(user["id"]))
+    dests = [d for d in (cfg.get("destinations") or [])
+             if d.get("label") != label]
+    dests.append(spec)
+    try:
+        db.get_write_client().table(LOG_STREAM_TABLE).upsert(
+            {"owner": str(user["id"]), "config": {"destinations": dests}},
+            on_conflict="owner").execute()
+    except Exception as exc:  # noqa: BLE001
+        raise HTTPException(500, f"Gagal menyimpan tujuan: {exc}")
+    ls.invalidate_owner_bus(str(user["id"]))
+    return {"status": "success", "label": label,
+            "destination": _desensitize(spec), "count": len(dests)}
+
+
+@app.delete("/log-streaming/destinations/{label}")
+def log_streaming_delete(label: str,
+                         authorization: str | None = Header(None)):
+    """Hapus tujuan streaming berdasarkan label."""
+    user = security.get_current_user(authorization)
+    cfg = _log_stream_config(str(user["id"]))
+    dests = [d for d in (cfg.get("destinations") or [])
+             if d.get("label") != label]
+    if len(dests) == len(cfg.get("destinations") or []):
+        raise HTTPException(404, f"Tujuan '{label}' tidak ditemukan.")
+    try:
+        db.get_write_client().table(LOG_STREAM_TABLE).upsert(
+            {"owner": str(user["id"]), "config": {"destinations": dests}},
+            on_conflict="owner").execute()
+    except Exception as exc:  # noqa: BLE001
+        raise HTTPException(500, f"Gagal menghapus tujuan: {exc}")
+    import log_streaming as _lsd
+    _lsd.invalidate_owner_bus(str(user["id"]))
+    return {"status": "success", "removed": label, "count": len(dests)}
+
+
+@app.post("/log-streaming/test")
+def log_streaming_test(req: LogStreamTestRequest,
+                       authorization: str | None = Header(None)):
+    """Kirim SATU event uji ke tujuan (nyata, bukan simulasi).
+
+    Bila `destination` tidak diberikan, tujuan tersimpan dengan `label`
+    yang cocok dipakai. Hasilnya jujur: `delivered=false` bila tujuan
+    menolak/tidak terjangkau.
+    """
+    user = security.get_current_user(authorization)
+    import log_streaming as ls
+    spec = req.destination
+    if not isinstance(spec, dict):
+        cfg = _log_stream_config(str(user["id"]))
+        spec = next((d for d in (cfg.get("destinations") or [])
+                     if d.get("label") == req.label), None)
+    if not isinstance(spec, dict):
+        raise HTTPException(404, "Tujuan tidak ditemukan (label tidak cocok).")
+    try:
+        dest = ls.build_destination(spec)
+    except ls.DestinationError as exc:
+        raise HTTPException(422, str(exc))
+    event = ls.make_event(req.event, level="info",
+                          data={"test": True,
+                                "source": "log-streaming/test",
+                                "user_id": str(user["id"])})
+    ok = dest.send(event)
+    return {"status": "success", "delivered": bool(ok),
+            "event": event["event"], "label": dest.label,
+            "destination": _desensitize(spec),
+            "stats": dest.stats(),
+            "detail": dest.last_error or ("terkirim" if ok else "ditolak")}
+
+
+@app.get("/log-streaming/stats")
+def log_streaming_stats(authorization: str | None = Header(None)):
+    """Statistik pengiriman + keadaan circuit breaker tiap tujuan."""
+    user = security.get_current_user(authorization)
+    b = _owner_bus(str(user["id"]))
+    return {"status": "success", **b.stats()}
+
+
+@app.post("/log-streaming/flush")
+def log_streaming_flush(limit: int = 500,
+                        authorization: str | None = Header(None)):
+    """Kirim ulang event yang gagal (re-emit, perilaku n8n)."""
+    user = security.get_current_user(authorization)
+    b = _owner_bus(str(user["id"]))
+    return {"status": "success", **b.flush(limit=limit)}
+
+
+class LogStreamEmitRequest(BaseModel):
+    """Body POST /log-streaming/emit — pancarkan event aplikasi."""
+    event: str
+    level: str = "info"
+    data: Any = None
+    workflow_id: str = ""
+    execution_id: str = ""
+
+
+@app.post("/log-streaming/emit")
+def log_streaming_emit(req: LogStreamEmitRequest,
+                       authorization: str | None = Header(None)):
+    """Pancarkan event ke semua tujuan user (juga menerima nama bridge)."""
+    user = security.get_current_user(authorization)
+    import log_streaming as ls
+    b = _owner_bus(str(user["id"]))
+    name = ls.BRIDGE_MAP.get(req.event, req.event)
+    if not name.startswith("n8n."):
+        raise HTTPException(422, f"Nama event tidak dikenal: {req.event}")
+    event = ls.make_event(name, level=req.level,
+                          data=req.data if isinstance(req.data, dict) else {},
+                          user_id=str(user["id"]),
+                          workflow_id=req.workflow_id,
+                          execution_id=req.execution_id)
+    hasil = b.emit(event)
+    return {"status": "success", "event": name, "delivered": hasil,
+            "any_delivered": any(hasil.values()) if hasil else False,
+            "destinations": len(b.destinations)}
+
+
+# ---------------------------------------------------------------------------
+# ENDPOINT TRACING (fitur #8) — OpenTelemetry / LangSmith (OTLP)
+# Span `workflow.execute` + `node.execute` + `gen_ai.*` (agen), diekspor
+# lewat OTLP/HTTP+protobuf. Konfigurasi dibaca dari env bergaya n8n.
+# ---------------------------------------------------------------------------
+class TracingConfigRequest(BaseModel):
+    """Body POST /tracing/config — uji konfigurasi eksportir tanpa restart."""
+    endpoint: str = ""
+    protocol: str = "http/protobuf"
+    headers: str = ""
+    path: str = "/v1/traces"
+    service_name: str = ""
+    service_version: str = ""
+    instance_role: str = ""
+    backend: str = ""
+
+
+class TracingSpanRequest(BaseModel):
+    """Body POST /tracing/export — kirim satu eksekusi (untuk uji/CI)."""
+    workflow_id: str = ""
+    workflow_name: str = ""
+    node_count: int | None = None
+    project_id: str = ""
+    execution_id: str = ""
+    mode: str = "webhook"
+    version_id: str = ""
+    is_retry: bool = False
+    retry_of: str = ""
+    traceparent: str = ""
+    status: str = "success"
+    error_type: str = ""
+    custom: Any = None
+    nodes: Any = None
+    crashed: Any = None
+    agent: Any = None
+
+
+class TracingTestRequest(BaseModel):
+    """Body POST /tracing/test — kirim span uji (meniru "Send test trace")."""
+    endpoint: str = ""
+    protocol: str = "http/protobuf"
+    headers: str = ""
+    service_name: str = ""
+
+
+def _tracing_env() -> dict:
+    """Env proses sebagai dict (bisa diganti saat uji)."""
+    import os as _os
+    return dict(_os.environ)
+
+
+@app.get("/tracing/config")
+def tracing_config():
+    """Ringkasan konfigurasi tracing (tanpa membocorkan nilai header)."""
+    import tracing as _tr
+    return {"status": "success", **_tr.describe(_tracing_env())}
+
+
+@app.get("/tracing/spans")
+def tracing_spans():
+    """Katalog nama span + atribut semantik (menyamai tabel dokumentasi n8n)."""
+    import tracing as _tr
+    return {
+        "status": "success",
+        "span_names": {"workflow": _tr.SPAN_WORKFLOW, "node": _tr.SPAN_NODE,
+                       "agent": "<agent name>.generate | <agent name>.stream",
+                       "tool": "execute_tool <tool name>"},
+        "workflow_attributes": [
+            "n8n.workflow.id", "n8n.workflow.name", "n8n.workflow.version_id",
+            "n8n.workflow.node_count", "n8n.project.id", "n8n.execution.id",
+            "n8n.execution.mode", "n8n.execution.status",
+            "n8n.execution.is_retry", "n8n.execution.retry_of",
+            "n8n.execution.error_type", "n8n.execution.crash.detector",
+            "n8n.execution.reconstructed", "n8n.project.custom.<key>",
+            "n8n.workflow.custom.<key>", "n8n.continuation.reason"],
+        "node_attributes": [
+            "n8n.node.id", "n8n.node.name", "n8n.node.type",
+            "n8n.node.type_version", "n8n.node.items.input",
+            "n8n.node.items.output", "n8n.node.termination_reason",
+            "n8n.node.custom.<key>"],
+        "agent_attributes": [
+            "gen_ai.operation.name", "gen_ai.agent.name",
+            "gen_ai.request.model", "gen_ai.conversation.id", "gen_ai.prompt",
+            "agent_id", "project_id", "thread_id", "source", "user_id",
+            "model_id", "execution_id", "workflow_id", "node_id"],
+        "tool_attributes": [
+            "gen_ai.operation.name", "gen_ai.tool.name", "gen_ai.tool.call.id",
+            "gen_ai.agent.name", "gen_ai.tool.call.arguments",
+            "gen_ai.tool.call.result"],
+        "execution_modes": list(_tr.EXECUTION_MODES),
+        "execution_statuses": list(_tr.EXECUTION_STATUSES),
+        "crash_detectors": list(_tr.CRASH_DETECTORS),
+        "protocols": list(_tr.SUPPORTED_PROTOCOLS),
+        "backends": sorted(_tr.BACKEND_PRESETS.keys()),
+    }
+
+
+@app.get("/tracing/stats")
+def tracing_stats():
+    """Statistik ekspor: span terkirim/gagal, antrean, sampling."""
+    import tracing as _tr
+    t = _tr.tracer()
+    return {"status": "success", **t.stats()}
+
+
+@app.post("/tracing/flush")
+def tracing_flush():
+    """Paksa kirim span yang tertunda (meniru penghentian exporter)."""
+    import tracing as _tr
+    return {"status": "success", **_tr.tracer().flush()}
+
+
+@app.post("/tracing/config")
+def tracing_config_test(req: TracingConfigRequest,
+                        authorization: str | None = Header(None)):
+    """Uji konfigurasi eksportir: kirim satu span nyata ke endpoint itu.
+
+    Ini padanan tombol "Send test trace" di Settings > OpenTelemetry n8n.
+    Hasilnya jujur: `delivered=false` bila collector menolak/tidak terjangkau.
+    """
+    user = security.get_current_user(authorization)
+    import tracing as _tr
+    preset = _tr.BACKEND_PRESETS.get((req.backend or "").strip()) or {}
+    endpoint = req.endpoint or preset.get("endpoint") or ""
+    headers = req.headers or ""
+    if not headers and preset.get("auth_header"):
+        headers = f"{preset['auth_header']}="
+    hdrs = _tr.build_headers(headers) if headers else {}
+    hdrs.update(preset.get("extra_headers") or {})
+    try:
+        exp = _tr.OTLPExporter(
+            endpoint, protocol=req.protocol, headers=hdrs, path=req.path,
+            service_name=req.service_name or _tr.DEFAULT_SERVICE_NAME,
+            service_version=req.service_version or "unknown",
+            instance_role=req.instance_role or "main")
+    except _tr.TracingError as exc:
+        raise HTTPException(422, str(exc))
+    tr = _tr.Tracer(exporter=exp, auto_flush=False)
+    span = tr.start_span(_tr.SPAN_WORKFLOW, attributes={
+        "n8n.workflow.id": "tracing-test",
+        "n8n.execution.id": "tracing-test",
+        "n8n.execution.mode": "manual",
+        "n8n.execution.status": "success",
+        "katalir.test.user": str(user["email"]),
+    })
+    span.set_ok()
+    tr.finish(span)
+    out = tr.flush()
+    return {"status": "success" if out["ok"] else "error",
+            "delivered": bool(out["ok"]),
+            "endpoint": exp.endpoint, "url": exp.url,
+            "protocol": exp.protocol,
+            "http_status": exp.last_status,
+            "detail": exp.last_error or "collector menerima span uji",
+            "stats": exp.stats()}
+
+
+@app.post("/tracing/export")
+def tracing_export(req: TracingSpanRequest,
+                   authorization: str | None = Header(None)):
+    """Pancarkan trace satu eksekusi (root + node + crash + agen).
+
+    Dipakai pengujian end-to-end dan integrasi CI. Semua span dikirim
+    ke eksportir yang dikonfigurasi lewat env.
+    """
+    user = security.get_current_user(authorization)
+    import tracing as _tr
+    t = _tr.tracer()
+    custom = req.custom if isinstance(req.custom, dict) else {}
+    nodes = req.nodes if isinstance(req.nodes, list) else []
+    node_count = req.node_count if req.node_count is not None else len(nodes)
+
+    if isinstance(req.crashed, dict) and req.crashed:
+        try:
+            span = _tr.trace_crashed_execution(
+                t, workflow_id=req.workflow_id, workflow_name=req.workflow_name,
+                execution_id=req.execution_id, mode=req.mode,
+                detector=str(req.crashed.get("detector") or "stall"),
+                reconstructed=bool(req.crashed.get("reconstructed")),
+                version_id=req.version_id, is_retry=req.is_retry,
+                retry_of=req.retry_of, custom=custom)
+        except _tr.TracingError as exc:
+            raise HTTPException(422, str(exc))
+        return {"status": "success", "trace_id": span.trace_id,
+                "spans": [span.to_dict()],
+                "exported": t.exporter.sent if t.exporter else 0}
+
+    et = _tr.start_execution(
+        t, workflow_id=req.workflow_id, workflow_name=req.workflow_name,
+        node_count=node_count, project_id=req.project_id,
+        execution_id=req.execution_id, mode=req.mode,
+        version_id=req.version_id, is_retry=req.is_retry,
+        retry_of=req.retry_of, traceparent=req.traceparent, custom=custom)
+    for nd in nodes:
+        if not isinstance(nd, dict):
+            continue
+        sp = et.start_node(
+            node_id=str(nd.get("id") or ""),
+            node_name=str(nd.get("name") or ""),
+            node_type=str(nd.get("type") or ""),
+            type_version=nd.get("type_version"),
+            custom=nd.get("custom") if isinstance(nd.get("custom"), dict)
+            else None)
+        et.finish_node(sp,
+                       items_input=nd.get("items_input"),
+                       items_output=nd.get("items_output"),
+                       termination_reason=str(nd.get("termination_reason")
+                                              or ""))
+    if isinstance(req.agent, dict) and req.agent:
+        ag = req.agent
+        asp = t.start_span(
+            _tr.agent_span_name(str(ag.get("name") or "agent"),
+                                streaming=bool(ag.get("streaming"))),
+            trace_id=et.span.trace_id, parent_span_id=et.span.span_id,
+            attributes=_tr.agent_attributes(
+                agent_name=str(ag.get("name") or "agent"),
+                model=str(ag.get("model") or ""),
+                conversation_id=str(ag.get("conversation_id") or ""),
+                agent_id=str(ag.get("agent_id") or ""),
+                source=str(ag.get("source") or "workflow"),
+                user_id=str(user["id"]),
+                execution_id=req.execution_id, workflow_id=req.workflow_id))
+        for tl in (ag.get("tools") or []):
+            if not isinstance(tl, dict):
+                continue
+            tsp = t.start_span(
+                _tr.tool_span_name(str(tl.get("name") or "tool")),
+                trace_id=et.span.trace_id, parent_span_id=asp.span_id,
+                attributes=_tr.agent_attributes(
+                    operation="execute_tool",
+                    tool_name=str(tl.get("name") or "tool"),
+                    tool_call_id=str(tl.get("call_id") or ""),
+                    tool_arguments=tl.get("arguments"),
+                    tool_result=tl.get("result")))
+            t.finish(tsp)
+        t.finish(asp)
+    root = et.finish(status=req.status, error_type=req.error_type)
+    spans = [root.to_dict()] + [s.to_dict() for s in et.node_spans]
+    return {"status": "success", "trace_id": root.trace_id,
+            "traceparent": et.traceparent,
+            "workflow_span": root.to_dict(), "node_spans": spans[1:],
+            "span_count": len(spans),
+            "node_count_attribute": root.attributes.get(
+                "n8n.workflow.node_count"),
+            "exported": t.exporter.sent if t.exporter else 0,
+            "exporter": t.exporter.stats() if t.exporter else None}
+
+
+@app.post("/tracing/test")
+def tracing_test(req: TracingTestRequest,
+                 authorization: str | None = Header(None)):
+    """Kirim satu span uji ke endpoint tertentu (padanan "Send test trace")."""
+    security.get_current_user(authorization)
+    import tracing as _tr
+    try:
+        exp = _tr.OTLPExporter(
+            req.endpoint, protocol=req.protocol,
+            headers=_tr.build_headers(req.headers) if req.headers else {},
+            service_name=req.service_name or _tr.DEFAULT_SERVICE_NAME)
+    except _tr.TracingError as exc:
+        raise HTTPException(422, str(exc))
+    tr = _tr.Tracer(exporter=exp, auto_flush=False)
+    sp = tr.start_span(_tr.SPAN_WORKFLOW, attributes={
+        "n8n.execution.mode": "manual", "n8n.execution.status": "success",
+        "katalir.test": True})
+    sp.set_ok()
+    tr.finish(sp)
+    ok = tr.flush()["ok"]
+    return {"status": "success" if ok else "error", "delivered": bool(ok),
+            "url": exp.url, "protocol": exp.protocol,
+            "http_status": exp.last_status,
+            "detail": exp.last_error or "collector menerima span uji"}
+
+
+@app.get("/2fa/overview")
 
 
 @app.post("/2fa/policy")
@@ -5036,6 +5607,8 @@ _FEATURE_MODULES = {
     "29_memory_provider": "memory_provider",
     "30_execution_redaction": "execution_redaction",
     "31_two_factor": "two_factor",
+    "32_log_streaming": "log_streaming",
+    "33_tracing": "tracing",
 }
 
 
