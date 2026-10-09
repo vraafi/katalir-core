@@ -745,7 +745,10 @@ diverifikasi: (a) pagar auth benar-benar **menolak** permintaan tanpa token
 
 ### 8. Commit + Push
 
-_(diisi setelah push)_
+- Commit: **`b601644`** — `feat(connectors): TASK 2 - batch execution FASE 3 dengan gate 100% PASS`
+- Push: `8263d4f..b601644  main -> main` (terverifikasi via `git ls-remote origin main`)
+- Berkas: `connector_batch_executor.py` (baru), `tests/test_connector_batch_executor.py` (baru),
+  `api_server.py` (+4 endpoint, +feature key), `docs/gap-closure-log.md`
 
 ### Status: 100% COMPLETE ✅
 
