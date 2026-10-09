@@ -1,0 +1,93 @@
+# connectors/native/restcountries_lookup.yaml
+# ---------------------------------------------------------------------------
+# Connector REFERENSI pertama — sekaligus pembuktian bahwa harness 10-test
+# benar-benar dapat 10/10 PASS (bukan hanya "skipped").
+#
+# API: REST Countries v3.2 (https://restcountries.com) — publik, tanpa auth,
+# tanpa biaya, tanpa kredensial. Itu sebabnya connector ini credential_free:
+# alur auth DAN E2E dapat dibuktikan nyata, bukan diklaim.
+#
+# Semua action di sini operation_type: read — harness tidak akan pernah
+# mengirim operasi write/delete apa pun.
+# ---------------------------------------------------------------------------
+
+manifest_version: 1
+
+id: restcountries.country.lookup
+slug: restcountries_country_lookup
+display_name: "REST Countries — Cari Negara"
+description: "Cari negara berdasarkan nama lengkap; data publik (populasi, mata uang, bendera)."
+category: reference-data
+source: native
+tenant_scope: public
+
+deprecated: false
+minimum_supported_release: "1.0.0"
+
+# API publik tanpa auth -> seluruh 10 test dapat dinilai PASS secara nyata.
+credential_free: true
+
+auth:
+  type: none
+
+actions:
+  - name: lookup_by_name
+    description: "Ambil satu negara berdasarkan nama lengkap."
+    operation_type: read
+    method: GET
+    url_base: https://restcountries.com
+    path: /v3.2/name/{{ config.country_name }}
+    record_selector:
+      type: DpathExtractor
+      field_path: ["0"]
+    paginator: NoPagination
+    error_handler:
+      type: DefaultErrorHandler
+      retry:
+        type: ExponentialBackoffStrategy
+        max_retries: 3
+    verification:
+      level: call_verified
+
+  - name: list_all
+    description: "Daftar seluruh negara (field terpilih)."
+    operation_type: read
+    method: GET
+    url_base: https://restcountries.com
+    path: /v3.2/all?fields=name,cca2,capital,region,population
+    record_selector:
+      type: DpathExtractor
+      field_path: ["*"]
+    paginator: NoPagination
+    error_handler:
+      type: DefaultErrorHandler
+      retry:
+        type: ExponentialBackoffStrategy
+        max_retries: 3
+    verification:
+      level: call_verified
+
+  - name: lookup_by_code
+    description: "Ambil satu negara berdasarkan kode alpha-3 (mis. IDN)."
+    operation_type: read
+    method: GET
+    url_base: https://restcountries.com
+    path: /v3.2/alpha/{{ config.code }}
+    record_selector:
+      type: DpathExtractor
+      field_path: ["0"]
+    paginator: NoPagination
+    error_handler:
+      type: DefaultErrorHandler
+      retry:
+        type: ConstantBackoffStrategy
+        max_retries: 2
+    verification:
+      level: call_verified
+
+rate_limit:
+  # REST Countries adalah API gratis tanpa kuota ketat; kita tetap membatasi
+  # diri sendiri supaya tidak membebani layanan publik.
+  type: FixedWindowCallRatePolicy
+  max_calls: 60
+  window_seconds: 60

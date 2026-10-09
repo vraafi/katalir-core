@@ -6444,6 +6444,228 @@ def mcp_build_verify():
             "latest_revision": _mb.LATEST_REVISION}
 
 
+# ---------------------------------------------------------------------------
+# CONNECTOR MANIFEST (brief "2000+ fitur integrasi")
+# ---------------------------------------------------------------------------
+# Prasyarat brief: "baca dulu dengan seksama apa saja fitur yang sudah ada
+# jangan ada duplikat". Audit ada di docs/connector-existing-audit.md; keputusan
+# arsitektur di docs/connector-architecture-decision.md.
+#
+# Endpoint di bawah TIDAK menambah katalog baru. Katalog sudah berisi 25.925
+# entri lewat /mcp/registry/*. Yang ditambahkan adalah JALUR EKSEKUSI untuk
+# manifest: skema deklaratif -> entri registry (yang sama) + harness 10 test.
+# Target yang benar adalah menaikkan `coverage()["executable"]` (23 hari ini),
+# BUKAN `coverage()["total"]`.
+# ---------------------------------------------------------------------------
+
+
+def _conn_mod():
+    import connector_manifest as cm
+    return cm
+
+
+def _conn_harness_mod():
+    import connector_harness as ch
+    return ch
+
+
+def _conn_err(exc: Exception) -> HTTPException:
+    import connector_manifest as cm
+    if isinstance(exc, cm.ManifestError):
+        return HTTPException(422, {"error": "manifest_tidak_sah", "errors": exc.errors})
+    return HTTPException(500, f"connector: {type(exc).__name__}: {exc}")
+
+
+def _connectors_dir():
+    from pathlib import Path
+    return Path(__file__).resolve().parent / "connectors"
+
+
+@app.get("/connectors/schema")
+def connectors_schema():
+    """Kosakata skema manifest + prinsip 10 test.
+
+    Satu endpoint untuk dua kebutuhan UI: form pembuat connector (butuh daftar
+    nilai sah) dan halaman dokumentasi (butuh prinsip penilaian). Menyalin
+    daftar itu di frontend = dua sumber kebenaran yang pasti akan berbeda.
+    """
+    cm = _conn_mod()
+    ch = _conn_harness_mod()
+    return {"status": "success", "manifest_schema": cm.describe(),
+            "harness": ch.describe()}
+
+
+@app.get("/connectors/template")
+def connectors_template():
+    """Isi template manifest mentah, supaya UI bisa mengunduhnya."""
+    p = _connectors_dir() / "_template" / "connector.yaml"
+    if not p.exists():
+        raise HTTPException(404, "template tidak ada")
+    return {"status": "success", "path": "connectors/_template/connector.yaml",
+            "content": p.read_text(encoding="utf-8")}
+
+
+@app.get("/connectors")
+def connectors_list(source: str = ""):
+    """Daftar manifest yang SUDAH ada di repo, beserta status validasinya.
+
+    Manifest yang gagal validasi tetap ditampilkan dengan errornya — bukan
+    disembunyikan. Menyembunyikannya akan membuat kesalahan manifest baru
+    terlihat seperti "connector tidak ada".
+    """
+    folder = _connectors_dir()
+    items: list[dict] = []
+    if folder.exists():
+        for f in sorted(folder.rglob("*.yaml")):
+            if "_template" in f.parts:
+                continue
+            if source and f.parent.name != source:
+                continue
+            rel = f.relative_to(folder).as_posix()
+            try:
+                cm = _conn_mod()
+                ch = _conn_harness_mod()
+                text = f.read_text(encoding="utf-8")
+                data = cm.parse_manifest(text)
+                errors = cm.validate_manifest(data)
+                entry = cm.compile_manifest(data) if not errors else None
+                r = ch.run_harness(text, data=data)
+                items.append({
+                    "file": rel,
+                    "id": (entry or {}).get("id") or data.get("id"),
+                    "slug": (entry or {}).get("slug") or data.get("slug"),
+                    "display_name": data.get("display_name"),
+                    "category": data.get("category"),
+                    "source_dir": f.parent.name,
+                    "credential_free": bool((entry or {}).get("credential_free")),
+                    "tools_count": (entry or {}).get("tools_count", 0),
+                    "valid": not errors,
+                    "errors": errors,
+                    "harness": {
+                        "passed": r.passed,
+                        "failed": r.failed,
+                        "skipped": r.skipped,
+                        "verdict": r.verdict(),
+                    },
+                })
+            except Exception as exc:  # noqa: BLE001 - laporkan, jangan sembunyikan
+                items.append({"file": rel, "valid": False,
+                              "errors": [f"{type(exc).__name__}: {exc}"]})
+    return {"status": "success", "items": items, "total": len(items)}
+
+
+class ConnectorValidateRequest(BaseModel):
+    yaml_text: str
+    allow_network: bool = False
+
+
+@app.post("/connectors/validate")
+def connectors_validate(req: ConnectorValidateRequest):
+    """Validasi + compile + jalankan 10 hard test pada satu manifest.
+
+    `allow_network=false` (default) membuat test 5/6/10 berstatus `skipped`,
+    dan `skipped` TIDAK dihitung PASS. Jadi verdict "PASS" dari endpoint ini
+    hanya muncul bila pemanggil menyetujui test jaringan.
+    """
+    cm = _conn_mod()
+    ch = _conn_harness_mod()
+    if len(req.yaml_text or "") > 512_000:
+        raise HTTPException(413, "manifest terlalu besar (maks 500 KB)")
+    try:
+        data = cm.parse_manifest(req.yaml_text)
+    except cm.ManifestError as exc:
+        raise _conn_err(exc) from exc
+
+    errors = cm.validate_manifest(data)
+    entry = None
+    if not errors:
+        try:
+            entry = cm.compile_manifest(data)
+        except cm.ManifestError as exc:
+            errors = exc.errors
+
+    r = ch.run_harness(
+        req.yaml_text, data=data,
+        opts=ch.HarnessOptions(allow_network=bool(req.allow_network)),
+    )
+    return {
+        "status": "success",
+        "valid": not errors,
+        "errors": errors,
+        "registry_entry": entry,
+        "harness": r.to_dict(),
+    }
+
+
+@app.post("/connectors/compile")
+def connectors_compile(req: ConnectorValidateRequest):
+    """Compile manifest valid -> entri registry siap digabung.
+
+    Mengembalikan 422 dengan daftar error bila tidak valid — tidak pernah
+    mengembalikan entri setengah jadi.
+    """
+    cm = _conn_mod()
+    try:
+        data = cm.parse_manifest(req.yaml_text)
+        entry = cm.compile_manifest(data)
+    except cm.ManifestError as exc:
+        raise _conn_err(exc) from exc
+    return {"status": "success", "entry": entry,
+            "canonical_key": entry.get("canonical_key"),
+            "manifest_hash": cm.manifest_hash(data)}
+
+
+@app.get("/connectors/coverage")
+def connectors_coverage():
+    """Angka JUJUR: total katalog vs yang benar-benar executable.
+
+    Inilah pembeda antara "2000 connector" yang berarti dan yang tidak.
+    Angka executable berasal dari `mcp_registry.executable_servers()` — sumber
+    yang sama dengan tab Marketplace — ditambah manifest yang baru di-compile.
+    Tidak ada konstanta di sini.
+    """
+    cm = _conn_mod()
+    ch = _conn_harness_mod()
+    out: dict = {"status": "success", "target_executable": 2000}
+
+    try:
+        import mcp_registry as catalog
+        cov = catalog.coverage()
+        out["catalog"] = cov
+        out["executable_existing"] = len(catalog.executable_servers())
+    except Exception as exc:  # noqa: BLE001
+        out["catalog"] = None
+        out["catalog_error"] = f"{type(exc).__name__}: {exc}"
+
+    # Manifest yang lolos 10 test tanpa jaringan (skipped tidak dihitung PASS).
+    manifests_ok = 0
+    manifests_total = 0
+    folder = _connectors_dir()
+    if folder.exists():
+        for f in sorted(folder.rglob("*.yaml")):
+            if "_template" in f.parts:
+                continue
+            manifests_total += 1
+            try:
+                text = f.read_text(encoding="utf-8")
+                data = cm.parse_manifest(text)
+                if cm.validate_manifest(data):
+                    continue
+                r = ch.run_harness(text, data=data)
+                if r.failed == 0:
+                    manifests_ok += 1
+            except Exception:  # noqa: BLE001 - satu file rusak tidak boleh
+                continue      # menggagalkan seluruh laporan
+
+    out["manifests_total"] = manifests_total
+    out["manifests_valid"] = manifests_ok
+    ex = int(out.get("executable_existing") or 0)
+    out["executable_total"] = ex + manifests_ok
+    out["gap_to_target"] = max(0, 2000 - (ex + manifests_ok))
+    out["basis"] = "executable (bukan metadata-only)"
+    return out
+
+
 @app.post("/2fa/policy")
 def two_factor_set_policy(req: TwoFactorPolicyRequest,
                           authorization: str | None = Header(None)):
@@ -6923,6 +7145,7 @@ _FEATURE_MODULES = {
     "36_custom_rbac": "rbac",
     "37_sandbox_isolation": "sandbox_isolation",
     "38_mcp_build_workflow": "mcp_build_workflow",
+    "39_connector_manifest": "connector_manifest",
 }
 
 

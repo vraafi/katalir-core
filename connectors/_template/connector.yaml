@@ -3,15 +3,20 @@
 # TEMPLATE manifest connector Katalir (manifest_version 1).
 #
 # Cara pakai: salin file ini ke connectors/<source>/<slug>.yaml lalu isi.
-# Validasi dengan:
-#   python -c "import connector_manifest as cm; cm.load_manifest('connectors/native/x.yaml')"
+# Validasi:
+#   python -c "import connector_harness as h; print(h.run_harness(open('connectors/native/x.yaml',encoding='utf-8').read()).to_dict())"
 #
 # Kosakata bersifat TERTUTUP — nilai di luar daftar ini ditolak validator.
-# Skema lengkap: `connector_manifest.describe()`.
+# Skema lengkap: connector_manifest.describe(); uji: connector_harness.describe().
 #
 # JANGAN menulis kredensial apa pun di file ini. Manifest di-commit; token
-# di dalamnya adalah kebocoran. `scan_secrets()` memblokir pola yang dikenal,
+# di dalamnya adalah kebocoran. scan_secrets() memblokir pola yang dikenal,
 # tetapi itu jaring pengaman, bukan izin.
+#
+# Catatan YAML: `key: value   # komentar` AMAN. Tetapi `key: value\t# komentar`
+# (dengan tab) akan membuat '# komentar' menjadi bagian nilai — pakai spasi.
+#
+# Contoh connector yang 10/10 PASS: connectors/native/restcountries_lookup.yaml.
 # ---------------------------------------------------------------------------
 
 manifest_version: 1
@@ -24,18 +29,18 @@ slug: example_service_action
 
 display_name: "Example — Nama Manusiawi"
 description: "Satu kalimat: apa yang dilakukan connector ini."
-category: developer-tools          # faset UI /mcp/registry/categories
-source: native                     # native | openconnector | composio | ...
+category: developer-tools
+source: native
 
-# per-user: menyentuh data pelanggan, butuh kredensial milik user.
-# public:   data publik, boleh dijalankan tanpa kredensial user.
+# tenant_scope: per-user (menyentuh data pelanggan, butuh kredensial user)
+#            | public  (data publik, boleh jalan tanpa kredensial user)
 tenant_scope: per-user
 
 deprecated: false
 minimum_supported_release: "1.0.0"
 
 # credential_free: true HANYA bila connector bisa dijalankan tanpa rahasia user.
-# Ini yang mengizinkan status `call_verified` — lihat catatan di bagian verification.
+# Ini yang mengizinkan status call_verified — lihat catatan di bagian verification.
 credential_free: false
 
 auth:
@@ -43,7 +48,7 @@ auth:
   type: bearer
   # Menunjuk ke credential_forms.py — manifest tidak menyimpan rahasia.
   credential_form: example_token
-  connect_url: null                # wajib bila type: oauth2
+  connect_url: null
   scopes: []
 
 actions:
@@ -52,13 +57,16 @@ actions:
     # read | write | delete — dipakai tool_policy_gate untuk mengizinkan/menolak.
     operation_type: read
     method: GET
-    url_base: https://api.example.com
+    # Ganti dengan host nyata. Host contoh (example.com) DAN host loopback
+    # diblokir oleh test keamanan.
+    url_base: https://api.your-service.example
     path: /v1/things/{{ config.thing_id }}
-    # Kosakata komponen Airbyte (lihat docs/connector-architecture-decision.md):
+    # Kosakata komponen Airbyte:
     record_selector:
       type: DpathExtractor
       field_path: ["data"]
     paginator: NoPagination
+    # WAJIB: setiap action butuh error_handler + retry (test 8).
     error_handler:
       type: DefaultErrorHandler
       retry:
@@ -67,31 +75,32 @@ actions:
     verification:
       # listed | callable | call_verified
       # call_verified hanya dipromosikan bila credential_free: true DAN
-      # harness benar-benar memanggil endpoint. Kalau tidak, tetap `callable`.
+      # harness benar-benar memanggil endpoint. Kalau tidak, tetap callable.
       level: callable
 
   - name: create_thing
     description: "Buat satu objek."
     operation_type: write
     method: POST
-    url_base: https://api.example.com
+    url_base: https://api.your-service.example
     path: /v1/things
     request_body_json:
       title: "{{ input.title }}"
       note: "{{ input.note | default('') }}"
+    error_handler:
+      type: DefaultErrorHandler
+      retry:
+        type: ConstantBackoffStrategy
+        max_retries: 2
     verification:
       level: listed
 
 # triggers: OPSIONAL. Hapus seluruh blok bila connector hanya pull.
 triggers:
   - name: thing_created
-    type: webhook                 # webhook | cron | polling
-    signature: hmac_sha256        # wajib untuk webhook
-    header: X-Example-Signature   # wajib untuk webhook
-
-#  - name: hourly_sync
-#    type: cron
-#    schedule: "0 * * * *"       # wajib untuk cron (5 atau 6 field)
+    type: webhook
+    signature: hmac_sha256
+    header: X-Example-Signature
 
 rate_limit:
   # FixedWindowCallRatePolicy | MovingWindowCallRatePolicy | UnlimitedCallRatePolicy
