@@ -128,6 +128,34 @@ async def _lifespan(_app: "FastAPI"):
                 scheduler_manager.scheduler_loop(_sched_stop))
         except Exception as _exc:  # noqa: BLE001 - startup tak boleh gagal karena scheduler
             print(f"[lifespan] scheduler gagal dimulai: {type(_exc).__name__}: {_exc}")
+    # Connector Pulse (FASE 3): loop background yang men-probe konektor
+    # ketika due() (interval 6 jam via state next_run_at). Default OFF
+    # (kill-switch CONNECTOR_PULSE_ENABLED=1) supaya test suite dan dev
+    # lokal tidak memicu probe jaringan besar-besaran saat startup.
+    _pulse_task = None
+    _pulse_stop = asyncio.Event()
+
+    async def _connector_pulse_loop():
+        import connector_pulse as _cp
+        while not _pulse_stop.is_set():
+            try:
+                if _cp.due():
+                    await asyncio.to_thread(_cp.pulse)
+            except Exception as _exc:  # noqa: BLE001 - loop tak boleh mati
+                print(f"[lifespan] connector pulse error: "
+                      f"{type(_exc).__name__}: {_exc}")
+            try:
+                await asyncio.wait_for(_pulse_stop.wait(), timeout=600)
+            except asyncio.TimeoutError:
+                pass
+
+    if os.getenv("CONNECTOR_PULSE_ENABLED", "0").strip() in ("1", "true", "True"):
+        try:
+            _pulse_task = asyncio.create_task(_connector_pulse_loop())
+            print("[lifespan] connector pulse loop aktif (probe saat due())")
+        except Exception as _exc:  # noqa: BLE001 - startup tak boleh gagal
+            print(f"[lifespan] connector pulse gagal dimulai: "
+                  f"{type(_exc).__name__}: {_exc}")
     # MCP Server (Fitur #8): `session_manager.run()` WAJIB hidup selama app
     # melayani request, kalau tidak setiap panggilan JSON-RPC di /mcp/katalir
     # langsung 500 (RuntimeError: Task group is not initialized).
@@ -199,6 +227,13 @@ async def _lifespan(_app: "FastAPI"):
         _sched_task.cancel()
         try:
             await _sched_task
+        except BaseException:  # noqa: BLE001 - CancelledError saat shutdown = wajar
+            pass
+    if _pulse_task is not None:
+        _pulse_stop.set()
+        _pulse_task.cancel()
+        try:
+            await _pulse_task
         except BaseException:  # noqa: BLE001 - CancelledError saat shutdown = wajar
             pass
 

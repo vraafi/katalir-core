@@ -51,6 +51,7 @@ const ORDER: ConnectorVerdict[] = ["ALIVE", "AUTH", "DEAD", "UNKNOWN"];
 
 export function ConnectorHealthDashboard() {
   const [selected, setSelected] = useState<ConnectorVerdict>("ALIVE");
+  const [query, setQuery] = useState("");
 
   const summary = useQuery({
     queryKey: connectorHealthKeys.summary(),
@@ -90,6 +91,9 @@ export function ConnectorHealthDashboard() {
 
   const { health, catalog } = summary.data;
   const pct = (n: number) => (health.total ? Math.round((n / health.total) * 100) : 0);
+  const filtered = (list.data?.connectors ?? []).filter(
+    (c) => !query || c.connector_id.toLowerCase().includes(query.toLowerCase()),
+  );
 
   return (
     <div className="space-y-6">
@@ -172,15 +176,25 @@ export function ConnectorHealthDashboard() {
 
       {/* Daftar per verdict */}
       <div className="rounded-lg border border-border bg-surface p-5">
-        <div className="mb-3 flex items-center justify-between">
+        <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
           <h3 className="text-sm font-semibold text-fg">
             {VERDICT_META[selected].label} — {VERDICT_META[selected].hint}
           </h3>
-          {list.data ? (
-            <span className="text-xs text-fg-muted">
-              menampilkan {list.data.connectors.length} dari {list.data.count}
-            </span>
-          ) : null}
+          <div className="flex items-center gap-3">
+            <input
+              type="search"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="Cari connector…"
+              className="h-8 w-44 rounded border border-border bg-bg-subtle px-2 text-xs text-fg placeholder:text-fg-muted focus:outline-none focus:ring-1 focus:ring-accent"
+              aria-label="Cari connector"
+            />
+            {list.data ? (
+              <span className="text-xs text-fg-muted">
+                menampilkan {filtered.length} dari {list.data.count}
+              </span>
+            ) : null}
+          </div>
         </div>
 
         {list.isLoading ? (
@@ -200,11 +214,12 @@ export function ConnectorHealthDashboard() {
                   <th className="py-2 pr-3 font-medium">HTTP</th>
                   <th className="py-2 pr-3 font-medium">Tools</th>
                   <th className="py-2 pr-3 font-medium">Latensi</th>
+                  <th className="py-2 pr-3 font-medium">Dicek</th>
                   <th className="py-2 font-medium">Catatan</th>
                 </tr>
               </thead>
               <tbody>
-                {list.data?.connectors.map((c) => (
+                {filtered.map((c) => (
                   <tr key={c.connector_id} className="border-b border-border/50">
                     <td className="py-2 pr-3 font-mono text-xs text-fg">
                       {c.connector_id}
@@ -217,6 +232,14 @@ export function ConnectorHealthDashboard() {
                     </td>
                     <td className="py-2 pr-3 text-fg-muted">
                       {c.latency_ms != null ? `${c.latency_ms} ms` : "—"}
+                    </td>
+                    <td className="py-2 pr-3 text-xs text-fg-muted">
+                      {c.checked_at
+                        ? new Date(c.checked_at).toLocaleString("id-ID", {
+                            dateStyle: "short",
+                            timeStyle: "short",
+                          })
+                        : "—"}
                     </td>
                     <td className="py-2 text-xs text-fg-muted">
                       {c.error ? c.error.slice(0, 60) : "ok"}
