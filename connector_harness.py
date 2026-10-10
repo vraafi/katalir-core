@@ -180,12 +180,24 @@ def _is_doc_host(host: str) -> bool:
     return any(host == d or host.endswith("." + d) for d in _DOC_HOSTS)
 
 
+# Cache verdict SSRF per-host. `_t9_security` memanggil `host_blocked()` untuk
+# SETIAP endpoint di SETIAP manifest; tanpa cache, `/connectors/coverage`
+# menjalankan ~11.500 `getaddrinfo` (288 manifest x ~40 host) dan butuh ~84 s.
+# Hanya verdict yang berhasil di-resolve yang di-cache — kegagalan DNS bersifat
+# transien dan tetap fail-closed tanpa mencemari cache.
+_DNS_CACHE: dict[str, tuple[float, bool]] = {}
+_DNS_TTL_S = 300.0
+
+
 def host_blocked(host: str) -> bool:
     """True bila host menunjuk jaringan internal/meta (SSRF).
 
     Menyalin semantik `tools._host_blocked()` dengan sengaja: resolusi DNS
     dilakukan dan SETIAP alamat diperiksa, karena nama domain yang sah dapat
     di-*resolve* ke 127.0.0.1 (DNS rebinding). Tidak dapat dipastikan = tolak.
+
+    Verdict yang berhasil di-resolve di-memo 5 menit (`_DNS_CACHE`) supaya
+    pemanggilan berulang pada host yang sama tidak mengulang `getaddrinfo`.
     """
     h = (host or "").strip().strip("[]").lower()
     if not h:
@@ -198,19 +210,27 @@ def host_blocked(host: str) -> bool:
     try:
         ip = ipaddress.ip_address(h)
     except ValueError:
+        now = time.time()
+        hit = _DNS_CACHE.get(h)
+        if hit is not None and (now - hit[0]) < _DNS_TTL_S:
+            return hit[1]
         try:
             infos = socket.getaddrinfo(h, None)
         except Exception:  # noqa: BLE001 - tidak dapat dipastikan -> tolak
             return True
+        blocked = False
         for info in infos:
             addr = info[4][0]
             try:
                 ip = ipaddress.ip_address(addr)
             except ValueError:
-                return True
+                blocked = True
+                break
             if ip.is_private or ip.is_loopback or ip.is_link_local or ip.is_reserved:
-                return True
-        return False
+                blocked = True
+                break
+        _DNS_CACHE[h] = (now, blocked)
+        return blocked
     return ip.is_private or ip.is_loopback or ip.is_link_local or ip.is_reserved
 
 

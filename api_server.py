@@ -156,6 +156,12 @@ async def _lifespan(_app: "FastAPI"):
         except Exception as _exc:  # noqa: BLE001 - startup tak boleh gagal
             print(f"[lifespan] connector pulse gagal dimulai: "
                   f"{type(_exc).__name__}: {_exc}")
+    # Coverage cache (Fitur connector): hitung sekali di latar belakang supaya
+    # permintaan pertama ke `/connectors/coverage` tidak menahan ~18 s.
+    try:
+        _warm_coverage_cache()
+    except Exception as _exc:  # noqa: BLE001 - startup tak boleh gagal
+        print(f"[lifespan] warm coverage gagal: {type(_exc).__name__}: {_exc}")
     # MCP Server (Fitur #8): `session_manager.run()` WAJIB hidup selama app
     # melayani request, kalau tidak setiap panggilan JSON-RPC di /mcp/katalir
     # langsung 500 (RuntimeError: Task group is not initialized).
@@ -6650,15 +6656,17 @@ def connectors_compile(req: ConnectorValidateRequest):
             "manifest_hash": cm.manifest_hash(data)}
 
 
-@app.get("/connectors/coverage")
-def connectors_coverage():
-    """Angka JUJUR: total katalog vs yang benar-benar executable.
+# Cache hasil scan manifest untuk `/connectors/coverage`. Loop ini membaca dan
+# menjalankan harness pada ~288 manifest (YAML parse + SSRF guard) sehingga
+# butuh ~18 s bahkan setelah verdict DNS di-memo. Tanpa cache, setiap
+# permintaan HTTP menahan worker selama itu. TTL 10 menit: angka coverage
+# berubah hanya saat manifest baru di-compile.
+_COVERAGE_CACHE: dict = {"t": 0.0, "data": None}
+_COVERAGE_TTL_S = 600.0
+_COVERAGE_LOCK = threading.Lock()
 
-    Inilah pembeda antara "2000 connector" yang berarti dan yang tidak.
-    Angka executable berasal dari `mcp_registry.executable_servers()` — sumber
-    yang sama dengan tab Marketplace — ditambah manifest yang baru di-compile.
-    Tidak ada konstanta di sini.
-    """
+
+def _compute_connectors_coverage() -> dict:
     cm = _conn_mod()
     ch = _conn_harness_mod()
     out: dict = {"status": "success", "target_executable": 2000}
@@ -6699,6 +6707,62 @@ def connectors_coverage():
     out["gap_to_target"] = max(0, 2000 - (ex + manifests_ok))
     out["basis"] = "executable (bukan metadata-only)"
     return out
+
+
+@app.get("/connectors/coverage")
+def connectors_coverage():
+    """Angka JUJUR: total katalog vs yang benar-benar executable.
+
+    Inilah pembeda antara "2000 connector" yang berarti dan yang tidak.
+    Angka executable berasal dari `mcp_registry.executable_servers()` — sumber
+    yang sama dengan tab Marketplace — ditambah manifest yang baru di-compile.
+    Tidak ada konstanta di sini.
+
+    Hasil di-cache 10 menit (`_COVERAGE_CACHE`); `?refresh=1` memaksa hitung
+    ulang. Cache diisi lebih awal oleh `_warm_coverage_cache()` saat startup.
+    """
+    now = time.time()
+    cached = _COVERAGE_CACHE.get("data")
+    if cached is not None and (now - float(_COVERAGE_CACHE.get("t") or 0.0)) < _COVERAGE_TTL_S:
+        out = dict(cached)
+        out["cached"] = True
+        out["cache_age_s"] = round(now - float(_COVERAGE_CACHE.get("t") or 0.0), 1)
+        return out
+    with _COVERAGE_LOCK:
+        now = time.time()
+        cached = _COVERAGE_CACHE.get("data")
+        if cached is not None and (now - float(_COVERAGE_CACHE.get("t") or 0.0)) < _COVERAGE_TTL_S:
+            out = dict(cached)
+            out["cached"] = True
+            out["cache_age_s"] = round(now - float(_COVERAGE_CACHE.get("t") or 0.0), 1)
+            return out
+        out = _compute_connectors_coverage()
+        _COVERAGE_CACHE["data"] = out
+        _COVERAGE_CACHE["t"] = time.time()
+    out = dict(out)
+    out["cached"] = False
+    return out
+
+
+def _warm_coverage_cache() -> None:
+    """Isi cache coverage di thread terpisah saat startup (best-effort).
+
+    Tanpa ini, permintaan pertama setelah setiap restart menahan ~18 s.
+    Kegagalan apa pun diabaikan — endpoint tetap menghitung sendiri.
+    """
+    def _run() -> None:
+        try:
+            with _COVERAGE_LOCK:
+                if _COVERAGE_CACHE.get("data") is None:
+                    _COVERAGE_CACHE["data"] = _compute_connectors_coverage()
+                    _COVERAGE_CACHE["t"] = time.time()
+        except Exception as exc:  # noqa: BLE001
+            print(f"[coverage] warm cache gagal: {type(exc).__name__}: {exc}")
+
+    try:
+        threading.Thread(target=_run, name="coverage-warm", daemon=True).start()
+    except Exception:  # noqa: BLE001
+        pass
 
 
 # ---------------------------------------------------------------------------

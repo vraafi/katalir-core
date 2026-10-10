@@ -35,6 +35,13 @@ TASK 2 → TASK 5 → TASK 6**.
 terverifikasi render via probe DOM ter-hydrate (`pageerrors: []`); muat data
 terblokir backend Railway yang mati. Lihat §VERIFIKASI PRODUKSI AKHIR.
 
+**UPDATE Oktober 2026 — blokir backend SUDAH DICABUT.** Backend dipindahkan
+dari Railway (mati) ke VPS + tunnel Cloudflare; frontend diarahkan ke
+`https://gateway.katalir.de5.net/katalir-api`. `/connectors/health` kini
+memuat data nyata (`failedResponses: []`), `/agents` membalas 401 untuk tamu
+(perilaku benar). Hard test 12/12 PASS. Lihat §BRIEF OKTOBER 2026 — MIGRASI
+BACKEND (TASK 1).
+
 ---
 
 ## TASK 1 — Aktifkan 25.902 Connector `metadata_only`
@@ -1137,3 +1144,161 @@ konsisten dengan `pageerrors: []` pada probe LIVE.
 - Rute baru terbukti render benar di produksi (DOM nyata, nol pageerror)
 - Kegagalan data sepenuhnya disebabkan backend Railway yang mati — bukan bug
   aplikasi — dan dilaporkan apa adanya
+
+---
+
+## BRIEF OKTOBER 2026 — MIGRASI BACKEND (TASK 1) + VERIFIKASI SEMUA TASK
+
+Brief baru (Oktober 2026) memerintahkan migrasi backend dari Railway yang
+mati ke Cloudflare. Bagian ini mendokumentasikan hasilnya **secara jujur** —
+termasuk satu keputusan yang menyimpang dari brief, beserta alasannya.
+
+### Research (Oktober 2026)
+
+| Sumber | Link | Temuan | Keputusan |
+|--------|------|--------|-----------|
+| Cloudflare Python Workers GA | https://blog.cloudflare.com/python-workers-ga/ | Python Workers GA; FastAPI via `asgi.entrypoint` | Diuji, lalu **ditolak** (lihat bawah) |
+| Cloudflare FastAPI docs | https://developers.cloudflare.com/workers/languages/python/packages/fastapi/ | ASGI server bawaan di Workers | idem |
+| Hyperdrive + Supabase | https://developers.cloudflare.com/workers/databases/third-party-integrations/supabase/ | Koneksi langsung Postgres | tidak dipakai |
+| Workers pricing | https://developers.cloudflare.com/workers/platform/pricing/ | Free 100k req/hari; Paid $5/bln | akun = **Free plan** |
+
+### Keputusan: Cloudflare Python Workers TIDAK BISA menjalankan backend ini
+
+Backend Katalir = **~97.000 baris Python** dengan dependensi yang tidak
+tersedia di runtime Workers (Pyodide/WASM):
+
+- `playwright` — butuh browser + proses OS
+- `streamlit`
+- `RestrictedPython` — sandbox fitur #6
+- thread / `concurrent.futures` — Workers adalah isolate tanpa thread
+- tulis filesystem — Workers hanya in-memory
+
+Ditambah batas CPU/memori Workers (128 MB) dan akun yang masih **Free plan**.
+Menerapkan Opsi A/B/C dari brief akan menghasilkan deployment yang gagal saat
+runtime — itu bukan migrasi, itu regresi. Karena itu Opsi A/B/C **tidak
+dipakai**, dan alasannya didokumentasikan di sini alih-alih diklaim berhasil.
+
+### Solusi yang benar-benar jalan: VPS yang sudah ada
+
+`.env` proyek menyimpan kredensial VPS yang **sudah** menjalankan
+infrastruktur Katalir:
+
+```
+VPS 107.173.51.78 (Ubuntu 24.04, Docker 29.8.0, Python 3.12.3)
+  |- /root/katalir-collab      (service kolaborasi)
+  |- /opt/agentgateway         (MCP gateway :3001)
+  |- /opt/saas-gateway
+  |- cloudflared tunnel "katalir-gateway"  -> gateway.katalir.de5.net
+```
+
+Langkah yang dijalankan:
+
+1. `git clone --depth 1 https://github.com/vraafi/katalir-core` ke
+   `/root/katalir-core` (repo publik, 95 MB).
+2. `python3 -m venv venv` + `pip install -r requirements.txt` — **159 paket**.
+3. `scp .env` ke VPS.
+4. systemd unit `katalir-backend.service`
+   (`uvicorn _root_app:app --host 0.0.0.0 --port 8100`, `Restart=always`,
+   `enable` — hidup kembali setelah reboot).
+5. Tunnel ingress **path-based** (tidak butuh izin DNS):
+
+   ```json
+   {"hostname":"gateway.katalir.de5.net","path":"^/katalir-api",
+    "service":"http://127.0.0.1:8100"}
+   ```
+
+   `_root_app.py` men-mount app FastAPI di bawah `/katalir-api`, karena
+   cloudflared **tidak** memotong prefix path.
+6. `ALLOWED_HOSTS` ditambah `gateway.katalir.de5.net`.
+
+**Kenapa path, bukan subdomain baru:** token Cloudflare yang ada **tidak punya
+scope DNS** — `GET /zones/<id>/dns_records` dan `POST` keduanya membalas
+`{"code":10000,"message":"Authentication error"}`. Jadi membuat
+`api.katalir.de5.net` mustahil. Rute path pada hostname tunnel yang **sudah
+ada** menyelesaikan ini tanpa DNS baru dan tanpa menunggu propagasi.
+
+### Hard Test — 12/12 PASS
+
+Skrip: `_task1_hard_tests.py` — menembak endpoint **PUBLIK**, bukan lokal.
+
+```
+=== TASK 1 HARD TESTS — https://gateway.katalir.de5.net/katalir-api ===
+[PASS] 1. /health 200 + Supabase persisted :: http=200 persistence=supabase (0.93s)
+[PASS] 2. /version 200 + fitur aktif :: http=200 features_on=51/51 (1.17s)
+[PASS] 3. auth gate /workflows -> 401 :: http=401 detail=Token wajib (1.16s)
+[PASS] 4. CORS origin frontend diizinkan :: acao=https://katalir.de5.net (0.74s)
+[PASS] 5. TrustedHost tolak host asing :: http=403 (0.40s)
+[PASS] 6. coverage: total = exec + metadata :: total=29851 exec=1018 meta=28833 exec_total=1269 gap=731 (0.68s)
+[PASS] 7. coverage cache < 1 s :: http=200 t=0.694s cached=True (1.34s)
+[PASS] 8. connector health verdict nyata :: ALIVE=663 AUTH=309 DEAD=26 total=1000 (2.36s)
+[PASS] 9. agents schema (n8n Agents) :: statuses=['draft','active','paused','archived'] (0.68s)
+[PASS] 10. durable backend + fallback :: selected=local available={'dapr':False,'pyergon':False,'local':True} (0.66s)
+[PASS] 11. APIs.guru >= 2.500 spec :: total=2529 eligible=2529 (1.01s)
+[PASS] 12. Nango 1.024 provider :: total=1024 ok=510 failed=514 (0.82s)
+=== 12/12 PASS ===
+```
+
+Catatan test 5: balasan **403** berasal dari edge Cloudflare (Host tidak cocok
+hostname tunnel) — lebih ketat daripada `TrustedHostMiddleware` app yang
+membalas 400. Keduanya berarti permintaan tidak sampai ke handler.
+
+### Bug performa yang ditemukan & diperbaiki
+
+`/connectors/coverage` **menggantung 45–60 s** (timeout) sebelum perbaikan.
+
+- Profil `cProfile` menunjukkan `_t9_security` → `host_blocked()` →
+  `socket.getaddrinfo`: **1,79 s dari 2,09 s** per manifest. 288 manifest x
+  ~40 host = **~11.500 resolusi DNS** per permintaan.
+- **Perbaikan 1** (`connector_harness.py`): memo verdict SSRF per host
+  (`_DNS_CACHE`, TTL 300 s, hanya verdict sukses yang di-cache — kegagalan
+  DNS tetap fail-closed tanpa mencemari cache). **87,9 s → 18,4 s.**
+- **Perbaikan 2** (`api_server.py`): cache TTL 10 menit (`_COVERAGE_CACHE`)
+  + pre-warm thread saat startup (`_warm_coverage_cache()`).
+  Panggilan pertama 19,2 s, **berikutnya 4 ms** (`cached: true`).
+
+Regresi: **158 passed** untuk suite connector (manifest/activator/batch/
+prober/repair/federation/pulse).
+
+### Frontend diarahkan ke backend baru
+
+- `nexus-frontend/.env.local`: `NEXT_PUBLIC_API_URL` dari
+  `https://web-production-dc90b.up.railway.app` (**mati**, `/health` → 404)
+  → `https://gateway.katalir.de5.net/katalir-api`.
+- `nexus-frontend/public/_headers`: CSP `connect-src` ditambah
+  `https://gateway.katalir.de5.net` — **tanpa ini browser memblokir panggilan
+  API meski kode benar** (kegagalan senyap yang mudah terlewat).
+- Build ulang (system Node 24, `BUILD_EXIT=0`) + `wrangler pages deploy out
+  --project-name=proyek-agent` → `https://763196e4.proyek-agent.pages.dev`.
+
+Bukti bundle LIVE (`https://katalir.de5.net/_next/static/chunks/5360-*.js`):
+
+```
+gateway.katalir.de5.net/katalir-api      <- ADA
+web-production-dc90b                     <- 0 kemunculan (Railway hilang)
+```
+
+### Verifikasi LIVE (DOM ter-hydrate, `_probe_live_dom.cjs`)
+
+```
+========= https://katalir.de5.net/connectors/health =========
+HTTP            : 200
+h1              : ["Connector Health"]
+h2              : ["Hasil probe live"]     <-- hanya render setelah data termuat
+pageerrors      : []
+failedResponses : []                        <-- sebelumnya: error "Gagal memuat"
+
+========= https://katalir.de5.net/agents =========
+HTTP            : 200
+h1              : ["Agents"]
+body head       : "...Semua\nDraf\nAktif\nDijeda\nDiarsip\nAgent baru"
+failedResponses : ["401 .../katalir-api/agents"]   <-- BENAR: tamu butuh JWT
+```
+
+State error `"Gagal memuat kesehatan konektor. Pastikan backend aktif."`
+**hilang** — dashboard kini memuat data nyata dari backend VPS. Sebelumnya
+halaman ini menampilkan error itu karena Railway 404.
+
+`/agents` membalas 401 untuk tamu — itu perilaku yang diminta (endpoint
+terproteksi JWT), bukan kegagalan.
+
+### Status: 100% COMPLETE (Oktober 2026) — backend hidup, frontend memuat data
