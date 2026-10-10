@@ -20,6 +20,7 @@ terpasang, supaya tidak ada jalur koneksi kedua yang perlu dirawat.
 from __future__ import annotations
 
 import json
+import os
 from pathlib import Path
 from typing import Any, Iterable
 
@@ -27,6 +28,22 @@ TABLE_ACTIVATION = "connector_activation"
 TABLE_HEALTH = "connector_health"
 
 VERDICTS = ("ALIVE", "AUTH", "DEAD", "UNKNOWN")
+
+_ON = ("1", "true", "True", "yes")
+_OFF = ("0", "false", "False", "no")
+
+
+def db_enabled() -> bool:
+    """True bila DB boleh dipakai. Kill-switch untuk isolasi test.
+
+    `mcp_registry._activated_ids()` memprioritaskan DB, sehingga menyetel
+    `ACTIVATION_PATH` saja **tidak cukup** untuk mengisolasi satu test: id
+    produksi tetap terbaca dan `added` selalu 0. Set
+    `CONNECTOR_STORE_DISABLED=1` supaya jalur DB dimatikan dan berkas lokal
+    menjadi sumber tunggal (dipakai fixture autouse di `tests/conftest.py`,
+    sehingga tes tidak pernah menulis ke DB produksi).
+    """
+    return os.getenv("CONNECTOR_STORE_DISABLED", "").strip() not in _ON
 
 _LOCAL_PATH = Path(__file__).with_name("connector_activation.json")
 
@@ -47,6 +64,8 @@ def _db():
 
 def available() -> bool:
     """True bila Supabase terkonfigurasi (bukan berarti tabel sudah ada)."""
+    if not db_enabled():
+        return False
     try:
         return bool(_db().is_configured())
     except Exception:  # noqa: BLE001

@@ -86,3 +86,36 @@ def _reset_rate_limiter():
     except Exception:  # noqa: BLE001 - rate_limit opsional di beberapa tes
         pass
     yield
+
+
+@pytest.fixture(autouse=True)
+def _isolate_connector_store():
+    """Matikan jalur DB connector selama tes (isolasi WAJIB).
+
+    Kenapa perlu: `mcp_registry._activated_ids()` memprioritaskan Supabase.
+    Menyetel `catalog.ACTIVATION_PATH` saja TIDAK mengisolasi tes — id
+    produksi (995 baris) tetap terbaca, sehingga `report['persisted']['added']`
+    selalu 0 dan `_CACHE` bersama ikut tercemar antar-tes. Bahkan lebih buruk:
+    menulis ke DB produksi dari dalam tes.
+
+    Fixture ini mematikan `connector_store.available()` (lewat env kill-switch
+    `CONNECTOR_STORE_DISABLED=1`) dan mereset cache `_ACTIVATED_IDS`, sehingga
+    berkas lokal (yang di-monkeypatch tiap tes) menjadi sumber tunggal.
+    """
+    prev = os.environ.get("CONNECTOR_STORE_DISABLED")
+    os.environ["CONNECTOR_STORE_DISABLED"] = "1"
+    try:
+        import mcp_registry as catalog
+        catalog._ACTIVATED_IDS = None
+    except Exception:  # noqa: BLE001 - katalog opsional di beberapa tes
+        pass
+    yield
+    if prev is None:
+        os.environ.pop("CONNECTOR_STORE_DISABLED", None)
+    else:
+        os.environ["CONNECTOR_STORE_DISABLED"] = prev
+    try:
+        import mcp_registry as catalog
+        catalog._ACTIVATED_IDS = None
+    except Exception:  # noqa: BLE001
+        pass
