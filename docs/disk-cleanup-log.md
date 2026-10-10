@@ -83,3 +83,29 @@ Catatan penting: karena tool cache kini di `D:`, `C:` tidak lagi terisi
 14 GB tiap kali instalasi. Yang masih menulis ke `C:` adalah build trash
 (`%TEMP%\katalir_build_trash`) — pantau berkala; bisa direlokasi lagi bila
 tumbuh >2 GB.
+
+### Penyelesaian sisa (putaran lanjutan)
+| Item | Status | Bukti |
+|---|---|---|
+| `AppData\Local\npm-cache` (shell sisa 1 B) | **dihapus** | direktori tidak ada lagi |
+| `%TEMP%\katalir_build_trash` (shell sisa 1 B) | **dihapus** | direktori tidak ada lagi |
+| `nexus-frontend\.next.old3-*` (stale, sumber EPERM) | **dihapus** | `ls .next.old*` → not found |
+| `Bebas C:` | 0 MB → **2,5–2,6 GB** | `df -h /c` |
+| `Bebas D:` | 429 GB → 408 GB | `df -h /d` (13,5 GB cache) |
+
+### Verifikasi build (setelah cleanup)
+- `next build` standalone: **BUILD_EXIT=0** (dua kali berturut-turut),
+  `out/connectors/health.html` = 14.213 B.
+- Sebelum perbaikan `.next.old*`, build di dalam harness Playwright gagal
+  dengan `EPERM: operation not permitted, open 'out\404.html'` — ternyata
+  sisa direktori `.next.old3-*` yang tidak bisa dipindah ke trash saat
+  disk penuh. Setelah dihapus, pemblokir ini hilang.
+- Direktori `.next` terverifikasi **gitignored** (`/.next/` di `.gitignore`)
+  sehingga tidak pernah masuk repo.
+
+### Akar masalah `ENOSPC` (ringkas)
+1. Setiap `next build` memindahkan `.next` lama ke `%TEMP%\katalir_build_trash`
+   (akumulasi 7,6 GB) — bukan dibersihkan otomatis.
+2. Cache dev 14,1 GB seluruhnya di `C:`.
+Total ~21,7 GB habis; setelah relokasi + sisa dibersihkan, `C:` kembali
+punya ruang kerja (2,5 GB) tanpa menyentuh `node_modules`, `out/`, `.git`.
