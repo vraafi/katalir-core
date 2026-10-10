@@ -31,6 +31,10 @@ TASK 2 → TASK 5 → TASK 6**.
 | 5 | Fitur #1 n8n Agents first-class entity | `agents.py` + `/agents` UI | 13/13 + 22 E2E | `b90522b` | ✅ |
 | 6 | Fitur #9 Dapr durable execution | `dapr_durable.py` | 19/19 + 19 E2E | _(lihat §TASK 6)_ | ✅ |
 
+**Verifikasi produksi akhir** (`/connectors/health`, `/agents`, LIVE): UI
+terverifikasi render via probe DOM ter-hydrate (`pageerrors: []`); muat data
+terblokir backend Railway yang mati. Lihat §VERIFIKASI PRODUKSI AKHIR.
+
 ---
 
 ## TASK 1 — Aktifkan 25.902 Connector `metadata_only`
@@ -1019,3 +1023,117 @@ Kontrak pemulihan yang diterapkan:
   diverifikasi di Supabase produksi)
 - Pulih lintas-proses **terbukti dengan proses OS terpisah**
 - 19/19 unit + 19/19 E2E + 169 regresi PASS · 6 bug nyata diperbaiki
+
+---
+
+## VERIFIKASI PRODUKSI AKHIR — `/connectors/health` & `/agents` LIVE
+
+Ditambahkan setelah TASK 6, untuk menutup satu-satunya pertanyaan yang masih
+menggantung pasca-deploy: **apakah rute baru benar-benar merender isinya di
+produksi, atau hanya cangkang `notFound`?**
+
+### 1. Metodologi — kenapa grep HTML TIDAK sah
+
+Pemeriksaan sebelumnya menyimpulkan "gagal" dari fakta bahwa
+`out/connectors/health.html` memuat kata `notFound` **3×**. Kesimpulan itu
+**salah**, dan penyebabnya ditemukan dari struktur berkas:
+
+```
+"notFound\":[[[\"$\",\"title\",null,{\"children\":\"404: This page could not be found.\"}]
+"notFound\":\"$undefined\"   (×2, pada segmen router)
+```
+
+Ketiga kemunculan itu adalah **nama kunci di RSC flight payload** — bentuk
+standar Next.js App Router yang selalu menyertakan komponen 404 sebagai
+*error boundary* di setiap segmen. `notFound: "$undefined"` justru berarti
+**tidak ada** notFound yang aktif. Grep substring pada HTML statis karena itu
+tidak dapat membedakan "halaman 404" dari "halaman sehat".
+
+Verifikasi yang sah untuk halaman `"use client"` adalah **DOM setelah
+hydration**. Probe HTML juga mengonfirmasi mengapa: elemen `<body>` mentah
+hanya berisi `Katalir — SaaS AI` (14201 byte berkas, isi DOM ~1 baris) —
+seluruh konten dashboard baru muncul setelah JS hydrate
+(`ConnectorHealthDashboard` = `"use client"`).
+
+### 2. Probe DOM LIVE (tanpa webServer harness)
+
+Skrip: `nexus-frontend/_probe_live_dom.cjs` (Playwright, `chromium.launch()`
+langsung, tanpa `webServer` — supaya tidak rebuild dan mengukur produksi
+sungguhan). Perintah:
+
+```bash
+PLAYWRIGHT_BROWSERS_PATH="D:/caches/playwright" node _probe_live_dom.cjs
+```
+
+### 3. Bukti mentah
+
+```
+========= https://katalir.de5.net/connectors/health =========
+HTTP            : 200
+title           : Katalir — SaaS AI
+h1              : ["Connector Health"]
+body length     : 185
+body head       : "Skip to content\nKatalir\nBack\nConnector Health\n\n
+                   Status nyata konektor dari probe live — ALIVE berarti
+                   benar-benar mengirim data.\n\n
+                   Gagal memuat kesehatan konektor. Pastikan backend aktif."
+needles         : {"Connector Health":true,"Status nyata konektor":true}
+pageerrors      : []
+failedResponses : []
+
+========= https://katalir.de5.net/agents =========
+HTTP            : 200
+title           : Katalir — SaaS AI
+h1              : ["Agents"]
+body length     : 195
+body head       : "Skip to content\nKatalir\nBack\nAgents\n\n
+                   Kelola AI Agent sebagai entitas tersendiri — siklus hidup,
+                   kanal, dan eksposur MCP.\n\n
+                   Semua\nDraf\nAktif\nDijeda\nDiarsip\nAgent baru\n
+                   Gagal memuat agent. Coba lagi."
+needles         : {"Agent":true}
+pageerrors      : []
+failedResponses : []
+
+========= https://katalir.de5.net/ =========
+HTTP            : 200
+h1              : ["Turn a sentence into a working automation."]
+body length     : 2547
+pageerrors      : []
+failedResponses : []
+```
+
+Artefak: `_probe_live_dom.json` (tersimpan juga di `D:/caches/`).
+
+### 4. Kesimpulan (jujur, dua sisi)
+
+**BERHASIL — halaman render, bukan 404:**
+- `/connectors/health` → `h1 = "Connector Health"`, subtitle lengkap,
+  `pageerrors: []`, `failedResponses: []`. **Bukan** halaman 404.
+  Kesimpulan "notFound" sebelumnya **dicabut** — itu artefak metode.
+- `/agents` → `h1 = "Agents"`, deskripsi + kelima tab filter
+  (Semua/Draf/Aktif/Dijeda/Diarsip) + tombol "Agent baru" ter-render.
+- `/` → 2547 byte DOM nyata (landing normal).
+
+**BELUM BERHASIL — data tidak termuat di produksi:**
+- Kedua halaman menampilkan state error yang jujur:
+  `"Gagal memuat kesehatan konektor. Pastikan backend aktif."` dan
+  `"Gagal memuat agent. Coba lagi."`
+- Akar masalah = **Railway backend 404 "Application not found"** (trial
+  kedaluwarsa; `serviceInstanceDeployV2` ditolak *"Your trial has expired.
+  Please select a plan"*). Ini **hard stop kondisi #2** — butuh aksi manusia.
+- Artinya UI, routing, static export, dan hydration **terbukti benar**;
+  yang tersisa murni ketersediaan backend, bukan cacat kode.
+
+### 5. Regresi
+
+Suite `tests/routes-no-crash.spec.ts` (9 rute, `pageerror` harus nol) tetap
+PASS untuk `/connectors/health` di kedua proyek (`guest` + `logged-in`) —
+konsisten dengan `pageerrors: []` pada probe LIVE.
+
+### Status: UI TERVERIFIKASI ✅ · DATA BLOKIR BACKEND ⛔ (butuh manusia)
+
+- Metode verifikasi sebelumnya (grep `notFound`) **keliru** dan sudah dikoreksi
+- Rute baru terbukti render benar di produksi (DOM nyata, nol pageerror)
+- Kegagalan data sepenuhnya disebabkan backend Railway yang mati — bukan bug
+  aplikasi — dan dilaporkan apa adanya
