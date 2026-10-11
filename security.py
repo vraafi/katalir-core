@@ -39,6 +39,8 @@ import jwt
 from fastapi import HTTPException
 from jwt.algorithms import ECAlgorithm, RSAAlgorithm
 
+import token_guard
+
 from dotenv_loader import load_repo_env
 load_repo_env()
 
@@ -344,8 +346,37 @@ def _decode_local(token):
     # proyek HS256 lama selalu gagal verifikasi lokal (lalu 401 saat jaringan mati).
     audit = {"audience": _AUDIENCE} if "aud" in claims else {"options": {"verify_aud": False}}
     if alg == "HS256":
-        return jwt.decode(token, key, algorithms=["HS256"], **audit)
-    return jwt.decode(token, key, algorithms=algs, **audit)
+        verified = jwt.decode(token, key, algorithms=["HS256"], **audit)
+    else:
+        verified = jwt.decode(token, key, algorithms=algs, **audit)
+    return _guard_claims(verified)
+
+
+def _guard_claims(claims):
+    """Validasi payload (TASK 5, 2026-10-11) SETELAH signature dinyatakan sah.
+
+    Memisahkan "signature sah" dari "payload masuk akal": tolak payload gemuk
+    (>10 KB), ``sub`` berisi karakter kontrol, ``role`` di luar whitelist,
+    ``nbf`` di masa depan, klaim terlarang (``__proto__`` dsb), dan ``exp``
+    yang hilang. Kebijakan proyek: ``aud`` boleh absen (token Supabase lama),
+    sehingga ``require_aud=False`` - signature tetap wajib sah.
+
+    Kegagalan dipetakan ke ``jwt.InvalidTokenError`` supaya jalur pemanggil
+    yang sudah ada memperlakukannya sebagai token TIDAK SAH (401 final),
+    bukan gangguan infra (503).
+    """
+    try:
+        token_guard.validate_claims(
+            claims,
+            require_aud=False,
+            require_exp=True,
+            require_sub=False,
+            expected_aud=None,
+            expected_iss=None,
+        )
+    except token_guard.TokenGuardError as exc:
+        raise jwt.InvalidTokenError(f"token_guard[{exc.code}]: {exc}") from exc
+    return claims
 
 
 def get_current_user(authorization: str | None = None):

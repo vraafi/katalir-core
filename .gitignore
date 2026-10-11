@@ -132,3 +132,6 @@ _rdap_results.json
 # Skill repo pihak ketiga (dikloning lokal via git clone, reproducible).
 # Repo + revisi dicatat di docs/n8n-alignment-log.md.
 skills/
+
+# MCP 2.x probe (isolated install, besar, tidak di-deploy)
+_mcp2_probe/

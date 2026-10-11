@@ -63,13 +63,27 @@ def is_secret_ref(value: Any) -> bool:
     return isinstance(value, str) and value.lower().startswith("secret://")
 
 
+def is_extends_ref(value: Any) -> bool:
+    """True bila `value` adalah referensi `extends://` (pewarisan kredensial)."""
+    return isinstance(value, str) and value.lower().startswith("extends://")
+
+
+def is_credential_ref(value: Any) -> bool:
+    """True bila `value` adalah referensi kredensial (secret:// ATAU extends://)."""
+    return is_secret_ref(value) or is_extends_ref(value)
+
+
 def resolve_secret(ref: str, user_email: str) -> str:
-    """`secret://provider/field` -> nilai asli dari vault.
+    """`secret://provider/field` ATAU `extends://provider#field` -> nilai asli.
 
     Raises:
         SecretRefError: bentuk referensi salah.
         CredentialMissingError: provider/field tidak ada di vault.
     """
+    if is_extends_ref(ref):
+        # Pewarisan kredensial (TASK 4): delegasi ke vault_extends.
+        from vault_extends import resolve_ref as _resolve_ext
+        return _resolve_ext(ref, user_email)
     if not is_secret_ref(ref):
         raise SecretRefError(f"Bukan referensi secret://: {ref[:40]!r}")
     m = SECRET_REF_PATTERN.match(ref.strip())
@@ -96,7 +110,7 @@ def redact(value: Any) -> Any:
     Dipakai saat menulis args ke log/respons supaya nilai asli tidak bocor.
     """
     if isinstance(value, str):
-        return _MASK if is_secret_ref(value) else value
+        return _MASK if is_credential_ref(value) else value
     if isinstance(value, dict):
         return {k: redact(v) for k, v in value.items()}
     if isinstance(value, list):
@@ -113,13 +127,13 @@ def resolve_secrets_in_args(args: dict[str, Any], user_email: str) -> dict[str, 
         return args
     out: dict[str, Any] = {}
     for key, value in args.items():
-        if is_secret_ref(value):
+        if is_credential_ref(value):
             out[key] = resolve_secret(value, user_email)
         elif isinstance(value, dict):
             out[key] = resolve_secrets_in_args(value, user_email)
         elif isinstance(value, list):
             out[key] = [
-                resolve_secret(v, user_email) if is_secret_ref(v)
+                resolve_secret(v, user_email) if is_credential_ref(v)
                 else (resolve_secrets_in_args(v, user_email)
                       if isinstance(v, dict)
                       else (redact(v) if isinstance(v, list) else v))
@@ -134,6 +148,8 @@ __all__ = [
     "SECRET_REF_PATTERN",
     "CredentialMissingError",
     "SecretRefError",
+    "is_credential_ref",
+    "is_extends_ref",
     "is_secret_ref",
     "redact",
     "resolve_secret",

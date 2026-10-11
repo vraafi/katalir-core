@@ -8,7 +8,8 @@ as a header — never embedded in the URL, so it cannot leak into logs.
 from __future__ import annotations
 import asyncio, os
 from mcp import ClientSession
-from mcp.client.streamable_http import streamablehttp_client
+
+import mcp_compat  # jembatan MCP 1.x <-> 2.x (11 Okt 2026)
 
 TOKEN_ENV = "AGENTGATEWAY_TOKEN"
 
@@ -73,15 +74,17 @@ class GatewayClient:
             )
         self.mcp_url=base+'/mcp'
     def _session(self):
-        return streamablehttp_client(self.mcp_url, headers=_headers())
+        return mcp_compat.open_streamable_http(self.mcp_url, headers=_headers())
     async def list_tools(self):
-        async with streamablehttp_client(self.mcp_url, headers=_headers()) as (r,w,_):
-            async with ClientSession(r,w) as s:
-                await s.initialize(); result=await s.list_tools(); return [x.model_dump() for x in result.tools]
+        async with mcp_compat.open_streamable_http(self.mcp_url, headers=_headers()) as (r, w):
+            async with ClientSession(r, w) as s:
+                await s.initialize(); result = await s.list_tools()
+                return [mcp_compat.dump_wire(x) for x in result.tools]
     async def call_tool(self, name, args):
-        async with streamablehttp_client(self.mcp_url, headers=_headers()) as (r,w,_):
-            async with ClientSession(r,w) as s:
-                await s.initialize(); result=await s.call_tool(name,args); return result.model_dump()
+        async with mcp_compat.open_streamable_http(self.mcp_url, headers=_headers()) as (r, w):
+            async with ClientSession(r, w) as s:
+                await s.initialize(); result = await s.call_tool(name, args)
+                return mcp_compat.dump_wire(result)
     def list_tools_sync(self): return asyncio.run(self.list_tools())
     def call_tool_sync(self,name,args): return asyncio.run(self.call_tool(name,args))
     async def health(self):

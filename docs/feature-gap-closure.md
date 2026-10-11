@@ -75,12 +75,37 @@ yang muncul dari perilaku n8n terbaru (lihat §2).
 
 ---
 
-## 4. Sisa backlog (belum dikerjakan — jujur)
+## 4. Backlog iterasi 1 — STATUS setelah iterasi 2 (11 Okt 2026)
 
-| # | Item | Alasan belum |
+| # | Item | Status | Bukti |
+|---|---|---|---|
+| 1 | **Upgrade `mcp>=2`** | **PARTIAL (keputusan terdokumentasi)** | `mcp_compat.py` + `mcp_gateway/client.py` siap-2.x; **diverifikasi terhadap mcp 2.3.0 nyata** (deteksi major=2, `MCPServer` terbangun, kwarg FastMCP dibuang). Cutover penuh DIUJI-GAGAL di jalur server (`build_server()` → `ModuleNotFoundError: mcp.server.fastmcp`) + konflik pin (pydantic 2.14.0 / starlette 1.7.0 / httpx2). |
+| 2 | **Verification Evidence ledger** (rantai bukti ber-hash) | **DONE** | `evidence_ledger.py` — sha256 chain + HMAC, `verify_chain`/`verify_entry`, deteksi tamper, store memori + DDL Postgres; `POST /evidence`, `GET /evidence/{id}/verify`. |
+| 3 | **`extendsCredential`** saat create/update workflow | **DONE** | `vault_extends.py` — `extends://parent#field`, rantai pewarisan, deteksi siklus, batas kedalaman 5, isolasi tenant, audit; dijahit ke `vault_broker.resolve_secret`/`resolve_secrets_in_args`. |
+| 4 | **Validasi payload token sebelum resolusi user** | **DONE** | `token_guard.py` — allow-list algoritma (tolak `none`), `exp`/`nbf`/`aud`/`iss`, pola `sub`, whitelist `role`, batas payload 10 KB, klaim terlarang; dipanggil di `security._guard_claims` setelah signature sah. |
+| 5 | **Streaming `/chat` + watchdog idle** | **DONE** | `chat_stream.py` — frame SSE + heartbeat 10 s + abort idle 30 s + fallback + resume `Last-Event-ID`; `POST /chat/stream`. |
+
+---
+
+## 5. Delta n8n 2.42.0 → kesesuaian Katalir (iterasi 2)
+
+Sumber: n8n **2.42.0** (29 Sep 2026) + **2.41.4** (30 Sep 2026); catatan rilis
+`docs.n8n.io/changelog/release-notes`, `github.com/n8n-io/n8n/releases`.
+
+| Fitur n8n 2.42.0 | Katalir | Catatan |
 |---|---|---|
-| 1 | **Upgrade `mcp>=2`** (dukung spec 2026-07-28 native) | Breaking major; berisiko menjatuhkan `mcp_server.py` produksi. Perlu jendela migrasi tersendiri. |
-| 2 | **Verification Evidence ledger** (rantai bukti test-run ber-hash) | Belum ada konsep "bukti" yang tamper-evident. Kandidat kuat iterasi berikutnya. |
-| 3 | **`extendsCredential`** saat create/update workflow | Belum ada model pewarisan kredensial. |
-| 4 | **Validasi payload token sebelum resolusi user** | Audit keamanan `security.get_current_user` perlu pemetaan klaim. |
-| 5 | **Streaming `/chat` + watchdog idle** (pelajaran n8n PR #35940) | Kanal sekarang sinkron; watchdog baru relevan bila jadi streaming. |
+| AI Agent Tool boleh memakai tool-nya sendiri (agent bersarang) | DONE (setara) | `execution_engine` `[DELEGATE:]` + `subworkflow.py` (MAX_DEPTH 3) + `subworkflow_batch.py` (mode `all`/`each`) |
+| MCP Registry jadi GA di AI Assistant | DONE (setara) | `mcp_registry.py`, `mcp_autoconfig.py` |
+| **Assistant mencatat live test run sebagai *verification evidence*** | **DONE (baru)** | `evidence_ledger.py` + `/evidence` — rantai bukti tamper-evident |
+| **`extendsCredential` diterima saat create/update workflow** | **DONE (baru)** | `vault_extends.py` |
+| **Validasi payload token sebelum resolusi user** | **DONE (baru)** | `token_guard.py` |
+| Deskripsi workflow saat create | DONE | `WorkflowCreateRequest.description`, `POST /workflows` |
+| Validasi nama path-parameter OpenAPI | DONE (setara) | `openapi_connectors.py` |
+| Redis: pemulihan langganan setelah reconnect + deteksi half-open | TODO | Katalir pakai Supabase, bukan Redis pub/sub |
+| Persistensi OpenTelemetry | DONE | `tracing.py` (`encode_export_request`, exporter HTTP) |
+| Batas hasil queue-job pada eksekusi milik proses | N/A | Tidak ada worker queue terpisah |
+
+**Kesimpulan:** tiga fitur baru n8n 2.42.0 yang paling relevan (verification
+evidence, `extendsCredential`, validasi payload token) **sudah ada di Katalir**
+per iterasi 2 ini — semuanya dengan hard test ≥12 skenario.
+

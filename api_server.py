@@ -39,6 +39,8 @@ import scheduler_manager  # Scheduled Trigger (cron) — Fitur #1, 8 Okt 2026
 import memory_manager    # AI Agent Memory (pgvector) — Fitur #11, 8 Okt 2026
 import workflow_autofix as _wf_autofix
 import workflow_ops as _wops  # edit workflow berbasis OPERASI (11 Okt 2026)
+import chat_stream as _chat_stream  # SSE streaming /chat + watchdog (11 Okt 2026)
+import evidence_ledger as _evidence  # ledger bukti ber-rantai hash (11 Okt 2026)
 import security
 import tools
 from textual_tool_calls import (  # BUG FIX 2026-10-02: parser tool-call TEKS
@@ -3789,6 +3791,65 @@ def apply_workflow_ops(workflow_id: str, req: WorkflowOpsRequest,
         raise HTTPException(403, "Workflow ini bukan milik Anda.")
     return {"status": "success", "applied": result["applied"],
             "diff": result["diff"], "intent": req.intent}
+
+
+class EvidenceAppendBody(BaseModel):
+    """POST /evidence — satu bukti baru untuk ledger ber-rantai hash."""
+    content: dict | list | str
+
+
+@app.post("/chat/stream")
+async def chat_stream_endpoint(
+    req: ChatRequest,
+    authorization: str | None = Header(None),
+    last_event_id: str | None = Header(None, alias="Last-Event-ID"),
+):
+    """Versi SSE dari /chat (TASK 6, 11 Okt 2026).
+
+    Mengirim `text/event-stream`: frame `chunk` (potongan jawaban), `heartbeat`
+    tiap 10 detik, `done` di akhir, atau `error` bila idle > 30 detik. Klien
+    yang menyambung ulang mengirim header `Last-Event-ID` -> stream melanjutkan
+    dari indeks berikutnya. Autentikasi tetap divalidasi lebih awal (401).
+    """
+    security.get_current_user(authorization)
+    start = 0
+    if last_event_id:
+        try:
+            start = max(0, int(last_event_id)) + 1
+        except ValueError:
+            start = 0
+
+    async def _source():
+        # Agentic loop (blocking) dijalankan di thread; potongannya di-stream.
+        result = await asyncio.to_thread(chat, req, authorization)
+        reply = ""
+        if isinstance(result, dict):
+            reply = str(result.get("reply") or "")
+        for piece in _chat_stream.text_chunks(reply):
+            yield piece
+
+    from fastapi.responses import StreamingResponse
+    frames = _chat_stream.stream_with_watchdog(_source(), start_index=start)
+    return StreamingResponse(frames, media_type="text/event-stream",
+                             headers=dict(_chat_stream.SSE_HEADERS))
+
+
+@app.post("/evidence")
+def evidence_append(body: EvidenceAppendBody,
+                    authorization: str | None = Header(None)):
+    """Tambah satu bukti ke ledger ber-rantai hash (TASK 3, 11 Okt 2026)."""
+    security.get_current_user(authorization)
+    entry = _evidence.get_ledger().append(body.content)
+    return {"status": "success", "entry": {
+        k: entry[k] for k in ("seq", "id", "ts", "content_hash", "prev_hash", "hash")
+    }}
+
+
+@app.get("/evidence/{entry_id}/verify")
+def evidence_verify(entry_id: str, authorization: str | None = Header(None)):
+    """Verifikasi satu entri bukti + integritas seluruh rantai."""
+    security.get_current_user(authorization)
+    return _evidence.verify_payload(_evidence.get_ledger(), entry_id)
 
 
 @app.delete("/workflows/{workflow_id}")

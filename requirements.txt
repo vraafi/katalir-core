@@ -28,7 +28,20 @@ anyio==4.12.1
 # string.Formatter pada < 8.4. Lisensi ZPL-2.1 (bukan MIT, tapi OSI-approved).
 RestrictedPython==8.5
 # MCP Python SDK for agentgateway Streamable HTTP client
-mcp==1.28.1
+#
+# TASK 2 (11 Okt 2026) — KEPUTUSAN: TETAP di 1.x, kode dibuat siap-2.x.
+# Cutover ke mcp>=2 DIUJI dan GAGAL (bukan asumsi):
+#   * mcp_server.build_server() -> ModuleNotFoundError: mcp.server.fastmcp
+#     ("FastMCP was renamed to MCPServer ... or pin 'mcp<2'").
+#   * mcp 2.3.0 menarik pydantic 2.14.0 + starlette 1.7.0 + httpx2 2.13.1,
+#     bertabrakan dengan pin proyek (pydantic==2.12.5, starlette==1.0.1,
+#     httpx==0.28.1) yang sudah lolos 353+ test.
+# Yang SUDAH dilakukan: mcp_compat.py (jembatan 1.x<->2.x) + mcp_gateway/client.py
+# dirutekan lewatnya, sehingga jalur CLIENT jalan di kedua versi. Jalur SERVER
+# (mcp_server.py) masih memakai FastMCP + stateless_http/transport_security yang
+# tidak ada di MCPServer -> migrasi server = pekerjaan terpisah.
+# Batas ini SENGAJA longgar di sisi bawah agar 2.x bisa dicoba tanpa edit file.
+mcp>=1.28.1,<3
 ddgs==9.0.1
 
 # Models & validasi
