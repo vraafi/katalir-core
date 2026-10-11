@@ -214,8 +214,8 @@ def render_server(apis: dict[str, dict]) -> str:
         '"""\n'
         "from __future__ import annotations\n\n"
         "import os\nimport re\nfrom typing import Any\n\n"
-        "import httpx\nfrom mcp.server.fastmcp import FastMCP\n\n"
-        'mcp = FastMCP("katalir-openapi")\n\n'
+        "import httpx\n\nimport mcp_compat  # jembatan MCP 1.x <-> 2.x\n\n"
+        'mcp = mcp_compat.make_server("katalir-openapi")\n\n'
         "import json as _json\nfrom pathlib import Path as _Path\n\n"
         "_HERE = _Path(__file__).resolve().parent\n"
         'API_META = _json.loads((_HERE / "apis.json").read_text(encoding="utf-8"))\n\n'

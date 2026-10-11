@@ -26,6 +26,8 @@ import time
 
 import pytest
 
+import mcp_compat as mc  # lintas versi MCP 1.x/2.x
+
 import code_sandbox as CS
 import execution_engine as ee
 import self_healing as sh
@@ -561,8 +563,13 @@ def _call(MS, nama, args, *, user="user-uji"):
         res = asyncio.run(srv.call_tool(nama, args))
     finally:
         MS._current_key.reset(tok)
-    # FastMCP membungkus hasil sebagai list blok teks berisi JSON.
-    teks = res[0].text if res else ""
+    # Bentuk hasil berbeda antar versi SDK:
+    #   1.x -> list blok teks (langsung di-subscript)
+    #   2.x -> model `CallToolResult` dengan atribut `.content`
+    blocks = getattr(res, "content", None)
+    if blocks is None:
+        blocks = res if isinstance(res, (list, tuple)) else []
+    teks = blocks[0].text if blocks else ""
     try:
         return json.loads(teks)
     except Exception:
@@ -575,20 +582,20 @@ def test_d1_tool_terdaftar_dengan_annotasi_benar(mcp_server):
     nama = [t.name for t in tools]
     ec = [t for t in tools if t.name == "execute_code"][0]
     print(f"[D1] tools={nama}")
-    print(f"[D1] annotations readonly={ec.annotations.readOnlyHint} "
-          f"destructive={ec.annotations.destructiveHint} "
-          f"idempotent={ec.annotations.idempotentHint} "
-          f"openworld={ec.annotations.openWorldHint}")
+    print(f"[D1] annotations readonly={mc.field(ec.annotations, "read_only_hint", "readOnlyHint")} "
+          f"destructive={mc.field(ec.annotations, "destructive_hint", "destructiveHint")} "
+          f"idempotent={mc.field(ec.annotations, "idempotent_hint", "idempotentHint")} "
+          f"openworld={mc.field(ec.annotations, "open_world_hint", "openWorldHint")}")
     assert "execute_code" in nama
-    assert ec.annotations.readOnlyHint is False
-    assert ec.annotations.destructiveHint is True
-    assert ec.annotations.idempotentHint is False
-    assert ec.annotations.openWorldHint is False
-    props = set((ec.inputSchema or {}).get("properties", {}))
+    assert mc.field(ec.annotations, "read_only_hint", "readOnlyHint") is False
+    assert mc.field(ec.annotations, "destructive_hint", "destructiveHint") is True
+    assert mc.field(ec.annotations, "idempotent_hint", "idempotentHint") is False
+    assert mc.field(ec.annotations, "open_world_hint", "openWorldHint") is False
+    props = set((mc.field(ec, "input_schema", "inputSchema") or {}).get("properties", {}))
     print(f"[D1] inputSchema={sorted(props)} required="
-          f"{(ec.inputSchema or {}).get('required')}")
+          f"{(mc.field(ec, "input_schema", "inputSchema") or {}).get('required')}")
     assert props == {"code", "language", "timeout_s"}
-    assert (ec.inputSchema or {}).get("required") == ["code"]
+    assert (mc.field(ec, "input_schema", "inputSchema") or {}).get("required") == ["code"]
 
 
 def test_d2_panggilan_python_lewat_protokol_mcp(mcp_server):
@@ -622,7 +629,8 @@ def test_d5_masukan_buruk_dilaporkan_bukan_crash(mcp_server):
       2. nilai salah (kode kosong, bahasa tak didukung) dikembalikan sebagai
          `ok=false` + `error` supaya agen bisa memperbaiki sendiri.
     """
-    from mcp.server.fastmcp.exceptions import ToolError
+    import mcp_compat  # lintas versi (TASK 2 iterasi 3)
+    ToolError = mcp_compat.tool_error_class()
 
     # 1. Validasi skema MCP: tipe yang salah tidak pernah sampai ke fungsi.
     with pytest.raises(ToolError) as exc:

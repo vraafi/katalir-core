@@ -39,6 +39,8 @@ from typing import Any, Callable, Iterable
 
 GENESIS_HASH = ""
 DEFAULT_KEY_ENV = "EVIDENCE_LEDGER_KEY"
+#: "postgres" (default bila kredensial ada) | "memory"
+STORE_ENV = "KATALIR_EVIDENCE_STORE"
 
 
 class LedgerError(Exception):
@@ -128,8 +130,12 @@ class PostgresEvidenceStore:
         import psycopg2
         if self._dsn_factory is not None:
             return psycopg2.connect(**self._dsn_factory())
-        from connector_verification_store import _dsn  # pooler Supabase
-        return psycopg2.connect(**_dsn())
+        # Pooler Supabase. CATATAN: sebelumnya modul ini mengimpor
+        # `connector_verification_store._dsn` yang **tidak pernah ada**
+        # (nama fungsinya `connect`) sehingga store Postgres selalu
+        # ImportError dan ledger jatuh ke memori tanpa disadari.
+        from connector_verification_store import connect as _supabase_connect
+        return _supabase_connect()
 
     def ensure_schema(self) -> None:
         with self._connect() as conn, conn.cursor() as cur:
@@ -284,6 +290,36 @@ _LEDGER: EvidenceLedger | None = None
 _LEDGER_LOCK = threading.Lock()
 
 
+def auto_store(*, dsn_factory: Callable[[], Any] | None = None,
+               prefer: str | None = None) -> Any:
+    """Pilih store terbaik yang BENAR-BENAR bisa dipakai (Gap #2 iterasi 3).
+
+    Urutan: **Postgres/Supabase** (bila kredensial ada, koneksi berhasil, dan
+    DDL terpasang) → **memori**. Kegagalan apa pun diturunkan ke memori dengan
+    peringatan — kehilangan persistensi lebih baik daripada endpoint
+    ``/evidence`` mati total.
+
+    Paksa memori dengan ``KATALIR_EVIDENCE_STORE=memory`` (dipakai test agar
+    tidak menyentuh jaringan).
+    """
+    import logging
+    pref = (prefer if prefer is not None else os.environ.get(STORE_ENV, ""))
+    pref = (pref or "").strip().lower()
+    if pref in ("memory", "mem", "off", "0"):
+        return MemoryEvidenceStore()
+    try:
+        store = PostgresEvidenceStore(dsn_factory)
+        store.ensure_schema()
+        return store
+    except Exception as exc:  # noqa: BLE001 - degradasi yang disengaja
+        logging.getLogger(__name__).warning(
+            "evidence ledger: Postgres tidak tersedia (%s: %s) — memakai "
+            "store memori; entri TIDAK bertahan setelah restart.",
+            type(exc).__name__, exc,
+        )
+        return MemoryEvidenceStore()
+
+
 def get_ledger() -> EvidenceLedger:
     """Ledger proses-tunggal (lazy). Store Postgres bila tersedia.
 
@@ -294,8 +330,9 @@ def get_ledger() -> EvidenceLedger:
     global _LEDGER
     with _LEDGER_LOCK:
         if _LEDGER is None:
+            store = auto_store()
             try:
-                _LEDGER = EvidenceLedger()
+                _LEDGER = EvidenceLedger(store=store)
             except LedgerError:
                 import logging
                 import secrets
@@ -303,7 +340,8 @@ def get_ledger() -> EvidenceLedger:
                     "%s belum diset — ledger memakai kunci efemera; entri tidak "
                     "akan terverifikasi setelah restart.", DEFAULT_KEY_ENV,
                 )
-                _LEDGER = EvidenceLedger(key=secrets.token_bytes(32))
+                _LEDGER = EvidenceLedger(key=secrets.token_bytes(32),
+                                         store=store)
         return _LEDGER
 
 
@@ -337,11 +375,13 @@ def verify_payload(ledger: EvidenceLedger, entry_id: str) -> dict:
 __all__ = [
     "DEFAULT_KEY_ENV",
     "GENESIS_HASH",
+    "STORE_ENV",
     "ChainBrokenError",
     "EvidenceLedger",
     "LedgerError",
     "MemoryEvidenceStore",
     "PostgresEvidenceStore",
+    "auto_store",
     "canonical_json",
     "chain_hash",
     "content_hash",

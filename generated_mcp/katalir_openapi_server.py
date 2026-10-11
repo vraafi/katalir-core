@@ -11,9 +11,10 @@ import re
 from typing import Any
 
 import httpx
-from mcp.server.fastmcp import FastMCP
 
-mcp = FastMCP("katalir-openapi")
+import mcp_compat  # jembatan MCP 1.x <-> 2.x (TASK 2 iterasi 3)
+
+mcp = mcp_compat.make_server("katalir-openapi")
 
 import json as _json
 from pathlib import Path as _Path

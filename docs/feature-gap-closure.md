@@ -79,11 +79,23 @@ yang muncul dari perilaku n8n terbaru (lihat §2).
 
 | # | Item | Status | Bukti |
 |---|---|---|---|
-| 1 | **Upgrade `mcp>=2`** | **PARTIAL (keputusan terdokumentasi)** | `mcp_compat.py` + `mcp_gateway/client.py` siap-2.x; **diverifikasi terhadap mcp 2.3.0 nyata** (deteksi major=2, `MCPServer` terbangun, kwarg FastMCP dibuang). Cutover penuh DIUJI-GAGAL di jalur server (`build_server()` → `ModuleNotFoundError: mcp.server.fastmcp`) + konflik pin (pydantic 2.14.0 / starlette 1.7.0 / httpx2). |
-| 2 | **Verification Evidence ledger** (rantai bukti ber-hash) | **DONE** | `evidence_ledger.py` — sha256 chain + HMAC, `verify_chain`/`verify_entry`, deteksi tamper, store memori + DDL Postgres; `POST /evidence`, `GET /evidence/{id}/verify`. |
+| 1 | **Upgrade `mcp>=2`** | **DONE (iterasi 3)** | `mcp 2.3.0` terpasang; `mcp_compat.py` (shim dua arah) + migrasi seluruh `FastMCP` → `make_server()`. `pip install --dry-run "mcp>=2,<3"` → hanya `mcp-2.3.0 mcp-types-2.3.0` (koreksi atas catatan iterasi 2 yang mengukur di `--target` kosong). Bukti: `179 passed` (9 berkas MCP) + `12 passed` (`test_mcp_v2_migration.py`). |
+| 2 | **Verification Evidence ledger** (rantai bukti ber-hash) | **DONE** | `evidence_ledger.py` — sha256 chain + HMAC, `verify_chain`/`verify_entry`, deteksi tamper, store memori + Postgres; `POST /evidence`, `GET /evidence/{id}/verify`. **Iterasi 3:** persistensi Supabase benar-benar tersambung (`auto_store()`), bug impor `_dsn` diperbaiki → `12 passed` (`test_evidence_persistence.py`). |
 | 3 | **`extendsCredential`** saat create/update workflow | **DONE** | `vault_extends.py` — `extends://parent#field`, rantai pewarisan, deteksi siklus, batas kedalaman 5, isolasi tenant, audit; dijahit ke `vault_broker.resolve_secret`/`resolve_secrets_in_args`. |
 | 4 | **Validasi payload token sebelum resolusi user** | **DONE** | `token_guard.py` — allow-list algoritma (tolak `none`), `exp`/`nbf`/`aud`/`iss`, pola `sub`, whitelist `role`, batas payload 10 KB, klaim terlarang; dipanggil di `security._guard_claims` setelah signature sah. |
-| 5 | **Streaming `/chat` + watchdog idle** | **DONE** | `chat_stream.py` — frame SSE + heartbeat 10 s + abort idle 30 s + fallback + resume `Last-Event-ID`; `POST /chat/stream`. |
+| 5 | **Streaming `/chat` + watchdog idle** | **DONE** | `chat_stream.py` — frame SSE + heartbeat 10 s + abort idle 30 s + fallback + resume `Last-Event-ID`; `POST /chat/stream`. **Iterasi 3:** sumbernya kini streaming token NYATA (`llm_stream.py`, TTFT < 500 ms) untuk OpenAI/Groq/DeepSeek/NVIDIA/9Router/gateway, Anthropic, dan Gemini. |
+
+### 4b. Backlog iterasi 3 (11 Okt 2026)
+
+| # | Item | Status | Bukti |
+|---|---|---|---|
+| 1 | **Streaming token-level dari LLM** | **DONE** | `llm_stream.py` — `stream_llm`, `parse_*_sse`, `stream_llm_frames`; TTFT diukur dengan jam terkendali. `14 passed` (`test_llm_stream.py`). |
+| 2 | **Evidence ledger persistence Supabase** | **DONE** | `auto_store()` + perbaikan `_connect()`; `12 passed` (`test_evidence_persistence.py`). |
+| 3 | **Anthropic prompt caching** | **DONE** | `apply_anthropic_cache()` + `cache_system`/`cache_messages`; `12 passed` (`test_prompt_caching.py`). |
+| 4 | Gateway credits (opsi per-tool) | **TODO** | Butuh keputusan produk; bukan celah teknis. |
+| 5 | Azure AI Foundry node | **N/A** | Tidak ada node Azure di Katalir. |
+| 6 | Editor UX n8n (Agent Builder, breadcrumb, chip) | **N/A** | Wilayah `nexus-frontend`, di luar cakupan backend. |
+
 
 ---
 

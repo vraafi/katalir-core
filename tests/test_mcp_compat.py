@@ -169,11 +169,57 @@ def test_09_normalize_tool_and_model_object():
 
 # 10. make_server 1.x -> FastMCP ------------------------------------------
 def test_10_make_server_v1(monkeypatch):
+    captured: dict = {}
+
+    class FakeFastMCP:
+        def __init__(self, name, **kw):
+            captured["name"] = name
+            captured.update(kw)
+
+    mod = types.ModuleType("mcp.server.fastmcp")
+    mod.FastMCP = FakeFastMCP
+    monkeypatch.setitem(sys.modules, "mcp.server.fastmcp", mod)
     monkeypatch.setattr(mc, "is_v2", lambda: False)
+
     srv = mc.make_server("Katalir", instructions="halo", stateless_http=True,
                          streamable_http_path="/mcp")
-    assert srv.__class__.__name__ == "FastMCP"
+    assert isinstance(srv, FakeFastMCP)
+    assert captured["name"] == "Katalir"
+    assert captured["instructions"] == "halo"
+    # v1 MEMPERTAHANKAN kwarg transport (hidup di konstruktor).
+    assert captured["stateless_http"] is True
+    assert captured["streamable_http_path"] == "/mcp"
     assert mc.server_class_name() == "FastMCP"
+
+
+# 10b. helper exception lintas versi --------------------------------------
+def test_10b_error_classes(monkeypatch):
+    if mc.is_v2():
+        assert mc.tool_error_class().__name__ == "ToolError"
+        assert mc.server_error_class().__name__ == "MCPServerError"
+    else:
+        assert mc.tool_error_class().__name__ == "ToolError"
+
+
+# 10c. build_streamable_http_app: v1 tanpa argumen, v2 dengan argumen ------
+def test_10c_build_streamable_http_app(monkeypatch):
+    calls = []
+
+    class FakeServer:
+        def streamable_http_app(self, **kw):
+            calls.append(kw)
+            return "APP"
+
+    monkeypatch.setattr(mc, "is_v2", lambda: False)
+    assert mc.build_streamable_http_app(FakeServer(), path="/mcp", stateless=True) == "APP"
+    assert calls[-1] == {}, "v1 tidak boleh menerima argumen transport"
+
+    monkeypatch.setattr(mc, "is_v2", lambda: True)
+    assert mc.build_streamable_http_app(
+        FakeServer(), path="/mcp", stateless=True, transport_security="TS",
+        host="127.0.0.1") == "APP"
+    assert calls[-1] == {"streamable_http_path": "/mcp", "stateless_http": True,
+                         "transport_security": "TS", "host": "127.0.0.1"}
 
 
 # 11. make_server 2.x -> MCPServer, kwarg 1.x dibuang ----------------------

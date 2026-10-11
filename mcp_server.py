@@ -183,6 +183,8 @@ def verify_api_key(token: str) -> dict[str, Any]:
 # dan 100 di workflow_templates -> workflow 300 node ditolak lewat MCP padahal
 # diterima lewat API.
 from flow_limits import MAX_FLOW_NODES  # noqa: E402
+
+import mcp_compat  # noqa: E402  jembatan MCP SDK 1.x <-> 2.x (TASK 2 iterasi 3)
 MAX_FIELD_CHARS = 200_000
 
 
@@ -490,11 +492,15 @@ def build_server():
     Dipisah dari pembuatan ASGI app supaya tes bisa memeriksa daftar tool
     tanpa menyalakan server.
     """
-    from mcp.server.fastmcp import FastMCP
-    from mcp.server.transport_security import TransportSecuritySettings
+    from mcp.server.transport_security import TransportSecuritySettings  # noqa: F401
     from mcp.types import ToolAnnotations
 
-    mcp = FastMCP(
+    # MCP v2 (TASK 2 iterasi 3): `FastMCP` -> `MCPServer`, dan
+    # `stateless_http`/`streamable_http_path`/`transport_security` PINDAH dari
+    # konstruktor ke `streamable_http_app(...)`. `mcp_compat.make_server`
+    # membangun kelas yang benar untuk versi terpasang; kwarg khusus 1.x
+    # otomatis dibuang pada 2.x (setting-nya diterapkan di app builder).
+    mcp = mcp_compat.make_server(
         SERVER_NAME,
         instructions=(
             "Katalir — platform otomasi workflow. Tool di sini mengelola "
@@ -510,6 +516,7 @@ def build_server():
     )
 
     @mcp.tool()
+    @mcp_compat.expose_tool_errors
     def create_workflow(name: str, description: str = "",
                         flow_data: dict | None = None) -> dict:
         """Buat workflow Katalir baru milik pemilik API key.
@@ -527,6 +534,7 @@ def build_server():
         return svc_create_workflow(current_key()["user_id"], name, description, flow_data)
 
     @mcp.tool()
+    @mcp_compat.expose_tool_errors
     def update_workflow(workflow_id: str, name: str | None = None,
                         description: str | None = None,
                         flow_data: dict | None = None) -> dict:
@@ -545,6 +553,7 @@ def build_server():
                                    name, description, flow_data)
 
     @mcp.tool()
+    @mcp_compat.expose_tool_errors
     def list_workflows(limit: int = 50) -> dict:
         """Daftar workflow milik pemilik API key (terbaru dulu).
 
@@ -557,6 +566,7 @@ def build_server():
         return svc_list_workflows(current_key()["user_id"], limit)
 
     @mcp.tool()
+    @mcp_compat.expose_tool_errors
     def execute_workflow(workflow_id: str, input_data: dict | None = None) -> dict:
         """Jalankan workflow milik pemilik API key. Non-blocking.
 
@@ -571,6 +581,7 @@ def build_server():
         return svc_execute_workflow(current_key()["user_id"], workflow_id, input_data)
 
     @mcp.tool()
+    @mcp_compat.expose_tool_errors
     def get_execution_status(execution_id: str) -> dict:
         """Status + log langkah dari satu eksekusi milik pemilik API key.
 
@@ -599,6 +610,7 @@ def build_server():
             openWorldHint=False,
         ),
     )
+    @mcp_compat.expose_tool_errors
     def execute_code(code: str, language: str = "python",
                      timeout_s: int = 30) -> dict:
         """Jalankan kode Python atau JavaScript di sandbox terisolasi.
@@ -824,7 +836,10 @@ def get_asgi_application(*, require_auth: bool = True, mount_prefix: str = "/mcp
     Tanpa `server`, instance global dari `get_server()` dipakai.
     """
     mcp = server if server is not None else get_server()
-    inner = mcp.streamable_http_app()
+    # MCP v2: setting transport diterapkan DI SINI (bukan konstruktor).
+    inner = mcp_compat.build_streamable_http_app(
+        mcp, path=STREAMABLE_PATH, stateless=True,
+        transport_security=_transport_security())
     authed = McpAuthMiddleware(inner, require_auth=require_auth)
     return _BarePathShim(authed, prefix=mount_prefix)
 
@@ -852,10 +867,16 @@ async def session_manager_lifespan(mcp=None):
 # ---------------------------------------------------------------------------
 def describe() -> dict:
     """Ringkasan permukaan MCP untuk `/mcp/katalir/info` dan UI."""
+    _pv = mcp_compat.protocol_versions()
     return {
         "server": SERVER_NAME,
         "protocol": "mcp",
-        "protocol_version": "2025-06-18",
+        # Diambil dari SDK, bukan hard-code: iklan versi yang salah membuat
+        # klien 2026-07-28 menurunkan diri ke mode lama tanpa alasan.
+        "protocol_version": _pv["latest"],
+        "protocol_versions": [_pv["latest"], _pv["default"]],
+        "sdk": {"mcp": mcp_compat.mcp_version(),
+                "server_class": mcp_compat.server_class_name()},
         "transport": "streamable-http",
         "endpoint": STREAMABLE_PATH,
         "stateless": True,

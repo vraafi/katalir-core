@@ -6,10 +6,10 @@ KATALIR_JWT and only calls existing owner-scoped Katalir services.
 from __future__ import annotations
 import os
 from typing import Any
-from mcp.server.fastmcp import FastMCP
+import mcp_compat  # jembatan MCP 1.x <-> 2.x (TASK 2 iterasi 3)
 import api_server
 
-mcp = FastMCP("katalir-workflows")
+mcp = mcp_compat.make_server("katalir-workflows")
 
 def _auth() -> str:
     token = os.environ.get("KATALIR_JWT", "").strip()

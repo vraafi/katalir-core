@@ -413,7 +413,12 @@ async def _t06():
         "update_workflow", {"workflow_id": wf_a["id"], "name": "DIBAJAK"})
     assert payload.get("isError") is True, "B berhasil mengubah workflow A — isolasi bocor"
     teks = payload["content"][0]["text"].lower()
-    assert "tidak ditemukan" in teks, f"pesan tidak menyembunyikan keberadaan: {teks[:120]}"
+    # v1: pesan asli ("tidak ditemukan"). v2: MCPServer memakai pesan generik
+    # ("error executing tool ...") yang JUSTRU lebih tertutup. Yang penting:
+    # keberadaan workflow TIDAK bocor lewat teks.
+    assert ("tidak ditemukan" in teks) or ("error executing tool" in teks), \
+        f"pesan tidak menyembunyikan keberadaan: {teks[:120]}"
+    assert wf_a["id"].lower() not in teks, "id workflow bocor di pesan error"
     assert db._LWORKFLOW[wf_a["id"]]["name"] == "Milik A", "nama workflow A berubah"
     print("[6] B update workflow A -> isError=True, pesan menyembunyikan keberadaan")
     print(f"[6] nama workflow A tetap: {db._LWORKFLOW[wf_a['id']]['name']!r}")

@@ -29,18 +29,25 @@ anyio==4.12.1
 RestrictedPython==8.5
 # MCP Python SDK for agentgateway Streamable HTTP client
 #
-# TASK 2 (11 Okt 2026) — KEPUTUSAN: TETAP di 1.x, kode dibuat siap-2.x.
-# Cutover ke mcp>=2 DIUJI dan GAGAL (bukan asumsi):
-#   * mcp_server.build_server() -> ModuleNotFoundError: mcp.server.fastmcp
-#     ("FastMCP was renamed to MCPServer ... or pin 'mcp<2'").
-#   * mcp 2.3.0 menarik pydantic 2.14.0 + starlette 1.7.0 + httpx2 2.13.1,
-#     bertabrakan dengan pin proyek (pydantic==2.12.5, starlette==1.0.1,
-#     httpx==0.28.1) yang sudah lolos 353+ test.
-# Yang SUDAH dilakukan: mcp_compat.py (jembatan 1.x<->2.x) + mcp_gateway/client.py
-# dirutekan lewatnya, sehingga jalur CLIENT jalan di kedua versi. Jalur SERVER
-# (mcp_server.py) masih memakai FastMCP + stateless_http/transport_security yang
-# tidak ada di MCPServer -> migrasi server = pekerjaan terpisah.
-# Batas ini SENGAJA longgar di sisi bawah agar 2.x bisa dicoba tanpa edit file.
+# TASK 2 (11 Okt 2026) — SELESAI: migrasi ke mcp>=2, TANPA pin tambahan.
+#
+# Koreksi atas catatan iterasi 2 (yang keliru, dan sebabnya dijelaskan):
+#   * "mcp 2.3.0 menarik pydantic 2.14.0 + starlette 1.7.0 + httpx2 2.13.1"
+#     adalah ARTEFAK PENGUKURAN. Itu berasal dari `pip install --target <dir
+#     kosong>`, di mana resolver menarik semua extra. Di env proyek yang
+#     sesungguhnya, `pip install --dry-run "mcp>=2,<3"` melaporkan HANYA:
+#         Would install mcp-2.3.0 mcp-types-2.3.0
+#   * Pin `starlette==1.0.1` / `pydantic==2.12.5` TIDAK dipaksakan oleh
+#     dependensi: `importlib.metadata.requires("fastapi")` -> `starlette>=0.40.0`.
+#   * Jalur SERVER kini bermigrasi: seluruh `FastMCP` diganti lewat
+#     `mcp_compat.make_server()` (v2 -> MCPServer, v1 -> FastMCP), dan
+#     `mcp_compat.build_streamable_http_app()` memindahkan kwarg transport
+#     (stateless_http / streamable_http_path / transport_security) dari
+#     konstruktor ke `streamable_http_app(**kw)` sesuai SDK 2.x.
+#
+# Sifat migrasi: SHIM DUA ARAH (bukan cutover satu arah). `mcp_compat.py`
+# mendeteksi major dari metadata distribusi, jadi kode yang sama jalan di
+# 1.x MAUPUN 2.x — pin di bawah sengaja membiarkan keduanya.
 mcp>=1.28.1,<3
 ddgs==9.0.1
 

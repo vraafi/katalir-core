@@ -29,6 +29,7 @@ sehingga deteksi berbasis nama TIDAK andal).
 from __future__ import annotations
 
 import contextlib
+import functools
 from typing import Any, AsyncIterator, Callable, Iterable
 
 #: Kwarg yang hanya dikenal FastMCP (1.x). Dibuang saat membangun MCPServer (2.x).
@@ -191,6 +192,22 @@ def _first(d: dict, *keys: str, default: Any = None) -> Any:
     return default
 
 
+def field(obj: Any, *names: str, default: Any = None) -> Any:
+    """Ambil field pertama yang ADA — mendukung camelCase (1.x) & snake_case (2.x).
+
+    Menerima objek Pydantic maupun dict. Dipakai di call-site agar tidak ada
+    `AttributeError: 'InitializeResult' object has no attribute 'serverInfo'`
+    setelah upgrade ke SDK 2.x.
+    """
+    if isinstance(obj, dict):
+        return _first(obj, *names, default=default)
+    for n in names:
+        v = getattr(obj, n, None)
+        if v is not None:
+            return v
+    return default
+
+
 def tool_input_schema(tool: Any) -> dict:
     """JSON Schema input tool, apa pun versi SDK-nya."""
     d = _as_mapping(tool)
@@ -273,12 +290,141 @@ def server_class_name() -> str:
     return "MCPServer" if is_v2() else "FastMCP"
 
 
+def tool_error_class() -> type:
+    """Kelas ``ToolError`` lintas versi (1.x ``fastmcp`` / 2.x ``mcpserver``)."""
+    if is_v2():
+        from mcp.server.mcpserver.exceptions import ToolError
+    else:
+        from mcp.server.fastmcp.exceptions import ToolError
+    return ToolError
+
+
+def server_error_class() -> type:
+    """Kelas error server lintas versi (``FastMCPError``/``MCPServerError``)."""
+    if is_v2():
+        from mcp.server.mcpserver.exceptions import MCPServerError
+        return MCPServerError
+    try:
+        from mcp.server.fastmcp.exceptions import FastMCPError
+        return FastMCPError
+    except ImportError:  # 1.x lama tanpa FastMCPError
+        from mcp.server.fastmcp.exceptions import ToolError
+        return ToolError
+
+
+def protocol_versions() -> dict:
+    """Versi protokol MCP yang dikenal SDK terpasang.
+
+    Dipakai ``mcp_server.describe()`` supaya ``/mcp/katalir/info`` tidak lagi
+    mengiklankan versi basi secara hard-code: SDK 2.3.0 menetapkan
+    ``LATEST_PROTOCOL_VERSION = 2026-07-28``, sedangkan nilai lama di kode
+    masih ``2025-06-18``.
+    """
+    try:
+        from mcp.types import (DEFAULT_NEGOTIATED_VERSION,
+                               LATEST_PROTOCOL_VERSION)
+        return {"latest": str(LATEST_PROTOCOL_VERSION),
+                "default": str(DEFAULT_NEGOTIATED_VERSION)}
+    except Exception:  # noqa: BLE001 - SDK tak terduga
+        return {"latest": "2025-06-18", "default": "2025-03-26"}
+
+
+def expose_tool_errors(fn: Callable[..., Any]) -> Callable[..., Any]:
+    """Pulihkan pesan error tool yang HILANG di SDK 2.x.
+
+    MASALAH (terukur, bukan dugaan)
+    -------------------------------
+    Pada 1.x ``FastMCP`` menangkap exception apa pun dari badan tool dan
+    mengembalikannya sebagai ``ToolError`` **dengan pesan asli utuh** —
+    sehingga klien/agen bisa membaca mis. ``"API key MCP wajib..."`` lalu
+    memperbaiki sendiri.
+
+    Pada 2.x ``MCPServer`` membungkus exception non-``ToolError`` menjadi
+    ``UnexpectedToolError("Error executing tool <nama>")``: **pesan asli
+    dibuang**. Terbukti dari probe langsung:
+
+        RAISE: UnexpectedToolError -> Error executing tool execute_code
+
+    Akibatnya setiap error yang SENGAJA dilempar tool (401 auth, 404
+    kepemilikan, validasi argumen) menjadi tidak bisa ditindaklanjuti klien —
+    regresi perilaku nyata bagi klien yang pindah 1.x -> 2.x.
+
+    SOLUSI
+    ------
+    Bungkus badan tool: exception yang BUKAN ``ToolError`` diubah menjadi
+    ``ToolError(str(exc))``. 2.x mempertahankan pesan ``ToolError`` (hanya
+    menambah prefiks ``"Error executing tool <nama>: "``), jadi perilaku
+    kembali setara 1.x. ``ToolError`` yang sudah ada diteruskan apa adanya
+    (tidak dibungkus dua kali).
+
+    Di 1.x helper ini **no-op** (FastMCP sudah melakukannya), sehingga
+    pemakaiannya aman di kedua versi dan tidak mengubah perilaku lama.
+
+    Pemakaian::
+
+        @mcp.tool()
+        @mcp_compat.expose_tool_errors
+        def tool_saya(...): ...
+    """
+    if not is_v2():
+        return fn
+    TE = tool_error_class()
+
+    @functools.wraps(fn)
+    def wrapper(*args: Any, **kwargs: Any) -> Any:
+        try:
+            return fn(*args, **kwargs)
+        except TE:
+            raise
+        except Exception as exc:  # noqa: BLE001 - sengaja: pulihkan perilaku 1.x
+            raise TE(str(exc)) from exc
+
+    return wrapper
+
+
 def streamable_http_app(server: Any) -> Any:
     """ASGI app Streamable HTTP dari server (kedua versi punya metode ini)."""
     fn = getattr(server, "streamable_http_app", None)
     if not callable(fn):
         raise McpCompatError("server tidak menyediakan streamable_http_app()")
     return fn()
+
+
+def build_streamable_http_app(
+    server: Any,
+    *,
+    path: str | None = None,
+    stateless: bool | None = None,
+    transport_security: Any | None = None,
+    json_response: bool | None = None,
+    host: str | None = None,
+    **extra: Any,
+) -> Any:
+    """Bangun ASGI app Streamable HTTP dengan setting transport yang BENAR.
+
+    1.x: ``stateless_http``/``streamable_http_path``/``transport_security``
+    hidup di konstruktor FastMCP -> app dibuat tanpa argumen.
+    2.x: setting itu DIPINDAH ke ``streamable_http_app(...)``; kalau tetap
+    dikirim ke konstruktor MCPServer -> ``TypeError`` saat start.
+    """
+    fn = getattr(server, "streamable_http_app", None)
+    if not callable(fn):
+        raise McpCompatError("server tidak menyediakan streamable_http_app()")
+    if not is_v2():
+        return fn()
+    kwargs: dict[str, Any] = {}
+    if path is not None:
+        kwargs["streamable_http_path"] = path
+    if stateless is not None:
+        kwargs["stateless_http"] = stateless
+    if transport_security is not None:
+        kwargs["transport_security"] = transport_security
+    if json_response is not None:
+        kwargs["json_response"] = json_response
+    if host is not None:
+        kwargs["host"] = host
+    kwargs.update(extra)
+    return fn(**kwargs)
 
 
 def dropped_server_kwargs(kwargs: Iterable[str]) -> list[str]:
@@ -290,8 +436,10 @@ def dropped_server_kwargs(kwargs: Iterable[str]) -> list[str]:
 
 __all__ = [
     "McpCompatError",
+    "build_streamable_http_app",
     "dropped_server_kwargs",
     "dump_wire",
+    "field",
     "is_v2",
     "make_server",
     "mcp_major",
@@ -299,7 +447,9 @@ __all__ = [
     "normalize_tool",
     "open_streamable_http",
     "server_class_name",
+    "server_error_class",
     "streamable_http_app",
+    "tool_error_class",
     "tool_input_schema",
     "tool_is_error",
     "tool_name",

@@ -14,6 +14,7 @@
 # =============================================================================
 
 import asyncio
+import threading
 import ast
 import datetime as _datetime
 import json
@@ -1930,7 +1931,39 @@ async def execute_workflow_async(workflow_id: str, flow_data: dict,
     return result
 
 
-_BG_TASKS: dict[str, asyncio.Task] = {}
+_BG_TASKS: dict[str, Any] = {}
+
+#: Loop asyncio proses-wide untuk penjadwalan dari THREAD TANPA loop.
+#: MCP SDK 2.x menjalankan tool SINKRON di worker thread (`anyio.to_thread`),
+#: sehingga `asyncio.create_task` gagal `RuntimeError: no running event loop`.
+#: (Di 1.x jalur ini kebetulan berjalan di dalam loop; 2.x tidak lagi.)
+_BG_LOOP: asyncio.AbstractEventLoop | None = None
+_BG_LOOP_LOCK = threading.Lock()
+
+
+def _background_loop() -> asyncio.AbstractEventLoop:
+    """Loop latar milik proses (dibuat sekali, daemon thread)."""
+    global _BG_LOOP
+    with _BG_LOOP_LOCK:
+        if _BG_LOOP is None or _BG_LOOP.is_closed():
+            loop = asyncio.new_event_loop()
+            threading.Thread(target=loop.run_forever, name="katalir-bg-loop",
+                             daemon=True).start()
+            _BG_LOOP = loop
+        return _BG_LOOP
+
+
+def schedule_coroutine(coro) -> Any:
+    """Jadwalkan korut dari thread APA PUN.
+
+    Di dalam loop -> `Task`. Di luar loop (worker thread MCP 2.x) -> Future dari
+    loop latar via `run_coroutine_threadsafe`.
+    """
+    try:
+        loop = asyncio.get_running_loop()
+    except RuntimeError:
+        return asyncio.run_coroutine_threadsafe(coro, _background_loop())
+    return loop.create_task(coro)
 
 
 async def _spawn_execution(workflow_id: str, flow_data: dict, execution_id: str,
@@ -1971,7 +2004,7 @@ def launch_execution(workflow_id: str, flow_data: dict,
     """
     execution_id = str(uuid.uuid4())
     db.create_execution(execution_id, workflow_id, flow_data)
-    task = asyncio.create_task(
+    task = schedule_coroutine(
         _spawn_execution(workflow_id, flow_data, execution_id, trigger_input,
                          owner_email))
     _BG_TASKS[execution_id] = task

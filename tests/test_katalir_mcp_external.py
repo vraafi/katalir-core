@@ -12,6 +12,10 @@ import textwrap
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
+
+import mcp_compat as mc  # noqa: E402  lintas versi MCP 1.x/2.x
 
 # The child process is a REAL external MCP client scenario: identity comes from
 # KATALIR_JWT (like a desktop client would), and the API layer is stubbed so the
@@ -48,7 +52,9 @@ def test_external_mcp_client_lists_and_calls_workflow():
         async with stdio_client(params) as (read, write):
             async with ClientSession(read, write) as session:
                 init = await session.initialize()
-                assert init.serverInfo.name == "katalir-workflows"
+                # 1.x: serverInfo ; 2.x: server_info
+                info = mc.field(init, "server_info", "serverInfo") or {}
+                assert mc.field(info, "name") == "katalir-workflows"
                 tools = await session.list_tools()
                 names = {t.name for t in tools.tools}
                 assert {"list_workflows", "run_workflow"} <= names
