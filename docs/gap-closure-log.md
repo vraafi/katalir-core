@@ -1348,37 +1348,52 @@ pernah lolos handshake sehingga tidak butuh tool deep.
 
 | klasifikasi | jumlah | arti |
 |---|---:|---|
-| NON_CONFORMANT | 513 | handshake OK, gagal ≥1 syarat spec 2026-07-28 |
-| AUTH_REQUIRED | 289 | bicara MCP, minta kredensial |
-| UNAUTH_EXPOSED | 68 | `tools/list` berhasil **tanpa** auth padahal deklarasi auth |
-| NOT_MCP | 58 | tidak melayani MCP |
-| DEAD | 31 | tidak reachable |
-| FAKE | 19 | 200 tapi konten kosong/refusal/stub |
-| REAL_GRADE_A | 15 | hidup + data nyata + conformant + skor 80+ |
-| DRIFT | 5 | redirect ke host pihak ketiga |
-| JACKABLE | 1 | domain tidak resolve (kandidat takeover) |
+| NON_CONFORMANT | 515 | handshake OK, gagal ≥1 syarat spec 2026-07-28 |
+| AUTH_REQUIRED | 286 | bicara MCP, minta kredensial |
+| UNAUTH_EXPOSED | 70 | `tools/list` berhasil **tanpa** auth padahal deklarasi auth |
+| NOT_MCP | 59 | tidak melayani MCP |
+| REAL_GRADE_A | 31 | hidup + data nyata + conformant + skor 80+ |
+| DEAD | 21 | tidak reachable |
+| FAKE | 11 | 200 tapi konten kosong/refusal/stub |
+| DRIFT | 4 | redirect ke host pihak ketiga |
+| JACKABLE | 1 | domain tidak resolve / NXDOMAIN (kandidat takeover) |
 | REAL_GRADE_B | 1 | hidup + data nyata + skor 60-79 |
+| REAL_GRADE_C | 1 | hidup + data nyata + skor <60 |
 
-Metrik sekunder (tanpa syarat konformansi): **511 konektor benar-benar bekerja
-dan mengembalikan data nyata**; 249 di antaranya skor mcpdoctor ≥ 60.
+Metrik sekunder (tanpa syarat konformansi): **594 konektor benar-benar bekerja
+dan mengembalikan data nyata**.
 
-Supply-chain: 1 JACKABLE · 6 silent drift · 68 unauth exposure · 19 false-green.
+Supply-chain: 1 JACKABLE · 5 silent drift (flag audit; 4 berklasifikasi DRIFT) ·
+70 unauth exposure · 11 false-green.
+
+### 3b. Dua bug probe yang diperbaiki (mengubah angka secara nyata)
+
+1. **Sesi MCP tidak diteruskan.** Probe tidak mengirim `notifications/initialized`
+   dan tidak meneruskan header `Mcp-Session-Id` dari `initialize`. Server yang
+   benar menolak `tools/call` dengan "Server not initialized" / "Missing session
+   ID" → probe salah menuduhnya FAKE. Setelah diperbaiki: FAKE **19 → 13**,
+   `real_data_ok` **511 → 594**.
+2. **`connector_timeout` 40 s terlalu ketat** pada concurrency 32: 32 konektor
+   ditandai DEAD padahal hidup. Di-probe ulang dengan timeout 120 s → **27
+   di antaranya ternyata REAL/berfungsi**; DEAD **48 → 21**.
+3. **Tool error auth ≠ FAKE.** "API key required", "Payment required",
+   "Non autorizzato" semula dihitung FAKE; sekarang AUTH_REQUIRED.
 
 ### 4. Hard test 12/12 PASS
 
 ```
-Test 1  REAL        aneau7941q class=REAL_GRADE_A score=80 doctor=B
-Test 2  FAKE        oll2h14zrh reality=tool error ExitProof
-Test 3  DEAD        pcugjsivq1 err=ConnectError: All connection attempts failed
-Test 4  JACKABLE    q9vppsfxgz dns=gaierror
-Test 5  DRIFT       wvfbxvfl1y fincraftly.com/api/mcp -> raclink.si
-Test 6  UNAUTH      mhi4eqr3gd declared=api_key tools_visible=15
-Test 7  CONFORMANT  uwske4scmp spec passed=8 failed=0
-Test 8  NON_CONF    g3mugvr4is spec passed=8 failed=6
-Test 9  GRADE A     g3mugvr4is mcpdoctor score=95 grade=A
-Test 10 batch 20    20/20 hasil in 8,3 s
-Test 11 batch 100   100/100 hasil in 90,0 s
-Test 12 performa    100 konektor = 90 s -> est. 1000 = 15,0 min (< 2 jam)
+Test 1  REAL        aneau7941q  class=REAL_GRADE_A score=80 doctor=B
+Test 2  FAKE        drhuv33m5q  reality=refusal/stub marker: 'placeholder'
+Test 3  DEAD        r9tygzs5tl  status=None err=ReadError
+Test 4  JACKABLE    q9vppsfxgz  dns=gaierror (NXDOMAIN)
+Test 5  DRIFT       xe1tnn274k  filmrightsproof.com/mcp -> filmrightsproof.davisvillelabs.com
+Test 6  UNAUTH      sqbxxxr9pq  declared_auth=api_key tools_visible=14
+Test 7  CONFORMANT  uwske4scmp  spec passed=8 failed=0
+Test 8  NON_CONF    g3mugvr4is  spec passed=8 failed=6
+Test 9  GRADE A     g3mugvr4is  mcpdoctor score=95 grade=A
+Test 10 batch 20    20/20 hasil in 15,7 s
+Test 11 batch 100   100/100 hasil in 81,2 s
+Test 12 performa    100 konektor = 81,2 s -> est. 1000 = 13,5 min (< 2 jam)
 ```
 
 Deep penuh (5 tool nyata per konektor, 649 konektor) selesai dalam **27,2 menit** —
@@ -1393,7 +1408,7 @@ Tabel `connector_verification` dibuat (DDL via pooler `aws-0-ap-southeast-1`),
 ### 6. Kesimpulan jujur soal "gap 1.018 → 3.000 REAL"
 
 Verifikasi **tidak** menutup gap itu — justru menunjukkan katalog membesar-besarkan
-angka: dari 1.000 server yang mengiklankan `endpoint_url`, hanya **15** yang lolos
-REAL_GRADE_A dan **511** yang benar-benar mengembalikan data nyata. Sisanya
+angka: dari 1.000 server yang mengiklankan `endpoint_url`, hanya **31** yang lolos
+REAL_GRADE_A dan **594** yang benar-benar mengembalikan data nyata. Sisanya
 auth-gated, non-conformant, atau mati. Menutup gap 2.000/3.000 butuh **sumber
 konektor baru**, bukan promosi entri katalog yang ada.

@@ -80,6 +80,19 @@ MCP_HEADERS = {
     "Accept": "application/json, text/event-stream",
 }
 
+
+def mcp_headers(session_id: str | None = None) -> dict:
+    """Header MCP + Mcp-Session-Id bila server memberikannya di initialize.
+
+    Banyak server streamable-HTTP menolak tools/list atau tools/call tanpa
+    header sesi ini ("Server not initialized", "Missing session ID"). Tanpa ini
+    kita salah menuduh server 'FAKE' padahal protokolnya benar.
+    """
+    h = dict(MCP_HEADERS)
+    if session_id:
+        h["Mcp-Session-Id"] = session_id
+    return h
+
 # frasa yang menandakan "sukses palsu": 200 tapi isinya penolakan/kosong
 REFUSAL_MARKERS = (
     "not configured", "not connected", "please configure",
@@ -91,6 +104,9 @@ AUTH_MARKERS = (
     "unauthor", "authentication", "api key", "apikey", "invalid_api_key",
     "bearer", "credential", "missing token", "access token", "payment required",
     "payment_required", "subscription", "quota", "insufficient",
+    "invalid or disabled token", "no key", "authorization header", "autorizzato",
+    "personal link", "requires a key", "api token", "token required",
+    "needs a personal", "missing api", "not authenticated", "login required",
 )
 
 
@@ -169,7 +185,7 @@ class ConnectorVerificationHarness:
     # ---------------- layer 1: reachable ----------------
     async def _layer1_reachable(self, client: httpx.AsyncClient, url: str) -> dict:
         out: dict = {"ok": False, "status": None, "ms": None, "tls_issuer": None,
-                     "error": None, "final_url": None}
+                     "error": None, "final_url": None, "session_id": None}
         t0 = time.time()
         try:
             r = await client.post(url, json={
@@ -178,6 +194,7 @@ class ConnectorVerificationHarness:
             out["status"] = r.status_code
             out["ms"] = int((time.time() - t0) * 1000)
             out["final_url"] = str(r.url)
+            out["session_id"] = r.headers.get("mcp-session-id")
             # reachable = server menjawab sesuatu (bukan 5xx / bukan connection error)
             out["ok"] = r.status_code < 500
             body = extract_json(r.text)
@@ -231,14 +248,25 @@ class ConnectorVerificationHarness:
                                    "credential", "bearer", "key required"))
         return out
 
+    async def _notify_initialized(self, client: httpx.AsyncClient, url: str,
+                                  session_id: str | None) -> None:
+        """Kirim notifications/initialized — wajib sebelum tools/list di spec."""
+        try:
+            await client.post(url, json={
+                "jsonrpc": "2.0", "method": "notifications/initialized", "params": {},
+            }, headers=mcp_headers(session_id))
+        except Exception:  # noqa: BLE001
+            pass
+
     # ---------------- layer 3: tools/list ----------------
-    async def _layer3_tools(self, client: httpx.AsyncClient, url: str) -> dict:
+    async def _layer3_tools(self, client: httpx.AsyncClient, url: str,
+                            session_id: str | None = None) -> dict:
         out = {"ok": False, "count": 0, "tools": [], "schemas_valid": 0,
                "error": None, "status": None}
         try:
             r = await client.post(url, json={
                 "jsonrpc": "2.0", "id": 2, "method": "tools/list", "params": {},
-            }, headers=MCP_HEADERS)
+            }, headers=mcp_headers(session_id))
             out["status"] = r.status_code
             data = extract_json(r.text)
             if isinstance(data, dict):
@@ -263,7 +291,8 @@ class ConnectorVerificationHarness:
 
     # ---------------- layer 4: reality check ----------------
     async def _layer4_reality(self, client: httpx.AsyncClient, url: str,
-                              tools: list[dict]) -> dict:
+                              tools: list[dict],
+                              session_id: str | None = None) -> dict:
         """Native reality check: panggil tool read-only, nilai apakah jawabannya
         nyata (bukan refusal / kosong). Cerminan mcp-reality-check; di mode deep
         tool pip yang asli juga dijalankan."""
@@ -283,7 +312,7 @@ class ConnectorVerificationHarness:
                 r = await client.post(url, json={
                     "jsonrpc": "2.0", "id": 3, "method": "tools/call",
                     "params": {"name": name, "arguments": {}},
-                }, headers=MCP_HEADERS)
+                }, headers=mcp_headers(session_id))
                 out["probe_status"] = r.status_code
                 data = extract_json(r.text)
                 if not isinstance(data, dict):
@@ -295,8 +324,15 @@ class ConnectorVerificationHarness:
                     msg = json.dumps(err).lower()
                     # -32602 / 'arguments' = tool butuh argumen -> tidak bisa
                     # diprobe dengan {}, TAPI bukan fake. Coba tool berikutnya.
-                    if code == -32602 or "argument" in msg or "invalid param" in msg:
+                    if code == -32602 or "argument" in msg or "invalid param" in msg \
+                            or "requires '" in msg or "invalid_input" in msg \
+                            or "bad request" in msg:
                         out["reason"] = f"{name}: needs arguments (unprobeable)"
+                        continue
+                    # masalah sesi/protokol (-32600, 'session', 'not initialized')
+                    # = artefak probe, bukan bukti data palsu.
+                    if code == -32600 or "session" in msg or "not initialized" in msg:
+                        out["reason"] = f"{name}: protocol/session issue ({json.dumps(err)[:80]})"
                         continue
                     # auth/payment gate -> AUTH_REQUIRED, bukan FAKE
                     if any(k in msg for k in AUTH_MARKERS):
@@ -420,7 +456,9 @@ class ConnectorVerificationHarness:
             out["resolves"] = len({i[4][0] for i in infos})
         except Exception as exc:  # noqa: BLE001
             out["error"] = f"dns: {type(exc).__name__}"
-            out["jackable"] = True  # tidak resolve -> kandidat takeover
+            # HANYA kegagalan resolusi nama (NXDOMAIN -> socket.gaierror) yang
+            # membuktikan domain sudah hilang. Timeout DNS hanyalah lambat.
+            out["jackable"] = isinstance(exc, socket.gaierror)
             return out
         if self.rdap:
             try:
@@ -597,10 +635,13 @@ class ConnectorVerificationHarness:
         l1 = await self._layer1_reachable(client, url)
         body = l1.pop("_body", None)
         l1.pop("_text", None)
+        sid = l1.get("session_id")
         l2 = await self._layer2_handshake(client, url, body, l1.get("status"))
-        l3 = await self._layer3_tools(client, url)
+        if l2.get("ok"):
+            await self._notify_initialized(client, url, sid)
+        l3 = await self._layer3_tools(client, url, sid)
         raw_tools = l3.pop("_raw_tools", []) or []
-        l4 = await self._layer4_reality(client, url, raw_tools)
+        l4 = await self._layer4_reality(client, url, raw_tools, sid)
         l5 = self._layer5_contract(raw_tools)
         l6 = self._layer6_conformance(l2, l3)
         l8 = self._layer8_mock(l1, l2, l3, l4)

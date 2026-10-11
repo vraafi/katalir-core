@@ -1,6 +1,6 @@
 # Connector Verification — 8-Layer REAL vs FAKE
 
-- dibuat: 2026-10-11 00:08 UTC (Oktober 2026)
+- dibuat: 2026-10-11 00:32 UTC (Oktober 2026)
 - konektor terverifikasi: **1000**
 - deep (tool eksternal nyata dijalankan): **648**
 - sumber: `glama_connectors.json` (MCP server dengan `endpoint_url`)
@@ -9,30 +9,29 @@
 
 | klasifikasi | jumlah | arti |
 |---|---:|---|
-| NON_CONFORMANT | 513 | handshake OK tapi gagal ≥1 syarat spec 2026-07-28 |
-| AUTH_REQUIRED | 289 | bicara MCP, minta kredensial (bukan NOT_MCP) |
-| UNAUTH_EXPOSED | 68 | tools/list berhasil TANPA auth padahal deklarasi auth |
-| NOT_MCP | 58 | tidak melayani MCP sama sekali |
-| DEAD | 31 | tidak reachable |
-| FAKE | 19 | balas 200 tapi konten kosong/refusal/stub |
-| REAL_GRADE_A | 15 | MCP hidup, data nyata, mcpdoctor 80+ |
-| DRIFT | 5 | endpoint redirect ke host pihak ketiga |
+| NON_CONFORMANT | 515 | handshake OK tapi gagal ≥1 syarat spec 2026-07-28 |
+| AUTH_REQUIRED | 286 | bicara MCP, minta kredensial (bukan NOT_MCP) |
+| UNAUTH_EXPOSED | 70 | tools/list berhasil TANPA auth padahal deklarasi auth |
+| NOT_MCP | 59 | tidak melayani MCP sama sekali |
+| REAL_GRADE_A | 31 | MCP hidup, data nyata, mcpdoctor 80+ |
+| DEAD | 21 | tidak reachable |
+| FAKE | 11 | balas 200 tapi konten kosong/refusal/stub |
+| DRIFT | 4 | endpoint redirect ke host pihak ketiga |
 | JACKABLE | 1 | domain tidak resolve (kandidat takeover) |
 | REAL_GRADE_B | 1 | MCP hidup, data nyata, skor 60-79 |
+| REAL_GRADE_C | 1 | MCP hidup, data nyata, skor <60 |
 
 ## Supply-chain audit
 
 - **MCPJacking** (DNS tidak resolve): 1
-- **Silent drift** (redirect ke host lain): 6
-- **Unauthenticated exposure** (tools/list tanpa auth): 68
-- **False-green / FAKE**: 19
+- **Silent drift** (redirect ke host lain): 5
+- **Unauthenticated exposure** (tools/list tanpa auth): 70
+- **False-green / FAKE**: 11
 
 ### Contoh UNAUTH_EXPOSED (deklarasi auth, tapi terbuka)
 
 | connector | deklarasi | tools terlihat | url |
 |---|---|---:|---|
-| glama-connector/mhi4eqr3gd | api_key | 15 | https://mcp.kyrodata.com/mcp |
-| glama-connector/he3v9r54as | oauth2 | 19 | https://www.arroway.app/api/mcp |
 | glama-connector/sqbxxxr9pq | api_key | 14 | https://urlpipe.dev/mcp |
 | glama-connector/uwske4scmp | api_key | 4 | https://mcp.hasdata.com/api/mcp?apis=youtube |
 | glama-connector/rs8t6wzq1k | api_key | 1 | https://mcp.hasdata.com/api/mcp?apis=google_travel_hotels |
@@ -46,33 +45,30 @@
 | glama-connector/geffovyt37 | api_key | 2 | https://mcp.hasdata.com/api/mcp?apis=shopify |
 | glama-connector/vlt8pki8m5 | api_key | 3 | https://mcp.hasdata.com/api/mcp?apis=instagram |
 | glama-connector/bb0ncm8xri | api_key | 10 | https://mcp.hasdata.com/api/mcp?apis=google_serp |
+| glama-connector/mhela0786l | api_key | 1 | https://mcp.hasdata.com/api/mcp?apis=google_images |
+| glama-connector/ljg798m69z | api_key | 2 | https://mcp.hasdata.com/api/mcp?apis=booking |
 
 ### Contoh FAKE (200 tapi data palsu)
 
 | connector | alasan |
 |---|---|
-| glama-connector/oll2h14zrh | tool error: {"code": -32000, "message": "ExitProof operation failed", "data": {"code": "invalid_input", "message": "merchant is requ |
-| glama-connector/mlz2mayp1o | tool error: {"code": -32000, "message": "Bad Request: Server not initialized"} |
 | glama-connector/drhuv33m5q | refusal/stub marker: 'placeholder' |
 | glama-connector/s0hms42de7 | empty content (false-green) |
-| glama-connector/xrvncthxn3 | tool error: {"code": -32000, "message": "invalid or disabled token"} |
 | glama-connector/mwhgdpdi5h | refusal/stub marker: 'placeholder' |
 | glama-connector/mqc09cf8db | empty content (false-green) |
-| glama-connector/xph2vx440w | tool error: {"code": -32001, "message": "This address needs a personal link: https://mcp.askwatch.ai/gsc/<your key>. The key is free |
+| glama-connector/unuse5rxd2 | empty content (false-green) |
 | glama-connector/xmbot5cl8n | empty content (false-green) |
-| glama-connector/rdbpth0qcb | tool error: {"code": -32002, "message": "No key on this request: none of authorization, x-api-key, x-klarix-key arrived. Get a free  |
 | glama-connector/nhdausg3yp | empty content (false-green) |
-| glama-connector/ay4ay997ag | tool error: {"code": -32600, "message": "Bad Request: Missing session ID"} |
-| glama-connector/ibbw96nk9b | tool error: {"code": -32603, "message": "Internal error", "data": "web_search requires 'query' parameter"} |
 | glama-connector/x93zktrkfn | refusal/stub marker: 'example.com' |
 | glama-connector/skc2fp03y0 | empty content (false-green) |
+| glama-connector/m0l8b96ul7 | empty content (false-green) |
+| glama-connector/mv6kg7nrzr | tool error: {"code": -32000, "message": "Parse upstream returned 400. Please retry shortly."} |
 
 ### Contoh DRIFT
 
 | connector | rantai redirect |
 |---|---|
 | glama-connector/mhi4eqr3gd | https://mcp.kyrodata.com/mcp -> https://kyrodata.com/en-US/developers |
-| glama-connector/wvfbxvfl1y | https://fincraftly.com/api/mcp |
 | glama-connector/xe1tnn274k | https://filmrightsproof.com/mcp |
 | glama-connector/gy08asij3k | https://spinorflip.com/mcp |
 | glama-connector/xwrixgc214 | https://mcp.snacs.trade |
