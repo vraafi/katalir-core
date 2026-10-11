@@ -96,8 +96,9 @@ Gotcha clone: `agentskillexchange/skills` dan `aniruddhaadak80/skills` collision
 | 4 | qa-skills/test-strategy | Piramida 3 tingkat + KPI durasi | PASS | three_tier_harness |
 | 5 | tool-eval-bench / arc-reliability / probe-ai / hermes-rubric (PyPI) | Layer peningkatan opsional | TERPASANG (isolasi D:) | `/tmp/skilltools_install.log` |
 
-### Status tool PyPI (jujur)
-- Instalasi `--target D:/caches/evaltools` berjalan latar (jaringan mesin terdegradasi, median 528 ms). Verifikasi impor menyusul bila selesai; **gate 420 TIDAK bergantung padanya** — lima harness internal adalah sumber kebenaran agar gate reproduksibel offline.
+### Status tool PyPI (final)
+- `pip --target D:/caches/evaltools` **exit 0**. Impor terverifikasi: `arc` (arc-reliability) OK, `agentprobe` (probe-ai 0.2.1) OK, `tool_eval_bench` OK, `hermes_rubric` OK — **4/4**. Gotcha: paket PyPI `probe-ai` memasang modul bernama `agentprobe`, bukan `probe_ai`.
+- **Gate 420 TIDAK bergantung padanya** — lima harness internal adalah sumber kebenaran agar gate reproduksibel offline; tool PyPI = layer peningkatan.
 
 ### Commit + Push
 - Hash: lihat git log (commit Brief 6).
