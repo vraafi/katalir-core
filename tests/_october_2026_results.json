@@ -1,0 +1,8543 @@
+{
+ "total": 420,
+ "pass": 420,
+ "fail": 0,
+ "skip": 0,
+ "methods": {
+  "M5": 316,
+  "M4": 13,
+  "M1": 79,
+  "M3": 5,
+  "M2": 7
+ },
+ "per_feature": {
+  "01-chat": {
+   "PASS": 20,
+   "FAIL": 0,
+   "SKIP": 0,
+   "n": 20
+  },
+  "02-workflow-builder": {
+   "PASS": 20,
+   "FAIL": 0,
+   "SKIP": 0,
+   "n": 20
+  },
+  "03-mcp-server": {
+   "PASS": 20,
+   "FAIL": 0,
+   "SKIP": 0,
+   "n": 20
+  },
+  "04-agents": {
+   "PASS": 20,
+   "FAIL": 0,
+   "SKIP": 0,
+   "n": 20
+  },
+  "05-scheduled-trigger": {
+   "PASS": 20,
+   "FAIL": 0,
+   "SKIP": 0,
+   "n": 20
+  },
+  "06-durable-execution": {
+   "PASS": 20,
+   "FAIL": 0,
+   "SKIP": 0,
+   "n": 20
+  },
+  "07-dlq": {
+   "PASS": 20,
+   "FAIL": 0,
+   "SKIP": 0,
+   "n": 20
+  },
+  "08-sub-workflow": {
+   "PASS": 20,
+   "FAIL": 0,
+   "SKIP": 0,
+   "n": 20
+  },
+  "09-parallel-fanout": {
+   "PASS": 20,
+   "FAIL": 0,
+   "SKIP": 0,
+   "n": 20
+  },
+  "10-code-sandbox": {
+   "PASS": 20,
+   "FAIL": 0,
+   "SKIP": 0,
+   "n": 20
+  },
+  "11-external-secrets": {
+   "PASS": 20,
+   "FAIL": 0,
+   "SKIP": 0,
+   "n": 20
+  },
+  "12-guardrails": {
+   "PASS": 20,
+   "FAIL": 0,
+   "SKIP": 0,
+   "n": 20
+  },
+  "13-rag": {
+   "PASS": 20,
+   "FAIL": 0,
+   "SKIP": 0,
+   "n": 20
+  },
+  "14-hitl": {
+   "PASS": 20,
+   "FAIL": 0,
+   "SKIP": 0,
+   "n": 20
+  },
+  "15-evaluation": {
+   "PASS": 20,
+   "FAIL": 0,
+   "SKIP": 0,
+   "n": 20
+  },
+  "16-insights": {
+   "PASS": 20,
+   "FAIL": 0,
+   "SKIP": 0,
+   "n": 20
+  },
+  "17-sso": {
+   "PASS": 20,
+   "FAIL": 0,
+   "SKIP": 0,
+   "n": 20
+  },
+  "18-queue": {
+   "PASS": 20,
+   "FAIL": 0,
+   "SKIP": 0,
+   "n": 20
+  },
+  "19-git-source-control": {
+   "PASS": 20,
+   "FAIL": 0,
+   "SKIP": 0,
+   "n": 20
+  },
+  "20-realtime-collab": {
+   "PASS": 20,
+   "FAIL": 0,
+   "SKIP": 0,
+   "n": 20
+  },
+  "21-plugin-system": {
+   "PASS": 20,
+   "FAIL": 0,
+   "SKIP": 0,
+   "n": 20
+  }
+ },
+ "results": [
+  {
+   "feature": "01-chat",
+   "method": "M5",
+   "name": "sse_frame punya baris event:",
+   "clean_ok": true,
+   "detail": "frame memuat 'event: '",
+   "evidence": {},
+   "clean_s": 0.0001,
+   "log": "",
+   "fault": {
+    "applied": [
+     "raise:sse_frame"
+    ],
+    "s": 0.0015,
+    "result": "raised",
+    "note": "RuntimeError: chaos-2026",
+    "reverts": 1
+   },
+   "verdict": "PASS"
+  },
+  {
+   "feature": "01-chat",
+   "method": "M5",
+   "name": "sse_frame punya baris data:",
+   "clean_ok": true,
+   "detail": "frame memuat 'data: '",
+   "evidence": {},
+   "clean_s": 0.0,
+   "log": "",
+   "fault": {
+    "applied": [
+     "raise:sse_frame"
+    ],
+    "s": 0.0003,
+    "result": "raised",
+    "note": "RuntimeError: chaos-2026",
+    "reverts": 1
+   },
+   "verdict": "PASS"
+  },
+  {
+   "feature": "01-chat",
+   "method": "M5",
+   "name": "sse_frame diakhiri baris kosong ganda",
+   "clean_ok": true,
+   "detail": "berakhir '\\n\\n'",
+   "evidence": {},
+   "clean_s": 0.0,
+   "log": "",
+   "fault": {
+    "applied": [
+     "raise:sse_frame"
+    ],
+    "s": 0.0002,
+    "result": "raised",
+    "note": "RuntimeError: chaos-2026",
+    "reverts": 1
+   },
+   "verdict": "PASS"
+  },
+  {
+   "feature": "01-chat",
+   "method": "M5",
+   "name": "sse_frame event_id menghasilkan baris id:",
+   "clean_ok": true,
+   "detail": "baris id ada",
+   "evidence": {},
+   "clean_s": 0.0,
+   "log": "",
+   "fault": {
+    "applied": [
+     "raise:sse_frame"
+    ],
+    "s": 0.0002,
+    "result": "raised",
+    "note": "RuntimeError: chaos-2026",
+    "reverts": 1
+   },
+   "verdict": "PASS"
+  },
+  {
+   "feature": "01-chat",
+   "method": "M5",
+   "name": "sse_frame data dict di-JSON-kan",
+   "clean_ok": true,
+   "detail": "payload JSON",
+   "evidence": {},
+   "clean_s": 0.0,
+   "log": "",
+   "fault": {
+    "applied": [
+     "raise:sse_frame"
+    ],
+    "s": 0.0002,
+    "result": "raised",
+    "note": "RuntimeError: chaos-2026",
+    "reverts": 1
+   },
+   "verdict": "PASS"
+  },
+  {
+   "feature": "01-chat",
+   "method": "M5",
+   "name": "sse_frame data multi-baris dipecah per baris data:",
+   "clean_ok": true,
+   "detail": "2 baris data",
+   "evidence": {},
+   "clean_s": 0.0,
+   "log": "",
+   "fault": {
+    "applied": [
+     "raise:sse_frame"
+    ],
+    "s": 0.0002,
+    "result": "raised",
+    "note": "RuntimeError: chaos-2026",
+    "reverts": 1
+   },
+   "verdict": "PASS"
+  },
+  {
+   "feature": "01-chat",
+   "method": "M5",
+   "name": "parse_frame mem-parse frame sse_frame",
+   "clean_ok": true,
+   "detail": "event terbaca",
+   "evidence": {},
+   "clean_s": 0.0,
+   "log": "",
+   "fault": {
+    "applied": [
+     "raise:parse_frame"
+    ],
+    "s": 0.0003,
+    "result": "raised",
+    "note": "RuntimeError: chaos-2026",
+    "reverts": 1
+   },
+   "verdict": "PASS"
+  },
+  {
+   "feature": "01-chat",
+   "method": "M5",
+   "name": "parse_frame frame tanpa data -> data None",
+   "clean_ok": true,
+   "detail": "data None/absen",
+   "evidence": {},
+   "clean_s": 0.0,
+   "log": "",
+   "fault": {
+    "applied": [
+     "raise:parse_frame"
+    ],
+    "s": 0.0002,
+    "result": "raised",
+    "note": "RuntimeError: chaos-2026",
+    "reverts": 1
+   },
+   "verdict": "PASS"
+  },
+  {
+   "feature": "01-chat",
+   "method": "M5",
+   "name": "text_chunks memecah teks panjang",
+   "clean_ok": true,
+   "detail": "3 chunk",
+   "evidence": {},
+   "clean_s": 0.0,
+   "log": "",
+   "fault": {
+    "applied": [
+     "raise:text_chunks"
+    ],
+    "s": 0.0002,
+    "result": "raised",
+    "note": "RuntimeError: chaos-2026",
+    "reverts": 1
+   },
+   "verdict": "PASS"
+  },
+  {
+   "feature": "01-chat",
+   "method": "M4",
+   "name": "text_chunks menyatukan kembali == teks asli",
+   "clean_ok": true,
+   "detail": "round-trip utuh",
+   "evidence": {},
+   "clean_s": 0.0,
+   "log": "",
+   "fault": {
+    "applied": [
+     "corrupt:text_chunks"
+    ],
+    "s": 0.0,
+    "result": "raised",
+    "note": "GAGAL: round-trip utuh",
+    "reverts": 1
+   },
+   "verdict": "PASS"
+  },
+  {
+   "feature": "01-chat",
+   "method": "M5",
+   "name": "text_chunks teks kosong -> []",
+   "clean_ok": true,
+   "detail": "kosong",
+   "evidence": {},
+   "clean_s": 0.0,
+   "log": "",
+   "fault": {
+    "applied": [
+     "raise:text_chunks"
+    ],
+    "s": 0.0002,
+    "result": "raised",
+    "note": "RuntimeError: chaos-2026",
+    "reverts": 1
+   },
+   "verdict": "PASS"
+  },
+  {
+   "feature": "01-chat",
+   "method": "M5",
+   "name": "text_chunks size lebih besar -> 1 chunk",
+   "clean_ok": true,
+   "detail": "1 chunk",
+   "evidence": {},
+   "clean_s": 0.0,
+   "log": "",
+   "fault": {
+    "applied": [
+     "raise:text_chunks"
+    ],
+    "s": 0.0002,
+    "result": "raised",
+    "note": "RuntimeError: chaos-2026",
+    "reverts": 1
+   },
+   "verdict": "PASS"
+  },
+  {
+   "feature": "01-chat",
+   "method": "M5",
+   "name": "text_chunks unicode utuh",
+   "clean_ok": true,
+   "detail": "unicode utuh",
+   "evidence": {},
+   "clean_s": 0.0,
+   "log": "",
+   "fault": {
+    "applied": [
+     "corrupt:text_chunks"
+    ],
+    "s": 0.0,
+    "result": "raised",
+    "note": "GAGAL: unicode utuh",
+    "reverts": 1
+   },
+   "verdict": "PASS"
+  },
+  {
+   "feature": "01-chat",
+   "method": "M5",
+   "name": "text_chunks default size == CHUNK_SIZE",
+   "clean_ok": true,
+   "detail": "default = CHUNK_SIZE",
+   "evidence": {},
+   "clean_s": 0.0,
+   "log": "",
+   "fault": {
+    "applied": [
+     "raise:text_chunks"
+    ],
+    "s": 0.0002,
+    "result": "raised",
+    "note": "RuntimeError: chaos-2026",
+    "reverts": 1
+   },
+   "verdict": "PASS"
+  },
+  {
+   "feature": "01-chat",
+   "method": "M5",
+   "name": "SSE_HEADERS menonaktifkan buffering proxy",
+   "clean_ok": true,
+   "detail": "X-Accel-Buffering: no",
+   "evidence": {},
+   "clean_s": 0.0,
+   "log": "",
+   "fault": {
+    "applied": [
+     "raise:sse_frame"
+    ],
+    "s": 0.0,
+    "result": "handled",
+    "note": "X-Accel-Buffering: no",
+    "reverts": 1
+   },
+   "verdict": "PASS"
+  },
+  {
+   "feature": "01-chat",
+   "method": "M5",
+   "name": "SSE_HEADERS no-cache",
+   "clean_ok": true,
+   "detail": "no-cache ada",
+   "evidence": {},
+   "clean_s": 0.0,
+   "log": "",
+   "fault": {
+    "applied": [
+     "raise:sse_frame"
+    ],
+    "s": 0.0,
+    "result": "handled",
+    "note": "no-cache ada",
+    "reverts": 1
+   },
+   "verdict": "PASS"
+  },
+  {
+   "feature": "01-chat",
+   "method": "M5",
+   "name": "IDLE_TIMEOUT >= HEARTBEAT_INTERVAL",
+   "clean_ok": true,
+   "detail": "idle=30.0 >= hb=10.0",
+   "evidence": {},
+   "clean_s": 0.0,
+   "log": "",
+   "fault": {
+    "applied": [
+     "delay:text_chunks"
+    ],
+    "s": 0.0,
+    "result": "handled",
+    "note": "idle=30.0 >= hb=10.0",
+    "reverts": 1
+   },
+   "verdict": "PASS"
+  },
+  {
+   "feature": "01-chat",
+   "method": "M5",
+   "name": "HEARTBEAT_INTERVAL positif",
+   "clean_ok": true,
+   "detail": "hb > 0",
+   "evidence": {},
+   "clean_s": 0.0,
+   "log": "",
+   "fault": {
+    "applied": [
+     "delay:sse_frame"
+    ],
+    "s": 0.0,
+    "result": "handled",
+    "note": "hb > 0",
+    "reverts": 1
+   },
+   "verdict": "PASS"
+  },
+  {
+   "feature": "01-chat",
+   "method": "M1",
+   "name": "StreamAborted adalah Exception",
+   "clean_ok": true,
+   "detail": "subclass Exception",
+   "evidence": {},
+   "clean_s": 0.0,
+   "log": "",
+   "fault": {
+    "applied": [
+     "raise:parse_frame"
+    ],
+    "s": 0.0,
+    "result": "handled",
+    "note": "subclass Exception",
+    "reverts": 1
+   },
+   "verdict": "PASS"
+  },
+  {
+   "feature": "01-chat",
+   "method": "M1",
+   "name": "snapshot input L1 (five-layer) pada frame",
+   "clean_ok": true,
+   "detail": "snapshot L1 tercatat",
+   "evidence": {},
+   "clean_s": 0.0,
+   "log": "",
+   "fault": {
+    "applied": [
+     "raise:sse_frame"
+    ],
+    "s": 0.0,
+    "result": "handled",
+    "note": "snapshot L1 tercatat",
+    "reverts": 1
+   },
+   "verdict": "PASS"
+  },
+  {
+   "feature": "02-workflow-builder",
+   "method": "M5",
+   "name": "addNode menambah node",
+   "clean_ok": true,
+   "detail": "ok=True",
+   "evidence": {},
+   "clean_s": 5.0928,
+   "log": "",
+   "fault": {
+    "applied": [
+     "raise:apply_operations"
+    ],
+    "s": 0.0004,
+    "result": "raised",
+    "note": "RuntimeError: chaos-2026",
+    "reverts": 1
+   },
+   "verdict": "PASS"
+  },
+  {
+   "feature": "02-workflow-builder",
+   "method": "M5",
+   "name": "addNode id duplikat ditolak",
+   "clean_ok": true,
+   "detail": "ok=False",
+   "evidence": {},
+   "clean_s": 0.0001,
+   "log": "",
+   "fault": {
+    "applied": [
+     "raise:apply_operations"
+    ],
+    "s": 0.0002,
+    "result": "raised",
+    "note": "RuntimeError: chaos-2026",
+    "reverts": 1
+   },
+   "verdict": "PASS"
+  },
+  {
+   "feature": "02-workflow-builder",
+   "method": "M5",
+   "name": "addNode tanpa node ditolak",
+   "clean_ok": true,
+   "detail": "ok=False",
+   "evidence": {},
+   "clean_s": 0.0,
+   "log": "",
+   "fault": {
+    "applied": [
+     "raise:apply_operations"
+    ],
+    "s": 0.0002,
+    "result": "raised",
+    "note": "RuntimeError: chaos-2026",
+    "reverts": 1
+   },
+   "verdict": "PASS"
+  },
+  {
+   "feature": "02-workflow-builder",
+   "method": "M5",
+   "name": "addNode kind tak dikenal ditolak",
+   "clean_ok": true,
+   "detail": "ok=False",
+   "evidence": {},
+   "clean_s": 0.0001,
+   "log": "",
+   "fault": {
+    "applied": [
+     "raise:apply_operations"
+    ],
+    "s": 0.0002,
+    "result": "raised",
+    "note": "RuntimeError: chaos-2026",
+    "reverts": 1
+   },
+   "verdict": "PASS"
+  },
+  {
+   "feature": "02-workflow-builder",
+   "method": "M5",
+   "name": "updateNode mengubah label",
+   "clean_ok": true,
+   "detail": "ok=True",
+   "evidence": {},
+   "clean_s": 0.0001,
+   "log": "",
+   "fault": {
+    "applied": [
+     "raise:apply_operations"
+    ],
+    "s": 0.0002,
+    "result": "raised",
+    "note": "RuntimeError: chaos-2026",
+    "reverts": 1
+   },
+   "verdict": "PASS"
+  },
+  {
+   "feature": "02-workflow-builder",
+   "method": "M5",
+   "name": "updateNode kunci di luar whitelist ditolak",
+   "clean_ok": true,
+   "detail": "ok=False",
+   "evidence": {},
+   "clean_s": 0.0,
+   "log": "",
+   "fault": {
+    "applied": [
+     "raise:apply_operations"
+    ],
+    "s": 0.0002,
+    "result": "raised",
+    "note": "RuntimeError: chaos-2026",
+    "reverts": 1
+   },
+   "verdict": "PASS"
+  },
+  {
+   "feature": "02-workflow-builder",
+   "method": "M5",
+   "name": "updateNode node tidak ada ditolak",
+   "clean_ok": true,
+   "detail": "ok=False",
+   "evidence": {},
+   "clean_s": 0.0,
+   "log": "",
+   "fault": {
+    "applied": [
+     "raise:apply_operations"
+    ],
+    "s": 0.0002,
+    "result": "raised",
+    "note": "RuntimeError: chaos-2026",
+    "reverts": 1
+   },
+   "verdict": "PASS"
+  },
+  {
+   "feature": "02-workflow-builder",
+   "method": "M5",
+   "name": "removeNode menghapus node",
+   "clean_ok": true,
+   "detail": "ok=True",
+   "evidence": {},
+   "clean_s": 0.0001,
+   "log": "",
+   "fault": {
+    "applied": [
+     "raise:apply_operations"
+    ],
+    "s": 0.0003,
+    "result": "raised",
+    "note": "RuntimeError: chaos-2026",
+    "reverts": 1
+   },
+   "verdict": "PASS"
+  },
+  {
+   "feature": "02-workflow-builder",
+   "method": "M5",
+   "name": "addConnection menambah edge",
+   "clean_ok": true,
+   "detail": "ok=True",
+   "evidence": {},
+   "clean_s": 0.0003,
+   "log": "",
+   "fault": {
+    "applied": [
+     "raise:apply_operations"
+    ],
+    "s": 0.0005,
+    "result": "raised",
+    "note": "RuntimeError: chaos-2026",
+    "reverts": 1
+   },
+   "verdict": "PASS"
+  },
+  {
+   "feature": "02-workflow-builder",
+   "method": "M5",
+   "name": "removeConnection menghapus edge",
+   "clean_ok": true,
+   "detail": "ok=True",
+   "evidence": {},
+   "clean_s": 0.0001,
+   "log": "",
+   "fault": {
+    "applied": [
+     "raise:apply_operations"
+    ],
+    "s": 0.0003,
+    "result": "raised",
+    "note": "RuntimeError: chaos-2026",
+    "reverts": 1
+   },
+   "verdict": "PASS"
+  },
+  {
+   "feature": "02-workflow-builder",
+   "method": "M5",
+   "name": "jenis operasi tak dikenal ditolak",
+   "clean_ok": true,
+   "detail": "ok=False",
+   "evidence": {},
+   "clean_s": 0.0,
+   "log": "",
+   "fault": {
+    "applied": [
+     "raise:apply_operations"
+    ],
+    "s": 0.0004,
+    "result": "raised",
+    "note": "RuntimeError: chaos-2026",
+    "reverts": 1
+   },
+   "verdict": "PASS"
+  },
+  {
+   "feature": "02-workflow-builder",
+   "method": "M3",
+   "name": "prototype pollution (__proto__) ditolak",
+   "clean_ok": true,
+   "detail": "ok=False",
+   "evidence": {},
+   "clean_s": 0.0001,
+   "log": "",
+   "fault": {
+    "applied": [
+     "raise:apply_operations"
+    ],
+    "s": 0.0004,
+    "result": "raised",
+    "note": "RuntimeError: chaos-2026",
+    "reverts": 1
+   },
+   "verdict": "PASS"
+  },
+  {
+   "feature": "02-workflow-builder",
+   "method": "M1",
+   "name": "dry_run tidak mengubah flow_data asli",
+   "clean_ok": true,
+   "detail": "asli tetap kosong",
+   "evidence": {},
+   "clean_s": 0.0001,
+   "log": "",
+   "fault": {
+    "applied": [
+     "raise:apply_operations"
+    ],
+    "s": 0.0002,
+    "result": "raised",
+    "note": "RuntimeError: chaos-2026",
+    "reverts": 1
+   },
+   "verdict": "PASS"
+  },
+  {
+   "feature": "02-workflow-builder",
+   "method": "M1",
+   "name": "atomik: satu op buruk -> dokumen asli utuh",
+   "clean_ok": true,
+   "detail": "asli dikembalikan",
+   "evidence": {},
+   "clean_s": 0.0001,
+   "log": "",
+   "fault": {
+    "applied": [
+     "raise:apply_operations"
+    ],
+    "s": 0.0002,
+    "result": "raised",
+    "note": "RuntimeError: chaos-2026",
+    "reverts": 1
+   },
+   "verdict": "PASS"
+  },
+  {
+   "feature": "02-workflow-builder",
+   "method": "M5",
+   "name": "terlalu banyak operasi ditolak",
+   "clean_ok": true,
+   "detail": "ok=False",
+   "evidence": {},
+   "clean_s": 0.0006,
+   "log": "",
+   "fault": {
+    "applied": [
+     "raise:apply_operations"
+    ],
+    "s": 0.0004,
+    "result": "raised",
+    "note": "RuntimeError: chaos-2026",
+    "reverts": 1
+   },
+   "verdict": "PASS"
+  },
+  {
+   "feature": "02-workflow-builder",
+   "method": "M5",
+   "name": "flow_data non-dict ditolak",
+   "clean_ok": true,
+   "detail": "ok=False",
+   "evidence": {},
+   "clean_s": 0.0,
+   "log": "",
+   "fault": {
+    "applied": [
+     "raise:apply_operations"
+    ],
+    "s": 0.0002,
+    "result": "raised",
+    "note": "RuntimeError: chaos-2026",
+    "reverts": 1
+   },
+   "verdict": "PASS"
+  },
+  {
+   "feature": "02-workflow-builder",
+   "method": "M5",
+   "name": "operations non-list ditolak",
+   "clean_ok": true,
+   "detail": "ok=False",
+   "evidence": {},
+   "clean_s": 0.0,
+   "log": "",
+   "fault": {
+    "applied": [
+     "raise:apply_operations"
+    ],
+    "s": 0.0002,
+    "result": "raised",
+    "note": "RuntimeError: chaos-2026",
+    "reverts": 1
+   },
+   "verdict": "PASS"
+  },
+  {
+   "feature": "02-workflow-builder",
+   "method": "M4",
+   "name": "diff dihasilkan saat sukses",
+   "clean_ok": true,
+   "detail": "diff dict",
+   "evidence": {},
+   "clean_s": 0.0001,
+   "log": "",
+   "fault": {
+    "applied": [
+     "corrupt:apply_operations"
+    ],
+    "s": 0.0,
+    "result": "raised",
+    "note": "GAGAL: diff dict",
+    "reverts": 1
+   },
+   "verdict": "PASS"
+  },
+  {
+   "feature": "02-workflow-builder",
+   "method": "M5",
+   "name": "describe() melaporkan supported_ops lengkap",
+   "clean_ok": true,
+   "detail": "ops sesuai",
+   "evidence": {},
+   "clean_s": 0.0,
+   "log": "",
+   "fault": {
+    "applied": [
+     "raise:describe"
+    ],
+    "s": 0.0002,
+    "result": "raised",
+    "note": "RuntimeError: chaos-2026",
+    "reverts": 1
+   },
+   "verdict": "PASS"
+  },
+  {
+   "feature": "02-workflow-builder",
+   "method": "M5",
+   "name": "flow_limits: batas node & edge konsisten",
+   "clean_ok": true,
+   "detail": "nodes=500 edges=1000",
+   "evidence": {},
+   "clean_s": 0.0,
+   "log": "",
+   "fault": {
+    "applied": [
+     "raise:describe"
+    ],
+    "s": 0.0,
+    "result": "handled",
+    "note": "nodes=500 edges=1000",
+    "reverts": 1
+   },
+   "verdict": "PASS"
+  },
+  {
+   "feature": "03-mcp-server",
+   "method": "M5",
+   "name": "mcp_version() string",
+   "clean_ok": true,
+   "detail": "versi=2.3.0",
+   "evidence": {},
+   "clean_s": 0.006,
+   "log": "",
+   "fault": {
+    "applied": [
+     "raise:mcp_version"
+    ],
+    "s": 0.0006,
+    "result": "raised",
+    "note": "RuntimeError: chaos-2026",
+    "reverts": 1
+   },
+   "verdict": "PASS"
+  },
+  {
+   "feature": "03-mcp-server",
+   "method": "M5",
+   "name": "mcp_major() int >= 1",
+   "clean_ok": true,
+   "detail": "major=2",
+   "evidence": {},
+   "clean_s": 0.0042,
+   "log": "",
+   "fault": {
+    "applied": [
+     "raise:mcp_major"
+    ],
+    "s": 0.0003,
+    "result": "raised",
+    "note": "RuntimeError: chaos-2026",
+    "reverts": 1
+   },
+   "verdict": "PASS"
+  },
+  {
+   "feature": "03-mcp-server",
+   "method": "M5",
+   "name": "is_v2() konsisten dengan major",
+   "clean_ok": true,
+   "detail": "konsisten",
+   "evidence": {},
+   "clean_s": 0.0043,
+   "log": "",
+   "fault": {
+    "applied": [
+     "raise:is_v2"
+    ],
+    "s": 0.0003,
+    "result": "raised",
+    "note": "RuntimeError: chaos-2026",
+    "reverts": 1
+   },
+   "verdict": "PASS"
+  },
+  {
+   "feature": "03-mcp-server",
+   "method": "M5",
+   "name": "protocol_versions() dict",
+   "clean_ok": true,
+   "detail": "{'latest': '2026-07-28', 'default': '2025-03-26'}",
+   "evidence": {},
+   "clean_s": 0.0,
+   "log": "",
+   "fault": {
+    "applied": [
+     "raise:protocol_versions"
+    ],
+    "s": 0.0002,
+    "result": "raised",
+    "note": "RuntimeError: chaos-2026",
+    "reverts": 1
+   },
+   "verdict": "PASS"
+  },
+  {
+   "feature": "03-mcp-server",
+   "method": "M5",
+   "name": "server_class_name() non-empty",
+   "clean_ok": true,
+   "detail": "MCPServer",
+   "evidence": {},
+   "clean_s": 0.0054,
+   "log": "",
+   "fault": {
+    "applied": [
+     "raise:server_class_name"
+    ],
+    "s": 0.0003,
+    "result": "raised",
+    "note": "RuntimeError: chaos-2026",
+    "reverts": 1
+   },
+   "verdict": "PASS"
+  },
+  {
+   "feature": "03-mcp-server",
+   "method": "M5",
+   "name": "tool_name dari dict",
+   "clean_ok": true,
+   "detail": "t1",
+   "evidence": {},
+   "clean_s": 0.0,
+   "log": "",
+   "fault": {
+    "applied": [
+     "corrupt:tool_name"
+    ],
+    "s": 0.0,
+    "result": "raised",
+    "note": "GAGAL: t1",
+    "reverts": 1
+   },
+   "verdict": "PASS"
+  },
+  {
+   "feature": "03-mcp-server",
+   "method": "M5",
+   "name": "tool_name dari objek",
+   "clean_ok": true,
+   "detail": "t2",
+   "evidence": {},
+   "clean_s": 0.0,
+   "log": "",
+   "fault": {
+    "applied": [
+     "corrupt:tool_name"
+    ],
+    "s": 0.0,
+    "result": "raised",
+    "note": "GAGAL: t2",
+    "reverts": 1
+   },
+   "verdict": "PASS"
+  },
+  {
+   "feature": "03-mcp-server",
+   "method": "M5",
+   "name": "tool_input_schema mengembalikan dict",
+   "clean_ok": true,
+   "detail": "schema dict",
+   "evidence": {},
+   "clean_s": 0.0,
+   "log": "",
+   "fault": {
+    "applied": [
+     "corrupt:tool_input_schema"
+    ],
+    "s": 0.0,
+    "result": "raised",
+    "note": "GAGAL: schema dict",
+    "reverts": 1
+   },
+   "verdict": "PASS"
+  },
+  {
+   "feature": "03-mcp-server",
+   "method": "M5",
+   "name": "normalize_tool menghasilkan name+description+input_schema",
+   "clean_ok": true,
+   "detail": "kunci lengkap",
+   "evidence": {},
+   "clean_s": 0.0,
+   "log": "",
+   "fault": {
+    "applied": [
+     "corrupt:normalize_tool"
+    ],
+    "s": 0.0,
+    "result": "raised",
+    "note": "GAGAL: kunci lengkap",
+    "reverts": 1
+   },
+   "verdict": "PASS"
+  },
+  {
+   "feature": "03-mcp-server",
+   "method": "M5",
+   "name": "tool_is_error True bila isError",
+   "clean_ok": true,
+   "detail": "True",
+   "evidence": {},
+   "clean_s": 0.0,
+   "log": "",
+   "fault": {
+    "applied": [
+     "corrupt:tool_is_error"
+    ],
+    "s": 0.0,
+    "result": "raised",
+    "note": "GAGAL: True",
+    "reverts": 1
+   },
+   "verdict": "PASS"
+  },
+  {
+   "feature": "03-mcp-server",
+   "method": "M5",
+   "name": "tool_is_error False default",
+   "clean_ok": true,
+   "detail": "False",
+   "evidence": {},
+   "clean_s": 0.0,
+   "log": "",
+   "fault": {
+    "applied": [
+     "corrupt:tool_is_error"
+    ],
+    "s": 0.0,
+    "result": "raised",
+    "note": "GAGAL: False",
+    "reverts": 1
+   },
+   "verdict": "PASS"
+  },
+  {
+   "feature": "03-mcp-server",
+   "method": "M5",
+   "name": "tool_next_cursor None bila absen",
+   "clean_ok": true,
+   "detail": "None",
+   "evidence": {},
+   "clean_s": 0.0,
+   "log": "",
+   "fault": {
+    "applied": [
+     "corrupt:tool_next_cursor"
+    ],
+    "s": 0.0,
+    "result": "raised",
+    "note": "GAGAL: None",
+    "reverts": 1
+   },
+   "verdict": "PASS"
+  },
+  {
+   "feature": "03-mcp-server",
+   "method": "M5",
+   "name": "tool_structured_content tidak melempar",
+   "clean_ok": true,
+   "detail": "structured dibaca",
+   "evidence": {},
+   "clean_s": 0.0,
+   "log": "",
+   "fault": {
+    "applied": [
+     "raise:tool_structured_content"
+    ],
+    "s": 0.0002,
+    "result": "raised",
+    "note": "RuntimeError: chaos-2026",
+    "reverts": 1
+   },
+   "verdict": "PASS"
+  },
+  {
+   "feature": "03-mcp-server",
+   "method": "M5",
+   "name": "dump_wire pada dict tetap JSON-able",
+   "clean_ok": true,
+   "detail": "JSON-able",
+   "evidence": {},
+   "clean_s": 0.0,
+   "log": "",
+   "fault": {
+    "applied": [
+     "corrupt:dump_wire"
+    ],
+    "s": 0.0052,
+    "result": "raised",
+    "note": "TypeError: Object of type object is not JSON serializable",
+    "reverts": 1
+   },
+   "verdict": "PASS"
+  },
+  {
+   "feature": "03-mcp-server",
+   "method": "M5",
+   "name": "field() ambil kunci pertama yang ada",
+   "clean_ok": true,
+   "detail": "=2",
+   "evidence": {},
+   "clean_s": 0.0,
+   "log": "",
+   "fault": {
+    "applied": [
+     "corrupt:field"
+    ],
+    "s": 0.0,
+    "result": "raised",
+    "note": "GAGAL: =2",
+    "reverts": 1
+   },
+   "verdict": "PASS"
+  },
+  {
+   "feature": "03-mcp-server",
+   "method": "M5",
+   "name": "expose_tool_errors mengembalikan callable",
+   "clean_ok": true,
+   "detail": "callable",
+   "evidence": {},
+   "clean_s": 0.0044,
+   "log": "",
+   "fault": {
+    "applied": [
+     "raise:expose_tool_errors"
+    ],
+    "s": 0.0007,
+    "result": "raised",
+    "note": "RuntimeError: chaos-2026",
+    "reverts": 1
+   },
+   "verdict": "PASS"
+  },
+  {
+   "feature": "03-mcp-server",
+   "method": "M5",
+   "name": "tool_error_class() adalah class",
+   "clean_ok": true,
+   "detail": "class",
+   "evidence": {},
+   "clean_s": 0.0015,
+   "log": "",
+   "fault": {
+    "applied": [
+     "raise:tool_error_class"
+    ],
+    "s": 0.0003,
+    "result": "raised",
+    "note": "RuntimeError: chaos-2026",
+    "reverts": 1
+   },
+   "verdict": "PASS"
+  },
+  {
+   "feature": "03-mcp-server",
+   "method": "M5",
+   "name": "server_error_class() adalah class",
+   "clean_ok": true,
+   "detail": "class",
+   "evidence": {},
+   "clean_s": 0.0014,
+   "log": "",
+   "fault": {
+    "applied": [
+     "raise:server_error_class"
+    ],
+    "s": 0.0004,
+    "result": "raised",
+    "note": "RuntimeError: chaos-2026",
+    "reverts": 1
+   },
+   "verdict": "PASS"
+  },
+  {
+   "feature": "03-mcp-server",
+   "method": "M5",
+   "name": "dropped_server_kwargs melaporkan kwarg v1",
+   "clean_ok": true,
+   "detail": "event_store terdeteksi",
+   "evidence": {},
+   "clean_s": 0.0035,
+   "log": "",
+   "fault": {
+    "applied": [
+     "corrupt:dropped_server_kwargs"
+    ],
+    "s": 0.0025,
+    "result": "raised",
+    "note": "GAGAL: event_store terdeteksi",
+    "reverts": 1
+   },
+   "verdict": "PASS"
+  },
+  {
+   "feature": "03-mcp-server",
+   "method": "M1",
+   "name": "McpCompatError adalah RuntimeError",
+   "clean_ok": true,
+   "detail": "subclass",
+   "evidence": {},
+   "clean_s": 0.0,
+   "log": "",
+   "fault": {
+    "applied": [
+     "raise:mcp_version"
+    ],
+    "s": 0.0,
+    "result": "handled",
+    "note": "subclass",
+    "reverts": 1
+   },
+   "verdict": "PASS"
+  },
+  {
+   "feature": "04-agents",
+   "method": "M5",
+   "name": "redact canary -> CanaryDetectedError (fail-closed)",
+   "clean_ok": true,
+   "detail": "canary -> CanaryDetectedError: CANARY TERDETEKSI — kredensial test bocor! Cabut kredensial test sekarang, lalu perbaiki j",
+   "evidence": {},
+   "clean_s": 0.0,
+   "log": "",
+   "fault": {
+    "applied": [
+     "raise:redact"
+    ],
+    "s": 0.0,
+    "result": "raised",
+    "note": "canary -> RuntimeError (harap CanaryDetectedError): chaos-2026",
+    "reverts": 1
+   },
+   "verdict": "PASS"
+  },
+  {
+   "feature": "04-agents",
+   "method": "M5",
+   "name": "redact canary dengan raise_on_canary=False -> dimask",
+   "clean_ok": true,
+   "detail": "canary tidak lolos mentah",
+   "evidence": {},
+   "clean_s": 0.0001,
+   "log": "",
+   "fault": {
+    "applied": [
+     "raise:redact"
+    ],
+    "s": 0.0003,
+    "result": "raised",
+    "note": "RuntimeError: chaos-2026",
+    "reverts": 1
+   },
+   "verdict": "PASS"
+  },
+  {
+   "feature": "04-agents",
+   "method": "M5",
+   "name": "scan_canary mendeteksi canary",
+   "clean_ok": true,
+   "detail": "terdeteksi",
+   "evidence": {},
+   "clean_s": 0.0,
+   "log": "",
+   "fault": {
+    "applied": [
+     "corrupt:scan_canary"
+    ],
+    "s": 0.0,
+    "result": "raised",
+    "note": "GAGAL: terdeteksi",
+    "reverts": 1
+   },
+   "verdict": "PASS"
+  },
+  {
+   "feature": "04-agents",
+   "method": "M5",
+   "name": "scan_canary False untuk teks biasa",
+   "clean_ok": true,
+   "detail": "bersih",
+   "evidence": {},
+   "clean_s": 0.0,
+   "log": "",
+   "fault": {
+    "applied": [
+     "corrupt:scan_canary"
+    ],
+    "s": 0.0,
+    "result": "raised",
+    "note": "GAGAL: bersih",
+    "reverts": 1
+   },
+   "verdict": "PASS"
+  },
+  {
+   "feature": "04-agents",
+   "method": "M5",
+   "name": "redact_value menyembunyikan kunci sensitif",
+   "clean_ok": true,
+   "detail": "[REDACTED]",
+   "evidence": {},
+   "clean_s": 0.0,
+   "log": "",
+   "fault": {
+    "applied": [
+     "corrupt:redact_value"
+    ],
+    "s": 0.0,
+    "result": "raised",
+    "note": "GAGAL: [REDACTED]",
+    "reverts": 1
+   },
+   "verdict": "PASS"
+  },
+  {
+   "feature": "04-agents",
+   "method": "M5",
+   "name": "redact_value list of dict",
+   "clean_ok": true,
+   "detail": "semua termask",
+   "evidence": {},
+   "clean_s": 0.0,
+   "log": "",
+   "fault": {
+    "applied": [
+     "corrupt:redact_value"
+    ],
+    "s": 0.0,
+    "result": "raised",
+    "note": "GAGAL: semua termask",
+    "reverts": 1
+   },
+   "verdict": "PASS"
+  },
+  {
+   "feature": "04-agents",
+   "method": "M5",
+   "name": "redact_agent_output pada dict campuran",
+   "clean_ok": true,
+   "detail": "field sensitif termask",
+   "evidence": {},
+   "clean_s": 0.0,
+   "log": "",
+   "fault": {
+    "applied": [
+     "corrupt:redact_agent_output"
+    ],
+    "s": 0.0,
+    "result": "raised",
+    "note": "GAGAL: field sensitif termask",
+    "reverts": 1
+   },
+   "verdict": "PASS"
+  },
+  {
+   "feature": "04-agents",
+   "method": "M5",
+   "name": "get_stats() dict tanpa nilai mentah",
+   "clean_ok": true,
+   "detail": "dict",
+   "evidence": {},
+   "clean_s": 0.0,
+   "log": "",
+   "fault": {
+    "applied": [
+     "corrupt:get_stats"
+    ],
+    "s": 0.0,
+    "result": "raised",
+    "note": "GAGAL: dict",
+    "reverts": 1
+   },
+   "verdict": "PASS"
+  },
+  {
+   "feature": "04-agents",
+   "method": "M5",
+   "name": "reset_stats mengosongkan statistik",
+   "clean_ok": true,
+   "detail": "semua nol",
+   "evidence": {},
+   "clean_s": 0.0,
+   "log": "",
+   "fault": {
+    "applied": [
+     "corrupt:get_stats"
+    ],
+    "s": 0.0,
+    "result": "raised",
+    "note": "GAGAL: semua nol",
+    "reverts": 1
+   },
+   "verdict": "PASS"
+  },
+  {
+   "feature": "04-agents",
+   "method": "M5",
+   "name": "MAX_DEPTH == 8",
+   "clean_ok": true,
+   "detail": "8",
+   "evidence": {},
+   "clean_s": 0.0,
+   "log": "",
+   "fault": {
+    "applied": [
+     "corrupt:redact_value"
+    ],
+    "s": 0.0,
+    "result": "handled",
+    "note": "8",
+    "reverts": 1
+   },
+   "verdict": "PASS"
+  },
+  {
+   "feature": "04-agents",
+   "method": "M5",
+   "name": "SENSITIVE_KEYS non-empty & berisi kata sandi",
+   "clean_ok": true,
+   "detail": "28 kunci",
+   "evidence": {},
+   "clean_s": 0.0,
+   "log": "",
+   "fault": {
+    "applied": [
+     "corrupt:redact_value"
+    ],
+    "s": 0.0,
+    "result": "handled",
+    "note": "28 kunci",
+    "reverts": 1
+   },
+   "verdict": "PASS"
+  },
+  {
+   "feature": "04-agents",
+   "method": "M5",
+   "name": "REDACTED == '[REDACTED]'",
+   "clean_ok": true,
+   "detail": "[REDACTED]",
+   "evidence": {},
+   "clean_s": 0.0,
+   "log": "",
+   "fault": {
+    "applied": [
+     "corrupt:redact_value"
+    ],
+    "s": 0.0,
+    "result": "handled",
+    "note": "[REDACTED]",
+    "reverts": 1
+   },
+   "verdict": "PASS"
+  },
+  {
+   "feature": "04-agents",
+   "method": "M5",
+   "name": "CANARY_PREFIX terdefinisi",
+   "clean_ok": true,
+   "detail": "KATALIR_TEST_CANARY_",
+   "evidence": {},
+   "clean_s": 0.0,
+   "log": "",
+   "fault": {
+    "applied": [
+     "corrupt:scan_canary"
+    ],
+    "s": 0.0,
+    "result": "handled",
+    "note": "KATALIR_TEST_CANARY_",
+    "reverts": 1
+   },
+   "verdict": "PASS"
+  },
+  {
+   "feature": "04-agents",
+   "method": "M5",
+   "name": "CANARY_BODY_LEN == 12",
+   "clean_ok": true,
+   "detail": "12",
+   "evidence": {},
+   "clean_s": 0.0,
+   "log": "",
+   "fault": {
+    "applied": [
+     "corrupt:scan_canary"
+    ],
+    "s": 0.0,
+    "result": "handled",
+    "note": "12",
+    "reverts": 1
+   },
+   "verdict": "PASS"
+  },
+  {
+   "feature": "04-agents",
+   "method": "M5",
+   "name": "redact teks biasa tidak berubah",
+   "clean_ok": true,
+   "detail": "tidak berubah",
+   "evidence": {},
+   "clean_s": 0.0,
+   "log": "",
+   "fault": {
+    "applied": [
+     "corrupt:redact"
+    ],
+    "s": 0.0,
+    "result": "raised",
+    "note": "GAGAL: tidak berubah",
+    "reverts": 1
+   },
+   "verdict": "PASS"
+  },
+  {
+   "feature": "04-agents",
+   "method": "M5",
+   "name": "redact_value lebih dalam dari MAX_DEPTH -> penanda",
+   "clean_ok": true,
+   "detail": "penanda kedalaman",
+   "evidence": {},
+   "clean_s": 0.0,
+   "log": "",
+   "fault": {
+    "applied": [
+     "corrupt:redact_value"
+    ],
+    "s": 0.0,
+    "result": "raised",
+    "note": "GAGAL: penanda kedalaman",
+    "reverts": 1
+   },
+   "verdict": "PASS"
+  },
+  {
+   "feature": "04-agents",
+   "method": "M5",
+   "name": "redact pada int -> string",
+   "clean_ok": true,
+   "detail": "str",
+   "evidence": {},
+   "clean_s": 0.0,
+   "log": "",
+   "fault": {
+    "applied": [
+     "corrupt:redact"
+    ],
+    "s": 0.0,
+    "result": "raised",
+    "note": "GAGAL: str",
+    "reverts": 1
+   },
+   "verdict": "PASS"
+  },
+  {
+   "feature": "04-agents",
+   "method": "M1",
+   "name": "CanaryDetectedError subclass RuntimeError",
+   "clean_ok": true,
+   "detail": "subclass",
+   "evidence": {},
+   "clean_s": 0.0,
+   "log": "",
+   "fault": {
+    "applied": [
+     "raise:redact"
+    ],
+    "s": 0.0,
+    "result": "handled",
+    "note": "subclass",
+    "reverts": 1
+   },
+   "verdict": "PASS"
+  },
+  {
+   "feature": "04-agents",
+   "method": "M1",
+   "name": "RedactionError subclass RuntimeError",
+   "clean_ok": true,
+   "detail": "subclass",
+   "evidence": {},
+   "clean_s": 0.0,
+   "log": "",
+   "fault": {
+    "applied": [
+     "raise:redact"
+    ],
+    "s": 0.0,
+    "result": "handled",
+    "note": "subclass",
+    "reverts": 1
+   },
+   "verdict": "PASS"
+  },
+  {
+   "feature": "04-agents",
+   "method": "M4",
+   "name": "redact_value tuple -> list",
+   "clean_ok": true,
+   "detail": "list",
+   "evidence": {},
+   "clean_s": 0.0,
+   "log": "",
+   "fault": {
+    "applied": [
+     "corrupt:redact_value"
+    ],
+    "s": 0.0,
+    "result": "raised",
+    "note": "GAGAL: list",
+    "reverts": 1
+   },
+   "verdict": "PASS"
+  },
+  {
+   "feature": "05-scheduled-trigger",
+   "method": "M5",
+   "name": "is_valid_cron('* * * * *')",
+   "clean_ok": true,
+   "detail": "valid",
+   "evidence": {},
+   "clean_s": 0.0005,
+   "log": "",
+   "fault": {
+    "applied": [
+     "raise:is_valid_cron"
+    ],
+    "s": 0.0006,
+    "result": "raised",
+    "note": "RuntimeError: chaos-2026",
+    "reverts": 1
+   },
+   "verdict": "PASS"
+  },
+  {
+   "feature": "05-scheduled-trigger",
+   "method": "M5",
+   "name": "is_valid_cron('*/5 * * * *')",
+   "clean_ok": true,
+   "detail": "valid",
+   "evidence": {},
+   "clean_s": 0.0002,
+   "log": "",
+   "fault": {
+    "applied": [
+     "raise:is_valid_cron"
+    ],
+    "s": 0.0005,
+    "result": "raised",
+    "note": "RuntimeError: chaos-2026",
+    "reverts": 1
+   },
+   "verdict": "PASS"
+  },
+  {
+   "feature": "05-scheduled-trigger",
+   "method": "M5",
+   "name": "is_valid_cron('0 0 * * *')",
+   "clean_ok": true,
+   "detail": "valid",
+   "evidence": {},
+   "clean_s": 0.0001,
+   "log": "",
+   "fault": {
+    "applied": [
+     "raise:is_valid_cron"
+    ],
+    "s": 0.0002,
+    "result": "raised",
+    "note": "RuntimeError: chaos-2026",
+    "reverts": 1
+   },
+   "verdict": "PASS"
+  },
+  {
+   "feature": "05-scheduled-trigger",
+   "method": "M5",
+   "name": "is_valid_cron('0 */2 * * *')",
+   "clean_ok": true,
+   "detail": "valid",
+   "evidence": {},
+   "clean_s": 0.0002,
+   "log": "",
+   "fault": {
+    "applied": [
+     "raise:is_valid_cron"
+    ],
+    "s": 0.0004,
+    "result": "raised",
+    "note": "RuntimeError: chaos-2026",
+    "reverts": 1
+   },
+   "verdict": "PASS"
+  },
+  {
+   "feature": "05-scheduled-trigger",
+   "method": "M5",
+   "name": "is_valid_cron('') False",
+   "clean_ok": true,
+   "detail": "invalid",
+   "evidence": {},
+   "clean_s": 0.0,
+   "log": "",
+   "fault": {
+    "applied": [
+     "raise:is_valid_cron"
+    ],
+    "s": 0.0002,
+    "result": "raised",
+    "note": "RuntimeError: chaos-2026",
+    "reverts": 1
+   },
+   "verdict": "PASS"
+  },
+  {
+   "feature": "05-scheduled-trigger",
+   "method": "M5",
+   "name": "is_valid_cron('bukan cron') False",
+   "clean_ok": true,
+   "detail": "invalid",
+   "evidence": {},
+   "clean_s": 0.0,
+   "log": "",
+   "fault": {
+    "applied": [
+     "raise:is_valid_cron"
+    ],
+    "s": 0.0002,
+    "result": "raised",
+    "note": "RuntimeError: chaos-2026",
+    "reverts": 1
+   },
+   "verdict": "PASS"
+  },
+  {
+   "feature": "05-scheduled-trigger",
+   "method": "M5",
+   "name": "is_valid_cron('a b c d e') False",
+   "clean_ok": true,
+   "detail": "invalid",
+   "evidence": {},
+   "clean_s": 0.0,
+   "log": "",
+   "fault": {
+    "applied": [
+     "raise:is_valid_cron"
+    ],
+    "s": 0.0002,
+    "result": "raised",
+    "note": "RuntimeError: chaos-2026",
+    "reverts": 1
+   },
+   "verdict": "PASS"
+  },
+  {
+   "feature": "05-scheduled-trigger",
+   "method": "M5",
+   "name": "is_valid_timezone('UTC')",
+   "clean_ok": true,
+   "detail": "valid",
+   "evidence": {},
+   "clean_s": 0.0107,
+   "log": "",
+   "fault": {
+    "applied": [
+     "raise:is_valid_timezone"
+    ],
+    "s": 0.0007,
+    "result": "raised",
+    "note": "RuntimeError: chaos-2026",
+    "reverts": 1
+   },
+   "verdict": "PASS"
+  },
+  {
+   "feature": "05-scheduled-trigger",
+   "method": "M5",
+   "name": "is_valid_timezone('Asia/Jakarta')",
+   "clean_ok": true,
+   "detail": "valid",
+   "evidence": {},
+   "clean_s": 0.0051,
+   "log": "",
+   "fault": {
+    "applied": [
+     "raise:is_valid_timezone"
+    ],
+    "s": 0.0005,
+    "result": "raised",
+    "note": "RuntimeError: chaos-2026",
+    "reverts": 1
+   },
+   "verdict": "PASS"
+  },
+  {
+   "feature": "05-scheduled-trigger",
+   "method": "M5",
+   "name": "is_valid_timezone('Bukan/Zona') False",
+   "clean_ok": true,
+   "detail": "invalid",
+   "evidence": {},
+   "clean_s": 0.0003,
+   "log": "",
+   "fault": {
+    "applied": [
+     "raise:is_valid_timezone"
+    ],
+    "s": 0.0003,
+    "result": "raised",
+    "note": "RuntimeError: chaos-2026",
+    "reverts": 1
+   },
+   "verdict": "PASS"
+  },
+  {
+   "feature": "05-scheduled-trigger",
+   "method": "M5",
+   "name": "next_fire_utc '0 0 * * *' jatuh di 00:00 UTC",
+   "clean_ok": true,
+   "detail": "00:00 UTC",
+   "evidence": {},
+   "clean_s": 0.0009,
+   "log": "",
+   "fault": {
+    "applied": [
+     "raise:next_fire_utc"
+    ],
+    "s": 0.0003,
+    "result": "raised",
+    "note": "RuntimeError: chaos-2026",
+    "reverts": 1
+   },
+   "verdict": "PASS"
+  },
+  {
+   "feature": "05-scheduled-trigger",
+   "method": "M5",
+   "name": "next_fire_utc selalu > base",
+   "clean_ok": true,
+   "detail": "> base",
+   "evidence": {},
+   "clean_s": 0.0002,
+   "log": "",
+   "fault": {
+    "applied": [
+     "raise:next_fire_utc"
+    ],
+    "s": 0.0002,
+    "result": "raised",
+    "note": "RuntimeError: chaos-2026",
+    "reverts": 1
+   },
+   "verdict": "PASS"
+  },
+  {
+   "feature": "05-scheduled-trigger",
+   "method": "M5",
+   "name": "next_fire_utc '*/5' menit kelipatan 5",
+   "clean_ok": true,
+   "detail": "kelipatan 5",
+   "evidence": {},
+   "clean_s": 0.0003,
+   "log": "",
+   "fault": {
+    "applied": [
+     "raise:next_fire_utc"
+    ],
+    "s": 0.0002,
+    "result": "raised",
+    "note": "RuntimeError: chaos-2026",
+    "reverts": 1
+   },
+   "verdict": "PASS"
+  },
+  {
+   "feature": "05-scheduled-trigger",
+   "method": "M5",
+   "name": "next_fire_utc cron invalid -> raises",
+   "clean_ok": true,
+   "detail": "invalid cron -> CroniterBadCronError: Exactly 5, 6 or 7 columns has to be specified for iterator expression.",
+   "evidence": {},
+   "clean_s": 0.0,
+   "log": "",
+   "fault": {
+    "applied": [
+     "raise:next_fire_utc"
+    ],
+    "s": 0.0,
+    "result": "handled",
+    "note": "invalid cron -> RuntimeError: chaos-2026",
+    "reverts": 1
+   },
+   "verdict": "PASS"
+  },
+  {
+   "feature": "05-scheduled-trigger",
+   "method": "M5",
+   "name": "TICK_SECONDS > 0",
+   "clean_ok": true,
+   "detail": "20",
+   "evidence": {},
+   "clean_s": 0.0,
+   "log": "",
+   "fault": {
+    "applied": [
+     "delay:next_fire_utc"
+    ],
+    "s": 0.0,
+    "result": "handled",
+    "note": "20",
+    "reverts": 1
+   },
+   "verdict": "PASS"
+  },
+  {
+   "feature": "05-scheduled-trigger",
+   "method": "M5",
+   "name": "MISSED_RUN_MAX_AGE_H == 24",
+   "clean_ok": true,
+   "detail": "24",
+   "evidence": {},
+   "clean_s": 0.0,
+   "log": "",
+   "fault": {
+    "applied": [
+     "delay:next_fire_utc"
+    ],
+    "s": 0.0,
+    "result": "handled",
+    "note": "24",
+    "reverts": 1
+   },
+   "verdict": "PASS"
+  },
+  {
+   "feature": "05-scheduled-trigger",
+   "method": "M5",
+   "name": "MAX_DUE_PER_TICK == 25",
+   "clean_ok": true,
+   "detail": "25",
+   "evidence": {},
+   "clean_s": 0.0,
+   "log": "",
+   "fault": {
+    "applied": [
+     "delay:next_fire_utc"
+    ],
+    "s": 0.0,
+    "result": "handled",
+    "note": "25",
+    "reverts": 1
+   },
+   "verdict": "PASS"
+  },
+  {
+   "feature": "05-scheduled-trigger",
+   "method": "M5",
+   "name": "utc_now() tz-aware",
+   "clean_ok": true,
+   "detail": "aware",
+   "evidence": {},
+   "clean_s": 0.0,
+   "log": "",
+   "fault": {
+    "applied": [
+     "corrupt:utc_now"
+    ],
+    "s": 0.0007,
+    "result": "raised",
+    "note": "AttributeError: 'NoneType' object has no attribute 'utcoffset'",
+    "reverts": 1
+   },
+   "verdict": "PASS"
+  },
+  {
+   "feature": "05-scheduled-trigger",
+   "method": "M5",
+   "name": "iso_utc dapat di-parse balik",
+   "clean_ok": true,
+   "detail": "round-trip",
+   "evidence": {},
+   "clean_s": 0.0,
+   "log": "",
+   "fault": {
+    "applied": [
+     "corrupt:iso_utc"
+    ],
+    "s": 0.0002,
+    "result": "raised",
+    "note": "ValueError: Invalid isoformat string: 'bukan-iso'",
+    "reverts": 1
+   },
+   "verdict": "PASS"
+  },
+  {
+   "feature": "05-scheduled-trigger",
+   "method": "M5",
+   "name": "next_fire_utc deterministik untuk base sama",
+   "clean_ok": true,
+   "detail": "sama",
+   "evidence": {},
+   "clean_s": 0.0004,
+   "log": "",
+   "fault": {
+    "applied": [
+     "corrupt:next_fire_utc"
+    ],
+    "s": 0.0003,
+    "result": "handled",
+    "note": "sama",
+    "reverts": 1
+   },
+   "verdict": "PASS"
+  },
+  {
+   "feature": "06-durable-execution",
+   "method": "M1",
+   "name": "start_execution membuat eksekusi running",
+   "clean_ok": true,
+   "detail": "running",
+   "evidence": {},
+   "clean_s": 0.0001,
+   "log": "",
+   "fault": {
+    "applied": [
+     "delay:start_execution"
+    ],
+    "s": 0.201,
+    "result": "handled",
+    "note": "running",
+    "reverts": 1
+   },
+   "verdict": "PASS"
+  },
+  {
+   "feature": "06-durable-execution",
+   "method": "M1",
+   "name": "idempotency_key sama -> baris yang sama",
+   "clean_ok": true,
+   "detail": "id sama",
+   "evidence": {},
+   "clean_s": 0.0001,
+   "log": "",
+   "fault": {
+    "applied": [
+     "delay:start_execution"
+    ],
+    "s": 0.4031,
+    "result": "handled",
+    "note": "id sama",
+    "reverts": 1
+   },
+   "verdict": "PASS"
+  },
+  {
+   "feature": "06-durable-execution",
+   "method": "M1",
+   "name": "get_execution mengembalikan eksekusi",
+   "clean_ok": true,
+   "detail": "ditemukan",
+   "evidence": {},
+   "clean_s": 0.0002,
+   "log": "",
+   "fault": {
+    "applied": [
+     "delay:get_execution"
+    ],
+    "s": 0.2011,
+    "result": "handled",
+    "note": "ditemukan",
+    "reverts": 1
+   },
+   "verdict": "PASS"
+  },
+  {
+   "feature": "06-durable-execution",
+   "method": "M1",
+   "name": "get_execution user lain -> None",
+   "clean_ok": true,
+   "detail": "None",
+   "evidence": {},
+   "clean_s": 0.0002,
+   "log": "",
+   "fault": {
+    "applied": [
+     "delay:get_execution"
+    ],
+    "s": 0.2013,
+    "result": "handled",
+    "note": "None",
+    "reverts": 1
+   },
+   "verdict": "PASS"
+  },
+  {
+   "feature": "06-durable-execution",
+   "method": "M1",
+   "name": "begin_step pertama -> True",
+   "clean_ok": true,
+   "detail": "True",
+   "evidence": {},
+   "clean_s": 0.0005,
+   "log": "",
+   "fault": {
+    "applied": [
+     "delay:begin_step"
+    ],
+    "s": 0.201,
+    "result": "handled",
+    "note": "True",
+    "reverts": 1
+   },
+   "verdict": "PASS"
+  },
+  {
+   "feature": "06-durable-execution",
+   "method": "M1",
+   "name": "replay: step sukses -> begin_step False",
+   "clean_ok": true,
+   "detail": "replay",
+   "evidence": {},
+   "clean_s": 0.0003,
+   "log": "",
+   "fault": {
+    "applied": [
+     "corrupt:begin_step"
+    ],
+    "s": 0.0001,
+    "result": "raised",
+    "note": "GAGAL: replay",
+    "reverts": 1
+   },
+   "verdict": "PASS"
+  },
+  {
+   "feature": "06-durable-execution",
+   "method": "M1",
+   "name": "done_steps berisi step yang sukses",
+   "clean_ok": true,
+   "detail": "s1 done",
+   "evidence": {},
+   "clean_s": 0.0001,
+   "log": "",
+   "fault": {
+    "applied": [
+     "corrupt:done_steps"
+    ],
+    "s": 0.0001,
+    "result": "raised",
+    "note": "GAGAL: s1 done",
+    "reverts": 1
+   },
+   "verdict": "PASS"
+  },
+  {
+   "feature": "06-durable-execution",
+   "method": "M1",
+   "name": "finish_execution menyetel status",
+   "clean_ok": true,
+   "detail": "status=success",
+   "evidence": {},
+   "clean_s": 0.0001,
+   "log": "",
+   "fault": {
+    "applied": [
+     "delay:finish_execution"
+    ],
+    "s": 0.2007,
+    "result": "handled",
+    "note": "status=success",
+    "reverts": 1
+   },
+   "verdict": "PASS"
+  },
+  {
+   "feature": "06-durable-execution",
+   "method": "M1",
+   "name": "heartbeat memperbarui heartbeat_at",
+   "clean_ok": true,
+   "detail": "2026-10-11T16:12:42.626936+00:00 -> 2026-10-11T16:12:42.626936+00:00",
+   "evidence": {},
+   "clean_s": 0.0002,
+   "log": "",
+   "fault": {
+    "applied": [
+     "delay:heartbeat"
+    ],
+    "s": 0.2006,
+    "result": "handled",
+    "note": "2026-10-11T16:12:42.626936+00:00 -> 2026-10-11T16:12:42.827737+00:00",
+    "reverts": 1
+   },
+   "verdict": "PASS"
+  },
+  {
+   "feature": "06-durable-execution",
+   "method": "M1",
+   "name": "wait_for_signal menandai waiting",
+   "clean_ok": true,
+   "detail": "waiting",
+   "evidence": {},
+   "clean_s": 0.0002,
+   "log": "",
+   "fault": {
+    "applied": [
+     "delay:wait_for_signal"
+    ],
+    "s": 0.2011,
+    "result": "handled",
+    "note": "waiting",
+    "reverts": 1
+   },
+   "verdict": "PASS"
+  },
+  {
+   "feature": "06-durable-execution",
+   "method": "M1",
+   "name": "wake_up_signal membangunkan -> True",
+   "clean_ok": true,
+   "detail": "True",
+   "evidence": {},
+   "clean_s": 0.0115,
+   "log": "",
+   "fault": {
+    "applied": [
+     "delay:wake_up_signal"
+    ],
+    "s": 0.201,
+    "result": "handled",
+    "note": "True",
+    "reverts": 1
+   },
+   "verdict": "PASS"
+  },
+  {
+   "feature": "06-durable-execution",
+   "method": "M1",
+   "name": "wake_up_signal kedua idempoten -> False",
+   "clean_ok": true,
+   "detail": "idempoten",
+   "evidence": {},
+   "clean_s": 0.0002,
+   "log": "",
+   "fault": {
+    "applied": [
+     "delay:wake_up_signal"
+    ],
+    "s": 0.4049,
+    "result": "handled",
+    "note": "idempoten",
+    "reverts": 1
+   },
+   "verdict": "PASS"
+  },
+  {
+   "feature": "06-durable-execution",
+   "method": "M1",
+   "name": "wake_up_signal id tak dikenal -> False",
+   "clean_ok": true,
+   "detail": "False",
+   "evidence": {},
+   "clean_s": 0.0,
+   "log": "",
+   "fault": {
+    "applied": [
+     "delay:wake_up_signal"
+    ],
+    "s": 0.2008,
+    "result": "handled",
+    "note": "False",
+    "reverts": 1
+   },
+   "verdict": "PASS"
+  },
+  {
+   "feature": "06-durable-execution",
+   "method": "M1",
+   "name": "resume_execution -> True dan status running",
+   "clean_ok": true,
+   "detail": "True/running",
+   "evidence": {},
+   "clean_s": 0.0001,
+   "log": "",
+   "fault": {
+    "applied": [
+     "delay:resume_execution"
+    ],
+    "s": 0.2025,
+    "result": "handled",
+    "note": "True/running",
+    "reverts": 1
+   },
+   "verdict": "PASS"
+  },
+  {
+   "feature": "06-durable-execution",
+   "method": "M1",
+   "name": "recover_stuck aman bila rpc tidak ada",
+   "clean_ok": true,
+   "detail": "[]",
+   "evidence": {},
+   "clean_s": 0.0001,
+   "log": "[durable] recover_stuck dilewati: RuntimeError: rpc tidak tersedia di fake\n",
+   "fault": {
+    "applied": [
+     "corrupt:recover_stuck"
+    ],
+    "s": 0.0001,
+    "result": "raised",
+    "note": "GAGAL: []",
+    "reverts": 1
+   },
+   "verdict": "PASS"
+  },
+  {
+   "feature": "06-durable-execution",
+   "method": "M1",
+   "name": "stuck_execution_ids menemukan eksekusi basi",
+   "clean_ok": true,
+   "detail": "eksekusi basi terdeteksi",
+   "evidence": {},
+   "clean_s": 0.0002,
+   "log": "",
+   "fault": {
+    "applied": [
+     "corrupt:stuck_execution_ids"
+    ],
+    "s": 0.0002,
+    "result": "raised",
+    "note": "GAGAL: eksekusi basi terdeteksi",
+    "reverts": 1
+   },
+   "verdict": "PASS"
+  },
+  {
+   "feature": "06-durable-execution",
+   "method": "M5",
+   "name": "RESUMABLE_STATUSES memuat running",
+   "clean_ok": true,
+   "detail": "ada",
+   "evidence": {},
+   "clean_s": 0.0,
+   "log": "",
+   "fault": {
+    "applied": [
+     "corrupt:stuck_execution_ids"
+    ],
+    "s": 0.0,
+    "result": "handled",
+    "note": "ada",
+    "reverts": 1
+   },
+   "verdict": "PASS"
+  },
+  {
+   "feature": "06-durable-execution",
+   "method": "M5",
+   "name": "STUCK_AFTER_SECONDS == 300",
+   "clean_ok": true,
+   "detail": "300",
+   "evidence": {},
+   "clean_s": 0.0,
+   "log": "",
+   "fault": {
+    "applied": [
+     "corrupt:stuck_execution_ids"
+    ],
+    "s": 0.0,
+    "result": "handled",
+    "note": "300",
+    "reverts": 1
+   },
+   "verdict": "PASS"
+  },
+  {
+   "feature": "06-durable-execution",
+   "method": "M5",
+   "name": "HEARTBEAT_INTERVAL_SECONDS == 60",
+   "clean_ok": true,
+   "detail": "60",
+   "evidence": {},
+   "clean_s": 0.0,
+   "log": "",
+   "fault": {
+    "applied": [
+     "corrupt:stuck_execution_ids"
+    ],
+    "s": 0.0,
+    "result": "handled",
+    "note": "60",
+    "reverts": 1
+   },
+   "verdict": "PASS"
+  },
+  {
+   "feature": "06-durable-execution",
+   "method": "M5",
+   "name": "_aman_json meneruskan nilai JSON-safe",
+   "clean_ok": true,
+   "detail": "diteruskan",
+   "evidence": {},
+   "clean_s": 0.0001,
+   "log": "",
+   "fault": {
+    "applied": [
+     "corrupt:_aman_json"
+    ],
+    "s": 0.0001,
+    "result": "raised",
+    "note": "GAGAL: diteruskan",
+    "reverts": 1
+   },
+   "verdict": "PASS"
+  },
+  {
+   "feature": "07-dlq",
+   "method": "M5",
+   "name": "is_retryable(ConnectionError) True",
+   "clean_ok": true,
+   "detail": "True",
+   "evidence": {},
+   "clean_s": 0.0,
+   "log": "",
+   "fault": {
+    "applied": [
+     "corrupt:is_retryable"
+    ],
+    "s": 0.0,
+    "result": "raised",
+    "note": "GAGAL: True",
+    "reverts": 1
+   },
+   "verdict": "PASS"
+  },
+  {
+   "feature": "07-dlq",
+   "method": "M5",
+   "name": "is_retryable(TimeoutError) True",
+   "clean_ok": true,
+   "detail": "True",
+   "evidence": {},
+   "clean_s": 0.0,
+   "log": "",
+   "fault": {
+    "applied": [
+     "corrupt:is_retryable"
+    ],
+    "s": 0.0,
+    "result": "raised",
+    "note": "GAGAL: True",
+    "reverts": 1
+   },
+   "verdict": "PASS"
+  },
+  {
+   "feature": "07-dlq",
+   "method": "M5",
+   "name": "is_retryable(ValueError) False",
+   "clean_ok": true,
+   "detail": "False",
+   "evidence": {},
+   "clean_s": 0.0,
+   "log": "",
+   "fault": {
+    "applied": [
+     "corrupt:is_retryable"
+    ],
+    "s": 0.0,
+    "result": "raised",
+    "note": "GAGAL: False",
+    "reverts": 1
+   },
+   "verdict": "PASS"
+  },
+  {
+   "feature": "07-dlq",
+   "method": "M5",
+   "name": "is_retryable(KeyError) False",
+   "clean_ok": true,
+   "detail": "False",
+   "evidence": {},
+   "clean_s": 0.0,
+   "log": "",
+   "fault": {
+    "applied": [
+     "corrupt:is_retryable"
+    ],
+    "s": 0.0,
+    "result": "raised",
+    "note": "GAGAL: False",
+    "reverts": 1
+   },
+   "verdict": "PASS"
+  },
+  {
+   "feature": "07-dlq",
+   "method": "M5",
+   "name": "backoff_delay naik dengan attempt",
+   "clean_ok": true,
+   "detail": "monoton naik",
+   "evidence": {},
+   "clean_s": 0.0001,
+   "log": "",
+   "fault": {
+    "applied": [
+     "corrupt:backoff_delay"
+    ],
+    "s": 0.0,
+    "result": "raised",
+    "note": "GAGAL: monoton naik",
+    "reverts": 1
+   },
+   "verdict": "PASS"
+  },
+  {
+   "feature": "07-dlq",
+   "method": "M5",
+   "name": "backoff_delay tidak melebihi cap",
+   "clean_ok": true,
+   "detail": "cap=30.0",
+   "evidence": {},
+   "clean_s": 0.0001,
+   "log": "",
+   "fault": {
+    "applied": [
+     "corrupt:backoff_delay"
+    ],
+    "s": 0.0044,
+    "result": "raised",
+    "note": "GAGAL: cap=30.0",
+    "reverts": 1
+   },
+   "verdict": "PASS"
+  },
+  {
+   "feature": "07-dlq",
+   "method": "M5",
+   "name": "backoff_delay attempt 1 dekat base",
+   "clean_ok": true,
+   "detail": "base=0.5",
+   "evidence": {},
+   "clean_s": 0.0,
+   "log": "",
+   "fault": {
+    "applied": [
+     "corrupt:backoff_delay"
+    ],
+    "s": 0.0,
+    "result": "handled",
+    "note": "base=0.5",
+    "reverts": 1
+   },
+   "verdict": "PASS"
+  },
+  {
+   "feature": "07-dlq",
+   "method": "M1",
+   "name": "with_retry sukses percobaan pertama",
+   "clean_ok": true,
+   "detail": "(True, 7)",
+   "evidence": {},
+   "clean_s": 0.0,
+   "log": "",
+   "fault": {
+    "applied": [
+     "raise:with_retry"
+    ],
+    "s": 0.0009,
+    "result": "raised",
+    "note": "RuntimeError: chaos-2026",
+    "reverts": 1
+   },
+   "verdict": "PASS"
+  },
+  {
+   "feature": "07-dlq",
+   "method": "M1",
+   "name": "with_retry gagal lalu sukses",
+   "clean_ok": true,
+   "detail": "3 percobaan",
+   "evidence": {},
+   "clean_s": 0.0001,
+   "log": "",
+   "fault": {
+    "applied": [
+     "raise:with_retry"
+    ],
+    "s": 0.0047,
+    "result": "raised",
+    "note": "RuntimeError: chaos-2026",
+    "reverts": 1
+   },
+   "verdict": "PASS"
+  },
+  {
+   "feature": "07-dlq",
+   "method": "M1",
+   "name": "with_retry habis -> sukses False",
+   "clean_ok": true,
+   "detail": "False",
+   "evidence": {},
+   "clean_s": 0.0001,
+   "log": "",
+   "fault": {
+    "applied": [
+     "raise:with_retry"
+    ],
+    "s": 0.0006,
+    "result": "raised",
+    "note": "RuntimeError: chaos-2026",
+    "reverts": 1
+   },
+   "verdict": "PASS"
+  },
+  {
+   "feature": "07-dlq",
+   "method": "M1",
+   "name": "with_retry non-retryable tidak diulang",
+   "clean_ok": true,
+   "detail": "1 percobaan",
+   "evidence": {},
+   "clean_s": 0.0,
+   "log": "",
+   "fault": {
+    "applied": [
+     "raise:with_retry"
+    ],
+    "s": 0.0006,
+    "result": "raised",
+    "note": "RuntimeError: chaos-2026",
+    "reverts": 1
+   },
+   "verdict": "PASS"
+  },
+  {
+   "feature": "07-dlq",
+   "method": "M3",
+   "name": "job gagal total masuk DLQ",
+   "clean_ok": true,
+   "detail": "di DLQ",
+   "evidence": {},
+   "clean_s": 0.0029,
+   "log": "",
+   "fault": {
+    "applied": [
+     "raise:dead"
+    ],
+    "s": 0.0021,
+    "result": "raised",
+    "note": "RuntimeError: chaos-2026",
+    "reverts": 1
+   },
+   "verdict": "PASS"
+  },
+  {
+   "feature": "07-dlq",
+   "method": "M3",
+   "name": "job DLQ menyimpan pesan error",
+   "clean_ok": true,
+   "detail": "error tersimpan",
+   "evidence": {},
+   "clean_s": 0.0007,
+   "log": "",
+   "fault": {
+    "applied": [
+     "raise:dead"
+    ],
+    "s": 0.002,
+    "result": "raised",
+    "note": "RuntimeError: chaos-2026",
+    "reverts": 1
+   },
+   "verdict": "PASS"
+  },
+  {
+   "feature": "07-dlq",
+   "method": "M3",
+   "name": "job DLQ menyimpan payload",
+   "clean_ok": true,
+   "detail": "payload utuh",
+   "evidence": {},
+   "clean_s": 0.0004,
+   "log": "",
+   "fault": {
+    "applied": [
+     "raise:dlq"
+    ],
+    "s": 0.0015,
+    "result": "raised",
+    "note": "RuntimeError: chaos-2026",
+    "reverts": 1
+   },
+   "verdict": "PASS"
+  },
+  {
+   "feature": "07-dlq",
+   "method": "M5",
+   "name": "JobQueue.fail max_retries=0 -> dead",
+   "clean_ok": true,
+   "detail": "dead",
+   "evidence": {},
+   "clean_s": 0.0001,
+   "log": "",
+   "fault": {
+    "applied": [
+     "raise:fail"
+    ],
+    "s": 0.0015,
+    "result": "raised",
+    "note": "RuntimeError: chaos-2026",
+    "reverts": 1
+   },
+   "verdict": "PASS"
+  },
+  {
+   "feature": "07-dlq",
+   "method": "M5",
+   "name": "JobQueue.fail max_retries=2 -> requeued",
+   "clean_ok": true,
+   "detail": "requeued",
+   "evidence": {},
+   "clean_s": 0.0002,
+   "log": "",
+   "fault": {
+    "applied": [
+     "raise:fail"
+    ],
+    "s": 0.0036,
+    "result": "raised",
+    "note": "RuntimeError: chaos-2026",
+    "reverts": 1
+   },
+   "verdict": "PASS"
+  },
+  {
+   "feature": "07-dlq",
+   "method": "M5",
+   "name": "stats() menghitung dlq",
+   "clean_ok": true,
+   "detail": "dlq=1",
+   "evidence": {},
+   "clean_s": 0.0004,
+   "log": "",
+   "fault": {
+    "applied": [
+     "raise:stats"
+    ],
+    "s": 0.0025,
+    "result": "raised",
+    "note": "RuntimeError: chaos-2026",
+    "reverts": 1
+   },
+   "verdict": "PASS"
+  },
+  {
+   "feature": "07-dlq",
+   "method": "M5",
+   "name": "MemoryQueueBackend.dlq() list[Job]",
+   "clean_ok": true,
+   "detail": "list[Job]",
+   "evidence": {},
+   "clean_s": 0.0001,
+   "log": "",
+   "fault": {
+    "applied": [
+     "raise:dlq"
+    ],
+    "s": 0.0004,
+    "result": "raised",
+    "note": "RuntimeError: chaos-2026",
+    "reverts": 1
+   },
+   "verdict": "PASS"
+  },
+  {
+   "feature": "07-dlq",
+   "method": "M5",
+   "name": "JobQueue.dlq() mem-proxy backend",
+   "clean_ok": true,
+   "detail": "proxy jalan",
+   "evidence": {},
+   "clean_s": 0.0001,
+   "log": "",
+   "fault": {
+    "applied": [
+     "raise:dlq"
+    ],
+    "s": 0.0003,
+    "result": "raised",
+    "note": "RuntimeError: chaos-2026",
+    "reverts": 1
+   },
+   "verdict": "PASS"
+  },
+  {
+   "feature": "07-dlq",
+   "method": "M5",
+   "name": "RETRYABLE_EXCEPTIONS non-empty",
+   "clean_ok": true,
+   "detail": "4",
+   "evidence": {},
+   "clean_s": 0.0,
+   "log": "",
+   "fault": {
+    "applied": [
+     "corrupt:is_retryable"
+    ],
+    "s": 0.0,
+    "result": "handled",
+    "note": "4",
+    "reverts": 1
+   },
+   "verdict": "PASS"
+  },
+  {
+   "feature": "08-sub-workflow",
+   "method": "M5",
+   "name": "check_allowed: induk tidak ada -> ditolak",
+   "clean_ok": true,
+   "detail": "ditolak",
+   "evidence": {},
+   "clean_s": 0.0002,
+   "log": "[subwf] RPC cek gagal, pakai fallback: RuntimeError: rpc tidak tersedia di fake\n",
+   "fault": {
+    "applied": [
+     "corrupt:check_allowed"
+    ],
+    "s": 0.0,
+    "result": "raised",
+    "note": "GAGAL: ditolak",
+    "reverts": 1
+   },
+   "verdict": "PASS"
+  },
+  {
+   "feature": "08-sub-workflow",
+   "method": "M5",
+   "name": "check_allowed: kedalaman aman -> diizinkan",
+   "clean_ok": true,
+   "detail": "diizinkan",
+   "evidence": {},
+   "clean_s": 0.0001,
+   "log": "[subwf] RPC cek gagal, pakai fallback: RuntimeError: rpc tidak tersedia di fake\n",
+   "fault": {
+    "applied": [
+     "corrupt:check_allowed"
+    ],
+    "s": 0.0001,
+    "result": "raised",
+    "note": "GAGAL: diizinkan",
+    "reverts": 1
+   },
+   "verdict": "PASS"
+  },
+  {
+   "feature": "08-sub-workflow",
+   "method": "M5",
+   "name": "check_allowed: kedalaman maksimum -> ditolak",
+   "clean_ok": true,
+   "detail": "ditolak",
+   "evidence": {},
+   "clean_s": 0.0,
+   "log": "[subwf] RPC cek gagal, pakai fallback: RuntimeError: rpc tidak tersedia di fake\n",
+   "fault": {
+    "applied": [
+     "corrupt:check_allowed"
+    ],
+    "s": 0.0,
+    "result": "raised",
+    "note": "GAGAL: ditolak",
+    "reverts": 1
+   },
+   "verdict": "PASS"
+  },
+  {
+   "feature": "08-sub-workflow",
+   "method": "M5",
+   "name": "check_allowed: max_depth=0 -> ditolak",
+   "clean_ok": true,
+   "detail": "ditolak",
+   "evidence": {},
+   "clean_s": 0.0,
+   "log": "[subwf] RPC cek gagal, pakai fallback: RuntimeError: rpc tidak tersedia di fake\n",
+   "fault": {
+    "applied": [
+     "corrupt:check_allowed"
+    ],
+    "s": 0.0003,
+    "result": "raised",
+    "note": "GAGAL: ditolak",
+    "reverts": 1
+   },
+   "verdict": "PASS"
+  },
+  {
+   "feature": "08-sub-workflow",
+   "method": "M5",
+   "name": "check_allowed: siklus (anak = workflow leluhur) -> ditolak",
+   "clean_ok": true,
+   "detail": "siklus ditolak",
+   "evidence": {},
+   "clean_s": 0.0001,
+   "log": "[subwf] RPC cek gagal, pakai fallback: RuntimeError: rpc tidak tersedia di fake\n",
+   "fault": {
+    "applied": [
+     "corrupt:check_allowed"
+    ],
+    "s": 0.0028,
+    "result": "raised",
+    "note": "GAGAL: siklus ditolak",
+    "reverts": 1
+   },
+   "verdict": "PASS"
+  },
+  {
+   "feature": "08-sub-workflow",
+   "method": "M5",
+   "name": "check_allowed: alasan selalu terisi",
+   "clean_ok": true,
+   "detail": "reason ada",
+   "evidence": {},
+   "clean_s": 0.0002,
+   "log": "[subwf] RPC cek gagal, pakai fallback: RuntimeError: rpc tidak tersedia di fake\n",
+   "fault": {
+    "applied": [
+     "corrupt:check_allowed"
+    ],
+    "s": 0.0009,
+    "result": "raised",
+    "note": "KeyError: 'reason'",
+    "reverts": 1
+   },
+   "verdict": "PASS"
+  },
+  {
+   "feature": "08-sub-workflow",
+   "method": "M5",
+   "name": "workflow_owner dari DB",
+   "clean_ok": true,
+   "detail": "u1",
+   "evidence": {},
+   "clean_s": 0.0001,
+   "log": "",
+   "fault": {
+    "applied": [
+     "corrupt:workflow_owner"
+    ],
+    "s": 0.0,
+    "result": "raised",
+    "note": "GAGAL: u1",
+    "reverts": 1
+   },
+   "verdict": "PASS"
+  },
+  {
+   "feature": "08-sub-workflow",
+   "method": "M5",
+   "name": "workflow_owner tidak ada -> None",
+   "clean_ok": true,
+   "detail": "None",
+   "evidence": {},
+   "clean_s": 0.0,
+   "log": "",
+   "fault": {
+    "applied": [
+     "corrupt:workflow_owner"
+    ],
+    "s": 0.0,
+    "result": "raised",
+    "note": "GAGAL: None",
+    "reverts": 1
+   },
+   "verdict": "PASS"
+  },
+  {
+   "feature": "08-sub-workflow",
+   "method": "M5",
+   "name": "execution_owner lewat executions->workflows",
+   "clean_ok": true,
+   "detail": "u1",
+   "evidence": {},
+   "clean_s": 0.0,
+   "log": "",
+   "fault": {
+    "applied": [
+     "corrupt:execution_owner"
+    ],
+    "s": 0.0,
+    "result": "raised",
+    "note": "GAGAL: u1",
+    "reverts": 1
+   },
+   "verdict": "PASS"
+  },
+  {
+   "feature": "08-sub-workflow",
+   "method": "M5",
+   "name": "execution_owner tidak ada -> None",
+   "clean_ok": true,
+   "detail": "None",
+   "evidence": {},
+   "clean_s": 0.0,
+   "log": "",
+   "fault": {
+    "applied": [
+     "corrupt:execution_owner"
+    ],
+    "s": 0.0,
+    "result": "raised",
+    "note": "GAGAL: None",
+    "reverts": 1
+   },
+   "verdict": "PASS"
+  },
+  {
+   "feature": "08-sub-workflow",
+   "method": "M1",
+   "name": "invoke tanpa runner -> anak didaftarkan",
+   "clean_ok": true,
+   "detail": "reason=didaftarkan (runner tidak diberikan)",
+   "evidence": {},
+   "clean_s": 0.0003,
+   "log": "[subwf] RPC cek gagal, pakai fallback: RuntimeError: rpc tidak tersedia di fake\n",
+   "fault": {
+    "applied": [
+     "raise:invoke_subworkflow"
+    ],
+    "s": 0.0042,
+    "result": "raised",
+    "note": "RuntimeError: chaos-2026",
+    "reverts": 1
+   },
+   "verdict": "PASS"
+  },
+  {
+   "feature": "08-sub-workflow",
+   "method": "M1",
+   "name": "invoke dengan runner -> output diteruskan",
+   "clean_ok": true,
+   "detail": "output={'hasil': 1}",
+   "evidence": {},
+   "clean_s": 0.0006,
+   "log": "[subwf] RPC cek gagal, pakai fallback: RuntimeError: rpc tidak tersedia di fake\n",
+   "fault": {
+    "applied": [
+     "raise:invoke_subworkflow"
+    ],
+    "s": 0.0013,
+    "result": "raised",
+    "note": "RuntimeError: chaos-2026",
+    "reverts": 1
+   },
+   "verdict": "PASS"
+  },
+  {
+   "feature": "08-sub-workflow",
+   "method": "M1",
+   "name": "invoke runner gagal -> reason child_failed",
+   "clean_ok": true,
+   "detail": "reason=child_failed",
+   "evidence": {},
+   "clean_s": 0.0004,
+   "log": "[subwf] RPC cek gagal, pakai fallback: RuntimeError: rpc tidak tersedia di fake\n",
+   "fault": {
+    "applied": [
+     "raise:invoke_subworkflow"
+    ],
+    "s": 0.0013,
+    "result": "raised",
+    "note": "RuntimeError: chaos-2026",
+    "reverts": 1
+   },
+   "verdict": "PASS"
+  },
+  {
+   "feature": "08-sub-workflow",
+   "method": "M5",
+   "name": "invoke anak tidak ada -> reason not_found",
+   "clean_ok": true,
+   "detail": "not_found",
+   "evidence": {},
+   "clean_s": 0.0001,
+   "log": "",
+   "fault": {
+    "applied": [
+     "corrupt:invoke_subworkflow"
+    ],
+    "s": 0.0003,
+    "result": "raised",
+    "note": "KeyError: 'reason'",
+    "reverts": 1
+   },
+   "verdict": "PASS"
+  },
+  {
+   "feature": "08-sub-workflow",
+   "method": "M5",
+   "name": "invoke anak milik user lain -> forbidden",
+   "clean_ok": true,
+   "detail": "forbidden",
+   "evidence": {},
+   "clean_s": 0.0,
+   "log": "",
+   "fault": {
+    "applied": [
+     "corrupt:invoke_subworkflow"
+    ],
+    "s": 0.0002,
+    "result": "raised",
+    "note": "KeyError: 'reason'",
+    "reverts": 1
+   },
+   "verdict": "PASS"
+  },
+  {
+   "feature": "08-sub-workflow",
+   "method": "M5",
+   "name": "invoke melewati batas kedalaman -> depth_or_cycle",
+   "clean_ok": true,
+   "detail": "depth_or_cycle",
+   "evidence": {},
+   "clean_s": 0.0001,
+   "log": "[subwf] RPC cek gagal, pakai fallback: RuntimeError: rpc tidak tersedia di fake\n",
+   "fault": {
+    "applied": [
+     "corrupt:invoke_subworkflow"
+    ],
+    "s": 0.0003,
+    "result": "raised",
+    "note": "KeyError: 'reason'",
+    "reverts": 1
+   },
+   "verdict": "PASS"
+  },
+  {
+   "feature": "08-sub-workflow",
+   "method": "M4",
+   "name": "invoke meneruskan input_data ke runner",
+   "clean_ok": true,
+   "detail": "input={'pesan': 'halo'}",
+   "evidence": {},
+   "clean_s": 0.0004,
+   "log": "[subwf] RPC cek gagal, pakai fallback: RuntimeError: rpc tidak tersedia di fake\n",
+   "fault": {
+    "applied": [
+     "raise:invoke_subworkflow"
+    ],
+    "s": 0.0009,
+    "result": "raised",
+    "note": "RuntimeError: chaos-2026",
+    "reverts": 1
+   },
+   "verdict": "PASS"
+  },
+  {
+   "feature": "08-sub-workflow",
+   "method": "M4",
+   "name": "invoke mencatat depth anak",
+   "clean_ok": true,
+   "detail": "depth=3",
+   "evidence": {},
+   "clean_s": 0.0002,
+   "log": "[subwf] RPC cek gagal, pakai fallback: RuntimeError: rpc tidak tersedia di fake\n",
+   "fault": {
+    "applied": [
+     "raise:invoke_subworkflow"
+    ],
+    "s": 0.0005,
+    "result": "raised",
+    "note": "RuntimeError: chaos-2026",
+    "reverts": 1
+   },
+   "verdict": "PASS"
+  },
+  {
+   "feature": "08-sub-workflow",
+   "method": "M5",
+   "name": "list_invocations mengembalikan list",
+   "clean_ok": true,
+   "detail": "list",
+   "evidence": {},
+   "clean_s": 0.0,
+   "log": "",
+   "fault": {
+    "applied": [
+     "corrupt:list_invocations"
+    ],
+    "s": 0.0,
+    "result": "raised",
+    "note": "GAGAL: list",
+    "reverts": 1
+   },
+   "verdict": "PASS"
+  },
+  {
+   "feature": "08-sub-workflow",
+   "method": "M5",
+   "name": "execution_depth mengembalikan int",
+   "clean_ok": true,
+   "detail": "int",
+   "evidence": {},
+   "clean_s": 0.0,
+   "log": "",
+   "fault": {
+    "applied": [
+     "corrupt:execution_depth"
+    ],
+    "s": 0.0,
+    "result": "raised",
+    "note": "GAGAL: int",
+    "reverts": 1
+   },
+   "verdict": "PASS"
+  },
+  {
+   "feature": "09-parallel-fanout",
+   "method": "M5",
+   "name": "policy tak dikenal -> ValueError",
+   "clean_ok": true,
+   "detail": "policy -> ValueError: policy tidak dikenal: 'ngasal' (pilih ('all_success', 'all_settled', 'quorum'))",
+   "evidence": {},
+   "clean_s": 0.0,
+   "log": "",
+   "fault": {
+    "applied": [
+     "raise:merge_decision"
+    ],
+    "s": 0.0,
+    "result": "raised",
+    "note": "policy -> RuntimeError (harap ValueError): chaos-2026",
+    "reverts": 1
+   },
+   "verdict": "PASS"
+  },
+  {
+   "feature": "09-parallel-fanout",
+   "method": "M1",
+   "name": "all_success: semua sukses -> ok",
+   "clean_ok": true,
+   "detail": "ok",
+   "evidence": {},
+   "clean_s": 0.0,
+   "log": "",
+   "fault": {
+    "applied": [
+     "raise:merge_decision"
+    ],
+    "s": 0.0004,
+    "result": "raised",
+    "note": "RuntimeError: chaos-2026",
+    "reverts": 1
+   },
+   "verdict": "PASS"
+  },
+  {
+   "feature": "09-parallel-fanout",
+   "method": "M1",
+   "name": "all_success: satu gagal -> tidak ok",
+   "clean_ok": true,
+   "detail": "tidak ok",
+   "evidence": {},
+   "clean_s": 0.0,
+   "log": "",
+   "fault": {
+    "applied": [
+     "raise:merge_decision"
+    ],
+    "s": 0.0013,
+    "result": "raised",
+    "note": "RuntimeError: chaos-2026",
+    "reverts": 1
+   },
+   "verdict": "PASS"
+  },
+  {
+   "feature": "09-parallel-fanout",
+   "method": "M1",
+   "name": "all_settled: dengan kegagalan tetap lanjut",
+   "clean_ok": true,
+   "detail": "ok",
+   "evidence": {},
+   "clean_s": 0.0001,
+   "log": "",
+   "fault": {
+    "applied": [
+     "raise:merge_decision"
+    ],
+    "s": 0.001,
+    "result": "raised",
+    "note": "RuntimeError: chaos-2026",
+    "reverts": 1
+   },
+   "verdict": "PASS"
+  },
+  {
+   "feature": "09-parallel-fanout",
+   "method": "M1",
+   "name": "quorum: 3/4 sukses -> ok",
+   "clean_ok": true,
+   "detail": "ok",
+   "evidence": {},
+   "clean_s": 0.0,
+   "log": "",
+   "fault": {
+    "applied": [
+     "raise:merge_decision"
+    ],
+    "s": 0.0006,
+    "result": "raised",
+    "note": "RuntimeError: chaos-2026",
+    "reverts": 1
+   },
+   "verdict": "PASS"
+  },
+  {
+   "feature": "09-parallel-fanout",
+   "method": "M1",
+   "name": "quorum: 2/4 (seri) -> tidak ok",
+   "clean_ok": true,
+   "detail": "tidak ok",
+   "evidence": {},
+   "clean_s": 0.0001,
+   "log": "",
+   "fault": {
+    "applied": [
+     "raise:merge_decision"
+    ],
+    "s": 0.0008,
+    "result": "raised",
+    "note": "RuntimeError: chaos-2026",
+    "reverts": 1
+   },
+   "verdict": "PASS"
+  },
+  {
+   "feature": "09-parallel-fanout",
+   "method": "M1",
+   "name": "quorum: 1/2 -> tidak ok",
+   "clean_ok": true,
+   "detail": "tidak ok",
+   "evidence": {},
+   "clean_s": 0.0001,
+   "log": "",
+   "fault": {
+    "applied": [
+     "raise:merge_decision"
+    ],
+    "s": 0.0008,
+    "result": "raised",
+    "note": "RuntimeError: chaos-2026",
+    "reverts": 1
+   },
+   "verdict": "PASS"
+  },
+  {
+   "feature": "09-parallel-fanout",
+   "method": "M1",
+   "name": "quorum: 1/1 -> ok",
+   "clean_ok": true,
+   "detail": "ok",
+   "evidence": {},
+   "clean_s": 0.0,
+   "log": "",
+   "fault": {
+    "applied": [
+     "raise:merge_decision"
+    ],
+    "s": 0.0003,
+    "result": "raised",
+    "note": "RuntimeError: chaos-2026",
+    "reverts": 1
+   },
+   "verdict": "PASS"
+  },
+  {
+   "feature": "09-parallel-fanout",
+   "method": "M1",
+   "name": "masih ada cabang berjalan -> tidak ok + alasan",
+   "clean_ok": true,
+   "detail": "belum boleh",
+   "evidence": {},
+   "clean_s": 0.0,
+   "log": "",
+   "fault": {
+    "applied": [
+     "raise:merge_decision"
+    ],
+    "s": 0.0006,
+    "result": "raised",
+    "note": "RuntimeError: chaos-2026",
+    "reverts": 1
+   },
+   "verdict": "PASS"
+  },
+  {
+   "feature": "09-parallel-fanout",
+   "method": "M1",
+   "name": "tanpa cabang -> ok + outputs kosong",
+   "clean_ok": true,
+   "detail": "kosong",
+   "evidence": {},
+   "clean_s": 0.0001,
+   "log": "",
+   "fault": {
+    "applied": [
+     "raise:merge_decision"
+    ],
+    "s": 0.0004,
+    "result": "raised",
+    "note": "RuntimeError: chaos-2026",
+    "reverts": 1
+   },
+   "verdict": "PASS"
+  },
+  {
+   "feature": "09-parallel-fanout",
+   "method": "M4",
+   "name": "failed_keys terisi",
+   "clean_ok": true,
+   "detail": "['a']",
+   "evidence": {},
+   "clean_s": 0.0001,
+   "log": "",
+   "fault": {
+    "applied": [
+     "corrupt:merge_decision"
+    ],
+    "s": 0.0,
+    "result": "raised",
+    "note": "GAGAL: ['a']",
+    "reverts": 1
+   },
+   "verdict": "PASS"
+  },
+  {
+   "feature": "09-parallel-fanout",
+   "method": "M4",
+   "name": "timeout_keys terisi",
+   "clean_ok": true,
+   "detail": "['a']",
+   "evidence": {},
+   "clean_s": 0.0,
+   "log": "",
+   "fault": {
+    "applied": [
+     "corrupt:merge_decision"
+    ],
+    "s": 0.0,
+    "result": "raised",
+    "note": "GAGAL: ['a']",
+    "reverts": 1
+   },
+   "verdict": "PASS"
+  },
+  {
+   "feature": "09-parallel-fanout",
+   "method": "M4",
+   "name": "outputs memetakan branch_key -> output",
+   "clean_ok": true,
+   "detail": "peta benar",
+   "evidence": {},
+   "clean_s": 0.0,
+   "log": "",
+   "fault": {
+    "applied": [
+     "corrupt:merge_decision"
+    ],
+    "s": 0.0,
+    "result": "raised",
+    "note": "GAGAL: peta benar",
+    "reverts": 1
+   },
+   "verdict": "PASS"
+  },
+  {
+   "feature": "09-parallel-fanout",
+   "method": "M4",
+   "name": "summary diteruskan",
+   "clean_ok": true,
+   "detail": "total=1",
+   "evidence": {},
+   "clean_s": 0.0,
+   "log": "",
+   "fault": {
+    "applied": [
+     "corrupt:merge_decision"
+    ],
+    "s": 0.0004,
+    "result": "raised",
+    "note": "KeyError: 'total'",
+    "reverts": 1
+   },
+   "verdict": "PASS"
+  },
+  {
+   "feature": "09-parallel-fanout",
+   "method": "M5",
+   "name": "reason selalu non-empty",
+   "clean_ok": true,
+   "detail": "reason ada",
+   "evidence": {},
+   "clean_s": 0.0,
+   "log": "",
+   "fault": {
+    "applied": [
+     "corrupt:merge_decision"
+    ],
+    "s": 0.0,
+    "result": "raised",
+    "note": "GAGAL: reason ada",
+    "reverts": 1
+   },
+   "verdict": "PASS"
+  },
+  {
+   "feature": "09-parallel-fanout",
+   "method": "M5",
+   "name": "policy di-echo di hasil",
+   "clean_ok": true,
+   "detail": "quorum",
+   "evidence": {},
+   "clean_s": 0.0,
+   "log": "",
+   "fault": {
+    "applied": [
+     "corrupt:merge_decision"
+    ],
+    "s": 0.0,
+    "result": "raised",
+    "note": "GAGAL: quorum",
+    "reverts": 1
+   },
+   "verdict": "PASS"
+  },
+  {
+   "feature": "09-parallel-fanout",
+   "method": "M5",
+   "name": "all_settled reason menyebut settled",
+   "clean_ok": true,
+   "detail": "alasan settled",
+   "evidence": {},
+   "clean_s": 0.0,
+   "log": "",
+   "fault": {
+    "applied": [
+     "corrupt:merge_decision"
+    ],
+    "s": 0.0,
+    "result": "raised",
+    "note": "GAGAL: alasan settled",
+    "reverts": 1
+   },
+   "verdict": "PASS"
+  },
+  {
+   "feature": "09-parallel-fanout",
+   "method": "M5",
+   "name": "quorum reason menyebut ambang",
+   "clean_ok": true,
+   "detail": "alasan ambang",
+   "evidence": {},
+   "clean_s": 0.0,
+   "log": "",
+   "fault": {
+    "applied": [
+     "corrupt:merge_decision"
+    ],
+    "s": 0.0,
+    "result": "raised",
+    "note": "GAGAL: alasan ambang",
+    "reverts": 1
+   },
+   "verdict": "PASS"
+  },
+  {
+   "feature": "09-parallel-fanout",
+   "method": "M1",
+   "name": "quorum 5/5 -> ok",
+   "clean_ok": true,
+   "detail": "ok",
+   "evidence": {},
+   "clean_s": 0.0,
+   "log": "",
+   "fault": {
+    "applied": [
+     "raise:merge_decision"
+    ],
+    "s": 0.0003,
+    "result": "raised",
+    "note": "RuntimeError: chaos-2026",
+    "reverts": 1
+   },
+   "verdict": "PASS"
+  },
+  {
+   "feature": "09-parallel-fanout",
+   "method": "M1",
+   "name": "all_success semua timeout -> tidak ok",
+   "clean_ok": true,
+   "detail": "tidak ok",
+   "evidence": {},
+   "clean_s": 0.0,
+   "log": "",
+   "fault": {
+    "applied": [
+     "raise:merge_decision"
+    ],
+    "s": 0.0002,
+    "result": "raised",
+    "note": "RuntimeError: chaos-2026",
+    "reverts": 1
+   },
+   "verdict": "PASS"
+  },
+  {
+   "feature": "10-code-sandbox",
+   "method": "M5",
+   "name": "validate_python menerima kode aman",
+   "clean_ok": true,
+   "detail": "lolos",
+   "evidence": {},
+   "clean_s": 0.0228,
+   "log": "",
+   "fault": {
+    "applied": [
+     "raise:validate_python"
+    ],
+    "s": 0.0003,
+    "result": "raised",
+    "note": "RuntimeError: chaos-2026",
+    "reverts": 1
+   },
+   "verdict": "PASS"
+  },
+  {
+   "feature": "10-code-sandbox",
+   "method": "M5",
+   "name": "import ditolak",
+   "clean_ok": true,
+   "detail": "import -> SandboxError: import tidak diizinkan: os",
+   "evidence": {},
+   "clean_s": 0.0001,
+   "log": "",
+   "fault": {
+    "applied": [
+     "raise:validate_python"
+    ],
+    "s": 0.0,
+    "result": "raised",
+    "note": "import -> RuntimeError (harap SandboxError): chaos-2026",
+    "reverts": 1
+   },
+   "verdict": "PASS"
+  },
+  {
+   "feature": "10-code-sandbox",
+   "method": "M5",
+   "name": "from-import ditolak",
+   "clean_ok": true,
+   "detail": "from-import -> SandboxError: import tidak diizinkan: os",
+   "evidence": {},
+   "clean_s": 0.0,
+   "log": "",
+   "fault": {
+    "applied": [
+     "raise:validate_python"
+    ],
+    "s": 0.0,
+    "result": "raised",
+    "note": "from-import -> RuntimeError (harap SandboxError): chaos-2026",
+    "reverts": 1
+   },
+   "verdict": "PASS"
+  },
+  {
+   "feature": "10-code-sandbox",
+   "method": "M5",
+   "name": "eval ditolak",
+   "clean_ok": true,
+   "detail": "eval -> SandboxError: fungsi tidak diizinkan: eval()",
+   "evidence": {},
+   "clean_s": 0.0,
+   "log": "",
+   "fault": {
+    "applied": [
+     "raise:validate_python"
+    ],
+    "s": 0.0,
+    "result": "raised",
+    "note": "eval -> RuntimeError (harap SandboxError): chaos-2026",
+    "reverts": 1
+   },
+   "verdict": "PASS"
+  },
+  {
+   "feature": "10-code-sandbox",
+   "method": "M5",
+   "name": "exec ditolak",
+   "clean_ok": true,
+   "detail": "exec -> SandboxError: fungsi tidak diizinkan: exec()",
+   "evidence": {},
+   "clean_s": 0.0,
+   "log": "",
+   "fault": {
+    "applied": [
+     "raise:validate_python"
+    ],
+    "s": 0.0,
+    "result": "raised",
+    "note": "exec -> RuntimeError (harap SandboxError): chaos-2026",
+    "reverts": 1
+   },
+   "verdict": "PASS"
+  },
+  {
+   "feature": "10-code-sandbox",
+   "method": "M5",
+   "name": "open ditolak",
+   "clean_ok": true,
+   "detail": "open -> SandboxError: fungsi tidak diizinkan: open()",
+   "evidence": {},
+   "clean_s": 0.0,
+   "log": "",
+   "fault": {
+    "applied": [
+     "raise:validate_python"
+    ],
+    "s": 0.0,
+    "result": "raised",
+    "note": "open -> RuntimeError (harap SandboxError): chaos-2026",
+    "reverts": 1
+   },
+   "verdict": "PASS"
+  },
+  {
+   "feature": "10-code-sandbox",
+   "method": "M5",
+   "name": "__import__ ditolak",
+   "clean_ok": true,
+   "detail": "__import__ -> SandboxError: fungsi tidak diizinkan: __import__()",
+   "evidence": {},
+   "clean_s": 0.0,
+   "log": "",
+   "fault": {
+    "applied": [
+     "raise:validate_python"
+    ],
+    "s": 0.0,
+    "result": "raised",
+    "note": "__import__ -> RuntimeError (harap SandboxError): chaos-2026",
+    "reverts": 1
+   },
+   "verdict": "PASS"
+  },
+  {
+   "feature": "10-code-sandbox",
+   "method": "M5",
+   "name": "input ditolak",
+   "clean_ok": true,
+   "detail": "input -> SandboxError: fungsi tidak diizinkan: input()",
+   "evidence": {},
+   "clean_s": 0.0,
+   "log": "",
+   "fault": {
+    "applied": [
+     "raise:validate_python"
+    ],
+    "s": 0.0,
+    "result": "raised",
+    "note": "input -> RuntimeError (harap SandboxError): chaos-2026",
+    "reverts": 1
+   },
+   "verdict": "PASS"
+  },
+  {
+   "feature": "10-code-sandbox",
+   "method": "M5",
+   "name": "kode kosong ditolak",
+   "clean_ok": true,
+   "detail": "kosong -> SandboxError: kode kosong",
+   "evidence": {},
+   "clean_s": 0.0,
+   "log": "",
+   "fault": {
+    "applied": [
+     "raise:validate_python"
+    ],
+    "s": 0.0,
+    "result": "raised",
+    "note": "kosong -> RuntimeError (harap SandboxError): chaos-2026",
+    "reverts": 1
+   },
+   "verdict": "PASS"
+  },
+  {
+   "feature": "10-code-sandbox",
+   "method": "M5",
+   "name": "sintaks error -> SandboxError",
+   "clean_ok": true,
+   "detail": "syntax -> SandboxError: sintaks tidak valid: invalid syntax (baris 1)",
+   "evidence": {},
+   "clean_s": 0.0011,
+   "log": "",
+   "fault": {
+    "applied": [
+     "raise:validate_python"
+    ],
+    "s": 0.0,
+    "result": "raised",
+    "note": "syntax -> RuntimeError (harap SandboxError): chaos-2026",
+    "reverts": 1
+   },
+   "verdict": "PASS"
+  },
+  {
+   "feature": "10-code-sandbox",
+   "method": "M5",
+   "name": "kode oversize ditolak",
+   "clean_ok": true,
+   "detail": "oversize -> SandboxError: kode terlalu panjang (>100000 byte)",
+   "evidence": {},
+   "clean_s": 0.0003,
+   "log": "",
+   "fault": {
+    "applied": [
+     "raise:validate_python"
+    ],
+    "s": 0.0,
+    "result": "raised",
+    "note": "oversize -> RuntimeError (harap SandboxError): chaos-2026",
+    "reverts": 1
+   },
+   "verdict": "PASS"
+  },
+  {
+   "feature": "10-code-sandbox",
+   "method": "M5",
+   "name": "JS require( ditolak",
+   "clean_ok": true,
+   "detail": "require -> SandboxError: pola tidak diizinkan di JavaScript: 'require('",
+   "evidence": {},
+   "clean_s": 0.0,
+   "log": "",
+   "fault": {
+    "applied": [
+     "raise:validate_javascript"
+    ],
+    "s": 0.0,
+    "result": "raised",
+    "note": "require -> RuntimeError (harap SandboxError): chaos-2026",
+    "reverts": 1
+   },
+   "verdict": "PASS"
+  },
+  {
+   "feature": "10-code-sandbox",
+   "method": "M5",
+   "name": "JS child_process ditolak",
+   "clean_ok": true,
+   "detail": "child_process -> SandboxError: pola tidak diizinkan di JavaScript: 'process.'",
+   "evidence": {},
+   "clean_s": 0.0,
+   "log": "",
+   "fault": {
+    "applied": [
+     "raise:validate_javascript"
+    ],
+    "s": 0.0,
+    "result": "raised",
+    "note": "child_process -> RuntimeError (harap SandboxError): chaos-2026",
+    "reverts": 1
+   },
+   "verdict": "PASS"
+  },
+  {
+   "feature": "10-code-sandbox",
+   "method": "M5",
+   "name": "JS eval( ditolak",
+   "clean_ok": true,
+   "detail": "eval -> SandboxError: pola tidak diizinkan di JavaScript: 'eval('",
+   "evidence": {},
+   "clean_s": 0.0,
+   "log": "",
+   "fault": {
+    "applied": [
+     "raise:validate_javascript"
+    ],
+    "s": 0.0,
+    "result": "raised",
+    "note": "eval -> RuntimeError (harap SandboxError): chaos-2026",
+    "reverts": 1
+   },
+   "verdict": "PASS"
+  },
+  {
+   "feature": "10-code-sandbox",
+   "method": "M5",
+   "name": "JS __proto__ ditolak",
+   "clean_ok": true,
+   "detail": "__proto__ -> SandboxError: pola tidak diizinkan di JavaScript: '__proto__'",
+   "evidence": {},
+   "clean_s": 0.0,
+   "log": "",
+   "fault": {
+    "applied": [
+     "raise:validate_javascript"
+    ],
+    "s": 0.0,
+    "result": "raised",
+    "note": "__proto__ -> RuntimeError (harap SandboxError): chaos-2026",
+    "reverts": 1
+   },
+   "verdict": "PASS"
+  },
+  {
+   "feature": "10-code-sandbox",
+   "method": "M5",
+   "name": "JS module.exports ditolak",
+   "clean_ok": true,
+   "detail": "module.exports -> SandboxError: pola tidak diizinkan di JavaScript: 'module.exports'",
+   "evidence": {},
+   "clean_s": 0.0,
+   "log": "",
+   "fault": {
+    "applied": [
+     "raise:validate_javascript"
+    ],
+    "s": 0.0,
+    "result": "raised",
+    "note": "module.exports -> RuntimeError (harap SandboxError): chaos-2026",
+    "reverts": 1
+   },
+   "verdict": "PASS"
+  },
+  {
+   "feature": "10-code-sandbox",
+   "method": "M5",
+   "name": "JS aman diterima",
+   "clean_ok": true,
+   "detail": "lolos",
+   "evidence": {},
+   "clean_s": 0.0,
+   "log": "",
+   "fault": {
+    "applied": [
+     "raise:validate_javascript"
+    ],
+    "s": 0.0003,
+    "result": "raised",
+    "note": "RuntimeError: chaos-2026",
+    "reverts": 1
+   },
+   "verdict": "PASS"
+  },
+  {
+   "feature": "10-code-sandbox",
+   "method": "M5",
+   "name": "validate() menolak bahasa tak dikenal",
+   "clean_ok": true,
+   "detail": "bahasa -> SandboxError: bahasa tidak didukung: 'ruby' (pilih ('python', 'javascript'))",
+   "evidence": {},
+   "clean_s": 0.0,
+   "log": "",
+   "fault": {
+    "applied": [
+     "raise:validate"
+    ],
+    "s": 0.0,
+    "result": "raised",
+    "note": "bahasa -> RuntimeError (harap SandboxError): chaos-2026",
+    "reverts": 1
+   },
+   "verdict": "PASS"
+  },
+  {
+   "feature": "10-code-sandbox",
+   "method": "M5",
+   "name": "sanitize_vars membuang nilai non-JSON",
+   "clean_ok": true,
+   "detail": "fungsi dibuang",
+   "evidence": {},
+   "clean_s": 0.0001,
+   "log": "",
+   "fault": {
+    "applied": [
+     "corrupt:sanitize_vars"
+    ],
+    "s": 0.0,
+    "result": "raised",
+    "note": "GAGAL: fungsi dibuang",
+    "reverts": 1
+   },
+   "verdict": "PASS"
+  },
+  {
+   "feature": "10-code-sandbox",
+   "method": "M5",
+   "name": "capabilities() konsisten: bahasa & timeout",
+   "clean_ok": true,
+   "detail": "konsisten",
+   "evidence": {},
+   "clean_s": 0.0044,
+   "log": "",
+   "fault": {
+    "applied": [
+     "corrupt:capabilities"
+    ],
+    "s": 0.0018,
+    "result": "raised",
+    "note": "KeyError: 'languages'",
+    "reverts": 1
+   },
+   "verdict": "PASS"
+  },
+  {
+   "feature": "11-external-secrets",
+   "method": "M5",
+   "name": "parse_ref 2 segmen -> (default, path, field)",
+   "clean_ok": true,
+   "detail": "tuple benar",
+   "evidence": {},
+   "clean_s": 0.0001,
+   "log": "",
+   "fault": {
+    "applied": [
+     "corrupt:parse_ref"
+    ],
+    "s": 0.0,
+    "result": "raised",
+    "note": "GAGAL: tuple benar",
+    "reverts": 1
+   },
+   "verdict": "PASS"
+  },
+  {
+   "feature": "11-external-secrets",
+   "method": "M5",
+   "name": "parse_ref backend eksplisit katalir",
+   "clean_ok": true,
+   "detail": "tuple benar",
+   "evidence": {},
+   "clean_s": 0.0,
+   "log": "",
+   "fault": {
+    "applied": [
+     "corrupt:parse_ref"
+    ],
+    "s": 0.0,
+    "result": "raised",
+    "note": "GAGAL: tuple benar",
+    "reverts": 1
+   },
+   "verdict": "PASS"
+  },
+  {
+   "feature": "11-external-secrets",
+   "method": "M5",
+   "name": "parse_ref aws 3 segmen",
+   "clean_ok": true,
+   "detail": "tuple benar",
+   "evidence": {},
+   "clean_s": 0.0,
+   "log": "",
+   "fault": {
+    "applied": [
+     "corrupt:parse_ref"
+    ],
+    "s": 0.0,
+    "result": "raised",
+    "note": "GAGAL: tuple benar",
+    "reverts": 1
+   },
+   "verdict": "PASS"
+  },
+  {
+   "feature": "11-external-secrets",
+   "method": "M5",
+   "name": "parse_ref aws 4 segmen -> path bertingkat",
+   "clean_ok": true,
+   "detail": "tuple benar",
+   "evidence": {},
+   "clean_s": 0.0,
+   "log": "",
+   "fault": {
+    "applied": [
+     "corrupt:parse_ref"
+    ],
+    "s": 0.0,
+    "result": "raised",
+    "note": "GAGAL: tuple benar",
+    "reverts": 1
+   },
+   "verdict": "PASS"
+  },
+  {
+   "feature": "11-external-secrets",
+   "method": "M5",
+   "name": "parse_ref menolak non-string",
+   "clean_ok": true,
+   "detail": "tipe -> SecretRefError: referensi harus teks",
+   "evidence": {},
+   "clean_s": 0.0,
+   "log": "",
+   "fault": {
+    "applied": [
+     "corrupt:parse_ref"
+    ],
+    "s": 0.0,
+    "result": "handled",
+    "note": "tipe -> SecretRefError: referensi harus teks",
+    "reverts": 1
+   },
+   "verdict": "PASS"
+  },
+  {
+   "feature": "11-external-secrets",
+   "method": "M5",
+   "name": "parse_ref menolak format salah",
+   "clean_ok": true,
+   "detail": "format -> SecretRefError: Format secret:// tidak valid: 'bukan-ref'",
+   "evidence": {},
+   "clean_s": 0.0,
+   "log": "",
+   "fault": {
+    "applied": [
+     "corrupt:parse_ref"
+    ],
+    "s": 0.0,
+    "result": "handled",
+    "note": "format -> SecretRefError: Format secret:// tidak valid: 'bukan-ref'",
+    "reverts": 1
+   },
+   "verdict": "PASS"
+  },
+  {
+   "feature": "11-external-secrets",
+   "method": "M5",
+   "name": "parse_ref menolak path absolut //",
+   "clean_ok": true,
+   "detail": "absolut -> SecretRefError: referensi rahasia tidak boleh absolut / bersegmen kosong: 'openbao//etc/shadow'",
+   "evidence": {},
+   "clean_s": 0.0,
+   "log": "",
+   "fault": {
+    "applied": [
+     "corrupt:parse_ref"
+    ],
+    "s": 0.0,
+    "result": "handled",
+    "note": "absolut -> SecretRefError: referensi rahasia tidak boleh absolut / bersegmen kosong: 'openbao//etc/shadow'",
+    "reverts": 1
+   },
+   "verdict": "PASS"
+  },
+  {
+   "feature": "11-external-secrets",
+   "method": "M5",
+   "name": "parse_ref menolak traversal ..",
+   "clean_ok": true,
+   "detail": "traversal -> SecretRefError: segmen path rahasia tidak valid: '..'",
+   "evidence": {},
+   "clean_s": 0.0,
+   "log": "",
+   "fault": {
+    "applied": [
+     "corrupt:parse_ref"
+    ],
+    "s": 0.0,
+    "result": "handled",
+    "note": "traversal -> SecretRefError: segmen path rahasia tidak valid: '..'",
+    "reverts": 1
+   },
+   "verdict": "PASS"
+  },
+  {
+   "feature": "11-external-secrets",
+   "method": "M5",
+   "name": "parse_ref menolak backslash",
+   "clean_ok": true,
+   "detail": "backslash -> SecretRefError: segmen path rahasia tidak valid: 'b\\\\c'",
+   "evidence": {},
+   "clean_s": 0.0,
+   "log": "",
+   "fault": {
+    "applied": [
+     "corrupt:parse_ref"
+    ],
+    "s": 0.0,
+    "result": "handled",
+    "note": "backslash -> SecretRefError: segmen path rahasia tidak valid: 'b\\\\c'",
+    "reverts": 1
+   },
+   "verdict": "PASS"
+  },
+  {
+   "feature": "11-external-secrets",
+   "method": "M5",
+   "name": "parse_ref menolak path >512",
+   "clean_ok": true,
+   "detail": "oversize -> SecretRefError: path rahasia terlalu panjang (>512 karakter)",
+   "evidence": {},
+   "clean_s": 0.0,
+   "log": "",
+   "fault": {
+    "applied": [
+     "corrupt:parse_ref"
+    ],
+    "s": 0.0,
+    "result": "handled",
+    "note": "oversize -> SecretRefError: path rahasia terlalu panjang (>512 karakter)",
+    "reverts": 1
+   },
+   "verdict": "PASS"
+  },
+  {
+   "feature": "11-external-secrets",
+   "method": "M5",
+   "name": "is_secret_ref True",
+   "clean_ok": true,
+   "detail": "True",
+   "evidence": {},
+   "clean_s": 0.0,
+   "log": "",
+   "fault": {
+    "applied": [
+     "corrupt:is_secret_ref"
+    ],
+    "s": 0.0,
+    "result": "raised",
+    "note": "GAGAL: True",
+    "reverts": 1
+   },
+   "verdict": "PASS"
+  },
+  {
+   "feature": "11-external-secrets",
+   "method": "M5",
+   "name": "is_secret_ref False untuk teks biasa",
+   "clean_ok": true,
+   "detail": "False",
+   "evidence": {},
+   "clean_s": 0.0,
+   "log": "",
+   "fault": {
+    "applied": [
+     "corrupt:is_secret_ref"
+    ],
+    "s": 0.0,
+    "result": "raised",
+    "note": "GAGAL: False",
+    "reverts": 1
+   },
+   "verdict": "PASS"
+  },
+  {
+   "feature": "11-external-secrets",
+   "method": "M5",
+   "name": "is_secret_ref case-insensitive",
+   "clean_ok": true,
+   "detail": "True",
+   "evidence": {},
+   "clean_s": 0.0,
+   "log": "",
+   "fault": {
+    "applied": [
+     "corrupt:is_secret_ref"
+    ],
+    "s": 0.0,
+    "result": "raised",
+    "note": "GAGAL: True",
+    "reverts": 1
+   },
+   "verdict": "PASS"
+  },
+  {
+   "feature": "11-external-secrets",
+   "method": "M5",
+   "name": "redact men-mask string secret://",
+   "clean_ok": true,
+   "detail": "MASK",
+   "evidence": {},
+   "clean_s": 0.0,
+   "log": "",
+   "fault": {
+    "applied": [
+     "corrupt:redact"
+    ],
+    "s": 0.0,
+    "result": "raised",
+    "note": "GAGAL: MASK",
+    "reverts": 1
+   },
+   "verdict": "PASS"
+  },
+  {
+   "feature": "11-external-secrets",
+   "method": "M5",
+   "name": "redact men-mask nested dict/list",
+   "clean_ok": true,
+   "detail": "MASK",
+   "evidence": {},
+   "clean_s": 0.0,
+   "log": "",
+   "fault": {
+    "applied": [
+     "corrupt:redact"
+    ],
+    "s": 0.0,
+    "result": "raised",
+    "note": "GAGAL: MASK",
+    "reverts": 1
+   },
+   "verdict": "PASS"
+  },
+  {
+   "feature": "11-external-secrets",
+   "method": "M5",
+   "name": "redact membiarkan teks biasa",
+   "clean_ok": true,
+   "detail": "utuh",
+   "evidence": {},
+   "clean_s": 0.0,
+   "log": "",
+   "fault": {
+    "applied": [
+     "corrupt:redact"
+    ],
+    "s": 0.0,
+    "result": "raised",
+    "note": "GAGAL: utuh",
+    "reverts": 1
+   },
+   "verdict": "PASS"
+  },
+  {
+   "feature": "11-external-secrets",
+   "method": "M5",
+   "name": "check_size menerima nilai kecil",
+   "clean_ok": true,
+   "detail": "100",
+   "evidence": {},
+   "clean_s": 0.0,
+   "log": "",
+   "fault": {
+    "applied": [
+     "corrupt:check_size"
+    ],
+    "s": 0.0,
+    "result": "raised",
+    "note": "GAGAL: 100",
+    "reverts": 1
+   },
+   "verdict": "PASS"
+  },
+  {
+   "feature": "11-external-secrets",
+   "method": "M5",
+   "name": "check_size menolak > MAX_SECRET_BYTES",
+   "clean_ok": true,
+   "detail": "oversize -> SecretTooLarge: rahasia terlalu besar: 262145 byte > 262144 byte",
+   "evidence": {},
+   "clean_s": 0.0002,
+   "log": "",
+   "fault": {
+    "applied": [
+     "corrupt:check_size"
+    ],
+    "s": 0.0,
+    "result": "handled",
+    "note": "oversize -> SecretTooLarge: rahasia terlalu besar: 262145 byte > 262144 byte",
+    "reverts": 1
+   },
+   "verdict": "PASS"
+  },
+  {
+   "feature": "11-external-secrets",
+   "method": "M5",
+   "name": "describe_backends melaporkan backend",
+   "clean_ok": true,
+   "detail": "11 backend",
+   "evidence": {},
+   "clean_s": 0.3746,
+   "log": "",
+   "fault": {
+    "applied": [
+     "corrupt:describe_backends"
+    ],
+    "s": 0.0017,
+    "result": "raised",
+    "note": "GAGAL: 0 backend",
+    "reverts": 1
+   },
+   "verdict": "PASS"
+  },
+  {
+   "feature": "11-external-secrets",
+   "method": "M1",
+   "name": "SecretNotFound subclass SecretsError",
+   "clean_ok": true,
+   "detail": "subclass",
+   "evidence": {},
+   "clean_s": 0.0,
+   "log": "",
+   "fault": {
+    "applied": [
+     "raise:parse_ref"
+    ],
+    "s": 0.0,
+    "result": "handled",
+    "note": "subclass",
+    "reverts": 1
+   },
+   "verdict": "PASS"
+  },
+  {
+   "feature": "12-guardrails",
+   "method": "M5",
+   "name": "keywords: kata terlarang terdeteksi",
+   "clean_ok": true,
+   "detail": "terdeteksi",
+   "evidence": {},
+   "clean_s": 0.0,
+   "log": "",
+   "fault": {
+    "applied": [
+     "raise:_eval_one"
+    ],
+    "s": 0.0014,
+    "result": "raised",
+    "note": "RuntimeError: chaos-2026",
+    "reverts": 1
+   },
+   "verdict": "PASS"
+  },
+  {
+   "feature": "12-guardrails",
+   "method": "M5",
+   "name": "keywords: teks bersih tidak melanggar",
+   "clean_ok": true,
+   "detail": "pass",
+   "evidence": {},
+   "clean_s": 0.0,
+   "log": "",
+   "fault": {
+    "applied": [
+     "raise:_eval_one"
+    ],
+    "s": 0.0005,
+    "result": "raised",
+    "note": "RuntimeError: chaos-2026",
+    "reverts": 1
+   },
+   "verdict": "PASS"
+  },
+  {
+   "feature": "12-guardrails",
+   "method": "M5",
+   "name": "pii: email terdeteksi",
+   "clean_ok": true,
+   "detail": "email",
+   "evidence": {},
+   "clean_s": 0.0001,
+   "log": "",
+   "fault": {
+    "applied": [
+     "raise:_find_pii"
+    ],
+    "s": 0.0004,
+    "result": "raised",
+    "note": "RuntimeError: chaos-2026",
+    "reverts": 1
+   },
+   "verdict": "PASS"
+  },
+  {
+   "feature": "12-guardrails",
+   "method": "M5",
+   "name": "pii: teks tanpa PII bersih",
+   "clean_ok": true,
+   "detail": "pass",
+   "evidence": {},
+   "clean_s": 0.0,
+   "log": "",
+   "fault": {
+    "applied": [
+     "raise:_find_pii"
+    ],
+    "s": 0.0004,
+    "result": "raised",
+    "note": "RuntimeError: chaos-2026",
+    "reverts": 1
+   },
+   "verdict": "PASS"
+  },
+  {
+   "feature": "12-guardrails",
+   "method": "M5",
+   "name": "pii: kartu kredit valid (Luhn) terdeteksi",
+   "clean_ok": true,
+   "detail": "kartu",
+   "evidence": {},
+   "clean_s": 0.0002,
+   "log": "",
+   "fault": {
+    "applied": [
+     "raise:_find_pii"
+    ],
+    "s": 0.0005,
+    "result": "raised",
+    "note": "RuntimeError: chaos-2026",
+    "reverts": 1
+   },
+   "verdict": "PASS"
+  },
+  {
+   "feature": "12-guardrails",
+   "method": "M5",
+   "name": "secret_keys: assignment rahasia terdeteksi",
+   "clean_ok": true,
+   "detail": "secret",
+   "evidence": {},
+   "clean_s": 0.0002,
+   "log": "",
+   "fault": {
+    "applied": [
+     "raise:_find_secrets"
+    ],
+    "s": 0.0005,
+    "result": "raised",
+    "note": "RuntimeError: chaos-2026",
+    "reverts": 1
+   },
+   "verdict": "PASS"
+  },
+  {
+   "feature": "12-guardrails",
+   "method": "M5",
+   "name": "secret_keys: teks biasa bersih",
+   "clean_ok": true,
+   "detail": "pass",
+   "evidence": {},
+   "clean_s": 0.0001,
+   "log": "",
+   "fault": {
+    "applied": [
+     "raise:_find_secrets"
+    ],
+    "s": 0.0006,
+    "result": "raised",
+    "note": "RuntimeError: chaos-2026",
+    "reverts": 1
+   },
+   "verdict": "PASS"
+  },
+  {
+   "feature": "12-guardrails",
+   "method": "M5",
+   "name": "urls: userinfo (kredensial) ditolak",
+   "clean_ok": true,
+   "detail": "userinfo",
+   "evidence": {},
+   "clean_s": 0.0001,
+   "log": "",
+   "fault": {
+    "applied": [
+     "raise:_find_urls"
+    ],
+    "s": 0.0007,
+    "result": "raised",
+    "note": "RuntimeError: chaos-2026",
+    "reverts": 1
+   },
+   "verdict": "PASS"
+  },
+  {
+   "feature": "12-guardrails",
+   "method": "M5",
+   "name": "urls: host di luar allowlist ditolak",
+   "clean_ok": true,
+   "detail": "host asing",
+   "evidence": {},
+   "clean_s": 0.0001,
+   "log": "",
+   "fault": {
+    "applied": [
+     "raise:_find_urls"
+    ],
+    "s": 0.0004,
+    "result": "raised",
+    "note": "RuntimeError: chaos-2026",
+    "reverts": 1
+   },
+   "verdict": "PASS"
+  },
+  {
+   "feature": "12-guardrails",
+   "method": "M5",
+   "name": "urls: host dalam allowlist lolos",
+   "clean_ok": true,
+   "detail": "pass",
+   "evidence": {},
+   "clean_s": 0.0,
+   "log": "",
+   "fault": {
+    "applied": [
+     "raise:_find_urls"
+    ],
+    "s": 0.0004,
+    "result": "raised",
+    "note": "RuntimeError: chaos-2026",
+    "reverts": 1
+   },
+   "verdict": "PASS"
+  },
+  {
+   "feature": "12-guardrails",
+   "method": "M5",
+   "name": "jailbreak: 2+ sinyal terdeteksi",
+   "clean_ok": true,
+   "detail": "jailbreak",
+   "evidence": {},
+   "clean_s": 0.0,
+   "log": "",
+   "fault": {
+    "applied": [
+     "raise:_heuristic_judge"
+    ],
+    "s": 0.0006,
+    "result": "raised",
+    "note": "RuntimeError: chaos-2026",
+    "reverts": 1
+   },
+   "verdict": "PASS"
+  },
+  {
+   "feature": "12-guardrails",
+   "method": "M5",
+   "name": "jailbreak: teks biasa bersih",
+   "clean_ok": true,
+   "detail": "pass",
+   "evidence": {},
+   "clean_s": 0.0,
+   "log": "",
+   "fault": {
+    "applied": [
+     "raise:_heuristic_judge"
+    ],
+    "s": 0.0004,
+    "result": "raised",
+    "note": "RuntimeError: chaos-2026",
+    "reverts": 1
+   },
+   "verdict": "PASS"
+  },
+  {
+   "feature": "12-guardrails",
+   "method": "M5",
+   "name": "nsfw: sinyal eksplisit terdeteksi",
+   "clean_ok": true,
+   "detail": "nsfw",
+   "evidence": {},
+   "clean_s": 0.0,
+   "log": "",
+   "fault": {
+    "applied": [
+     "raise:_heuristic_judge"
+    ],
+    "s": 0.0004,
+    "result": "raised",
+    "note": "RuntimeError: chaos-2026",
+    "reverts": 1
+   },
+   "verdict": "PASS"
+  },
+  {
+   "feature": "12-guardrails",
+   "method": "M5",
+   "name": "custom_regex: pola terdeteksi",
+   "clean_ok": true,
+   "detail": "regex",
+   "evidence": {},
+   "clean_s": 0.0001,
+   "log": "",
+   "fault": {
+    "applied": [
+     "raise:_eval_one"
+    ],
+    "s": 0.0003,
+    "result": "raised",
+    "note": "RuntimeError: chaos-2026",
+    "reverts": 1
+   },
+   "verdict": "PASS"
+  },
+  {
+   "feature": "12-guardrails",
+   "method": "M5",
+   "name": "custom_regex: regex invalid -> warn, tidak crash",
+   "clean_ok": true,
+   "detail": "warn tercatat",
+   "evidence": {},
+   "clean_s": 0.0001,
+   "log": "",
+   "fault": {
+    "applied": [
+     "raise:_eval_one"
+    ],
+    "s": 0.0003,
+    "result": "raised",
+    "note": "RuntimeError: chaos-2026",
+    "reverts": 1
+   },
+   "verdict": "PASS"
+  },
+  {
+   "feature": "12-guardrails",
+   "method": "M5",
+   "name": "custom: prompt keyword terdeteksi (ambang 0.3)",
+   "clean_ok": true,
+   "detail": "custom",
+   "evidence": {},
+   "clean_s": 0.0,
+   "log": "",
+   "fault": {
+    "applied": [
+     "raise:_heuristic_judge"
+    ],
+    "s": 0.0005,
+    "result": "raised",
+    "note": "RuntimeError: chaos-2026",
+    "reverts": 1
+   },
+   "verdict": "PASS"
+  },
+  {
+   "feature": "12-guardrails",
+   "method": "M5",
+   "name": "topical_alignment: off-topic terdeteksi",
+   "clean_ok": true,
+   "detail": "off-topic",
+   "evidence": {},
+   "clean_s": 0.0001,
+   "log": "",
+   "fault": {
+    "applied": [
+     "raise:_heuristic_judge"
+    ],
+    "s": 0.0017,
+    "result": "raised",
+    "note": "RuntimeError: chaos-2026",
+    "reverts": 1
+   },
+   "verdict": "PASS"
+  },
+  {
+   "feature": "12-guardrails",
+   "method": "M5",
+   "name": "tipe tak dikenal -> violation warn",
+   "clean_ok": true,
+   "detail": "warn",
+   "evidence": {},
+   "clean_s": 0.0001,
+   "log": "",
+   "fault": {
+    "applied": [
+     "raise:_eval_one"
+    ],
+    "s": 0.0006,
+    "result": "raised",
+    "note": "RuntimeError: chaos-2026",
+    "reverts": 1
+   },
+   "verdict": "PASS"
+  },
+  {
+   "feature": "12-guardrails",
+   "method": "M5",
+   "name": "sanitize mengganti PII dengan placeholder",
+   "clean_ok": true,
+   "detail": "PII dimask",
+   "evidence": {},
+   "clean_s": 0.0001,
+   "log": "",
+   "fault": {
+    "applied": [
+     "raise:_sanitize"
+    ],
+    "s": 0.0008,
+    "result": "raised",
+    "note": "RuntimeError: chaos-2026",
+    "reverts": 1
+   },
+   "verdict": "PASS"
+  },
+  {
+   "feature": "12-guardrails",
+   "method": "M5",
+   "name": "status prioritas block > warn > pass",
+   "clean_ok": true,
+   "detail": "block",
+   "evidence": {},
+   "clean_s": 0.0,
+   "log": "",
+   "fault": {
+    "applied": [
+     "raise:_worst"
+    ],
+    "s": 0.0003,
+    "result": "raised",
+    "note": "RuntimeError: chaos-2026",
+    "reverts": 1
+   },
+   "verdict": "PASS"
+  },
+  {
+   "feature": "13-rag",
+   "method": "M5",
+   "name": "chunk_text memecah teks panjang",
+   "clean_ok": true,
+   "detail": ">1",
+   "evidence": {},
+   "clean_s": 0.0,
+   "log": "",
+   "fault": {
+    "applied": [
+     "raise:chunk_text"
+    ],
+    "s": 0.0002,
+    "result": "raised",
+    "note": "RuntimeError: chaos-2026",
+    "reverts": 1
+   },
+   "verdict": "PASS"
+  },
+  {
+   "feature": "13-rag",
+   "method": "M5",
+   "name": "chunk_text overlap menautkan potongan",
+   "clean_ok": true,
+   "detail": "overlap 2",
+   "evidence": {},
+   "clean_s": 0.0,
+   "log": "",
+   "fault": {
+    "applied": [
+     "corrupt:chunk_text"
+    ],
+    "s": 0.0002,
+    "result": "raised",
+    "note": "IndexError: list index out of range",
+    "reverts": 1
+   },
+   "verdict": "PASS"
+  },
+  {
+   "feature": "13-rag",
+   "method": "M5",
+   "name": "chunk_text teks kosong -> []",
+   "clean_ok": true,
+   "detail": "kosong",
+   "evidence": {},
+   "clean_s": 0.0,
+   "log": "",
+   "fault": {
+    "applied": [
+     "raise:chunk_text"
+    ],
+    "s": 0.0003,
+    "result": "raised",
+    "note": "RuntimeError: chaos-2026",
+    "reverts": 1
+   },
+   "verdict": "PASS"
+  },
+  {
+   "feature": "13-rag",
+   "method": "M5",
+   "name": "chunk_text teks pendek -> 1 chunk",
+   "clean_ok": true,
+   "detail": "1",
+   "evidence": {},
+   "clean_s": 0.0,
+   "log": "",
+   "fault": {
+    "applied": [
+     "raise:chunk_text"
+    ],
+    "s": 0.0005,
+    "result": "raised",
+    "note": "RuntimeError: chaos-2026",
+    "reverts": 1
+   },
+   "verdict": "PASS"
+  },
+  {
+   "feature": "13-rag",
+   "method": "M5",
+   "name": "_cosine vektor identik ~ 1.0",
+   "clean_ok": true,
+   "detail": "1.0",
+   "evidence": {},
+   "clean_s": 0.0,
+   "log": "",
+   "fault": {
+    "applied": [
+     "corrupt:_cosine"
+    ],
+    "s": 0.0,
+    "result": "raised",
+    "note": "GAGAL: 1.0",
+    "reverts": 1
+   },
+   "verdict": "PASS"
+  },
+  {
+   "feature": "13-rag",
+   "method": "M5",
+   "name": "_cosine ortogonal ~ 0.0",
+   "clean_ok": true,
+   "detail": "0.0",
+   "evidence": {},
+   "clean_s": 0.0,
+   "log": "",
+   "fault": {
+    "applied": [
+     "corrupt:_cosine"
+    ],
+    "s": 0.0,
+    "result": "raised",
+    "note": "GAGAL: 0.0",
+    "reverts": 1
+   },
+   "verdict": "PASS"
+  },
+  {
+   "feature": "13-rag",
+   "method": "M5",
+   "name": "_hash_embed berdimensi EMBED_DIM",
+   "clean_ok": true,
+   "detail": "1536",
+   "evidence": {},
+   "clean_s": 0.0004,
+   "log": "",
+   "fault": {
+    "applied": [
+     "corrupt:_hash_embed"
+    ],
+    "s": 0.0003,
+    "result": "raised",
+    "note": "GAGAL: 1536",
+    "reverts": 1
+   },
+   "verdict": "PASS"
+  },
+  {
+   "feature": "13-rag",
+   "method": "M5",
+   "name": "_hash_embed deterministik",
+   "clean_ok": true,
+   "detail": "sama",
+   "evidence": {},
+   "clean_s": 0.0006,
+   "log": "",
+   "fault": {
+    "applied": [
+     "corrupt:_hash_embed"
+    ],
+    "s": 0.0004,
+    "result": "handled",
+    "note": "sama",
+    "reverts": 1
+   },
+   "verdict": "PASS"
+  },
+  {
+   "feature": "13-rag",
+   "method": "M5",
+   "name": "SEARCH_MODES lengkap",
+   "clean_ok": true,
+   "detail": "3 mode",
+   "evidence": {},
+   "clean_s": 0.0,
+   "log": "",
+   "fault": {
+    "applied": [
+     "corrupt:rank"
+    ],
+    "s": 0.0,
+    "result": "handled",
+    "note": "3 mode",
+    "reverts": 1
+   },
+   "verdict": "PASS"
+  },
+  {
+   "feature": "13-rag",
+   "method": "M5",
+   "name": "rank() menaruh doc terbaik di depan",
+   "clean_ok": true,
+   "detail": "doc kucing pertama",
+   "evidence": {},
+   "clean_s": 0.0004,
+   "log": "",
+   "fault": {
+    "applied": [
+     "corrupt:rank"
+    ],
+    "s": 0.0007,
+    "result": "raised",
+    "note": "IndexError: list index out of range",
+    "reverts": 1
+   },
+   "verdict": "PASS"
+  },
+  {
+   "feature": "13-rag",
+   "method": "M5",
+   "name": "_bm25 doc relevan > doc tak relevan",
+   "clean_ok": true,
+   "detail": "relevan lebih tinggi",
+   "evidence": {},
+   "clean_s": 0.0,
+   "log": "",
+   "fault": {
+    "applied": [
+     "corrupt:_bm25"
+    ],
+    "s": 0.0,
+    "result": "raised",
+    "note": "GAGAL: relevan lebih tinggi",
+    "reverts": 1
+   },
+   "verdict": "PASS"
+  },
+  {
+   "feature": "13-rag",
+   "method": "M1",
+   "name": "VectorStore.insert sukses",
+   "clean_ok": true,
+   "detail": "success",
+   "evidence": {},
+   "clean_s": 0.0004,
+   "log": "",
+   "fault": {
+    "applied": [
+     "raise:insert"
+    ],
+    "s": 0.0003,
+    "result": "raised",
+    "note": "RuntimeError: chaos-2026",
+    "reverts": 1
+   },
+   "verdict": "PASS"
+  },
+  {
+   "feature": "13-rag",
+   "method": "M1",
+   "name": "VectorStore.query sukses dan menemukan dokumen",
+   "clean_ok": true,
+   "detail": "count=1",
+   "evidence": {},
+   "clean_s": 0.0011,
+   "log": "",
+   "fault": {
+    "applied": [
+     "raise:query"
+    ],
+    "s": 0.0007,
+    "result": "raised",
+    "note": "RuntimeError: chaos-2026",
+    "reverts": 1
+   },
+   "verdict": "PASS"
+  },
+  {
+   "feature": "13-rag",
+   "method": "M1",
+   "name": "query mode keyword jalan",
+   "clean_ok": true,
+   "detail": "success",
+   "evidence": {},
+   "clean_s": 0.0005,
+   "log": "",
+   "fault": {
+    "applied": [
+     "raise:query"
+    ],
+    "s": 0.0007,
+    "result": "raised",
+    "note": "RuntimeError: chaos-2026",
+    "reverts": 1
+   },
+   "verdict": "PASS"
+  },
+  {
+   "feature": "13-rag",
+   "method": "M1",
+   "name": "query mode vector jalan",
+   "clean_ok": true,
+   "detail": "success",
+   "evidence": {},
+   "clean_s": 0.0005,
+   "log": "",
+   "fault": {
+    "applied": [
+     "raise:query"
+    ],
+    "s": 0.0008,
+    "result": "raised",
+    "note": "RuntimeError: chaos-2026",
+    "reverts": 1
+   },
+   "verdict": "PASS"
+  },
+  {
+   "feature": "13-rag",
+   "method": "M5",
+   "name": "query kosong -> error terstruktur",
+   "clean_ok": true,
+   "detail": "error",
+   "evidence": {},
+   "clean_s": 0.0,
+   "log": "",
+   "fault": {
+    "applied": [
+     "raise:query"
+    ],
+    "s": 0.0002,
+    "result": "raised",
+    "note": "RuntimeError: chaos-2026",
+    "reverts": 1
+   },
+   "verdict": "PASS"
+  },
+  {
+   "feature": "13-rag",
+   "method": "M5",
+   "name": "insert dokumen kosong -> error terstruktur",
+   "clean_ok": true,
+   "detail": "error",
+   "evidence": {},
+   "clean_s": 0.0,
+   "log": "",
+   "fault": {
+    "applied": [
+     "raise:insert"
+    ],
+    "s": 0.0002,
+    "result": "raised",
+    "note": "RuntimeError: chaos-2026",
+    "reverts": 1
+   },
+   "verdict": "PASS"
+  },
+  {
+   "feature": "13-rag",
+   "method": "M1",
+   "name": "delete menghapus dokumen",
+   "clean_ok": true,
+   "detail": "terhapus",
+   "evidence": {},
+   "clean_s": 0.0003,
+   "log": "",
+   "fault": {
+    "applied": [
+     "raise:delete"
+    ],
+    "s": 0.0007,
+    "result": "raised",
+    "note": "RuntimeError: chaos-2026",
+    "reverts": 1
+   },
+   "verdict": "PASS"
+  },
+  {
+   "feature": "13-rag",
+   "method": "M5",
+   "name": "stats melaporkan backend",
+   "clean_ok": true,
+   "detail": "memory",
+   "evidence": {},
+   "clean_s": 0.0,
+   "log": "",
+   "fault": {
+    "applied": [
+     "corrupt:stats"
+    ],
+    "s": 0.0,
+    "result": "raised",
+    "note": "GAGAL: memory",
+    "reverts": 1
+   },
+   "verdict": "PASS"
+  },
+  {
+   "feature": "13-rag",
+   "method": "M1",
+   "name": "OPERATIONS lengkap",
+   "clean_ok": true,
+   "detail": "3 op",
+   "evidence": {},
+   "clean_s": 0.0,
+   "log": "",
+   "fault": {
+    "applied": [
+     "corrupt:insert"
+    ],
+    "s": 0.0,
+    "result": "handled",
+    "note": "3 op",
+    "reverts": 1
+   },
+   "verdict": "PASS"
+  },
+  {
+   "feature": "14-hitl",
+   "method": "M1",
+   "name": "create_request -> pending + token",
+   "clean_ok": true,
+   "detail": "pending + token",
+   "evidence": {},
+   "clean_s": 0.0002,
+   "log": "",
+   "fault": {
+    "applied": [
+     "raise:create_request"
+    ],
+    "s": 0.0003,
+    "result": "raised",
+    "note": "RuntimeError: chaos-2026",
+    "reverts": 1
+   },
+   "verdict": "PASS"
+  },
+  {
+   "feature": "14-hitl",
+   "method": "M5",
+   "name": "verify_token cocok",
+   "clean_ok": true,
+   "detail": "token valid",
+   "evidence": {},
+   "clean_s": 0.0002,
+   "log": "",
+   "fault": {
+    "applied": [
+     "corrupt:verify_token"
+    ],
+    "s": 0.0001,
+    "result": "raised",
+    "note": "GAGAL: token valid",
+    "reverts": 1
+   },
+   "verdict": "PASS"
+  },
+  {
+   "feature": "14-hitl",
+   "method": "M5",
+   "name": "verify_token salah",
+   "clean_ok": true,
+   "detail": "token ditolak",
+   "evidence": {},
+   "clean_s": 0.0001,
+   "log": "",
+   "fault": {
+    "applied": [
+     "corrupt:verify_token"
+    ],
+    "s": 0.0001,
+    "result": "raised",
+    "note": "GAGAL: token ditolak",
+    "reverts": 1
+   },
+   "verdict": "PASS"
+  },
+  {
+   "feature": "14-hitl",
+   "method": "M1",
+   "name": "record_decision approve (mode any) -> approved",
+   "clean_ok": true,
+   "detail": "status=approved",
+   "evidence": {},
+   "clean_s": 0.0001,
+   "log": "",
+   "fault": {
+    "applied": [
+     "raise:record_decision"
+    ],
+    "s": 0.0003,
+    "result": "raised",
+    "note": "RuntimeError: chaos-2026",
+    "reverts": 1
+   },
+   "verdict": "PASS"
+  },
+  {
+   "feature": "14-hitl",
+   "method": "M1",
+   "name": "record_decision reject -> rejected",
+   "clean_ok": true,
+   "detail": "status=rejected",
+   "evidence": {},
+   "clean_s": 0.0002,
+   "log": "",
+   "fault": {
+    "applied": [
+     "raise:record_decision"
+    ],
+    "s": 0.0005,
+    "result": "raised",
+    "note": "RuntimeError: chaos-2026",
+    "reverts": 1
+   },
+   "verdict": "PASS"
+  },
+  {
+   "feature": "14-hitl",
+   "method": "M5",
+   "name": "keputusan tak dikenal -> HitlError",
+   "clean_ok": true,
+   "detail": "keputusan -> HitlError: keputusan 'mungkin' tidak dikenal (approve/reject)",
+   "evidence": {},
+   "clean_s": 0.0002,
+   "log": "",
+   "fault": {
+    "applied": [
+     "raise:record_decision"
+    ],
+    "s": 0.0001,
+    "result": "raised",
+    "note": "keputusan -> RuntimeError (harap HitlError): chaos-2026",
+    "reverts": 1
+   },
+   "verdict": "PASS"
+  },
+  {
+   "feature": "14-hitl",
+   "method": "M5",
+   "name": "request tidak ada -> HitlError",
+   "clean_ok": true,
+   "detail": "hantu -> HitlError: permintaan hantu tidak ditemukan",
+   "evidence": {},
+   "clean_s": 0.0,
+   "log": "",
+   "fault": {
+    "applied": [
+     "raise:record_decision"
+    ],
+    "s": 0.0,
+    "result": "raised",
+    "note": "hantu -> RuntimeError (harap HitlError): chaos-2026",
+    "reverts": 1
+   },
+   "verdict": "PASS"
+  },
+  {
+   "feature": "14-hitl",
+   "method": "M1",
+   "name": "keputusan setelah selesai diabaikan (idempoten)",
+   "clean_ok": true,
+   "detail": "keputusan pertama menang",
+   "evidence": {},
+   "clean_s": 0.0001,
+   "log": "",
+   "fault": {
+    "applied": [
+     "raise:record_decision"
+    ],
+    "s": 0.0003,
+    "result": "raised",
+    "note": "RuntimeError: chaos-2026",
+    "reverts": 1
+   },
+   "verdict": "PASS"
+  },
+  {
+   "feature": "14-hitl",
+   "method": "M5",
+   "name": "evaluate: mode any + approve -> approved",
+   "clean_ok": true,
+   "detail": "approved",
+   "evidence": {},
+   "clean_s": 0.0,
+   "log": "",
+   "fault": {
+    "applied": [
+     "corrupt:evaluate"
+    ],
+    "s": 0.0,
+    "result": "raised",
+    "note": "GAGAL: approved",
+    "reverts": 1
+   },
+   "verdict": "PASS"
+  },
+  {
+   "feature": "14-hitl",
+   "method": "M5",
+   "name": "evaluate: mode all + reject -> rejected",
+   "clean_ok": true,
+   "detail": "rejected",
+   "evidence": {},
+   "clean_s": 0.0,
+   "log": "",
+   "fault": {
+    "applied": [
+     "corrupt:evaluate"
+    ],
+    "s": 0.0,
+    "result": "raised",
+    "note": "GAGAL: rejected",
+    "reverts": 1
+   },
+   "verdict": "PASS"
+  },
+  {
+   "feature": "14-hitl",
+   "method": "M5",
+   "name": "evaluate: mode all tanpa lengkap -> pending",
+   "clean_ok": true,
+   "detail": "pending",
+   "evidence": {},
+   "clean_s": 0.0,
+   "log": "",
+   "fault": {
+    "applied": [
+     "corrupt:evaluate"
+    ],
+    "s": 0.0,
+    "result": "raised",
+    "note": "GAGAL: pending",
+    "reverts": 1
+   },
+   "verdict": "PASS"
+  },
+  {
+   "feature": "14-hitl",
+   "method": "M5",
+   "name": "evaluate: tanpa keputusan -> pending",
+   "clean_ok": true,
+   "detail": "pending",
+   "evidence": {},
+   "clean_s": 0.0,
+   "log": "",
+   "fault": {
+    "applied": [
+     "corrupt:evaluate"
+    ],
+    "s": 0.0,
+    "result": "raised",
+    "note": "GAGAL: pending",
+    "reverts": 1
+   },
+   "verdict": "PASS"
+  },
+  {
+   "feature": "14-hitl",
+   "method": "M5",
+   "name": "channel invalid -> fallback chat",
+   "clean_ok": true,
+   "detail": "chat",
+   "evidence": {},
+   "clean_s": 0.0001,
+   "log": "",
+   "fault": {
+    "applied": [
+     "corrupt:create_request"
+    ],
+    "s": 0.0001,
+    "result": "raised",
+    "note": "GAGAL: chat",
+    "reverts": 1
+   },
+   "verdict": "PASS"
+  },
+  {
+   "feature": "14-hitl",
+   "method": "M5",
+   "name": "approval_mode invalid -> any",
+   "clean_ok": true,
+   "detail": "any",
+   "evidence": {},
+   "clean_s": 0.0001,
+   "log": "",
+   "fault": {
+    "applied": [
+     "corrupt:create_request"
+    ],
+    "s": 0.0004,
+    "result": "raised",
+    "note": "KeyError: 'approval_mode'",
+    "reverts": 1
+   },
+   "verdict": "PASS"
+  },
+  {
+   "feature": "14-hitl",
+   "method": "M5",
+   "name": "timeout_s negatif di-clamp >= 0",
+   "clean_ok": true,
+   "detail": "None",
+   "evidence": {},
+   "clean_s": 0.0001,
+   "log": "",
+   "fault": {
+    "applied": [
+     "corrupt:create_request"
+    ],
+    "s": 0.0002,
+    "result": "raised",
+    "note": "KeyError: 'timeout_at'",
+    "reverts": 1
+   },
+   "verdict": "PASS"
+  },
+  {
+   "feature": "14-hitl",
+   "method": "M5",
+   "name": "timeout_s > MAX di-clamp",
+   "clean_ok": true,
+   "detail": "clamp",
+   "evidence": {},
+   "clean_s": 0.0001,
+   "log": "",
+   "fault": {
+    "applied": [
+     "corrupt:create_request"
+    ],
+    "s": 0.0002,
+    "result": "raised",
+    "note": "KeyError: 'timeout_at'",
+    "reverts": 1
+   },
+   "verdict": "PASS"
+  },
+  {
+   "feature": "14-hitl",
+   "method": "M5",
+   "name": "timeout_at terisi bila timeout_s > 0",
+   "clean_ok": true,
+   "detail": "ada",
+   "evidence": {},
+   "clean_s": 0.0001,
+   "log": "",
+   "fault": {
+    "applied": [
+     "corrupt:create_request"
+    ],
+    "s": 0.0002,
+    "result": "raised",
+    "note": "KeyError: 'timeout_at'",
+    "reverts": 1
+   },
+   "verdict": "PASS"
+  },
+  {
+   "feature": "14-hitl",
+   "method": "M1",
+   "name": "expire_due menandai expired",
+   "clean_ok": true,
+   "detail": "1 expired",
+   "evidence": {},
+   "clean_s": 0.0001,
+   "log": "",
+   "fault": {
+    "applied": [
+     "raise:expire_due"
+    ],
+    "s": 0.0003,
+    "result": "raised",
+    "note": "RuntimeError: chaos-2026",
+    "reverts": 1
+   },
+   "verdict": "PASS"
+  },
+  {
+   "feature": "14-hitl",
+   "method": "M5",
+   "name": "audit_trail mengembalikan list",
+   "clean_ok": true,
+   "detail": "list",
+   "evidence": {},
+   "clean_s": 0.0001,
+   "log": "",
+   "fault": {
+    "applied": [
+     "corrupt:audit_trail"
+    ],
+    "s": 0.0001,
+    "result": "raised",
+    "note": "GAGAL: list",
+    "reverts": 1
+   },
+   "verdict": "PASS"
+  },
+  {
+   "feature": "14-hitl",
+   "method": "M5",
+   "name": "is_resumable: approved True, pending False",
+   "clean_ok": true,
+   "detail": "pending=False approved=True",
+   "evidence": {},
+   "clean_s": 0.0001,
+   "log": "",
+   "fault": {
+    "applied": [
+     "corrupt:is_resumable"
+    ],
+    "s": 0.0001,
+    "result": "raised",
+    "note": "GAGAL: pending=True approved=False",
+    "reverts": 1
+   },
+   "verdict": "PASS"
+  },
+  {
+   "feature": "15-evaluation",
+   "method": "M5",
+   "name": "load_dataset dari list dict",
+   "clean_ok": true,
+   "detail": "1 kasus",
+   "evidence": {},
+   "clean_s": 0.0001,
+   "log": "",
+   "fault": {
+    "applied": [
+     "corrupt:load_dataset"
+    ],
+    "s": 0.0,
+    "result": "raised",
+    "note": "GAGAL: 1 kasus",
+    "reverts": 1
+   },
+   "verdict": "PASS"
+  },
+  {
+   "feature": "15-evaluation",
+   "method": "M5",
+   "name": "load_dataset dari JSON string",
+   "clean_ok": true,
+   "detail": "1 kasus",
+   "evidence": {},
+   "clean_s": 0.0,
+   "log": "",
+   "fault": {
+    "applied": [
+     "corrupt:load_dataset"
+    ],
+    "s": 0.0,
+    "result": "raised",
+    "note": "GAGAL: 1 kasus",
+    "reverts": 1
+   },
+   "verdict": "PASS"
+  },
+  {
+   "feature": "15-evaluation",
+   "method": "M5",
+   "name": "load_dataset dari CSV",
+   "clean_ok": true,
+   "detail": "1 kasus",
+   "evidence": {},
+   "clean_s": 0.0,
+   "log": "",
+   "fault": {
+    "applied": [
+     "corrupt:load_dataset"
+    ],
+    "s": 0.0,
+    "result": "raised",
+    "note": "GAGAL: 1 kasus",
+    "reverts": 1
+   },
+   "verdict": "PASS"
+  },
+  {
+   "feature": "15-evaluation",
+   "method": "M5",
+   "name": "load_dataset menormalkan kunci",
+   "clean_ok": true,
+   "detail": "kunci dinormalkan",
+   "evidence": {},
+   "clean_s": 0.0,
+   "log": "",
+   "fault": {
+    "applied": [
+     "corrupt:load_dataset"
+    ],
+    "s": 0.0,
+    "result": "raised",
+    "note": "GAGAL: kunci dinormalkan",
+    "reverts": 1
+   },
+   "verdict": "PASS"
+  },
+  {
+   "feature": "15-evaluation",
+   "method": "M5",
+   "name": "compare exact sama",
+   "clean_ok": true,
+   "detail": "1.0",
+   "evidence": {},
+   "clean_s": 0.0,
+   "log": "",
+   "fault": {
+    "applied": [
+     "corrupt:compare"
+    ],
+    "s": 0.0,
+    "result": "raised",
+    "note": "GAGAL: 1.0",
+    "reverts": 1
+   },
+   "verdict": "PASS"
+  },
+  {
+   "feature": "15-evaluation",
+   "method": "M5",
+   "name": "compare exact beda",
+   "clean_ok": true,
+   "detail": "0.0",
+   "evidence": {},
+   "clean_s": 0.0,
+   "log": "",
+   "fault": {
+    "applied": [
+     "corrupt:compare"
+    ],
+    "s": 0.0,
+    "result": "raised",
+    "note": "GAGAL: 0.0",
+    "reverts": 1
+   },
+   "verdict": "PASS"
+  },
+  {
+   "feature": "15-evaluation",
+   "method": "M5",
+   "name": "compare contains",
+   "clean_ok": true,
+   "detail": "1.0",
+   "evidence": {},
+   "clean_s": 0.0,
+   "log": "",
+   "fault": {
+    "applied": [
+     "corrupt:compare"
+    ],
+    "s": 0.0,
+    "result": "raised",
+    "note": "GAGAL: 1.0",
+    "reverts": 1
+   },
+   "verdict": "PASS"
+  },
+  {
+   "feature": "15-evaluation",
+   "method": "M5",
+   "name": "compare numeric sama",
+   "clean_ok": true,
+   "detail": "1.0",
+   "evidence": {},
+   "clean_s": 0.0001,
+   "log": "",
+   "fault": {
+    "applied": [
+     "corrupt:compare"
+    ],
+    "s": 0.0,
+    "result": "raised",
+    "note": "GAGAL: 1.0",
+    "reverts": 1
+   },
+   "verdict": "PASS"
+  },
+  {
+   "feature": "15-evaluation",
+   "method": "M5",
+   "name": "compare numeric mendekati",
+   "clean_ok": true,
+   "detail": "parsial",
+   "evidence": {},
+   "clean_s": 0.0,
+   "log": "",
+   "fault": {
+    "applied": [
+     "corrupt:compare"
+    ],
+    "s": 0.0,
+    "result": "raised",
+    "note": "GAGAL: parsial",
+    "reverts": 1
+   },
+   "verdict": "PASS"
+  },
+  {
+   "feature": "15-evaluation",
+   "method": "M5",
+   "name": "compare fuzzy memberi rasio",
+   "clean_ok": true,
+   "detail": "0..1",
+   "evidence": {},
+   "clean_s": 0.0001,
+   "log": "",
+   "fault": {
+    "applied": [
+     "corrupt:compare"
+    ],
+    "s": 0.0,
+    "result": "raised",
+    "note": "GAGAL: 0..1",
+    "reverts": 1
+   },
+   "verdict": "PASS"
+  },
+  {
+   "feature": "15-evaluation",
+   "method": "M5",
+   "name": "compare mode tak dikenal -> fallback fuzzy",
+   "clean_ok": true,
+   "detail": "0..1",
+   "evidence": {},
+   "clean_s": 0.0,
+   "log": "",
+   "fault": {
+    "applied": [
+     "corrupt:compare"
+    ],
+    "s": 0.0,
+    "result": "raised",
+    "note": "GAGAL: 0..1",
+    "reverts": 1
+   },
+   "verdict": "PASS"
+  },
+  {
+   "feature": "15-evaluation",
+   "method": "M5",
+   "name": "estimate_cost dihitung",
+   "clean_ok": true,
+   "detail": "biaya",
+   "evidence": {},
+   "clean_s": 0.0,
+   "log": "",
+   "fault": {
+    "applied": [
+     "corrupt:estimate_cost"
+    ],
+    "s": 0.0,
+    "result": "raised",
+    "note": "GAGAL: biaya",
+    "reverts": 1
+   },
+   "verdict": "PASS"
+  },
+  {
+   "feature": "15-evaluation",
+   "method": "M5",
+   "name": "estimate_cost input invalid -> 0",
+   "clean_ok": true,
+   "detail": "0.0",
+   "evidence": {},
+   "clean_s": 0.0,
+   "log": "",
+   "fault": {
+    "applied": [
+     "corrupt:estimate_cost"
+    ],
+    "s": 0.0,
+    "result": "raised",
+    "note": "GAGAL: 0.0",
+    "reverts": 1
+   },
+   "verdict": "PASS"
+  },
+  {
+   "feature": "15-evaluation",
+   "method": "M5",
+   "name": "_percentile p50 dari 1..100 == 50",
+   "clean_ok": true,
+   "detail": "50",
+   "evidence": {},
+   "clean_s": 0.0001,
+   "log": "",
+   "fault": {
+    "applied": [
+     "corrupt:_percentile"
+    ],
+    "s": 0.0,
+    "result": "raised",
+    "note": "GAGAL: 50",
+    "reverts": 1
+   },
+   "verdict": "PASS"
+  },
+  {
+   "feature": "15-evaluation",
+   "method": "M5",
+   "name": "_percentile p95 dari 1..100 == 95",
+   "clean_ok": true,
+   "detail": "95",
+   "evidence": {},
+   "clean_s": 0.0,
+   "log": "",
+   "fault": {
+    "applied": [
+     "corrupt:_percentile"
+    ],
+    "s": 0.0,
+    "result": "raised",
+    "note": "GAGAL: 95",
+    "reverts": 1
+   },
+   "verdict": "PASS"
+  },
+  {
+   "feature": "15-evaluation",
+   "method": "M5",
+   "name": "_percentile kosong -> 0.0",
+   "clean_ok": true,
+   "detail": "0.0",
+   "evidence": {},
+   "clean_s": 0.0,
+   "log": "",
+   "fault": {
+    "applied": [
+     "corrupt:_percentile"
+    ],
+    "s": 0.0,
+    "result": "raised",
+    "note": "GAGAL: 0.0",
+    "reverts": 1
+   },
+   "verdict": "PASS"
+  },
+  {
+   "feature": "15-evaluation",
+   "method": "M1",
+   "name": "Evaluator.run akurasi 1.0 untuk runner sempurna",
+   "clean_ok": true,
+   "detail": "accuracy=1.0",
+   "evidence": {},
+   "clean_s": 0.0001,
+   "log": "",
+   "fault": {
+    "applied": [
+     "raise:run"
+    ],
+    "s": 0.0005,
+    "result": "raised",
+    "note": "RuntimeError: chaos-2026",
+    "reverts": 1
+   },
+   "verdict": "PASS"
+  },
+  {
+   "feature": "15-evaluation",
+   "method": "M1",
+   "name": "Evaluator.run menghitung kasus gagal",
+   "clean_ok": true,
+   "detail": "accuracy=0.0",
+   "evidence": {},
+   "clean_s": 0.0001,
+   "log": "",
+   "fault": {
+    "applied": [
+     "raise:run"
+    ],
+    "s": 0.0003,
+    "result": "raised",
+    "note": "RuntimeError: chaos-2026",
+    "reverts": 1
+   },
+   "verdict": "PASS"
+  },
+  {
+   "feature": "15-evaluation",
+   "method": "M4",
+   "name": "Evaluator.run menghitung biaya & latensi",
+   "clean_ok": true,
+   "detail": "cost=3e-05",
+   "evidence": {},
+   "clean_s": 0.0,
+   "log": "",
+   "fault": {
+    "applied": [
+     "corrupt:run"
+    ],
+    "s": 0.0002,
+    "result": "raised",
+    "note": "KeyError: 'summary'",
+    "reverts": 1
+   },
+   "verdict": "PASS"
+  },
+  {
+   "feature": "15-evaluation",
+   "method": "M5",
+   "name": "COMPARE_MODES lengkap",
+   "clean_ok": true,
+   "detail": "5 mode",
+   "evidence": {},
+   "clean_s": 0.0,
+   "log": "",
+   "fault": {
+    "applied": [
+     "corrupt:compare"
+    ],
+    "s": 0.0,
+    "result": "handled",
+    "note": "5 mode",
+    "reverts": 1
+   },
+   "verdict": "PASS"
+  },
+  {
+   "feature": "16-insights",
+   "method": "M5",
+   "name": "compute_metrics total",
+   "clean_ok": true,
+   "detail": "5",
+   "evidence": {},
+   "clean_s": 0.0,
+   "log": "",
+   "fault": {
+    "applied": [
+     "corrupt:compute_metrics"
+    ],
+    "s": 0.0002,
+    "result": "raised",
+    "note": "KeyError: 'total'",
+    "reverts": 1
+   },
+   "verdict": "PASS"
+  },
+  {
+   "feature": "16-insights",
+   "method": "M5",
+   "name": "compute_metrics success/error/pending",
+   "clean_ok": true,
+   "detail": "3/1/1",
+   "evidence": {},
+   "clean_s": 0.0,
+   "log": "",
+   "fault": {
+    "applied": [
+     "corrupt:compute_metrics"
+    ],
+    "s": 0.0002,
+    "result": "raised",
+    "note": "KeyError: 'success'",
+    "reverts": 1
+   },
+   "verdict": "PASS"
+  },
+  {
+   "feature": "16-insights",
+   "method": "M5",
+   "name": "compute_metrics success_rate",
+   "clean_ok": true,
+   "detail": "0.6",
+   "evidence": {},
+   "clean_s": 0.0,
+   "log": "",
+   "fault": {
+    "applied": [
+     "corrupt:compute_metrics"
+    ],
+    "s": 0.0002,
+    "result": "raised",
+    "note": "KeyError: 'success_rate'",
+    "reverts": 1
+   },
+   "verdict": "PASS"
+  },
+  {
+   "feature": "16-insights",
+   "method": "M5",
+   "name": "compute_metrics latensi mean",
+   "clean_ok": true,
+   "detail": ">0",
+   "evidence": {},
+   "clean_s": 0.0,
+   "log": "",
+   "fault": {
+    "applied": [
+     "corrupt:compute_metrics"
+    ],
+    "s": 0.0001,
+    "result": "raised",
+    "note": "KeyError: 'latency_mean_ms'",
+    "reverts": 1
+   },
+   "verdict": "PASS"
+  },
+  {
+   "feature": "16-insights",
+   "method": "M5",
+   "name": "compute_metrics p95 antara min dan max",
+   "clean_ok": true,
+   "detail": "p95=300.0",
+   "evidence": {},
+   "clean_s": 0.0,
+   "log": "",
+   "fault": {
+    "applied": [
+     "corrupt:compute_metrics"
+    ],
+    "s": 0.0001,
+    "result": "raised",
+    "note": "KeyError: 'latency_p95_ms'",
+    "reverts": 1
+   },
+   "verdict": "PASS"
+  },
+  {
+   "feature": "16-insights",
+   "method": "M5",
+   "name": "compute_metrics tanpa latensi -> None",
+   "clean_ok": true,
+   "detail": "None",
+   "evidence": {},
+   "clean_s": 0.0,
+   "log": "",
+   "fault": {
+    "applied": [
+     "corrupt:compute_metrics"
+    ],
+    "s": 0.0001,
+    "result": "raised",
+    "note": "KeyError: 'latency_mean_ms'",
+    "reverts": 1
+   },
+   "verdict": "PASS"
+  },
+  {
+   "feature": "16-insights",
+   "method": "M5",
+   "name": "compute_metrics events kosong -> total 0",
+   "clean_ok": true,
+   "detail": "0",
+   "evidence": {},
+   "clean_s": 0.0,
+   "log": "",
+   "fault": {
+    "applied": [
+     "corrupt:compute_metrics"
+    ],
+    "s": 0.0001,
+    "result": "raised",
+    "note": "KeyError: 'total'",
+    "reverts": 1
+   },
+   "verdict": "PASS"
+  },
+  {
+   "feature": "16-insights",
+   "method": "M5",
+   "name": "filter_events membuang event di luar jendela",
+   "clean_ok": true,
+   "detail": "5 tersisa",
+   "evidence": {},
+   "clean_s": 0.0,
+   "log": "",
+   "fault": {
+    "applied": [
+     "corrupt:filter_events"
+    ],
+    "s": 0.0,
+    "result": "handled",
+    "note": "5 tersisa",
+    "reverts": 1
+   },
+   "verdict": "PASS"
+  },
+  {
+   "feature": "16-insights",
+   "method": "M5",
+   "name": "filter_events memfilter workflow",
+   "clean_ok": true,
+   "detail": "5 tersisa",
+   "evidence": {},
+   "clean_s": 0.0,
+   "log": "",
+   "fault": {
+    "applied": [
+     "corrupt:filter_events"
+    ],
+    "s": 0.0,
+    "result": "raised",
+    "note": "GAGAL: 5 tersisa",
+    "reverts": 1
+   },
+   "verdict": "PASS"
+  },
+  {
+   "feature": "16-insights",
+   "method": "M5",
+   "name": "time_series panjang == days",
+   "clean_ok": true,
+   "detail": "7",
+   "evidence": {},
+   "clean_s": 0.0001,
+   "log": "",
+   "fault": {
+    "applied": [
+     "corrupt:time_series"
+    ],
+    "s": 0.0001,
+    "result": "raised",
+    "note": "GAGAL: 7",
+    "reverts": 1
+   },
+   "verdict": "PASS"
+  },
+  {
+   "feature": "16-insights",
+   "method": "M5",
+   "name": "time_series memuat hari kosong (0)",
+   "clean_ok": true,
+   "detail": "ada hari 0",
+   "evidence": {},
+   "clean_s": 0.0001,
+   "log": "",
+   "fault": {
+    "applied": [
+     "corrupt:time_series"
+    ],
+    "s": 0.0001,
+    "result": "raised",
+    "note": "GAGAL: ada hari 0",
+    "reverts": 1
+   },
+   "verdict": "PASS"
+  },
+  {
+   "feature": "16-insights",
+   "method": "M5",
+   "name": "time_saved menghitung menit",
+   "clean_ok": true,
+   "detail": "10",
+   "evidence": {},
+   "clean_s": 0.0,
+   "log": "",
+   "fault": {
+    "applied": [
+     "corrupt:time_saved"
+    ],
+    "s": 0.0002,
+    "result": "raised",
+    "note": "KeyError: 'minutes_saved'",
+    "reverts": 1
+   },
+   "verdict": "PASS"
+  },
+  {
+   "feature": "16-insights",
+   "method": "M5",
+   "name": "time_saved input invalid -> default",
+   "clean_ok": true,
+   "detail": "default",
+   "evidence": {},
+   "clean_s": 0.0,
+   "log": "",
+   "fault": {
+    "applied": [
+     "corrupt:time_saved"
+    ],
+    "s": 0.0001,
+    "result": "raised",
+    "note": "KeyError: 'minutes_per_run'",
+    "reverts": 1
+   },
+   "verdict": "PASS"
+  },
+  {
+   "feature": "16-insights",
+   "method": "M5",
+   "name": "roi menghitung uang",
+   "clean_ok": true,
+   "detail": "250",
+   "evidence": {},
+   "clean_s": 0.0,
+   "log": "",
+   "fault": {
+    "applied": [
+     "corrupt:roi"
+    ],
+    "s": 0.0002,
+    "result": "raised",
+    "note": "KeyError: 'money_saved'",
+    "reverts": 1
+   },
+   "verdict": "PASS"
+  },
+  {
+   "feature": "16-insights",
+   "method": "M5",
+   "name": "roi input invalid -> 0",
+   "clean_ok": true,
+   "detail": "0",
+   "evidence": {},
+   "clean_s": 0.0,
+   "log": "",
+   "fault": {
+    "applied": [
+     "corrupt:roi"
+    ],
+    "s": 0.0001,
+    "result": "raised",
+    "note": "KeyError: 'money_saved'",
+    "reverts": 1
+   },
+   "verdict": "PASS"
+  },
+  {
+   "feature": "16-insights",
+   "method": "M5",
+   "name": "by_workflow mengagregasi",
+   "clean_ok": true,
+   "detail": "2 workflow",
+   "evidence": {},
+   "clean_s": 0.0,
+   "log": "",
+   "fault": {
+    "applied": [
+     "corrupt:by_workflow"
+    ],
+    "s": 0.0,
+    "result": "raised",
+    "note": "GAGAL: 2 workflow",
+    "reverts": 1
+   },
+   "verdict": "PASS"
+  },
+  {
+   "feature": "16-insights",
+   "method": "M5",
+   "name": "to_csv punya header + baris",
+   "clean_ok": true,
+   "detail": "header + baris",
+   "evidence": {},
+   "clean_s": 0.0001,
+   "log": "",
+   "fault": {
+    "applied": [
+     "corrupt:to_csv"
+    ],
+    "s": 0.0,
+    "result": "raised",
+    "note": "GAGAL: header + baris",
+    "reverts": 1
+   },
+   "verdict": "PASS"
+  },
+  {
+   "feature": "16-insights",
+   "method": "M5",
+   "name": "RANGE_PRESETS memuat 7/30/365",
+   "clean_ok": true,
+   "detail": "7/30/365",
+   "evidence": {},
+   "clean_s": 0.0,
+   "log": "",
+   "fault": {
+    "applied": [
+     "corrupt:time_series"
+    ],
+    "s": 0.0,
+    "result": "handled",
+    "note": "7/30/365",
+    "reverts": 1
+   },
+   "verdict": "PASS"
+  },
+  {
+   "feature": "16-insights",
+   "method": "M5",
+   "name": "RETENTION_DAYS == 365",
+   "clean_ok": true,
+   "detail": "365",
+   "evidence": {},
+   "clean_s": 0.0,
+   "log": "",
+   "fault": {
+    "applied": [
+     "corrupt:filter_events"
+    ],
+    "s": 0.0,
+    "result": "handled",
+    "note": "365",
+    "reverts": 1
+   },
+   "verdict": "PASS"
+  },
+  {
+   "feature": "16-insights",
+   "method": "M1",
+   "name": "Insight.report berjalan di atas events sintetis",
+   "clean_ok": true,
+   "detail": "total=5",
+   "evidence": {},
+   "clean_s": 0.0003,
+   "log": "",
+   "fault": {
+    "applied": [
+     "corrupt:report"
+    ],
+    "s": 0.001,
+    "result": "raised",
+    "note": "KeyError: 'metrics'",
+    "reverts": 1
+   },
+   "verdict": "PASS"
+  },
+  {
+   "feature": "17-sso",
+   "method": "M5",
+   "name": "make_state panjang memadai",
+   "clean_ok": true,
+   "detail": ">=20",
+   "evidence": {},
+   "clean_s": 0.0001,
+   "log": "",
+   "fault": {
+    "applied": [
+     "raise:make_state"
+    ],
+    "s": 0.0002,
+    "result": "raised",
+    "note": "RuntimeError: chaos-2026",
+    "reverts": 1
+   },
+   "verdict": "PASS"
+  },
+  {
+   "feature": "17-sso",
+   "method": "M5",
+   "name": "make_state unik",
+   "clean_ok": true,
+   "detail": "unik",
+   "evidence": {},
+   "clean_s": 0.0,
+   "log": "",
+   "fault": {
+    "applied": [
+     "corrupt:make_state"
+    ],
+    "s": 0.0,
+    "result": "raised",
+    "note": "GAGAL: unik",
+    "reverts": 1
+   },
+   "verdict": "PASS"
+  },
+  {
+   "feature": "17-sso",
+   "method": "M5",
+   "name": "verify_state cocok -> True",
+   "clean_ok": true,
+   "detail": "True",
+   "evidence": {},
+   "clean_s": 0.0,
+   "log": "",
+   "fault": {
+    "applied": [
+     "corrupt:verify_state"
+    ],
+    "s": 0.0,
+    "result": "handled",
+    "note": "True",
+    "reverts": 1
+   },
+   "verdict": "PASS"
+  },
+  {
+   "feature": "17-sso",
+   "method": "M5",
+   "name": "verify_state beda -> StateMismatch",
+   "clean_ok": true,
+   "detail": "beda -> StateMismatch: state OAuth tidak cocok (potensi CSRF)",
+   "evidence": {},
+   "clean_s": 0.0,
+   "log": "",
+   "fault": {
+    "applied": [
+     "corrupt:verify_state"
+    ],
+    "s": 0.0,
+    "result": "handled",
+    "note": "beda -> StateMismatch: state OAuth tidak cocok (potensi CSRF)",
+    "reverts": 1
+   },
+   "verdict": "PASS"
+  },
+  {
+   "feature": "17-sso",
+   "method": "M5",
+   "name": "verify_state kosong -> StateMismatch",
+   "clean_ok": true,
+   "detail": "kosong -> StateMismatch: state OAuth tidak cocok (potensi CSRF)",
+   "evidence": {},
+   "clean_s": 0.0,
+   "log": "",
+   "fault": {
+    "applied": [
+     "corrupt:verify_state"
+    ],
+    "s": 0.0,
+    "result": "handled",
+    "note": "kosong -> StateMismatch: state OAuth tidak cocok (potensi CSRF)",
+    "reverts": 1
+   },
+   "verdict": "PASS"
+  },
+  {
+   "feature": "17-sso",
+   "method": "M5",
+   "name": "map_role mengambil peran terkuat",
+   "clean_ok": true,
+   "detail": "admin",
+   "evidence": {},
+   "clean_s": 0.0,
+   "log": "",
+   "fault": {
+    "applied": [
+     "corrupt:map_role"
+    ],
+    "s": 0.0,
+    "result": "raised",
+    "note": "GAGAL: admin",
+    "reverts": 1
+   },
+   "verdict": "PASS"
+  },
+  {
+   "feature": "17-sso",
+   "method": "M5",
+   "name": "map_role default viewer",
+   "clean_ok": true,
+   "detail": "viewer",
+   "evidence": {},
+   "clean_s": 0.0,
+   "log": "",
+   "fault": {
+    "applied": [
+     "corrupt:map_role"
+    ],
+    "s": 0.0,
+    "result": "raised",
+    "note": "GAGAL: viewer",
+    "reverts": 1
+   },
+   "verdict": "PASS"
+  },
+  {
+   "feature": "17-sso",
+   "method": "M5",
+   "name": "map_role grup tak dikenal -> default",
+   "clean_ok": true,
+   "detail": "viewer",
+   "evidence": {},
+   "clean_s": 0.0,
+   "log": "",
+   "fault": {
+    "applied": [
+     "corrupt:map_role"
+    ],
+    "s": 0.0,
+    "result": "raised",
+    "note": "GAGAL: viewer",
+    "reverts": 1
+   },
+   "verdict": "PASS"
+  },
+  {
+   "feature": "17-sso",
+   "method": "M5",
+   "name": "redact menyembunyikan Bearer token",
+   "clean_ok": true,
+   "detail": "termask",
+   "evidence": {},
+   "clean_s": 0.0,
+   "log": "",
+   "fault": {
+    "applied": [
+     "corrupt:redact"
+    ],
+    "s": 0.0,
+    "result": "handled",
+    "note": "termask",
+    "reverts": 1
+   },
+   "verdict": "PASS"
+  },
+  {
+   "feature": "17-sso",
+   "method": "M5",
+   "name": "redact dict dengan kunci sensitif",
+   "clean_ok": true,
+   "detail": "diperiksa",
+   "evidence": {},
+   "clean_s": 0.0,
+   "log": "",
+   "fault": {
+    "applied": [
+     "corrupt:redact"
+    ],
+    "s": 0.0,
+    "result": "handled",
+    "note": "diperiksa",
+    "reverts": 1
+   },
+   "verdict": "PASS"
+  },
+  {
+   "feature": "17-sso",
+   "method": "M5",
+   "name": "redact nested list",
+   "clean_ok": true,
+   "detail": "dict",
+   "evidence": {},
+   "clean_s": 0.0,
+   "log": "",
+   "fault": {
+    "applied": [
+     "corrupt:redact"
+    ],
+    "s": 0.0,
+    "result": "raised",
+    "note": "GAGAL: dict",
+    "reverts": 1
+   },
+   "verdict": "PASS"
+  },
+  {
+   "feature": "17-sso",
+   "method": "M5",
+   "name": "decode_saml_response XML mentah diteruskan",
+   "clean_ok": true,
+   "detail": "XML",
+   "evidence": {},
+   "clean_s": 0.0,
+   "log": "",
+   "fault": {
+    "applied": [
+     "raise:decode_saml_response"
+    ],
+    "s": 0.0008,
+    "result": "raised",
+    "note": "RuntimeError: chaos-2026",
+    "reverts": 1
+   },
+   "verdict": "PASS"
+  },
+  {
+   "feature": "17-sso",
+   "method": "M5",
+   "name": "decode_saml_response base64 -> XML",
+   "clean_ok": true,
+   "detail": "XML",
+   "evidence": {},
+   "clean_s": 0.0,
+   "log": "",
+   "fault": {
+    "applied": [
+     "raise:decode_saml_response"
+    ],
+    "s": 0.0004,
+    "result": "raised",
+    "note": "RuntimeError: chaos-2026",
+    "reverts": 1
+   },
+   "verdict": "PASS"
+  },
+  {
+   "feature": "17-sso",
+   "method": "M5",
+   "name": "decode_saml_response bytes diterima",
+   "clean_ok": true,
+   "detail": "XML",
+   "evidence": {},
+   "clean_s": 0.0,
+   "log": "",
+   "fault": {
+    "applied": [
+     "raise:decode_saml_response"
+    ],
+    "s": 0.0002,
+    "result": "raised",
+    "note": "RuntimeError: chaos-2026",
+    "reverts": 1
+   },
+   "verdict": "PASS"
+  },
+  {
+   "feature": "17-sso",
+   "method": "M5",
+   "name": "decode_saml_response kosong -> AuthFailed",
+   "clean_ok": true,
+   "detail": "kosong -> AuthFailed: assertion SAML kosong",
+   "evidence": {},
+   "clean_s": 0.0,
+   "log": "",
+   "fault": {
+    "applied": [
+     "raise:decode_saml_response"
+    ],
+    "s": 0.0,
+    "result": "raised",
+    "note": "kosong -> RuntimeError (harap AuthFailed): chaos-2026",
+    "reverts": 1
+   },
+   "verdict": "PASS"
+  },
+  {
+   "feature": "17-sso",
+   "method": "M5",
+   "name": "decode_saml_response sampah -> AuthFailed",
+   "clean_ok": true,
+   "detail": "sampah -> AuthFailed: hasil dekode SAMLResponse bukan XML",
+   "evidence": {},
+   "clean_s": 0.0,
+   "log": "",
+   "fault": {
+    "applied": [
+     "raise:decode_saml_response"
+    ],
+    "s": 0.0,
+    "result": "raised",
+    "note": "sampah -> RuntimeError (harap AuthFailed): chaos-2026",
+    "reverts": 1
+   },
+   "verdict": "PASS"
+  },
+  {
+   "feature": "17-sso",
+   "method": "M5",
+   "name": "Identity email di-lowercase",
+   "clean_ok": true,
+   "detail": "lowercase",
+   "evidence": {},
+   "clean_s": 0.0,
+   "log": "",
+   "fault": {
+    "applied": [
+     "corrupt:to_dict"
+    ],
+    "s": 0.0,
+    "result": "handled",
+    "note": "lowercase",
+    "reverts": 1
+   },
+   "verdict": "PASS"
+  },
+  {
+   "feature": "17-sso",
+   "method": "M5",
+   "name": "Identity.to_dict kunci lengkap",
+   "clean_ok": true,
+   "detail": "6 kunci",
+   "evidence": {},
+   "clean_s": 0.0,
+   "log": "",
+   "fault": {
+    "applied": [
+     "corrupt:to_dict"
+    ],
+    "s": 0.0,
+    "result": "raised",
+    "note": "GAGAL: 6 kunci",
+    "reverts": 1
+   },
+   "verdict": "PASS"
+  },
+  {
+   "feature": "17-sso",
+   "method": "M1",
+   "name": "SessionStore create/get",
+   "clean_ok": true,
+   "detail": "sesi ada",
+   "evidence": {},
+   "clean_s": 0.0,
+   "log": "",
+   "fault": {
+    "applied": [
+     "raise:create"
+    ],
+    "s": 0.0004,
+    "result": "raised",
+    "note": "RuntimeError: chaos-2026",
+    "reverts": 1
+   },
+   "verdict": "PASS"
+  },
+  {
+   "feature": "17-sso",
+   "method": "M1",
+   "name": "SessionStore rotate -> id baru & lama mati",
+   "clean_ok": true,
+   "detail": "rotasi berhasil",
+   "evidence": {},
+   "clean_s": 0.0,
+   "log": "",
+   "fault": {
+    "applied": [
+     "raise:rotate"
+    ],
+    "s": 0.0002,
+    "result": "raised",
+    "note": "RuntimeError: chaos-2026",
+    "reverts": 1
+   },
+   "verdict": "PASS"
+  },
+  {
+   "feature": "18-queue",
+   "method": "M5",
+   "name": "put/get FIFO untuk prioritas sama",
+   "clean_ok": true,
+   "detail": "urut a,b",
+   "evidence": {},
+   "clean_s": 0.0,
+   "log": "",
+   "fault": {
+    "applied": [
+     "raise:get"
+    ],
+    "s": 0.0002,
+    "result": "raised",
+    "note": "RuntimeError: chaos-2026",
+    "reverts": 1
+   },
+   "verdict": "PASS"
+  },
+  {
+   "feature": "18-queue",
+   "method": "M5",
+   "name": "prioritas lebih tinggi keluar lebih dulu",
+   "clean_ok": true,
+   "detail": "tinggi dulu",
+   "evidence": {},
+   "clean_s": 0.0,
+   "log": "",
+   "fault": {
+    "applied": [
+     "corrupt:put"
+    ],
+    "s": 0.0,
+    "result": "handled",
+    "note": "tinggi dulu",
+    "reverts": 1
+   },
+   "verdict": "PASS"
+  },
+  {
+   "feature": "18-queue",
+   "method": "M5",
+   "name": "get -> status running + attempts 1",
+   "clean_ok": true,
+   "detail": "running/1",
+   "evidence": {},
+   "clean_s": 0.0,
+   "log": "",
+   "fault": {
+    "applied": [
+     "corrupt:get"
+    ],
+    "s": 0.0004,
+    "result": "raised",
+    "note": "AttributeError: 'NoneType' object has no attribute 'status'",
+    "reverts": 1
+   },
+   "verdict": "PASS"
+  },
+  {
+   "feature": "18-queue",
+   "method": "M5",
+   "name": "ack -> completed + result",
+   "clean_ok": true,
+   "detail": "completed",
+   "evidence": {},
+   "clean_s": 0.0,
+   "log": "",
+   "fault": {
+    "applied": [
+     "raise:ack"
+    ],
+    "s": 0.0002,
+    "result": "raised",
+    "note": "RuntimeError: chaos-2026",
+    "reverts": 1
+   },
+   "verdict": "PASS"
+  },
+  {
+   "feature": "18-queue",
+   "method": "M5",
+   "name": "requeue -> queued lagi",
+   "clean_ok": true,
+   "detail": "kembali ke antrian",
+   "evidence": {},
+   "clean_s": 0.0,
+   "log": "",
+   "fault": {
+    "applied": [
+     "raise:requeue"
+    ],
+    "s": 0.0002,
+    "result": "raised",
+    "note": "RuntimeError: chaos-2026",
+    "reverts": 1
+   },
+   "verdict": "PASS"
+  },
+  {
+   "feature": "18-queue",
+   "method": "M5",
+   "name": "dead -> status dead + error",
+   "clean_ok": true,
+   "detail": "dead",
+   "evidence": {},
+   "clean_s": 0.0,
+   "log": "",
+   "fault": {
+    "applied": [
+     "raise:dead"
+    ],
+    "s": 0.0003,
+    "result": "raised",
+    "note": "RuntimeError: chaos-2026",
+    "reverts": 1
+   },
+   "verdict": "PASS"
+  },
+  {
+   "feature": "18-queue",
+   "method": "M5",
+   "name": "inflight terlacak",
+   "clean_ok": true,
+   "detail": "inflight naik-turun",
+   "evidence": {},
+   "clean_s": 0.0005,
+   "log": "",
+   "fault": {
+    "applied": [
+     "corrupt:inflight"
+    ],
+    "s": 0.001,
+    "result": "raised",
+    "note": "GAGAL: inflight naik-turun",
+    "reverts": 1
+   },
+   "verdict": "PASS"
+  },
+  {
+   "feature": "18-queue",
+   "method": "M5",
+   "name": "size berkurang setelah get",
+   "clean_ok": true,
+   "detail": "2 -> 1",
+   "evidence": {},
+   "clean_s": 0.0001,
+   "log": "",
+   "fault": {
+    "applied": [
+     "corrupt:size"
+    ],
+    "s": 0.0001,
+    "result": "raised",
+    "note": "GAGAL: 2 -> 1",
+    "reverts": 1
+   },
+   "verdict": "PASS"
+  },
+  {
+   "feature": "18-queue",
+   "method": "M5",
+   "name": "get timeout pada antrian kosong -> None",
+   "clean_ok": true,
+   "detail": "None",
+   "evidence": {},
+   "clean_s": 0.0501,
+   "log": "",
+   "fault": {
+    "applied": [
+     "corrupt:get"
+    ],
+    "s": 0.0516,
+    "result": "raised",
+    "note": "GAGAL: None",
+    "reverts": 1
+   },
+   "verdict": "PASS"
+  },
+  {
+   "feature": "18-queue",
+   "method": "M5",
+   "name": "Job.to_dict kunci lengkap",
+   "clean_ok": true,
+   "detail": "kunci ada",
+   "evidence": {},
+   "clean_s": 0.0,
+   "log": "",
+   "fault": {
+    "applied": [
+     "corrupt:to_dict"
+    ],
+    "s": 0.0,
+    "result": "raised",
+    "note": "GAGAL: kunci ada",
+    "reverts": 1
+   },
+   "verdict": "PASS"
+  },
+  {
+   "feature": "18-queue",
+   "method": "M1",
+   "name": "JobQueue enqueue/dequeue",
+   "clean_ok": true,
+   "detail": "round-trip",
+   "evidence": {},
+   "clean_s": 0.0001,
+   "log": "",
+   "fault": {
+    "applied": [
+     "raise:enqueue"
+    ],
+    "s": 0.0008,
+    "result": "raised",
+    "note": "RuntimeError: chaos-2026",
+    "reverts": 1
+   },
+   "verdict": "PASS"
+  },
+  {
+   "feature": "18-queue",
+   "method": "M1",
+   "name": "JobQueue complete",
+   "clean_ok": true,
+   "detail": "hasil tersimpan",
+   "evidence": {},
+   "clean_s": 0.0001,
+   "log": "",
+   "fault": {
+    "applied": [
+     "raise:complete"
+    ],
+    "s": 0.0007,
+    "result": "raised",
+    "note": "RuntimeError: chaos-2026",
+    "reverts": 1
+   },
+   "verdict": "PASS"
+  },
+  {
+   "feature": "18-queue",
+   "method": "M5",
+   "name": "JobQueue.stats kunci lengkap",
+   "clean_ok": true,
+   "detail": "kunci ada",
+   "evidence": {},
+   "clean_s": 0.0001,
+   "log": "",
+   "fault": {
+    "applied": [
+     "corrupt:stats"
+    ],
+    "s": 0.0001,
+    "result": "raised",
+    "note": "GAGAL: kunci ada",
+    "reverts": 1
+   },
+   "verdict": "PASS"
+  },
+  {
+   "feature": "18-queue",
+   "method": "M3",
+   "name": "recover_inflight mengembalikan job running",
+   "clean_ok": true,
+   "detail": "dipulihkan",
+   "evidence": {},
+   "clean_s": 0.0001,
+   "log": "",
+   "fault": {
+    "applied": [
+     "raise:recover_inflight"
+    ],
+    "s": 0.0006,
+    "result": "raised",
+    "note": "RuntimeError: chaos-2026",
+    "reverts": 1
+   },
+   "verdict": "PASS"
+  },
+  {
+   "feature": "18-queue",
+   "method": "M5",
+   "name": "reclaim_expired = 0 di backend memori",
+   "clean_ok": true,
+   "detail": "0",
+   "evidence": {},
+   "clean_s": 0.0,
+   "log": "",
+   "fault": {
+    "applied": [
+     "corrupt:reclaim_expired"
+    ],
+    "s": 0.0,
+    "result": "raised",
+    "note": "GAGAL: 0",
+    "reverts": 1
+   },
+   "verdict": "PASS"
+  },
+  {
+   "feature": "18-queue",
+   "method": "M5",
+   "name": "dlq_replay = 0 di backend memori",
+   "clean_ok": true,
+   "detail": "0",
+   "evidence": {},
+   "clean_s": 0.0,
+   "log": "",
+   "fault": {
+    "applied": [
+     "corrupt:dlq_replay"
+    ],
+    "s": 0.0,
+    "result": "raised",
+    "note": "GAGAL: 0",
+    "reverts": 1
+   },
+   "verdict": "PASS"
+  },
+  {
+   "feature": "18-queue",
+   "method": "M2",
+   "name": "tier3_multi_agent: 3 agent 12 tugas tanpa deadlock",
+   "clean_ok": true,
+   "detail": "selesai=12/12 inflight_sisa=0 deadlock=tidak konteks_utuh=True error=0",
+   "evidence": {},
+   "clean_s": 0.309,
+   "log": "",
+   "fault": {
+    "applied": [
+     "corrupt:get"
+    ],
+    "s": 6.3285,
+    "result": "raised",
+    "note": "GAGAL: selesai=0/12 inflight_sisa=12 deadlock=YA konteks_utuh=False error=0",
+    "reverts": 1
+   },
+   "verdict": "PASS"
+  },
+  {
+   "feature": "18-queue",
+   "method": "M5",
+   "name": "MemoryQueueBackend.available() True",
+   "clean_ok": true,
+   "detail": "True",
+   "evidence": {},
+   "clean_s": 0.0001,
+   "log": "",
+   "fault": {
+    "applied": [
+     "corrupt:available"
+    ],
+    "s": 0.0001,
+    "result": "raised",
+    "note": "GAGAL: True",
+    "reverts": 1
+   },
+   "verdict": "PASS"
+  },
+  {
+   "feature": "18-queue",
+   "method": "M5",
+   "name": "QueueUnavailable subclass QueueError",
+   "clean_ok": true,
+   "detail": "subclass",
+   "evidence": {},
+   "clean_s": 0.0,
+   "log": "",
+   "fault": {
+    "applied": [
+     "raise:put"
+    ],
+    "s": 0.0,
+    "result": "handled",
+    "note": "subclass",
+    "reverts": 1
+   },
+   "verdict": "PASS"
+  },
+  {
+   "feature": "18-queue",
+   "method": "M5",
+   "name": "QueueManager.health() mengembalikan dict",
+   "clean_ok": true,
+   "detail": "dict",
+   "evidence": {},
+   "clean_s": 0.0001,
+   "log": "",
+   "fault": {
+    "applied": [
+     "corrupt:health"
+    ],
+    "s": 0.0001,
+    "result": "raised",
+    "note": "GAGAL: dict",
+    "reverts": 1
+   },
+   "verdict": "PASS"
+  },
+  {
+   "feature": "19-git-source-control",
+   "method": "M5",
+   "name": "serialize_workflow memuat schema",
+   "clean_ok": true,
+   "detail": "schema ada",
+   "evidence": {},
+   "clean_s": 0.0002,
+   "log": "",
+   "fault": {
+    "applied": [
+     "corrupt:serialize_workflow"
+    ],
+    "s": 0.0001,
+    "result": "raised",
+    "note": "GAGAL: schema ada",
+    "reverts": 1
+   },
+   "verdict": "PASS"
+  },
+  {
+   "feature": "19-git-source-control",
+   "method": "M5",
+   "name": "serialize_workflow memuat id",
+   "clean_ok": true,
+   "detail": "id ada",
+   "evidence": {},
+   "clean_s": 0.0001,
+   "log": "",
+   "fault": {
+    "applied": [
+     "corrupt:serialize_workflow"
+    ],
+    "s": 0.0001,
+    "result": "raised",
+    "note": "GAGAL: id ada",
+    "reverts": 1
+   },
+   "verdict": "PASS"
+  },
+  {
+   "feature": "19-git-source-control",
+   "method": "M5",
+   "name": "serialize deterministik (sort_keys)",
+   "clean_ok": true,
+   "detail": "identik",
+   "evidence": {},
+   "clean_s": 0.0002,
+   "log": "",
+   "fault": {
+    "applied": [
+     "corrupt:serialize_workflow"
+    ],
+    "s": 0.0002,
+    "result": "handled",
+    "note": "identik",
+    "reverts": 1
+   },
+   "verdict": "PASS"
+  },
+  {
+   "feature": "19-git-source-control",
+   "method": "M1",
+   "name": "serialize -> deserialize round-trip",
+   "clean_ok": true,
+   "detail": "utuh",
+   "evidence": {},
+   "clean_s": 0.0001,
+   "log": "",
+   "fault": {
+    "applied": [
+     "corrupt:deserialize_workflow"
+    ],
+    "s": 0.0007,
+    "result": "raised",
+    "note": "GAGAL: utuh",
+    "reverts": 1
+   },
+   "verdict": "PASS"
+  },
+  {
+   "feature": "19-git-source-control",
+   "method": "M5",
+   "name": "deserialize menerima dict polos (bentuk lama)",
+   "clean_ok": true,
+   "detail": "legacy",
+   "evidence": {},
+   "clean_s": 0.0,
+   "log": "",
+   "fault": {
+    "applied": [
+     "corrupt:deserialize_workflow"
+    ],
+    "s": 0.0,
+    "result": "raised",
+    "note": "GAGAL: legacy",
+    "reverts": 1
+   },
+   "verdict": "PASS"
+  },
+  {
+   "feature": "19-git-source-control",
+   "method": "M5",
+   "name": "deserialize JSON rusak -> raises",
+   "clean_ok": true,
+   "detail": "rusak -> JSONDecodeError: Expecting property name enclosed in double quotes: line 1 column 2 (char 1)",
+   "evidence": {},
+   "clean_s": 0.0001,
+   "log": "",
+   "fault": {
+    "applied": [
+     "corrupt:deserialize_workflow"
+    ],
+    "s": 0.0001,
+    "result": "handled",
+    "note": "rusak -> JSONDecodeError: Expecting property name enclosed in double quotes: line 1 column 2 (char 1)",
+    "reverts": 1
+   },
+   "verdict": "PASS"
+  },
+  {
+   "feature": "19-git-source-control",
+   "method": "M5",
+   "name": "workflow_path default",
+   "clean_ok": true,
+   "detail": "path",
+   "evidence": {},
+   "clean_s": 0.0,
+   "log": "",
+   "fault": {
+    "applied": [
+     "corrupt:workflow_path"
+    ],
+    "s": 0.0,
+    "result": "raised",
+    "note": "GAGAL: path",
+    "reverts": 1
+   },
+   "verdict": "PASS"
+  },
+  {
+   "feature": "19-git-source-control",
+   "method": "M5",
+   "name": "workflow_path prefix kustom",
+   "clean_ok": true,
+   "detail": "prefix",
+   "evidence": {},
+   "clean_s": 0.0,
+   "log": "",
+   "fault": {
+    "applied": [
+     "corrupt:workflow_path"
+    ],
+    "s": 0.0,
+    "result": "raised",
+    "note": "GAGAL: prefix",
+    "reverts": 1
+   },
+   "verdict": "PASS"
+  },
+  {
+   "feature": "19-git-source-control",
+   "method": "M5",
+   "name": "redact menyembunyikan token di teks",
+   "clean_ok": true,
+   "detail": "termask",
+   "evidence": {},
+   "clean_s": 0.0,
+   "log": "",
+   "fault": {
+    "applied": [
+     "corrupt:redact"
+    ],
+    "s": 0.0,
+    "result": "handled",
+    "note": "termask",
+    "reverts": 1
+   },
+   "verdict": "PASS"
+  },
+  {
+   "feature": "19-git-source-control",
+   "method": "M5",
+   "name": "redact nested",
+   "clean_ok": true,
+   "detail": "dict",
+   "evidence": {},
+   "clean_s": 0.0,
+   "log": "",
+   "fault": {
+    "applied": [
+     "corrupt:redact"
+    ],
+    "s": 0.0,
+    "result": "raised",
+    "note": "GAGAL: dict",
+    "reverts": 1
+   },
+   "verdict": "PASS"
+  },
+  {
+   "feature": "19-git-source-control",
+   "method": "M5",
+   "name": "_write_retryable(ConflictError) True",
+   "clean_ok": true,
+   "detail": "True",
+   "evidence": {},
+   "clean_s": 0.0,
+   "log": "",
+   "fault": {
+    "applied": [
+     "corrupt:_write_retryable"
+    ],
+    "s": 0.0,
+    "result": "raised",
+    "note": "GAGAL: True",
+    "reverts": 1
+   },
+   "verdict": "PASS"
+  },
+  {
+   "feature": "19-git-source-control",
+   "method": "M5",
+   "name": "_write_retryable '422 ... sha' True",
+   "clean_ok": true,
+   "detail": "True",
+   "evidence": {},
+   "clean_s": 0.0,
+   "log": "",
+   "fault": {
+    "applied": [
+     "corrupt:_write_retryable"
+    ],
+    "s": 0.0,
+    "result": "raised",
+    "note": "GAGAL: True",
+    "reverts": 1
+   },
+   "verdict": "PASS"
+  },
+  {
+   "feature": "19-git-source-control",
+   "method": "M5",
+   "name": "_write_retryable galat biasa False",
+   "clean_ok": true,
+   "detail": "False",
+   "evidence": {},
+   "clean_s": 0.0,
+   "log": "",
+   "fault": {
+    "applied": [
+     "corrupt:_write_retryable"
+    ],
+    "s": 0.0,
+    "result": "raised",
+    "note": "GAGAL: False",
+    "reverts": 1
+   },
+   "verdict": "PASS"
+  },
+  {
+   "feature": "19-git-source-control",
+   "method": "M1",
+   "name": "make_client github -> GitHubClient",
+   "clean_ok": true,
+   "detail": "GitHubClient",
+   "evidence": {},
+   "clean_s": 0.0,
+   "log": "",
+   "fault": {
+    "applied": [
+     "raise:make_client"
+    ],
+    "s": 0.0013,
+    "result": "raised",
+    "note": "RuntimeError: chaos-2026",
+    "reverts": 1
+   },
+   "verdict": "PASS"
+  },
+  {
+   "feature": "19-git-source-control",
+   "method": "M1",
+   "name": "make_client gitlab -> GitLabClient",
+   "clean_ok": true,
+   "detail": "GitLabClient",
+   "evidence": {},
+   "clean_s": 0.0002,
+   "log": "",
+   "fault": {
+    "applied": [
+     "raise:make_client"
+    ],
+    "s": 0.0071,
+    "result": "raised",
+    "note": "RuntimeError: chaos-2026",
+    "reverts": 1
+   },
+   "verdict": "PASS"
+  },
+  {
+   "feature": "19-git-source-control",
+   "method": "M1",
+   "name": "make_client bitbucket -> BitbucketClient",
+   "clean_ok": true,
+   "detail": "BitbucketClient",
+   "evidence": {},
+   "clean_s": 0.0001,
+   "log": "",
+   "fault": {
+    "applied": [
+     "raise:make_client"
+    ],
+    "s": 0.001,
+    "result": "raised",
+    "note": "RuntimeError: chaos-2026",
+    "reverts": 1
+   },
+   "verdict": "PASS"
+  },
+  {
+   "feature": "19-git-source-control",
+   "method": "M1",
+   "name": "make_client provider asing -> GitError",
+   "clean_ok": true,
+   "detail": "provider -> GitError: provider tidak dikenal: 'sourceforge' (pilih ['bitbucket', 'github', 'gitlab'])",
+   "evidence": {},
+   "clean_s": 0.0001,
+   "log": "",
+   "fault": {
+    "applied": [
+     "corrupt:make_client"
+    ],
+    "s": 0.0,
+    "result": "handled",
+    "note": "provider -> GitError: provider tidak dikenal: 'sourceforge' (pilih ['bitbucket', 'github', 'gitlab'])",
+    "reverts": 1
+   },
+   "verdict": "PASS"
+  },
+  {
+   "feature": "19-git-source-control",
+   "method": "M1",
+   "name": "make_client case-insensitive ('GITHUB')",
+   "clean_ok": true,
+   "detail": "GitHubClient",
+   "evidence": {},
+   "clean_s": 0.0,
+   "log": "",
+   "fault": {
+    "applied": [
+     "raise:make_client"
+    ],
+    "s": 0.0011,
+    "result": "raised",
+    "note": "RuntimeError: chaos-2026",
+    "reverts": 1
+   },
+   "verdict": "PASS"
+  },
+  {
+   "feature": "19-git-source-control",
+   "method": "M5",
+   "name": "hierarki error: Conflict/NotFound subclass GitError",
+   "clean_ok": true,
+   "detail": "subclass",
+   "evidence": {},
+   "clean_s": 0.0,
+   "log": "",
+   "fault": {
+    "applied": [
+     "corrupt:make_client"
+    ],
+    "s": 0.0,
+    "result": "handled",
+    "note": "subclass",
+    "reverts": 1
+   },
+   "verdict": "PASS"
+  },
+  {
+   "feature": "19-git-source-control",
+   "method": "M5",
+   "name": "serialize unicode tetap terbaca (ensure_ascii=False)",
+   "clean_ok": true,
+   "detail": "unicode utuh",
+   "evidence": {},
+   "clean_s": 0.0005,
+   "log": "",
+   "fault": {
+    "applied": [
+     "corrupt:serialize_workflow"
+    ],
+    "s": 0.0001,
+    "result": "raised",
+    "note": "GAGAL: unicode utuh",
+    "reverts": 1
+   },
+   "verdict": "PASS"
+  },
+  {
+   "feature": "20-realtime-collab",
+   "method": "M5",
+   "name": "Op.to_dict kunci lengkap",
+   "clean_ok": true,
+   "detail": "7 kunci",
+   "evidence": {},
+   "clean_s": 0.0001,
+   "log": "",
+   "fault": {
+    "applied": [
+     "corrupt:to_dict"
+    ],
+    "s": 0.0,
+    "result": "raised",
+    "note": "GAGAL: 7 kunci",
+    "reverts": 1
+   },
+   "verdict": "PASS"
+  },
+  {
+   "feature": "20-realtime-collab",
+   "method": "M5",
+   "name": "Op.from_dict round-trip",
+   "clean_ok": true,
+   "detail": "sama",
+   "evidence": {},
+   "clean_s": 0.0001,
+   "log": "",
+   "fault": {
+    "applied": [
+     "corrupt:from_dict"
+    ],
+    "s": 0.0001,
+    "result": "raised",
+    "note": "GAGAL: sama",
+    "reverts": 1
+   },
+   "verdict": "PASS"
+  },
+  {
+   "feature": "20-realtime-collab",
+   "method": "M5",
+   "name": "Op.key = (client, seq)",
+   "clean_ok": true,
+   "detail": "tuple",
+   "evidence": {},
+   "clean_s": 0.0,
+   "log": "",
+   "fault": {
+    "applied": [
+     "corrupt:key"
+    ],
+    "s": 0.0001,
+    "result": "raised",
+    "note": "GAGAL: tuple",
+    "reverts": 1
+   },
+   "verdict": "PASS"
+  },
+  {
+   "feature": "20-realtime-collab",
+   "method": "M1",
+   "name": "doc apply 'set' mengubah state",
+   "clean_ok": true,
+   "detail": "label tersimpan",
+   "evidence": {},
+   "clean_s": 0.0001,
+   "log": "",
+   "fault": {
+    "applied": [
+     "raise:apply"
+    ],
+    "s": 0.0017,
+    "result": "raised",
+    "note": "RuntimeError: chaos-2026",
+    "reverts": 1
+   },
+   "verdict": "PASS"
+  },
+  {
+   "feature": "20-realtime-collab",
+   "method": "M1",
+   "name": "idempotensi: op yang sama diabaikan",
+   "clean_ok": true,
+   "detail": "duplikat diabaikan",
+   "evidence": {},
+   "clean_s": 0.0002,
+   "log": "",
+   "fault": {
+    "applied": [
+     "corrupt:apply"
+    ],
+    "s": 0.0001,
+    "result": "raised",
+    "note": "GAGAL: duplikat diabaikan",
+    "reverts": 1
+   },
+   "verdict": "PASS"
+  },
+  {
+   "feature": "20-realtime-collab",
+   "method": "M1",
+   "name": "LWW: ts lebih besar menang",
+   "clean_ok": true,
+   "detail": "baru menang",
+   "evidence": {},
+   "clean_s": 0.0001,
+   "log": "",
+   "fault": {
+    "applied": [
+     "corrupt:apply"
+    ],
+    "s": 0.0,
+    "result": "handled",
+    "note": "baru menang",
+    "reverts": 1
+   },
+   "verdict": "PASS"
+  },
+  {
+   "feature": "20-realtime-collab",
+   "method": "M1",
+   "name": "LWW: ts lebih kecil ditolak",
+   "clean_ok": true,
+   "detail": "lama ditolak",
+   "evidence": {},
+   "clean_s": 0.0,
+   "log": "",
+   "fault": {
+    "applied": [
+     "corrupt:apply"
+    ],
+    "s": 0.0,
+    "result": "handled",
+    "note": "lama ditolak",
+    "reverts": 1
+   },
+   "verdict": "PASS"
+  },
+  {
+   "feature": "20-realtime-collab",
+   "method": "M5",
+   "name": "add_node idempoten (OR-set)",
+   "clean_ok": true,
+   "detail": "node ada sekali",
+   "evidence": {},
+   "clean_s": 0.0001,
+   "log": "",
+   "fault": {
+    "applied": [
+     "raise:apply"
+    ],
+    "s": 0.0016,
+    "result": "raised",
+    "note": "RuntimeError: chaos-2026",
+    "reverts": 1
+   },
+   "verdict": "PASS"
+  },
+  {
+   "feature": "20-realtime-collab",
+   "method": "M5",
+   "name": "remove_node -> node() None",
+   "clean_ok": true,
+   "detail": "node hilang",
+   "evidence": {},
+   "clean_s": 0.0001,
+   "log": "",
+   "fault": {
+    "applied": [
+     "raise:apply"
+    ],
+    "s": 0.0023,
+    "result": "raised",
+    "note": "RuntimeError: chaos-2026",
+    "reverts": 1
+   },
+   "verdict": "PASS"
+  },
+  {
+   "feature": "20-realtime-collab",
+   "method": "M5",
+   "name": "snapshot tidak menyertakan node terhapus",
+   "clean_ok": true,
+   "detail": "ids=['n2']",
+   "evidence": {},
+   "clean_s": 0.0001,
+   "log": "",
+   "fault": {
+    "applied": [
+     "corrupt:snapshot"
+    ],
+    "s": 0.0001,
+    "result": "raised",
+    "note": "GAGAL: ids=[]",
+    "reverts": 1
+   },
+   "verdict": "PASS"
+  },
+  {
+   "feature": "20-realtime-collab",
+   "method": "M4",
+   "name": "ops_since memberi delta sync",
+   "clean_ok": true,
+   "detail": "delta 1 op",
+   "evidence": {},
+   "clean_s": 0.0001,
+   "log": "",
+   "fault": {
+    "applied": [
+     "corrupt:ops_since"
+    ],
+    "s": 0.0001,
+    "result": "raised",
+    "note": "GAGAL: delta 1 op",
+    "reverts": 1
+   },
+   "verdict": "PASS"
+  },
+  {
+   "feature": "20-realtime-collab",
+   "method": "M1",
+   "name": "room.join user diizinkan",
+   "clean_ok": true,
+   "detail": "bergabung",
+   "evidence": {},
+   "clean_s": 0.0001,
+   "log": "",
+   "fault": {
+    "applied": [
+     "raise:join"
+    ],
+    "s": 0.0018,
+    "result": "raised",
+    "note": "RuntimeError: chaos-2026",
+    "reverts": 1
+   },
+   "verdict": "PASS"
+  },
+  {
+   "feature": "20-realtime-collab",
+   "method": "M1",
+   "name": "room.join user asing -> AccessDenied",
+   "clean_ok": true,
+   "detail": "akses -> AccessDenied: user 'u2' tidak berhak pada room r",
+   "evidence": {},
+   "clean_s": 0.0001,
+   "log": "",
+   "fault": {
+    "applied": [
+     "raise:join"
+    ],
+    "s": 0.0001,
+    "result": "raised",
+    "note": "akses -> RuntimeError (harap AccessDenied): chaos-2026",
+    "reverts": 1
+   },
+   "verdict": "PASS"
+  },
+  {
+   "feature": "20-realtime-collab",
+   "method": "M1",
+   "name": "submit oleh user tak berhak -> AccessDenied",
+   "clean_ok": true,
+   "detail": "akses -> AccessDenied: user 'u2' tidak berhak",
+   "evidence": {},
+   "clean_s": 0.0001,
+   "log": "",
+   "fault": {
+    "applied": [
+     "raise:submit"
+    ],
+    "s": 0.0,
+    "result": "raised",
+    "note": "akses -> RuntimeError (harap AccessDenied): chaos-2026",
+    "reverts": 1
+   },
+   "verdict": "PASS"
+  },
+  {
+   "feature": "20-realtime-collab",
+   "method": "M5",
+   "name": "presence set/get",
+   "clean_ok": true,
+   "detail": "presence ada",
+   "evidence": {},
+   "clean_s": 0.0001,
+   "log": "",
+   "fault": {
+    "applied": [
+     "corrupt:set_presence"
+    ],
+    "s": 0.0001,
+    "result": "handled",
+    "note": "presence ada",
+    "reverts": 1
+   },
+   "verdict": "PASS"
+  },
+  {
+   "feature": "20-realtime-collab",
+   "method": "M5",
+   "name": "cursors hanya user berkursor",
+   "clean_ok": true,
+   "detail": "cursos terfilter",
+   "evidence": {},
+   "clean_s": 0.0001,
+   "log": "",
+   "fault": {
+    "applied": [
+     "corrupt:cursors"
+    ],
+    "s": 0.0001,
+    "result": "raised",
+    "note": "GAGAL: cursos terfilter",
+    "reverts": 1
+   },
+   "verdict": "PASS"
+  },
+  {
+   "feature": "20-realtime-collab",
+   "method": "M1",
+   "name": "undo membatalkan perubahan user",
+   "clean_ok": true,
+   "detail": "label kini None",
+   "evidence": {},
+   "clean_s": 0.0001,
+   "log": "",
+   "fault": {
+    "applied": [
+     "raise:undo"
+    ],
+    "s": 0.0011,
+    "result": "raised",
+    "note": "RuntimeError: chaos-2026",
+    "reverts": 1
+   },
+   "verdict": "PASS"
+  },
+  {
+   "feature": "20-realtime-collab",
+   "method": "M5",
+   "name": "stats mengembalikan dict",
+   "clean_ok": true,
+   "detail": "dict",
+   "evidence": {},
+   "clean_s": 0.0001,
+   "log": "",
+   "fault": {
+    "applied": [
+     "corrupt:stats"
+    ],
+    "s": 0.0001,
+    "result": "raised",
+    "note": "GAGAL: dict",
+    "reverts": 1
+   },
+   "verdict": "PASS"
+  },
+  {
+   "feature": "20-realtime-collab",
+   "method": "M2",
+   "name": "CollabServer: room + submit + merge_offline",
+   "clean_ok": true,
+   "detail": "submit -> dict",
+   "evidence": {},
+   "clean_s": 0.0001,
+   "log": "",
+   "fault": {
+    "applied": [
+     "raise:submit"
+    ],
+    "s": 0.0011,
+    "result": "raised",
+    "note": "RuntimeError: chaos-2026",
+    "reverts": 1
+   },
+   "verdict": "PASS"
+  },
+  {
+   "feature": "20-realtime-collab",
+   "method": "M4",
+   "name": "dua klien konvergen (LWW final sama)",
+   "clean_ok": true,
+   "detail": "konvergen",
+   "evidence": {},
+   "clean_s": 0.0001,
+   "log": "",
+   "fault": {
+    "applied": [
+     "corrupt:apply"
+    ],
+    "s": 0.0001,
+    "result": "handled",
+    "note": "konvergen",
+    "reverts": 1
+   },
+   "verdict": "PASS"
+  },
+  {
+   "feature": "21-plugin-system",
+   "method": "M5",
+   "name": "parse_semver valid",
+   "clean_ok": true,
+   "detail": "(1,2,3)",
+   "evidence": {},
+   "clean_s": 0.0005,
+   "log": "",
+   "fault": {
+    "applied": [
+     "corrupt:parse_semver"
+    ],
+    "s": 0.0002,
+    "result": "raised",
+    "note": "GAGAL: (1,2,3)",
+    "reverts": 1
+   },
+   "verdict": "PASS"
+  },
+  {
+   "feature": "21-plugin-system",
+   "method": "M5",
+   "name": "parse_semver invalid -> PluginError",
+   "clean_ok": true,
+   "detail": "invalid -> PluginError: versi semver tidak valid: 'bukan'",
+   "evidence": {},
+   "clean_s": 0.0001,
+   "log": "",
+   "fault": {
+    "applied": [
+     "corrupt:parse_semver"
+    ],
+    "s": 0.0,
+    "result": "handled",
+    "note": "invalid -> PluginError: versi semver tidak valid: 'bukan'",
+    "reverts": 1
+   },
+   "verdict": "PASS"
+  },
+  {
+   "feature": "21-plugin-system",
+   "method": "M5",
+   "name": "semver_gt",
+   "clean_ok": true,
+   "detail": "True",
+   "evidence": {},
+   "clean_s": 0.0,
+   "log": "",
+   "fault": {
+    "applied": [
+     "corrupt:semver_gt"
+    ],
+    "s": 0.0,
+    "result": "raised",
+    "note": "GAGAL: True",
+    "reverts": 1
+   },
+   "verdict": "PASS"
+  },
+  {
+   "feature": "21-plugin-system",
+   "method": "M5",
+   "name": "semver_satisfies >= true",
+   "clean_ok": true,
+   "detail": "True",
+   "evidence": {},
+   "clean_s": 0.0007,
+   "log": "",
+   "fault": {
+    "applied": [
+     "corrupt:semver_satisfies"
+    ],
+    "s": 0.0001,
+    "result": "raised",
+    "note": "GAGAL: True",
+    "reverts": 1
+   },
+   "verdict": "PASS"
+  },
+  {
+   "feature": "21-plugin-system",
+   "method": "M5",
+   "name": "semver_satisfies >= false",
+   "clean_ok": true,
+   "detail": "False",
+   "evidence": {},
+   "clean_s": 0.0,
+   "log": "",
+   "fault": {
+    "applied": [
+     "corrupt:semver_satisfies"
+    ],
+    "s": 0.0,
+    "result": "raised",
+    "note": "GAGAL: False",
+    "reverts": 1
+   },
+   "verdict": "PASS"
+  },
+  {
+   "feature": "21-plugin-system",
+   "method": "M5",
+   "name": "semver_satisfies caret ^",
+   "clean_ok": true,
+   "detail": "caret",
+   "evidence": {},
+   "clean_s": 0.0001,
+   "log": "",
+   "fault": {
+    "applied": [
+     "corrupt:semver_satisfies"
+    ],
+    "s": 0.0001,
+    "result": "raised",
+    "note": "GAGAL: caret",
+    "reverts": 1
+   },
+   "verdict": "PASS"
+  },
+  {
+   "feature": "21-plugin-system",
+   "method": "M5",
+   "name": "semver_satisfies '*' selalu",
+   "clean_ok": true,
+   "detail": "True",
+   "evidence": {},
+   "clean_s": 0.0,
+   "log": "",
+   "fault": {
+    "applied": [
+     "corrupt:semver_satisfies"
+    ],
+    "s": 0.0,
+    "result": "raised",
+    "note": "GAGAL: True",
+    "reverts": 1
+   },
+   "verdict": "PASS"
+  },
+  {
+   "feature": "21-plugin-system",
+   "method": "M5",
+   "name": "semver_satisfies multi-spek koma",
+   "clean_ok": true,
+   "detail": "True",
+   "evidence": {},
+   "clean_s": 0.0001,
+   "log": "",
+   "fault": {
+    "applied": [
+     "corrupt:semver_satisfies"
+    ],
+    "s": 0.0001,
+    "result": "raised",
+    "note": "GAGAL: True",
+    "reverts": 1
+   },
+   "verdict": "PASS"
+  },
+  {
+   "feature": "21-plugin-system",
+   "method": "M1",
+   "name": "manifest valid -> tanpa error",
+   "clean_ok": true,
+   "detail": "[]",
+   "evidence": {},
+   "clean_s": 0.0001,
+   "log": "",
+   "fault": {
+    "applied": [
+     "corrupt:validate"
+    ],
+    "s": 0.0001,
+    "result": "raised",
+    "note": "GAGAL: []",
+    "reverts": 1
+   },
+   "verdict": "PASS"
+  },
+  {
+   "feature": "21-plugin-system",
+   "method": "M1",
+   "name": "manifest nama invalid -> error",
+   "clean_ok": true,
+   "detail": "nama ditolak",
+   "evidence": {},
+   "clean_s": 0.0001,
+   "log": "",
+   "fault": {
+    "applied": [
+     "corrupt:validate"
+    ],
+    "s": 0.0,
+    "result": "raised",
+    "note": "GAGAL: nama ditolak",
+    "reverts": 1
+   },
+   "verdict": "PASS"
+  },
+  {
+   "feature": "21-plugin-system",
+   "method": "M1",
+   "name": "manifest entry kosong -> error",
+   "clean_ok": true,
+   "detail": "entry ditolak",
+   "evidence": {},
+   "clean_s": 0.0001,
+   "log": "",
+   "fault": {
+    "applied": [
+     "corrupt:validate"
+    ],
+    "s": 0.0,
+    "result": "raised",
+    "note": "GAGAL: entry ditolak",
+    "reverts": 1
+   },
+   "verdict": "PASS"
+  },
+  {
+   "feature": "21-plugin-system",
+   "method": "M1",
+   "name": "manifest capability terlarang -> error",
+   "clean_ok": true,
+   "detail": "ditolak",
+   "evidence": {},
+   "clean_s": 0.0001,
+   "log": "",
+   "fault": {
+    "applied": [
+     "corrupt:validate"
+    ],
+    "s": 0.0,
+    "result": "raised",
+    "note": "GAGAL: ditolak",
+    "reverts": 1
+   },
+   "verdict": "PASS"
+  },
+  {
+   "feature": "21-plugin-system",
+   "method": "M1",
+   "name": "manifest capability tak dikenal -> error",
+   "clean_ok": true,
+   "detail": "ditolak",
+   "evidence": {},
+   "clean_s": 0.0,
+   "log": "",
+   "fault": {
+    "applied": [
+     "corrupt:validate"
+    ],
+    "s": 0.0,
+    "result": "raised",
+    "note": "GAGAL: ditolak",
+    "reverts": 1
+   },
+   "verdict": "PASS"
+  },
+  {
+   "feature": "21-plugin-system",
+   "method": "M4",
+   "name": "from_dict/to_dict round-trip",
+   "clean_ok": true,
+   "detail": "sama",
+   "evidence": {},
+   "clean_s": 0.0001,
+   "log": "",
+   "fault": {
+    "applied": [
+     "corrupt:to_dict"
+    ],
+    "s": 0.0007,
+    "result": "raised",
+    "note": "KeyError: 'name'",
+    "reverts": 1
+   },
+   "verdict": "PASS"
+  },
+  {
+   "feature": "21-plugin-system",
+   "method": "M5",
+   "name": "to_dict: signature jadi bool",
+   "clean_ok": true,
+   "detail": "bool",
+   "evidence": {},
+   "clean_s": 0.0,
+   "log": "",
+   "fault": {
+    "applied": [
+     "corrupt:to_dict"
+    ],
+    "s": 0.0005,
+    "result": "raised",
+    "note": "KeyError: 'signature'",
+    "reverts": 1
+   },
+   "verdict": "PASS"
+  },
+  {
+   "feature": "21-plugin-system",
+   "method": "M2",
+   "name": "registry register/get",
+   "clean_ok": true,
+   "detail": "terdaftar",
+   "evidence": {},
+   "clean_s": 0.0001,
+   "log": "",
+   "fault": {
+    "applied": [
+     "raise:register"
+    ],
+    "s": 0.0011,
+    "result": "raised",
+    "note": "RuntimeError: chaos-2026",
+    "reverts": 1
+   },
+   "verdict": "PASS"
+  },
+  {
+   "feature": "21-plugin-system",
+   "method": "M2",
+   "name": "registry get nama asing -> None",
+   "clean_ok": true,
+   "detail": "None",
+   "evidence": {},
+   "clean_s": 0.0,
+   "log": "",
+   "fault": {
+    "applied": [
+     "corrupt:get"
+    ],
+    "s": 0.0,
+    "result": "raised",
+    "note": "GAGAL: None",
+    "reverts": 1
+   },
+   "verdict": "PASS"
+  },
+  {
+   "feature": "21-plugin-system",
+   "method": "M2",
+   "name": "registry remove",
+   "clean_ok": true,
+   "detail": "terhapus",
+   "evidence": {},
+   "clean_s": 0.0,
+   "log": "",
+   "fault": {
+    "applied": [
+     "raise:remove"
+    ],
+    "s": 0.0009,
+    "result": "raised",
+    "note": "RuntimeError: chaos-2026",
+    "reverts": 1
+   },
+   "verdict": "PASS"
+  },
+  {
+   "feature": "21-plugin-system",
+   "method": "M2",
+   "name": "Plugin.call capability sesuai -> handler jalan",
+   "clean_ok": true,
+   "detail": "handler jalan",
+   "evidence": {},
+   "clean_s": 0.0001,
+   "log": "",
+   "fault": {
+    "applied": [
+     "raise:call"
+    ],
+    "s": 0.0007,
+    "result": "raised",
+    "note": "RuntimeError: chaos-2026",
+    "reverts": 1
+   },
+   "verdict": "PASS"
+  },
+  {
+   "feature": "21-plugin-system",
+   "method": "M2",
+   "name": "Plugin.call capability tidak dideklarasikan -> denied",
+   "clean_ok": true,
+   "detail": "CapabilityDenied: capability 'http' tidak dideklarasikan oleh plugin.satu",
+   "evidence": {},
+   "clean_s": 0.0001,
+   "log": "",
+   "fault": {
+    "applied": [
+     "raise:call"
+    ],
+    "s": 0.0047,
+    "result": "raised",
+    "note": "RuntimeError: chaos-2026",
+    "reverts": 1
+   },
+   "verdict": "PASS"
+  }
+ ]
+}
