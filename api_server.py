@@ -38,6 +38,7 @@ import rate_limit
 import scheduler_manager  # Scheduled Trigger (cron) — Fitur #1, 8 Okt 2026
 import memory_manager    # AI Agent Memory (pgvector) — Fitur #11, 8 Okt 2026
 import workflow_autofix as _wf_autofix
+import workflow_ops as _wops  # edit workflow berbasis OPERASI (11 Okt 2026)
 import security
 import tools
 from textual_tool_calls import (  # BUG FIX 2026-10-02: parser tool-call TEKS
@@ -641,6 +642,19 @@ class WorkflowUpdateRequest(BaseModel):
     """PATCH /workflows/{id} — rename (dan deskripsi bila perlu)."""
     name: str | None = None
     description: str | None = None
+
+
+class WorkflowOpsRequest(BaseModel):
+    """POST /workflows/{id}/ops — edit sebagian lewat daftar OPERASI.
+
+    Referensi: n8n-autopilot SKILL.md Phase 3.2
+    (`n8n_update_partial_workflow({intent, operations})`). Lapisan LLM cukup
+    menghasilkan `operations`; penerapan/validasi/rollback deterministik di
+    `workflow_ops.py`.
+    """
+    operations: list[dict] = Field(default_factory=list)
+    intent: str = ""
+    dry_run: bool = False
 
 
 # ---------------------------------------------------------------------------
@@ -3723,6 +3737,58 @@ def patch_workflow(workflow_id: str, req: WorkflowUpdateRequest,
             raise HTTPException(403, "Workflow ini bukan milik Anda.")
         raise HTTPException(404, "Workflow tidak ditemukan.")
     return {"status": "success", "workflow": row}
+
+
+@app.post("/workflows/{workflow_id}/ops")
+def apply_workflow_ops(workflow_id: str, req: WorkflowOpsRequest,
+                       authorization: str | None = Header(None)):
+    """Edit workflow lewat DAFTAR OPERASI — ATOMIK. Owner-scoped.
+
+    Referensi: n8n-autopilot SKILL.md Phase 3.2
+    (`n8n_update_partial_workflow({intent, operations})`). Ini sisi
+    "edit/debug via bahasa alami": lapisan LLM hanya menghasilkan `operations`
+    (lihat `skills/flowgent`), sedangkan penerapan + validasi + rollback
+    deterministik di `workflow_ops.py`.
+
+    `dry_run=true` -> pratinjau (validasi + diff, TIDAK menulis).
+    Bila satu operasi gagal: 422 menyebut id yang salah dan TIDAK ADA
+    perubahan tersimpan (rollback penuh).
+    """
+    user = security.get_current_user(authorization)
+    if not req.operations:
+        raise HTTPException(400, "Daftar operasi kosong.")
+    try:
+        row = db.get_workflow(workflow_id, user["id"])
+    except Exception as exc:  # noqa: BLE001
+        raise HTTPException(500, f"Gagal memuat workflow: {exc}")
+    if not row:
+        if db.get_workflow_owner(workflow_id):
+            raise HTTPException(403, "Workflow ini bukan milik Anda.")
+        raise HTTPException(404, "Workflow tidak ditemukan.")
+
+    flow = row.get("flow_data") or {"nodes": [], "edges": []}
+    result = _wops.apply_operations(
+        flow, req.operations, intent=req.intent, dry_run=req.dry_run)
+    if not result["ok"]:
+        raise HTTPException(422, {
+            "message": "Operasi ditolak; tidak ada perubahan tersimpan.",
+            "errors": result["errors"],
+        })
+    if req.dry_run:
+        return {"status": "preview", "applied": result["applied"],
+                "diff": result["diff"], "intent": req.intent}
+    # Gerbang akhir: aturan graf yang SAMA dengan jalur tulis lain
+    # (flow_limits.py) supaya tidak lahir aturan ke-2.
+    validate_workflow_flow(result["flow_data"])
+    try:
+        updated = db.update_workflow(workflow_id, user["id"],
+                                     flow_data=result["flow_data"])
+    except Exception as exc:  # noqa: BLE001
+        raise HTTPException(500, f"Gagal menyimpan workflow: {exc}")
+    if not updated:
+        raise HTTPException(403, "Workflow ini bukan milik Anda.")
+    return {"status": "success", "applied": result["applied"],
+            "diff": result["diff"], "intent": req.intent}
 
 
 @app.delete("/workflows/{workflow_id}")
