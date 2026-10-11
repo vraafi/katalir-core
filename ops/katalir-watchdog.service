@@ -1,0 +1,29 @@
+[Unit]
+Description=Katalir watchdog (health check + auto-recovery backend/tunnel)
+Documentation=file:///root/katalir-core/ops/katalir-watchdog.sh
+After=network-online.target katalir-backend.service
+Wants=network-online.target
+# CATATAN: StartLimitBurst/StartLimitIntervalSec HARUS di [Unit], bukan
+# [Service]. Di [Service] systemd mengabaikannya dengan peringatan
+# "Unknown key name 'StartLimitIntervalSec' in section 'Service'" (terlihat
+# di journal pada pemasangan pertama) sehingga batas anti-crash-loop tidak
+# pernah aktif.
+StartLimitBurst=5
+StartLimitIntervalSec=120
+
+[Service]
+Type=simple
+ExecStart=/usr/local/bin/katalir-watchdog.sh
+# Watchdog sendiri harus selalu hidup; kalau ia mati, justru itu yang paling
+# berbahaya (layanan tampak terpantau padahal tidak).
+Restart=always
+RestartSec=10
+
+# Least privilege: hanya butuh restart unit + tulis log/state.
+NoNewPrivileges=yes
+PrivateTmp=yes
+ProtectSystem=full
+ProtectHome=read-only
+
+[Install]
+WantedBy=multi-user.target

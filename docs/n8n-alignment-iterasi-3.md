@@ -414,18 +414,33 @@ didokumentasikan di `pytest.ini`. Karena itu regresi dijalankan sebagai
 ## COMMIT + PUSH
 
 ```console
-$ git add evidence_ledger.py execution_engine.py mcp_compat.py mcp_server.py \
-         requirements.txt generated_mcp/katalir_openapi_server.py \
-         mcp_gateway/katalir_server.py scripts/ai_tools_mcp.py \
-         scripts/openapi_to_mcp.py llm_stream.py \
-         tests/test_mcp_v2_migration.py tests/test_llm_stream.py \
-         tests/test_prompt_caching.py tests/test_evidence_persistence.py \
-         tests/test_mcp_compat.py tests/test_mcp_server_builtin.py \
-         tests/test_katalir_mcp_external.py tests/test_sandbox_production.py \
-         docs/n8n-alignment-iterasi-3.md docs/feature-gap-closure.md
-$ git commit -m "feat(n8n-align-3): MCP v2 migration (bidirectional shim) + token streaming + ledger persistence"
-$ git push origin main
+$ git commit -F - <<'MSG'
+feat(n8n-align-3): MCP v2 migration (bidirectional shim) + token streaming + ledger persistence
+MSG
+[main 727a1cc] feat(n8n-align-3): MCP v2 migration (bidirectional shim) + token streaming + ledger persistence
+ 20 files changed, 2688 insertions(+), 51 deletions(-)
+ create mode 100644 docs/n8n-alignment-iterasi-3.md
+ create mode 100644 llm_stream.py
+ create mode 100644 tests/test_evidence_persistence.py
+ create mode 100644 tests/test_llm_stream.py
+ create mode 100644 tests/test_mcp_v2_migration.py
+ create mode 100644 tests/test_prompt_caching.py
 ```
+
+```console
+$ git push origin main:main      # pola di docs/PUSH_BLOCKER.md (lewati helper GCM)
+To https://github.com/vraafi/katalir-core.git
+   7e791be..727a1cc  main -> main
+```
+
+```console
+$ git ls-remote origin -h refs/heads/main
+727a1cc6f57795581eaf755767a575abbc59860c	refs/heads/main
+$ git log --oneline origin/main..HEAD | wc -l
+0
+```
+
+**20 berkas** terkirim: 9 modul produksi + 8 berkas tes + 2 dokumen + `requirements.txt`.
 
 ---
 

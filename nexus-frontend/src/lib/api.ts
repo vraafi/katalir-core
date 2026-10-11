@@ -18,8 +18,15 @@ export const FETCH_TIMEOUT_MS = 90_000;
  *  backoff 2s/5s) punya plafon sendiri, jadi total teratas adalah
  *  3 x budget_backend + 7s dan harus tetap DI BAWAH nilai ini agar tidak ada
  *  fetch yang terbunuh di tengah jalan oleh abort.
+ *
+ *  NAIK 150_000 -> 180_000 (11 Okt 2026, insiden "prompt panjang stuck"):
+ *  dengan `LLM_GATEWAY_BUDGET` 45s, plafon retry = 3 x 45s + 7s = 142s.
+ *  Pada 150s margin-nya hanya 8s — model yang berpikir panjang + satu
+ *  percobaan lambat cukup untuk menyentuh abort tepat saat jawaban hampir
+ *  jadi. 180s memberi margin 38s tanpa menahan user selamanya (di atas itu
+ *  hampir pasti backend sudah gagal, bukan lambat).
  */
-export const CHAT_TIMEOUT_MS = 150_000;
+export const CHAT_TIMEOUT_MS = 180_000;
 
 export function sleep(ms: number) {
   return new Promise((r) => setTimeout(r, ms));

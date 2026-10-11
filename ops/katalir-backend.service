@@ -1,0 +1,28 @@
+[Unit]
+Description=Katalir Backend API (FastAPI/uvicorn)
+Documentation=file:///root/katalir-core/ops/README-ops.md
+After=network-online.target
+Wants=network-online.target
+# Anti crash-loop: bila service mati >5x dalam 60 detik, systemd BERHENTI
+# mencoba dan menandainya `failed`. Itu disengaja — restart-loop tanpa batas
+# menyembunyikan bug nyata (mis. env hilang) dan membebani VPS.
+StartLimitIntervalSec=60
+StartLimitBurst=5
+
+[Service]
+Type=simple
+WorkingDirectory=/root/katalir-core
+EnvironmentFile=/root/katalir-core/.env
+# `--timeout-graceful-shutdown 30` memberi request /chat yang sedang berjalan
+# waktu 30 detik untuk selesai sebelum proses dimatikan. Tanpa ini, setiap
+# `systemctl restart` memutus percakapan yang sedang berjalan di tengah jalan
+# dan user melihat "Koneksi lambat. Cek internetmu."
+ExecStart=/root/katalir-core/venv/bin/python3 -m uvicorn _root_app:app \
+    --host 0.0.0.0 --port 8100 --timeout-graceful-shutdown 30
+Restart=always
+RestartSec=10
+StandardOutput=append:/root/api_server.log
+StandardError=append:/root/api_server.log
+
+[Install]
+WantedBy=multi-user.target

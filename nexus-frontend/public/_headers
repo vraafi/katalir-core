@@ -98,13 +98,31 @@
 # bukan diubah isinya.
 # ===========================================================================
 
+# ===========================================================================
+# FIX CSP 2026-10-11: host backend MATI (Railway) dihapus dari `connect-src`.
+#
+# INSIDEN: chat di katalir.de5.net selalu gagal dengan "Koneksi lambat. Cek
+# internetmu." Bukti dari bundle PRODUKSI (bukan dugaan): chunk
+# `5360-10f55fb5d915b6a0.js` yang direferensikan /chat memanggil
+#     fetch("https://web-production-dc90b.up.railway.app" + path)
+# sementara backend sudah pindah ke VPS. Railway menjawab 404 TANPA header
+# `Access-Control-Allow-Origin`, sehingga browser memblokir respons itu dan
+# `fetch` melempar TypeError -> classifyChatError() -> pesan di atas.
+#
+# `https://gateway.katalir.de5.net` SUDAH ada di connect-src, jadi menghapus
+# host mati ini tidak mengurangi kemampuan apa pun. Yang dihapus hanya
+# `https://web-production-dc90b.up.railway.app` - satu host yang terbukti
+# 404 dan tidak lagi dipanggil oleh bundle mana pun (diverifikasi: 0
+# kemunculan di out/_next/static/chunks/*.js setelah rebuild).
+# ===========================================================================
+
 /*
   Strict-Transport-Security: max-age=31536000; includeSubDomains
   X-Frame-Options: DENY
   X-Content-Type-Options: nosniff
   Referrer-Policy: strict-origin-when-cross-origin
   Permissions-Policy: camera=(), microphone=(), geolocation=()
-  Content-Security-Policy: default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'none'; form-action 'self'; script-src 'self' 'unsafe-inline' https://static.cloudflareinsights.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https://lh3.googleusercontent.com https://avatars.githubusercontent.com; font-src 'self' data:; connect-src 'self' https://gateway.katalir.de5.net https://web-production-dc90b.up.railway.app https://qmukkphwaajzbqjrcvaz.supabase.co wss://qmukkphwaajzbqjrcvaz.supabase.co https://cloudflareinsights.com
+  Content-Security-Policy: default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'none'; form-action 'self'; script-src 'self' 'unsafe-inline' https://static.cloudflareinsights.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https://lh3.googleusercontent.com https://avatars.githubusercontent.com; font-src 'self' data:; connect-src 'self' https://gateway.katalir.de5.net https://qmukkphwaajzbqjrcvaz.supabase.co wss://qmukkphwaajzbqjrcvaz.supabase.co https://cloudflareinsights.com
 
 # Aset ber-hash di /_next/static aman di-cache lama (Cloudflare docs).
 /_next/static/*

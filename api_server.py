@@ -10199,6 +10199,92 @@ def health():
     }
 
 
+def _probe_with_timeout(fn, seconds: float) -> tuple[bool, Any]:
+    """Jalankan `fn` di thread terpisah dengan plafon waktu keras.
+
+    Dipakai `/status` supaya satu dependensi yang menggantung TIDAK menahan
+    seluruh probe. Best practice Okt 2026 untuk readiness: setiap cek
+    dependensi WAJIB punya timeout sendiri; tanpa itu kegagalan satu layanan
+    menyebar menjadi kegagalan total (cascading failure) — dan pada kasus
+    terburuk endpoint health sendiri ikut menggantung sehingga watchdog
+    menganggap proses hidup padahal tidak bisa melayani apa pun.
+    """
+    box: dict = {}
+
+    def _run() -> None:
+        try:
+            box["value"] = fn()
+        except Exception as exc:  # noqa: BLE001 - dilaporkan sebagai status, bukan dilempar
+            box["error"] = f"{type(exc).__name__}: {str(exc)[:160]}"
+
+    th = threading.Thread(target=_run, daemon=True)
+    th.start()
+    th.join(seconds)
+    if th.is_alive():
+        return False, f"timeout >{seconds:g}s"
+    if "error" in box:
+        return False, box["error"]
+    return True, box.get("value")
+
+
+@app.get("/status")
+def status_deep():
+    """DEEP HEALTH (readiness) — backend + Supabase + LLM gateway.
+
+    PEMBAGIAN TUGAS (alasannya, bukan sekadar konvensi):
+      * `/health`  = LIVENESS. Murah dan tanpa I/O jaringan -> dipakai
+                     systemd/watchdog untuk memutuskan RESTART. Kalau probe
+                     ini ikut menyentuh jaringan, satu gateway yang lambat
+                     akan memicu restart-loop yang justru merusak layanan.
+      * `/status`  = READINESS. Menyentuh dependensi nyata, tiap cek dibatasi
+                     timeout pendek, HTTP 503 bila ada yang gagal -> dipakai
+                     dashboard `/status` di frontend dan alarm.
+    """
+    from fastapi.responses import JSONResponse
+
+    checks: dict = {}
+    started = time.time()
+    checks["backend"] = {"ok": True, "detail": "handler menjawab"}
+
+    def _supabase() -> dict:
+        info = db.persistence_info()
+        if info.get("backend") != "supabase":
+            raise RuntimeError("persistensi bukan supabase (memori)")
+        c = db._get_write_client()
+        r = c.table("users").select("id").limit(1).execute()
+        return {"backend": "supabase", "probe_rows": len(r.data or [])}
+
+    ok, val = _probe_with_timeout(_supabase, 5.0)
+    checks["supabase"] = {"ok": ok, "detail": val}
+
+    def _gateway() -> dict:
+        import httpx
+        import gateway_roster as gr
+        url, key = gr.gateway_config()
+        if not url or not key:
+            raise RuntimeError("LLM_GATEWAY_URL/LLM_GATEWAY_KEY belum diset")
+        r = httpx.get(f"{url}/v1/models",
+                      headers={"Authorization": f"Bearer {key}"}, timeout=4.0)
+        if r.status_code != 200:
+            raise RuntimeError(f"HTTP {r.status_code}")
+        return {"status": 200,
+                "models": len((r.json() or {}).get("data") or [])}
+
+    ok, val = _probe_with_timeout(_gateway, 6.0)
+    checks["llm_gateway"] = {"ok": ok, "detail": val}
+
+    all_ok = all(v["ok"] for v in checks.values())
+    return JSONResponse(
+        {
+            "status": "ok" if all_ok else "degraded",
+            "checked_in_ms": round((time.time() - started) * 1000),
+            "checks": checks,
+            "build": _build_info(),
+        },
+        status_code=200 if all_ok else 503,
+    )
+
+
 @app.get("/version")
 def version():
     """Build + status 11 fitur (untuk verifikasi deploy). Non-sensitif."""
