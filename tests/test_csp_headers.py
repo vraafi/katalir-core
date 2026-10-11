@@ -183,12 +183,28 @@ def test_default_src_tidak_dilonggarkan(csp):
     assert csp.get("form-action") == ["'self'"]
 
 
-def test_host_lama_tidak_hilang(csp):
-    """Perbaikan tidak boleh menghapus host yang sudah bekerja."""
+def test_host_backend_aktif_tidak_hilang(csp):
+    """Perbaikan tidak boleh menghapus host yang SEDANG bekerja.
+
+    DIPERBARUI 2026-10-11 (insiden chat mati). Versi lama test ini menuntut
+    `https://web-production-dc90b.up.railway.app` TETAP ada di `connect-src`
+    dengan alasan "backend Railway". Asumsi itu yang MENYEBABKAN insiden:
+    Railway sudah mati (`/health` 404, tanpa header CORS), sementara backend
+    pindah ke VPS. Selama test ini menuntut host mati itu, ia justru mengunci
+    regresi — dan gagal saat bug-nya diperbaiki.
+
+    Invarian yang benar sekarang:
+      * host backend AKTIF (`gateway.katalir.de5.net`) WAJIB ada;
+      * host mati TIDAK boleh kembali (kalau muncul lagi, ada yang salah
+        menyalin `_headers` dari backup lama).
+    """
     con = csp.get("connect-src", [])
     img = csp.get("img-src", [])
-    assert "https://web-production-dc90b.up.railway.app" in con, \
-        "backend Railway hilang dari connect-src -> /chat tidak bisa memanggil API"
+    assert "https://gateway.katalir.de5.net" in con, \
+        "host backend AKTIF hilang dari connect-src -> /chat tidak bisa memanggil API"
+    assert "https://web-production-dc90b.up.railway.app" not in con, \
+        ("host Railway yang sudah MATI kembali ke connect-src; backend berjalan "
+         "di gateway.katalir.de5.net (lihat docs/diagnosis-2026-10-11.md)")
     assert "https://qmukkphwaajzbqjrcvaz.supabase.co" in con, \
         "Supabase hilang dari connect-src -> login mati"
     assert "wss://qmukkphwaajzbqjrcvaz.supabase.co" in con, \

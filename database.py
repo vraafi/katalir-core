@@ -21,6 +21,8 @@
 
 import os
 import re
+import time
+import uuid as _uuid
 from datetime import datetime, timedelta, timezone
 
 from dotenv_loader import load_repo_env
@@ -56,6 +58,43 @@ _LVAULT = {}    # email -> {provider: encrypted_key}   (in-memory vault fallback
 _LWORKFLOW = {}  # workflow_id -> row (fallback memori saat Supabase tidak aktif)
 _LPREF = {}     # email -> dict preferensi UI (fallback memori; tabel user_preferences)
 _SEQ = [0]
+
+
+def _is_uuid(value) -> bool:
+    """True bila `value` bisa dipakai sebagai nilai kolom `uuid` Postgres.
+
+    BUG FIX 2026-10-11 (HTTP 503 `22P02` saat chat). `session_id` yang sampai
+    ke fungsi DB berasal dari DUA sumber yang tidak dipercaya:
+      1. KLIEN — `POST /chat {session_id}` sepenuhnya dikendalikan pemanggil
+         (api_server.py: `session_id = req.session_id or prior_session`).
+      2. FALLBACK MEMORI — `create_session()` dulu mengembalikan id sintetis
+         `"local_<n>"` (bukan UUID) ketika penulisan Postgres gagal.
+    Keduanya lalu dipakai mem-`filter` kolom `uuid`
+    (`chat_sessions.id`, `chat_messages.session_id`). PostgREST menolaknya
+    dengan `22P02 invalid input syntax for type uuid`, yang `_map_api_error`
+    petakan menjadi **503 "Supabase error saat chat_sessions.own_check"** —
+    padahal yang salah adalah INPUT, bukan infrastruktur.
+
+    Diverifikasi reproducible dari klien mana pun:
+    `POST /chat {"session_id": "bukan-uuid"}` -> 503 (lihat
+    `ops/repro_uuid_bug.py`, hasil "sebelum" di
+    `docs/backend-recovery-2026-10-11.md`).
+
+    Dipakai sebagai penjaga di setiap jalur yang menyentuh kolom uuid, supaya
+    id non-UUID SELALU jatuh ke jalur memori alih-alih menjatuhkan request.
+    """
+    if value is None:
+        return False
+    try:
+        _uuid.UUID(str(value))
+        return True
+    except (ValueError, AttributeError, TypeError):
+        return False
+
+
+# Alias publik: dipakai `api_server` untuk memvalidasi `session_id` kiriman
+# klien di batas API (lihat FIX 2026-10-11 pada endpoint POST /chat).
+is_uuid = _is_uuid
 
 
 def is_configured():
@@ -132,25 +171,69 @@ def _map_api_error(exc, context):
     raise HTTPException(503, f"Supabase error saat {context} [{code or '?'}]: {detail}.")
 
 
-def _wrap_write(fn, context):
+# ---------------------------------------------------------------------------
+# KESALAHAN TRANSPORT YANG SEMENTARA (BUG FIX 2026-10-11)
+#
+# Diukur di `/root/api_server.log` saat 10 request `/chat` konkuren:
+#   58x `httpx.RemoteProtocolError: Server disconnected`
+#    2x `httpx.WriteError: EOF occurred in violation of protocol (_ssl.c:2417)`
+#    2x `httpx.RemoteProtocolError: <ConnectionTerminated error_code:1 ...>`
+# Semuanya = koneksi keep-alive ke PostgREST/Supabase diputus di tengah jalan.
+# Itu gangguan SEMENTARA (bukan salah data), dan `RemoteProtocolError` berarti
+# server memutus SEBELUM mengirim jawaban — jadi percobaan ulang aman untuk
+# operasi idempoten (SELECT / UPSERT).
+#
+# Tanpa penanganan ini exception naik ke Starlette dan menjadi
+# `500 Internal Server Error` TANPA `detail` (71 "Exception in ASGI
+# application" pada log yang sama).
+# ---------------------------------------------------------------------------
+_TRANSIENT_NET_NAMES = frozenset({
+    "RemoteProtocolError", "ConnectError", "ReadError", "WriteError",
+    "ReadTimeout", "ConnectTimeout", "PoolTimeout", "NetworkError",
+    "ConnectionTerminated", "ConnectionResetError", "ConnectionAbortedError",
+    "BrokenPipeError", "IncompleteRead", "LocalProtocolError",
+})
+
+
+def _is_transient_net(exc: BaseException) -> bool:
+    """True bila `exc` = gangguan transport yang pantas dicoba ulang."""
+    if isinstance(exc, (ConnectionError, TimeoutError)):
+        return True
+    return type(exc).__name__ in _TRANSIENT_NET_NAMES
+
+
+def _wrap_write(fn, context, retry_transient: bool = False):
     """Bungkus pemanggilan .execute(): APIError -> HTTPException terpetakan,
-    exception lain -> propagate (akan di-log full stack di endpoint)."""
-    try:
-        return fn()
-    except Exception as exc:  # noqa: BLE001
-        # HTTPException yang sudah dipetakan: teruskan apa adanya.
-        if isinstance(exc, (HTTPException, RuntimeError)):
-            raise
+    exception lain -> propagate (akan di-log full stack di endpoint).
+
+    `retry_transient=True` (FIX 2026-10-11) mengulang SEKALI bila gagal karena
+    gangguan transport (`_is_transient_net`). HANYA dipakai untuk operasi
+    IDEMPOTEN (SELECT / UPSERT) — jangan untuk INSERT biasa, karena "Server
+    disconnected" tidak menjamin baris belum masuk.
+    """
+    attempts = 2 if retry_transient else 1
+    for attempt in range(attempts):
         try:
-            from postgrest.exceptions import APIError
-            if isinstance(exc, APIError):
-                _map_api_error(exc, context)
-        except HTTPException:
+            return fn()
+        except Exception as exc:  # noqa: BLE001
+            # HTTPException yang sudah dipetakan: teruskan apa adanya.
+            if isinstance(exc, (HTTPException, RuntimeError)):
+                raise
+            if retry_transient and attempt + 1 < attempts and _is_transient_net(exc):
+                print(f"[{context}] {type(exc).__name__} (transien) -> "
+                      f"percobaan ulang {attempt + 2}/{attempts}")
+                time.sleep(0.25)
+                continue
+            try:
+                from postgrest.exceptions import APIError
+                if isinstance(exc, APIError):
+                    _map_api_error(exc, context)
+            except HTTPException:
+                raise
+            except Exception:  # noqa: BLE001
+                pass
+            print(f"[{context}] {type(exc).__name__}: {str(exc)[:500]}")
             raise
-        except Exception:  # noqa: BLE001
-            pass
-        print(f"[{context}] {type(exc).__name__}: {str(exc)[:500]}")
-        raise
 
 
 def _now():
@@ -311,16 +394,25 @@ def create_session(owner, title="Chat Baru", auth_id=None, email=None):
             _configured = False
             if PERSIST_REQUIRED:
                 raise
+    # ---- FALLBACK MEMORI ------------------------------------------------
+    # BUG FIX 2026-10-11: dulu id di sini `"local_" + str(_SEQ[0])` (BUKAN
+    # UUID). Id itu lalu dipakai `add_message()` mem-filter kolom `uuid`
+    # (`chat_sessions.id`) -> PostgREST 22P02 -> HTTP 503. Sekarang id fallback
+    # SELALU UUID sah sehingga aman di semua jalur, dan sesi dicatat di
+    # `_LSESS` supaya `add_message()` tahu ini sesi memori (bukan sesi user
+    # lain) dan TIDAK salah membalas 403 "Session bukan milik user".
     _SEQ[0] += 1
-    sid = "local_" + str(_SEQ[0])
-    session = {"id": sid, "title": title, "user_id": (uid or owner), "created_at": _now()}
+    sid = str(_uuid.uuid4())
+    session = {"id": sid, "title": title, "user_id": (uid or owner),
+               "created_at": _now()}
+    _LSESS[sid] = dict(session)
     return session
 
 
 def rename_session(owner, session_id, title):
     """Update judul sesi (dipakai saat prompt pertama mengubah nama chat)."""
     uid = _resolve_user_id(owner)
-    if is_configured() and uid:
+    if is_configured() and uid and _is_uuid(session_id) and session_id not in _LSESS:
         try:
             c = _get_client()
             c.table("chat_sessions").update({"title": title}).eq("id", session_id).eq(
@@ -334,7 +426,7 @@ def rename_session(owner, session_id, title):
 # ---- CHAT SESSIONS: DELETE ----
 def delete_session(owner, session_id):
     """Hapus sesi milik user (chat_messages ikut ter-cascade via FK). Return bool."""
-    if not is_configured() or not session_id:
+    if not is_configured() or not session_id or not _is_uuid(session_id):
         return False
     try:
         uid = _resolve_user_id(owner)
@@ -356,7 +448,8 @@ def delete_session(owner, session_id):
 # ---- CHAT MESSAGES ----
 def get_messages(owner, session_id):
     # FIX Bug1: TIDAK pernah throw -> 500. APIError/None -> return [] (200).
-    if not is_configured() or not session_id:
+    # FIX 2026-10-11: id non-UUID -> [] (dulu bisa memicu 22P02 pada own_check).
+    if not is_configured() or not session_id or not _is_uuid(session_id):
         return []
     try:
         uid = _resolve_user_id(owner)
@@ -437,7 +530,7 @@ def get_last_assistant_reply(session_id, client_request_id=None):
     user melihat jawaban basi seolah retried-nya berhasil.
     Tanpa `client_request_id` perilaku lama dipertahankan (dipakai endpoint lain).
     """
-    if not is_configured() or not session_id:
+    if not is_configured() or not session_id or not _is_uuid(session_id):
         return None
     try:
         wc = _get_write_client()
@@ -487,7 +580,17 @@ def add_message(owner, session_id, role, content, auth_id=None, client_request_i
     # Kepemilikan dicek terhadap uid kanonis — BUKAN auth_id mentah — supaya
     # user lama (users.id != JWT sub) tetap bisa menulis ke session miliknya.
     # Si Supabase está configurado, SIEMPRE escribir a Postgres (persistencia permanente).
-    if is_configured():
+    # ---- PENJAGA SESSION_ID (BUG FIX 2026-10-11) -------------------------
+    # Jalur Postgres HANYA boleh ditempuh bila `session_id` benar-benar UUID
+    # DAN bukan sesi fallback memori. Id non-UUID (kiriman klien / sisa versi
+    # lama) dulu memicu `22P02` di `chat_sessions.own_check` -> HTTP 503.
+    # Sekarang id seperti itu jatuh ke jalur memori: request tetap SUKSES,
+    # tanpa menyentuh kolom `uuid`.
+    _pg_ok = is_configured() and _is_uuid(session_id) and session_id not in _LSESS
+    if not _pg_ok and is_configured():
+        print(f"[add_message] session_id non-UUID / sesi memori "
+              f"({str(session_id)[:40]!r}) -> jalur memori (tanpa Postgres)")
+    if _pg_ok:
         try:
             wc = _get_write_client()
             uid = _resolve_user_id(owner, auth_id=auth_id) if auth_id else _resolve_user_id(owner)
@@ -1581,11 +1684,51 @@ def _quota_write(email: str, values: dict) -> None:
             k: (v.isoformat() if isinstance(v, datetime) else v)
             for k, v in values.items()
         }
-        ex = c.table("user_usage").select("email").eq("email", email).limit(1).execute()
+        # BUG FIX 2026-10-11 (HTTP 500 pada beban konkuren): pola
+        # SELECT -> INSERT/UPDATE adalah TOCTOU. Dua request bersamaan untuk
+        # user yang BELUM punya baris kuota sama-sama SELECT kosong lalu
+        # sama-sama INSERT -> satu kena
+        # `23505 duplicate key value violates unique constraint "user_usage_pkey"`
+        # -> exception lolos -> 500 tanpa detail. Terbukti di
+        # /root/api_server.log untuk beberapa user `hardtest-load*` sekaligus.
+        # UPSERT atomik (ON CONFLICT email) menghapus balapan itu, dan aman
+        # diulang karena idempoten.
+        try:
+            _wrap_write(
+                lambda: c.table("user_usage")
+                .upsert({"email": email, **safe}, on_conflict="email").execute(),
+                "user_usage.upsert", retry_transient=True,
+            )
+            return
+        except Exception as _up_exc:  # noqa: BLE001
+            # PostgREST sangat lama bisa menolak `upsert`/`on_conflict`, dan
+            # klien tiruan di test mungkin belum punya `upsert`. Jangan
+            # menyerah: pakai jalur manual yang sudah dipakai produksi,
+            # tetapi dengan penanganan balapan yang benar.
+            print(f"[user_usage.upsert] gagal "
+                  f"({type(_up_exc).__name__}: {str(_up_exc)[:160]}) -> jalur manual")
+        ex = _wrap_write(
+            lambda: c.table("user_usage").select("email").eq("email", email)
+            .limit(1).execute(), "user_usage.select", retry_transient=True)
         if getattr(ex, "data", None):
-            c.table("user_usage").update(safe).eq("email", email).execute()
+            _wrap_write(
+                lambda: c.table("user_usage").update(safe).eq("email", email).execute(),
+                "user_usage.update", retry_transient=True)
         else:
-            c.table("user_usage").insert({"email": email, **safe}).execute()
+            try:
+                _wrap_write(
+                    lambda: c.table("user_usage")
+                    .insert({"email": email, **safe}).execute(),
+                    "user_usage.insert", retry_transient=True)
+            except HTTPException as exc:
+                # Balapan: baris dibuat request lain di antara SELECT dan INSERT.
+                # Itu bukan kegagalan -> cukup UPDATE.
+                if "duplikat" not in str(exc.detail).lower():
+                    raise
+                _wrap_write(
+                    lambda: c.table("user_usage").update(safe)
+                    .eq("email", email).execute(),
+                    "user_usage.update_after_race", retry_transient=True)
         return
     row = _LQUOTA.setdefault(email, {"email": email, "daily_gemma": 0,
                                      "daily_flash": 0, "daily_pro": 0,

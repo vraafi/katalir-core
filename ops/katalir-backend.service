@@ -17,10 +17,41 @@ EnvironmentFile=/root/katalir-core/.env
 # waktu 30 detik untuk selesai sebelum proses dimatikan. Tanpa ini, setiap
 # `systemctl restart` memutus percakapan yang sedang berjalan di tengah jalan
 # dan user melihat "Koneksi lambat. Cek internetmu."
+#
+# `--timeout-keep-alive 120` (FIX 2026-10-11). Default uvicorn adalah **5 detik**
+# — jauh LEBIH PENDEK daripada `keepAliveTimeout` cloudflared yang default-nya
+# **1m30s (90 s)**. Akibatnya uvicorn menutup koneksi origin yang masih dianggap
+# hidup oleh cloudflared; saat cloudflared memakai ulang koneksi itu, ia
+# menerima RST dan membalas **502** ke klien TANPA request pernah sampai ke
+# aplikasi.
+#
+# Bukti (terukur, bukan dugaan):
+#   * `journalctl -u cloudflared`:
+#       ERR ... read tcp 127.0.0.1:42980->127.0.0.1:8100:
+#           read: connection reset by peer
+#           dest=https://gateway.katalir.de5.net/katalir-api/chat
+#   * `/root/api_server.log` memuat **0** "error code: 502" — reset terjadi di
+#     lapisan koneksi, bukan di aplikasi.
+#   * Eksperimen pembanding: burst 50 request **langsung ke origin**
+#     (`http://127.0.0.1:8100/katalir-api`, melewati cloudflared) menghasilkan
+#     `{503: 49, 200: 1}` dengan **502 = 0**; lewat tunnel menghasilkan 13x 502.
+#     Jadi backend sehat — yang salah adalah umur koneksi keep-alive.
+#   * Nilai 65 s SEMPAT dicoba dan TIDAK menyelesaikan masalah, karena 65 < 90.
+#
+# Aturan yang dipakai: keep-alive uvicorn WAJIB lebih lama daripada upstream
+# ("upstream shorter than downstream"). Uvicorn discussion #2939 mengusulkan
+# 120 s untuk kasus ini; cloudflared origin-parameters mendokumentasikan
+# `keepAliveTimeout` default 90 s.
 ExecStart=/root/katalir-core/venv/bin/python3 -m uvicorn _root_app:app \
-    --host 0.0.0.0 --port 8100 --timeout-graceful-shutdown 30
+    --host 0.0.0.0 --port 8100 --timeout-graceful-shutdown 30 \
+    --timeout-keep-alive 120
 Restart=always
 RestartSec=10
+# LimitNOFILE: systemd memasang soft limit default 1024. Satu request /chat
+# memegang beberapa socket sekaligus (masuk + PostgREST + gateway), dan pada
+# 50-100 request konkuren plus pool keep-alive, 1024 bisa tersentuh -> `accept`
+# gagal -> RST -> 502. Dinaikkan ke 65535 (hard limit VPS sudah 524288).
+LimitNOFILE=65535
 StandardOutput=append:/root/api_server.log
 StandardError=append:/root/api_server.log
 

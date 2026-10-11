@@ -329,6 +329,58 @@ app.add_middleware(
     www_redirect=False,
 )
 
+
+# ---------------------------------------------------------------------------
+# JARING PENGAMAN TERAKHIR: exception tak tertangani -> SELALU berpesan
+#
+# BUG PRODUKSI 2026-10-11 (terukur, bukan dugaan). `/root/api_server.log`
+# mencatat 71 `Exception in ASGI application` dari burst `/chat` konkuren,
+# didominasi gangguan transport ke PostgREST:
+#     58x httpx.RemoteProtocolError: Server disconnected
+#      2x httpx.WriteError: EOF occurred in violation of protocol (_ssl.c:2417)
+#      2x httpx.RemoteProtocolError: <ConnectionTerminated error_code:1 ...>
+# plus balapan `23505 duplicate key ... user_usage_pkey`.
+#
+# Tanpa handler ini Starlette membalas **500 `Internal Server Error` TANPA
+# `detail`**, dan itu merusak dua hal sekaligus:
+#   1. kontrak "5xx wajib berpesan" (lihat tests/test_503_detail_contract.py) —
+#      klien tidak punya teks untuk ditampilkan;
+#   2. `classifyHttpError(500)` di frontend menandai `retryable: false`,
+#      sehingga tombol "Coba Lagi" TIDAK muncul padahal gangguan ini sementara.
+#
+# Kebijakan status DIBEDAKAN dengan sengaja, supaya bug nyata tidak
+# tersamarkan sebagai "coba lagi nanti":
+#   * gangguan transport/timeout (`_is_transient_net`) -> **503** (retryable);
+#   * exception lain (kemungkinan bug)               -> **500** + `detail`,
+#     sehingga pesannya tetap terbaca alih-alih body hampa.
+#
+# `HTTPException` TIDAK terpengaruh: Starlette memilih handler berdasarkan
+# kelas exception paling spesifik, dan HTTPException sudah punya handler sendiri.
+# ---------------------------------------------------------------------------
+_TRANSIENT_EXC_NAMES = frozenset({
+    "RemoteProtocolError", "ConnectError", "ReadError", "WriteError",
+    "ReadTimeout", "ConnectTimeout", "PoolTimeout", "NetworkError",
+    "ConnectionTerminated", "ConnectionResetError", "ConnectionAbortedError",
+    "BrokenPipeError", "IncompleteRead", "LocalProtocolError",
+    "ConnectionError", "TimeoutError",
+})
+
+
+@app.exception_handler(Exception)
+async def _unhandled_exception_handler(request: Request, exc: Exception):
+    from fastapi.responses import JSONResponse
+
+    _name = type(exc).__name__
+    transient = _name in _TRANSIENT_EXC_NAMES or isinstance(
+        exc, (ConnectionError, TimeoutError))
+    status = 503 if transient else 500
+    print(f"[api_server] UNHANDLED {request.method} {request.url.path} -> "
+          f"{status} | {_name}: {str(exc)[:300]}")
+    detail = (f"Gangguan sementara pada server ({_name}). Coba lagi sebentar."
+              if transient else
+              f"Terjadi kesalahan internal ({_name}). Tim sudah diberi tahu.")
+    return JSONResponse(status_code=status, content={"detail": detail})
+
 # ---------------------------------------------------------------------------
 # MCP SERVER BUILT-IN — Fitur #8
 #
@@ -2217,6 +2269,18 @@ def chat(req: ChatRequest, authorization: str | None = Header(None)):
     # Pastikan punya session (buat baru bila belum ada).
     # prior_session dipakai saat retry-yang-tanpa-session (tak buat sesi baru 2x).
     session_id = req.session_id or prior_session
+    # FIX 2026-10-11 (503 `22P02` saat chat): `session_id` dari KLIEN tidak
+    # dipercaya. Nilai non-UUID (mis. "local_2" dari fallback memori versi
+    # lama, atau klien yang salah kirim) dulu diteruskan apa adanya ke
+    # `chat_sessions.own_check` yang mem-filter kolom `uuid` -> PostgREST
+    # 22P02 -> HTTP 503 "Supabase error saat chat_sessions.own_check".
+    # Sekarang id non-UUID DIABAIKAN (dianggap belum punya sesi) sehingga
+    # sesi baru dibuat dan chat tetap berhasil.
+    # Bukti: `ops/repro_uuid_bug.py` (K1/K2 503 sebelum, 200 sesudah).
+    if session_id and not db.is_uuid(session_id):
+        print(f"[api_server] /chat: session_id non-UUID diabaikan: "
+              f"{str(session_id)[:40]!r}")
+        session_id = None
     if not session_id:
         title = _derive_title(req.prompt)
         try:

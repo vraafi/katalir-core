@@ -34,6 +34,13 @@ sys.path.insert(0, str(ROOT))
 
 import database as db  # noqa: E402
 
+# Session id REALISTIS (UUID sah). Sejak FIX 2026-10-11, `session_id` non-UUID
+# sengaja TIDAK diizinkan menyentuh Postgres (dulu memicu 22P02 -> HTTP 503),
+# jadi fixture ber-id sintetis ("s1"/SESS) akan menguji jalur memori dan
+# bukan lagi jalur yang dimaksud test ini. Lihat
+# tests/test_session_id_uuid_guard.py untuk invarian penjaganya.
+SESS = "11111111-2222-4333-8444-555555555555"
+
 
 class _FakeQuery:
     """Mencatat rantai `.eq()` lalu menyaring baris accordingly."""
@@ -72,10 +79,10 @@ def configured(monkeypatch):
 def test_reply_difilter_oleh_client_request_id(configured, monkeypatch):
     """Reply WAJIB milik kiriman yang sama, bukan reply terakhir sesi."""
     rows = [
-        {"session_id": "sess-1", "role": "assistant",
+        {"session_id": SESS, "role": "assistant",
          "content": "JAWABAN GILIRAN 1", "client_request_id": "req-AAA",
          "created_at": "2026-10-01T00:00:00Z"},
-        {"session_id": "sess-1", "role": "assistant",
+        {"session_id": SESS, "role": "assistant",
          "content": "JAWABAN GILIRAN 2", "client_request_id": "req-BBB",
          "created_at": "2026-10-01T00:01:00Z"},
     ]
@@ -83,7 +90,7 @@ def test_reply_difilter_oleh_client_request_id(configured, monkeypatch):
     monkeypatch.setattr(db, "_get_write_client",
                         lambda: SimpleNamespace(table=lambda _t: q))
 
-    got = db.get_last_assistant_reply("sess-1", client_request_id="req-AAA")
+    got = db.get_last_assistant_reply(SESS, client_request_id="req-AAA")
     assert got == "JAWABAN GILIRAN 1", (
         f"reply harus terikat ke req-AAA. Got {got!r}")
     assert ("client_request_id", "req-AAA") in q.filters
@@ -92,10 +99,10 @@ def test_reply_difilter_oleh_client_request_id(configured, monkeypatch):
 def test_reply_tanpa_request_id_perilaku_lama(configured, monkeypatch):
     """Tanpa client_request_id -> tetap 'reply terakhir sesi'."""
     rows = [
-        {"session_id": "sess-1", "role": "assistant",
+        {"session_id": SESS, "role": "assistant",
          "content": "LAMA", "client_request_id": "req-AAA",
          "created_at": "2026-10-01T00:00:00Z"},
-        {"session_id": "sess-1", "role": "assistant",
+        {"session_id": SESS, "role": "assistant",
          "content": "TERAKHIR", "client_request_id": "req-BBB",
          "created_at": "2026-10-01T00:01:00Z"},
     ]
@@ -103,14 +110,14 @@ def test_reply_tanpa_request_id_perilaku_lama(configured, monkeypatch):
     monkeypatch.setattr(db, "_get_write_client",
                         lambda: SimpleNamespace(table=lambda _t: q))
 
-    assert db.get_last_assistant_reply("sess-1") == "TERAKHIR"
+    assert db.get_last_assistant_reply(SESS) == "TERAKHIR"
     assert not [f for f in q.filters if f[0] == "client_request_id"]
 
 
 def test_reply_giliran_baru_tidak_tertukar(configured, monkeypatch):
     """REGRESI UTAMA: retry pesan gagal tidak boleh memakai reply giliran lain."""
     rows = [
-        {"session_id": "sess-1", "role": "assistant",
+        {"session_id": SESS, "role": "assistant",
          "content": "JAWABAN GILIRAN 1", "client_request_id": "req-AAA",
          "created_at": "2026-10-01T00:00:00Z"},
     ]
@@ -118,7 +125,7 @@ def test_reply_giliran_baru_tidak_tertukar(configured, monkeypatch):
     monkeypatch.setattr(db, "_get_write_client",
                         lambda: SimpleNamespace(table=lambda _t: q))
 
-    retried = db.get_last_assistant_reply("sess-1", client_request_id="req-BBB")
+    retried = db.get_last_assistant_reply(SESS, client_request_id="req-BBB")
     assert retried is None, (
         "reply giliran lain TIDAK boleh dipakai untuk retry -> short-circuit "
         f"dengan jawaban basi. Got {retried!r}")
@@ -160,7 +167,7 @@ def _fake_write_client(monkeypatch, inserts, session_exists=True):
 
     class _Sess:
         def select(self, *_a, **_k):
-            return _Chained([{"id": "s1"}] if session_exists else [])
+            return _Chained([{"id": SESS}] if session_exists else [])
 
     monkeypatch.setattr(db, "_get_write_client", lambda: SimpleNamespace(
         table=lambda n: _Sess() if n == "chat_sessions" else _Msg()))
@@ -173,7 +180,7 @@ def test_add_message_tidak_duplikat_uuid_sama(configured, monkeypatch):
     inserts: list[dict] = []
     _fake_write_client(monkeypatch, inserts)
 
-    first = db.add_message("u@k.test", "s1", "user", "halo",
+    first = db.add_message("u@k.test", SESS, "user", "halo",
                            auth_id="u1", client_request_id="req-1")
     assert first is False, "UUID sama + role=user -> harus dedup, bukan insert"
     assert not inserts, f"tidak boleh ada baris tersimpan: {inserts}"
@@ -187,7 +194,7 @@ def test_reply_asisten_tetap_disimpan(configured, monkeypatch):
     inserts: list[dict] = []
     _fake_write_client(monkeypatch, inserts)
 
-    ok = db.add_message("u@k.test", "s1", "assistant", "jawaban",
+    ok = db.add_message("u@k.test", SESS, "assistant", "jawaban",
                         auth_id="u1", client_request_id="req-1")
     assert ok is True
     assert len(inserts) == 1 and inserts[0]["role"] == "assistant"
@@ -221,6 +228,11 @@ def test_api_server_teruskan_client_request_id_ke_reply_lookup(monkeypatch):
             return SimpleNamespace(data=[])
 
     class _DB:
+        # `api_server.chat` memvalidasi `session_id` lewat `db.is_uuid` (FIX
+        # 2026-10-11). Mock WAJIB menyediakannya, kalau tidak test ini lulus
+        # karena AttributeError -- bukan karena perilaku yang diuji benar.
+        is_uuid = staticmethod(db.is_uuid)
+
         def get_or_create_user(self, *_a, **_k):
             return {"tier": "free"}
 
@@ -228,7 +240,7 @@ def test_api_server_teruskan_client_request_id_ke_reply_lookup(monkeypatch):
             return t
 
         def find_user_message_by_request(self, rid):
-            return {"session_id": "sess-1", "id": "m1"} if rid == "req-XYZ" else None
+            return {"session_id": SESS, "id": "m1"} if rid == "req-XYZ" else None
 
         def get_last_assistant_reply(self, session_id, client_request_id=None):
             calls.append((session_id, client_request_id))
@@ -258,7 +270,7 @@ def test_api_server_teruskan_client_request_id_ke_reply_lookup(monkeypatch):
 
     assert calls, "get_last_assistant_reply tidak dipanggil sama sekali"
     session_id, used = calls[0]
-    assert session_id == "sess-1"
+    assert session_id == SESS
     assert used == "req-XYZ", (
         "reply lookup HARUS dikunci ke req_id; tanpa itu retry memakai reply "
         f"giliran sebelumnya. req_id yang diteruskan = {used!r}")

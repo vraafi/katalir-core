@@ -241,6 +241,15 @@ class _JsonStrictQuery:
         self._payload = payload
         return self
 
+    def upsert(self, payload, *a, **k):
+        # Jalur UTAMA sejak FIX 2026-10-11: UPSERT atomik (ON CONFLICT email)
+        # menggantikan pola SELECT-lalu-INSERT/UPDATE yang kalah balapan
+        # (`23505 user_usage_pkey` -> HTTP 500). Tetap JSON-strict supaya
+        # kontrak "datetime WAJIB jadi string ISO" ikut diuji di jalur yang
+        # sekarang benar-benar dipakai produksi.
+        self._payload = payload
+        return self
+
     def execute(self):
         if self._payload is not None:
             json.dumps(self._payload)  # <- melempar TypeError bila ada datetime
