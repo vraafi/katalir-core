@@ -1302,3 +1302,98 @@ halaman ini menampilkan error itu karena Railway 404.
 terproteksi JWT), bukan kegagalan.
 
 ### Status: 100% COMPLETE (Oktober 2026) — backend hidup, frontend memuat data
+
+---
+
+## BRIEF OKTOBER 2026 — HARD TEST 25.000 KONEKTOR (8-LAYER REAL vs FAKE)
+
+**Mode:** AUTONOMOUS + 8 TOOLS VERIFIKASI + SUPPLY CHAIN AUDIT
+**Status:** 12/12 HARD TEST PASS
+
+### 1. Tool verifikasi — mana yang NYATA, mana yang tidak
+
+Diperiksa langsung ke registry (bukan diklaim). 6 dari 8 tool di brief benar-benar ada:
+
+| layer | tool | sumber | status |
+|---|---|---|---|
+| 1 | `mcp-reality-check` | PyPI | **ADA** v0.4.1 (dipasang, `--target` terisolasi) |
+| 2 | `mcp-contract-check` | npm | **ADA** v1.1.1 (bin: `mcp-check`) |
+| 3 | `@beeeeen/mcp-probe` | npm | **ADA** v0.1.2 |
+| 4 | `mcp-rig` | PyPI | **ADA** v0.4.1 |
+| 5 | `orchestra-mcp` | PyPI | ADA v0.1.9 (deps berat; tidak dipakai di jalur kritis) |
+| 6 | `mcpdoctor` (parallelromb) | GitHub | **TIDAK di npm** (`registry.npmjs.org/mcpdoctor` → 404). Di-`git clone` + `npm run build` (tsup) |
+| 7 | `@hasmcp/mcp-spec-test` | npm | **ADA** v0.1.5 |
+| 8 | `mock-vs-real-detector` | skillsmp.com | **TIDAK ADA** (slug 404) → diimplementasikan lokal |
+
+Catatan penting:
+- `mcpdoctor` **tidak terbit di npm** walau README-nya menyebut `npx mcpdoctor`.
+  `npx mcpdoctor` akan gagal. Dipakai `@eidonze/mcpdoctor` (npm, ada) sebagai
+  pelengkap + `parallelromb/mcpdoctor` yang dibangun dari sumber.
+- `@hasmcp/mcp-spec-test` **rusak di Windows** (`ERR_UNSUPPORTED_ESM_URL_SCHEME`:
+  path `C:\...` dipakai sebagai specifier ESM). Diperbaiki dengan `pathToFileURL`
+  (patch lokal, `bin/mcp-spec-test.mjs.orig` disimpan).
+
+### 2. Harness
+
+`connector_verification_harness.py` — 8 layer + 3 audit:
+L1 reachable (httpx/TLS) · L2 handshake JSON-RPC · L3 tools/list ·
+L4 reality-check · L5 contract-check · L6 conformance 2026-07-28 ·
+L7 grading A-F · L8 false-green. Audit: MCPJacking (DNS/RDAP) · silent drift ·
+unauth exposure. Mode `native` (cepat, semua) dan `deep` (tool nyata).
+
+### 3. Hasil — 1.000 MCP server dengan `endpoint_url`
+
+649 diverifikasi DEEP (5 tool nyata jalan per konektor); 351 sisanya tidak
+pernah lolos handshake sehingga tidak butuh tool deep.
+
+| klasifikasi | jumlah | arti |
+|---|---:|---|
+| NON_CONFORMANT | 513 | handshake OK, gagal ≥1 syarat spec 2026-07-28 |
+| AUTH_REQUIRED | 289 | bicara MCP, minta kredensial |
+| UNAUTH_EXPOSED | 68 | `tools/list` berhasil **tanpa** auth padahal deklarasi auth |
+| NOT_MCP | 58 | tidak melayani MCP |
+| DEAD | 31 | tidak reachable |
+| FAKE | 19 | 200 tapi konten kosong/refusal/stub |
+| REAL_GRADE_A | 15 | hidup + data nyata + conformant + skor 80+ |
+| DRIFT | 5 | redirect ke host pihak ketiga |
+| JACKABLE | 1 | domain tidak resolve (kandidat takeover) |
+| REAL_GRADE_B | 1 | hidup + data nyata + skor 60-79 |
+
+Metrik sekunder (tanpa syarat konformansi): **511 konektor benar-benar bekerja
+dan mengembalikan data nyata**; 249 di antaranya skor mcpdoctor ≥ 60.
+
+Supply-chain: 1 JACKABLE · 6 silent drift · 68 unauth exposure · 19 false-green.
+
+### 4. Hard test 12/12 PASS
+
+```
+Test 1  REAL        aneau7941q class=REAL_GRADE_A score=80 doctor=B
+Test 2  FAKE        oll2h14zrh reality=tool error ExitProof
+Test 3  DEAD        pcugjsivq1 err=ConnectError: All connection attempts failed
+Test 4  JACKABLE    q9vppsfxgz dns=gaierror
+Test 5  DRIFT       wvfbxvfl1y fincraftly.com/api/mcp -> raclink.si
+Test 6  UNAUTH      mhi4eqr3gd declared=api_key tools_visible=15
+Test 7  CONFORMANT  uwske4scmp spec passed=8 failed=0
+Test 8  NON_CONF    g3mugvr4is spec passed=8 failed=6
+Test 9  GRADE A     g3mugvr4is mcpdoctor score=95 grade=A
+Test 10 batch 20    20/20 hasil in 8,3 s
+Test 11 batch 100   100/100 hasil in 90,0 s
+Test 12 performa    100 konektor = 90 s -> est. 1000 = 15,0 min (< 2 jam)
+```
+
+Deep penuh (5 tool nyata per konektor, 649 konektor) selesai dalam **27,2 menit** —
+di bawah batas 2 jam.
+
+### 5. Supabase
+
+Tabel `connector_verification` dibuat (DDL via pooler `aws-0-ap-southeast-1`),
+**1.000 baris** tersimpan dengan kolom jsonb per layer + `next_reverify_at`.
+`connector_verification_store.py` (psycopg2, idempoten `ON CONFLICT`).
+
+### 6. Kesimpulan jujur soal "gap 1.018 → 3.000 REAL"
+
+Verifikasi **tidak** menutup gap itu — justru menunjukkan katalog membesar-besarkan
+angka: dari 1.000 server yang mengiklankan `endpoint_url`, hanya **15** yang lolos
+REAL_GRADE_A dan **511** yang benar-benar mengembalikan data nyata. Sisanya
+auth-gated, non-conformant, atau mati. Menutup gap 2.000/3.000 butuh **sumber
+konektor baru**, bukan promosi entri katalog yang ada.

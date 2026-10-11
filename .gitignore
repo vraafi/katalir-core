@@ -124,3 +124,7 @@ tests/sandbox/backups/
 # POST /connectors/activation/run. Bukan sumber; jangan di-commit supaya
 # tidak menimpa aktivasi produksi dengan isi mesin pengembang.
 connector_activation.json
+
+# Tool verifikasi 8-layer (node_modules + pylibs, besar, tidak di-deploy)
+_verify_tools/
+_rdap_results.json
