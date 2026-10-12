@@ -1,0 +1,117 @@
+{
+  "healthy": 12,
+  "total": 13,
+  "cooling": 0,
+  "throttled": 0,
+  "blocked_pairs": 0,
+  "threshold": 3,
+  "alert": false,
+  "deep": true,
+  "probe_model": "gemini-3.5-flash-lite",
+  "chain": [
+    "gemini-3.8-flash",
+    "gemini-3.5-flash-lite",
+    "gemini-2.5-flash-lite",
+    "gemini-2.5-flash",
+    "gemma-4-31b-it"
+  ],
+  "keys": [
+    {
+      "name": "GEMINI_KEY_1",
+      "fp": "01f989b4",
+      "state": "active",
+      "cooldown_remaining_s": 0.0,
+      "probe": "ok"
+    },
+    {
+      "name": "GEMINI_KEY_2",
+      "fp": "a634dfdd",
+      "state": "active",
+      "cooldown_remaining_s": 0.0,
+      "probe": "ok"
+    },
+    {
+      "name": "GEMINI_KEY_3",
+      "fp": "fd9f7450",
+      "state": "active",
+      "cooldown_remaining_s": 0.0,
+      "probe": "ok"
+    },
+    {
+      "name": "GEMINI_KEY_4",
+      "fp": "a2436cfc",
+      "state": "active",
+      "cooldown_remaining_s": 0.0,
+      "probe": "ok"
+    },
+    {
+      "name": "GEMINI_KEY_5",
+      "fp": "c6620bbf",
+      "state": "active",
+      "cooldown_remaining_s": 0.0,
+      "probe": "ok"
+    },
+    {
+      "name": "GEMINI_KEY_6",
+      "fp": "f5783f81",
+      "state": "failing",
+      "cooldown_remaining_s": 0.0,
+      "probe": "unknown"
+    },
+    {
+      "name": "GEMINI_KEY_7",
+      "fp": "a3e08469",
+      "state": "active",
+      "cooldown_remaining_s": 0.0,
+      "probe": "ok"
+    },
+    {
+      "name": "GEMINI_KEY_8",
+      "fp": "130087ea",
+      "state": "active",
+      "cooldown_remaining_s": 0.0,
+      "probe": "ok"
+    },
+    {
+      "name": "GEMINI_KEY_9",
+      "fp": "4a65bedf",
+      "state": "active",
+      "cooldown_remaining_s": 0.0,
+      "probe": "ok"
+    },
+    {
+      "name": "GEMINI_KEY_10",
+      "fp": "a9eeb886",
+      "state": "active",
+      "cooldown_remaining_s": 0.0,
+      "probe": "ok"
+    },
+    {
+      "name": "GEMINI_KEY_11",
+      "fp": "f239b3fd",
+      "state": "active",
+      "cooldown_remaining_s": 0.0,
+      "probe": "ok"
+    },
+    {
+      "name": "GEMINI_KEY_12",
+      "fp": "fd99d9cc",
+      "state": "active",
+      "cooldown_remaining_s": 0.0,
+      "probe": "ok"
+    },
+    {
+      "name": "GEMINI_KEY_13",
+      "fp": "1a5f7168",
+      "state": "active",
+      "cooldown_remaining_s": 0.0,
+      "probe": "ok"
+    }
+  ],
+  "alert_sent": {
+    "sent": false,
+    "reason": "healthy >= threshold"
+  },
+  "provider": "gemini",
+  "gateway_configured": true
+}

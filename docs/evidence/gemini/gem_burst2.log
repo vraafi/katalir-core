@@ -1,0 +1,3 @@
+burst n=32   workers=20  -> 32/32 rate=1.0 54.54s
+burst n=100  workers=40  -> 100/100 rate=1.0 60.08s
+bukti -> C:\Users\user\Proyek_AI\tests\_gem_burst_probe.json

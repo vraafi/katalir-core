@@ -259,6 +259,48 @@ app = FastAPI(title="Nexus Agent API Gateway", version="1.0.0",
               redoc_url=None if _IS_PROD else "/redoc",
               openapi_url=None if _IS_PROD else "/openapi.json")
 
+# ---------------------------------------------------------------------------
+# BACKPRESSURE POST /chat (Brief 7 — bug "502 high-load").
+#
+# Akar masalah (terukur, docs/backend-hard-test-2026-10-11.md §4): pada
+# konkurensi >=50 lewat Cloudflare Tunnel, edge membalas 502 walau origin
+# mencatat 100% request dan 0x 502 saat diuji langsung tanpa tunnel. Penyebab:
+# saat hulu LLM jenuh, /chat memegang koneksi 10-100 s (rantai fallback), dan
+# tumpukan koneksi panjang itu yang diterjemahkan edge menjadi 502.
+#
+# Mitigasi: batasi in-flight /chat dan balas **503 + Retry-After** CEPAT saat
+# jenuh, sehingga origin berhenti menumpuk koneksi panjang. Default 48 (< ambang
+# 502 teramati 50, > trafik nyata) sehingga perilaku normal tidak berubah.
+# `CHAT_MAX_INFLIGHT<=0` menonaktifkan.
+#
+# Didaftarkan SEBELUM CORSMiddleware => berada DI DALAM CORS, sehingga balasan
+# 503 tetap membawa header CORS (browser bisa membacanya, bukan CORS-error).
+# ---------------------------------------------------------------------------
+_CHAT_GUARD_PATHS = frozenset({"/chat", "/katalir-api/chat"})
+
+
+@app.middleware("http")
+async def _chat_backpressure(request: Request, call_next):
+    path = request.url.path.rstrip("/") or "/"
+    if request.method == "POST" and path in _CHAT_GUARD_PATHS:
+        if not rate_limit.chat_inflight_guard.try_acquire():
+            from fastapi.responses import JSONResponse
+            _st = rate_limit.chat_inflight_guard.stats()
+            print(f"[api_server] /chat backpressure -> 503 "
+                  f"(inflight={_st['inflight']}/{_st['max_inflight']}, "
+                  f"rejected={_st['rejected']})")
+            return JSONResponse(
+                status_code=503,
+                content={"detail": "Server sedang sibuk (kapasitas percakapan "
+                                   "penuh). Coba lagi sebentar."},
+                headers={"Retry-After": "5"},
+            )
+        try:
+            return await call_next(request)
+        finally:
+            rate_limit.chat_inflight_guard.release()
+    return await call_next(request)
+
 # CORS: izinkan frontend publik Cloudflare Pages + local dev.
 # Nota: allow_credentials=True no se puede combinar con origin "*".
 allowed = [
@@ -1819,10 +1861,17 @@ def _agentic_run_direct(prompt: str, email: str, model: str | None = None,
     # (lihat INVARIANT di blok "ANGGARAN WAKTU LLM PER REQUEST").
     _t_req = time.time()
 
-    # Jalur utama: free-llm-gateway (self-hosted) bila model ada di roster.
+    # ---- GEMINI-FIRST (migrasi Okt 2026) -----------------------------------
+    # Jalur UTAMA sekarang = Gemini LANGSUNG lewat pool 13 kunci (rotasi +
+    # cooldown per kunci; lihat `gemini_key_pool`). Gateway free-llm lama tetap
+    # tersedia tetapi HANYA sebagai cadangan: terbukti tidak layak untuk beban
+    # produksi (burst -> HTTP 500 massal, seri panjang -> menggantung, dan hanya
+    # `qwen/qwen3.8-27b` yang benar-benar mendiskriminasi). Perilaku lama bisa
+    # dipilih dengan `LLM_PROVIDER=gateway`.
     gw = _gateway_target()
     gw_err: HTTPException | None = None
-    if gw and model and model in gw[2]:
+    _provider = (os.getenv("LLM_PROVIDER") or "gemini").strip().lower()
+    if _provider == "gateway" and gw and model and model in gw[2]:
         try:
             return _agentic_run_gateway(prompt, email, model, gw[0], gw[1], gw[2],
                                         history=history)
@@ -1845,6 +1894,12 @@ def _agentic_run_direct(prompt: str, email: str, model: str | None = None,
     # rotasi kunci benar-benar memulihkan, bukan sekadar mengganti nama slot.
     _pool = gemini_key_pool.pool()
     if not _pool.size:
+        if gw and model and model in gw[2]:
+            # Pool Gemini kosong (env server tidak memuat `GEMINI_KEY_*`) ->
+            # gateway menjadi cadangan terakhir yang tersedia.
+            print("[api_server] pool Gemini kosong -> cadangan gateway")
+            return _agentic_run_gateway(prompt, email, model, gw[0], gw[1], gw[2],
+                                        history=history)
         if gw_err is not None:
             raise gw_err  # tanpa kunci Gemini, laporkan kegagalan gateway apa adanya
         # Pool kosong = kondisi KONFIGURASI/LAYANAN (env server tidak memuat
@@ -1992,7 +2047,18 @@ def _agentic_run_direct(prompt: str, email: str, model: str | None = None,
                 ctx = chat = _chat_with(cur_fp, model_id)
 
     _t0 = _time.time()
-    response = _send_guarded(chat, prompt)
+    try:
+        response = _send_guarded(chat, prompt)
+    except HTTPException as _exc:
+        # Cadangan TERAKHIR: semua kunci/model Gemini habis (503) dan gateway
+        # tersedia -> jalankan lewat gateway. Hanya dilakukan SEBELUM ada alat
+        # yang dieksekusi, supaya tidak ada efek samping ganda.
+        if (_exc.status_code == 503 and gw and model and model in gw[2]
+                and gw_err is None):
+            print("[api_server] Gemini habis (503) -> cadangan gateway")
+            return _agentic_run_gateway(prompt, email, model, gw[0], gw[1], gw[2],
+                                        history=history)
+        raise
     max_retries = 3
     retry = 0
     # FASE 2.1 -> 2.2: draf workflow yang diterima alat ikut di meta.workflow.
@@ -10263,6 +10329,37 @@ def health():
     }
 
 
+@app.get("/health/llm")
+def health_llm(deep: int = 0):
+    """Kesehatan pool kunci Gemini (FASE 4 migrasi gateway -> Gemini).
+
+    Dua mode:
+      * default (murah, tanpa I/O) - status cooldown/blokir dari state pool
+        in-memory; aman dipanggil sering oleh watchdog.
+      * `?deep=1` - probe NYATA satu panggilan per kunci (memakai kuota);
+        untuk operator/diagnosa, jangan dipasang di probe periodik.
+
+    Mengembalikan HTTP 503 bila kunci sehat < ambang (`GEMINI_HEALTHY_MIN_KEYS`,
+    default 3) supaya alerting berbasis status-code bisa dipakai. Endpoint ini
+    juga memicu notifikasi Telegram (anti-spam 15 menit) pada kondisi itu.
+    """
+    from fastapi.responses import JSONResponse
+
+    import gemini_llm
+
+    st = gemini_llm.health_check(deep=bool(deep))
+    st["alert_sent"] = gemini_llm.maybe_alert_telegram(st)
+    st["provider"] = (os.getenv("LLM_PROVIDER") or "gemini").strip().lower()
+    # SENGAJA hanya cek env, TIDAK memanggil `_gateway_target()`. Helper itu
+    # dapat memicu `gateway_roster.probe_roster()` yang sinkron (puluhan detik,
+    # puluhan request ke gateway). Endpoint kesehatan TIDAK BOLEH punya efek
+    # samping semahal itu - watchdog yang memanggilnya akan ikut menggantung.
+    _gw_url = (os.getenv("LLM_GATEWAY_URL") or os.getenv("FREELM_GATEWAY_URL")
+               or os.getenv("GATEWAY_URL") or "").strip()
+    st["gateway_configured"] = bool(_gw_url)
+    return JSONResponse(st, status_code=503 if st["alert"] else 200)
+
+
 def _probe_with_timeout(fn, seconds: float) -> tuple[bool, Any]:
     """Jalankan `fn` di thread terpisah dengan plafon waktu keras.
 
@@ -10336,6 +10433,18 @@ def status_deep():
 
     ok, val = _probe_with_timeout(_gateway, 6.0)
     checks["llm_gateway"] = {"ok": ok, "detail": val}
+
+    def _gemini_pool() -> dict:
+        import gemini_llm
+
+        st = gemini_llm.health_check(deep=False)
+        if st["healthy"] == 0:
+            raise RuntimeError("tidak ada kunci Gemini yang siap (semua cooldown)")
+        return {"healthy": st["healthy"], "total": st["total"],
+                "cooling": st["cooling"], "threshold": st["threshold"]}
+
+    ok, val = _probe_with_timeout(_gemini_pool, 3.0)
+    checks["llm_gemini"] = {"ok": ok, "detail": val}
 
     all_ok = all(v["ok"] for v in checks.values())
     return JSONResponse(

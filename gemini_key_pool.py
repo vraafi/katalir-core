@@ -74,6 +74,38 @@ def mask_key(key: str) -> str:
     return f"{k[:4]}****{k[-4:]}"
 
 
+_env_loaded = False
+
+
+def load_env_file(path: str | os.PathLike | None = None) -> int:
+    """Muat `.env` repo ke `os.environ` (tanpa menimpa yang sudah ada).
+
+    KENAPA DI SINI, BUKAN HANYA DI PEMANGGIL: `judge_harness.load_env()`
+    mengembalikan DICT dan TIDAK menulis ke `os.environ`, sehingga skrip mandiri
+    (`tests/brief7_toolbench.py`) dan tes unit (`test_gemini_key_pool.py`) melihat
+    pool KOSONG walau `.env` berisi 13 kunci - terukur sebagai
+    `AssertionError: pool hanya melihat 0 kunci unik` dan
+    "TIDAK ADA KUNCI GEMINI" pada TASK 4. Menaruh pemuatan di lapisan pool
+    membuat SEMUA pemanggil benar tanpa perlu tahu soal urutan impor.
+
+    Returns: jumlah kunci unik yang terlihat setelah pemuatan.
+    """
+    global _env_loaded
+    import pathlib
+
+    if not _env_loaded:
+        p = pathlib.Path(path) if path else pathlib.Path(__file__).resolve().parent / ".env"
+        if p.exists():
+            for line in p.read_text(encoding="utf-8", errors="replace").splitlines():
+                line = line.strip().lstrip("\ufeff")
+                if not line or line.startswith("#") or "=" not in line:
+                    continue
+                k, v = line.split("=", 1)
+                os.environ.setdefault(k.strip(), v.strip().strip('"').strip("'"))
+        _env_loaded = True
+    return len(discover_keys())
+
+
 def discover_keys(env=None) -> list[tuple[str, str, str]]:
     """Kumpulkan `(nama, kunci, fingerprint)` dari env, tanpa duplikat.
 
@@ -81,8 +113,15 @@ def discover_keys(env=None) -> list[tuple[str, str, str]]:
     `GEMINI_API_KEY` tetap didukung sebagai kompatibilitas ke belakang.
     Alias yang menunjuk kunci yang sama dibuang lewat fingerprint, sehingga
     satu kunci tidak pernah "berpura-pura" menjadi dua entri rotasi.
+
+    Bila `env is None` dan tidak ada kunci sama sekali, `.env` dimuat otomatis
+    sekali (self-healing, lihat `load_env_file`).
     """
-    env = os.environ if env is None else env
+    if env is None:
+        env = os.environ
+        if not any((env.get(f"GEMINI_KEY_{i}") or "").strip()
+                   for i in range(1, _MAX_KEY_SLOTS + 1)):
+            load_env_file()
     raw: list[tuple[str, str]] = []
     for i in range(1, _MAX_KEY_SLOTS + 1):
         val = (env.get(f"GEMINI_KEY_{i}") or "").strip()
@@ -261,6 +300,28 @@ class KeyPool:
             out.append(fp)
         return out
 
+    def next_ready_in(self, models: list[str]) -> float:
+        """Detik sampai ada minimal satu pasangan `(kunci, model)` yang bebas.
+
+        0.0 berarti ada kandidat SEKARANG. Dipakai `gemini_llm` untuk menghitung
+        lama tidur yang tepat saat seluruh pool tersendat - jauh lebih baik
+        daripada `backoff` buta yang bisa menunggu 1+2+4+8 s sementara TTL
+        blokirnya 60 s (deadline habis sebelum jendela kuota bergulir).
+        """
+        now = self._now()
+        soonest: float | None = None
+        for _, _, fp in self._entries:
+            cool_until = self._cool.get(fp, 0.0)
+            if cool_until > now:
+                soonest = cool_until if soonest is None else min(soonest, cool_until)
+                continue
+            for m in models:
+                t = self._blocked.get((fp, m), 0.0)
+                if t <= now:
+                    return 0.0
+                soonest = t if soonest is None else min(soonest, t)
+        return 0.0 if soonest is None else max(0.0, soonest - now)
+
     def acquire(self, model: str = "") -> tuple[str, str] | None:
         """Ambil `(fingerprint, kunci)` berikutnya yang siap.
 
@@ -302,6 +363,10 @@ class KeyPool:
           - `entitlement` (404 "no longer available to new users"): kunci SAH, hanya
             model itu yang tidak tersedia untuk project-nya -> blokir HANYA pasangan
             (key, model).
+          - `rate_limited_pair`: pembatasan RPM PROAKTIF dari `gemini_llm` (belum
+            ada 429 asli dari Google). Ikut cabang `else` -> diblokir HANYA untuk
+            pasangan (key, model), TIDAK membekukan seluruh kunci. Ini memperbaiki
+            lockout yang terukur pada burst >= 32 (lihat `_rpm_retry_after`).
           - `key_dead` (401): kunci TIDAK SAH sama sekali -> dibekukan untuk
             SEMUA model (sama seperti `rate_limited`), karena menukar model
             tidak menolong.
@@ -316,9 +381,24 @@ class KeyPool:
         with self._lock:
             until = self._now() + ttl
             pair = (fp, model)
-            if kind in ("rate_limited", "key_dead"):
+            if kind == "key_dead":
+                # Kredensial DITOLAK hulu: menukar model tidak menolong, jadi
+                # kunci dibekukan untuk SEMUA model.
                 self._cool[fp] = max(self._cool.get(fp, 0.0), until)
             else:
+                # rate_limited / rate_limited_pair / entitlement / overloaded:
+                # SEMUA bercakupan (KUNCI, MODEL) - bukan seluruh kunci.
+                #
+                # Mengapa (bug nyata, terukur 2026-10-12): payload 429 proyek ini
+                # berbunyi `quotaId=GenerateRequestsPerMinutePerProjectPerModel-
+                # FreeTier` (lihat `PAYLOAD_429_RPM` di test_gemini_key_pool.py) ->
+                # kuota Google bercakupan PER (PROJECT, MODEL). Membekukan SELURUH
+                # kunci saat satu model kena 429 berarti satu 429 menutup 10 model
+                # lain untuk kunci itu; 13 kunci habis dalam hitungan detik lalu
+                # `acquire()` mengembalikan None untuk SEMUA model -> deret
+                # `no_key_available` sampai deadline habis. Terukur: burst 32 ->
+                # 17/32 (97 s), burst 100 -> 0/100 (240 s), `sample_fail` penuh
+                # `no_key_available` padahal kunci sehat (diag 13/13 OK).
                 self._blocked[pair] = max(self._blocked.get(pair, 0.0), until)
         return kind
 

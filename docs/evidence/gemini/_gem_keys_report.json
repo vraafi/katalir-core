@@ -1,0 +1,329 @@
+{
+  "model_chain": [
+    "gemini-3.8-flash",
+    "gemini-3.5-flash-lite",
+    "gemini-2.5-flash-lite",
+    "gemini-2.5-flash",
+    "gemma-4-31b-it"
+  ],
+  "report": [
+    {
+      "name": "GEMINI_KEY_1",
+      "fp": "01f989b4",
+      "mask": "AQ.Ab8...e7ZA",
+      "verdict": "rate_limited",
+      "model": null,
+      "latency_s": null,
+      "attempts": [
+        {
+          "model": "gemini-3.8-flash",
+          "kind": "rate_limited",
+          "latency_s": 1.38,
+          "retry_delay": 70127.0,
+          "err": "429 RESOURCE_EXHAUSTED. {'error': {'code': 429, 'message': 'You exceeded your current quota, please check your plan and billing details. For more information on this error, head to: https://ai.google.dev/gemini-api/docs/"
+        }
+      ],
+      "project": null
+    },
+    {
+      "name": "GEMINI_KEY_2",
+      "fp": "a634dfdd",
+      "mask": "AQ.Ab8...TQPQ",
+      "verdict": "ok",
+      "model": "gemini-3.8-flash",
+      "latency_s": 5.6,
+      "attempts": [
+        {
+          "model": "gemini-3.8-flash",
+          "kind": "ok",
+          "latency_s": 5.6
+        }
+      ],
+      "project": null,
+      "text": "pong"
+    },
+    {
+      "name": "GEMINI_KEY_3",
+      "fp": "fd9f7450",
+      "mask": "AIzaSy...hXoc",
+      "verdict": "ok",
+      "model": "gemini-3.8-flash",
+      "latency_s": 9.41,
+      "attempts": [
+        {
+          "model": "gemini-3.8-flash",
+          "kind": "ok",
+          "latency_s": 9.41
+        }
+      ],
+      "project": null,
+      "text": "pong"
+    },
+    {
+      "name": "GEMINI_KEY_4",
+      "fp": "a2436cfc",
+      "mask": "AIzaSy..._G2E",
+      "verdict": "ok",
+      "model": "gemini-3.8-flash",
+      "latency_s": 17.31,
+      "attempts": [
+        {
+          "model": "gemini-3.8-flash",
+          "kind": "ok",
+          "latency_s": 17.31
+        }
+      ],
+      "project": null,
+      "text": "pong"
+    },
+    {
+      "name": "GEMINI_KEY_5",
+      "fp": "c6620bbf",
+      "mask": "AQ.Ab8...q1pw",
+      "verdict": "ok",
+      "model": "gemini-3.8-flash",
+      "latency_s": 12.16,
+      "attempts": [
+        {
+          "model": "gemini-3.8-flash",
+          "kind": "ok",
+          "latency_s": 12.16
+        }
+      ],
+      "project": null,
+      "text": "pong"
+    },
+    {
+      "name": "GEMINI_KEY_6",
+      "fp": "f5783f81",
+      "mask": "AIzaSy...tjiI",
+      "verdict": "ok",
+      "model": "gemini-2.5-flash-lite",
+      "latency_s": 1.0,
+      "attempts": [
+        {
+          "model": "gemini-3.8-flash",
+          "kind": "overloaded",
+          "latency_s": 2.12,
+          "retry_delay": null,
+          "err": "503 UNAVAILABLE. {'error': {'code': 503, 'message': 'This model is currently experiencing high demand. Spikes in demand are usually temporary. Please try again later.', 'status': 'UNAVAILABLE'}}"
+        },
+        {
+          "model": "gemini-3.5-flash-lite",
+          "kind": "unknown",
+          "latency_s": 0.36,
+          "retry_delay": null,
+          "err": "400 INVALID_ARGUMENT. {'error': {'code': 400, 'message': 'Request contains an invalid argument.', 'status': 'INVALID_ARGUMENT'}}"
+        },
+        {
+          "model": "gemini-2.5-flash-lite",
+          "kind": "ok",
+          "latency_s": 1.0
+        }
+      ],
+      "project": null,
+      "text": "pong"
+    },
+    {
+      "name": "GEMINI_KEY_7",
+      "fp": "a3e08469",
+      "mask": "AIzaSy...zy_I",
+      "verdict": "ok",
+      "model": "gemini-2.5-flash-lite",
+      "latency_s": 0.98,
+      "attempts": [
+        {
+          "model": "gemini-3.8-flash",
+          "kind": "overloaded",
+          "latency_s": 1.25,
+          "retry_delay": null,
+          "err": "503 UNAVAILABLE. {'error': {'code': 503, 'message': 'This model is currently experiencing high demand. Spikes in demand are usually temporary. Please try again later.', 'status': 'UNAVAILABLE'}}"
+        },
+        {
+          "model": "gemini-3.5-flash-lite",
+          "kind": "unknown",
+          "latency_s": 0.31,
+          "retry_delay": null,
+          "err": "400 INVALID_ARGUMENT. {'error': {'code': 400, 'message': 'Request contains an invalid argument.', 'status': 'INVALID_ARGUMENT'}}"
+        },
+        {
+          "model": "gemini-2.5-flash-lite",
+          "kind": "ok",
+          "latency_s": 0.98
+        }
+      ],
+      "project": null,
+      "text": "pong"
+    },
+    {
+      "name": "GEMINI_KEY_8",
+      "fp": "130087ea",
+      "mask": "AQ.Ab8...-OEQ",
+      "verdict": "ok",
+      "model": "gemini-3.8-flash",
+      "latency_s": 10.15,
+      "attempts": [
+        {
+          "model": "gemini-3.8-flash",
+          "kind": "ok",
+          "latency_s": 10.15
+        }
+      ],
+      "project": null,
+      "text": "pong"
+    },
+    {
+      "name": "GEMINI_KEY_9",
+      "fp": "4a65bedf",
+      "mask": "AIzaSy...TBLA",
+      "verdict": "ok",
+      "model": "gemini-3.8-flash",
+      "latency_s": 24.57,
+      "attempts": [
+        {
+          "model": "gemini-3.8-flash",
+          "kind": "ok",
+          "latency_s": 24.57
+        }
+      ],
+      "project": null,
+      "text": "pong"
+    },
+    {
+      "name": "GEMINI_KEY_10",
+      "fp": "a9eeb886",
+      "mask": "AQ.Ab8...-rxg",
+      "verdict": "dead",
+      "model": null,
+      "latency_s": null,
+      "attempts": [
+        {
+          "model": "gemini-3.8-flash",
+          "kind": "overloaded",
+          "latency_s": 1.75,
+          "retry_delay": null,
+          "err": "503 UNAVAILABLE. {'error': {'code': 503, 'message': 'This model is currently experiencing high demand. Spikes in demand are usually temporary. Please try again later.', 'status': 'UNAVAILABLE'}}"
+        },
+        {
+          "model": "gemini-3.5-flash-lite",
+          "kind": "unknown",
+          "latency_s": 0.59,
+          "retry_delay": null,
+          "err": "400 INVALID_ARGUMENT. {'error': {'code': 400, 'message': 'Request contains an invalid argument.', 'status': 'INVALID_ARGUMENT'}}"
+        },
+        {
+          "model": "gemini-2.5-flash-lite",
+          "kind": "entitlement",
+          "latency_s": 0.33,
+          "retry_delay": null,
+          "err": "404 NOT_FOUND. {'error': {'code': 404, 'message': 'This model models/gemini-2.5-flash-lite is no longer available to new users. Please update your code to use models/gemini-3.5-flash-lite for the latest features and impr"
+        },
+        {
+          "model": "gemini-2.5-flash",
+          "kind": "entitlement",
+          "latency_s": 0.59,
+          "retry_delay": null,
+          "err": "404 NOT_FOUND. {'error': {'code': 404, 'message': 'This model models/gemini-2.5-flash is no longer available to new users. Please update your code to use models/gemini-3.8-flash for the latest features and improvements. "
+        },
+        {
+          "model": "gemma-4-31b-it",
+          "kind": "unknown",
+          "latency_s": 1.04,
+          "retry_delay": null,
+          "err": "400 INVALID_ARGUMENT. {'error': {'code': 400, 'message': 'Thinking budget is not supported for this model.', 'status': 'INVALID_ARGUMENT'}}"
+        }
+      ],
+      "project": null
+    },
+    {
+      "name": "GEMINI_KEY_11",
+      "fp": "f239b3fd",
+      "mask": "AQ.Ab8...byRg",
+      "verdict": "dead",
+      "model": null,
+      "latency_s": null,
+      "attempts": [
+        {
+          "model": "gemini-3.8-flash",
+          "kind": "overloaded",
+          "latency_s": 1.98,
+          "retry_delay": null,
+          "err": "503 UNAVAILABLE. {'error': {'code': 503, 'message': 'This model is currently experiencing high demand. Spikes in demand are usually temporary. Please try again later.', 'status': 'UNAVAILABLE'}}"
+        },
+        {
+          "model": "gemini-3.5-flash-lite",
+          "kind": "unknown",
+          "latency_s": 0.36,
+          "retry_delay": null,
+          "err": "400 INVALID_ARGUMENT. {'error': {'code': 400, 'message': 'Request contains an invalid argument.', 'status': 'INVALID_ARGUMENT'}}"
+        },
+        {
+          "model": "gemini-2.5-flash-lite",
+          "kind": "entitlement",
+          "latency_s": 0.38,
+          "retry_delay": null,
+          "err": "404 NOT_FOUND. {'error': {'code': 404, 'message': 'This model models/gemini-2.5-flash-lite is no longer available to new users. Please update your code to use models/gemini-3.5-flash-lite for the latest features and impr"
+        },
+        {
+          "model": "gemini-2.5-flash",
+          "kind": "entitlement",
+          "latency_s": 0.37,
+          "retry_delay": null,
+          "err": "404 NOT_FOUND. {'error': {'code': 404, 'message': 'This model models/gemini-2.5-flash is no longer available to new users. Please update your code to use models/gemini-3.8-flash for the latest features and improvements. "
+        },
+        {
+          "model": "gemma-4-31b-it",
+          "kind": "unknown",
+          "latency_s": 0.86,
+          "retry_delay": null,
+          "err": "400 INVALID_ARGUMENT. {'error': {'code': 400, 'message': 'Thinking budget is not supported for this model.', 'status': 'INVALID_ARGUMENT'}}"
+        }
+      ],
+      "project": null
+    },
+    {
+      "name": "GEMINI_KEY_12",
+      "fp": "fd99d9cc",
+      "mask": "AQ.Ab8...2qNA",
+      "verdict": "ok",
+      "model": "gemini-3.8-flash",
+      "latency_s": 17.72,
+      "attempts": [
+        {
+          "model": "gemini-3.8-flash",
+          "kind": "ok",
+          "latency_s": 17.72
+        }
+      ],
+      "project": null,
+      "text": "pong"
+    },
+    {
+      "name": "GEMINI_KEY_13",
+      "fp": "1a5f7168",
+      "mask": "AQ.Ab8...hEJQ",
+      "verdict": "ok",
+      "model": "gemini-3.8-flash",
+      "latency_s": 10.74,
+      "attempts": [
+        {
+          "model": "gemini-3.8-flash",
+          "kind": "ok",
+          "latency_s": 10.74
+        }
+      ],
+      "project": null,
+      "text": "pong"
+    }
+  ],
+  "summary": {
+    "valid": 10,
+    "rate_limited": 1,
+    "dead": 2,
+    "projects": [],
+    "models_used": {
+      "gemini-3.8-flash": 8,
+      "gemini-2.5-flash-lite": 2
+    }
+  }
+}

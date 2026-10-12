@@ -1,0 +1,22 @@
+==============================================================================
+FASE 3 - 30 UJI KERAS MIGRASI GEMINI
+==============================================================================
+
+=== GRUP KONKUREN (10) ===
+  [PASS] C1 burst n=1 workers=1             1/1 rate=1.0 8.29s (rate>=0.90)
+  [PASS] C2 burst n=2 workers=2             2/2 rate=1.0 14.16s (rate>=0.90)
+  [PASS] C3 burst n=4 workers=4             4/4 rate=1.0 18.99s (rate>=0.90)
+  [PASS] C4 burst n=8 workers=8             8/8 rate=1.0 22.49s (rate>=0.90)
+  [PASS] C5 burst n=12 workers=8            12/12 rate=1.0 15.38s (rate>=0.90)
+  [PASS] C6 burst n=16 workers=12           16/16 rate=1.0 12.46s (rate>=0.90)
+  [PASS] C7 burst n=24 workers=16           24/24 rate=1.0 26.51s (rate>=0.90)
+  [PASS] C8 burst n=32 workers=20           32/32 rate=1.0 20.56s (rate>=0.90)
+  [PASS] C9 burst n=64 workers=32           64/64 rate=1.0 22.24s (rate>=0.90)
+  [PASS] C10 burst n=100 workers=40         100/100 rate=1.0 71.71s (ok>=80/100)
+
+==============================================================================
+HASIL: 10/10 PASS  (232.8s)
+==============================================================================
+  concurrent   10/10 PASS
+
+  -> bukti mentah: C:\Users\user\Proyek_AI\tests\_gemini_hard_results.json

@@ -20,12 +20,20 @@ API = pathlib.Path(__file__).resolve().parent.parent / "api_server.py"
 
 
 def _branch_src() -> str:
-    """Ambil potongan source di sekitar cabang pool kosong."""
+    """Ambil potongan source di sekitar cabang pool kosong.
+
+    Jendela 20 baris (bukan 12): sejak migrasi Gemini-first cabang ini memuat
+    lebih dulu pemeriksaan cadangan gateway (`_agentic_run_gateway`) sebelum
+    `raise HTTPException(503, ...)`, sehingga `raise`-nya jatuh di baris ke-13.
+    Jendela 12 baris membuat tes ini gagal padahal KONTRAKNYA masih dipenuhi
+    (503 + pesan yang menyebut penyebab). Jendela tetap dibatasi 20 supaya tidak
+    menyerempet cabang 503 berikutnya (`acquire() is None`), yang juga 503
+    sehingga tidak akan menyamarkan regresi 500.
+    """
     src = API.read_text(encoding="utf-8")
     idx = src.find("if not _pool.size:")
     assert idx != -1, "cabang `if not _pool.size:` hilang dari api_server.py"
-    # 12 baris setelah cabang cukup untuk memeriksa raise-nya.
-    return "\n".join(src[idx:].splitlines()[:12])
+    return "\n".join(src[idx:].splitlines()[:20])
 
 
 def test_pool_kosong_tidak_melempar_dan_acquire_none():

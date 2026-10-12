@@ -1,0 +1,97 @@
+{
+  "model": "gemini-3.5-flash-lite",
+  "ts": 1791787086.2129512,
+  "rows": [
+    {
+      "name": "GEMINI_KEY_1",
+      "fp": "01f989b4",
+      "status": "OK",
+      "text": "OK",
+      "dt": 7.62
+    },
+    {
+      "name": "GEMINI_KEY_2",
+      "fp": "a634dfdd",
+      "status": "OK",
+      "text": "OK",
+      "dt": 4.52
+    },
+    {
+      "name": "GEMINI_KEY_3",
+      "fp": "fd9f7450",
+      "status": "OK",
+      "text": "OK",
+      "dt": 4.49
+    },
+    {
+      "name": "GEMINI_KEY_4",
+      "fp": "a2436cfc",
+      "status": "OK",
+      "text": "OK",
+      "dt": 4.6
+    },
+    {
+      "name": "GEMINI_KEY_5",
+      "fp": "c6620bbf",
+      "status": "OK",
+      "text": "OK",
+      "dt": 4.37
+    },
+    {
+      "name": "GEMINI_KEY_6",
+      "fp": "f5783f81",
+      "status": "OK",
+      "text": "OK",
+      "dt": 3.03
+    },
+    {
+      "name": "GEMINI_KEY_7",
+      "fp": "a3e08469",
+      "status": "OK",
+      "text": "OK",
+      "dt": 4.19
+    },
+    {
+      "name": "GEMINI_KEY_8",
+      "fp": "130087ea",
+      "status": "OK",
+      "text": "OK",
+      "dt": 5.68
+    },
+    {
+      "name": "GEMINI_KEY_9",
+      "fp": "4a65bedf",
+      "status": "OK",
+      "text": "OK",
+      "dt": 2.86
+    },
+    {
+      "name": "GEMINI_KEY_10",
+      "fp": "a9eeb886",
+      "status": "OK",
+      "text": "OK",
+      "dt": 2.45
+    },
+    {
+      "name": "GEMINI_KEY_11",
+      "fp": "f239b3fd",
+      "status": "OK",
+      "text": "OK",
+      "dt": 4.27
+    },
+    {
+      "name": "GEMINI_KEY_12",
+      "fp": "fd99d9cc",
+      "status": "OK",
+      "text": "OK",
+      "dt": 4.23
+    },
+    {
+      "name": "GEMINI_KEY_13",
+      "fp": "1a5f7168",
+      "status": "OK",
+      "text": "OK",
+      "dt": 1.74
+    }
+  ]
+}

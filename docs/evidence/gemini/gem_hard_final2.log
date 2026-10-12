@@ -1,0 +1,99 @@
+==============================================================================
+FASE 3 - 30 UJI KERAS MIGRASI GEMINI
+==============================================================================
+
+=== GRUP DASAR (10) ===
+  [PASS] B1 single_prompt                   model=gemini-3.5-flash-lite 14.8s text='ping'
+  [PASS] B2 MODEL_CHAIN matches brief       ['gemini-3.8-flash', 'gemini-3.5-flash-lite', 'gemini-2.5-flash-lite', 'gemini-2.5-flash', 'gemma-4-31b-it']
+  [PASS] B3 RotatorConfig per brief         {'rpm_per_key': 10, 'cooldown_base_seconds': 60.0, 'cooldown_max_seconds': 1800.0, 'max_concurrent_per_key': 3, 'max_retries': 4, 'retry_delay_seconds': 1.0}
+  [PASS] B4 thinking budget (3.8-flash)     budget=512
+  [PASS] B5 thinking level (3.5-flash-lite) level=ThinkingLevel.LOW
+  [PASS] B6 no thinking block (gemma)       None
+  [PASS] B7 health_check shallow            healthy=13/13 alert=False
+  [PASS] B8 429 -> rotate key (deterministik) key=SYNTH_B#591e59ce kinds=['rate_limited', 'wait_before_sweep', 'ok']
+  [PASS] B9 fallback ke model berikutnya    model=gemini-3.5-flash-lite attempts=2
+  [PASS] B10 system_instruction dihormati   text='JAKARTA'
+
+=== GRUP KONKUREN (10) ===
+  [PASS] C1 burst n=1 workers=1             1/1 rate=1.0 15.9s (rate>=0.90)
+  [PASS] C2 burst n=2 workers=2             2/2 rate=1.0 40.84s (rate>=0.90)
+  [PASS] C3 burst n=4 workers=4             4/4 rate=1.0 13.19s (rate>=0.90)
+  [PASS] C4 burst n=8 workers=8             8/8 rate=1.0 21.27s (rate>=0.90)
+  [PASS] C5 burst n=12 workers=8            12/12 rate=1.0 26.14s (rate>=0.90)
+  [PASS] C6 burst n=16 workers=12           16/16 rate=1.0 22.78s (rate>=0.90)
+  [PASS] C7 burst n=24 workers=16           24/24 rate=1.0 48.24s (rate>=0.90)
+  [PASS] C8 burst n=32 workers=20           32/32 rate=1.0 25.48s (rate>=0.90)
+  [PASS] C9 burst n=64 workers=32           64/64 rate=1.0 27.52s (rate>=0.90)
+  [PASS] C10 burst n=100 workers=40         100/100 rate=1.0 48.9s (ok>=80/100)
+
+=== GRUP INTEGRASI (10) ===
+  (menunggu 70s agar cooldown kunci mereda...)
+  [PASS] I1 TASK4 tool_eval_bench (Gemini)  provider=gemini overall=82.1 model=gemini-3.5-flash-lite
+  [PASS] I2 TASK5 hermes_rubric (Gemini)    mean=0.913 scored=21/21 below=[]
+  [PASS] I3 regresi 420 Brief-7             420/420 final=PASS
+  [PASS] I4 E2E produksi (API nyata)        {'PASS': 13, 'FAIL': 0, 'SKIP': 0}
+  [PASS] I5 /health/llm 200 + 13 kunci      status=200 healthy=13/13
+[10/12/26 13:58:29] INFO     HTTP Request: GET                  _client.py:1025
+                             https://qmukkphwaajzbqjrcvaz.supab                
+                             ase.co/rest/v1/users?select=id&lim                
+                             it=1 "HTTP/2 200 OK"                              
+[10/12/26 13:58:31] INFO     HTTP Request: GET                  _client.py:1025
+                             https://nexus-gateway-vps.tail7f0d                
+                             5a.ts.net/v1/models "HTTP/1.1 200                 
+                             OK"                                               
+  [PASS] I6 /status cek llm_gemini ok       {'ok': True, 'detail': {'healthy': 13, 'total': 13, 'cooling': 0, 'threshold': 3}}
+  [PASS] I7 provider default Gemini-first   LLM_PROVIDER='gemini'
+  [PASS] I8 gateway masih terkonfigurasi (cadangan) url_set=True
+[10/12/26 13:58:32] INFO     AFC is enabled with max remote      models.py:5636
+                             calls: 10.                                        
+[10/12/26 13:58:41] INFO     HTTP Request: POST                 _client.py:1025
+                             https://generativelanguage.googlea                
+                             pis.com/v1beta/models/gemini-3.5-f                
+                             lash-lite:generateContent                         
+                             "HTTP/1.1 200 OK"                                 
+                    INFO     AFC is enabled with max remote      models.py:5636
+                             calls: 10.                                        
+[10/12/26 13:58:49] INFO     HTTP Request: POST                 _client.py:1025
+                             https://generativelanguage.googlea                
+                             pis.com/v1beta/models/gemini-3.5-f                
+                             lash-lite:generateContent                         
+                             "HTTP/1.1 200 OK"                                 
+  [PASS] I9 judge Gemini diskriminatif      good=1.0 bad=0.0 (raw '1'/'0')
+                    INFO     AFC is enabled with max remote      models.py:5636
+                             calls: 10.                                        
+[10/12/26 13:58:58] INFO     HTTP Request: POST                 _client.py:1025
+                             https://generativelanguage.googlea                
+                             pis.com/v1beta/models/gemini-3.5-f                
+                             lash-lite:generateContent                         
+                             "HTTP/1.1 200 OK"                                 
+                    INFO     AFC is enabled with max remote      models.py:5636
+                             calls: 10.                                        
+[10/12/26 13:59:04] INFO     HTTP Request: POST                 _client.py:1025
+                             https://generativelanguage.googlea                
+                             pis.com/v1beta/models/gemini-3.5-f                
+                             lash-lite:generateContent                         
+                             "HTTP/1.1 200 OK"                                 
+                    INFO     AFC is enabled with max remote      models.py:5636
+                             calls: 10.                                        
+[10/12/26 13:59:17] INFO     HTTP Request: POST                 _client.py:1025
+                             https://generativelanguage.googlea                
+                             pis.com/v1beta/models/gemini-3.5-f                
+                             lash-lite:generateContent                         
+                             "HTTP/1.1 200 OK"                                 
+                    INFO     AFC is enabled with max remote      models.py:5636
+                             calls: 10.                                        
+[10/12/26 13:59:29] INFO     HTTP Request: POST                 _client.py:1025
+                             https://generativelanguage.googlea                
+                             pis.com/v1beta/models/gemini-3.5-f                
+                             lash-lite:generateContent                         
+                             "HTTP/1.1 200 OK"                                 
+  [PASS] I10 sapuan 4 tingkat berpikir      {"minimal": {"ok": true, "elapsed": 8.56, "text": "Baik, level minimal.", "model": "gemini-3.5-flash-lite"}, "low": {"ok": true, "elapsed": 6.56, "text": "lvl-low acknowledged! Le", "model": "gemini-3
+
+==============================================================================
+HASIL: 30/30 PASS  (476.4s)
+==============================================================================
+  basic        10/10 PASS
+  concurrent   10/10 PASS
+  integration  10/10 PASS
+
+  -> bukti mentah: C:\Users\user\Proyek_AI\tests\_gemini_hard_results.json

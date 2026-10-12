@@ -1,0 +1,329 @@
+{
+ "threshold": 0.7,
+ "mean": 0.913,
+ "below_threshold": [],
+ "rubric_dimensions": [
+  "correctness",
+  "completeness",
+  "safety",
+  "evidence_grounding",
+  "resilience",
+  "test_coverage"
+ ],
+ "per_feature": {
+  "01-chat": {
+   "score": 0.91,
+   "aggregate": 9.1,
+   "max_possible": 10.0,
+   "n_citations": 6,
+   "per_dim": {
+    "correctness": 10,
+    "completeness": 10,
+    "safety": 10,
+    "evidence_grounding": 10,
+    "resilience": 5,
+    "test_coverage": 8
+   },
+   "retries": 0
+  },
+  "02-workflow-builder": {
+   "score": 1.0,
+   "aggregate": 10.0,
+   "max_possible": 10.0,
+   "n_citations": 6,
+   "per_dim": {
+    "correctness": 10,
+    "completeness": 10,
+    "safety": 10,
+    "evidence_grounding": 10,
+    "resilience": 10,
+    "test_coverage": 10
+   },
+   "retries": 0
+  },
+  "03-mcp-server": {
+   "score": 0.95,
+   "aggregate": 9.5,
+   "max_possible": 10.0,
+   "n_citations": 6,
+   "per_dim": {
+    "correctness": 10,
+    "completeness": 10,
+    "safety": 10,
+    "evidence_grounding": 10,
+    "resilience": 10,
+    "test_coverage": 6
+   },
+   "retries": 0
+  },
+  "04-agents": {
+   "score": 1.0,
+   "aggregate": 10.0,
+   "max_possible": 10.0,
+   "n_citations": 6,
+   "per_dim": {
+    "correctness": 10,
+    "completeness": 10,
+    "safety": 10,
+    "evidence_grounding": 10,
+    "resilience": 10,
+    "test_coverage": 10
+   },
+   "retries": 0
+  },
+  "05-scheduled-trigger": {
+   "score": 0.93,
+   "aggregate": 9.3,
+   "max_possible": 10.0,
+   "n_citations": 6,
+   "per_dim": {
+    "correctness": 10,
+    "completeness": 10,
+    "safety": 10,
+    "evidence_grounding": 10,
+    "resilience": 10,
+    "test_coverage": 5
+   },
+   "retries": 0
+  },
+  "06-durable-execution": {
+   "score": 1.0,
+   "aggregate": 10.0,
+   "max_possible": 10.0,
+   "n_citations": 6,
+   "per_dim": {
+    "correctness": 10,
+    "completeness": 10,
+    "safety": 10,
+    "evidence_grounding": 10,
+    "resilience": 10,
+    "test_coverage": 10
+   },
+   "retries": 0
+  },
+  "07-dlq": {
+   "score": 0.86,
+   "aggregate": 8.6,
+   "max_possible": 10.0,
+   "n_citations": 6,
+   "per_dim": {
+    "correctness": 10,
+    "completeness": 10,
+    "safety": 3,
+    "evidence_grounding": 10,
+    "resilience": 10,
+    "test_coverage": 10
+   },
+   "retries": 0
+  },
+  "08-sub-workflow": {
+   "score": 0.99,
+   "aggregate": 9.9,
+   "max_possible": 10.0,
+   "n_citations": 6,
+   "per_dim": {
+    "correctness": 10,
+    "completeness": 9,
+    "safety": 10,
+    "evidence_grounding": 10,
+    "resilience": 10,
+    "test_coverage": 10
+   },
+   "retries": 0
+  },
+  "09-parallel-fanout": {
+   "score": 0.99,
+   "aggregate": 9.9,
+   "max_possible": 10.0,
+   "n_citations": 6,
+   "per_dim": {
+    "correctness": 10,
+    "completeness": 9,
+    "safety": 10,
+    "evidence_grounding": 10,
+    "resilience": 10,
+    "test_coverage": 10
+   },
+   "retries": 0
+  },
+  "10-code-sandbox": {
+   "score": 1.0,
+   "aggregate": 10.0,
+   "max_possible": 10.0,
+   "n_citations": 6,
+   "per_dim": {
+    "correctness": 10,
+    "completeness": 10,
+    "safety": 10,
+    "evidence_grounding": 10,
+    "resilience": 10,
+    "test_coverage": 10
+   },
+   "retries": 0
+  },
+  "11-external-secrets": {
+   "score": 0.93,
+   "aggregate": 9.3,
+   "max_possible": 10.0,
+   "n_citations": 6,
+   "per_dim": {
+    "correctness": 10,
+    "completeness": 10,
+    "safety": 10,
+    "evidence_grounding": 10,
+    "resilience": 5,
+    "test_coverage": 10
+   },
+   "retries": 0
+  },
+  "12-guardrails": {
+   "score": 0.87,
+   "aggregate": 8.7,
+   "max_possible": 10.0,
+   "n_citations": 6,
+   "per_dim": {
+    "correctness": 10,
+    "completeness": 10,
+    "safety": 10,
+    "evidence_grounding": 10,
+    "resilience": 7,
+    "test_coverage": 3
+   },
+   "retries": 0
+  },
+  "13-rag": {
+   "score": 0.85,
+   "aggregate": 8.5,
+   "max_possible": 10.0,
+   "n_citations": 6,
+   "per_dim": {
+    "correctness": 10,
+    "completeness": 10,
+    "safety": 3,
+    "evidence_grounding": 10,
+    "resilience": 9,
+    "test_coverage": 10
+   },
+   "retries": 0
+  },
+  "14-hitl": {
+   "score": 0.93,
+   "aggregate": 9.3,
+   "max_possible": 10.0,
+   "n_citations": 6,
+   "per_dim": {
+    "correctness": 10,
+    "completeness": 10,
+    "safety": 10,
+    "evidence_grounding": 10,
+    "resilience": 8,
+    "test_coverage": 7
+   },
+   "retries": 0
+  },
+  "15-evaluation": {
+   "score": 0.88,
+   "aggregate": 8.8,
+   "max_possible": 10.0,
+   "n_citations": 6,
+   "per_dim": {
+    "correctness": 10,
+    "completeness": 10,
+    "safety": 10,
+    "evidence_grounding": 10,
+    "resilience": 8,
+    "test_coverage": 3
+   },
+   "retries": 0
+  },
+  "16-insights": {
+   "score": 0.79,
+   "aggregate": 7.9,
+   "max_possible": 10.0,
+   "n_citations": 6,
+   "per_dim": {
+    "correctness": 10,
+    "completeness": 10,
+    "safety": 3,
+    "evidence_grounding": 10,
+    "resilience": 5,
+    "test_coverage": 10
+   },
+   "retries": 0
+  },
+  "17-sso": {
+   "score": 0.87,
+   "aggregate": 8.7,
+   "max_possible": 10.0,
+   "n_citations": 6,
+   "per_dim": {
+    "correctness": 10,
+    "completeness": 10,
+    "safety": 10,
+    "evidence_grounding": 10,
+    "resilience": 0,
+    "test_coverage": 10
+   },
+   "retries": 0
+  },
+  "18-queue": {
+   "score": 0.78,
+   "aggregate": 7.8,
+   "max_possible": 10.0,
+   "n_citations": 6,
+   "per_dim": {
+    "correctness": 10,
+    "completeness": 10,
+    "safety": 3,
+    "evidence_grounding": 10,
+    "resilience": 9,
+    "test_coverage": 5
+   },
+   "retries": 0
+  },
+  "19-git-source-control": {
+   "score": 0.93,
+   "aggregate": 9.3,
+   "max_possible": 10.0,
+   "n_citations": 6,
+   "per_dim": {
+    "correctness": 10,
+    "completeness": 10,
+    "safety": 10,
+    "evidence_grounding": 10,
+    "resilience": 8,
+    "test_coverage": 7
+   },
+   "retries": 0
+  },
+  "20-realtime-collab": {
+   "score": 0.95,
+   "aggregate": 9.5,
+   "max_possible": 10.0,
+   "n_citations": 6,
+   "per_dim": {
+    "correctness": 10,
+    "completeness": 10,
+    "safety": 10,
+    "evidence_grounding": 10,
+    "resilience": 10,
+    "test_coverage": 6
+   }
+  },
+  "21-plugin-system": {
+   "score": 0.77,
+   "aggregate": 7.7,
+   "max_possible": 10.0,
+   "n_citations": 6,
+   "per_dim": {
+    "correctness": 3,
+    "completeness": 9,
+    "safety": 10,
+    "evidence_grounding": 10,
+    "resilience": 8,
+    "test_coverage": 6
+   },
+   "retries": 0
+  }
+ }
+}

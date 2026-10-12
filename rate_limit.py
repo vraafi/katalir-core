@@ -137,6 +137,68 @@ class SlidingWindowLimiter:
             return sum(1 for t in dq if t > cutoff)
 
 
+class ConcurrencyGuard:
+    """Batas jumlah request BERAT yang berjalan BERSAMAAN (backpressure).
+
+    MOTIVASI (Brief 7, bug "502 high-load"):
+      Saat hulu LLM jenuh, `POST /chat` dapat memegang koneksi 10-100 s karena
+      rantai fallback mencoba banyak model. Pada konkurensi tinggi, tumpukan
+      koneksi panjang inilah yang diterjemahkan Cloudflare Tunnel menjadi
+      HTTP **502** di edge — origin sendiri mencatat 100% request dan 0x 502
+      saat diuji langsung tanpa tunnel.
+
+    Dengan membatasi in-flight dan membalas **503 + Retry-After** CEPAT saat
+    jenuh, origin berhenti menumpuk koneksi panjang, dan klien menerima sinyal
+    "coba lagi" yang benar (503 retryable) alih-alih 502 buram. Ini
+    backpressure standar, bukan perbaikan ajaib: kapasitas hulu tetap plafon.
+
+    `max_inflight <= 0` menonaktifkan guard (fail-open, dipakai test/E2E).
+    """
+
+    def __init__(self, max_inflight: int, clock=time.monotonic):
+        self.max_inflight = int(max_inflight)
+        self._clock = clock
+        self._lock = threading.Lock()
+        self._inflight = 0
+        self._peak = 0
+        self._rejected = 0
+        self._total = 0
+
+    def try_acquire(self) -> bool:
+        """Ambil satu slot. False bila sudah penuh (pemanggil balas 503)."""
+        if self.max_inflight <= 0:
+            return True
+        with self._lock:
+            self._total += 1
+            if self._inflight >= self.max_inflight:
+                self._rejected += 1
+                return False
+            self._inflight += 1
+            if self._inflight > self._peak:
+                self._peak = self._inflight
+            return True
+
+    def release(self) -> None:
+        if self.max_inflight <= 0:
+            return
+        with self._lock:
+            if self._inflight > 0:
+                self._inflight -= 1
+
+    def stats(self) -> dict:
+        with self._lock:
+            return {"max_inflight": self.max_inflight, "inflight": self._inflight,
+                    "peak": self._peak, "rejected": self._rejected,
+                    "total": self._total}
+
+    def reset(self) -> None:
+        with self._lock:
+            self._inflight = 0
+            self._peak = 0
+            self._rejected = 0
+            self._total = 0
+
+
 # ---------------------------------------------------------------------------
 # Instance global untuk POST /chat (BUG-5).
 # ---------------------------------------------------------------------------
@@ -166,6 +228,15 @@ REQUEST_HOURLY_WINDOW_SEC = _env_number("REQUEST_HOURLY_RATE_WINDOW_SEC", 3600.0
 request_hourly_limiter = SlidingWindowLimiter(REQUEST_HOURLY_LIMIT,
                                               REQUEST_HOURLY_WINDOW_SEC)
 
+# ---------------------------------------------------------------------------
+# BACKPRESSURE untuk POST /chat (Brief 7, bug 502 high-load).
+# Default 48: DI BAWAH ambang 502 yang teramati (>=50 konkuren) dan JAUH di
+# atas trafik nyata, jadi tidak mengubah perilaku normal. Env CHAT_MAX_INFLIGHT
+# <= 0 menonaktifkan (dipakai E2E yang menembak /chat cepat).
+# ---------------------------------------------------------------------------
+CHAT_MAX_INFLIGHT = int(_env_number("CHAT_MAX_INFLIGHT", 48))
+chat_inflight_guard = ConcurrencyGuard(CHAT_MAX_INFLIGHT)
+
 
 def all_limiters() -> list["SlidingWindowLimiter"]:
     """Semua limiter global (dipakai test/fixture untuk reset antar-tes)."""
@@ -177,3 +248,4 @@ def reset_all() -> None:
     """Kosongkan hitungan SEMUA limiter (fixture tes)."""
     for lim in all_limiters():
         lim.reset()
+    chat_inflight_guard.reset()

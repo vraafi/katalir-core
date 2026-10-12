@@ -1,0 +1,602 @@
+{
+  "passed": 30,
+  "total": 30,
+  "elapsed_s": 476.4,
+  "results": [
+    {
+      "group": "basic",
+      "name": "B1 single_prompt",
+      "ok": true,
+      "detail": "model=gemini-3.5-flash-lite 14.8s text='ping'",
+      "evidence": {
+        "ok": true,
+        "text": "ping",
+        "model": "gemini-3.5-flash-lite",
+        "key": "GEMINI_KEY_1#01f989b4",
+        "function_calls": [],
+        "attempts": [
+          {
+            "model": "gemini-3.5-flash-lite",
+            "key": "GEMINI_KEY_1#01f989b4",
+            "kind": "ok"
+          }
+        ],
+        "elapsed_s": 14.8,
+        "error": null
+      }
+    },
+    {
+      "group": "basic",
+      "name": "B2 MODEL_CHAIN matches brief",
+      "ok": true,
+      "detail": "['gemini-3.8-flash', 'gemini-3.5-flash-lite', 'gemini-2.5-flash-lite', 'gemini-2.5-flash', 'gemma-4-31b-it']",
+      "evidence": [
+        "gemini-3.8-flash",
+        "gemini-3.5-flash-lite",
+        "gemini-2.5-flash-lite",
+        "gemini-2.5-flash",
+        "gemma-4-31b-it"
+      ]
+    },
+    {
+      "group": "basic",
+      "name": "B3 RotatorConfig per brief",
+      "ok": true,
+      "detail": "{'rpm_per_key': 10, 'cooldown_base_seconds': 60.0, 'cooldown_max_seconds': 1800.0, 'max_concurrent_per_key': 3, 'max_retries': 4, 'retry_delay_seconds': 1.0}",
+      "evidence": {
+        "rpm_per_key": 10,
+        "cooldown_base_seconds": 60.0,
+        "cooldown_max_seconds": 1800.0,
+        "max_concurrent_per_key": 3,
+        "max_retries": 4,
+        "retry_delay_seconds": 1.0
+      }
+    },
+    {
+      "group": "basic",
+      "name": "B4 thinking budget (3.8-flash)",
+      "ok": true,
+      "detail": "budget=512",
+      "evidence": null
+    },
+    {
+      "group": "basic",
+      "name": "B5 thinking level (3.5-flash-lite)",
+      "ok": true,
+      "detail": "level=ThinkingLevel.LOW",
+      "evidence": null
+    },
+    {
+      "group": "basic",
+      "name": "B6 no thinking block (gemma)",
+      "ok": true,
+      "detail": "None",
+      "evidence": null
+    },
+    {
+      "group": "basic",
+      "name": "B7 health_check shallow",
+      "ok": true,
+      "detail": "healthy=13/13 alert=False",
+      "evidence": {
+        "healthy": 13,
+        "total": 13,
+        "cooling": 0,
+        "throttled": 0,
+        "blocked_pairs": 0,
+        "threshold": 3,
+        "alert": false,
+        "deep": false,
+        "probe_model": null,
+        "chain": [
+          "gemini-3.8-flash",
+          "gemini-3.5-flash-lite",
+          "gemini-2.5-flash-lite",
+          "gemini-2.5-flash",
+          "gemma-4-31b-it"
+        ],
+        "keys": [
+          {
+            "name": "GEMINI_KEY_1",
+            "fp": "01f989b4",
+            "state": "active",
+            "cooldown_remaining_s": 0.0
+          },
+          {
+            "name": "GEMINI_KEY_2",
+            "fp": "a634dfdd",
+            "state": "active",
+            "cooldown_remaining_s": 0.0
+          },
+          {
+            "name": "GEMINI_KEY_3",
+            "fp": "fd9f7450",
+            "state": "active",
+            "cooldown_remaining_s": 0.0
+          },
+          {
+            "name": "GEMINI_KEY_4",
+            "fp": "a2436cfc",
+            "state": "active",
+            "cooldown_remaining_s": 0.0
+          },
+          {
+            "name": "GEMINI_KEY_5",
+            "fp": "c6620bbf",
+            "state": "active",
+            "cooldown_remaining_s": 0.0
+          },
+          {
+            "name": "GEMINI_KEY_6",
+            "fp": "f5783f81",
+            "state": "active",
+            "cooldown_remaining_s": 0.0
+          },
+          {
+            "name": "GEMINI_KEY_7",
+            "fp": "a3e08469",
+            "state": "active",
+            "cooldown_remaining_s": 0.0
+          },
+          {
+            "name": "GEMINI_KEY_8",
+            "fp": "130087ea",
+            "state": "active",
+            "cooldown_remaining_s": 0.0
+          },
+          {
+            "name": "GEMINI_KEY_9",
+            "fp": "4a65bedf",
+            "state": "active",
+            "cooldown_remaining_s": 0.0
+          },
+          {
+            "name": "GEMINI_KEY_10",
+            "fp": "a9eeb886",
+            "state": "active",
+            "cooldown_remaining_s": 0.0
+          },
+          {
+            "name": "GEMINI_KEY_11",
+            "fp": "f239b3fd",
+            "state": "active",
+            "cooldown_remaining_s": 0.0
+          },
+          {
+            "name": "GEMINI_KEY_12",
+            "fp": "fd99d9cc",
+            "state": "active",
+            "cooldown_remaining_s": 0.0
+          },
+          {
+            "name": "GEMINI_KEY_13",
+            "fp": "1a5f7168",
+            "state": "active",
+            "cooldown_remaining_s": 0.0
+          }
+        ]
+      }
+    },
+    {
+      "group": "basic",
+      "name": "B8 429 -> rotate key (deterministik)",
+      "ok": true,
+      "detail": "key=SYNTH_B#591e59ce kinds=['rate_limited', 'wait_before_sweep', 'ok']",
+      "evidence": [
+        {
+          "model": "gemini-3.5-flash-lite",
+          "key": "SYNTH_A#2f93927d",
+          "kind": "rate_limited",
+          "err": "429 RESOURCE_EXHAUSTED. {'error':{'code':429,'status':'RESOURCE_EXHAUSTED','details':[{'@type':'type.googleapis.com/google.rpc.QuotaFailure','violations':[{'quotaId':'GenerateReque"
+        },
+        {
+          "kind": "wait_before_sweep",
+          "nap_s": 1.0
+        },
+        {
+          "model": "gemini-3.5-flash-lite",
+          "key": "SYNTH_B#591e59ce",
+          "kind": "ok"
+        }
+      ]
+    },
+    {
+      "group": "basic",
+      "name": "B9 fallback ke model berikutnya",
+      "ok": true,
+      "detail": "model=gemini-3.5-flash-lite attempts=2",
+      "evidence": [
+        {
+          "model": "model-yang-tidak-ada-xyz",
+          "key": "GEMINI_KEY_2#a634dfdd",
+          "kind": "entitlement",
+          "err": "404 NOT_FOUND. {'error': {'code': 404, 'message': 'models/model-yang-tidak-ada-xyz is not found for API version v1beta, or is not supported for generateContent. Call ModelService.L"
+        },
+        {
+          "model": "gemini-3.5-flash-lite",
+          "key": "GEMINI_KEY_3#fd9f7450",
+          "kind": "ok"
+        }
+      ]
+    },
+    {
+      "group": "basic",
+      "name": "B10 system_instruction dihormati",
+      "ok": true,
+      "detail": "text='JAKARTA'",
+      "evidence": "JAKARTA"
+    },
+    {
+      "group": "concurrent",
+      "name": "C1 burst n=1 workers=1",
+      "ok": true,
+      "detail": "1/1 rate=1.0 15.9s (rate>=0.90)",
+      "evidence": {
+        "n": 1,
+        "workers": 1,
+        "ok": 1,
+        "fail": 0,
+        "elapsed_s": 15.9,
+        "rate": 1.0,
+        "sample_fail": []
+      }
+    },
+    {
+      "group": "concurrent",
+      "name": "C2 burst n=2 workers=2",
+      "ok": true,
+      "detail": "2/2 rate=1.0 40.84s (rate>=0.90)",
+      "evidence": {
+        "n": 2,
+        "workers": 2,
+        "ok": 2,
+        "fail": 0,
+        "elapsed_s": 40.84,
+        "rate": 1.0,
+        "sample_fail": []
+      }
+    },
+    {
+      "group": "concurrent",
+      "name": "C3 burst n=4 workers=4",
+      "ok": true,
+      "detail": "4/4 rate=1.0 13.19s (rate>=0.90)",
+      "evidence": {
+        "n": 4,
+        "workers": 4,
+        "ok": 4,
+        "fail": 0,
+        "elapsed_s": 13.19,
+        "rate": 1.0,
+        "sample_fail": []
+      }
+    },
+    {
+      "group": "concurrent",
+      "name": "C4 burst n=8 workers=8",
+      "ok": true,
+      "detail": "8/8 rate=1.0 21.27s (rate>=0.90)",
+      "evidence": {
+        "n": 8,
+        "workers": 8,
+        "ok": 8,
+        "fail": 0,
+        "elapsed_s": 21.27,
+        "rate": 1.0,
+        "sample_fail": []
+      }
+    },
+    {
+      "group": "concurrent",
+      "name": "C5 burst n=12 workers=8",
+      "ok": true,
+      "detail": "12/12 rate=1.0 26.14s (rate>=0.90)",
+      "evidence": {
+        "n": 12,
+        "workers": 8,
+        "ok": 12,
+        "fail": 0,
+        "elapsed_s": 26.14,
+        "rate": 1.0,
+        "sample_fail": []
+      }
+    },
+    {
+      "group": "concurrent",
+      "name": "C6 burst n=16 workers=12",
+      "ok": true,
+      "detail": "16/16 rate=1.0 22.78s (rate>=0.90)",
+      "evidence": {
+        "n": 16,
+        "workers": 12,
+        "ok": 16,
+        "fail": 0,
+        "elapsed_s": 22.78,
+        "rate": 1.0,
+        "sample_fail": []
+      }
+    },
+    {
+      "group": "concurrent",
+      "name": "C7 burst n=24 workers=16",
+      "ok": true,
+      "detail": "24/24 rate=1.0 48.24s (rate>=0.90)",
+      "evidence": {
+        "n": 24,
+        "workers": 16,
+        "ok": 24,
+        "fail": 0,
+        "elapsed_s": 48.24,
+        "rate": 1.0,
+        "sample_fail": []
+      }
+    },
+    {
+      "group": "concurrent",
+      "name": "C8 burst n=32 workers=20",
+      "ok": true,
+      "detail": "32/32 rate=1.0 25.48s (rate>=0.90)",
+      "evidence": {
+        "n": 32,
+        "workers": 20,
+        "ok": 32,
+        "fail": 0,
+        "elapsed_s": 25.48,
+        "rate": 1.0,
+        "sample_fail": []
+      }
+    },
+    {
+      "group": "concurrent",
+      "name": "C9 burst n=64 workers=32",
+      "ok": true,
+      "detail": "64/64 rate=1.0 27.52s (rate>=0.90)",
+      "evidence": {
+        "n": 64,
+        "workers": 32,
+        "ok": 64,
+        "fail": 0,
+        "elapsed_s": 27.52,
+        "rate": 1.0,
+        "sample_fail": []
+      }
+    },
+    {
+      "group": "concurrent",
+      "name": "C10 burst n=100 workers=40",
+      "ok": true,
+      "detail": "100/100 rate=1.0 48.9s (ok>=80/100)",
+      "evidence": {
+        "n": 100,
+        "workers": 40,
+        "ok": 100,
+        "fail": 0,
+        "elapsed_s": 48.9,
+        "rate": 1.0,
+        "sample_fail": []
+      }
+    },
+    {
+      "group": "integration",
+      "name": "I1 TASK4 tool_eval_bench (Gemini)",
+      "ok": true,
+      "detail": "provider=gemini overall=82.1 model=gemini-3.5-flash-lite",
+      "evidence": {
+        "overall": 82.1,
+        "runs": [
+          92.8,
+          71.4
+        ]
+      }
+    },
+    {
+      "group": "integration",
+      "name": "I2 TASK5 hermes_rubric (Gemini)",
+      "ok": true,
+      "detail": "mean=0.913 scored=21/21 below=[]",
+      "evidence": 0.913
+    },
+    {
+      "group": "integration",
+      "name": "I3 regresi 420 Brief-7",
+      "ok": true,
+      "detail": "420/420 final=PASS",
+      "evidence": {
+        "n": 420,
+        "pass": 420
+      }
+    },
+    {
+      "group": "integration",
+      "name": "I4 E2E produksi (API nyata)",
+      "ok": true,
+      "detail": "{'PASS': 13, 'FAIL': 0, 'SKIP': 0}",
+      "evidence": {
+        "PASS": 13,
+        "FAIL": 0,
+        "SKIP": 0
+      }
+    },
+    {
+      "group": "integration",
+      "name": "I5 /health/llm 200 + 13 kunci",
+      "ok": true,
+      "detail": "status=200 healthy=13/13",
+      "evidence": {
+        "healthy": 13,
+        "total": 13,
+        "cooling": 0,
+        "throttled": 0,
+        "blocked_pairs": 29,
+        "threshold": 3,
+        "alert": false,
+        "deep": false,
+        "probe_model": null,
+        "chain": [
+          "gemini-3.8-flash",
+          "gemini-3.5-flash-lite",
+          "gemini-2.5-flash-lite",
+          "gemini-2.5-flash",
+          "gemma-4-31b-it"
+        ],
+        "keys": [
+          {
+            "name": "GEMINI_KEY_1",
+            "fp": "01f989b4",
+            "state": "active",
+            "cooldown_remaining_s": 0.0
+          },
+          {
+            "name": "GEMINI_KEY_2",
+            "fp": "a634dfdd",
+            "state": "active",
+            "cooldown_remaining_s": 0.0
+          },
+          {
+            "name": "GEMINI_KEY_3",
+            "fp": "fd9f7450",
+            "state": "active",
+            "cooldown_remaining_s": 0.0
+          },
+          {
+            "name": "GEMINI_KEY_4",
+            "fp": "a2436cfc",
+            "state": "active",
+            "cooldown_remaining_s": 0.0
+          },
+          {
+            "name": "GEMINI_KEY_5",
+            "fp": "c6620bbf",
+            "state": "active",
+            "cooldown_remaining_s": 0.0
+          },
+          {
+            "name": "GEMINI_KEY_6",
+            "fp": "f5783f81",
+            "state": "active",
+            "cooldown_remaining_s": 0.0
+          },
+          {
+            "name": "GEMINI_KEY_7",
+            "fp": "a3e08469",
+            "state": "active",
+            "cooldown_remaining_s": 0.0
+          },
+          {
+            "name": "GEMINI_KEY_8",
+            "fp": "130087ea",
+            "state": "active",
+            "cooldown_remaining_s": 0.0
+          },
+          {
+            "name": "GEMINI_KEY_9",
+            "fp": "4a65bedf",
+            "state": "active",
+            "cooldown_remaining_s": 0.0
+          },
+          {
+            "name": "GEMINI_KEY_10",
+            "fp": "a9eeb886",
+            "state": "active",
+            "cooldown_remaining_s": 0.0
+          },
+          {
+            "name": "GEMINI_KEY_11",
+            "fp": "f239b3fd",
+            "state": "active",
+            "cooldown_remaining_s": 0.0
+          },
+          {
+            "name": "GEMINI_KEY_12",
+            "fp": "fd99d9cc",
+            "state": "active",
+            "cooldown_remaining_s": 0.0
+          },
+          {
+            "name": "GEMINI_KEY_13",
+            "fp": "1a5f7168",
+            "state": "active",
+            "cooldown_remaining_s": 0.0
+          }
+        ],
+        "alert_sent": {
+          "sent": false,
+          "reason": "healthy >= threshold"
+        },
+        "provider": "gemini",
+        "gateway_configured": true
+      }
+    },
+    {
+      "group": "integration",
+      "name": "I6 /status cek llm_gemini ok",
+      "ok": true,
+      "detail": "{'ok': True, 'detail': {'healthy': 13, 'total': 13, 'cooling': 0, 'threshold': 3}}",
+      "evidence": {
+        "ok": true,
+        "detail": {
+          "healthy": 13,
+          "total": 13,
+          "cooling": 0,
+          "threshold": 3
+        }
+      }
+    },
+    {
+      "group": "integration",
+      "name": "I7 provider default Gemini-first",
+      "ok": true,
+      "detail": "LLM_PROVIDER='gemini'",
+      "evidence": null
+    },
+    {
+      "group": "integration",
+      "name": "I8 gateway masih terkonfigurasi (cadangan)",
+      "ok": true,
+      "detail": "url_set=True",
+      "evidence": null
+    },
+    {
+      "group": "integration",
+      "name": "I9 judge Gemini diskriminatif",
+      "ok": true,
+      "detail": "good=1.0 bad=0.0 (raw '1'/'0')",
+      "evidence": {
+        "good": 1.0,
+        "bad": 0.0
+      }
+    },
+    {
+      "group": "integration",
+      "name": "I10 sapuan 4 tingkat berpikir",
+      "ok": true,
+      "detail": "{\"minimal\": {\"ok\": true, \"elapsed\": 8.56, \"text\": \"Baik, level minimal.\", \"model\": \"gemini-3.5-flash-lite\"}, \"low\": {\"ok\": true, \"elapsed\": 6.56, \"text\": \"lvl-low acknowledged! Le\", \"model\": \"gemini-3",
+      "evidence": {
+        "minimal": {
+          "ok": true,
+          "elapsed": 8.56,
+          "text": "Baik, level minimal.",
+          "model": "gemini-3.5-flash-lite"
+        },
+        "low": {
+          "ok": true,
+          "elapsed": 6.56,
+          "text": "lvl-low acknowledged! Le",
+          "model": "gemini-3.5-flash-lite"
+        },
+        "medium": {
+          "ok": true,
+          "elapsed": 12.69,
+          "text": "lvl-medium",
+          "model": "gemini-3.5-flash-lite"
+        },
+        "high": {
+          "ok": true,
+          "elapsed": 12.04,
+          "text": "lvl-high",
+          "model": "gemini-3.5-flash-lite"
+        }
+      }
+    }
+  ]
+}

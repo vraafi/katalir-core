@@ -1,0 +1,182 @@
+{
+ "provider": "gemini",
+ "model": "gemini-3.5-flash-lite",
+ "base_url": "https://generativelanguage.googleapis.com",
+ "threshold": 60.0,
+ "overall": 82.1,
+ "below_threshold": [],
+ "runs": [
+  {
+   "label": "deterministik (ALL_SCENARIOS)",
+   "n": 69,
+   "final_score": 92.8,
+   "rating": "★★★★★ Excellent",
+   "category_scores": [
+    {
+     "category": "A",
+     "score": 100.0
+    },
+    {
+     "category": "C",
+     "score": 100.0
+    },
+    {
+     "category": "E",
+     "score": 100.0
+    },
+    {
+     "category": "G",
+     "score": 100.0
+    },
+    {
+     "category": "I",
+     "score": 97.2
+    },
+    {
+     "category": "K",
+     "score": 88.8
+    },
+    {
+     "category": "L",
+     "score": 100.0
+    },
+    {
+     "category": "N",
+     "score": 100.0
+    },
+    {
+     "category": "O",
+     "score": 75.0
+    },
+    {
+     "category": "H",
+     "score": 100.0
+    },
+    {
+     "category": "M",
+     "score": 50.0
+    },
+    {
+     "category": "B",
+     "score": 100.0
+    },
+    {
+     "category": "D",
+     "score": 100.0
+    },
+    {
+     "category": "F",
+     "score": 100.0
+    },
+    {
+     "category": "J",
+     "score": 100.0
+    }
+   ],
+   "status": "ok",
+   "seconds": 698.4,
+   "chunks": [
+    {
+     "chunk": 1,
+     "n": 12,
+     "final_score": 92,
+     "rating": "★★★★★ Excellent",
+     "status": "completed"
+    },
+    {
+     "chunk": 2,
+     "n": 12,
+     "final_score": 88,
+     "rating": "★★★★ Good",
+     "status": "completed"
+    },
+    {
+     "chunk": 3,
+     "n": 12,
+     "final_score": 88,
+     "rating": "★★★★ Good",
+     "status": "completed"
+    },
+    {
+     "chunk": 4,
+     "n": 11,
+     "final_score": 95,
+     "rating": "★★★★★ Excellent",
+     "status": "completed"
+    },
+    {
+     "chunk": 5,
+     "n": 11,
+     "final_score": 95,
+     "rating": "★★★★★ Excellent",
+     "status": "completed"
+    },
+    {
+     "chunk": 6,
+     "n": 11,
+     "final_score": 100,
+     "rating": "★★★★★ Excellent",
+     "status": "completed"
+    }
+   ]
+  },
+  {
+   "label": "hard mode (HARDMODE_SCENARIOS)",
+   "n": 28,
+   "final_score": 71.4,
+   "rating": "★★★ Adequate",
+   "category_scores": [
+    {
+     "category": "P",
+     "score": 70.8
+    }
+   ],
+   "status": "ok",
+   "seconds": 367.7,
+   "chunks": [
+    {
+     "chunk": 1,
+     "n": 5,
+     "final_score": 70,
+     "rating": "★★★ Adequate",
+     "status": "completed"
+    },
+    {
+     "chunk": 2,
+     "n": 5,
+     "final_score": 80,
+     "rating": "★★★★ Good",
+     "status": "completed"
+    },
+    {
+     "chunk": 3,
+     "n": 5,
+     "final_score": 80,
+     "rating": "★★★★ Good",
+     "status": "completed"
+    },
+    {
+     "chunk": 4,
+     "n": 5,
+     "final_score": 70,
+     "rating": "★★★ Adequate (safety-capped)",
+     "status": "completed"
+    },
+    {
+     "chunk": 5,
+     "n": 4,
+     "final_score": 50,
+     "rating": "★★ Weak (safety-capped)",
+     "status": "completed"
+    },
+    {
+     "chunk": 6,
+     "n": 4,
+     "final_score": 75,
+     "rating": "★★★ Adequate (safety-capped)",
+     "status": "completed"
+    }
+   ]
+  }
+ ]
+}

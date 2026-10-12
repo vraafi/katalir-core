@@ -1,0 +1,85 @@
+{
+ "pass": 13,
+ "fail": 0,
+ "skip": 0,
+ "results": [
+  {
+   "part": "A1",
+   "name": "backend VPS /katalir-api/health",
+   "verdict": "PASS",
+   "detail": "HTTP 200 {\"status\":\"ok\",\"persistence\":{\"status\":\"persisted\",\"backend\":\"supabase\",\"url\":\"h"
+  },
+  {
+   "part": "A1",
+   "name": "backend VPS /version",
+   "verdict": "PASS",
+   "detail": "HTTP 200"
+  },
+  {
+   "part": "A2",
+   "name": "klaim JWT (sub/email)",
+   "verdict": "PASS",
+   "detail": "user_id=f90ef262-14b… email=otonom-test@katalir-internal.dev"
+  },
+  {
+   "part": "A2",
+   "name": "Supabase asli tulis->baca workflow",
+   "verdict": "PASS",
+   "detail": "id=df046445-650…"
+  },
+  {
+   "part": "A3",
+   "name": "Gemini langsung chat nyata",
+   "verdict": "PASS",
+   "detail": "model=gemini-3.5-flash-lite key=GEMINI_KEY_2#a634dfdd 9.5s content='OK'"
+  },
+  {
+   "part": "A4",
+   "name": "Gemini tool-calling nyata",
+   "verdict": "PASS",
+   "detail": "model=gemini-3.5-flash-lite function_calls=['get_weather'] text=''"
+  },
+  {
+   "part": "A5",
+   "name": "gateway lama masih hidup (cadangan)",
+   "verdict": "PASS",
+   "detail": "HTTP 200 content='Baik! Ada yang bisa saya'"
+  },
+  {
+   "part": "B1",
+   "name": "POST /chat (VPS nyata, Gemini-first)",
+   "verdict": "PASS",
+   "detail": "HTTP 200 reply='Pong! Sistem siap beroperasi dan terhubu'"
+  },
+  {
+   "part": "B2",
+   "name": "POST /workflows/{id}/execute",
+   "verdict": "PASS",
+   "detail": "HTTP 202 {\"execution_id\":\"d14bf868-2ac9-4751-8b65-621a83eef3d9\",\"workflow_id\":\"df046445-6"
+  },
+  {
+   "part": "B2",
+   "name": "baris `executions` Supabase asli",
+   "verdict": "PASS",
+   "detail": "exec_id=d14bf868-2ac…"
+  },
+  {
+   "part": "B3",
+   "name": "cron buat + baca (DB nyata)",
+   "verdict": "PASS",
+   "detail": "create=201 get=200"
+  },
+  {
+   "part": "B4",
+   "name": "hapus workflow uji (bersih-bersih)",
+   "verdict": "PASS",
+   "detail": "HTTP 200"
+  },
+  {
+   "part": "C",
+   "name": "screenshot UI produksi",
+   "verdict": "PASS",
+   "detail": "e2e-dashboard.png 7716 bytes"
+  }
+ ]
+}

@@ -20,6 +20,7 @@
 #   fitur tetap jalan tanpa memaksa migration ke database produksi.
 
 import os
+import random
 import re
 import time
 import uuid as _uuid
@@ -202,16 +203,35 @@ def _is_transient_net(exc: BaseException) -> bool:
     return type(exc).__name__ in _TRANSIENT_NET_NAMES
 
 
+# FIX 2026-10-12 (Brief 7, bug "transient Supabase error"):
+# Percobaan ulang transien dinaikkan dari 1 -> 3 dengan backoff EKSPONENSIAL +
+# jitter. Akar masalah: log produksi memuat 58x `RemoteProtocolError: Server
+# disconnected` dalam satu burst 10 request konkuren — retry tunggal dengan
+# jeda tetap 0.25 s TIDAK cukup, karena pooler Supabase menutup beberapa
+# keep-alive sekaligus dan pemulihannya butuh >0.25 s. Jitter mencegah
+# thundering herd (semua request retry pada milidetik yang sama).
+_TRANSIENT_ATTEMPTS = int(os.getenv("SUPABASE_TRANSIENT_ATTEMPTS", "3"))
+_TRANSIENT_BACKOFF_BASE = float(os.getenv("SUPABASE_TRANSIENT_BACKOFF", "0.2"))
+_TRANSIENT_BACKOFF_MAX = float(os.getenv("SUPABASE_TRANSIENT_BACKOFF_MAX", "2.0"))
+
+
+def _transient_backoff(attempt: int) -> float:
+    """Jeda percobaan ulang: 0.2s, 0.4s, 0.8s (cap 2s) + jitter 0..50%."""
+    base = min(_TRANSIENT_BACKOFF_BASE * (2 ** attempt), _TRANSIENT_BACKOFF_MAX)
+    return base + random.uniform(0, base * 0.5)
+
+
 def _wrap_write(fn, context, retry_transient: bool = False):
     """Bungkus pemanggilan .execute(): APIError -> HTTPException terpetakan,
     exception lain -> propagate (akan di-log full stack di endpoint).
 
-    `retry_transient=True` (FIX 2026-10-11) mengulang SEKALI bila gagal karena
-    gangguan transport (`_is_transient_net`). HANYA dipakai untuk operasi
-    IDEMPOTEN (SELECT / UPSERT) — jangan untuk INSERT biasa, karena "Server
-    disconnected" tidak menjamin baris belum masuk.
+    `retry_transient=True` (FIX 2026-10-11, diperkuat 2026-10-12) mengulang
+    `SUPABASE_TRANSIENT_ATTEMPTS` kali (default 3) dengan backoff eksponensial
+    + jitter bila gagal karena gangguan transport (`_is_transient_net`). HANYA
+    dipakai untuk operasi IDEMPOTEN (SELECT / UPSERT) — jangan untuk INSERT
+    biasa, karena "Server disconnected" tidak menjamin baris belum masuk.
     """
-    attempts = 2 if retry_transient else 1
+    attempts = _TRANSIENT_ATTEMPTS if retry_transient else 1
     for attempt in range(attempts):
         try:
             return fn()
@@ -220,9 +240,11 @@ def _wrap_write(fn, context, retry_transient: bool = False):
             if isinstance(exc, (HTTPException, RuntimeError)):
                 raise
             if retry_transient and attempt + 1 < attempts and _is_transient_net(exc):
+                delay = _transient_backoff(attempt)
                 print(f"[{context}] {type(exc).__name__} (transien) -> "
-                      f"percobaan ulang {attempt + 2}/{attempts}")
-                time.sleep(0.25)
+                      f"percobaan ulang {attempt + 2}/{attempts} dalam "
+                      f"{delay:.2f}s")
+                time.sleep(delay)
                 continue
             try:
                 from postgrest.exceptions import APIError

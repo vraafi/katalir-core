@@ -1,0 +1,26 @@
+<!doctype html><html><head><meta charset="utf-8"><style>
+body{background:#0b1020;color:#e6edf7;font:14px/1.5 ui-monospace,Consolas,monospace;padding:28px}
+h1{font-size:20px;margin:0 0 4px} .sub{color:#8ea3c0;margin-bottom:18px}
+.cards{display:flex;gap:14px;margin:18px 0}
+.card{background:#141c33;border:1px solid #24304f;border-radius:10px;padding:14px 18px;min-width:120px}
+.card b{display:block;font-size:26px;margin-top:4px}
+.ok{color:#38d39f} .warn{color:#f5c451} .bad{color:#ff6b6b}
+table{border-collapse:collapse;width:100%;margin-top:10px}
+th,td{border-bottom:1px solid #24304f;padding:7px 10px;text-align:left}
+th{color:#8ea3c0;font-weight:600} .cooling{color:#f5c451} .active{color:#38d39f}
+.failing{color:#ff6b6b} .degraded{color:#f5c451}
+.badge{display:inline-block;padding:3px 10px;border-radius:999px;font-size:12px;
+background:#123a2b;color:#38d39f}
+</style></head><body>
+<h1>GET /health/llm &mdash; Katalir Gemini pool</h1>
+<div class="sub">provider=<b>gemini</b> &middot; gateway_configured=True
+ &middot; ambang=3</div>
+<div class="cards">
+  <div class="card">kunci sehat<b class="ok">13/13</b></div>
+  <div class="card">cooling<b class="warn">0</b></div>
+  <div class="card">pasangan diblokir<b class="warn">0</b></div>
+  <div class="card">status<b class="ok">SEHAT</b></div>
+</div>
+<div><span class="badge">healthy &gt;= threshold</span></div>
+<table><tr><th>kunci</th><th>status</th><th>probe nyata</th><th>cooldown</th></tr><tr><td>GEMINI_KEY_1</td><td class='active'>active</td><td>ok</td><td>0.0s</td></tr><tr><td>GEMINI_KEY_2</td><td class='active'>active</td><td>ok</td><td>0.0s</td></tr><tr><td>GEMINI_KEY_3</td><td class='active'>active</td><td>ok</td><td>0.0s</td></tr><tr><td>GEMINI_KEY_4</td><td class='active'>active</td><td>ok</td><td>0.0s</td></tr><tr><td>GEMINI_KEY_5</td><td class='active'>active</td><td>ok</td><td>0.0s</td></tr><tr><td>GEMINI_KEY_6</td><td class='failing'>failing</td><td>unknown</td><td>0.0s</td></tr><tr><td>GEMINI_KEY_7</td><td class='active'>active</td><td>ok</td><td>0.0s</td></tr><tr><td>GEMINI_KEY_8</td><td class='active'>active</td><td>ok</td><td>0.0s</td></tr><tr><td>GEMINI_KEY_9</td><td class='active'>active</td><td>ok</td><td>0.0s</td></tr><tr><td>GEMINI_KEY_10</td><td class='active'>active</td><td>ok</td><td>0.0s</td></tr><tr><td>GEMINI_KEY_11</td><td class='active'>active</td><td>ok</td><td>0.0s</td></tr><tr><td>GEMINI_KEY_12</td><td class='active'>active</td><td>ok</td><td>0.0s</td></tr><tr><td>GEMINI_KEY_13</td><td class='active'>active</td><td>ok</td><td>0.0s</td></tr></table>
+</body></html>

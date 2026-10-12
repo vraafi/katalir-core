@@ -1,0 +1,26 @@
+==============================================================================
+FASE 3 - 30 UJI KERAS MIGRASI GEMINI
+==============================================================================
+
+=== GRUP DASAR (10) ===
+  [PASS] B1 single_prompt                   model=gemini-3.5-flash-lite 6.13s text='Ping!'
+  [PASS] B2 MODEL_CHAIN matches brief       ['gemini-3.8-flash', 'gemini-3.5-flash-lite', 'gemini-2.5-flash-lite', 'gemini-2.5-flash', 'gemma-4-31b-it']
+  [PASS] B3 RotatorConfig per brief         {'rpm_per_key': 10, 'cooldown_base_seconds': 60.0, 'cooldown_max_seconds': 1800.0, 'max_concurrent_per_key': 3, 'max_retries': 4, 'retry_delay_seconds': 1.0}
+  [PASS] B4 thinking budget (3.8-flash)     budget=512
+  [PASS] B5 thinking level (3.5-flash-lite) level=ThinkingLevel.LOW
+  [PASS] B6 no thinking block (gemma)       None
+  [PASS] B7 health_check shallow            healthy=13/13 alert=False
+  [PASS] B8 429 -> rotate key (deterministik) key=SYNTH_B#591e59ce kinds=['rate_limited', 'ok']
+  [PASS] B9 fallback ke model berikutnya    model=gemini-3.5-flash-lite attempts=2
+  [PASS] B10 system_instruction dihormati   text='JAKARTA'
+
+=== GRUP KONKUREN (10) ===
+  [PASS] C1 burst n=1 workers=1             1/1 rate=1.0 6.29s (rate>=0.90)
+  [PASS] C2 burst n=2 workers=2             2/2 rate=1.0 4.94s (rate>=0.90)
+  [PASS] C3 burst n=4 workers=4             4/4 rate=1.0 6.11s (rate>=0.90)
+  [FAIL] C4 burst n=8 workers=8             5/8 rate=0.625 61.45s (rate>=0.90)
+  [FAIL] C5 burst n=12 workers=8            0/12 rate=0.0 160.02s (rate>=0.90)
+  [FAIL] C6 burst n=16 workers=12           0/16 rate=0.0 160.02s (rate>=0.90)
+  [FAIL] C7 burst n=24 workers=16           0/24 rate=0.0 160.03s (rate>=0.90)
+  [FAIL] C8 burst n=32 workers=20           0/32 rate=0.0 160.05s (rate>=0.90)
+  [FAIL] C9 burst n=64 workers=32           0/64 rate=0.0 160.16s (rate>=0.90)

@@ -1,0 +1,20 @@
+[
+  {
+    "n": 32,
+    "workers": 20,
+    "ok": 32,
+    "fail": 0,
+    "rate": 1.0,
+    "elapsed_s": 54.54,
+    "sample_fail_kinds": []
+  },
+  {
+    "n": 100,
+    "workers": 40,
+    "ok": 100,
+    "fail": 0,
+    "rate": 1.0,
+    "elapsed_s": 60.08,
+    "sample_fail_kinds": []
+  }
+]
