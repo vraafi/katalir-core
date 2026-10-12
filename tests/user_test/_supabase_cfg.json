@@ -1,0 +1,7 @@
+{
+ "supabase_url": "https://qmukkphwaajzbqjrcvaz.supabase.co",
+ "anon_key": null,
+ "api_urls": [
+  "https://web-production-dc90b.up.railway.app"
+ ]
+}

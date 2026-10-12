@@ -1,0 +1,245 @@
+[
+ {
+  "viewport": "320x568",
+  "w": 320,
+  "h": 568,
+  "desc": "iPhone 5/SE kecil",
+  "load_s": 22.1,
+  "composer_exists": true,
+  "composer_visible": true,
+  "composer_box": {
+   "x": 33,
+   "y": 467,
+   "width": 254,
+   "height": 24
+  },
+  "composer_in_viewport": true,
+  "element_at_composer_center": "TEXTAREA.col-span-2 col-start-1 row-start-1 min-h",
+  "composer_clickable": true,
+  "scroll_w": 320,
+  "client_w": 320,
+  "h_overflow_px": 0,
+  "buttons_total": 9,
+  "buttons_under_44": 0,
+  "sample_small": [],
+  "send_s": 25.44,
+  "send_reply_present": false,
+  "send_body_len": 146,
+  "screenshot": "C:\\Users\\user\\Proyek_AI\\docs\\evidence\\user-test\\mobile-320x568.png",
+  "console_errors": [
+   {
+    "t": "error",
+    "x": "Connecting to 'https://web-production-dc90b.up.railway.app/models' violates the following Content Security Policy directive: \"connect-src 'self' https://gateway"
+   },
+   {
+    "t": "error",
+    "x": "Fetch API cannot load https://web-production-dc90b.up.railway.app/models. Refused to connect because it violates the document's Content Security Policy."
+   },
+   {
+    "t": "error",
+    "x": "Connecting to 'https://web-production-dc90b.up.railway.app/sessions' violates the following Content Security Policy directive: \"connect-src 'self' https://gatew"
+   },
+   {
+    "t": "error",
+    "x": "Fetch API cannot load https://web-production-dc90b.up.railway.app/sessions. Refused to connect because it violates the document's Content Security Policy."
+   },
+   {
+    "t": "error",
+    "x": "Connecting to 'https://web-production-dc90b.up.railway.app/quota' violates the following Content Security Policy directive: \"connect-src 'self' https://gateway."
+   },
+   {
+    "t": "error",
+    "x": "Fetch API cannot load https://web-production-dc90b.up.railway.app/quota. Refused to connect because it violates the document's Content Security Policy."
+   }
+  ]
+ },
+ {
+  "viewport": "375x667",
+  "w": 375,
+  "h": 667,
+  "desc": "iPhone SE (WAJIB)",
+  "load_s": 5.32,
+  "composer_exists": true,
+  "composer_visible": true,
+  "composer_box": {
+   "x": 33,
+   "y": 566,
+   "width": 309,
+   "height": 24
+  },
+  "composer_in_viewport": true,
+  "element_at_composer_center": "TEXTAREA.col-span-2 col-start-1 row-start-1 min-h",
+  "composer_clickable": true,
+  "scroll_w": 375,
+  "client_w": 375,
+  "h_overflow_px": 0,
+  "buttons_total": 9,
+  "buttons_under_44": 0,
+  "sample_small": [],
+  "send_s": 25.06,
+  "send_reply_present": false,
+  "send_body_len": 146,
+  "screenshot": "C:\\Users\\user\\Proyek_AI\\docs\\evidence\\user-test\\mobile-375x667.png",
+  "console_errors": [
+   {
+    "t": "error",
+    "x": "Connecting to 'https://web-production-dc90b.up.railway.app/models' violates the following Content Security Policy directive: \"connect-src 'self' https://gateway"
+   },
+   {
+    "t": "error",
+    "x": "Fetch API cannot load https://web-production-dc90b.up.railway.app/models. Refused to connect because it violates the document's Content Security Policy."
+   },
+   {
+    "t": "error",
+    "x": "Connecting to 'https://web-production-dc90b.up.railway.app/sessions' violates the following Content Security Policy directive: \"connect-src 'self' https://gatew"
+   },
+   {
+    "t": "error",
+    "x": "Fetch API cannot load https://web-production-dc90b.up.railway.app/sessions. Refused to connect because it violates the document's Content Security Policy."
+   },
+   {
+    "t": "error",
+    "x": "Connecting to 'https://web-production-dc90b.up.railway.app/quota' violates the following Content Security Policy directive: \"connect-src 'self' https://gateway."
+   },
+   {
+    "t": "error",
+    "x": "Fetch API cannot load https://web-production-dc90b.up.railway.app/quota. Refused to connect because it violates the document's Content Security Policy."
+   }
+  ]
+ },
+ {
+  "viewport": "768x1024",
+  "w": 768,
+  "h": 1024,
+  "desc": "iPad portrait",
+  "load_s": 5.12,
+  "composer_exists": true,
+  "composer_visible": true,
+  "composer_box": {
+   "x": 420.8125,
+   "y": 925,
+   "width": 270.1875,
+   "height": 72
+  },
+  "composer_in_viewport": true,
+  "element_at_composer_center": "TEXTAREA.col-span-2 col-start-1 row-start-1 min-h",
+  "composer_clickable": true,
+  "scroll_w": 768,
+  "client_w": 768,
+  "h_overflow_px": 0,
+  "buttons_total": 9,
+  "buttons_under_44": 3,
+  "sample_small": [
+   {
+    "text": "",
+    "w": 36,
+    "h": 36
+   },
+   {
+    "text": "",
+    "w": 34,
+    "h": 36
+   },
+   {
+    "text": "",
+    "w": 36,
+    "h": 36
+   }
+  ],
+  "send_s": 25.1,
+  "send_reply_present": false,
+  "send_body_len": 232,
+  "screenshot": "C:\\Users\\user\\Proyek_AI\\docs\\evidence\\user-test\\mobile-768x1024.png",
+  "console_errors": [
+   {
+    "t": "error",
+    "x": "Connecting to 'https://web-production-dc90b.up.railway.app/models' violates the following Content Security Policy directive: \"connect-src 'self' https://gateway"
+   },
+   {
+    "t": "error",
+    "x": "Fetch API cannot load https://web-production-dc90b.up.railway.app/models. Refused to connect because it violates the document's Content Security Policy."
+   },
+   {
+    "t": "error",
+    "x": "Connecting to 'https://web-production-dc90b.up.railway.app/sessions' violates the following Content Security Policy directive: \"connect-src 'self' https://gatew"
+   },
+   {
+    "t": "error",
+    "x": "Fetch API cannot load https://web-production-dc90b.up.railway.app/sessions. Refused to connect because it violates the document's Content Security Policy."
+   },
+   {
+    "t": "error",
+    "x": "Connecting to 'https://web-production-dc90b.up.railway.app/quota' violates the following Content Security Policy directive: \"connect-src 'self' https://gateway."
+   },
+   {
+    "t": "error",
+    "x": "Fetch API cannot load https://web-production-dc90b.up.railway.app/quota. Refused to connect because it violates the document's Content Security Policy."
+   }
+  ]
+ },
+ {
+  "viewport": "1440x900",
+  "w": 1440,
+  "h": 900,
+  "desc": "desktop",
+  "load_s": 5.91,
+  "composer_exists": true,
+  "composer_visible": true,
+  "composer_box": {
+   "x": 608.8125,
+   "y": 801,
+   "width": 566.1875,
+   "height": 72
+  },
+  "composer_in_viewport": true,
+  "element_at_composer_center": "TEXTAREA.col-span-2 col-start-1 row-start-1 min-h",
+  "composer_clickable": true,
+  "scroll_w": 1440,
+  "client_w": 1440,
+  "h_overflow_px": 0,
+  "buttons_total": 9,
+  "buttons_under_44": 2,
+  "sample_small": [
+   {
+    "text": "",
+    "w": 36,
+    "h": 36
+   },
+   {
+    "text": "",
+    "w": 36,
+    "h": 36
+   }
+  ],
+  "send_s": 25.09,
+  "send_reply_present": false,
+  "send_body_len": 262,
+  "screenshot": "C:\\Users\\user\\Proyek_AI\\docs\\evidence\\user-test\\mobile-1440x900.png",
+  "console_errors": [
+   {
+    "t": "error",
+    "x": "Connecting to 'https://web-production-dc90b.up.railway.app/models' violates the following Content Security Policy directive: \"connect-src 'self' https://gateway"
+   },
+   {
+    "t": "error",
+    "x": "Fetch API cannot load https://web-production-dc90b.up.railway.app/models. Refused to connect because it violates the document's Content Security Policy."
+   },
+   {
+    "t": "error",
+    "x": "Connecting to 'https://web-production-dc90b.up.railway.app/sessions' violates the following Content Security Policy directive: \"connect-src 'self' https://gatew"
+   },
+   {
+    "t": "error",
+    "x": "Fetch API cannot load https://web-production-dc90b.up.railway.app/sessions. Refused to connect because it violates the document's Content Security Policy."
+   },
+   {
+    "t": "error",
+    "x": "Connecting to 'https://web-production-dc90b.up.railway.app/quota' violates the following Content Security Policy directive: \"connect-src 'self' https://gateway."
+   },
+   {
+    "t": "error",
+    "x": "Fetch API cannot load https://web-production-dc90b.up.railway.app/quota. Refused to connect because it violates the document's Content Security Policy."
+   }
+  ]
+ }
+]

@@ -1,0 +1,38 @@
+{
+ "aspects": {
+  "loading_time": {
+   "score": 2,
+   "evidence": "rata-rata muat halaman 9.6s; rata-rata balasan chat 46.4s (target balasan <30s)"
+  },
+  "clarity": {
+   "score": 2,
+   "evidence": "7/18 layar memakai kosakata Indonesia yang jelas; 1 layar memakai teks menyesatkan 'Koneksi lambat. Cek internetmu.'"
+  },
+  "error_message": {
+   "score": 4,
+   "evidence": "ramah=True, tombol coba-lagi=True, jujur=False (pesan menyalahkan internet pengguna, bukan blokir CSP)"
+  },
+  "responsiveness": {
+   "score": 5,
+   "evidence": "4/4 viewport bersih (composer terlihat+dapat diklik, tanpa overflow horizontal); target sentuh >=44px di mobile=True"
+  },
+  "consistency": {
+   "score": 3,
+   "evidence": "9/16 rute 200; kontrak API_URL frontend tidak cocok dengan CSP (host lama)"
+  }
+ },
+ "overall": 3.2,
+ "target": 4.0,
+ "aspects_below_target": [
+  "loading_time",
+  "clarity",
+  "consistency"
+ ],
+ "verdict": "FAIL",
+ "input_files": [
+  "_user_test_results.json",
+  "_mobile_results.json",
+  "_recon.json",
+  "_shopee_results.json"
+ ]
+}

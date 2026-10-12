@@ -1,0 +1,796 @@
+{
+ "api": "https://gateway.katalir.de5.net/katalir-api",
+ "model_path": "backend /chat (FASE A) + model mentah Gemini (judge)",
+ "threshold": 0.7,
+ "dimensions": [
+  "helpful",
+  "actionable",
+  "intent",
+  "expectation"
+ ],
+ "pace_s": 7.0,
+ "note": "Frontend rusak (CSP/API_URL lama); mutu jawaban diukur lewat backend langsung. Judge dikalibrasi dengan 3 jangkar.",
+ "transcripts": [
+  {
+   "tag": "S1  onboarding",
+   "prompt": "Halo, saya baru daftar. Apa yang bisa Katalir lakukan?",
+   "status": 200,
+   "ms": 19638,
+   "model": "gemini-3.5-flash-lite",
+   "reply": "Halo! Selamat datang di Katalir. \n\nKatalir adalah platform otomatisasi alur kerja (workflow automation) berbasis agen pintar yang membantu Anda menghubungkan berbagai aplikasi dan layanan dengan mudah. \n\nBeberapa hal utama yang bisa Katalir lakukan untuk Anda:\n1. **Membuat Workflow Otomatis:** Menghubungkan berbagai *trigger* (pemicu) dan aksi (seperti mengirim pesan ke Telegram/Slack, membaca email, menulis ke Google Sheets, atau memanggil API HTTP).\n2. **Otomasi Berbasis AI & Agent:** Menjalankan tugas kompleks dengan agen cerdas, termasuk kemampuan bercabang (Kondisi/IF), memproses data dalam batch, hingga delegasi multi-agen (Supervisor).\n3. **Integrasi Layanan:** Berinteraksi langsung dengan Gmail, Google Sheets, Google Calendar, Telegram, Slack, Supabase, dan banyak lagi melalui sistem kredensial yang aman.\n\nAda alur kerja, laporan, atau otomatisasi khusus yang ingin Anda buat hari ini? Ceritakan saja kebutuhan Anda, dan saya akan bantu buatkan!",
+   "error": null,
+   "workflow_nodes": 0,
+   "workflow_edges": 0,
+   "deterministic": {
+    "len": 965,
+    "words": 128,
+    "steps": 3,
+    "placeholders": 0,
+    "entities_prompt": [],
+    "entities_covered": [],
+    "entity_cover_ratio": null,
+    "nodes": 0,
+    "edges": 0,
+    "non_empty": true
+   },
+   "judge": {
+    "helpful": 1.0,
+    "actionable": 1.0,
+    "intent": 1.0,
+    "expectation": 1.0,
+    "alasan": "Menjelaskan fitur Katalir dengan sangat jelas dan menawarkan bantuan konkret untuk membuat workflow.",
+    "model": "gemini-3.5-flash-lite"
+   },
+   "judge_mean": 1.0,
+   "pass": true
+  },
+  {
+   "tag": "S2  chat pertama",
+   "prompt": "Jelaskan singkat cara membuat agent pertama saya.",
+   "status": 200,
+   "ms": 10821,
+   "model": "gemini-3.5-flash-lite",
+   "reply": "Untuk membuat agent pertama Anda di Katalir, ikuti langkah-langkah singkat berikut:\n\n1. **Buka Canvas Katalir**: Buat atau buka project baru Anda untuk masuk ke area kerja visual (canvas).\n2. **Tambahkan Node Trigger (Pemicu)**: Letakkan node pemicu di awal alur (misalnya pemicu jadwal, webhook, atau email masuk) untuk menentukan kapan agent Anda mulai aktif.\n3. **Tambahkan Node Agent**: Hubungkan node pemicu ke node jenis **Agent**. Di sini Anda bisa menuliskan instruksi (*prompt*) atau peran untuk agent Anda (misalnya: *\"Bertindaklah sebagai asisten yang merangkum pesan masuk\"*).\n4. **Hubungkan ke Node MCP (Aksi)**: Sambungkan agent ke node MCP penyedia tujuan (seperti Telegram, Slack, Gmail, atau Google Sheets) untuk mengirimkan hasil kerja agent tersebut. Jangan lupa isi detail tujuan atau *placeholder* (seperti `{{chat_id}}`) pada konfigurasinya.\n5. **Simpan dan Uji**: Simpan workflow Anda dan jalankan uji coba untuk melihat agent Anda bekerja secara otomatis!",
+   "error": null,
+   "workflow_nodes": 0,
+   "workflow_edges": 0,
+   "deterministic": {
+    "len": 979,
+    "words": 139,
+    "steps": 5,
+    "placeholders": 1,
+    "entities_prompt": [],
+    "entities_covered": [],
+    "entity_cover_ratio": null,
+    "nodes": 0,
+    "edges": 0,
+    "non_empty": true
+   },
+   "judge": {
+    "helpful": 1.0,
+    "actionable": 1.0,
+    "intent": 1.0,
+    "expectation": 1.0,
+    "alasan": "Menjelaskan langkah pembuatan agent dengan sangat jelas, konkret, dan sesuai platform.",
+    "model": "gemini-3.5-flash-lite"
+   },
+   "judge_mean": 1.0,
+   "pass": true
+  },
+  {
+   "tag": "S3  build workflow",
+   "prompt": "Buat workflow: kirim pesan Telegram setiap ada email baru.",
+   "status": 200,
+   "ms": 12459,
+   "model": "gemini-3.5-flash-lite",
+   "reply": "Saya telah membuatkan workflow **Kirim Telegram Saat Email Baru** yang terdiri dari 3 node:\n\n1. **Email Baru (IMAP)**: Memicu alur setiap ada email masuk baru di Gmail Anda.\n2. **Agent Pemroses**: Meringkas isi email masuk secara otomatis.\n3. **Kirim Telegram**: Mengirimkan hasil ringkasan email ke Telegram.\n\nSilakan lengkapi kredensial **Gmail (App Password)** dan **Telegram Bot** Anda yang diperlukan, serta pastikan untuk mengisi `chat_id` tujuan di kanvas.",
+   "error": null,
+   "workflow_nodes": 3,
+   "workflow_edges": 2,
+   "deterministic": {
+    "len": 463,
+    "words": 66,
+    "steps": 3,
+    "placeholders": 0,
+    "entities_prompt": [
+     "telegram",
+     "email"
+    ],
+    "entities_covered": [
+     "telegram",
+     "email"
+    ],
+    "entity_cover_ratio": 1.0,
+    "nodes": 3,
+    "edges": 2,
+    "non_empty": true
+   },
+   "judge": {
+    "helpful": 0.9,
+    "actionable": 0.8,
+    "intent": 1.0,
+    "expectation": 0.9,
+    "alasan": "Menjelaskan workflow yang tepat, langkah konfigurasi, dan kredensial yang dibutuhkan.",
+    "model": "gemini-2.5-flash-lite"
+   },
+   "judge_mean": 0.9,
+   "pass": true
+  },
+  {
+   "tag": "S4  history",
+   "prompt": "Apa saja yang kita bicarakan sebelumnya?",
+   "status": 200,
+   "ms": 9163,
+   "model": "gemini-3.5-flash-lite",
+   "reply": "Ini adalah awal dari sesi percakapan kita yang baru, jadi kita belum memiliki riwayat diskusi sebelumnya. \n\nAda yang bisa saya bantu hari ini? Misalnya membuat workflow otomatisasi, mengirim pesan, membaca email, atau mengelola data? Silakan beri tahu saya!",
+   "error": null,
+   "workflow_nodes": 0,
+   "workflow_edges": 0,
+   "deterministic": {
+    "len": 257,
+    "words": 38,
+    "steps": 0,
+    "placeholders": 0,
+    "entities_prompt": [],
+    "entities_covered": [],
+    "entity_cover_ratio": null,
+    "nodes": 0,
+    "edges": 0,
+    "non_empty": true
+   },
+   "judge": {
+    "helpful": 1.0,
+    "actionable": 1.0,
+    "intent": 1.0,
+    "expectation": 1.0,
+    "alasan": "Asisten menjawab dengan akurat bahwa ini sesi baru dan menawarkan bantuan lanjutan.",
+    "model": "gemini-3.5-flash-lite"
+   },
+   "judge_mean": 1.0,
+   "pass": true
+  },
+  {
+   "tag": "S5  credential",
+   "prompt": "Bagaimana cara menyimpan API key OpenAI dengan aman?",
+   "status": 200,
+   "ms": 9589,
+   "model": "gemini-3.5-flash-lite",
+   "reply": "Untuk menyimpan API key OpenAI dengan aman, ikuti praktik terbaik berikut:\n\n1. **Gunakan Environment Variables (Variabel Lingkungan)**\n   Simpan kunci API di luar kode sumber (source code) Anda. Gunakan file `.env` untuk pengembangan lokal, dan pastikan Anda memasukkan file `.env` ke dalam `.gitignore` agar tidak terunggah ke GitHub atau sistem kontrol versi lainnya.\n\n2. **Gunakan Secret Manager (Untuk Produksi)**\n   Untuk aplikasi skala produksi, gunakan layanan manajemen rahasia yang aman seperti:\n   - **AWS Secrets Manager** atau **Parameter Store**\n   - **Google Cloud Secret Manager**\n   - **Azure Key Vault**\n   - **Vercel / Netlify Environment Variables** (jika menggunakan platform tersebut)\n\n3. **Batasi Ruang Lingkup dan Akses (Scope & Permissions)**\n   Jika memungkinkan, buat akun atau organisasi terpisah, dan batasi kunci API hanya untuk layanan atau proyek yang membutuhkannya.\n\n4. **Atur Limit Penggunaan (Usage Limits & Billing Alerts)**\n   Selalu pasang batas pengeluaran (spending limits) di akun OpenAI Anda untuk menghindari tagihan yang tidak terduga jika kunci API Anda tidak sengaja bocor.\n\n5. **Rotasi Kunci Secara Berkala**\n   Secara berkala, buat kunci API baru, perbarui aplikasi Anda, dan hapus kunci lama yang sudah tidak digunakan.\n\n6. **Jangan Pernah Hardcode**\n   Jangan pernah menulis kunci API secara langsung di dalam kode program (seperti `OPENAI_API_KEY = \"sk-...\"`) karena sangat rentan terekspos.",
+   "error": null,
+   "workflow_nodes": 0,
+   "workflow_edges": 0,
+   "deterministic": {
+    "len": 1442,
+    "words": 199,
+    "steps": 10,
+    "placeholders": 0,
+    "entities_prompt": [
+     "api key"
+    ],
+    "entities_covered": [
+     "api key"
+    ],
+    "entity_cover_ratio": 1.0,
+    "nodes": 0,
+    "edges": 0,
+    "non_empty": true
+   },
+   "judge": {
+    "helpful": 1.0,
+    "actionable": 1.0,
+    "intent": 1.0,
+    "expectation": 1.0,
+    "alasan": "Jawaban sangat jelas, lengkap, dan memberikan langkah konkret untuk keamanan API key.",
+    "model": "gemini-3.5-flash-lite"
+   },
+   "judge_mean": 1.0,
+   "pass": true
+  },
+  {
+   "tag": "S6  template",
+   "prompt": "Rekomendasikan template untuk notifikasi order e-commerce.",
+   "status": 200,
+   "ms": 14473,
+   "model": "gemini-3.5-flash-lite",
+   "reply": "Berikut adalah rekomendasi template untuk **Notifikasi Order E-commerce** yang dapat digunakan secara fleksibel untuk berbagai kebutuhan (baik dikirimkan via WhatsApp, Telegram, Slack, maupun Email):\n\n### 1. Template Notifikasi Pesanan Baru (Untuk Penjual / Admin)\n> **Digunakan saat:** Ada customer yang berhasil melakukan *checkout* dan pembayaran.\n> * **Subjek/Judul:** 🔔 Pesanan Baru Masuk - `#{{order_id}}`\n> * **Isi Pesan:**\n>   > Halo Tim Operasional,\n>   > \n>   > Ada pesanan baru yang perlu diproses!\n>   > \n>   > * **No. Order:** `#{{order_id}}`\n>   > * **Nama Pembeli:** `{{customer_name}}`\n>   > * **Waktu Pesanan:** `{{order_time}}`\n>   > * **Total Belanja:** `Rp {{total_amount}}`\n>   > * **Metode Pembayaran:** `{{payment_method}}`\n>   > \n>   > **Ringkasan Produk:**\n>   > `{{order_items}}`\n>   > \n>   > Silakan segera proses pesanan ini dan update status pengirimannya di sistem. Terima kasih!\n\n---\n\n### 2. Template Konfirmasi Pesanan (Untuk Pembeli / Customer)\n> **Digunakan saat:** Customer selesai melakukan pemesanan (bisa dikirim via WhatsApp atau Email).\n> * **Subjek/Judul:** Terima kasih atas pesanan Anda! 🎉 (`#{{order_id}}`)\n> * **Isi Pesan:**\n>   > Halo `{{customer_name}}`,\n>   > \n>   > Terima kasih telah berbelanja di toko kami! Pesanan Anda dengan nomor **`#{{order_id}}`** telah kami terima dan sedang disiapkan.\n>   > \n>   > 📦 **Detail Pengiriman:**\n>   > * **Alamat:** `{{shipping_address}}`\n>   > * **Kurir:** `{{courier_name}}`\n>   > \n>   > Anda dapat melacak status pesanan Anda melalui tautan berikut: `{{tracking_url}}`\n>   > \n>   > Jika ada pertanyaan, silakan balas pesan ini. Selamat beraktivitas kembali!\n\n---\n\n### 3. Template Update Resi Pengiriman (Untuk Pembeli)\n> **Digunakan saat:** Barang sudah dikirim dan nomor resi dari kurir sudah tersedia.\n> * **Subjek/Judul:** Pesanan Anda Sedang Dikirim! 🚚 (`#{{order_id}}`)\n> * **Isi Pesan:**\n>   > Halo `{{customer_name}}`,\n>   > \n>   > Kabar baik! Pesanan Anda (`#{{order_id}}`) telah diserahkan ke kurir **`{{courier_name}}`** dengan nomor resi:\n>   > \n>   > 🔍 **No. Resi:** `{{tracking_number}}`\n>   > \n>   > Anda bisa melacak perjalanan paket Anda secara berkala. Terima kasih telah mempercayai toko kami!\n\n---\n\n💡 **Mau otomatisasi notifikasi ini?**\nJika Anda ingin membuatkan workflow otomatis (misalnya: *Setiap ada pesanan baru masuk ke Google Sheets / Database, otomatis kirim notifikasi ke Telegram atau WhatsApp*), beri tahu saya dan kita bisa langsung buatkan sistemnya!",
+   "error": null,
+   "workflow_nodes": 0,
+   "workflow_edges": 0,
+   "deterministic": {
+    "len": 2473,
+    "words": 361,
+    "steps": 0,
+    "placeholders": 18,
+    "entities_prompt": [
+     "order",
+     "template"
+    ],
+    "entities_covered": [
+     "order",
+     "template"
+    ],
+    "entity_cover_ratio": 1.0,
+    "nodes": 0,
+    "edges": 0,
+    "non_empty": true
+   },
+   "judge": {
+    "helpful": 1.0,
+    "actionable": 1.0,
+    "intent": 1.0,
+    "expectation": 1.0,
+    "alasan": "Template lengkap, siap pakai dengan variabel jelas untuk admin dan pembeli.",
+    "model": "gemini-3.5-flash-lite"
+   },
+   "judge_mean": 1.0,
+   "pass": true
+  },
+  {
+   "tag": "S7  edit workflow",
+   "prompt": "Tambahkan langkah filter ke workflow yang tadi.",
+   "status": 200,
+   "ms": 8897,
+   "model": "gemini-3.5-flash-lite",
+   "reply": "Halo! Karena belum ada konteks workflow sebelumnya di riwayat percakapan ini, bisa tolong jelaskan ulang:\n1. Workflow apa yang ingin ditambahkan langkah filter?\n2. Data apa yang ingin difilter (misalnya: berdasarkan status, teks tertentu, atau nilai angka)?\n3. Setelah difilter, ke mana data tersebut akan dikirim atau diproses?\n\nBeri tahu detailnya agar saya bisa langsung buatkan workflow-nya untuk Anda!",
+   "error": null,
+   "workflow_nodes": 0,
+   "workflow_edges": 0,
+   "deterministic": {
+    "len": 406,
+    "words": 59,
+    "steps": 3,
+    "placeholders": 0,
+    "entities_prompt": [
+     "filter"
+    ],
+    "entities_covered": [
+     "filter"
+    ],
+    "entity_cover_ratio": 1.0,
+    "nodes": 0,
+    "edges": 0,
+    "non_empty": true
+   },
+   "judge": {
+    "helpful": 0.4,
+    "actionable": 0.0,
+    "intent": 0.9,
+    "expectation": 0.5,
+    "alasan": "Memahami maksud pengguna tetapi meminta konteks tambahan karena riwayat percakapan tidak ada.",
+    "model": "gemini-3.5-flash-lite"
+   },
+   "judge_mean": 0.45,
+   "pass": false
+  },
+  {
+   "tag": "S8  insights",
+   "prompt": "Bagaimana cara melihat performa agent saya?",
+   "status": 200,
+   "ms": 13363,
+   "model": "gemini-3.5-flash-lite",
+   "reply": "Untuk melihat performa agent Anda di Katalir, Anda dapat memantau beberapa metrik dan area berikut:\n\n1. **Riwayat Eksekusi (Execution Logs):** Cek tab riwayat atau log di platform Katalir untuk melihat setiap kali agent Anda dipicu, apakah agent berhasil menyelesaikan tugasnya, atau mengalami *error*.\n2. **Status Node MCP & Integrasi:** Pastikan alat (*tool*) seperti Telegram, Slack, atau Gmail yang terhubung dengan agent Anda merespons dengan baik dan tidak ada kredensial yang kedaluwarsa.\n3. **Hasil Output:** Periksa apakah pesan, data, atau laporan yang dihasilkan oleh agent (misalnya kiriman ke Telegram atau spreadsheet) sudah sesuai dengan ekspektasi.\n\nApakah ada agent atau workflow tertentu yang performanya ingin Anda cek atau optimalkan saat ini?",
+   "error": null,
+   "workflow_nodes": 0,
+   "workflow_edges": 0,
+   "deterministic": {
+    "len": 763,
+    "words": 109,
+    "steps": 3,
+    "placeholders": 0,
+    "entities_prompt": [
+     "performa"
+    ],
+    "entities_covered": [
+     "performa"
+    ],
+    "entity_cover_ratio": 1.0,
+    "nodes": 0,
+    "edges": 0,
+    "non_empty": true
+   },
+   "judge": {
+    "helpful": 1.0,
+    "actionable": 1.0,
+    "intent": 1.0,
+    "expectation": 1.0,
+    "alasan": "Jawaban sangat relevan, memberikan langkah konkret untuk memantau performa agent sesuai konteks platform.",
+    "model": "gemini-3.5-flash-lite"
+   },
+   "judge_mean": 1.0,
+   "pass": true
+  },
+  {
+   "tag": "S9  error handling",
+   "prompt": "asdkjhasd 9999 %% ?? tolong jelaskan",
+   "status": 200,
+   "ms": 11067,
+   "model": "gemini-3.5-flash-lite",
+   "reply": "Halo! Sepertinya ada ketikan acak atau pesan yang kurang jelas pada pesan Anda (`asdkjhasd 9999 %% ??`). \n\nSaya adalah **Nexus Autonomous Agent**, asisten virtual Anda di Katalir. Saya siap membantu Anda untuk:\n1. **Membuat Workflow / Automasi** (misalnya menghubungkan Telegram, Slack, Gmail, Google Sheets, HTTP API, dll).\n2. **Membaca/Mengirim Email, Pesan, atau Agenda Calendar**.\n3. **Mengelola Data Spreadsheet**.\n4. **Menjawab Pertanyaan Teknis** dengan melakukan pencarian web aktual.\n\nAda yang bisa saya bantu hari ini? Silakan sampaikan kebutuhan atau perintah Anda dengan lebih spesifik!",
+   "error": null,
+   "workflow_nodes": 0,
+   "workflow_edges": 0,
+   "deterministic": {
+    "len": 598,
+    "words": 83,
+    "steps": 4,
+    "placeholders": 0,
+    "entities_prompt": [],
+    "entities_covered": [],
+    "entity_cover_ratio": null,
+    "nodes": 0,
+    "edges": 0,
+    "non_empty": true
+   },
+   "judge": {
+    "helpful": 0.2,
+    "actionable": 0.0,
+    "intent": 0.2,
+    "expectation": 0.3,
+    "alasan": "Pengguna memberikan input acak, asisten merespons dengan benar menanyakan maksud pengguna.",
+    "model": "gemini-3.5-flash-lite"
+   },
+   "judge_mean": 0.175,
+   "pass": false
+  },
+  {
+   "tag": "S10 logout/login",
+   "prompt": "Terima kasih, sampai jumpa.",
+   "status": 200,
+   "ms": 7867,
+   "model": "gemini-3.5-flash-lite",
+   "reply": "Sampai jumpa! Jika Anda membutuhkan bantuan lagi di lain waktu, silakan beri tahu saya.",
+   "error": null,
+   "workflow_nodes": 0,
+   "workflow_edges": 0,
+   "deterministic": {
+    "len": 87,
+    "words": 14,
+    "steps": 0,
+    "placeholders": 0,
+    "entities_prompt": [],
+    "entities_covered": [],
+    "entity_cover_ratio": null,
+    "nodes": 0,
+    "edges": 0,
+    "non_empty": true
+   },
+   "judge": {
+    "helpful": 1.0,
+    "actionable": 1.0,
+    "intent": 1.0,
+    "expectation": 1.0,
+    "alasan": "Respon perpisahan sopan dan sesuai dengan konteks percakapan penutup.",
+    "model": "gemini-3.5-flash-lite"
+   },
+   "judge_mean": 1.0,
+   "pass": true
+  }
+ ],
+ "calibration": {
+  "anchors": [
+   {
+    "anchor": "GOOD",
+    "expect": ">= 0.80",
+    "reply_len": 639,
+    "judge": {
+     "helpful": 0.9,
+     "actionable": 0.9,
+     "intent": 1.0,
+     "expectation": 0.9,
+     "alasan": "Workflow jelas dengan langkah konkret sesuai permintaan.",
+     "model": "gemini-3.5-flash-lite"
+    }
+   },
+   {
+    "anchor": "BAD",
+    "expect": "<= 0.30",
+    "reply_len": 67,
+    "judge": {
+     "helpful": 0.0,
+     "actionable": 0.0,
+     "intent": 0.0,
+     "expectation": 0.0,
+     "alasan": "Jawaban menolak dan tidak memberikan bantuan sama sekali.",
+     "model": "gemini-3.5-flash-lite"
+    }
+   },
+   {
+    "anchor": "MID",
+    "expect": "between",
+    "reply_len": 74,
+    "judge": {
+     "helpful": 0.1,
+     "actionable": 0.1,
+     "intent": 0.2,
+     "expectation": 0.1,
+     "alasan": "Jawaban sangat generik, tidak memberikan langkah konkret, dan mengabaikan detail 'batch order jam 8'.",
+     "model": "gemini-2.5-flash-lite"
+    }
+   }
+  ],
+  "mean": {
+   "GOOD": 0.925,
+   "BAD": 0.0,
+   "MID": 0.125
+  },
+  "discriminative": true,
+  "verdict": "VALID (judge memisahkan baik/buruk)"
+ },
+ "scored": [
+  {
+   "tag": "S1  onboarding",
+   "prompt": "Halo, saya baru daftar. Apa yang bisa Katalir lakukan?",
+   "status": 200,
+   "ms": 19638,
+   "model": "gemini-3.5-flash-lite",
+   "reply": "Halo! Selamat datang di Katalir. \n\nKatalir adalah platform otomatisasi alur kerja (workflow automation) berbasis agen pintar yang membantu Anda menghubungkan berbagai aplikasi dan layanan dengan mudah. \n\nBeberapa hal utama yang bisa Katalir lakukan untuk Anda:\n1. **Membuat Workflow Otomatis:** Menghubungkan berbagai *trigger* (pemicu) dan aksi (seperti mengirim pesan ke Telegram/Slack, membaca email, menulis ke Google Sheets, atau memanggil API HTTP).\n2. **Otomasi Berbasis AI & Agent:** Menjalankan tugas kompleks dengan agen cerdas, termasuk kemampuan bercabang (Kondisi/IF), memproses data dalam batch, hingga delegasi multi-agen (Supervisor).\n3. **Integrasi Layanan:** Berinteraksi langsung dengan Gmail, Google Sheets, Google Calendar, Telegram, Slack, Supabase, dan banyak lagi melalui sistem kredensial yang aman.\n\nAda alur kerja, laporan, atau otomatisasi khusus yang ingin Anda buat hari ini? Ceritakan saja kebutuhan Anda, dan saya akan bantu buatkan!",
+   "error": null,
+   "workflow_nodes": 0,
+   "workflow_edges": 0,
+   "deterministic": {
+    "len": 965,
+    "words": 128,
+    "steps": 3,
+    "placeholders": 0,
+    "entities_prompt": [],
+    "entities_covered": [],
+    "entity_cover_ratio": null,
+    "nodes": 0,
+    "edges": 0,
+    "non_empty": true
+   },
+   "judge": {
+    "helpful": 1.0,
+    "actionable": 1.0,
+    "intent": 1.0,
+    "expectation": 1.0,
+    "alasan": "Menjelaskan fitur Katalir dengan sangat jelas dan menawarkan bantuan konkret untuk membuat workflow.",
+    "model": "gemini-3.5-flash-lite"
+   },
+   "judge_mean": 1.0,
+   "pass": true
+  },
+  {
+   "tag": "S2  chat pertama",
+   "prompt": "Jelaskan singkat cara membuat agent pertama saya.",
+   "status": 200,
+   "ms": 10821,
+   "model": "gemini-3.5-flash-lite",
+   "reply": "Untuk membuat agent pertama Anda di Katalir, ikuti langkah-langkah singkat berikut:\n\n1. **Buka Canvas Katalir**: Buat atau buka project baru Anda untuk masuk ke area kerja visual (canvas).\n2. **Tambahkan Node Trigger (Pemicu)**: Letakkan node pemicu di awal alur (misalnya pemicu jadwal, webhook, atau email masuk) untuk menentukan kapan agent Anda mulai aktif.\n3. **Tambahkan Node Agent**: Hubungkan node pemicu ke node jenis **Agent**. Di sini Anda bisa menuliskan instruksi (*prompt*) atau peran untuk agent Anda (misalnya: *\"Bertindaklah sebagai asisten yang merangkum pesan masuk\"*).\n4. **Hubungkan ke Node MCP (Aksi)**: Sambungkan agent ke node MCP penyedia tujuan (seperti Telegram, Slack, Gmail, atau Google Sheets) untuk mengirimkan hasil kerja agent tersebut. Jangan lupa isi detail tujuan atau *placeholder* (seperti `{{chat_id}}`) pada konfigurasinya.\n5. **Simpan dan Uji**: Simpan workflow Anda dan jalankan uji coba untuk melihat agent Anda bekerja secara otomatis!",
+   "error": null,
+   "workflow_nodes": 0,
+   "workflow_edges": 0,
+   "deterministic": {
+    "len": 979,
+    "words": 139,
+    "steps": 5,
+    "placeholders": 1,
+    "entities_prompt": [],
+    "entities_covered": [],
+    "entity_cover_ratio": null,
+    "nodes": 0,
+    "edges": 0,
+    "non_empty": true
+   },
+   "judge": {
+    "helpful": 1.0,
+    "actionable": 1.0,
+    "intent": 1.0,
+    "expectation": 1.0,
+    "alasan": "Menjelaskan langkah pembuatan agent dengan sangat jelas, konkret, dan sesuai platform.",
+    "model": "gemini-3.5-flash-lite"
+   },
+   "judge_mean": 1.0,
+   "pass": true
+  },
+  {
+   "tag": "S3  build workflow",
+   "prompt": "Buat workflow: kirim pesan Telegram setiap ada email baru.",
+   "status": 200,
+   "ms": 12459,
+   "model": "gemini-3.5-flash-lite",
+   "reply": "Saya telah membuatkan workflow **Kirim Telegram Saat Email Baru** yang terdiri dari 3 node:\n\n1. **Email Baru (IMAP)**: Memicu alur setiap ada email masuk baru di Gmail Anda.\n2. **Agent Pemroses**: Meringkas isi email masuk secara otomatis.\n3. **Kirim Telegram**: Mengirimkan hasil ringkasan email ke Telegram.\n\nSilakan lengkapi kredensial **Gmail (App Password)** dan **Telegram Bot** Anda yang diperlukan, serta pastikan untuk mengisi `chat_id` tujuan di kanvas.",
+   "error": null,
+   "workflow_nodes": 3,
+   "workflow_edges": 2,
+   "deterministic": {
+    "len": 463,
+    "words": 66,
+    "steps": 3,
+    "placeholders": 0,
+    "entities_prompt": [
+     "telegram",
+     "email"
+    ],
+    "entities_covered": [
+     "telegram",
+     "email"
+    ],
+    "entity_cover_ratio": 1.0,
+    "nodes": 3,
+    "edges": 2,
+    "non_empty": true
+   },
+   "judge": {
+    "helpful": 0.9,
+    "actionable": 0.8,
+    "intent": 1.0,
+    "expectation": 0.9,
+    "alasan": "Menjelaskan workflow yang tepat, langkah konfigurasi, dan kredensial yang dibutuhkan.",
+    "model": "gemini-2.5-flash-lite"
+   },
+   "judge_mean": 0.9,
+   "pass": true
+  },
+  {
+   "tag": "S4  history",
+   "prompt": "Apa saja yang kita bicarakan sebelumnya?",
+   "status": 200,
+   "ms": 9163,
+   "model": "gemini-3.5-flash-lite",
+   "reply": "Ini adalah awal dari sesi percakapan kita yang baru, jadi kita belum memiliki riwayat diskusi sebelumnya. \n\nAda yang bisa saya bantu hari ini? Misalnya membuat workflow otomatisasi, mengirim pesan, membaca email, atau mengelola data? Silakan beri tahu saya!",
+   "error": null,
+   "workflow_nodes": 0,
+   "workflow_edges": 0,
+   "deterministic": {
+    "len": 257,
+    "words": 38,
+    "steps": 0,
+    "placeholders": 0,
+    "entities_prompt": [],
+    "entities_covered": [],
+    "entity_cover_ratio": null,
+    "nodes": 0,
+    "edges": 0,
+    "non_empty": true
+   },
+   "judge": {
+    "helpful": 1.0,
+    "actionable": 1.0,
+    "intent": 1.0,
+    "expectation": 1.0,
+    "alasan": "Asisten menjawab dengan akurat bahwa ini sesi baru dan menawarkan bantuan lanjutan.",
+    "model": "gemini-3.5-flash-lite"
+   },
+   "judge_mean": 1.0,
+   "pass": true
+  },
+  {
+   "tag": "S5  credential",
+   "prompt": "Bagaimana cara menyimpan API key OpenAI dengan aman?",
+   "status": 200,
+   "ms": 9589,
+   "model": "gemini-3.5-flash-lite",
+   "reply": "Untuk menyimpan API key OpenAI dengan aman, ikuti praktik terbaik berikut:\n\n1. **Gunakan Environment Variables (Variabel Lingkungan)**\n   Simpan kunci API di luar kode sumber (source code) Anda. Gunakan file `.env` untuk pengembangan lokal, dan pastikan Anda memasukkan file `.env` ke dalam `.gitignore` agar tidak terunggah ke GitHub atau sistem kontrol versi lainnya.\n\n2. **Gunakan Secret Manager (Untuk Produksi)**\n   Untuk aplikasi skala produksi, gunakan layanan manajemen rahasia yang aman seperti:\n   - **AWS Secrets Manager** atau **Parameter Store**\n   - **Google Cloud Secret Manager**\n   - **Azure Key Vault**\n   - **Vercel / Netlify Environment Variables** (jika menggunakan platform tersebut)\n\n3. **Batasi Ruang Lingkup dan Akses (Scope & Permissions)**\n   Jika memungkinkan, buat akun atau organisasi terpisah, dan batasi kunci API hanya untuk layanan atau proyek yang membutuhkannya.\n\n4. **Atur Limit Penggunaan (Usage Limits & Billing Alerts)**\n   Selalu pasang batas pengeluaran (spending limits) di akun OpenAI Anda untuk menghindari tagihan yang tidak terduga jika kunci API Anda tidak sengaja bocor.\n\n5. **Rotasi Kunci Secara Berkala**\n   Secara berkala, buat kunci API baru, perbarui aplikasi Anda, dan hapus kunci lama yang sudah tidak digunakan.\n\n6. **Jangan Pernah Hardcode**\n   Jangan pernah menulis kunci API secara langsung di dalam kode program (seperti `OPENAI_API_KEY = \"sk-...\"`) karena sangat rentan terekspos.",
+   "error": null,
+   "workflow_nodes": 0,
+   "workflow_edges": 0,
+   "deterministic": {
+    "len": 1442,
+    "words": 199,
+    "steps": 10,
+    "placeholders": 0,
+    "entities_prompt": [
+     "api key"
+    ],
+    "entities_covered": [
+     "api key"
+    ],
+    "entity_cover_ratio": 1.0,
+    "nodes": 0,
+    "edges": 0,
+    "non_empty": true
+   },
+   "judge": {
+    "helpful": 1.0,
+    "actionable": 1.0,
+    "intent": 1.0,
+    "expectation": 1.0,
+    "alasan": "Jawaban sangat jelas, lengkap, dan memberikan langkah konkret untuk keamanan API key.",
+    "model": "gemini-3.5-flash-lite"
+   },
+   "judge_mean": 1.0,
+   "pass": true
+  },
+  {
+   "tag": "S6  template",
+   "prompt": "Rekomendasikan template untuk notifikasi order e-commerce.",
+   "status": 200,
+   "ms": 14473,
+   "model": "gemini-3.5-flash-lite",
+   "reply": "Berikut adalah rekomendasi template untuk **Notifikasi Order E-commerce** yang dapat digunakan secara fleksibel untuk berbagai kebutuhan (baik dikirimkan via WhatsApp, Telegram, Slack, maupun Email):\n\n### 1. Template Notifikasi Pesanan Baru (Untuk Penjual / Admin)\n> **Digunakan saat:** Ada customer yang berhasil melakukan *checkout* dan pembayaran.\n> * **Subjek/Judul:** 🔔 Pesanan Baru Masuk - `#{{order_id}}`\n> * **Isi Pesan:**\n>   > Halo Tim Operasional,\n>   > \n>   > Ada pesanan baru yang perlu diproses!\n>   > \n>   > * **No. Order:** `#{{order_id}}`\n>   > * **Nama Pembeli:** `{{customer_name}}`\n>   > * **Waktu Pesanan:** `{{order_time}}`\n>   > * **Total Belanja:** `Rp {{total_amount}}`\n>   > * **Metode Pembayaran:** `{{payment_method}}`\n>   > \n>   > **Ringkasan Produk:**\n>   > `{{order_items}}`\n>   > \n>   > Silakan segera proses pesanan ini dan update status pengirimannya di sistem. Terima kasih!\n\n---\n\n### 2. Template Konfirmasi Pesanan (Untuk Pembeli / Customer)\n> **Digunakan saat:** Customer selesai melakukan pemesanan (bisa dikirim via WhatsApp atau Email).\n> * **Subjek/Judul:** Terima kasih atas pesanan Anda! 🎉 (`#{{order_id}}`)\n> * **Isi Pesan:**\n>   > Halo `{{customer_name}}`,\n>   > \n>   > Terima kasih telah berbelanja di toko kami! Pesanan Anda dengan nomor **`#{{order_id}}`** telah kami terima dan sedang disiapkan.\n>   > \n>   > 📦 **Detail Pengiriman:**\n>   > * **Alamat:** `{{shipping_address}}`\n>   > * **Kurir:** `{{courier_name}}`\n>   > \n>   > Anda dapat melacak status pesanan Anda melalui tautan berikut: `{{tracking_url}}`\n>   > \n>   > Jika ada pertanyaan, silakan balas pesan ini. Selamat beraktivitas kembali!\n\n---\n\n### 3. Template Update Resi Pengiriman (Untuk Pembeli)\n> **Digunakan saat:** Barang sudah dikirim dan nomor resi dari kurir sudah tersedia.\n> * **Subjek/Judul:** Pesanan Anda Sedang Dikirim! 🚚 (`#{{order_id}}`)\n> * **Isi Pesan:**\n>   > Halo `{{customer_name}}`,\n>   > \n>   > Kabar baik! Pesanan Anda (`#{{order_id}}`) telah diserahkan ke kurir **`{{courier_name}}`** dengan nomor resi:\n>   > \n>   > 🔍 **No. Resi:** `{{tracking_number}}`\n>   > \n>   > Anda bisa melacak perjalanan paket Anda secara berkala. Terima kasih telah mempercayai toko kami!\n\n---\n\n💡 **Mau otomatisasi notifikasi ini?**\nJika Anda ingin membuatkan workflow otomatis (misalnya: *Setiap ada pesanan baru masuk ke Google Sheets / Database, otomatis kirim notifikasi ke Telegram atau WhatsApp*), beri tahu saya dan kita bisa langsung buatkan sistemnya!",
+   "error": null,
+   "workflow_nodes": 0,
+   "workflow_edges": 0,
+   "deterministic": {
+    "len": 2473,
+    "words": 361,
+    "steps": 0,
+    "placeholders": 18,
+    "entities_prompt": [
+     "order",
+     "template"
+    ],
+    "entities_covered": [
+     "order",
+     "template"
+    ],
+    "entity_cover_ratio": 1.0,
+    "nodes": 0,
+    "edges": 0,
+    "non_empty": true
+   },
+   "judge": {
+    "helpful": 1.0,
+    "actionable": 1.0,
+    "intent": 1.0,
+    "expectation": 1.0,
+    "alasan": "Template lengkap, siap pakai dengan variabel jelas untuk admin dan pembeli.",
+    "model": "gemini-3.5-flash-lite"
+   },
+   "judge_mean": 1.0,
+   "pass": true
+  },
+  {
+   "tag": "S7  edit workflow",
+   "prompt": "Tambahkan langkah filter ke workflow yang tadi.",
+   "status": 200,
+   "ms": 8897,
+   "model": "gemini-3.5-flash-lite",
+   "reply": "Halo! Karena belum ada konteks workflow sebelumnya di riwayat percakapan ini, bisa tolong jelaskan ulang:\n1. Workflow apa yang ingin ditambahkan langkah filter?\n2. Data apa yang ingin difilter (misalnya: berdasarkan status, teks tertentu, atau nilai angka)?\n3. Setelah difilter, ke mana data tersebut akan dikirim atau diproses?\n\nBeri tahu detailnya agar saya bisa langsung buatkan workflow-nya untuk Anda!",
+   "error": null,
+   "workflow_nodes": 0,
+   "workflow_edges": 0,
+   "deterministic": {
+    "len": 406,
+    "words": 59,
+    "steps": 3,
+    "placeholders": 0,
+    "entities_prompt": [
+     "filter"
+    ],
+    "entities_covered": [
+     "filter"
+    ],
+    "entity_cover_ratio": 1.0,
+    "nodes": 0,
+    "edges": 0,
+    "non_empty": true
+   },
+   "judge": {
+    "helpful": 0.4,
+    "actionable": 0.0,
+    "intent": 0.9,
+    "expectation": 0.5,
+    "alasan": "Memahami maksud pengguna tetapi meminta konteks tambahan karena riwayat percakapan tidak ada.",
+    "model": "gemini-3.5-flash-lite"
+   },
+   "judge_mean": 0.45,
+   "pass": false
+  },
+  {
+   "tag": "S8  insights",
+   "prompt": "Bagaimana cara melihat performa agent saya?",
+   "status": 200,
+   "ms": 13363,
+   "model": "gemini-3.5-flash-lite",
+   "reply": "Untuk melihat performa agent Anda di Katalir, Anda dapat memantau beberapa metrik dan area berikut:\n\n1. **Riwayat Eksekusi (Execution Logs):** Cek tab riwayat atau log di platform Katalir untuk melihat setiap kali agent Anda dipicu, apakah agent berhasil menyelesaikan tugasnya, atau mengalami *error*.\n2. **Status Node MCP & Integrasi:** Pastikan alat (*tool*) seperti Telegram, Slack, atau Gmail yang terhubung dengan agent Anda merespons dengan baik dan tidak ada kredensial yang kedaluwarsa.\n3. **Hasil Output:** Periksa apakah pesan, data, atau laporan yang dihasilkan oleh agent (misalnya kiriman ke Telegram atau spreadsheet) sudah sesuai dengan ekspektasi.\n\nApakah ada agent atau workflow tertentu yang performanya ingin Anda cek atau optimalkan saat ini?",
+   "error": null,
+   "workflow_nodes": 0,
+   "workflow_edges": 0,
+   "deterministic": {
+    "len": 763,
+    "words": 109,
+    "steps": 3,
+    "placeholders": 0,
+    "entities_prompt": [
+     "performa"
+    ],
+    "entities_covered": [
+     "performa"
+    ],
+    "entity_cover_ratio": 1.0,
+    "nodes": 0,
+    "edges": 0,
+    "non_empty": true
+   },
+   "judge": {
+    "helpful": 1.0,
+    "actionable": 1.0,
+    "intent": 1.0,
+    "expectation": 1.0,
+    "alasan": "Jawaban sangat relevan, memberikan langkah konkret untuk memantau performa agent sesuai konteks platform.",
+    "model": "gemini-3.5-flash-lite"
+   },
+   "judge_mean": 1.0,
+   "pass": true
+  },
+  {
+   "tag": "S9  error handling",
+   "prompt": "asdkjhasd 9999 %% ?? tolong jelaskan",
+   "status": 200,
+   "ms": 11067,
+   "model": "gemini-3.5-flash-lite",
+   "reply": "Halo! Sepertinya ada ketikan acak atau pesan yang kurang jelas pada pesan Anda (`asdkjhasd 9999 %% ??`). \n\nSaya adalah **Nexus Autonomous Agent**, asisten virtual Anda di Katalir. Saya siap membantu Anda untuk:\n1. **Membuat Workflow / Automasi** (misalnya menghubungkan Telegram, Slack, Gmail, Google Sheets, HTTP API, dll).\n2. **Membaca/Mengirim Email, Pesan, atau Agenda Calendar**.\n3. **Mengelola Data Spreadsheet**.\n4. **Menjawab Pertanyaan Teknis** dengan melakukan pencarian web aktual.\n\nAda yang bisa saya bantu hari ini? Silakan sampaikan kebutuhan atau perintah Anda dengan lebih spesifik!",
+   "error": null,
+   "workflow_nodes": 0,
+   "workflow_edges": 0,
+   "deterministic": {
+    "len": 598,
+    "words": 83,
+    "steps": 4,
+    "placeholders": 0,
+    "entities_prompt": [],
+    "entities_covered": [],
+    "entity_cover_ratio": null,
+    "nodes": 0,
+    "edges": 0,
+    "non_empty": true
+   },
+   "judge": {
+    "helpful": 0.2,
+    "actionable": 0.0,
+    "intent": 0.2,
+    "expectation": 0.3,
+    "alasan": "Pengguna memberikan input acak, asisten merespons dengan benar menanyakan maksud pengguna.",
+    "model": "gemini-3.5-flash-lite"
+   },
+   "judge_mean": 0.175,
+   "pass": false
+  },
+  {
+   "tag": "S10 logout/login",
+   "prompt": "Terima kasih, sampai jumpa.",
+   "status": 200,
+   "ms": 7867,
+   "model": "gemini-3.5-flash-lite",
+   "reply": "Sampai jumpa! Jika Anda membutuhkan bantuan lagi di lain waktu, silakan beri tahu saya.",
+   "error": null,
+   "workflow_nodes": 0,
+   "workflow_edges": 0,
+   "deterministic": {
+    "len": 87,
+    "words": 14,
+    "steps": 0,
+    "placeholders": 0,
+    "entities_prompt": [],
+    "entities_covered": [],
+    "entity_cover_ratio": null,
+    "nodes": 0,
+    "edges": 0,
+    "non_empty": true
+   },
+   "judge": {
+    "helpful": 1.0,
+    "actionable": 1.0,
+    "intent": 1.0,
+    "expectation": 1.0,
+    "alasan": "Respon perpisahan sopan dan sesuai dengan konteks percakapan penutup.",
+    "model": "gemini-3.5-flash-lite"
+   },
+   "judge_mean": 1.0,
+   "pass": true
+  }
+ ],
+ "per_dimension": {
+  "helpful": 0.85,
+  "actionable": 0.78,
+  "intent": 0.91,
+  "expectation": 0.87
+ },
+ "overall_mean": 0.853,
+ "pass_count": 8,
+ "gate": {
+  "threshold": 0.7,
+  "overall": 0.853,
+  "verdict": "PASS",
+  "reason": null
+ },
+ "deterministic_summary": {
+  "non_empty": 10,
+  "with_steps": 7,
+  "with_placeholders": 2,
+  "with_workflow_nodes": 1,
+  "mean_entity_cover": 1.0
+ }
+}

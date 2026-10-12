@@ -135,3 +135,7 @@ skills/
 
 # MCP 2.x probe (isolated install, besar, tidak di-deploy)
 _mcp2_probe/
+
+# Sesi uji pengguna nyata: memuat access/refresh token ASLI. JANGAN pernah
+# `git add -f` berkas ini. (Sudah tertutup oleh `_*.json`, ini pengaman eksplisit.)
+tests/user_test/_session.json

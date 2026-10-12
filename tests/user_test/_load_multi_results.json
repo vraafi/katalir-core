@@ -1,0 +1,92 @@
+{
+ "endpoint": "https://gateway.katalir.de5.net/katalir-api/chat",
+ "method": "N akun uji BERBEDA (Supabase admin, dihapus setelah selesai); masing-masing 1 pesan -> isolasi per-akun benar-benar teruji",
+ "test_accounts_created": 50,
+ "test_accounts_deleted": 50,
+ "tag": "otonom-lt-2c842b",
+ "levels": [
+  {
+   "n": 1,
+   "distinct_users": 1,
+   "ok": 1,
+   "fail": 0,
+   "wall_s": 9.36,
+   "err_rate": 0.0,
+   "p50_ms": 8972,
+   "p95_ms": 8972,
+   "max_ms": 8972,
+   "statuses": {
+    "200": 1
+   },
+   "sample_fail": [],
+   "gate": null,
+   "gate_verdict": "n/a"
+  },
+  {
+   "n": 5,
+   "distinct_users": 5,
+   "ok": 5,
+   "fail": 0,
+   "wall_s": 14.06,
+   "err_rate": 0.0,
+   "p50_ms": 10583,
+   "p95_ms": 13282,
+   "max_ms": 13282,
+   "statuses": {
+    "200": 5
+   },
+   "sample_fail": [],
+   "gate": 5,
+   "gate_verdict": "PASS"
+  },
+  {
+   "n": 10,
+   "distinct_users": 10,
+   "ok": 10,
+   "fail": 0,
+   "wall_s": 17.27,
+   "err_rate": 0.0,
+   "p50_ms": 15818,
+   "p95_ms": 17124,
+   "max_ms": 17124,
+   "statuses": {
+    "200": 10
+   },
+   "sample_fail": [],
+   "gate": 9,
+   "gate_verdict": "PASS"
+  },
+  {
+   "n": 20,
+   "distinct_users": 20,
+   "ok": 2,
+   "fail": 18,
+   "wall_s": 10.74,
+   "err_rate": 0.9,
+   "p50_ms": 9044,
+   "p95_ms": 9388,
+   "max_ms": 9388,
+   "statuses": {
+    "200": 2,
+    "503": 18
+   },
+   "sample_fail": [
+    "{\"detail\":\"Model sedang sibuk (quota/overload). Coba lagi dalam 1 menit.\"}",
+    "{\"detail\":\"Model sedang sibuk (quota/overload). Coba lagi dalam 1 menit.\"}"
+   ],
+   "gate": 18,
+   "gate_verdict": "FAIL"
+  },
+  {
+   "n": 50,
+   "ok": 0,
+   "fail": 50,
+   "gate": 45,
+   "gate_verdict": "BLOCKED",
+   "note": "hanya 32 akun uji tersedia"
+  }
+ ],
+ "p95_ms_max": 17124,
+ "err_rate_max": 0.9,
+ "verdict": "FAIL"
+}

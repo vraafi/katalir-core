@@ -1,0 +1,137 @@
+{
+ "prompt": "Buat workflow: webhook Shopee -> batch order jam 8 -> kirim WhatsApp -> AI parse balasan -> update Sheets",
+ "backend_status": "success",
+ "model": "gemini-3.5-flash-lite",
+ "latency_ms": 3456,
+ "reply": "Workflow **\"Shopee Order to Sheets\"** berhasil dibuat dengan 5 node:\n\n1. **Webhook Shopee** (Trigger) - Menerima data pesanan masuk.\n2. **Batch Order Jam 8** (Agent dengan `batch_size: 1`) - Memproses order secara batch.\n3. **Kirim WhatsApp** (MCP WhatsApp) - Mengirim pesan (`{{nomor_tujuan}}` perlu diisi).\n4. **AI Parse Balasan** (Agent) - Memparsing balasan WhatsApp menjadi data terstruktur.\n5. **Update Sheets** (MCP Google Sheets) - Memasukkan data ke spreadsheet (`{{spreadsheet_id}}` perlu diisi).\n\n*Catatan: Harap sambungkan akun Google Sheets (OAuth) serta isi placeholder `nomor_tujuan` dan `spreadsheet_id` di kanvas Katalir.*",
+ "workflow": {
+  "name": "Shopee Order to Sheets",
+  "nodes": [
+   {
+    "id": "n1",
+    "type": "trigger",
+    "position": {
+     "x": 80.0,
+     "y": 80.0
+    },
+    "data": {
+     "kind": "trigger",
+     "label": "Webhook Shopee",
+     "config": {
+      "event_name": "shopee_webhook"
+     }
+    }
+   },
+   {
+    "id": "n2",
+    "type": "agent",
+    "position": {
+     "x": 340.0,
+     "y": 80.0
+    },
+    "data": {
+     "kind": "agent",
+     "label": "Batch Order Jam 8",
+     "config": {
+      "batch_size": 1,
+      "prompt": "Kumpulkan dan proses order secara batch setiap jam 8 pagi"
+     }
+    }
+   },
+   {
+    "id": "n3",
+    "type": "mcp",
+    "position": {
+     "x": 600.0,
+     "y": 80.0
+    },
+    "data": {
+     "kind": "mcp",
+     "label": "Kirim WhatsApp",
+     "config": {
+      "provider": "whatsapp",
+      "nomor_tujuan": "{{nomor_tujuan}}",
+      "pesan": "{{n2.output}}"
+     }
+    }
+   },
+   {
+    "id": "n4",
+    "type": "agent",
+    "position": {
+     "x": 860.0,
+     "y": 80.0
+    },
+    "data": {
+     "kind": "agent",
+     "label": "AI Parse Balasan",
+     "config": {
+      "prompt": "Parse balasan dari WhatsApp menjadi format data terstruktur"
+     }
+    }
+   },
+   {
+    "id": "n5",
+    "type": "mcp",
+    "position": {
+     "x": 1120.0,
+     "y": 80.0
+    },
+    "data": {
+     "kind": "mcp",
+     "label": "Update Sheets",
+     "config": {
+      "provider": "google_sheets",
+      "spreadsheet_id": "{{spreadsheet_id}}",
+      "range_data": "Sheet1!A:E"
+     }
+    }
+   }
+  ],
+  "edges": [
+   {
+    "id": "rf-[\"n1\",null,\"n2\",null]",
+    "source": "n1",
+    "target": "n2",
+    "animated": true,
+    "style": {
+     "stroke": "rgb(var(--accent))",
+     "strokeWidth": 2
+    }
+   },
+   {
+    "id": "rf-[\"n2\",null,\"n3\",null]",
+    "source": "n2",
+    "target": "n3",
+    "animated": true,
+    "style": {
+     "stroke": "rgb(var(--accent))",
+     "strokeWidth": 2
+    }
+   },
+   {
+    "id": "rf-[\"n3\",null,\"n4\",null]",
+    "source": "n3",
+    "target": "n4",
+    "animated": true,
+    "style": {
+     "stroke": "rgb(var(--accent))",
+     "strokeWidth": 2
+    }
+   },
+   {
+    "id": "rf-[\"n4\",null,\"n5\",null]",
+    "source": "n4",
+    "target": "n5",
+    "animated": true,
+    "style": {
+     "stroke": "rgb(var(--accent))",
+     "strokeWidth": 2
+    }
+   }
+  ]
+ },
+ "nodes": 5,
+ "edges": 4,
+ "note": "Bukti mesin workflow BACKEND sehat. Kanvas FRONTEND tetap 0 node karena CSP/API_URL lama."
+}

@@ -1,0 +1,112 @@
+{
+ "endpoint": "https://gateway.katalir.de5.net/katalir-api/chat",
+ "limitation": "satu akun uji dipakai untuk semua koneksi concurrent; mengukur kapasitas backend, bukan isolasi multi-tenant",
+ "levels": [
+  {
+   "n": 1,
+   "workers": 1,
+   "ok": 1,
+   "fail": 0,
+   "wall_s": 10.1,
+   "err_rate": 0.0,
+   "p50_ms": 10095,
+   "p95_ms": 10095,
+   "max_ms": 10095,
+   "mean_ms": 10095,
+   "statuses": {
+    "200": 1
+   },
+   "sample_fail": [],
+   "gate": null,
+   "gate_verdict": "n/a"
+  },
+  {
+   "n": 5,
+   "workers": 5,
+   "ok": 5,
+   "fail": 0,
+   "wall_s": 11.32,
+   "err_rate": 0.0,
+   "p50_ms": 9051,
+   "p95_ms": 11320,
+   "max_ms": 11320,
+   "mean_ms": 9224,
+   "statuses": {
+    "200": 5
+   },
+   "sample_fail": [],
+   "gate": 5,
+   "gate_verdict": "PASS"
+  },
+  {
+   "n": 10,
+   "workers": 10,
+   "ok": 4,
+   "fail": 6,
+   "wall_s": 10.29,
+   "err_rate": 0.6,
+   "p50_ms": 10043,
+   "p95_ms": 10114,
+   "max_ms": 10114,
+   "mean_ms": 9481,
+   "statuses": {
+    "200": 4,
+    "429": 6
+   },
+   "sample_fail": [
+    "{\"detail\":\"Terlalu banyak permintaan percakapan. Batas 10 pesan per 60 detik per akun. Tunggu sebentar lalu coba lagi.\"}",
+    "{\"detail\":\"Terlalu banyak permintaan percakapan. Batas 10 pesan per 60 detik per akun. Tunggu sebentar lalu coba lagi.\"}",
+    "{\"detail\":\"Terlalu banyak permintaan percakapan. Batas 10 pesan per 60 detik per akun. Tunggu sebentar lalu coba lagi.\"}"
+   ],
+   "gate": 9,
+   "gate_verdict": "FAIL"
+  },
+  {
+   "n": 20,
+   "workers": 20,
+   "ok": 0,
+   "fail": 20,
+   "wall_s": 1.89,
+   "err_rate": 1.0,
+   "p50_ms": 0,
+   "p95_ms": 0,
+   "max_ms": 0,
+   "mean_ms": 0,
+   "statuses": {
+    "429": 20
+   },
+   "sample_fail": [
+    "{\"detail\":\"Terlalu banyak permintaan percakapan. Batas 10 pesan per 60 detik per akun. Tunggu sebentar lalu coba lagi.\"}",
+    "{\"detail\":\"Terlalu banyak permintaan percakapan. Batas 10 pesan per 60 detik per akun. Tunggu sebentar lalu coba lagi.\"}",
+    "{\"detail\":\"Terlalu banyak permintaan percakapan. Batas 10 pesan per 60 detik per akun. Tunggu sebentar lalu coba lagi.\"}"
+   ],
+   "gate": 18,
+   "gate_verdict": "FAIL"
+  },
+  {
+   "n": 50,
+   "workers": 50,
+   "ok": 0,
+   "fail": 50,
+   "wall_s": 2.99,
+   "err_rate": 1.0,
+   "p50_ms": 0,
+   "p95_ms": 0,
+   "max_ms": 0,
+   "mean_ms": 0,
+   "statuses": {
+    "429": 50
+   },
+   "sample_fail": [
+    "{\"detail\":\"Terlalu banyak permintaan percakapan. Batas 10 pesan per 60 detik per akun. Tunggu sebentar lalu coba lagi.\"}",
+    "{\"detail\":\"Terlalu banyak permintaan percakapan. Batas 10 pesan per 60 detik per akun. Tunggu sebentar lalu coba lagi.\"}",
+    "{\"detail\":\"Terlalu banyak permintaan percakapan. Batas 10 pesan per 60 detik per akun. Tunggu sebentar lalu coba lagi.\"}"
+   ],
+   "gate": 45,
+   "gate_verdict": "FAIL"
+  }
+ ],
+ "p95_ms_max": 11320,
+ "err_rate_max": 1.0,
+ "verdict": "FAIL"
+}

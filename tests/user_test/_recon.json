@@ -1,0 +1,361 @@
+{
+ "frontend": "https://katalir.de5.net",
+ "landing": {
+  "url": "https://katalir.de5.net/",
+  "title": "Katalir — SaaS AI",
+  "h1": "Ubah satu kalimat menjadi otomasi yang benar-benar berjalan.",
+  "body_text_head": "Lompat ke konten\nKatalir\nMasuk\nBuka aplikasi\nUbah satu kalimat menjadi otomasi yang benar-benar berjalan.\n\nCeritakan kebutuhan Anda dengan bahasa sehari-hari. Katalir menyusun workflow-nya, menjalankannya, lalu melapor — tanpa perlu menyusun kotak di kanvas, tanpa koding.\n\n5 meta-tool OpenConnector menjangkau 18.010 actions · 11 action call-verified · 201 integrasi Glama call-verified · 1.896 menampilkan daftar tools.\n\nMulai sekarang\nLihat cara kerjanya\n\nTulis kebutuhannya\n\nCukup satu kalimat. Anda tidak perlu tahu apa itu node atau pemicu.\n\nDapatkan workflow\n\nDraf muncul di kanvas, siap dijal",
+  "nav_links": [
+   {
+    "href": "#main-content",
+    "text": "Lompat ke konten"
+   },
+   {
+    "href": "/chat",
+    "text": "Katalir"
+   },
+   {
+    "href": "/chat",
+    "text": "Buka aplikasi"
+   },
+   {
+    "href": "/help",
+    "text": "Lihat cara kerjanya"
+   },
+   {
+    "href": "https://glama.ai/mcp/servers",
+    "text": "Glama"
+   },
+   {
+    "href": "/help",
+    "text": "Lihat cara kerjanya"
+   }
+  ]
+ },
+ "routes": {
+  "/": {
+   "route": "/",
+   "http": 200,
+   "final_url": "https://katalir.de5.net/",
+   "redirected": false,
+   "title": "Katalir — SaaS AI",
+   "text_len": 2641,
+   "text_head": "Lompat ke konten\nKatalir\nMasuk\nBuka aplikasi\nUbah satu kalimat menjadi otomasi yang benar-benar berjalan.\n\nCeritakan kebutuhan Anda dengan bahasa sehari-hari. Katalir menyusun workflow-nya, menjalankannya, lalu melapor —",
+   "has_404": false,
+   "inputs": 0,
+   "buttons": 2,
+   "canvas": 0,
+   "svg": 223
+  },
+  "/chat": {
+   "route": "/chat",
+   "http": 200,
+   "final_url": "https://katalir.de5.net/chat",
+   "redirected": false,
+   "title": "Katalir — SaaS AI",
+   "text_len": 235,
+   "text_head": "Lompat ke konten\nChat Baru\n\nRIWAYAT CHAT\n\nBelum ada riwayat.\n\nKatalir\nKatalir\nChat\nBuilder\nTemplate\nLogin dengan Google\nSilakan masuk dulu\n\nGunakan tombol \"Login dengan Google\" di pojok kanan atas untuk memulai percakapa",
+   "has_404": false,
+   "inputs": 1,
+   "buttons": 6,
+   "canvas": 0,
+   "svg": 9
+  },
+  "/dashboard": {
+   "route": "/dashboard",
+   "http": 404,
+   "final_url": "https://katalir.de5.net/dashboard",
+   "redirected": false,
+   "title": "Katalir — SaaS AI",
+   "text_len": 33,
+   "text_head": "404\nThis page could not be found.",
+   "has_404": true,
+   "inputs": 0,
+   "buttons": 0,
+   "canvas": 0,
+   "svg": 0
+  },
+  "/templates": {
+   "route": "/templates",
+   "http": 200,
+   "final_url": "https://katalir.de5.net/templates",
+   "redirected": false,
+   "title": "Katalir — SaaS AI",
+   "text_len": 278,
+   "text_head": "Lompat ke konten\nKatalir\nKembali\nTemplate\n\nMulai dari alur siap pakai — pakai satu klik, lalu sesuaikan di Builder.\n\nCari template\nCari\n\nKetik untuk mencari otomatis — atau tekan Enter.\n\nSemua\nNotifikasi\nMarketing\nData\nO",
+   "has_404": false,
+   "inputs": 1,
+   "buttons": 10,
+   "canvas": 0,
+   "svg": 3
+  },
+  "/insights": {
+   "route": "/insights",
+   "http": 200,
+   "final_url": "https://katalir.de5.net/insights",
+   "redirected": false,
+   "title": "Katalir — SaaS AI",
+   "text_len": 411,
+   "text_head": "Lompat ke konten\nKatalir\nKembali\nInsight\n\nPantau kesehatan workflow: success rate, latensi, error, waktu yang dihemat, dan ROI.\n\n7 hari\n30 hari\n365 hari\nSemua workflow\nUkur latensi\nMuat ulang\nEkspor CSV\nFailed to fetch\nS",
+   "has_404": false,
+   "inputs": 1,
+   "buttons": 6,
+   "canvas": 0,
+   "svg": 3
+  },
+  "/builder": {
+   "route": "/builder",
+   "http": 200,
+   "final_url": "https://katalir.de5.net/builder",
+   "redirected": false,
+   "title": "Katalir — SaaS AI",
+   "text_len": 959,
+   "text_head": "Lompat ke konten\nChat Baru\n\nRIWAYAT CHAT\n\nBelum ada riwayat.\n\nKatalir\nKatalir\nChat\nBuilder\nTemplate\nLogin dengan Google\nALUR KERJA\nDaily digest\nNotify team\nAlur Baru\n\nBelum ada alur. Klik \"+ Alur Baru\".\n\nNODE PALETTE\n\nTa",
+   "has_404": false,
+   "inputs": 0,
+   "buttons": 27,
+   "canvas": 0,
+   "svg": 49
+  },
+  "/workflows": {
+   "route": "/workflows",
+   "http": 404,
+   "final_url": "https://katalir.de5.net/workflows",
+   "redirected": false,
+   "title": "Katalir — SaaS AI",
+   "text_len": 33,
+   "text_head": "404\nThis page could not be found.",
+   "has_404": true,
+   "inputs": 0,
+   "buttons": 0,
+   "canvas": 0,
+   "svg": 0
+  },
+  "/agents": {
+   "route": "/agents",
+   "http": 200,
+   "final_url": "https://katalir.de5.net/agents",
+   "redirected": false,
+   "title": "Katalir — SaaS AI",
+   "text_len": 199,
+   "text_head": "Lompat ke konten\nKatalir\nKembali\nAgents\n\nKelola AI Agent sebagai entitas tersendiri — siklus hidup, kanal, dan eksposur MCP.\n\nSemua\nDraf\nAktif\nDijeda\nDiarsip\nAgent baru\nGagal memuat agent. Coba lagi.",
+   "has_404": false,
+   "inputs": 0,
+   "buttons": 8,
+   "canvas": 0,
+   "svg": 3
+  },
+  "/settings": {
+   "route": "/settings",
+   "http": 200,
+   "final_url": "https://katalir.de5.net/settings",
+   "redirected": false,
+   "title": "Katalir — SaaS AI",
+   "text_len": 1552,
+   "text_head": "Lompat ke konten\nKatalir\nKembali\nPengaturan Akun\n\nKelola preferensi dan profil Anda\n\nProfil\n\nIdentitas akun Anda (hanya-baca).\n\n?\n\nMemuat...\n\nLogin via Google OAuth\n\nBahasa\n\nPilih bahasa tampilan aplikasi.\n\nBahasa Indone",
+   "has_404": false,
+   "inputs": 3,
+   "buttons": 13,
+   "canvas": 0,
+   "svg": 7
+  },
+  "/login": {
+   "route": "/login",
+   "http": 404,
+   "final_url": "https://katalir.de5.net/login",
+   "redirected": false,
+   "title": "Katalir — SaaS AI",
+   "text_len": 33,
+   "text_head": "404\nThis page could not be found.",
+   "has_404": true,
+   "inputs": 0,
+   "buttons": 0,
+   "canvas": 0,
+   "svg": 0
+  },
+  "/signup": {
+   "route": "/signup",
+   "http": 404,
+   "final_url": "https://katalir.de5.net/signup",
+   "redirected": false,
+   "title": "Katalir — SaaS AI",
+   "text_len": 33,
+   "text_head": "404\nThis page could not be found.",
+   "has_404": true,
+   "inputs": 0,
+   "buttons": 0,
+   "canvas": 0,
+   "svg": 0
+  },
+  "/sign-up": {
+   "route": "/sign-up",
+   "http": 404,
+   "final_url": "https://katalir.de5.net/sign-up",
+   "redirected": false,
+   "title": "Katalir — SaaS AI",
+   "text_len": 33,
+   "text_head": "404\nThis page could not be found.",
+   "has_404": true,
+   "inputs": 0,
+   "buttons": 0,
+   "canvas": 0,
+   "svg": 0
+  },
+  "/pricing": {
+   "route": "/pricing",
+   "http": 200,
+   "final_url": "https://katalir.de5.net/pricing",
+   "redirected": false,
+   "title": "Pricing — Katalir",
+   "text_len": 364,
+   "text_head": "ID\nEN\nHarga\n\nGemma 4 — 100 request / hari · Reset setiap 00:00 WIB\n\nFree\nGemma 4 — 100 request / hari\nReset setiap 00:00 WIB\nTanpa kartu kredit\nPlus — $299 / year\n\n600 request / hari\n\nAkses ke 23.474 integrasi unik di ka",
+   "has_404": false,
+   "inputs": 0,
+   "buttons": 2,
+   "canvas": 0,
+   "svg": 0
+  },
+  "/integrations": {
+   "route": "/integrations",
+   "http": 200,
+   "final_url": "https://katalir.de5.net/integrations",
+   "redirected": false,
+   "title": "Katalir — SaaS AI",
+   "text_len": 1312,
+   "text_head": "Lompat ke konten\nKatalir\nKembali\nIntegrasi MCP\n\nTemukan koneksi untuk otomasi Anda.\n\nKoneksi Anda\n\nHubungkan akun yang boleh Katalir gunakan atas nama Anda. Token disimpan terenkripsi di Brankas.\n\nGoogle Sheets\nMemuat...",
+   "has_404": false,
+   "inputs": 1,
+   "buttons": 23,
+   "canvas": 0,
+   "svg": 4
+  },
+  "/runs": {
+   "route": "/runs",
+   "http": 404,
+   "final_url": "https://katalir.de5.net/runs",
+   "redirected": false,
+   "title": "Katalir — SaaS AI",
+   "text_len": 33,
+   "text_head": "404\nThis page could not be found.",
+   "has_404": true,
+   "inputs": 0,
+   "buttons": 0,
+   "canvas": 0,
+   "svg": 0
+  },
+  "/analytics": {
+   "route": "/analytics",
+   "http": 404,
+   "final_url": "https://katalir.de5.net/analytics",
+   "redirected": false,
+   "title": "Katalir — SaaS AI",
+   "text_len": 33,
+   "text_head": "404\nThis page could not be found.",
+   "has_404": true,
+   "inputs": 0,
+   "buttons": 0,
+   "canvas": 0,
+   "svg": 0
+  }
+ },
+ "links_found": [
+  "#main-content",
+  "/chat",
+  "/help",
+  "https://glama.ai/mcp/servers"
+ ],
+ "console": [
+  {
+   "type": "error",
+   "text": "Failed to load resource: the server responded with a status of 404 ()"
+  },
+  {
+   "type": "error",
+   "text": "Connecting to 'https://web-production-dc90b.up.railway.app/templates' violates the following Content Security Policy directive: \"connect-src 'self' https://gateway.katalir.de5.net https://qmukkphwaajz"
+  },
+  {
+   "type": "error",
+   "text": "Fetch API cannot load https://web-production-dc90b.up.railway.app/templates. Refused to connect because it violates the document's Content Security Policy."
+  },
+  {
+   "type": "error",
+   "text": "Connecting to 'https://web-production-dc90b.up.railway.app/templates' violates the following Content Security Policy directive: \"connect-src 'self' https://gateway.katalir.de5.net https://qmukkphwaajz"
+  },
+  {
+   "type": "error",
+   "text": "Fetch API cannot load https://web-production-dc90b.up.railway.app/templates. Refused to connect because it violates the document's Content Security Policy."
+  },
+  {
+   "type": "error",
+   "text": "Connecting to 'https://web-production-dc90b.up.railway.app/insights?days=30&latency=true' violates the following Content Security Policy directive: \"connect-src 'self' https://gateway.katalir.de5.net "
+  },
+  {
+   "type": "error",
+   "text": "Fetch API cannot load https://web-production-dc90b.up.railway.app/insights?days=30&latency=true. Refused to connect because it violates the document's Content Security Policy."
+  },
+  {
+   "type": "error",
+   "text": "Connecting to 'https://web-production-dc90b.up.railway.app/workflows' violates the following Content Security Policy directive: \"connect-src 'self' https://gateway.katalir.de5.net https://qmukkphwaajz"
+  },
+  {
+   "type": "error",
+   "text": "Fetch API cannot load https://web-production-dc90b.up.railway.app/workflows. Refused to connect because it violates the document's Content Security Policy."
+  },
+  {
+   "type": "error",
+   "text": "Failed to load resource: the server responded with a status of 404 ()"
+  },
+  {
+   "type": "error",
+   "text": "Connecting to 'https://web-production-dc90b.up.railway.app/agents' violates the following Content Security Policy directive: \"connect-src 'self' https://gateway.katalir.de5.net https://qmukkphwaajzbqj"
+  },
+  {
+   "type": "error",
+   "text": "Fetch API cannot load https://web-production-dc90b.up.railway.app/agents. Refused to connect because it violates the document's Content Security Policy."
+  },
+  {
+   "type": "error",
+   "text": "Connecting to 'https://web-production-dc90b.up.railway.app/agents' violates the following Content Security Policy directive: \"connect-src 'self' https://gateway.katalir.de5.net https://qmukkphwaajzbqj"
+  },
+  {
+   "type": "error",
+   "text": "Fetch API cannot load https://web-production-dc90b.up.railway.app/agents. Refused to connect because it violates the document's Content Security Policy."
+  },
+  {
+   "type": "error",
+   "text": "Connecting to 'https://web-production-dc90b.up.railway.app/api/vault/gmail-imap' violates the following Content Security Policy directive: \"connect-src 'self' https://gateway.katalir.de5.net https://q"
+  },
+  {
+   "type": "error",
+   "text": "Fetch API cannot load https://web-production-dc90b.up.railway.app/api/vault/gmail-imap. Refused to connect because it violates the document's Content Security Policy."
+  },
+  {
+   "type": "error",
+   "text": "Failed to load resource: the server responded with a status of 404 ()"
+  },
+  {
+   "type": "error",
+   "text": "Failed to load resource: the server responded with a status of 404 ()"
+  },
+  {
+   "type": "error",
+   "text": "Failed to load resource: the server responded with a status of 404 ()"
+  },
+  {
+   "type": "error",
+   "text": "Connecting to 'https://web-production-dc90b.up.railway.app/mcp/registry?limit=50&search=&tier=call_verified%2Cauth_required%2Ctools_listed&view=all' violates the following Content Security Policy dire"
+  },
+  {
+   "type": "error",
+   "text": "Fetch API cannot load https://web-production-dc90b.up.railway.app/mcp/registry?limit=50&search=&tier=call_verified%2Cauth_required%2Ctools_listed&view=all. Refused to connect because it violates the d"
+  },
+  {
+   "type": "error",
+   "text": "Failed to load resource: the server responded with a status of 404 ()"
+  },
+  {
+   "type": "error",
+   "text": "Failed to load resource: the server responded with a status of 404 ()"
+  }
+ ]
+}

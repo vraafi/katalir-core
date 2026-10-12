@@ -1,0 +1,61 @@
+{
+ "prompt": "Buat workflow: webhook Shopee -> batch order jam 8 -> kirim WhatsApp -> AI parse balasan -> update Sheets",
+ "chat_s": 70.05,
+ "chat_body_len": 357,
+ "chat_body": "Lompat ke konten\nChat Baru\n\nRIWAYAT CHAT\n\nBelum ada riwayat.\n\nO\notonom-test@katalir-internal.dev\nKatalir\nKatalir\nChat\nBuilder\nTemplate\nBrankas\nBuat workflow: webhook Shopee -> batch order jam 8 -> kirim WhatsApp -> AI parse balasan -> update Sheets\nGagal mengirim\n\nKoneksi lambat. Cek internetmu.\n\nCoba Lagi\n↓ Terbaru\nEkspor JSON\nEkspor Markdown\nGemma 4 31B",
+ "chat_screenshot": "C:\\Users\\user\\Proyek_AI\\docs\\evidence\\user-test\\shopee-01-chat.png",
+ "asks_questions": false,
+ "mentions_intent": true,
+ "echoed_prompt": true,
+ "canvas_screenshot": "C:\\Users\\user\\Proyek_AI\\docs\\evidence\\user-test\\shopee-02-canvas.png",
+ "nodes": 0,
+ "edges": 0,
+ "node_labels": [],
+ "canvas_body": "Lompat ke konten\nChat Baru\n\nRIWAYAT CHAT\n\nBelum ada riwayat.\n\nO\notonom-test@katalir-internal.dev\nKatalir\nKatalir\nChat\nBuilder\nTemplate\nBrankas\nALUR KERJA\nDaily digest\nNotify team\nAlur Baru\n\nBelum ada alur. Klik \"+ Alur Baru\".\n\nNODE PALETTE\n\nTarik node ke kanvas, atau klik untuk menaruhnya. Di ponsel: tekan lama node untuk mengaktifkan mode geser.\n\nTrigger\nTitik inisyalisasi alur\nJadwal (Cron)\nJalankan otomatis sesuai jadwal cron\nAgent\nProses via Gemini LLM\nMCP Tool\nAksi eksternal (MCP)\nKode\nJalankan Python/JavaScript di sandbox\nGuardrails\nSaring PII, prompt injection, toxic, secret\nVector Store\nRAG: insert/query/delete dokumen (pgvector)\nTunggu Manusia\nJeda workflow sampai ada persetujuan manusia\nBersihkan alur\nReact Flow\nAuto Layout\nMidnight\nSimpan Alur\nJalankan Alur\nKanvas masih kosong\n\nMulai dengan satu node, atau muat contoh alur untuk melihat cara kerjanya. Setelah ada beberapa node",
+ "console_errors": [
+  {
+   "t": "error",
+   "x": "Connecting to 'https://web-production-dc90b.up.railway.app/models' violates the following Content Security Policy directive: \"connect-src 'self' https://gateway.katalir.de5.net https://qmukkphwaajzbqj"
+  },
+  {
+   "t": "error",
+   "x": "Fetch API cannot load https://web-production-dc90b.up.railway.app/models. Refused to connect because it violates the document's Content Security Policy."
+  },
+  {
+   "t": "error",
+   "x": "Connecting to 'https://web-production-dc90b.up.railway.app/sessions' violates the following Content Security Policy directive: \"connect-src 'self' https://gateway.katalir.de5.net https://qmukkphwaajzb"
+  },
+  {
+   "t": "error",
+   "x": "Fetch API cannot load https://web-production-dc90b.up.railway.app/sessions. Refused to connect because it violates the document's Content Security Policy."
+  },
+  {
+   "t": "error",
+   "x": "Connecting to 'https://web-production-dc90b.up.railway.app/quota' violates the following Content Security Policy directive: \"connect-src 'self' https://gateway.katalir.de5.net https://qmukkphwaajzbqjr"
+  },
+  {
+   "t": "error",
+   "x": "Fetch API cannot load https://web-production-dc90b.up.railway.app/quota. Refused to connect because it violates the document's Content Security Policy."
+  },
+  {
+   "t": "error",
+   "x": "Connecting to 'https://web-production-dc90b.up.railway.app/models' violates the following Content Security Policy directive: \"connect-src 'self' https://gateway.katalir.de5.net https://qmukkphwaajzbqj"
+  },
+  {
+   "t": "error",
+   "x": "Fetch API cannot load https://web-production-dc90b.up.railway.app/models. Refused to connect because it violates the document's Content Security Policy."
+  },
+  {
+   "t": "error",
+   "x": "Connecting to 'https://web-production-dc90b.up.railway.app/sessions' violates the following Content Security Policy directive: \"connect-src 'self' https://gateway.katalir.de5.net https://qmukkphwaajzb"
+  },
+  {
+   "t": "error",
+   "x": "Fetch API cannot load https://web-production-dc90b.up.railway.app/sessions. Refused to connect because it violates the document's Content Security Policy."
+  }
+ ],
+ "failed_requests": [],
+ "gate_4_1": true,
+ "gate_4_2": false,
+ "verdict": "FAIL"
+}

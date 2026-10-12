@@ -1,0 +1,62 @@
+{
+ "failed_requests": [],
+ "console_errors": [],
+ "api_calls": [
+  {
+   "url": "https://katalir.de5.net/chat",
+   "status": 200,
+   "method": "GET"
+  },
+  {
+   "url": "https://katalir.de5.net/katalir-logo.png",
+   "status": 200,
+   "method": "GET"
+  },
+  {
+   "url": "https://katalir.de5.net/cdn-cgi/rum?",
+   "status": 204,
+   "method": "POST"
+  },
+  {
+   "url": "https://katalir.de5.net/cdn-cgi/rum?",
+   "status": 204,
+   "method": "POST"
+  },
+  {
+   "url": "https://katalir.de5.net/cdn-cgi/rum?",
+   "status": 204,
+   "method": "POST"
+  },
+  {
+   "url": "https://katalir.de5.net/builder.txt?_rsc=95XpWZDYBWq3k6mU",
+   "status": 200,
+   "method": "GET"
+  },
+  {
+   "url": "https://katalir.de5.net/templates.txt?_rsc=95XpWZDYBWq3k6mU",
+   "status": 200,
+   "method": "GET"
+  }
+ ],
+ "load_s": 12.04,
+ "chat_text_head": "Lompat ke konten\nChat Baru\n\nRIWAYAT CHAT\n\nBelum ada riwayat.\n\nKatalir\nKatalir\nChat\nBuilder\nTemplate\nLogin dengan Google\nSilakan masuk dulu\n\nGunakan tombol \"Login dengan Google\" di pojok kanan atas untuk memulai percakapan.\n\nGemma 4 31B",
+ "title": "Katalir — SaaS AI",
+ "inputs": [
+  {
+   "tag": "TEXTAREA",
+   "type": null,
+   "placeholder": "Masuk untuk mulai mengobrol",
+   "visible": true,
+   "aria": "Pesan"
+  }
+ ],
+ "buttons": [
+  "Chat Baru",
+  "",
+  "Login dengan Google",
+  "Gemma 4 31B",
+  ""
+ ],
+ "login_cta": 3,
+ "composer_visible": true
+}
