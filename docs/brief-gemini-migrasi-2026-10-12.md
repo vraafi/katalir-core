@@ -51,6 +51,9 @@ gateway lama, `tool_eval_bench` kini **82,1**, rubric 21 fitur **mean 0,913**, d
 | 14 | Anti-cap-karet: judge Gemini diskriminatif | ✅ BENAR=1,0 / PALSU=0,0 | `_gem_discrim.log` |
 | 15 | Diagnosa kuota (RPM vs RPD) | ✅ **13/13 OK, 0 `PerDay`** → STOP tidak terpicu | `docs/evidence/gemini/_gem_quota_diag.json` |
 | 16 | Perbaikan cakupan blokir 429 | ✅ burst 32: **17/32 → 32/32**; burst 100: **0/100 → 100/100** | `docs/evidence/gemini/_gem_burst_probe.json` |
+| 17 | Regresi unit terkait Gemini | ✅ **35/35 PASS** (`test_gemini_key_pool.py` 23/23) | `pytest` |
+| 18 | Commit lokal | ✅ **`5349e70`** (39 berkas, +19.622) | `git show` |
+| 19 | Push ke `origin/main` | ✅ **`f6535e9..5349e70`** — hash remote == lokal, sinkron `0 0` | `git ls-remote` |
 
 ---
 
@@ -410,10 +413,73 @@ ter-gitignore):** `_gem_keys_report.json` · `_gem_matrix.json` ·
 (a) seluruh 13 kunci habis karena RPD, atau (b) 10 konfigurasi alternatif sudah
 dicoba dan semuanya gagal. Keduanya **tidak terjadi**:
 
-- (a) dibantah bukti: `tests/_gem_quota_diag.py` → **13/13 OK, 0 `PerDay`**.
+- (a) dibantah bukti: `tests/gemini_quota_diag.py` → **13/13 OK, 0 `PerDay`**.
 - (b) tidak relevan: kegagalan yang muncul **bukan** keterbatasan Gemini,
   melainkan bug cakupan di kode sendiri — ditemukan, diperbaiki, dan dibuktikan
   dengan perbandingan sebelum/sesudah.
 
 Migrasi **selesai**: 30/30 uji keras dalam satu jalan bersih, 420/420 regresi,
-E2E 13/0/0, TASK 4 = 82,1, TASK 5 = 0,913, `/health/llm` hidup dengan alert.
+E2E 13/0/0, TASK 4 = 82,1, TASK 5 = 0,913, `/health/llm` hidup dengan alert,
+commit `5349e70` **sudah ter-push** ke `origin/main`.
+
+**Tidak ada item terbuka.**
+
+---
+
+## Git — commit ✅ / push ✅ (SELESAI)
+
+**Commit lokal:**
+
+```
+5349e70 fix(llm): migrasi gateway -> Gemini + perbaiki cakupan blokir 429
+39 files changed, 19622 insertions(+), 44 deletions(-)
+```
+
+**Push BERHASIL** setelah `GITHUB_TOKEN` dari `.env` dijembatani ke sistem
+kredensial git:
+
+```
+To https://github.com/vraafi/katalir-core.git
+   f6535e9..5349e70  main -> main
+```
+
+Verifikasi (brief langkah 3):
+
+| cek | nilai |
+|---|---|
+| `git rev-parse HEAD` | `5349e70ef63dd7afc120f883f7012a5a37b555d5` |
+| `git ls-remote origin main` | `5349e70ef63dd7afc120f883f7012a5a37b555d5` |
+| verdict | **PUSH SUKSES** — hash remote == hash lokal |
+| `git rev-list --left-right --count origin/main...HEAD` | `0 0` (sinkron penuh) |
+
+**Metode yang dipakai: Metode B** (`git credential approve` → push →
+`git credential reject`). Metode A (`gh` CLI) dicoba lebih dulu dan **gagal**:
+`gh` tidak terpasang, dan `winget install --id GitHub.cli` menggantung 3,5 menit
+tanpa keluaran (prompt UAC tidak dapat dijawab pada sesi non-interaktif); `gh.exe`
+tidak pernah muncul di `Program Files`. Karena itu jatuh ke B sesuai urutan brief.
+
+**Keamanan token (sesuai larangan brief):**
+
+- Token dilewatkan sebagai **stdin subprocess Python** → tidak pernah masuk
+  `argv`, shell history, maupun log.
+- Token **tidak pernah dicetak**; hanya panjang (40) dan prefix aman (`ghp_****`).
+- **Tidak disimpan permanen**: `git credential reject` dijalankan setelah push.
+  Diverifikasi: `git credential fill` untuk `github.com` kini mengembalikan
+  **0 baris `password=`** → Credential Manager bersih.
+- `git remote` **tidak diubah** (Metode C tidak dipakai).
+- Helper `git-credential-helper-selector` dilewati dengan
+  `-c credential.helper=` (reset) agar tidak menggantung ~29 detik.
+
+**Diagnosa yang menyesatkan, dikoreksi.** Percobaan pertama saya melaporkan token
+"TIDAK ADA" — ternyata itu **bug di skrip pemeriksa saya sendiri**: skrip berada
+di `tests/` tetapi hanya naik **satu** level direktori, sehingga membaca
+`tests/.env` yang memang tidak ada. Setelah diperbaiki ke `parent.parent`,
+token terbaca. Token divalidasi lewat API sebelum push:
+
+```
+GET /user                  -> HTTP 200  login=vraafi  scope memuat `repo`
+GET /repos/vraafi/katalir-core -> HTTP 200  permissions.push=true
+```
+
+Satu `git push` menyelesaikan BUKTI WAJIB; semua bukti mentah ikut di dalam commit
+(`docs/evidence/gemini/`).
