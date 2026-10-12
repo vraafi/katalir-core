@@ -458,34 +458,62 @@ def main() -> int:
                 state="FAIL", shots=shots, console=pr.errs())
 
         # ================= S9: error handling ============================
-        print("\n=== S9 error handling ===", flush=True)
+        # KONTRAK BARU (FIX S9, 12 Okt 2026): prompt 12.000 karakter TIDAK
+        # lagi menghasilkan error — frontend meng-clamp ke 8.000 (maxLength)
+        # + counter karakter (muncul >= 80% batas), pesan terkirim normal;
+        # backend menegakkan batas yang sama dengan 422 actionable bila
+        # tetap lewat (mis. via API). Skenario menguji kontrak baru:
+        #   1. clamp: nilai textarea <= 8.000;
+        #   2. counter [data-testid="composer-counter"] terlihat;
+        #   3. pesan terkirim dan DIBALAS (tidak ada "Gagal mengirim").
+        # (Skenario lama menuntut "error ramah + tombol coba lagi" — kontrak
+        # pra-fix yang sudah tidak relevan; UX baru mencegah error itu.)
+        print("\n=== S9 error handling (kontrak baru: clamp + counter) ===", flush=True)
         pr.reset()
         shots = []
         try:
             pg.goto(f"{FRONTEND}/chat", wait_until="domcontentloaded",
                     timeout=60000)
             pg.wait_for_timeout(3500)
-            t = send_chat(pg, "x" * 12000, wait_ms=35000)
-            shots.append(shot(pg, "s09-a-prompt-ekstrem"))
+            try:
+                skip = pg.locator('[data-testid="onboarding-skip"]')
+                skip.wait_for(state="visible", timeout=6000)
+                skip.click(timeout=4000)
+                pg.wait_for_timeout(600)
+            except Exception:  # noqa: BLE001 - modal tidak muncul
+                pass
+            ta9 = pg.locator("textarea").first
+            ta9.click(timeout=10000)
+            ta9.fill("x" * 12000)
+            pg.wait_for_timeout(400)
+            val_len = pg.evaluate(
+                "() => (document.querySelector('textarea')||{}).value?.length || 0")
+            cnt = pg.locator('[data-testid="composer-counter"]')
+            cnt_vis = cnt.count() > 0 and cnt.first.is_visible()
+            cnt_txt = cnt.first.inner_text() if cnt.count() else None
+            shots.append(shot(pg, "s09-a-clamp-counter"))
+            t = send_chat(pg, "Sebutkan 3 langkah membuat workflow sederhana.",
+                          wait_ms=35000)
+            shots.append(shot(pg, "s09-b-terkirim"))
             body = pg.inner_text("body")
-            retry = pg.get_by_role("button", name="Try Again", exact=False).count()
-            retry += pg.get_by_role("button", name="Coba lagi", exact=False).count()
-            friendly = any(w in body.lower() for w in
-                           ("coba lagi", "gagal", "terlalu panjang", "kesalahan",
-                            "tidak dapat", "error"))
-            rec(9, "User kirim prompt yang bikin error",
+            gagal = "Gagal mengirim" in body
+            ok = (val_len <= 8000) and cnt_vis and (not gagal)
+            rec(9, "User kirim prompt super panjang (clamp 8.000)",
                 precondition="Chat aktif",
-                action="Kirim 12.000 karakter 'x'",
-                expected="Pesan error ramah + tombol coba lagi",
-                actual=(f"{t}s; tombol_retry={retry}; pesan_ramah={friendly}"),
-                state="PASS" if (retry > 0 or friendly) else "FAIL",
+                action="Paste 12.000 karakter 'x' (kontrak baru: clamp+counter)",
+                expected=("Nilai textarea <= 8.000, counter terlihat, "
+                          "pesan terkirim tanpa error"),
+                actual=(f"nilai={val_len}; counter={cnt_vis} "
+                        f"({cnt_txt!r}); gagal_kirim={gagal}; {t}s"),
+                state="PASS" if ok else "FAIL",
                 shots=shots, seconds=t, console=pr.errs(),
                 netfail=pr.netfail, extra={"body_tail": body[-600:]})
         except Exception as exc:  # noqa: BLE001
             shots.append(shot(pg, "s09-error"))
-            rec(9, "User kirim prompt yang bikin error",
-                precondition="Chat aktif", action="Kirim 12.000 karakter 'x'",
-                expected="Pesan error ramah + tombol coba lagi",
+            rec(9, "User kirim prompt super panjang (clamp 8.000)",
+                precondition="Chat aktif",
+                action="Paste 12.000 karakter 'x' (kontrak baru: clamp+counter)",
+                expected="Nilai textarea <= 8.000, counter terlihat, terkirim",
                 actual=f"ERROR {type(exc).__name__}: {str(exc)[:150]}",
                 state="FAIL", shots=shots, console=pr.errs())
 
