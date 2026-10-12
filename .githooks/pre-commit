@@ -1,0 +1,32 @@
+#!/bin/sh
+# Gerbang pre-commit — mencegah insiden CSP 2026-10-12 terulang di sumbernya.
+#
+# Memeriksa: origin `NEXT_PUBLIC_API_URL` (dari .env.production / .env.local)
+# HARUS diizinkan oleh direktif `connect-src` di nexus-frontend/public/_headers.
+#
+# Insiden 12 Okt 2026: bundle produksi memanggil host Railway yang sudah MATI
+# dan TIDAK ada di connect-src -> browser memblokir SEMUA fetch -> 7 dari 10
+# skenario pengguna gagal. Gerbang ini menangkapnya di commit, bukan di produksi.
+#
+# Dipasang via:  git config core.hooksPath .githooks
+# (Lihat ops/install-git-hooks.sh)
+
+set -e
+
+REPO_ROOT="$(git rev-parse --show-toplevel)"
+GATE="$REPO_ROOT/nexus-frontend/scripts/check-api-url-csp.mjs"
+
+# Lewati dengan jujur (bukan diam-diam hijau) bila node tidak tersedia.
+if ! command -v node >/dev/null 2>&1; then
+  echo "[pre-commit] PERINGATAN: 'node' tidak ada di PATH — gerbang CSP DILEWATI."
+  echo "[pre-commit] Pasang Node.js supaya gerbang ini benar-benar berjalan."
+  exit 0
+fi
+
+if [ ! -f "$GATE" ]; then
+  echo "[pre-commit] PERINGATAN: $GATE tidak ditemukan — gerbang CSP DILEWATI."
+  exit 0
+fi
+
+echo "[pre-commit] gerbang CSP: NEXT_PUBLIC_API_URL vs connect-src ..."
+node "$GATE"

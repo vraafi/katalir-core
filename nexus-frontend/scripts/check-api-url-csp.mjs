@@ -25,7 +25,7 @@
  * didukung). Dijalankan di `prebuild`.
  */
 
-import { readFileSync } from "node:fs";
+import { readFileSync, existsSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
 
@@ -35,6 +35,47 @@ const HEADERS = join(root, "public", "_headers");
 
 const RED = "\u001b[31m", YEL = "\u001b[33m", DIM = "\u001b[2m", OFF = "\u001b[0m";
 
+/**
+ * Muat `NEXT_PUBLIC_*` dari berkas env dengan urutan prioritas Next.js
+ * (tinggi -> rendah):
+ *   .env.production.local > .env.local > .env.production > .env
+ *
+ * KENAPA perlu: `prebuild` dijalankan npm SEBELUM Next.js memuat `.env`,
+ * sehingga `process.env.NEXT_PUBLIC_API_URL` KOSONG saat gerbang dipanggil
+ * lewat `npm run build`. Tanpa pemuatan ini gerbang akan lolos diam-diam
+ * (lubang yang justru membuat insiden terulang). Nilai yang SUDAH ada di
+ * `process.env` (mis. dari CI/dashboard) selalu menang.
+ */
+function loadEnvFiles() {
+  const files = [".env.production.local", ".env.local", ".env.production", ".env"];
+  const found = {};
+  const sources = [];
+  for (const f of files) {
+    const p = join(root, f);
+    if (!existsSync(p)) continue;
+    for (const raw of readFileSync(p, "utf8").split(/\r?\n/)) {
+      const line = raw.trim().replace(/^\uFEFF/, "");
+      if (!line || line.startsWith("#") || !line.includes("=")) continue;
+      const i = line.indexOf("=");
+      const k = line.slice(0, i).trim();
+      let v = line.slice(i + 1).trim();
+      if ((v.startsWith('"') && v.endsWith('"')) ||
+          (v.startsWith("'") && v.endsWith("'"))) v = v.slice(1, -1);
+      if (!k) continue;
+      if (!(k in found)) found[k] = v; // berkas pertama menang
+      if (!sources.includes(f)) sources.push(f);
+    }
+  }
+  return { found, sources };
+}
+
+const { found, sources } = loadEnvFiles();
+// process.env menang atas berkas (CI/dashboard menyetel variabel asli).
+const apiUrl = (process.env.NEXT_PUBLIC_API_URL || found.NEXT_PUBLIC_API_URL || "").trim();
+const apiUrlSource = process.env.NEXT_PUBLIC_API_URL
+  ? "process.env"
+  : (found.NEXT_PUBLIC_API_URL ? `berkas env (${sources.join(", ")})` : "(tidak ada)");
+
 function fail(msg, hint) {
   console.error(`\n${RED}✖ check-api-url-csp: ${msg}${OFF}`);
   if (hint) console.error(`${YEL}  → ${hint}${OFF}`);
@@ -42,14 +83,14 @@ function fail(msg, hint) {
   process.exit(1);
 }
 
-const apiUrl = (process.env.NEXT_PUBLIC_API_URL || "").trim();
 if (!apiUrl) {
   // Tanpa nilai, src/lib/api.ts jatuh ke http://localhost:8000 — hanya boleh
   // untuk build lokal. Build produksi wajib menyetelnya.
   console.error(
     `${YEL}⚠ check-api-url-csp: NEXT_PUBLIC_API_URL kosong — ` +
     `bundle akan memakai http://localhost:8000.${OFF}\n` +
-    `${DIM}  Setel NEXT_PUBLIC_API_URL ke backend produksi sebelum build.${OFF}`
+    `${DIM}  Setel NEXT_PUBLIC_API_URL di .env.production (atau process.env) ` +
+    `sebelum build.${OFF}`
   );
   process.exit(0);
 }
@@ -103,5 +144,6 @@ if (!allowed) {
 }
 
 console.log(
-  `${DIM}✔ check-api-url-csp: ${origin} diizinkan oleh connect-src${OFF}`
+  `${DIM}✔ check-api-url-csp: ${origin} diizinkan oleh connect-src ` +
+  `(sumber: ${apiUrlSource})${OFF}`
 );

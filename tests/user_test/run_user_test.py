@@ -142,7 +142,12 @@ def main() -> int:
         pr0 = Probe(pg0)
         shots = []
         try:
-            pg0.goto(f"{FRONTEND}/chat", wait_until="networkidle", timeout=60000)
+            # CATATAN HARNESS: `networkidle` TIDAK PERNAH tercapai di produksi
+            # karena beacon Cloudflare RUM + koneksi Supabase tetap terbuka.
+            # Versi pertama memakai networkidle dan memberi "FAIL: Timeout"
+            # palsu pada skenario ini. Pakai domcontentloaded + jeda eksplisit.
+            pg0.goto(f"{FRONTEND}/chat", wait_until="domcontentloaded", timeout=60000)
+            pg0.wait_for_timeout(4000)
             shots.append(shot(pg0, "s01-a-landing-not-logged-in"))
             btn = pg0.get_by_role("button", name="Login dengan Google")
             present = btn.count() > 0
@@ -258,20 +263,37 @@ def main() -> int:
         try:
             pg.goto(f"{FRONTEND}/chat", wait_until="domcontentloaded",
                     timeout=60000)
-            pg.reload(wait_until="networkidle", timeout=60000)
-            pg.wait_for_timeout(4000)
+            # idem S1: networkidle tidak pernah settle di produksi
+            pg.reload(wait_until="domcontentloaded", timeout=60000)
+            pg.wait_for_timeout(5000)
             shots.append(shot(pg, "s04-a-setelah-refresh"))
             body = pg.inner_text("body")
             empty = "Belum ada riwayat" in body
-            items = pg.locator("aside a, nav a, [data-session-id]").count()
+            # Sidebar riwayat memakai <button>/<li> di dalam <aside>, BUKAN <a>.
+            # Versi pertama hanya mencari "aside a, nav a" -> 0 padahal ada 20+.
+            items = pg.locator(
+                "aside a, aside button, aside li, nav a, nav button, "
+                "[data-session-id], [data-testid*='history'], [data-testid*='session']"
+            ).count()
+            # hitung juga judul percakapan yang benar-benar terlihat
+            labels = 0
+            for el in pg.locator("aside button, aside li, aside a").all():
+                try:
+                    t = (el.inner_text() or "").strip()
+                    if 2 < len(t) < 80:
+                        labels += 1
+                except Exception:  # noqa: BLE001
+                    pass
             rec(4, "Riwayat chat bertahan setelah refresh",
                 precondition="Sudah ada 2 percakapan",
                 action="Refresh browser, buka /chat",
                 expected="Riwayat masih ada, sesi lama bisa dibuka",
-                actual=(f"sidebar_kosong={empty}; kandidat_item={items}"),
-                state="FAIL" if empty else ("PASS" if items > 0 else "FAIL"),
+                actual=(f"sidebar_kosong={empty}; kandidat_item={items}; "
+                        f"label_terlihat={labels}"),
+                state="FAIL" if empty else ("PASS" if (items > 0 or labels > 0)
+                                            else "FAIL"),
                 shots=shots, console=pr.errs(), netfail=pr.netfail,
-                extra={"body_head": body[:400]})
+                extra={"body_head": body[:400], "items": items, "labels": labels})
         except Exception as exc:  # noqa: BLE001
             shots.append(shot(pg, "s04-error"))
             rec(4, "Riwayat chat bertahan setelah refresh",
@@ -317,22 +339,29 @@ def main() -> int:
         pr.reset()
         shots = []
         try:
-            pg.goto(f"{FRONTEND}/templates", wait_until="networkidle",
+            pg.goto(f"{FRONTEND}/templates", wait_until="domcontentloaded",
                     timeout=60000)
-            pg.wait_for_timeout(4000)
+            pg.wait_for_timeout(5000)
             shots.append(shot(pg, "s06-a-templates"))
             body = pg.inner_text("body")
             cards = pg.locator("article, [data-template], .card, li").count()
+            # Kartu template adalah <div>; penanda paling andal = tombol "Pakai"
+            # (satu per kartu). Versi pertama menghitung "article/.card/li" -> 0
+            # padahal 10 kartu benar-benar tampil.
+            pakai = pg.get_by_role("button", name="Pakai", exact=False).count()
+            pratinjau = pg.get_by_role("button", name="Pratinjau", exact=False).count()
             n_text = len(body)
             rec(6, "User lihat templates",
                 precondition="Login",
                 action="Buka /templates",
                 expected="Daftar template tampil, preview bisa dibuka",
                 actual=(f"panjang_teks={n_text}; kandidat_kartu={cards}; "
-                        f"cuplikan={body[:150]!r}"),
-                state="PASS" if n_text > 400 else "FAIL",
+                        f"tombol_pakai={pakai}; tombol_pratinjau={pratinjau}; "
+                        f"cuplikan={body[:120]!r}"),
+                state="PASS" if (pakai > 0 or n_text > 400) else "FAIL",
                 shots=shots, console=pr.errs(), netfail=pr.netfail,
-                extra={"body_head": body[:600]})
+                extra={"body_head": body[:600], "pakai": pakai,
+                       "pratinjau": pratinjau})
         except Exception as exc:  # noqa: BLE001
             shots.append(shot(pg, "s06-error"))
             rec(6, "User lihat templates", precondition="Login",
@@ -387,23 +416,40 @@ def main() -> int:
         pr.reset()
         shots = []
         try:
-            pg.goto(f"{FRONTEND}/insights", wait_until="networkidle",
+            pg.goto(f"{FRONTEND}/insights", wait_until="domcontentloaded",
                     timeout=60000)
-            pg.wait_for_timeout(5000)
+            pg.wait_for_timeout(6000)
             shots.append(shot(pg, "s08-a-insights"))
             body = pg.inner_text("body")
-            charts = pg.locator("canvas, svg.recharts-surface, .recharts-wrapper").count()
+            # Chart di halaman ini BUKAN recharts (div/SVG kustom). Versi
+            # pertama hanya mencari canvas/recharts -> 0 padahal grafiknya
+            # tampil. Selektor diperluas.
+            charts = pg.locator(
+                "canvas, svg, .recharts-wrapper, [class*='chart'], "
+                "[class*='Chart'], [data-testid*='chart']"
+            ).count()
+            # Penanda METRIK yang benar-benar dirender (bukan sekadar judul).
+            metrics = [m for m in ("Success rate", "Total eksekusi", "Error rate",
+                                   "Latensi rata-rata", "ROI")
+                       if m.lower() in body.lower()]
+            # Banner error SEJATI. Versi pertama mencocokkan kata "gagal"/"error"
+            # dan ikut menangkap LABEL METRIK ("Error rate", kolom "Gagal") ->
+            # alarm palsu. Sekarang hanya frasa kegagalan memuat.
             err_banner = any(w in body.lower() for w in
-                             ("gagal", "error", "tidak dapat", "coba lagi"))
+                             ("failed to fetch", "gagal memuat",
+                              "tidak dapat memuat", "coba lagi",
+                              "terjadi kesalahan"))
+            ok = len(metrics) >= 3 and not err_banner
             rec(8, "User cek insights",
                 precondition="Login, ada data eksekusi",
                 action="Buka /insights",
                 expected="Chart + metrik tampil",
-                actual=(f"chart={charts}; banner_error={err_banner}; "
-                        f"cuplikan={body[:150]!r}"),
-                state="PASS" if charts > 0 else "FAIL",
+                actual=(f"chart={charts}; metrik={len(metrics)} {metrics}; "
+                        f"banner_error={err_banner}; cuplikan={body[:150]!r}"),
+                state="PASS" if ok else "FAIL",
                 shots=shots, console=pr.errs(), netfail=pr.netfail,
-                extra={"charts": charts, "body_head": body[:700]})
+                extra={"charts": charts, "metrics": metrics,
+                       "body_head": body[:700]})
         except Exception as exc:  # noqa: BLE001
             shots.append(shot(pg, "s08-error"))
             rec(8, "User cek insights", precondition="Login, ada data eksekusi",

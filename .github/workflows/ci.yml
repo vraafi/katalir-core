@@ -57,6 +57,47 @@ jobs:
             -q -p no:cacheprovider
 
   # ---------------------------------------------------------------------
+  # Gerbang CSP frontend — mencegah insiden 2026-10-12 terulang.
+  #
+  # Insiden: `NEXT_PUBLIC_API_URL` di-inline saat BUILD menunjuk host Railway
+  # yang sudah MATI dan TIDAK ada di `connect-src` produksi -> browser
+  # memblokir SEMUA fetch -> chat/template/insight/builder/riwayat gagal
+  # (7 dari 10 skenario pengguna). CSP sudah benar sejak 11 Okt, tetapi
+  # bundle-nya tidak pernah di-build ulang — jadi selama sehari produksi
+  # tetap memanggil host mati.
+  #
+  # Job ini HERMETIK (hanya modul bawaan Node, tanpa `npm install`), jadi
+  # bisa jalan di setiap push tanpa biaya dan tanpa rahasia.
+  # ---------------------------------------------------------------------
+  frontend-csp-gate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Gerbang sumber — NEXT_PUBLIC_API_URL vs CSP connect-src
+        working-directory: nexus-frontend
+        run: node scripts/check-api-url-csp.mjs
+
+      - name: Buktikan gerbang benar-benar MENOLAK host mati (self-test)
+        working-directory: nexus-frontend
+        run: |
+          set +e
+          NEXT_PUBLIC_API_URL=https://web-production-dc90b.up.railway.app \
+            node scripts/check-api-url-csp.mjs
+          code=$?
+          set -e
+          if [ "$code" -eq 0 ]; then
+            echo "FATAL: gerbang meloloskan host mati — gerbang rusak."
+            exit 1
+          fi
+          echo "OK: gerbang menolak host mati (exit=$code)"
+
+  # ---------------------------------------------------------------------
   # Fitur #6 (Code Node Sandbox) — penegakan batas memori di LINUX.
   #
   # Kenapa job terpisah: perbaikan awal hanya berlaku di Windows (Job Object).

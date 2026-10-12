@@ -38,10 +38,37 @@ def env_load() -> dict:
     return out
 
 
+def run_gate(script: str, label: str) -> int:
+    """Jalankan gerbang Node sebelum deploy. 0 = lolos.
+
+    Insiden 12 Okt 2026: `out/` sudah ada, CSP sudah benar, tapi bundle masih
+    menunjuk host mati -> deploy "sukses" tapi produksi rusak. Gerbang ini
+    menolak deploy bila sumber ATAU hasil build tidak konsisten.
+    """
+    node = os.environ.get("NODE_BIN") or "node"
+    p = FE / "scripts" / script
+    if not p.exists():
+        print(f"FATAL: gerbang {p} tidak ada")
+        return 2
+    print(f"$ node scripts/{script}   [{label}]")
+    r = subprocess.run([node, str(p)], cwd=str(FE), capture_output=True,
+                       text=True, encoding="utf-8", errors="replace")
+    sys.stdout.write((r.stdout or "") + (r.stderr or ""))
+    if r.returncode != 0:
+        print(f"FATAL: gerbang '{label}' GAGAL (exit={r.returncode}) — deploy dibatalkan.")
+    return r.returncode
+
+
 def main() -> int:
     if not OUT.is_dir():
         print(f"FATAL: {OUT} tidak ada — jalankan `next build` dulu.")
         return 2
+
+    # --- GERBANG WAJIB: jangan pernah deploy tanpa keduanya lolos ----------
+    if run_gate("check-api-url-csp.mjs", "sumber: env vs CSP") != 0:
+        return 3
+    if run_gate("check-bundle-hosts.mjs", "hasil: isi bundle out/") != 0:
+        return 3
 
     e = env_load()
     token = e.get("CLOUDFLARE_API_TOKEN")

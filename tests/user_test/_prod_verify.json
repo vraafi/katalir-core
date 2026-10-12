@@ -1,0 +1,53 @@
+{
+ "frontend": "https://katalir.de5.net",
+ "prompt": "halo",
+ "composer_ada": true,
+ "balasan_s": 3.39,
+ "body_after_len": 3022,
+ "gagal_mengirim": false,
+ "body_tail": "VAULT:...\nkirim ke telegram chat 123\nhubungkan gmail saya\nlaporan berisi [VAULT: supabas...\nterjemahkan teks ini: [VAULT:...\nmunculkan vault supabase\nmunculkan vault supabase\nLaporan kemarin berisi [VAULT:...\nLaporan yang saya terima yeste...\nLaporan yang saya terima yeste...\nTolong baca email saya dan\nmunculkan vault supabase\nBuatkan workflow: 1. Trigger m...\nBuatkan workflow: 1. Trigger m...\nLangsung panggil tool trigger_...\nBuat workflow: ketika email su...\nLangsung buat, jangan bertanya...\nBuatkan workflow: 1. Trigger m...\nBuatkan workflow: 1. Trigger m...\nBaca email inventory baru\nBuatkan workflow langsung: tri...\nBuatkan workflow langsung tanp...\nBalas satu kata: OK\nBalas satu kata: OK\nBalas satu kata: OK\nBalas satu kata: OK\nO\notonom-test@katalir-internal.dev\nKatalir\nKatalir\nChat\nBuilder\nTemplate\nBrankas\nhalo\nAgen sedang berpikir...\n↓ Terbaru\nEkspor JSON\nEkspor Markdown\nPilih model",
+ "history_after_refresh": true,
+ "history_body_len": 3128,
+ "sidebar_items": 202,
+ "api_hosts_dipanggil": [
+  "https://gateway.katalir.de5.net/katalir-api"
+ ],
+ "ada_railway_dipanggil": false,
+ "csp_diblokir": [],
+ "console_errors": [],
+ "request_failed": [
+  {
+   "u": "https://katalir.de5.net/cdn-cgi/rum?",
+   "f": "net::ERR_ABORTED"
+  },
+  {
+   "u": "https://qmukkphwaajzbqjrcvaz.supabase.co/auth/v1/token?grant_type=refresh_token",
+   "f": "net::ERR_ABORTED"
+  },
+  {
+   "u": "https://katalir.de5.net/cdn-cgi/rum?",
+   "f": "net::ERR_ABORTED"
+  },
+  {
+   "u": "https://katalir.de5.net/cdn-cgi/rum?",
+   "f": "net::ERR_ABORTED"
+  },
+  {
+   "u": "https://katalir.de5.net/cdn-cgi/rum?",
+   "f": "net::ERR_ABORTED"
+  },
+  {
+   "u": "https://katalir.de5.net/cdn-cgi/rum?",
+   "f": "net::ERR_ABORTED"
+  },
+  {
+   "u": "https://gateway.katalir.de5.net/katalir-api/chat",
+   "f": "net::ERR_ABORTED"
+  }
+ ],
+ "gate_4a": true,
+ "gate_4b": true,
+ "gate_4c": true,
+ "gate_4d": true,
+ "verdict": "PASS"
+}

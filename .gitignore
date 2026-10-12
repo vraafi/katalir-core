@@ -3,6 +3,11 @@
 .env.*
 !.env.example
 !.env.template
+# .env.production HANYA berisi nilai PUBLIK (semua berprefix NEXT_PUBLIC_),
+# sama seperti .env.example. Berkas ini justru HARUS ikut ter-commit supaya
+# build di CI/mesin lain tidak jatuh ke http://localhost:8000 — itu penyebab
+# insiden CSP 12 Okt 2026. JANGAN menaruh rahasia di berkas ini.
+!nexus-frontend/.env.production
 *.secret
 client_secret_*.json
 credentials.json

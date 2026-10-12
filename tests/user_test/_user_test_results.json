@@ -1,7 +1,7 @@
 {
  "summary": {
-  "PASS": 2,
-  "FAIL": 7,
+  "PASS": 6,
+  "FAIL": 3,
   "BLOCKED": 1,
   "NOT_RUN": 0
  },
@@ -12,7 +12,7 @@
    "precondition": "Belum login, buka /chat",
    "action": "Klik tombol 'Login dengan Google'",
    "expected": "Diarahkan ke consent Google lalu kembali ke /chat",
-   "actual": "Tombol ada=True; redirect ke https://accounts.google.com/v3/signin/identifier?opparams=%253Fredirect_to%253Dhttps%25253A%25252F%25252Fkatalir.de5.net%25252Fchat&dsh=S2067241625%3A1791795080047107&client_id=77379505459-4stq5s6vnmkmi0ae55s16rufrlr4ptbg.apps.googleusercontent.com&o2v=2&redirect_uri=https%3A%2F%2Fqmukkphwaajzbqjrcvaz.supabase.co%2Fauth%2Fv1%2Fcallback&response_type=code&scope=email+profile&service=lso&state=56d9194a-fd29-4f65-85fb-0c865f9420fb&flowName=GeneralOAuthLite&continue=https%3A%2F%2Faccounts.google.com%2Fsignin%2Foauth%2Flegacy%2Fconsent%3Fauthuser%3Dunknown%26part%3DAJi8hANokZ9z2LahovC99UmnAkFoRs6612iZyzHGtU81KPcAoKIBN-UD-SW7mAxbfBRorZIh3RsxqdFKPUe7AElIrezYBN-3n8fYuEhM9K8Oj_AEfaMgTG5n_Dcq_4nUKKFBp_qMiDgxCpd1Z_R75FGa9vO1zKkARIDtcQXk5vmlCoOr-ywqW6KA_SVsRzyq_gIO4HWPGo7LEdacYCgN5nHohsEHQbsxUV626rwuCmZU8Um5iEFACjZC2Bc9wemv928y7B7tzZvySLfeo44OpxsdFHk6BrE3X0vbEmr4Z4-1YG4_Iv9pnF36wOwOgywgBp8JTKHI1WL1SPRbBAf6tt64wim4pF94XQFMFN9EYCfc55FtiAlgp84EwSHTA48alHCf0BFyA8rmnTYJyc1QTnHt7YvYS7kLvxa3uCvW3pjB0Vl-3d6nYRr_-24Ebs8mDFiGCkAhB16V-6W_KcYTrFiLRzqQt4q5pWTdHX6lI-WhURacMVIGlN0%26flowName%3DGeneralOAuthFlow%26as%3DS2067241625%253A1791795080047107%26client_id%3D77379505459-4stq5s6vnmkmi0ae55s16rufrlr4ptbg.apps.googleusercontent.com%23&app_domain=https%3A%2F%2Fqmukkphwaajzbqjrcvaz.supabase.co&rart=ANgoxcf4HHs9QqidLyW7N35c4W-KiqfpnHZqeDz5OtDnO6ypr71HARWhan4zMDZgDBWumjCev1yMi0kESguFKOJatf_Yo6ULrfQT0ZOLesAwxgzB8hCvDFk",
+   "actual": "Tombol ada=True; redirect ke https://accounts.google.com/v3/signin/identifier?opparams=%253Fredirect_to%253Dhttps%25253A%25252F%25252Fkatalir.de5.net%25252Fchat&dsh=S-2113462379%3A1791805792632939&client_id=77379505459-4stq5s6vnmkmi0ae55s16rufrlr4ptbg.apps.googleusercontent.com&o2v=2&redirect_uri=https%3A%2F%2Fqmukkphwaajzbqjrcvaz.supabase.co%2Fauth%2Fv1%2Fcallback&response_type=code&scope=email+profile&service=lso&state=3511b0b2-8239-45b6-9c9a-8023d269df88&flowName=GeneralOAuthLite&continue=https%3A%2F%2Faccounts.google.com%2Fsignin%2Foauth%2Flegacy%2Fconsent%3Fauthuser%3Dunknown%26part%3DAJi8hAMR-n5KYekpYrcJI2Q7pMEhTHwChQ_RE52XL1o8hnQm8ycoVGdOMGXNFtkydTKwLsSqFg0LR7d9JpHDrbt4szlpcWv_38wXBNTP-efO60_PAUK0s2d8N6i2IkVBkdjc7AJ3WY4b6I47Fo1qTkv3zDlKXRLe6qNj0N2BTg7EgZISPj4dcW4ba3RtPEGh9ogVYPyvNAZiSQBbjQA-hElU9Eym3XO8RUE5cti_wW3ITkTIWDWXvcOqAfEa7sObMwYZnpWBjtR4rRDgu_igR8-Zsia3wfQb8zyGcPeCQBXNbVBJxtj8p6mTi5XkwVuyD688GXyi0A_QYR9Lpt3JRTTA6wyEIonQkfTWq6-TQBqjI7maG7HM0RrzOVyG_MbsNaf3v28KTMz0VAXq8bPX1-zgAP2zyC21UKF4SbWKH84MvoL8247jAQVjjOqrrnRvRnzKkwNDK2tFGT3-5g7KfK8qXwUcyh7NzHeR2nF0Lv33PcF0YPpYKoA%26flowName%3DGeneralOAuthFlow%26as%3DS-2113462379%253A1791805792632939%26client_id%3D77379505459-4stq5s6vnmkmi0ae55s16rufrlr4ptbg.apps.googleusercontent.com%23&app_domain=https%3A%2F%2Fqmukkphwaajzbqjrcvaz.supabase.co&rart=ANgoxcdAPUqBGvHPS0z4nWjSDO5ggZ_Nf6XfH7G8Ie6xAPjSwzKHpjWPBrQcmQPwpRJaQVvlJfjuNXct6Fgff9fcWwmvN4HR62kQ8i8q8xj4b9XSG-kXgWE",
    "state": "BLOCKED",
    "seconds": null,
    "screenshots": [
@@ -22,7 +22,7 @@
    "console_errors": [],
    "failed_requests": [],
    "extra": {
-    "oauth_target": "https://accounts.google.com/v3/signin/identifier?opparams=%253Fredirect_to%253Dhttps%25253A%25252F%25252Fkatalir.de5.net%25252Fchat&dsh=S2067241625%3A1791795080047107&client_id=77379505459-4stq5s6vnmkmi0ae55s16rufrlr4ptbg.apps.googleusercontent.com&o2v=2&redirect_uri=https%3A%2F%2Fqmukkphwaajzbqjrcvaz.supabase.co%2Fauth%2Fv1%2Fcallback&response_type=code&scope=email+profile&service=lso&state=56d9194a-fd29-4f65-85fb-0c865f9420fb&flowName=GeneralOAuthLite&continue=https%3A%2F%2Faccounts.google.com%2Fsignin%2Foauth%2Flegacy%2Fconsent%3Fauthuser%3Dunknown%26part%3DAJi8hANokZ9z2LahovC99UmnAkFoRs6612iZyzHGtU81KPcAoKIBN-UD-SW7mAxbfBRorZIh3RsxqdFKPUe7AElIrezYBN-3n8fYuEhM9K8Oj_AEfaMgTG5n_Dcq_4nUKKFBp_qMiDgxCpd1Z_R75FGa9vO1zKkARIDtcQXk5vmlCoOr-ywqW6KA_SVsRzyq_gIO4HWPGo7LEdacYCgN5nHohsEHQbsxUV626rwuCmZU8Um5iEFACjZC2Bc9wemv928y7B7tzZvySLfeo44OpxsdFHk6BrE3X0vbEmr4Z4-1YG4_Iv9pnF36wOwOgywgBp8JTKHI1WL1SPRbBAf6tt64wim4pF94XQFMFN9EYCfc55FtiAlgp84EwSHTA48alHCf0BFyA8rmnTYJyc1QTnHt7YvYS7kLvxa3uCvW3pjB0Vl-3d6nYRr_-24Ebs8mDFiGCkAhB16V-6W_KcYTrFiLRzqQt4q5pWTdHX6lI-WhURacMVIGlN0%26flowName%3DGeneralOAuthFlow%26as%3DS2067241625%253A1791795080047107%26client_id%3D77379505459-4stq5s6vnmkmi0ae55s16rufrlr4ptbg.apps.googleusercontent.com%23&app_domain=https%3A%2F%2Fqmukkphwaajzbqjrcvaz.supabase.co&rart=ANgoxcf4HHs9QqidLyW7N35c4W-KiqfpnHZqeDz5OtDnO6ypr71HARWhan4zMDZgDBWumjCev1yMi0kESguFKOJatf_Yo6ULrfQT0ZOLesAwxgzB8hCvDFk",
+    "oauth_target": "https://accounts.google.com/v3/signin/identifier?opparams=%253Fredirect_to%253Dhttps%25253A%25252F%25252Fkatalir.de5.net%25252Fchat&dsh=S-2113462379%3A1791805792632939&client_id=77379505459-4stq5s6vnmkmi0ae55s16rufrlr4ptbg.apps.googleusercontent.com&o2v=2&redirect_uri=https%3A%2F%2Fqmukkphwaajzbqjrcvaz.supabase.co%2Fauth%2Fv1%2Fcallback&response_type=code&scope=email+profile&service=lso&state=3511b0b2-8239-45b6-9c9a-8023d269df88&flowName=GeneralOAuthLite&continue=https%3A%2F%2Faccounts.google.com%2Fsignin%2Foauth%2Flegacy%2Fconsent%3Fauthuser%3Dunknown%26part%3DAJi8hAMR-n5KYekpYrcJI2Q7pMEhTHwChQ_RE52XL1o8hnQm8ycoVGdOMGXNFtkydTKwLsSqFg0LR7d9JpHDrbt4szlpcWv_38wXBNTP-efO60_PAUK0s2d8N6i2IkVBkdjc7AJ3WY4b6I47Fo1qTkv3zDlKXRLe6qNj0N2BTg7EgZISPj4dcW4ba3RtPEGh9ogVYPyvNAZiSQBbjQA-hElU9Eym3XO8RUE5cti_wW3ITkTIWDWXvcOqAfEa7sObMwYZnpWBjtR4rRDgu_igR8-Zsia3wfQb8zyGcPeCQBXNbVBJxtj8p6mTi5XkwVuyD688GXyi0A_QYR9Lpt3JRTTA6wyEIonQkfTWq6-TQBqjI7maG7HM0RrzOVyG_MbsNaf3v28KTMz0VAXq8bPX1-zgAP2zyC21UKF4SbWKH84MvoL8247jAQVjjOqrrnRvRnzKkwNDK2tFGT3-5g7KfK8qXwUcyh7NzHeR2nF0Lv33PcF0YPpYKoA%26flowName%3DGeneralOAuthFlow%26as%3DS-2113462379%253A1791805792632939%26client_id%3D77379505459-4stq5s6vnmkmi0ae55s16rufrlr4ptbg.apps.googleusercontent.com%23&app_domain=https%3A%2F%2Fqmukkphwaajzbqjrcvaz.supabase.co&rart=ANgoxcdAPUqBGvHPS0z4nWjSDO5ggZ_Nf6XfH7G8Ie6xAPjSwzKHpjWPBrQcmQPwpRJaQVvlJfjuNXct6Fgff9fcWwmvN4HR62kQ8i8q8xj4b9XSG-kXgWE",
     "reason_blocked": "consent Google butuh interaksi manusia (akun+2FA); tidak dapat diselesaikan otonom"
    }
   },
@@ -32,41 +32,16 @@
    "precondition": "Sudah login, composer aktif",
    "action": "Ketik 'Buat workflow sederhana' lalu Enter",
    "expected": "Balasan <30 s, bahasa Indonesia",
-   "actual": "50.41s, balasan=TIDAK ADA, panjang_body=275",
+   "actual": "50.14s, balasan=ada, panjang_body=3531",
    "state": "FAIL",
-   "seconds": 50.41,
+   "seconds": 50.14,
    "screenshots": [
     "C:\\Users\\user\\Proyek_AI\\docs\\evidence\\user-test\\s02-chat-pertama.png"
    ],
-   "console_errors": [
-    {
-     "type": "error",
-     "text": "Connecting to 'https://web-production-dc90b.up.railway.app/chat' violates the following Content Security Policy directive: \"connect-src 'self' https://gateway.katalir.de5.net https://qmukkphwaajzbqjrc"
-    },
-    {
-     "type": "error",
-     "text": "Fetch API cannot load https://web-production-dc90b.up.railway.app/chat. Refused to connect because it violates the document's Content Security Policy."
-    },
-    {
-     "type": "error",
-     "text": "Connecting to 'https://web-production-dc90b.up.railway.app/chat' violates the following Content Security Policy directive: \"connect-src 'self' https://gateway.katalir.de5.net https://qmukkphwaajzbqjrc"
-    },
-    {
-     "type": "error",
-     "text": "Fetch API cannot load https://web-production-dc90b.up.railway.app/chat. Refused to connect because it violates the document's Content Security Policy."
-    },
-    {
-     "type": "error",
-     "text": "Connecting to 'https://web-production-dc90b.up.railway.app/chat' violates the following Content Security Policy directive: \"connect-src 'self' https://gateway.katalir.de5.net https://qmukkphwaajzbqjrc"
-    },
-    {
-     "type": "error",
-     "text": "Fetch API cannot load https://web-production-dc90b.up.railway.app/chat. Refused to connect because it violates the document's Content Security Policy."
-    }
-   ],
+   "console_errors": [],
    "failed_requests": [],
    "extra": {
-    "reply_snippet": "Lompat ke konten\nChat Baru\n\nRIWAYAT CHAT\n\nBelum ada riwayat.\n\nO\notonom-test@katalir-internal.dev\nKatalir\nKatalir\nChat\nBuilder\nTemplate\nBrankas\nBuat workflow sederhana\nGagal mengirim\n\nKoneksi lambat. Cek internetmu.\n\nCoba Lagi\n↓ Terbaru\nEkspor JSON\nEkspor Markdown\nGemma 4 31B"
+    "reply_snippet": "n workflow langsung: tri...\nO\notonom-test@katalir-internal.dev\nKatalir\nKatalir\nChat\nBuilder\nTemplate\nBrankas\nBuat workflow sederhana\nSaya akan membuatkan workflow sederhana untuk Anda yang terdiri dari Trigger pemicu dan sebuah node aksi (misalnya mengirim pesan ke Telegram dengan placeholder). \n\nMari kita buat sekarang.\ngemini-3.5-flash-lite · 1.0s · 4502→36 tok\nModel yang Anda pilih tidak tersedia\nModel ini sedang tidak bisa dipakai. Silakan coba lagi sebentar atau pilih model lain. · Beralih ke gemini-3.5-flash-lite\ndiminta: gemma-4-31b-it\n↓ Terbaru\nKUOTA FREE — HARI INI\n47%\nGemma 4 (default)\n47 / 100\nTotal: 47 / 100 request · Reset: besok 00:00 WIB\nEkspor JSON\nEkspor Markdown\nPilih model"
    }
   },
   {
@@ -75,47 +50,14 @@
    "precondition": "Chat aktif",
    "action": "Prompt Telegram; buka /builder",
    "expected": "Workflow terbangun, node terlihat di kanvas",
-   "actual": "chat 55.06s; /builder nodes=0 edges=0; teks='Lompat ke konten\\nChat Baru\\n\\nRIWAYAT CHAT\\n\\nBelum ada riwayat.\\n\\nO\\notonom-test@katalir-internal.dev\\nKatalir\\nKatalir\\nChat\\nBu'",
-   "state": "FAIL",
-   "seconds": 55.06,
+   "actual": "chat 55.12s; /builder nodes=2 edges=1; teks='Lompat ke konten\\nChat Baru\\n\\nRIWAYAT CHAT\\n\\nBelum ada riwayat.\\n\\nO\\notonom-test@katalir-internal.dev\\nKatalir\\nKatalir\\nChat\\nBu'",
+   "state": "PASS",
+   "seconds": 55.12,
    "screenshots": [
     "C:\\Users\\user\\Proyek_AI\\docs\\evidence\\user-test\\s03-a-chat-workflow-telegram.png",
     "C:\\Users\\user\\Proyek_AI\\docs\\evidence\\user-test\\s03-b-builder.png"
    ],
-   "console_errors": [
-    {
-     "type": "error",
-     "text": "Connecting to 'https://web-production-dc90b.up.railway.app/chat' violates the following Content Security Policy directive: \"connect-src 'self' https://gateway.katalir.de5.net https://qmukkphwaajzbqjrc"
-    },
-    {
-     "type": "error",
-     "text": "Fetch API cannot load https://web-production-dc90b.up.railway.app/chat. Refused to connect because it violates the document's Content Security Policy."
-    },
-    {
-     "type": "error",
-     "text": "Connecting to 'https://web-production-dc90b.up.railway.app/chat' violates the following Content Security Policy directive: \"connect-src 'self' https://gateway.katalir.de5.net https://qmukkphwaajzbqjrc"
-    },
-    {
-     "type": "error",
-     "text": "Fetch API cannot load https://web-production-dc90b.up.railway.app/chat. Refused to connect because it violates the document's Content Security Policy."
-    },
-    {
-     "type": "error",
-     "text": "Connecting to 'https://web-production-dc90b.up.railway.app/quota' violates the following Content Security Policy directive: \"connect-src 'self' https://gateway.katalir.de5.net https://qmukkphwaajzbqjr"
-    },
-    {
-     "type": "error",
-     "text": "Fetch API cannot load https://web-production-dc90b.up.railway.app/quota. Refused to connect because it violates the document's Content Security Policy."
-    },
-    {
-     "type": "error",
-     "text": "Connecting to 'https://web-production-dc90b.up.railway.app/chat' violates the following Content Security Policy directive: \"connect-src 'self' https://gateway.katalir.de5.net https://qmukkphwaajzbqjrc"
-    },
-    {
-     "type": "error",
-     "text": "Fetch API cannot load https://web-production-dc90b.up.railway.app/chat. Refused to connect because it violates the document's Content Security Policy."
-    }
-   ],
+   "console_errors": [],
    "failed_requests": [
     {
      "url": "https://katalir.de5.net/cdn-cgi/rum?",
@@ -123,8 +65,8 @@
     }
    ],
    "extra": {
-    "nodes": 0,
-    "edges": 0
+    "nodes": 2,
+    "edges": 1
    }
   },
   {
@@ -133,53 +75,24 @@
    "precondition": "Sudah ada 2 percakapan",
    "action": "Refresh browser, buka /chat",
    "expected": "Riwayat masih ada, sesi lama bisa dibuka",
-   "actual": "sidebar_kosong=True; kandidat_item=0",
-   "state": "FAIL",
+   "actual": "sidebar_kosong=False; kandidat_item=202; label_terlihat=102",
+   "state": "PASS",
    "seconds": null,
    "screenshots": [
     "C:\\Users\\user\\Proyek_AI\\docs\\evidence\\user-test\\s04-a-setelah-refresh.png"
    ],
-   "console_errors": [
-    {
-     "type": "error",
-     "text": "Connecting to 'https://web-production-dc90b.up.railway.app/models' violates the following Content Security Policy directive: \"connect-src 'self' https://gateway.katalir.de5.net https://qmukkphwaajzbqj"
-    },
-    {
-     "type": "error",
-     "text": "Fetch API cannot load https://web-production-dc90b.up.railway.app/models. Refused to connect because it violates the document's Content Security Policy."
-    },
-    {
-     "type": "error",
-     "text": "Connecting to 'https://web-production-dc90b.up.railway.app/sessions' violates the following Content Security Policy directive: \"connect-src 'self' https://gateway.katalir.de5.net https://qmukkphwaajzb"
-    },
-    {
-     "type": "error",
-     "text": "Fetch API cannot load https://web-production-dc90b.up.railway.app/sessions. Refused to connect because it violates the document's Content Security Policy."
-    },
-    {
-     "type": "error",
-     "text": "Connecting to 'https://web-production-dc90b.up.railway.app/quota' violates the following Content Security Policy directive: \"connect-src 'self' https://gateway.katalir.de5.net https://qmukkphwaajzbqjr"
-    },
-    {
-     "type": "error",
-     "text": "Fetch API cannot load https://web-production-dc90b.up.railway.app/quota. Refused to connect because it violates the document's Content Security Policy."
-    },
-    {
-     "type": "error",
-     "text": "Connecting to 'https://web-production-dc90b.up.railway.app/models' violates the following Content Security Policy directive: \"connect-src 'self' https://gateway.katalir.de5.net https://qmukkphwaajzbqj"
-    },
-    {
-     "type": "error",
-     "text": "Fetch API cannot load https://web-production-dc90b.up.railway.app/models. Refused to connect because it violates the document's Content Security Policy."
-    }
-   ],
+   "console_errors": [],
    "failed_requests": [
     {
      "url": "https://katalir.de5.net/cdn-cgi/rum?",
      "failure": "net::ERR_ABORTED"
     },
     {
-     "url": "https://katalir.de5.net/builder.txt?_rsc=95XpWZDYBWq3k6mU",
+     "url": "https://katalir.de5.net/cdn-cgi/rum?",
+     "failure": "net::ERR_ABORTED"
+    },
+    {
+     "url": "https://gateway.katalir.de5.net/katalir-api/models",
      "failure": "net::ERR_ABORTED"
     },
     {
@@ -187,12 +100,18 @@
      "failure": "net::ERR_ABORTED"
     },
     {
-     "url": "https://katalir.de5.net/cdn-cgi/rum?",
+     "url": "https://gateway.katalir.de5.net/katalir-api/sessions",
+     "failure": "net::ERR_ABORTED"
+    },
+    {
+     "url": "https://gateway.katalir.de5.net/katalir-api/quota",
      "failure": "net::ERR_ABORTED"
     }
    ],
    "extra": {
-    "body_head": "Lompat ke konten\nChat Baru\n\nRIWAYAT CHAT\n\nBelum ada riwayat.\n\nO\notonom-test@katalir-internal.dev\nKatalir\nKatalir\nChat\nBuilder\nTemplate\nBrankas\nHalo, ada yang bisa saya bantu hari ini?\nKirim pesan WA\nRangkum dokumen\nAnalisis data\nGemma 4 31B"
+    "body_head": "Lompat ke konten\nChat Baru\n\nRIWAYAT CHAT\n\nBuat workflow sederhana\nxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx...\nkirim ke telegram saya\nBuat workflow sederhana\nhalo\nAnda adalah penilai KETAT untu...\nAnda adalah penilai KETAT untu...\nAnda adalah penilai KETAT untu...\nAnda adalah penilai KETAT untu...\nAnda adalah penilai KETAT untu...\nAnda adalah penilai KETAT untu...\nAnda adalah penilai KETAT untu...\nAnda adala",
+    "items": 202,
+    "labels": 102
    }
   },
   {
@@ -201,41 +120,16 @@
    "precondition": "Chat aktif",
    "action": "Ketik 'kirim ke telegram saya'",
    "expected": "Form inline muncul untuk mengisi kredensial",
-   "actual": "45.08s; input_form=0; indikator_form=True",
+   "actual": "45.18s; input_form=0; indikator_form=True",
    "state": "FAIL",
-   "seconds": 45.08,
+   "seconds": 45.18,
    "screenshots": [
     "C:\\Users\\user\\Proyek_AI\\docs\\evidence\\user-test\\s05-a-prompt-credential.png"
    ],
-   "console_errors": [
-    {
-     "type": "error",
-     "text": "Connecting to 'https://web-production-dc90b.up.railway.app/chat' violates the following Content Security Policy directive: \"connect-src 'self' https://gateway.katalir.de5.net https://qmukkphwaajzbqjrc"
-    },
-    {
-     "type": "error",
-     "text": "Fetch API cannot load https://web-production-dc90b.up.railway.app/chat. Refused to connect because it violates the document's Content Security Policy."
-    },
-    {
-     "type": "error",
-     "text": "Connecting to 'https://web-production-dc90b.up.railway.app/chat' violates the following Content Security Policy directive: \"connect-src 'self' https://gateway.katalir.de5.net https://qmukkphwaajzbqjrc"
-    },
-    {
-     "type": "error",
-     "text": "Fetch API cannot load https://web-production-dc90b.up.railway.app/chat. Refused to connect because it violates the document's Content Security Policy."
-    },
-    {
-     "type": "error",
-     "text": "Connecting to 'https://web-production-dc90b.up.railway.app/chat' violates the following Content Security Policy directive: \"connect-src 'self' https://gateway.katalir.de5.net https://qmukkphwaajzbqjrc"
-    },
-    {
-     "type": "error",
-     "text": "Fetch API cannot load https://web-production-dc90b.up.railway.app/chat. Refused to connect because it violates the document's Content Security Policy."
-    }
-   ],
+   "console_errors": [],
    "failed_requests": [],
    "extra": {
-    "body_tail": "Lompat ke konten\nChat Baru\n\nRIWAYAT CHAT\n\nBelum ada riwayat.\n\nO\notonom-test@katalir-internal.dev\nKatalir\nKatalir\nChat\nBuilder\nTemplate\nBrankas\nkirim ke telegram saya\nGagal mengirim\n\nKoneksi lambat. Cek internetmu.\n\nCoba Lagi\n↓ Terbaru\nEkspor JSON\nEkspor Markdown\nGemma 4 31B"
+    "body_tail": "ke telegram saya\nHalo! Untuk mengirim pesan ke Telegram Anda, saya butuh tahu:\n1. Apa isi pesan yang ingin dikirim?\n2. Apakah bot Telegram dan chat ID sudah terhubung, atau perlu saya buatkan workflow otomatisasi yang mengirim pesan ke Telegram?\n\nSilakan beri tahu detail pesan atau tujuannya, dan saya akan bantu buatkan!\ngemini-3.5-flash-lite · 0.9s · 4503→71 tok\nModel yang Anda pilih tidak tersedia\nModel ini sedang tidak bisa dipakai. Silakan coba lagi sebentar atau pilih model lain. · Beralih ke gemini-3.5-flash-lite\ndiminta: gemma-4-31b-it\n↓ Terbaru\nKUOTA FREE — HARI INI\n49%\nGemma 4 (default)\n49 / 100\nTotal: 49 / 100 request · Reset: besok 00:00 WIB\nEkspor JSON\nEkspor Markdown\nPilih model"
    }
   },
   {
@@ -244,38 +138,13 @@
    "precondition": "Login",
    "action": "Buka /templates",
    "expected": "Daftar template tampil, preview bisa dibuka",
-   "actual": "panjang_teks=278; kandidat_kartu=0; cuplikan='Lompat ke konten\\nKatalir\\nKembali\\nTemplate\\n\\nMulai dari alur siap pakai — pakai satu klik, lalu sesuaikan di Builder.\\n\\nCari template\\nCari\\n\\nKetik untuk m'",
-   "state": "FAIL",
+   "actual": "panjang_teks=1641; kandidat_kartu=0; tombol_pakai=10; tombol_pratinjau=10; cuplikan='Lompat ke konten\\nKatalir\\nKembali\\nTemplate\\n\\nMulai dari alur siap pakai — pakai satu klik, lalu sesuaikan di Builder.\\n\\nCar'",
+   "state": "PASS",
    "seconds": null,
    "screenshots": [
     "C:\\Users\\user\\Proyek_AI\\docs\\evidence\\user-test\\s06-a-templates.png"
    ],
-   "console_errors": [
-    {
-     "type": "error",
-     "text": "Connecting to 'https://web-production-dc90b.up.railway.app/templates' violates the following Content Security Policy directive: \"connect-src 'self' https://gateway.katalir.de5.net https://qmukkphwaajz"
-    },
-    {
-     "type": "error",
-     "text": "Fetch API cannot load https://web-production-dc90b.up.railway.app/templates. Refused to connect because it violates the document's Content Security Policy."
-    },
-    {
-     "type": "error",
-     "text": "Connecting to 'https://web-production-dc90b.up.railway.app/preferences' violates the following Content Security Policy directive: \"connect-src 'self' https://gateway.katalir.de5.net https://qmukkphwaa"
-    },
-    {
-     "type": "error",
-     "text": "Fetch API cannot load https://web-production-dc90b.up.railway.app/preferences. Refused to connect because it violates the document's Content Security Policy."
-    },
-    {
-     "type": "error",
-     "text": "Connecting to 'https://web-production-dc90b.up.railway.app/templates' violates the following Content Security Policy directive: \"connect-src 'self' https://gateway.katalir.de5.net https://qmukkphwaajz"
-    },
-    {
-     "type": "error",
-     "text": "Fetch API cannot load https://web-production-dc90b.up.railway.app/templates. Refused to connect because it violates the document's Content Security Policy."
-    }
-   ],
+   "console_errors": [],
    "failed_requests": [
     {
      "url": "https://katalir.de5.net/cdn-cgi/rum?",
@@ -283,7 +152,9 @@
     }
    ],
    "extra": {
-    "body_head": "Lompat ke konten\nKatalir\nKembali\nTemplate\n\nMulai dari alur siap pakai — pakai satu klik, lalu sesuaikan di Builder.\n\nCari template\nCari\n\nKetik untuk mencari otomatis — atau tekan Enter.\n\nSemua\nNotifikasi\nMarketing\nData\nOperasional\nAI\nIntegrasi\n\nGagal memuat template.\n\nCoba lagi"
+    "body_head": "Lompat ke konten\nKatalir\nKembali\nTemplate\n\nMulai dari alur siap pakai — pakai satu klik, lalu sesuaikan di Builder.\n\nCari template\nCari\n\nKetik untuk mencari otomatis — atau tekan Enter.\n\nSemua\nNotifikasi\nMarketing\nData\nOperasional\nAI\nIntegrasi\nEmail masuk → Google Sheets\nData\n\nSetiap email baru dirangkum oleh Agent lalu barisnya ditambahkan ke Google Sheets.\n\n3 node\n·\ngmail, sheets, agent\nPratinjau\nPakai\nRSS → Slack\nNotifikasi\n\nCek feed RSS lalu kirim ringkasan item terbaru ke Slack.\n\n4 node\n·\nhttp, slack, cron\nPratinjau\nPakai\nDigest Harian → Telegram\nNotifikasi\n\nSetiap pagi Agent menyusun dig",
+    "pakai": 10,
+    "pratinjau": 10
    }
   },
   {
@@ -292,38 +163,14 @@
    "precondition": "Ada workflow tersimpan",
    "action": "Buka /builder, klik node, cek panel konfigurasi",
    "expected": "Node bisa dipilih, perubahan bisa disimpan",
-   "actual": "nodes=0; node_terpilih=False; tombol_simpan=1",
-   "state": "FAIL",
+   "actual": "nodes=2; node_terpilih=True; tombol_simpan=1",
+   "state": "PASS",
    "seconds": null,
    "screenshots": [
-    "C:\\Users\\user\\Proyek_AI\\docs\\evidence\\user-test\\s07-a-builder-sebelum.png"
+    "C:\\Users\\user\\Proyek_AI\\docs\\evidence\\user-test\\s07-a-builder-sebelum.png",
+    "C:\\Users\\user\\Proyek_AI\\docs\\evidence\\user-test\\s07-b-node-terpilih.png"
    ],
-   "console_errors": [
-    {
-     "type": "error",
-     "text": "Connecting to 'https://web-production-dc90b.up.railway.app/workflows' violates the following Content Security Policy directive: \"connect-src 'self' https://gateway.katalir.de5.net https://qmukkphwaajz"
-    },
-    {
-     "type": "error",
-     "text": "Fetch API cannot load https://web-production-dc90b.up.railway.app/workflows. Refused to connect because it violates the document's Content Security Policy."
-    },
-    {
-     "type": "error",
-     "text": "Connecting to 'https://web-production-dc90b.up.railway.app/preferences' violates the following Content Security Policy directive: \"connect-src 'self' https://gateway.katalir.de5.net https://qmukkphwaa"
-    },
-    {
-     "type": "error",
-     "text": "Fetch API cannot load https://web-production-dc90b.up.railway.app/preferences. Refused to connect because it violates the document's Content Security Policy."
-    },
-    {
-     "type": "error",
-     "text": "Connecting to 'https://web-production-dc90b.up.railway.app/workflows' violates the following Content Security Policy directive: \"connect-src 'self' https://gateway.katalir.de5.net https://qmukkphwaajz"
-    },
-    {
-     "type": "error",
-     "text": "Fetch API cannot load https://web-production-dc90b.up.railway.app/workflows. Refused to connect because it violates the document's Content Security Policy."
-    }
-   ],
+   "console_errors": [],
    "failed_requests": [
     {
      "url": "https://katalir.de5.net/cdn-cgi/rum?",
@@ -331,9 +178,9 @@
     }
    ],
    "extra": {
-    "nodes": 0,
+    "nodes": 2,
     "save_buttons": 1,
-    "body_head": "Lompat ke konten\nChat Baru\n\nRIWAYAT CHAT\n\nBelum ada riwayat.\n\nO\notonom-test@katalir-internal.dev\nKatalir\nKatalir\nChat\nBuilder\nTemplate\nBrankas\nALUR KERJA\nDaily digest\nNotify team\nAlur Baru\n\nBelum ada alur. Klik \"+ Alur Baru\".\n\nNODE PALETTE\n\nTarik node ke kanvas, atau klik untuk menaruhnya. Di ponsel"
+    "body_head": "Lompat ke konten\nChat Baru\n\nRIWAYAT CHAT\n\nBelum ada riwayat.\n\nO\notonom-test@katalir-internal.dev\nKatalir\nKatalir\nChat\nBuilder\nTemplate\nBrankas\nALUR KERJA\nDaily digest\nNotify team\nAlur Baru\nWorkflow Manual ke Telegram\nWorkflow Trigger Manual ke Telegram\nE2E-Brief7-Chaos\nE2E-Brief7-Chaos\nNODE PALETTE\n"
    }
   },
   {
@@ -342,38 +189,13 @@
    "precondition": "Login, ada data eksekusi",
    "action": "Buka /insights",
    "expected": "Chart + metrik tampil",
-   "actual": "chart=0; banner_error=True; cuplikan='Lompat ke konten\\nKatalir\\nKembali\\nInsight\\n\\nPantau kesehatan workflow: success rate, latensi, error, waktu yang dihemat, dan ROI.\\n\\n7 hari\\n30 hari\\n365 ha'",
-   "state": "FAIL",
+   "actual": "chart=4; metrik=5 ['Success rate', 'Total eksekusi', 'Error rate', 'Latensi rata-rata', 'ROI']; banner_error=False; cuplikan='Lompat ke konten\\nKatalir\\nKembali\\nInsight\\n\\nPantau kesehatan workflow: success rate, latensi, error, waktu yang dihemat, dan ROI.\\n\\n7 hari\\n30 hari\\n365 ha'",
+   "state": "PASS",
    "seconds": null,
    "screenshots": [
     "C:\\Users\\user\\Proyek_AI\\docs\\evidence\\user-test\\s08-a-insights.png"
    ],
-   "console_errors": [
-    {
-     "type": "error",
-     "text": "Connecting to 'https://web-production-dc90b.up.railway.app/insights?days=30&latency=true' violates the following Content Security Policy directive: \"connect-src 'self' https://gateway.katalir.de5.net "
-    },
-    {
-     "type": "error",
-     "text": "Fetch API cannot load https://web-production-dc90b.up.railway.app/insights?days=30&latency=true. Refused to connect because it violates the document's Content Security Policy."
-    },
-    {
-     "type": "error",
-     "text": "Connecting to 'https://web-production-dc90b.up.railway.app/workflows' violates the following Content Security Policy directive: \"connect-src 'self' https://gateway.katalir.de5.net https://qmukkphwaajz"
-    },
-    {
-     "type": "error",
-     "text": "Fetch API cannot load https://web-production-dc90b.up.railway.app/workflows. Refused to connect because it violates the document's Content Security Policy."
-    },
-    {
-     "type": "error",
-     "text": "Connecting to 'https://web-production-dc90b.up.railway.app/preferences' violates the following Content Security Policy directive: \"connect-src 'self' https://gateway.katalir.de5.net https://qmukkphwaa"
-    },
-    {
-     "type": "error",
-     "text": "Fetch API cannot load https://web-production-dc90b.up.railway.app/preferences. Refused to connect because it violates the document's Content Security Policy."
-    }
-   ],
+   "console_errors": [],
    "failed_requests": [
     {
      "url": "https://katalir.de5.net/cdn-cgi/rum?",
@@ -381,8 +203,15 @@
     }
    ],
    "extra": {
-    "charts": 0,
-    "body_head": "Lompat ke konten\nKatalir\nKembali\nInsight\n\nPantau kesehatan workflow: success rate, latensi, error, waktu yang dihemat, dan ROI.\n\n7 hari\n30 hari\n365 hari\nSemua workflow\nUkur latensi\nMuat ulang\nEkspor CSV\nFailed to fetch\nSuccess rate\n0.0%\nTotal eksekusi\n0\nError rate\n0.0%\nLatensi rata-rata\n—\nWaktu dihemat\n0 jam\nROI\n$0.00\nEKSEKUSI 30 HARI TERAKHIR\n■ sukses ■ gagal\nTidak ada data.\nPER WORKFLOW\nBelum ada eksekusi."
+    "charts": 4,
+    "metrics": [
+     "Success rate",
+     "Total eksekusi",
+     "Error rate",
+     "Latensi rata-rata",
+     "ROI"
+    ],
+    "body_head": "Lompat ke konten\nKatalir\nKembali\nInsight\n\nPantau kesehatan workflow: success rate, latensi, error, waktu yang dihemat, dan ROI.\n\n7 hari\n30 hari\n365 hari\nSemua workflow\nWorkflow Manual ke Telegram\nWorkflow Trigger Manual ke Telegram\nE2E-Brief7-Chaos\nE2E-Brief7-Chaos\nUkur latensi\nMuat ulang\nEkspor CSV\nSuccess rate\n0.0%\nTotal eksekusi\n2\nError rate\n100.0%\nLatensi rata-rata\n—\nWaktu dihemat\n0 jam\nROI\n$0.00\nEKSEKUSI 30 HARI TERAKHIR\n■ sukses ■ gagal\nPER WORKFLOW\nWorkflow\tTotal\tSukses\tGagal\tRate\n322c25c1\t1\t0\t1\t0%\n30b214ff\t1\t0\t1\t0%"
    }
   },
   {
@@ -391,44 +220,16 @@
    "precondition": "Chat aktif",
    "action": "Kirim 12.000 karakter 'x'",
    "expected": "Pesan error ramah + tombol coba lagi",
-   "actual": "35.16s; tombol_retry=1; pesan_ramah=True",
-   "state": "PASS",
-   "seconds": 35.16,
+   "actual": "35.17s; tombol_retry=0; pesan_ramah=False",
+   "state": "FAIL",
+   "seconds": 35.17,
    "screenshots": [
     "C:\\Users\\user\\Proyek_AI\\docs\\evidence\\user-test\\s09-a-prompt-ekstrem.png"
    ],
    "console_errors": [
     {
      "type": "error",
-     "text": "Connecting to 'https://web-production-dc90b.up.railway.app/models' violates the following Content Security Policy directive: \"connect-src 'self' https://gateway.katalir.de5.net https://qmukkphwaajzbqj"
-    },
-    {
-     "type": "error",
-     "text": "Fetch API cannot load https://web-production-dc90b.up.railway.app/models. Refused to connect because it violates the document's Content Security Policy."
-    },
-    {
-     "type": "error",
-     "text": "Connecting to 'https://web-production-dc90b.up.railway.app/sessions' violates the following Content Security Policy directive: \"connect-src 'self' https://gateway.katalir.de5.net https://qmukkphwaajzb"
-    },
-    {
-     "type": "error",
-     "text": "Fetch API cannot load https://web-production-dc90b.up.railway.app/sessions. Refused to connect because it violates the document's Content Security Policy."
-    },
-    {
-     "type": "error",
-     "text": "Connecting to 'https://web-production-dc90b.up.railway.app/quota' violates the following Content Security Policy directive: \"connect-src 'self' https://gateway.katalir.de5.net https://qmukkphwaajzbqjr"
-    },
-    {
-     "type": "error",
-     "text": "Fetch API cannot load https://web-production-dc90b.up.railway.app/quota. Refused to connect because it violates the document's Content Security Policy."
-    },
-    {
-     "type": "error",
-     "text": "Connecting to 'https://web-production-dc90b.up.railway.app/models' violates the following Content Security Policy directive: \"connect-src 'self' https://gateway.katalir.de5.net https://qmukkphwaajzbqj"
-    },
-    {
-     "type": "error",
-     "text": "Fetch API cannot load https://web-production-dc90b.up.railway.app/models. Refused to connect because it violates the document's Content Security Policy."
+     "text": "Failed to load resource: the server responded with a status of 503 ()"
     }
    ],
    "failed_requests": [
@@ -438,7 +239,7 @@
     }
    ],
    "extra": {
-    "body_tail": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nGagal mengirim\n\nKoneksi lambat. Cek internetmu.\n\nCoba Lagi\n↓ Terbaru\nEkspor JSON\nEkspor Markdown\nGemma 4 31B"
+    "body_tail": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\n↓ Terbaru\nKUOTA FREE — HARI INI\n49%\nGemma 4 (default)\n49 / 100\nTotal: 49 / 100 request · Reset: besok 00:00 WIB\nEkspor JSON\nEkspor Markdown\nPilih model"
    }
   },
   {
@@ -447,7 +248,7 @@
    "precondition": "Login sebagai user uji",
    "action": "Hapus sesi (logout) lalu pulihkan sesi (login)",
    "expected": "Setelah login, data user kembali",
-   "actual": "logout_terdeteksi=True; identitas_kembali=True; panjang_sebelum=240",
+   "actual": "logout_terdeteksi=True; identitas_kembali=True; panjang_sebelum=3136",
    "state": "PASS",
    "seconds": null,
    "screenshots": [
@@ -455,40 +256,7 @@
     "C:\\Users\\user\\Proyek_AI\\docs\\evidence\\user-test\\s10-b-setelah-logout.png",
     "C:\\Users\\user\\Proyek_AI\\docs\\evidence\\user-test\\s10-c-setelah-login-lagi.png"
    ],
-   "console_errors": [
-    {
-     "type": "error",
-     "text": "Connecting to 'https://web-production-dc90b.up.railway.app/models' violates the following Content Security Policy directive: \"connect-src 'self' https://gateway.katalir.de5.net https://qmukkphwaajzbqj"
-    },
-    {
-     "type": "error",
-     "text": "Fetch API cannot load https://web-production-dc90b.up.railway.app/models. Refused to connect because it violates the document's Content Security Policy."
-    },
-    {
-     "type": "error",
-     "text": "Connecting to 'https://web-production-dc90b.up.railway.app/sessions' violates the following Content Security Policy directive: \"connect-src 'self' https://gateway.katalir.de5.net https://qmukkphwaajzb"
-    },
-    {
-     "type": "error",
-     "text": "Fetch API cannot load https://web-production-dc90b.up.railway.app/sessions. Refused to connect because it violates the document's Content Security Policy."
-    },
-    {
-     "type": "error",
-     "text": "Connecting to 'https://web-production-dc90b.up.railway.app/quota' violates the following Content Security Policy directive: \"connect-src 'self' https://gateway.katalir.de5.net https://qmukkphwaajzbqjr"
-    },
-    {
-     "type": "error",
-     "text": "Fetch API cannot load https://web-production-dc90b.up.railway.app/quota. Refused to connect because it violates the document's Content Security Policy."
-    },
-    {
-     "type": "error",
-     "text": "Connecting to 'https://web-production-dc90b.up.railway.app/models' violates the following Content Security Policy directive: \"connect-src 'self' https://gateway.katalir.de5.net https://qmukkphwaajzbqj"
-    },
-    {
-     "type": "error",
-     "text": "Fetch API cannot load https://web-production-dc90b.up.railway.app/models. Refused to connect because it violates the document's Content Security Policy."
-    }
-   ],
+   "console_errors": [],
    "failed_requests": [
     {
      "url": "https://katalir.de5.net/cdn-cgi/rum?",
@@ -513,7 +281,7 @@
    ],
    "extra": {
     "after_logout_head": "Lompat ke konten\nChat Baru\n\nRIWAYAT CHAT\n\nBelum ada riwayat.\n\nKatalir\nKatalir\nChat\nBuilder\nTemplate\nLogin dengan Google\nSilakan masuk dulu\n\nGunakan tombol \"Login dengan Google\" di pojok kanan atas untuk memulai percakapan.\n\nGemma 4 31B",
-    "after_login_head": "Lompat ke konten\nChat Baru\n\nRIWAYAT CHAT\n\nBelum ada riwayat.\n\nO\notonom-test@katalir-internal.dev\nKatalir\nKatalir\nChat\nBuilder\nTemplate\nBrankas\nHalo, ada yang bisa saya bantu hari ini?\nKirim pesan WA\nRangkum dokumen\nAnalisis data\nGemma 4 31B"
+    "after_login_head": "Lompat ke konten\nChat Baru\n\nRIWAYAT CHAT\n\nxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx...\nkirim ke telegram saya\nBuat workflow sederhana\nxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx...\nkirim ke telegram saya\nBuat workflow sederhana\nhalo\nAnda adalah penilai KETAT untu...\nAnda adalah penilai KETAT untu...\nAnda adalah penilai KET"
    }
   }
  ]
