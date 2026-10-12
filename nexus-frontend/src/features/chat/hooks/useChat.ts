@@ -405,7 +405,7 @@ export async function resolveInterruptedSession(
 export function useSendChatMutation() {
   const qc = useQueryClient();
   return useMutation<
-    { reply: string; session_id?: string; needsCredential?: boolean; needsOauth?: boolean; provider?: string; connectUrl?: string; message?: string; meta?: ChatMeta; requiresCredential?: boolean; displayName?: string; icon?: string; fields?: CredentialField[]; resumeToken?: string; requiresApproval?: boolean; tool?: string; toolArgs?: Record<string, unknown>; reason?: string; alignment?: string; approvalToken?: string; replyDenied?: boolean; deniedReason?: string },
+    { reply: string; session_id?: string; needsCredential?: boolean; needsOauth?: boolean; provider?: string; connectUrl?: string; message?: string; meta?: ChatMeta; requiresCredential?: boolean; displayName?: string; icon?: string; fields?: CredentialField[]; resumeToken?: string; requiresApproval?: boolean; tool?: string; toolArgs?: Record<string, unknown>; reason?: string; alignment?: string; approvalToken?: string; replyDenied?: boolean; deniedReason?: string; /** FIX S5 2026-10-12: kartu kredensial proaktif — datang BERSAMA reply teks, bukan menggantikannya. */ credentialPrompt?: { type?: string; provider?: string; display_name?: string; displayName?: string; icon?: string; fields?: CredentialField[]; resume_token?: string; resumeToken?: string; original?: string } },
     Error & { provider?: string; promptEcho?: string },
     { prompt: string; sessionId?: string | null; email?: string | null; abortSignal?: AbortSignal; clientRequestId?: string; model?: string; retryOfLocalId?: string },
     {
@@ -564,7 +564,17 @@ export function useSendChatMutation() {
           };
         }
         if (res.ok && data.status === "success") {
-          return { reply: data.reply as string, session_id: data.session_id as string | undefined, meta: data.meta as ChatMeta | undefined };
+          return {
+            reply: data.reply as string,
+            session_id: data.session_id as string | undefined,
+            meta: data.meta as ChatMeta | undefined,
+            // FIX S5 2026-10-12: kartu kredensial proaktif (backend menyusunnya
+            // saat intent provider terdeteksi + kredensial belum ada). Kartu ini
+            // datang BERSAMA reply teks — lihat penanganannya di onSuccess.
+            credentialPrompt:
+              (data.credential_prompt as Record<string, unknown> | undefined) ??
+              undefined,
+          };
         }
         // Teruskan `detail` server (mis. "kuota cooldown", "batas 5 workflow
         // baru per 60 detik") supaya user tahu penyebabnya, bukan pesan generik.
@@ -747,6 +757,56 @@ export function useSendChatMutation() {
               : m
           )
         );
+      } else if (data.credentialPrompt && context) {
+        // FIX S5 2026-10-12: kartu kredensial PROAKTIF dari jalur sukses.
+        //
+        // Konteks: model menjawab "silakan isi form di bawah ini" TANPA pernah
+        // memanggil tool, sehingga backend tidak pernah menaikkan
+        // `requires_credential` dan form tidak pernah muncul. Backend kini
+        // menyusun kartu itu sendiri (kunci `credential_prompt`) dan TETAP
+        // mengirim `reply` teks.
+        //
+        // Kenapa bukan jalur `requiresCredential` di atas: jalur itu
+        // MENGGANTIKAN bubble asisten dengan kartu (`content: ""`), sehingga
+        // penjelasan model hilang. Di sini teks asisten DIPERTAHANKAN dan kartu
+        // form ditambahkan SETELAHNYA — user melihat konteks + bisa bertindak.
+        const cred = data.credentialPrompt;
+        qc.setQueryData<ChatMessage[]>(finalKey, (old) => {
+          const base = (old ?? []).map((m) =>
+            m._localId === context.optimisticAsstId
+              ? { ...m, content: data.reply ?? "" }
+              : m
+          );
+          const replyText = (data.reply ?? "").trim();
+          // PENTING (bug ditemukan 12 Okt saat review render pipeline): kartu
+          // WAJIB punya `_localId` sendiri — layer render di ChatApp hanya
+          // meneruskan entri ber-`_localId` (filter overlay), jadi tanpa itu
+          // kartu hanya muncul setelah refetch penuh (staleTime=Infinity ->
+          // praktis tidak pernah). `_localId`-nya HARUS berbeda dari bubble
+          // asisten: overlay dedup per `_localId` akan membuang entri kedua.
+          const cardId = `local-credform-proactive-${Date.now()}`;
+          const formCard: ChatMessage = {
+            id: cardId,
+            _localId: cardId,
+            role: "system",
+            content: "",
+            type: "credential_form" as const,
+            provider: cred.provider,
+            displayName: cred.display_name ?? cred.displayName,
+            icon: cred.icon,
+            fields: (cred.fields ?? []) as CredentialField[],
+            resumeToken: cred.resume_token ?? cred.resumeToken,
+            original: context.prompt,
+          };
+          // Kalau teks balasan kosong, kartu menggantikan bubble optimistis
+          // (perilaku sama seperti jalur lama); kalau ada, tambahkan setelahnya.
+          if (!replyText) {
+            return base.map((m) =>
+              m._localId === context.optimisticAsstId ? formCard : m
+            );
+          }
+          return [...base, formCard];
+        });
       } else if (data.requiresApproval && context) {
         // Kartu persetujuan (2026-10-05). Sama seperti kartu kredensial,
         // `_localId` WAJIB dipertahankan - layer render hanya meneruskan

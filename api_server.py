@@ -14,8 +14,10 @@
 # =====================================================================
 
 import asyncio
+import concurrent.futures
 import os
 import json
+import re
 import threading
 import time
 from datetime import datetime, timezone
@@ -24,7 +26,7 @@ from contextlib import asynccontextmanager
 from fastapi import BackgroundTasks, FastAPI, Header, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from starlette.middleware.trustedhost import TrustedHostMiddleware
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 from typing import Optional, Any
 
 from dotenv_loader import load_repo_env
@@ -690,6 +692,20 @@ def _resolve_model(requested: str | None, user_tier: str) -> tuple[str, bool, st
 # ---------------------------------------------------------------------------
 # SCHEMA REQUEST
 # ---------------------------------------------------------------------------
+#: FIX S9 2026-10-12: batas panjang pesan chat.
+#:
+#: SEBELUM: `prompt: str` tanpa batas apa pun (frontend juga tanpa
+#: `maxLength`). Prompt 12.000 karakter diterima diam-diam — tidak ada
+#: validasi, tidak ada pesan, user tidak tahu itu keanehan.
+#:
+#: NILAI: 8.000 karakter. Acuan industri Oktober 2026: batas pesan per-kirim
+#: ChatGPT free tier = 8.000 karakter (paling dikenal user); jauh di bawah
+#: konteks Gemini 2.5 Flash (1 juta token) jadi bukan soal kapasitas model,
+#: melainkan melindungi user dari paste-bomb tidak sengaja + biaya token yang
+#: membengkak tanpa dia sadari.
+CHAT_MAX_CHARS = 8000
+
+
 class ChatRequest(BaseModel):
     prompt: str
     session_id: str | None = Field(default=None)
@@ -700,6 +716,28 @@ class ChatRequest(BaseModel):
     # Model yang dipilih user dari composer (ModelSelector). Bila None, pakai
     # AGENT_MODEL (default server). Hanya model yang ada di ALLOWED_MODELS.
     model: str | None = Field(default=None)
+
+    @field_validator("prompt")
+    @classmethod
+    def _validate_prompt_length(cls, v: str) -> str:
+        """Tolak pesan di atas batas dengan PESAN YANG BISA DITINDAK.
+
+        FIX S9 2026-10-12: sebelumnya tidak ada validasi sama sekali — prompt
+        12.000 karakter masuk tanpa peringatan. 422 dipilih (bukan 400 generik)
+        supaya `classifyHttpError` di frontend bisa menampilkan detailnya, dan
+        pesannya menyebut angka batas + angka yang diterima agar user tahu
+        harus memotong berapa.
+        """
+        if v is None:
+            return v
+        n = len(v)
+        if n > CHAT_MAX_CHARS:
+            raise ValueError(
+                f"Pesan terlalu panjang: {n:,} karakter. "
+                f"Batas {CHAT_MAX_CHARS:,} karakter per pesan. "
+                f"Kurangi sekitar {n - CHAT_MAX_CHARS:,} karakter, "
+                f"atau pecah menjadi beberapa pesan.")
+        return v
 
 
 class IntegrationRequest(BaseModel):
@@ -2212,6 +2250,74 @@ def _quota_exhausted_message(info: dict, tier: str) -> str:
 _CARD_SENTINEL = "__katalir_card"
 
 
+# ---------------------------------------------------------------------------
+# FIX S5 2026-10-12: form kredensial PROAKTIF (bukan menunggu tool call).
+#
+# GEJALA: prompt "kirim ke telegram saya" dijawab model dengan teks
+#   "Silakan isi detail kredensial Telegram pada form di bawah ini"
+# tetapi TIDAK ADA form yang muncul. Diverifikasi lewat /chat langsung:
+# responsnya `status="success"` + reply teks murni — TANPA `requires_credential`,
+# `provider`, `fields`, atau `resume_token`.
+#
+# SEBAB: form kredensial hanya naik bila LLM benar-benar MEMANGGIL tool dan
+# tool itu melempar `CredentialMissingError` (lihat jalur
+# `_direct_tool_disposition` di atas). Untuk prompt yang ambigu, model lebih
+# memilih bertanya balik daripada memanggil tool -> janji "form di bawah ini"
+# tidak pernah ditepati. Ini janji palsu dari sudut pandang user.
+#
+# PERBAIKAN: gerbang proaktif SEBELUM respons dikirim. Bila (a) pesan user
+# menyebut provider yang punya form inline, (b) kredensial provider itu belum
+# ada, dan (c) balasan model meminta informasi (tanda tanya / "butuh" /
+# "silakan" / "mohon") — susun kartu `requires_credential` dan kirim BERSAMA
+# balasan teks (bukan menggantikannya). Kartu diletakkan di kunci
+# `credential_prompt` supaya `status` tetap "success" dan teks balasan tidak
+# dibuang oleh frontend (dulu reply di-blank kalau statusnya requires_credential).
+#
+# Pemetaan kata -> provider sengaja KONSERVATIF: hanya nama provider yang
+# jelas. Menebak dari kata umum ("email", "chat") akan memunculkan form yang
+# tidak diminta.
+_PROACTIVE_PROVIDER_WORDS: dict[str, tuple[str, ...]] = {
+    "telegram": ("telegram",),
+    "gmail_imap": ("gmail", "app password"),
+    "supabase": ("supabase",),
+}
+_REPLY_ASKS_INFO_MARKERS = ("?", "butuh", "silakan", "mohon", "diperlukan",
+                            "perlu informasi", "perlu tahu")
+
+
+def _maybe_proactive_credential(user_message: str, reply: str, user_email: str,
+                                session_id: str) -> dict | None:
+    """Kartu `requires_credential` proaktif, atau None bila tidak relevan.
+
+    Tidak pernah melempar: kegagalan deteksi/susun kartu BUKAN alasan
+    menggagalkan balasan yang sudah jadi.
+    """
+    try:
+        import credential_forms as cf
+
+        msg = (user_message or "").lower()
+        if not msg:
+            return None
+        for prov, words in _PROACTIVE_PROVIDER_WORDS.items():
+            if not any(re.search(rf"\b{re.escape(w)}\b", msg) for w in words):
+                continue
+            if not cf.has_inline_form(prov):
+                continue
+            if cf.has_credential(user_email, prov):
+                continue  # sudah terhubung — tidak perlu form
+            if not any(m in (reply or "").lower()
+                       for m in _REPLY_ASKS_INFO_MARKERS):
+                continue  # model tidak sedang meminta sesuatu -> jangan ganggu
+            card = cf.build_requires_credential(prov, user_email,
+                                                session_id=session_id)
+            print(f"[chat] proactive credential_prompt provider={prov}")
+            return card
+    except Exception as exc:  # noqa: BLE001
+        print(f"[chat] proactive credential gate dilewati: "
+              f"{type(exc).__name__}: {exc}")
+    return None
+
+
 def _persist_card(user_email: str, session_id: str, user_id: str | None,
                   req_id: str | None, card: dict) -> None:
     """Simpan satu kartu (credential_form / approval_prompt / oauth_prompt).
@@ -2233,6 +2339,46 @@ def _persist_card(user_email: str, session_id: str, user_id: str | None,
         print(f"[persist_card] {type(exc).__name__}: {str(exc)[:200]}")
 
 
+# ---------------------------------------------------------------------------
+# FIX S2 (12 Okt 2026): anggaran waktu konteks memori di jalur /chat.
+#
+# Trace `tests/user_test/overhead_trace.py` membuktikan:
+#   - build_memory_context: 1,3-3,6 s (lokal, kondisi sehat), dan TANPA batas
+#     atas bila embedding Gemini lambat — `generate_embedding` memakai httpx
+#     timeout 8 s PER KUNCI dengan rotasi hingga 13 kunci.
+#   - benchmark latency_bench.py: overhead /chat (di luar loop LLM) rata-rata
+#     12,9 s (38%) dan sampai 23,7 s (80%) untuk prompt "halo".
+# Konteks memori adalah NICE-TO-HAVE: bila anggaran lewat, chat berjalan
+# TANPA memori (degradasi anggun — pola baku context-building di
+# LangChain/LlamaIndex, bukan blokir jawaban demi data sekunder).
+# Worker yang tertinggal tetap selesai di belakang dan hasilnya dibuang;
+# max_workers=4 supaya burst tidak mengantri di belakang worker lambat.
+_MEMCTX_EXECUTOR = concurrent.futures.ThreadPoolExecutor(
+    max_workers=4, thread_name_prefix="memctx-deadline")
+_MEMCTX_DEADLINE_S = float(os.getenv("MEMCTX_DEADLINE_S", "2.5"))
+
+
+def _build_memory_context_timeboxed(user_id: str, agent_id: str,
+                                    query: str) -> str:
+    """build_memory_context dengan anggaran waktu keras.
+
+    Selalu mengembalikan string (kosong bila gagal/lewat anggaran) —
+    kontrak sama dengan build_memory_context, hanya dibatasi waktu.
+    """
+    _fut = _MEMCTX_EXECUTOR.submit(memory_manager.build_memory_context,
+                                   user_id, agent_id, query)
+    try:
+        return _fut.result(timeout=_MEMCTX_DEADLINE_S)
+    except concurrent.futures.TimeoutError:
+        print(f"[memory] anggaran {_MEMCTX_DEADLINE_S}s terlampaui -> konteks "
+              "memori DILEWATI (chat tetap jalan tanpa memori)")
+        return ""
+    except Exception as exc:  # noqa: BLE001 - lapis kedua, jangan ganggu chat
+        print(f"[memory] build_memory_context gagal (diabaikan): "
+              f"{type(exc).__name__}: {str(exc)[:120]}")
+        return ""
+
+
 @app.post("/chat")
 def chat(req: ChatRequest, authorization: str | None = Header(None)):
     """Proses prompt via Agentic Loop + persist pesan ke session.
@@ -2248,6 +2394,9 @@ def chat(req: ChatRequest, authorization: str | None = Header(None)):
     user_email = user["email"]
     user_id = user["id"]
     req_id = req.client_request_id
+    # FIX S2 (12 Okt 2026): instrumen perf satu baris di jalur sukses —
+    # memisahkan LLM (meta.latency_ms) vs overhead prae/pasca LLM di log.
+    _t_chat0 = time.time()
     # Tier user untuk tier-gate model (hermes-agent #5880): free -> model plus
     # di-fallback ke default (bukan 403). Resolve via get_or_create_user
     # (row users dibuat bila belum ada — sama seperti session flow).
@@ -2370,9 +2519,12 @@ def chat(req: ChatRequest, authorization: str | None = Header(None)):
     # dijahit ke prompt. Defensif TOTAL — kegagalan memory TIDAK BOLEH
     # mengganggu chat (build_memory_context sudah menelan exception; ini
     # lapis kedua). Kill-switch: env AGENT_MEMORY_ENABLED=0.
+    # FIX S2: dipanggil lewat TIME-BOX (lihat komentar `_build_memory_context_
+    # timeboxed`) — overhead memori dibatasi 2,5 s walau embedding lambat.
+    _t_mem0 = time.time()
     prompt_final = req.prompt
     try:
-        _memctx = memory_manager.build_memory_context(
+        _memctx = _build_memory_context_timeboxed(
             str(user_id), session_id or "chat", req.prompt)
         if _memctx:
             prompt_final = (
@@ -2382,6 +2534,7 @@ def chat(req: ChatRequest, authorization: str | None = Header(None)):
                 + _memctx)
     except Exception as _mem_exc:  # noqa: BLE001
         print(f"[memory] hook recall gagal (diabaikan): {type(_mem_exc).__name__}")
+    _mem_ms = int((time.time() - _t_mem0) * 1000)
 
     # Simpan prompt user ke riwayat (kepemilikan session divalidasi via auth_id).
     # Idempoten: bila client_request_id sudah tercatat, add_message return False
@@ -2564,6 +2717,28 @@ def chat(req: ChatRequest, authorization: str | None = Header(None)):
     # hanya menimpa status baru, dan karena itu tidak kelihatan.
     _response = {"status": "success", "reply": reply,
                  "session_id": session_id, "meta": meta}
+
+    # FIX S5 2026-10-12: kartu kredensial proaktif — kirim BERSAMA balasan
+    # teks, bukan menggantikannya. Lihat komentar di `_maybe_proactive_credential`.
+    if str(_run.get("status") or "success").strip() == "success":
+        _pcard = _maybe_proactive_credential(req.prompt, reply, user_email,
+                                             session_id)
+        if _pcard:
+            _response["credential_prompt"] = {
+                "type": "credential_form",
+                "provider": _pcard.get("provider"),
+                "display_name": _pcard.get("display_name"),
+                "icon": _pcard.get("icon"),
+                "fields": _pcard.get("fields") or [],
+                "resume_token": _pcard.get("resume_token"),
+                "original": req.prompt,
+            }
+            # Persist kartu supaya form tetap ada setelah refresh/navigasi
+            # (pola sama dengan kartu CredentialMissingError).
+            _persist_card(user_email, session_id, user_id, req_id,
+                          {**dict(_pcard), "type": "credential_form",
+                           "original": req.prompt})
+
     _gw_status = str(_run.get("status") or "success").strip()
     if _gw_status and _gw_status != "success":
         _response["status"] = _gw_status
@@ -2593,6 +2768,11 @@ def chat(req: ChatRequest, authorization: str | None = Header(None)):
                            "content": (_response.get("reason")
                                        or "Permintaan ditolak oleh keamanan."),
                            "original": req.prompt})
+    # FIX S2: bukti perf — total vs LLM vs memori, satu baris per request.
+    print(f"[perf] /chat total={int((time.time() - _t_chat0) * 1000)}ms "
+          f"llm={int(meta.get('latency_ms') or 0)}ms memory={_mem_ms}ms "
+          f"model={meta.get('model')}")
+
     return _response
 
 

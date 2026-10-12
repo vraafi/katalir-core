@@ -64,6 +64,17 @@ export interface ChatComposerProps {
   disabled?: boolean;
   /** Slot kiri (pemilih model). Dirender sebelum textarea di desktop. */
   modelSlot?: ReactNode;
+  /**
+   * FIX S9 2026-10-12: batas panjang pesan (karakter). Backend menegakkan
+   * batas yang sama (CHAT_MAX_CHARS = 8000) dan menjawab 422 dengan pesan
+   * yang bisa ditindak. Di sini batasnya DICEGAH lebih awal:
+   *   - `maxLength` menghentikan ketikan di batas (standar HTML);
+   *   - counter di bawah composer memberi umpan balik SEBELUM user kena batas.
+   * Nilai 8.000 = acuan industri (batas pesan ChatGPT free tier) — jauh di
+   * bawah kapasitas konteks model, cukup untuk kasus nyata, cukup kecil untuk
+   * memblokir paste-bomb tidak sengaja.
+   */
+  maxLength?: number;
   /** data-testid textarea. Default dipertahankan agar spec lama tetap jalan. */
   inputTestId?: string;
   /** data-testid tombol kirim. */
@@ -83,10 +94,16 @@ export function ChatComposer({
   title,
   disabled = false,
   modelSlot,
+  maxLength,
   inputTestId = "composer-input",
   sendTestId = "composer-send",
 }: ChatComposerProps) {
   const ref = useRef<HTMLTextAreaElement>(null);
+  // FIX S9 2026-10-12: counter hanya tampil saat user mendekati batas
+  // (>= 80%) supaya UI tetap bersih untuk kasus normal, tetapi tetap
+  // memberi umpan balik SEBELUM user kena tolak backend.
+  const sisa = typeof maxLength === "number" ? maxLength - value.length : null;
+  const counterVisible = sisa !== null && sisa <= Math.ceil(maxLength! * 0.2);
 
   /** Samakan tinggi kotak dengan isinya, dibatasi COMPOSER_MAX_PX. */
   const resize = useCallback(() => {
@@ -160,6 +177,11 @@ export function ChatComposer({
         disabled={disabled}
         enterKeyHint="send"
         spellCheck={false}
+        /* FIX S9 2026-10-12: batas panjang. Backend menegakkan angka yang sama
+           (CHAT_MAX_CHARS) dan membalas 422 + pesan yang bisa ditindak bila
+           tetap lewat (mis. paste via API). maxLength menghentikan ketikan di
+           sumbernya sehingga user tidak pernah sampai ke error itu. */
+        maxLength={maxLength}
         /* HOOK STABIL UNTUK E2E: `aria-label` sengaja tetap diterjemahkan
            (a11y), jadi tes TIDAK boleh memakainya sebagai selector —
            data-testid tidak ikut bahasa. */
@@ -193,6 +215,23 @@ export function ChatComposer({
       >
         {showStop ? <Square size={16} strokeWidth={1.75} /> : <Send size={16} strokeWidth={1.75} />}
       </Button>
+      {/* FIX S9 2026-10-12: counter karakter, hanya render saat >= 80% batas.
+          `aria-live="polite"` agar pembaca layar juga diberi tahu tanpa
+          menginterupsi. Menempati baris penuh grid: mobile (2 kolom) di baris
+          ke-3, desktop (3 kolom) di baris ke-2 di bawah composer. */}
+      {counterVisible ? (
+        <div
+          data-testid="composer-counter"
+          aria-live="polite"
+          className={`col-span-2 row-start-3 text-right text-[11px] tabular-nums md:col-span-3 md:row-start-2 ${
+            sisa! <= Math.ceil(maxLength! * 0.05) ? "text-red-500" : "text-fg-muted"
+          }`}
+        >
+          {sisa === 0
+            ? "Batas maksimum tercapai — pecah pesan menjadi beberapa bagian"
+            : `${sisa} karakter tersisa dari ${maxLength}`}
+        </div>
+      ) : null}
     </form>
   );
 }

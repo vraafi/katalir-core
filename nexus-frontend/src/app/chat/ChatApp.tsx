@@ -1358,6 +1358,12 @@ return (
             <ChatComposer
               value={input}
               onChange={setInput}
+              /* FIX S9 2026-10-12: batas panjang pesan. HARUS sama dengan
+                 CHAT_MAX_CHARS di api_server.py (validator 422). 8.000 =
+                 acuan industri (batas pesan ChatGPT free tier). Composer
+                 menghentikan ketikan di batas + menampilkan counter saat
+                 >= 80%, sehingga user tidak pernah menerima error 422. */
+              maxLength={8000}
               onSubmit={() => {
                 if (input.trim()) sendPrompt(input.trim());
               }}

@@ -29,6 +29,7 @@ import json
 import os
 import time
 import uuid
+from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timedelta, timezone as dt_timezone
 from typing import Any, Optional
 
@@ -291,6 +292,9 @@ class MemoryManager:
     def set_preference(self, key: str, value: dict, confidence: float = 1.0) -> dict:
         if not isinstance(value, dict):
             raise ValueError("value harus object/dict")
+        # FIX S2: buang cache preferensi user ini supaya perubahan terlihat
+        # langsung, tidak menunggu TTL 5 menit.
+        _PREFS_CACHE.pop(self.user_id, None)
         row = {"user_id": self.user_id, "key": str(key), "value": value,
                "confidence": float(confidence), "updated_at": _iso(_now())}
         res = (_svc().table("agent_preferences")
@@ -308,30 +312,63 @@ class MemoryManager:
 # Hook /chat (dipanggil api_server) — helper supaya handler tetap ramping
 # ---------------------------------------------------------------------------
 
+# FIX S2 (12 Okt 2026): preferensi user JARANG berubah tetapi dibaca SETIAP
+# giliran chat (RPC Supabase, 93-1200 ms terukur). Cache in-process TTL 5
+# menit per user_id; set_preference membuang cache user terkait.
+_PREFS_CACHE: dict[str, tuple[float, list]] = {}
+_PREFS_TTL_S = float(os.getenv("MEMORY_PREFS_CACHE_TTL_S", "300"))
+
+# FIX S2: recall (HTTP embedding Gemini + RPC pgvector) dan preferensi (RPC)
+# saling TIDAK bergantung — dijalankan PARALEL, bukan serial. Trace
+# tests/user_test/overhead_trace.py: serial 1,3-3,6 s; paralel menghemat
+# ~0,5-1,2 s per giliran chat.
+_MEMCTX_POOL = ThreadPoolExecutor(max_workers=4, thread_name_prefix="memctx")
+
+
+def _cached_preferences(mm: "MemoryManager") -> list:
+    """list_preferences dengan cache TTL (bisa melempar — pemanggil menelan)."""
+    hit = _PREFS_CACHE.get(mm.user_id)
+    now = time.monotonic()
+    if hit is not None and (now - hit[0]) < _PREFS_TTL_S:
+        return hit[1]
+    prefs = mm.list_preferences()
+    _PREFS_CACHE[mm.user_id] = (now, prefs)
+    return prefs
+
+
 def build_memory_context(user_id: str, agent_id: str, query: str) -> str:
     """Konteks memori untuk system prompt. SELALU aman: exception apapun
-    -> string kosong (chat tidak boleh gagal karena memory)."""
+    -> string kosong (chat tidak boleh gagal karena memory).
+
+    FIX S2: recall + preferensi PARALEL (lihat _MEMCTX_POOL di atas)."""
     if not memory_enabled():
         return ""
     try:
         mm = MemoryManager(user_id=user_id, agent_id=agent_id)
         parts: list[str] = []
         try:
-            mems = mm.recall(query, top_k=5)
+            f_mem = _MEMCTX_POOL.submit(mm.recall, query, 5)
+            f_pref = _MEMCTX_POOL.submit(_cached_preferences, mm)
+            try:
+                mems = f_mem.result()
+            except Exception as exc:  # noqa: BLE001
+                print(f"[memory] recall dilewati: {type(exc).__name__}: {str(exc)[:120]}")
+                mems = []
             if mems:
                 lines = "\n".join(f"- {m.get('content', '')}" for m in mems)
                 parts.append("Memori relevan dari interaksi sebelumnya:\n" + lines)
-        except Exception as exc:  # noqa: BLE001
-            print(f"[memory] recall dilewati: {type(exc).__name__}: {str(exc)[:120]}")
-        try:
-            prefs = mm.list_preferences()
+            try:
+                prefs = f_pref.result()
+            except Exception as exc:  # noqa: BLE001
+                print(f"[memory] preferensi dilewati: {type(exc).__name__}: {str(exc)[:120]}")
+                prefs = []
             if prefs:
                 kv = "; ".join(
                     f"{p['key']}={json.dumps(p['value'], ensure_ascii=False)}"
                     for p in prefs)
                 parts.append("Preferensi user: " + kv)
         except Exception as exc:  # noqa: BLE001
-            print(f"[memory] preferensi dilewati: {type(exc).__name__}: {str(exc)[:120]}")
+            print(f"[memory] context paralel dilewati: {type(exc).__name__}: {str(exc)[:120]}")
         return "\n\n".join(parts)
     except Exception as exc:  # noqa: BLE001
         print(f"[memory] build_memory_context gagal: {type(exc).__name__}: {str(exc)[:120]}")
