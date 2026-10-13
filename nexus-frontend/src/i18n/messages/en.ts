@@ -41,6 +41,13 @@ export const en = {
     working: "Signing in…",
     checkInbox: "Check your inbox to confirm your email address, then sign in.",
     genericError: "Sign-in failed. Please try again.",
+    /* BUG-06 (13 Oct 2026): map raw Supabase auth errors to actionable text. */
+    errRateLimit:
+      "Email sign-ups are temporarily limited (daily email sending quota reached). Try again later, or sign in with Google/GitHub.",
+    errEmailInvalid:
+      "This email address was not accepted. Check the spelling, or use Google/GitHub.",
+    errAlreadyRegistered: "This email is already registered. Please sign in.",
+    errPasswordShort: "Password is too short (minimum 6 characters).",
     /* Labels for the E2E suite; they double as the accessible names. */
     githubButtonLabel: "Continue with GitHub",
     googleButtonLabel: "Continue with Google",

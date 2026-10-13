@@ -106,3 +106,33 @@ export async function signUpWithEmail(
   const { data, error } = await supabase.auth.signUp({ email, password });
   return { error: error?.message ?? null, needsConfirmation: !error && !data.session };
 }
+
+/**
+ * BUG-06 (13 Okt 2026) — pesan galat auth Supabase dipetakan ke kunci i18n.
+ *
+ * Kenapa perlu: dengan pengirim email bawaan, Supabase hanya mengizinkan
+ * **2 email per jam per proyek** dan konfirmasi email wajib
+ * (`mailer_autoconfirm=false`). Pendaftaran ke-3 dalam satu jam gagal dengan
+ * `email rate limit exceeded`. Sebelumnya pesan mentah berbahasa Inggris itu
+ * ditampilkan apa adanya ke user — tidak bisa ditindaklanjuti dan tidak
+ * menyebutkan jalan keluar yang sebenarnya tersedia (Google/GitHub).
+ *
+ * @returns kunci i18n, atau `null` bila tidak dikenali (pakai pesan asli).
+ */
+export function classifyAuthError(
+  message: string | null
+): "auth.errRateLimit" | "auth.errEmailInvalid" | "auth.errAlreadyRegistered"
+  | "auth.errPasswordShort" | null {
+  if (!message) return null;
+  const m = message.toLowerCase();
+  if (m.includes("rate limit") || m.includes("too many")) return "auth.errRateLimit";
+  if (m.includes("is invalid") || m.includes("invalid email")) return "auth.errEmailInvalid";
+  if (m.includes("already registered") || m.includes("already exists")) {
+    return "auth.errAlreadyRegistered";
+  }
+  if (m.includes("password") && (m.includes("6 characters")
+      || m.includes("too short") || m.includes("at least"))) {
+    return "auth.errPasswordShort";
+  }
+  return null;
+}

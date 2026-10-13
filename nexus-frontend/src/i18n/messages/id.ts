@@ -44,6 +44,15 @@ export const id = {
     working: "Sedang masuk…",
     checkInbox: "Periksa email Anda untuk mengonfirmasi alamat, lalu masuk.",
     genericError: "Gagal masuk. Silakan coba lagi.",
+    /* BUG-06 (13 Okt 2026): pesan galat auth dipetakan ke bahasa Indonesia.
+       Sebelumnya user melihat pesan mentah Supabase berbahasa Inggris
+       ("email rate limit exceeded") yang tidak bisa ditindaklanjuti. */
+    errRateLimit:
+      "Pendaftaran lewat email sedang dibatasi (kuota kirim email harian tercapai). Coba lagi nanti, atau langsung masuk dengan Google/GitHub.",
+    errEmailInvalid:
+      "Alamat email ini tidak diterima. Periksa penulisannya, atau pakai Google/GitHub.",
+    errAlreadyRegistered: "Email ini sudah terdaftar. Silakan masuk.",
+    errPasswordShort: "Kata sandi terlalu pendek (minimal 6 karakter).",
     /* Label untuk suite E2E; sekaligus menjadi accessible name. */
     githubButtonLabel: "Lanjut dengan GitHub",
     googleButtonLabel: "Lanjut dengan Google",

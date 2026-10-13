@@ -12,7 +12,7 @@ import { QueryProvider } from "@/features/builder/provider";
 import { I18nProvider } from "@/i18n/context";
 import { apiFetch } from "@/lib/api";
 import { useI18n } from "@/i18n/context";
-import { useSessionsQuery, useMessagesQuery, useSendChatMutation, useDeleteSessionMutation, useModelsQuery, resolveInterruptedSession, formatToolResult, type ChatModelItem } from "@/features/chat/hooks/useChat";
+import { useSessionsQuery, useMessagesQuery, useSendChatMutation, useDeleteSessionMutation, useModelsQuery, resolveInterruptedSession, formatToolResult, markPendingTurn, clearPendingTurn, readPendingTurn, type ChatModelItem } from "@/features/chat/hooks/useChat";
 import type { ChatMessage } from "@/features/chat/hooks/useChat";
 import { useQueryClient } from "@tanstack/react-query";
 import { chatKeys } from "@/lib/query-keys";
@@ -298,6 +298,26 @@ function ChatApp() {
   const endRef = useRef<HTMLDivElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const [atBottom, setAtBottom] = useState(true);
+  /**
+   * Cermin `atBottom` untuk dibaca dari dalam effect tanpa ikut memicu re-run
+   * (dan tanpa kehilangan nilai saat wadah gulir di-remount).
+   */
+  const atBottomRef = useRef(true);
+  /**
+   * BUG-01 FIX (13 Okt 2026) — niat user untuk MENGIKUTI percakapan.
+   *
+   * `atBottom` tidak bisa dipakai sebagai penentu gulir otomatis: nilainya
+   * diturunkan dari POSISI gulir, sehingga ikut berubah oleh hal-hal yang bukan
+   * kehendak user — layout bubble yang sangat panjang, dan remount wadah gulir
+   * saat `key={sessionId}` berganti (scrollTop direset 0). Akibatnya, untuk
+   * prompt 8.000 karakter balasan berakhir ~2.900px di bawah garis lipatan dan
+   * tidak pernah ditampilkan; user hanya melihat pesannya sendiri dan menyimpulkan
+   * "tidak ada balasan".
+   *
+   * `followRef` hanya berubah karena (a) user mengirim pesan -> true, atau
+   * (b) user menggulir SENDIRI (wheel/touch/keyboard) -> false.
+   */
+  const followRef = useRef(true);
 
   const emailRef = useRef(activeEmail);
   // BUG FIX 2026-10-03 (cancel context loss): `client_request_id` giliran yang
@@ -401,6 +421,52 @@ function ChatApp() {
     }
     prevPendingSid.current = sessionId;
   }, [sessionId, qc]);
+
+  // BUG-02 FIX (13 Okt 2026) — refresh saat AI masih bekerja.
+  //
+  // `?s=<sessionId>` baru ditulis SETELAH respons tiba (echo sesi di
+  // `sendPrompt`). Kalau user menekan F5 di tengah generasi, URL belum memuat
+  // id sesi sehingga aplikasi membuka chat KOSONG — padahal server sudah
+  // membuat sesi + menyimpan pesan user (judulnya muncul di sidebar).
+  //
+  // Di sini penanda giliran dari localStorage dipetakan kembali ke session_id
+  // lewat `resolveInterruptedSession` (POST /chat/interrupted, idempoten), lalu
+  // URL diarahkan ke sesi itu. Best-effort: kegagalan tidak boleh menghalangi
+  // user memakai aplikasi (penanda kedaluwarsa sendiri setelah 15 menit).
+  const restoreTriedRef = useRef(false);
+  useEffect(() => {
+    if (loading || !activeEmail) return;
+    if (sessionId) return;              // sudah punya sesi: tidak ada yang hilang
+    if (restoreTriedRef.current) return; // sekali per mount
+    const rid = readPendingTurn();
+    if (!rid) return;
+    restoreTriedRef.current = true;
+    let cancelled = false;
+    void (async () => {
+      // Giliran bisa BELUM ter-insert di server saat halaman di-reload: `POST
+      // /chat` menyimpan pesan user di awalnya, tapi refresh bisa mendahului
+      // (atau `getSession()` di halaman yang baru dimuat sempat belum siap).
+      // Karena itu coba beberapa kali sebelum menyerah; penanda sengaja tidak
+      // dihapus bila semua percobaan gagal (TTL 15 menit yang membatasinya).
+      for (let i = 0; i < 4 && !cancelled; i++) {
+        const sid = await resolveInterruptedSession(rid, qc);
+        if (cancelled) return;
+        if (sid) {
+          // Jejak ringan di console: jalur ini jarang dan berguna saat
+          // menelusuri laporan "percakapan hilang setelah refresh".
+          console.info("[katalir] sesi giliran terputus dipulihkan", sid);
+          void setSessionId(sid);
+          clearPendingTurn(rid);
+          return;
+        }
+        await new Promise((r) => setTimeout(r, 1500));
+      }
+      if (!cancelled) {
+        console.warn("[katalir] pemulihan giliran terputus gagal setelah 4 percobaan");
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [loading, activeEmail, sessionId, qc, setSessionId]);
   // FIX #2a (key stabil — issue #685): pakai backend message.id bila ada.
   // useQuery hanya SUBSCRIBE (tanpa fetch duplikat — queryFn disabled,
   // data datang dari useMessagesQuery di atas); ini membuat komponen
@@ -573,37 +639,82 @@ function ChatApp() {
     const el = scrollRef.current;
     if (!el) return;
     if (programmaticRef.current) {
+      atBottomRef.current = true;
       setAtBottom(true);
       return;
     }
     const dist = el.scrollHeight - el.scrollTop - el.clientHeight;
     // Hysteresis: masuk-bawah <100px, keluar-(scroll atas) >150px (anti flicker tombol).
-    setAtBottom((prev) => (prev ? dist < 150 : dist < 100));
+    const next = atBottomRef.current ? dist < 150 : dist < 100;
+    atBottomRef.current = next;
+    setAtBottom(next);
   }, []);
 
   useEffect(() => {
     const el = scrollRef.current;
     if (!el) return;
     el.addEventListener("scroll", onScroll, { passive: true });
-    onScroll();
-    return () => el.removeEventListener("scroll", onScroll);
-  }, [onScroll]);
+    // Hanya interaksi MANUSIA yang mematikan mode mengikuti. Tanpa pemisahan
+    // ini, remount wadah gulir (key={sessionId}) + layout bubble panjang sudah
+    // cukup untuk mematikan gulir otomatis secara keliru (BUG-01).
+    const stopFollow = () => { followRef.current = false; };
+    el.addEventListener("wheel", stopFollow, { passive: true });
+    el.addEventListener("touchmove", stopFollow, { passive: true });
+    el.addEventListener("keydown", stopFollow);
+    // BUG FIX 2026-10-13 — balasan prompt panjang tidak pernah terlihat.
+    // Wadah gulir di dalam <div key={sessionId ?? "new"}> sehingga di-REMOUNT
+    // saat echo sesi mengubah sessionId (null -> <uuid>): scrollTop direset 0
+    // dan listener menempel di node lama yang sudah dilepas. Effect ini
+    // bergantung pada `sessionId` supaya listener dipasang ulang ke node baru,
+    // lalu posisi dipulihkan ke bawah bila user sedang mengikuti percakapan.
+    if (followRef.current) {
+      programmaticRef.current = true;
+      requestAnimationFrame(() => {
+        endRef.current?.scrollIntoView({ behavior: "auto", block: "end" });
+        programmaticRef.current = false;
+      });
+    } else {
+      onScroll();
+    }
+    return () => {
+      el.removeEventListener("scroll", onScroll);
+      el.removeEventListener("wheel", stopFollow);
+      el.removeEventListener("touchmove", stopFollow);
+      el.removeEventListener("keydown", stopFollow);
+    };
+  }, [onScroll, sessionId]);
 
   // Auto-scroll via requestAnimationFrame (chroxy #2636): hindari race antara
   // React commit & browser paint; guard programmaticRef mencegah onScroll
   // salah deteksi "user scroll naik" saat auto-scroll berlangsung.
+  //
+  // BUG-01 FIX (13 Okt 2026): penentunya `followRef` (niat user), BUKAN
+  // `atBottom` (posisi gulir). `atBottom` bisa berubah karena hal di luar
+  // kehendak user (layout bubble 8.000 karakter, remount wadah gulir saat
+  // sessionId berganti) sehingga gulir otomatis mati dan balasan tidak pernah
+  // terlihat. `sessionId` ikut jadi dependensi supaya giliran yang barusan
+  // selesai ikut diikuti setelah wadah di-remount.
   useEffect(() => {
-    if (!atBottom) return;
-    programmaticRef.current = true;
-    const raf = requestAnimationFrame(() => {
+    if (!followRef.current) return;
+    const toBottom = () => {
+      programmaticRef.current = true;
       endRef.current?.scrollIntoView({ behavior: "auto", block: "end" });
       programmaticRef.current = false;
-    });
+    };
+    const raf = requestAnimationFrame(toBottom);
+    // Layout bubble sangat panjang (8.000 karakter) bisa baru stabil setelah
+    // frame pertama (word-wrap/font). Ulangi sekali supaya balasan benar-benar
+    // berada di dalam layar, bukan hanya "hampir".
+    const t = setTimeout(() => {
+      if (!followRef.current) return;
+      toBottom();
+    }, 400);
     return () => {
       cancelAnimationFrame(raf);
+      clearTimeout(t);
       programmaticRef.current = false;
     };
-  }, [messages.length, loadingMsg, atBottom]);
+  }, [messages.length, loadingMsg, sessionId]);
 
   // SISA echo-pattern lama DIHAPUS (fix #1 revisi): tidak ada lagi
   // sessionEchoRef / prevSessionIdRef / setLocalMsgs. Overlay hidup di
@@ -651,6 +762,9 @@ function ChatApp() {
       );
     }
     qc.setQueryData<ChatMessage[]>(chatKeys.messages("__pending__"), []);
+    // "Chat Baru" adalah tindakan eksplisit user: penanda pemulihan giliran
+    // terputus tidak boleh menariknya kembali ke percakapan lama.
+    clearPendingTurn();
     setMessageQueue([]);
     setEditingId(null);
     setConfirmNewChat(false);
@@ -736,6 +850,13 @@ function ChatApp() {
     }
     busyRef.current = true;
     setInput("");
+    // Mengirim pesan selalu mengembalikan mode "ikuti percakapan": user jelas
+    // ingin melihat gilirannya sendiri beserta balasannya. Tanpa ini, sisa
+    // posisi gulir lama (atau reset akibat remount sesi) bisa membuat balasan
+    // tidak pernah terlihat pada prompt yang sangat panjang.
+    followRef.current = true;
+    atBottomRef.current = true;
+    setAtBottom(true);
     const controller = new AbortController();
     cancelRef.current = controller;
     // Idempotensi (openclaw #69266): UUID unik per kiriman logis. Backend memakai
@@ -754,6 +875,15 @@ function ChatApp() {
     // BUG FIX 2026-10-03: simpan id kiriman ini supaya `onStop` bisa memulihkan
     // session_id ketika user menekan Stop di tengah balasan.
     activeReqIdRef.current = clientRequestId;
+    // BUG-02 FIX (13 Okt 2026): tandai giliran ini SEBELUM dikirim supaya
+    // setelah refresh kita bisa memetakan client_request_id -> session_id
+    // (POST /chat/interrupted) dan membuka kembali percakapannya.
+    markPendingTurn(clientRequestId);
+    // Apakah sesi giliran ini sudah PASTI terikat (punya session_id)? Penanda
+    // pemulihan hanya boleh dihapus bila sudah — kalau tidak, refresh tepat di
+    // antara "respons tiba" dan "URL ter-update" akan kehilangan satu-satunya
+    // cara memulihkan percakapan.
+    let sesiTerikat = Boolean(sessionId);
     // Optimistic bubble ditulis oleh onMutate (setQueryData) — TANPA useState.
     try {
       const data = await sendMutation.mutateAsync({
@@ -773,6 +903,7 @@ function ChatApp() {
         // newChat; overlay men-dedup agar tidak duplikat saat frame switch.
         void setSessionId(data.session_id);
       }
+      sesiTerikat = Boolean(data.session_id || sessionId);
       // Kuota baru saja terpakai 1 request -> segarkan progress bar segera
       // (tanpa harus menunggu interval 60 detik).
       void refreshQuota();
@@ -799,6 +930,11 @@ function ChatApp() {
       // Jangan ada req-id yatim: `onStop` sudah consume-nya, jadi hanya
       // bersihkan kalau masih milik kiriman ini (retry beruntun).
       if (activeReqIdRef.current === clientRequestId) activeReqIdRef.current = null;
+      // Giliran sudah selesai (sukses ATAU gagal final): penanda pemulihan
+      // tidak diperlukan lagi — TAPI hanya bila sesinya sudah terikat. Bila
+      // belum (mis. respons sukses tanpa session_id), penanda dibiarkan agar
+      // refresh tetap bisa memulihkan; TTL 15 menit membatasinya.
+      if (sesiTerikat) clearPendingTurn(clientRequestId);
     }
   }
 
@@ -1154,9 +1290,11 @@ return (
                 aria-label="Lompat ke bawah"
                 aria-hidden={atBottom}
                 tabIndex={atBottom ? -1 : 0}
-                onClick={() =>
-                  endRef.current?.scrollIntoView({ behavior: "auto", block: "end" })
-                }
+                onClick={() => {
+                  // Menekan "Lompat ke bawah" = user ingin mengikuti lagi.
+                  followRef.current = true;
+                  endRef.current?.scrollIntoView({ behavior: "auto", block: "end" });
+                }}
                 className={`sticky bottom-2 mx-auto flex items-center gap-1.5 rounded-full border border-border bg-surface px-3 py-1.5 text-footnote text-fg-muted shadow-sm transition-opacity duration-200 hover:text-fg ${atBottom ? "pointer-events-none opacity-0" : "opacity-100"}`}
               >
                 ↓ Terbaru

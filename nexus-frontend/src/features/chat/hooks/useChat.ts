@@ -337,6 +337,71 @@ export function useDeleteSessionMutation() {
   });
 }
 
+// ─────────────────── BUG-02: pemulihan giliran setelah refresh ──────────────
+//
+// Gejala (13 Okt 2026): user menekan F5 saat AI masih bekerja -> area percakapan
+// KOSONG, padahal pesannya sudah tersimpan di server (judulnya muncul di
+// sidebar). Akar masalah: `?s=<sessionId>` baru ditulis SETELAH respons tiba
+// (echo sesi), jadi setelah refresh URL tidak memuat id sesi dan aplikasi
+// membuka chat baru yang kosong.
+//
+// Solusi: simpan `client_request_id` giliran yang sedang berjalan di
+// localStorage SEBELUM request dikirim. Setelah refresh, id itu dipetakan
+// kembali ke session_id lewat `POST /chat/interrupted` (endpoint idempoten yang
+// sudah dipakai tombol Stop) sehingga percakapan bisa dibuka lagi.
+export const PENDING_TURN_KEY = "katalir.pendingTurn.v1";
+/**
+ * Umur maksimum penanda yang masih dipulihkan (ms).
+ *
+ * Sengaja PENDEK: penanda ini hanya untuk menutup jendela "refresh di tengah
+ * giliran". Kalau terlalu panjang, user yang beberapa menit kemudian membuka
+ * chat baru akan ditarik kembali ke percakapan lama secara tak terduga —
+ * perilaku yang lebih mengganggu daripada bug yang diperbaiki.
+ */
+export const PENDING_TURN_TTL_MS = 3 * 60_000;
+
+export function markPendingTurn(clientRequestId: string) {
+  try {
+    window.localStorage.setItem(
+      PENDING_TURN_KEY,
+      JSON.stringify({ id: clientRequestId, at: Date.now() }),
+    );
+  } catch {
+    /* storage diblokir: yang hilang hanya kemampuan memulihkan setelah refresh */
+  }
+}
+
+export function clearPendingTurn(clientRequestId?: string | null) {
+  try {
+    const raw = window.localStorage.getItem(PENDING_TURN_KEY);
+    if (!raw) return;
+    if (clientRequestId) {
+      const cur = JSON.parse(raw) as { id?: string };
+      // Jangan hapus penanda milik kiriman LAIN yang lebih baru.
+      if (cur?.id && cur.id !== clientRequestId) return;
+    }
+    window.localStorage.removeItem(PENDING_TURN_KEY);
+  } catch {
+    /* abaikan */
+  }
+}
+
+export function readPendingTurn(): string | null {
+  try {
+    const raw = window.localStorage.getItem(PENDING_TURN_KEY);
+    if (!raw) return null;
+    const cur = JSON.parse(raw) as { id?: string; at?: number };
+    if (!cur?.id || typeof cur.at !== "number") return null;
+    if (Date.now() - cur.at > PENDING_TURN_TTL_MS) {
+      window.localStorage.removeItem(PENDING_TURN_KEY);
+      return null;
+    }
+    return cur.id;
+  } catch {
+    return null;
+  }
+}
+
 /**
  * BUG FIX 2026-10-03 — pemulihan konteks setelah giliran dibatalkan (Stop).
  *

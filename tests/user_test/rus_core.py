@@ -34,7 +34,7 @@ LOG = EV / "logs"
 for _d in (EV, VID, LOG):
     _d.mkdir(parents=True, exist_ok=True)
 
-FRONTEND = "https://katalir.de5.net"
+FRONTEND = os.environ.get("RUS_FRONTEND", "https://katalir.de5.net")
 BACKEND = "https://gateway.katalir.de5.net/katalir-api"
 UA_BROWSER = ("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
               "(KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36")
@@ -234,6 +234,72 @@ class Probe:
 
     def errs(self):
         return [c for c in self.console if c["type"] in ("error", "pageerror")]
+
+
+def proxy_backend(ctx, base=None, on_call=None):
+    """Proksi backend lewat Playwright + tambahkan header CORS permisif.
+
+    Kenapa perlu: perbaikan frontend harus bisa diuji LOKAL (server statis di
+    127.0.0.1) sebelum dideploy. Backend produksi hanya mengizinkan origin
+    produksi, jadi preflight dari `http://127.0.0.1:<port>` ditolak CORS dan
+    SEMUA request gagal — pengujian lokal jadi tidak bermakna (dan bisa
+    menyesatkan: gejalanya "error card" yang tidak ada hubungannya dengan bug).
+
+    Fungsi ini memenuhi request dari Python (urllib) memakai origin produksi,
+    lalu mengembalikannya ke browser dengan `Access-Control-Allow-Origin: *`
+    sehingga browser menerimanya. Isi respons TIDAK diubah.
+    """
+    root = (base or BACKEND).rstrip("/")
+    prod_origin = "https://katalir.de5.net"
+
+    def _handler(route):
+        req = route.request
+        try:
+            if req.method == "OPTIONS":
+                route.fulfill(status=204, headers={
+                    "Access-Control-Allow-Origin": "*",
+                    "Access-Control-Allow-Methods": "GET,POST,PATCH,DELETE,OPTIONS",
+                    "Access-Control-Allow-Headers": "*",
+                    "Access-Control-Max-Age": "600",
+                }, body="")
+                return
+            url = req.url
+            path = url.split(root, 1)[1] if root in url else "/"
+            if on_call:
+                try:
+                    on_call(req.method, path)
+                except Exception:  # noqa: BLE001
+                    pass
+            headers = {k: v for k, v in req.headers.items()
+                       if k.lower() not in ("host", "content-length",
+                                            "origin", "referer",
+                                            "accept-encoding")}
+            headers["Origin"] = prod_origin
+            data = req.post_data.encode("utf-8") if req.post_data else None
+            rq = urllib.request.Request(root + path, data=data,
+                                       headers=headers, method=req.method)
+            try:
+                with urllib.request.urlopen(rq, timeout=180) as resp:
+                    body = resp.read()
+                    st = resp.status
+                    ct = resp.headers.get("Content-Type", "application/json")
+            except urllib.error.HTTPError as he:
+                body = he.read()
+                st = he.code
+                ct = he.headers.get("Content-Type", "application/json")
+            route.fulfill(status=st, headers={
+                "Access-Control-Allow-Origin": "*",
+                "Access-Control-Allow-Headers": "*",
+                "Content-Type": ct,
+            }, body=body)
+        except Exception:  # noqa: BLE001
+            try:
+                route.continue_()
+            except Exception:  # noqa: BLE001
+                pass
+
+    ctx.route("**/katalir-api/**", _handler)
+    return _handler
 
 
 def new_ctx(b, *, width=1440, height=900, locale="id-ID", video=False,

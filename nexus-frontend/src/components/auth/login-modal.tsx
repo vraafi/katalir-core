@@ -94,14 +94,20 @@ export function LoginModal({
     setPending("email");
     setError(null);
     setNotice(null);
+    // BUG-06: pesan galat Supabase yang tidak ramah dipetakan ke teks yang bisa
+    // ditindaklanjuti (mis. batas 2 email/jam pada pengirim bawaan Supabase).
+    const pesan = (raw: string) => {
+      const key = authActions.classifyAuthError(raw);
+      return key ? t(key) : raw;
+    };
     try {
       if (mode === "signin") {
         const { error: err } = await authActions.signInWithEmail(email, password);
-        if (err) setError(err);
+        if (err) setError(pesan(err));
         else goAfterAuth();
       } else {
         const { error: err, needsConfirmation } = await authActions.signUpWithEmail(email, password);
-        if (err) setError(err);
+        if (err) setError(pesan(err));
         else if (needsConfirmation) setNotice(t("auth.checkInbox"));
         else close(false);
       }

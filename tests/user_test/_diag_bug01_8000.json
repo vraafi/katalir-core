@@ -1,0 +1,4877 @@
+{
+ "panjang": 8000,
+ "durasi": 60.0,
+ "events": [
+  {
+   "t": 29.23,
+   "kind": "BACKEND_CALL",
+   "m": "GET",
+   "p": "/models"
+  },
+  {
+   "t": 31.73,
+   "kind": "BACKEND_CALL",
+   "m": "GET",
+   "p": "/sessions"
+  },
+  {
+   "t": 36.27,
+   "kind": "BACKEND_CALL",
+   "m": "GET",
+   "p": "/quota"
+  },
+  {
+   "t": 37.82,
+   "kind": "CONSOLE",
+   "type": "warning",
+   "text": "The resource http://127.0.0.1:4321/_next/static/css/016f4921546f76af.css was preloaded using link preload but not used within a few seconds from the window's load event. Please make sure it has an appropriate `as` value and it is preloaded intentionally."
+  },
+  {
+   "t": 0.0,
+   "kind": "SEND",
+   "panjang": 8000
+  },
+  {
+   "t": 0.19,
+   "kind": "REQ",
+   "m": "POST",
+   "u": "https://gateway.katalir.de5.net/katalir-api/chat"
+  },
+  {
+   "t": 0.19,
+   "kind": "BACKEND_CALL",
+   "m": "POST",
+   "p": "/chat"
+  },
+  {
+   "t": 9.42,
+   "kind": "CONSOLE",
+   "type": "warning",
+   "text": "The resource http://127.0.0.1:4321/_next/static/css/016f4921546f76af.css was preloaded using link preload but not used within a few seconds from the window's load event. Please make sure it has an appropriate `as` value and it is preloaded intentionally."
+  },
+  {
+   "t": 9.45,
+   "kind": "RES_HEADERS",
+   "status": 200,
+   "u": "https://gateway.katalir.de5.net/katalir-api/chat"
+  },
+  {
+   "t": 9.48,
+   "kind": "REQ_FINISHED",
+   "u": "https://gateway.katalir.de5.net/katalir-api/chat"
+  },
+  {
+   "t": 9.48,
+   "kind": "BACKEND_CALL",
+   "m": "GET",
+   "p": "/sessions"
+  },
+  {
+   "t": 10.84,
+   "kind": "BACKEND_CALL",
+   "m": "GET",
+   "p": "/quota"
+  },
+  {
+   "t": 12.88,
+   "kind": "RES_BODY",
+   "status": "success",
+   "reply_len": 172,
+   "reply_head": "Halo! Ada yang bisa saya bantu? Jika Anda ingin membuat workflow otomatisasi, mengirim pesan, membaca email, atau mengel",
+   "session_id": "8f89f6f1-a7f6-483c-982b-f1f65bdc0e01",
+   "has_credential_prompt": false,
+   "meta_keys": [
+    "completion_tokens",
+    "fallback",
+    "fallback_reason",
+    "latency_ms",
+    "model",
+    "prompt_tokens",
+    "quota",
+    "quota_bucket",
+    "requested_model",
+    "total_tokens",
+    "workflow"
+   ],
+   "top_keys": [
+    "meta",
+    "reply",
+    "session_id",
+    "status"
+   ]
+  },
+  {
+   "t": 15.9,
+   "kind": "CONSOLE",
+   "type": "warning",
+   "text": "The resource http://127.0.0.1:4321/_next/static/css/016f4921546f76af.css was preloaded using link preload but not used within a few seconds from the window's load event. Please make sure it has an appropriate `as` value and it is preloaded intentionally."
+  },
+  {
+   "t": 48.51,
+   "kind": "BACKEND_CALL",
+   "m": "GET",
+   "p": "/quota"
+  },
+  {
+   "t": 54.71,
+   "kind": "CONSOLE",
+   "type": "warning",
+   "text": "The resource http://127.0.0.1:4321/_next/static/css/016f4921546f76af.css was preloaded using link preload but not used within a few seconds from the window's load event. Please make sure it has an appropriate `as` value and it is preloaded intentionally."
+  }
+ ],
+ "dom": [
+  {
+   "t": 12.9,
+   "len": 8399,
+   "url": "/chat?s=8f89f6f1-a7f6-483c-982b-f1f65bdc0e01",
+   "scrollTop": 2311,
+   "scrollHeight": 2924,
+   "clientHeight": 583,
+   "di_dasar": true,
+   "ada_area_chat": true,
+   "ada_sedang_memproses": false,
+   "ada_berpikir": false,
+   "ada_error_card": false,
+   "ada_coba_lagi": false,
+   "jumlah_bubble_anak": 2,
+   "anak": [
+    {
+     "tag": "div",
+     "testid": "",
+     "cls": "flex items-end gap-2 justify-end",
+     "n": 8000,
+     "ekor": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+     "html_len": 8202,
+     "ada_halo": false,
+     "ada_typing": false,
+     "anak_elemen": [
+      {
+       "cls": "max-w-[75%] rounded-2xl rounded-br-lg bg",
+       "n": 8000
+      }
+     ]
+    },
+    {
+     "tag": "div",
+     "testid": "",
+     "cls": "flex items-end gap-2 ",
+     "n": 398,
+     "ekor": "i-3.5-flash-lite\ndiminta: gemma-4-31b-it",
+     "html_len": 2062,
+     "ada_halo": true,
+     "ada_typing": false,
+     "anak_elemen": [
+      {
+       "cls": "flex h-7 w-7 shrink-0 items-center justi",
+       "n": 0
+      },
+      {
+       "cls": "max-w-[85%] rounded-2xl rounded-bl-lg bg",
+       "n": 398
+      }
+     ]
+    }
+   ],
+   "teks_ekor": "sebentar atau pilih model lain. · Beralih ke gemini-3.5-flash-lite\ndiminta: gemma-4-31b-it",
+   "cache": {
+    "chat/sessions/rus-final-bed2e66e@katalir-internal.dev": [
+     {
+      "localId": null,
+      "role": null,
+      "type": null,
+      "len": 0,
+      "hasMeta": false
+     },
+     {
+      "localId": null,
+      "role": null,
+      "type": null,
+      "len": 0,
+      "hasMeta": false
+     },
+     {
+      "localId": null,
+      "role": null,
+      "type": null,
+      "len": 0,
+      "hasMeta": false
+     },
+     {
+      "localId": null,
+      "role": null,
+      "type": null,
+      "len": 0,
+      "hasMeta": false
+     },
+     {
+      "localId": null,
+      "role": null,
+      "type": null,
+      "len": 0,
+      "hasMeta": false
+     },
+     {
+      "localId": null,
+      "role": null,
+      "type": null,
+      "len": 0,
+      "hasMeta": false
+     },
+     {
+      "localId": null,
+      "role": null,
+      "type": null,
+      "len": 0,
+      "hasMeta": false
+     },
+     {
+      "localId": null,
+      "role": null,
+      "type": null,
+      "len": 0,
+      "hasMeta": false
+     },
+     {
+      "localId": null,
+      "role": null,
+      "type": null,
+      "len": 0,
+      "hasMeta": false
+     },
+     {
+      "localId": null,
+      "role": null,
+      "type": null,
+      "len": 0,
+      "hasMeta": false
+     },
+     {
+      "localId": null,
+      "role": null,
+      "type": null,
+      "len": 0,
+      "hasMeta": false
+     },
+     {
+      "localId": null,
+      "role": null,
+      "type": null,
+      "len": 0,
+      "hasMeta": false
+     },
+     {
+      "localId": null,
+      "role": null,
+      "type": null,
+      "len": 0,
+      "hasMeta": false
+     },
+     {
+      "localId": null,
+      "role": null,
+      "type": null,
+      "len": 0,
+      "hasMeta": false
+     },
+     {
+      "localId": null,
+      "role": null,
+      "type": null,
+      "len": 0,
+      "hasMeta": false
+     },
+     {
+      "localId": null,
+      "role": null,
+      "type": null,
+      "len": 0,
+      "hasMeta": false
+     },
+     {
+      "localId": null,
+      "role": null,
+      "type": null,
+      "len": 0,
+      "hasMeta": false
+     }
+    ],
+    "chat/messages/__pending__": [],
+    "chat/messages/8f89f6f1-a7f6-483c-982b-f1f65bdc0e01": [
+     {
+      "localId": "local-user-1791883762445-rplmi",
+      "role": "user",
+      "type": null,
+      "len": 8000,
+      "hasMeta": false
+     },
+     {
+      "localId": "local-asst-1791883762445-j1qza",
+      "role": "assistant",
+      "type": null,
+      "len": 172,
+      "hasMeta": true
+     }
+    ]
+   }
+  },
+  {
+   "t": 15.7,
+   "len": 8399,
+   "url": "/chat?s=8f89f6f1-a7f6-483c-982b-f1f65bdc0e01",
+   "scrollTop": 2311,
+   "scrollHeight": 2924,
+   "clientHeight": 583,
+   "di_dasar": true,
+   "ada_area_chat": true,
+   "ada_sedang_memproses": false,
+   "ada_berpikir": false,
+   "ada_error_card": false,
+   "ada_coba_lagi": false,
+   "jumlah_bubble_anak": 2,
+   "anak": [
+    {
+     "tag": "div",
+     "testid": "",
+     "cls": "flex items-end gap-2 justify-end",
+     "n": 8000,
+     "ekor": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+     "html_len": 8202,
+     "ada_halo": false,
+     "ada_typing": false,
+     "anak_elemen": [
+      {
+       "cls": "max-w-[75%] rounded-2xl rounded-br-lg bg",
+       "n": 8000
+      }
+     ]
+    },
+    {
+     "tag": "div",
+     "testid": "",
+     "cls": "flex items-end gap-2 ",
+     "n": 398,
+     "ekor": "i-3.5-flash-lite\ndiminta: gemma-4-31b-it",
+     "html_len": 2062,
+     "ada_halo": true,
+     "ada_typing": false,
+     "anak_elemen": [
+      {
+       "cls": "flex h-7 w-7 shrink-0 items-center justi",
+       "n": 0
+      },
+      {
+       "cls": "max-w-[85%] rounded-2xl rounded-bl-lg bg",
+       "n": 398
+      }
+     ]
+    }
+   ],
+   "teks_ekor": "sebentar atau pilih model lain. · Beralih ke gemini-3.5-flash-lite\ndiminta: gemma-4-31b-it",
+   "cache": {
+    "chat/sessions/rus-final-bed2e66e@katalir-internal.dev": [
+     {
+      "localId": null,
+      "role": null,
+      "type": null,
+      "len": 0,
+      "hasMeta": false
+     },
+     {
+      "localId": null,
+      "role": null,
+      "type": null,
+      "len": 0,
+      "hasMeta": false
+     },
+     {
+      "localId": null,
+      "role": null,
+      "type": null,
+      "len": 0,
+      "hasMeta": false
+     },
+     {
+      "localId": null,
+      "role": null,
+      "type": null,
+      "len": 0,
+      "hasMeta": false
+     },
+     {
+      "localId": null,
+      "role": null,
+      "type": null,
+      "len": 0,
+      "hasMeta": false
+     },
+     {
+      "localId": null,
+      "role": null,
+      "type": null,
+      "len": 0,
+      "hasMeta": false
+     },
+     {
+      "localId": null,
+      "role": null,
+      "type": null,
+      "len": 0,
+      "hasMeta": false
+     },
+     {
+      "localId": null,
+      "role": null,
+      "type": null,
+      "len": 0,
+      "hasMeta": false
+     },
+     {
+      "localId": null,
+      "role": null,
+      "type": null,
+      "len": 0,
+      "hasMeta": false
+     },
+     {
+      "localId": null,
+      "role": null,
+      "type": null,
+      "len": 0,
+      "hasMeta": false
+     },
+     {
+      "localId": null,
+      "role": null,
+      "type": null,
+      "len": 0,
+      "hasMeta": false
+     },
+     {
+      "localId": null,
+      "role": null,
+      "type": null,
+      "len": 0,
+      "hasMeta": false
+     },
+     {
+      "localId": null,
+      "role": null,
+      "type": null,
+      "len": 0,
+      "hasMeta": false
+     },
+     {
+      "localId": null,
+      "role": null,
+      "type": null,
+      "len": 0,
+      "hasMeta": false
+     },
+     {
+      "localId": null,
+      "role": null,
+      "type": null,
+      "len": 0,
+      "hasMeta": false
+     },
+     {
+      "localId": null,
+      "role": null,
+      "type": null,
+      "len": 0,
+      "hasMeta": false
+     },
+     {
+      "localId": null,
+      "role": null,
+      "type": null,
+      "len": 0,
+      "hasMeta": false
+     }
+    ],
+    "chat/messages/__pending__": [],
+    "chat/messages/8f89f6f1-a7f6-483c-982b-f1f65bdc0e01": [
+     {
+      "localId": "local-user-1791883762445-rplmi",
+      "role": "user",
+      "type": null,
+      "len": 8000,
+      "hasMeta": false
+     },
+     {
+      "localId": "local-asst-1791883762445-j1qza",
+      "role": "assistant",
+      "type": null,
+      "len": 172,
+      "hasMeta": true
+     }
+    ]
+   }
+  },
+  {
+   "t": 17.7,
+   "len": 8399,
+   "url": "/chat?s=8f89f6f1-a7f6-483c-982b-f1f65bdc0e01",
+   "scrollTop": 2311,
+   "scrollHeight": 2924,
+   "clientHeight": 583,
+   "di_dasar": true,
+   "ada_area_chat": true,
+   "ada_sedang_memproses": false,
+   "ada_berpikir": false,
+   "ada_error_card": false,
+   "ada_coba_lagi": false,
+   "jumlah_bubble_anak": 2,
+   "anak": [
+    {
+     "tag": "div",
+     "testid": "",
+     "cls": "flex items-end gap-2 justify-end",
+     "n": 8000,
+     "ekor": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+     "html_len": 8202,
+     "ada_halo": false,
+     "ada_typing": false,
+     "anak_elemen": [
+      {
+       "cls": "max-w-[75%] rounded-2xl rounded-br-lg bg",
+       "n": 8000
+      }
+     ]
+    },
+    {
+     "tag": "div",
+     "testid": "",
+     "cls": "flex items-end gap-2 ",
+     "n": 398,
+     "ekor": "i-3.5-flash-lite\ndiminta: gemma-4-31b-it",
+     "html_len": 2062,
+     "ada_halo": true,
+     "ada_typing": false,
+     "anak_elemen": [
+      {
+       "cls": "flex h-7 w-7 shrink-0 items-center justi",
+       "n": 0
+      },
+      {
+       "cls": "max-w-[85%] rounded-2xl rounded-bl-lg bg",
+       "n": 398
+      }
+     ]
+    }
+   ],
+   "teks_ekor": "sebentar atau pilih model lain. · Beralih ke gemini-3.5-flash-lite\ndiminta: gemma-4-31b-it",
+   "cache": {
+    "chat/sessions/rus-final-bed2e66e@katalir-internal.dev": [
+     {
+      "localId": null,
+      "role": null,
+      "type": null,
+      "len": 0,
+      "hasMeta": false
+     },
+     {
+      "localId": null,
+      "role": null,
+      "type": null,
+      "len": 0,
+      "hasMeta": false
+     },
+     {
+      "localId": null,
+      "role": null,
+      "type": null,
+      "len": 0,
+      "hasMeta": false
+     },
+     {
+      "localId": null,
+      "role": null,
+      "type": null,
+      "len": 0,
+      "hasMeta": false
+     },
+     {
+      "localId": null,
+      "role": null,
+      "type": null,
+      "len": 0,
+      "hasMeta": false
+     },
+     {
+      "localId": null,
+      "role": null,
+      "type": null,
+      "len": 0,
+      "hasMeta": false
+     },
+     {
+      "localId": null,
+      "role": null,
+      "type": null,
+      "len": 0,
+      "hasMeta": false
+     },
+     {
+      "localId": null,
+      "role": null,
+      "type": null,
+      "len": 0,
+      "hasMeta": false
+     },
+     {
+      "localId": null,
+      "role": null,
+      "type": null,
+      "len": 0,
+      "hasMeta": false
+     },
+     {
+      "localId": null,
+      "role": null,
+      "type": null,
+      "len": 0,
+      "hasMeta": false
+     },
+     {
+      "localId": null,
+      "role": null,
+      "type": null,
+      "len": 0,
+      "hasMeta": false
+     },
+     {
+      "localId": null,
+      "role": null,
+      "type": null,
+      "len": 0,
+      "hasMeta": false
+     },
+     {
+      "localId": null,
+      "role": null,
+      "type": null,
+      "len": 0,
+      "hasMeta": false
+     },
+     {
+      "localId": null,
+      "role": null,
+      "type": null,
+      "len": 0,
+      "hasMeta": false
+     },
+     {
+      "localId": null,
+      "role": null,
+      "type": null,
+      "len": 0,
+      "hasMeta": false
+     },
+     {
+      "localId": null,
+      "role": null,
+      "type": null,
+      "len": 0,
+      "hasMeta": false
+     },
+     {
+      "localId": null,
+      "role": null,
+      "type": null,
+      "len": 0,
+      "hasMeta": false
+     }
+    ],
+    "chat/messages/__pending__": [],
+    "chat/messages/8f89f6f1-a7f6-483c-982b-f1f65bdc0e01": [
+     {
+      "localId": "local-user-1791883762445-rplmi",
+      "role": "user",
+      "type": null,
+      "len": 8000,
+      "hasMeta": false
+     },
+     {
+      "localId": "local-asst-1791883762445-j1qza",
+      "role": "assistant",
+      "type": null,
+      "len": 172,
+      "hasMeta": true
+     }
+    ]
+   }
+  },
+  {
+   "t": 19.8,
+   "len": 8399,
+   "url": "/chat?s=8f89f6f1-a7f6-483c-982b-f1f65bdc0e01",
+   "scrollTop": 2311,
+   "scrollHeight": 2924,
+   "clientHeight": 583,
+   "di_dasar": true,
+   "ada_area_chat": true,
+   "ada_sedang_memproses": false,
+   "ada_berpikir": false,
+   "ada_error_card": false,
+   "ada_coba_lagi": false,
+   "jumlah_bubble_anak": 2,
+   "anak": [
+    {
+     "tag": "div",
+     "testid": "",
+     "cls": "flex items-end gap-2 justify-end",
+     "n": 8000,
+     "ekor": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+     "html_len": 8202,
+     "ada_halo": false,
+     "ada_typing": false,
+     "anak_elemen": [
+      {
+       "cls": "max-w-[75%] rounded-2xl rounded-br-lg bg",
+       "n": 8000
+      }
+     ]
+    },
+    {
+     "tag": "div",
+     "testid": "",
+     "cls": "flex items-end gap-2 ",
+     "n": 398,
+     "ekor": "i-3.5-flash-lite\ndiminta: gemma-4-31b-it",
+     "html_len": 2062,
+     "ada_halo": true,
+     "ada_typing": false,
+     "anak_elemen": [
+      {
+       "cls": "flex h-7 w-7 shrink-0 items-center justi",
+       "n": 0
+      },
+      {
+       "cls": "max-w-[85%] rounded-2xl rounded-bl-lg bg",
+       "n": 398
+      }
+     ]
+    }
+   ],
+   "teks_ekor": "sebentar atau pilih model lain. · Beralih ke gemini-3.5-flash-lite\ndiminta: gemma-4-31b-it",
+   "cache": {
+    "chat/sessions/rus-final-bed2e66e@katalir-internal.dev": [
+     {
+      "localId": null,
+      "role": null,
+      "type": null,
+      "len": 0,
+      "hasMeta": false
+     },
+     {
+      "localId": null,
+      "role": null,
+      "type": null,
+      "len": 0,
+      "hasMeta": false
+     },
+     {
+      "localId": null,
+      "role": null,
+      "type": null,
+      "len": 0,
+      "hasMeta": false
+     },
+     {
+      "localId": null,
+      "role": null,
+      "type": null,
+      "len": 0,
+      "hasMeta": false
+     },
+     {
+      "localId": null,
+      "role": null,
+      "type": null,
+      "len": 0,
+      "hasMeta": false
+     },
+     {
+      "localId": null,
+      "role": null,
+      "type": null,
+      "len": 0,
+      "hasMeta": false
+     },
+     {
+      "localId": null,
+      "role": null,
+      "type": null,
+      "len": 0,
+      "hasMeta": false
+     },
+     {
+      "localId": null,
+      "role": null,
+      "type": null,
+      "len": 0,
+      "hasMeta": false
+     },
+     {
+      "localId": null,
+      "role": null,
+      "type": null,
+      "len": 0,
+      "hasMeta": false
+     },
+     {
+      "localId": null,
+      "role": null,
+      "type": null,
+      "len": 0,
+      "hasMeta": false
+     },
+     {
+      "localId": null,
+      "role": null,
+      "type": null,
+      "len": 0,
+      "hasMeta": false
+     },
+     {
+      "localId": null,
+      "role": null,
+      "type": null,
+      "len": 0,
+      "hasMeta": false
+     },
+     {
+      "localId": null,
+      "role": null,
+      "type": null,
+      "len": 0,
+      "hasMeta": false
+     },
+     {
+      "localId": null,
+      "role": null,
+      "type": null,
+      "len": 0,
+      "hasMeta": false
+     },
+     {
+      "localId": null,
+      "role": null,
+      "type": null,
+      "len": 0,
+      "hasMeta": false
+     },
+     {
+      "localId": null,
+      "role": null,
+      "type": null,
+      "len": 0,
+      "hasMeta": false
+     },
+     {
+      "localId": null,
+      "role": null,
+      "type": null,
+      "len": 0,
+      "hasMeta": false
+     }
+    ],
+    "chat/messages/__pending__": [],
+    "chat/messages/8f89f6f1-a7f6-483c-982b-f1f65bdc0e01": [
+     {
+      "localId": "local-user-1791883762445-rplmi",
+      "role": "user",
+      "type": null,
+      "len": 8000,
+      "hasMeta": false
+     },
+     {
+      "localId": "local-asst-1791883762445-j1qza",
+      "role": "assistant",
+      "type": null,
+      "len": 172,
+      "hasMeta": true
+     }
+    ]
+   }
+  },
+  {
+   "t": 21.8,
+   "len": 8399,
+   "url": "/chat?s=8f89f6f1-a7f6-483c-982b-f1f65bdc0e01",
+   "scrollTop": 2311,
+   "scrollHeight": 2924,
+   "clientHeight": 583,
+   "di_dasar": true,
+   "ada_area_chat": true,
+   "ada_sedang_memproses": false,
+   "ada_berpikir": false,
+   "ada_error_card": false,
+   "ada_coba_lagi": false,
+   "jumlah_bubble_anak": 2,
+   "anak": [
+    {
+     "tag": "div",
+     "testid": "",
+     "cls": "flex items-end gap-2 justify-end",
+     "n": 8000,
+     "ekor": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+     "html_len": 8202,
+     "ada_halo": false,
+     "ada_typing": false,
+     "anak_elemen": [
+      {
+       "cls": "max-w-[75%] rounded-2xl rounded-br-lg bg",
+       "n": 8000
+      }
+     ]
+    },
+    {
+     "tag": "div",
+     "testid": "",
+     "cls": "flex items-end gap-2 ",
+     "n": 398,
+     "ekor": "i-3.5-flash-lite\ndiminta: gemma-4-31b-it",
+     "html_len": 2062,
+     "ada_halo": true,
+     "ada_typing": false,
+     "anak_elemen": [
+      {
+       "cls": "flex h-7 w-7 shrink-0 items-center justi",
+       "n": 0
+      },
+      {
+       "cls": "max-w-[85%] rounded-2xl rounded-bl-lg bg",
+       "n": 398
+      }
+     ]
+    }
+   ],
+   "teks_ekor": "sebentar atau pilih model lain. · Beralih ke gemini-3.5-flash-lite\ndiminta: gemma-4-31b-it",
+   "cache": {
+    "chat/sessions/rus-final-bed2e66e@katalir-internal.dev": [
+     {
+      "localId": null,
+      "role": null,
+      "type": null,
+      "len": 0,
+      "hasMeta": false
+     },
+     {
+      "localId": null,
+      "role": null,
+      "type": null,
+      "len": 0,
+      "hasMeta": false
+     },
+     {
+      "localId": null,
+      "role": null,
+      "type": null,
+      "len": 0,
+      "hasMeta": false
+     },
+     {
+      "localId": null,
+      "role": null,
+      "type": null,
+      "len": 0,
+      "hasMeta": false
+     },
+     {
+      "localId": null,
+      "role": null,
+      "type": null,
+      "len": 0,
+      "hasMeta": false
+     },
+     {
+      "localId": null,
+      "role": null,
+      "type": null,
+      "len": 0,
+      "hasMeta": false
+     },
+     {
+      "localId": null,
+      "role": null,
+      "type": null,
+      "len": 0,
+      "hasMeta": false
+     },
+     {
+      "localId": null,
+      "role": null,
+      "type": null,
+      "len": 0,
+      "hasMeta": false
+     },
+     {
+      "localId": null,
+      "role": null,
+      "type": null,
+      "len": 0,
+      "hasMeta": false
+     },
+     {
+      "localId": null,
+      "role": null,
+      "type": null,
+      "len": 0,
+      "hasMeta": false
+     },
+     {
+      "localId": null,
+      "role": null,
+      "type": null,
+      "len": 0,
+      "hasMeta": false
+     },
+     {
+      "localId": null,
+      "role": null,
+      "type": null,
+      "len": 0,
+      "hasMeta": false
+     },
+     {
+      "localId": null,
+      "role": null,
+      "type": null,
+      "len": 0,
+      "hasMeta": false
+     },
+     {
+      "localId": null,
+      "role": null,
+      "type": null,
+      "len": 0,
+      "hasMeta": false
+     },
+     {
+      "localId": null,
+      "role": null,
+      "type": null,
+      "len": 0,
+      "hasMeta": false
+     },
+     {
+      "localId": null,
+      "role": null,
+      "type": null,
+      "len": 0,
+      "hasMeta": false
+     },
+     {
+      "localId": null,
+      "role": null,
+      "type": null,
+      "len": 0,
+      "hasMeta": false
+     }
+    ],
+    "chat/messages/__pending__": [],
+    "chat/messages/8f89f6f1-a7f6-483c-982b-f1f65bdc0e01": [
+     {
+      "localId": "local-user-1791883762445-rplmi",
+      "role": "user",
+      "type": null,
+      "len": 8000,
+      "hasMeta": false
+     },
+     {
+      "localId": "local-asst-1791883762445-j1qza",
+      "role": "assistant",
+      "type": null,
+      "len": 172,
+      "hasMeta": true
+     }
+    ]
+   }
+  },
+  {
+   "t": 23.8,
+   "len": 8399,
+   "url": "/chat?s=8f89f6f1-a7f6-483c-982b-f1f65bdc0e01",
+   "scrollTop": 2311,
+   "scrollHeight": 2924,
+   "clientHeight": 583,
+   "di_dasar": true,
+   "ada_area_chat": true,
+   "ada_sedang_memproses": false,
+   "ada_berpikir": false,
+   "ada_error_card": false,
+   "ada_coba_lagi": false,
+   "jumlah_bubble_anak": 2,
+   "anak": [
+    {
+     "tag": "div",
+     "testid": "",
+     "cls": "flex items-end gap-2 justify-end",
+     "n": 8000,
+     "ekor": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+     "html_len": 8202,
+     "ada_halo": false,
+     "ada_typing": false,
+     "anak_elemen": [
+      {
+       "cls": "max-w-[75%] rounded-2xl rounded-br-lg bg",
+       "n": 8000
+      }
+     ]
+    },
+    {
+     "tag": "div",
+     "testid": "",
+     "cls": "flex items-end gap-2 ",
+     "n": 398,
+     "ekor": "i-3.5-flash-lite\ndiminta: gemma-4-31b-it",
+     "html_len": 2062,
+     "ada_halo": true,
+     "ada_typing": false,
+     "anak_elemen": [
+      {
+       "cls": "flex h-7 w-7 shrink-0 items-center justi",
+       "n": 0
+      },
+      {
+       "cls": "max-w-[85%] rounded-2xl rounded-bl-lg bg",
+       "n": 398
+      }
+     ]
+    }
+   ],
+   "teks_ekor": "sebentar atau pilih model lain. · Beralih ke gemini-3.5-flash-lite\ndiminta: gemma-4-31b-it",
+   "cache": {
+    "chat/sessions/rus-final-bed2e66e@katalir-internal.dev": [
+     {
+      "localId": null,
+      "role": null,
+      "type": null,
+      "len": 0,
+      "hasMeta": false
+     },
+     {
+      "localId": null,
+      "role": null,
+      "type": null,
+      "len": 0,
+      "hasMeta": false
+     },
+     {
+      "localId": null,
+      "role": null,
+      "type": null,
+      "len": 0,
+      "hasMeta": false
+     },
+     {
+      "localId": null,
+      "role": null,
+      "type": null,
+      "len": 0,
+      "hasMeta": false
+     },
+     {
+      "localId": null,
+      "role": null,
+      "type": null,
+      "len": 0,
+      "hasMeta": false
+     },
+     {
+      "localId": null,
+      "role": null,
+      "type": null,
+      "len": 0,
+      "hasMeta": false
+     },
+     {
+      "localId": null,
+      "role": null,
+      "type": null,
+      "len": 0,
+      "hasMeta": false
+     },
+     {
+      "localId": null,
+      "role": null,
+      "type": null,
+      "len": 0,
+      "hasMeta": false
+     },
+     {
+      "localId": null,
+      "role": null,
+      "type": null,
+      "len": 0,
+      "hasMeta": false
+     },
+     {
+      "localId": null,
+      "role": null,
+      "type": null,
+      "len": 0,
+      "hasMeta": false
+     },
+     {
+      "localId": null,
+      "role": null,
+      "type": null,
+      "len": 0,
+      "hasMeta": false
+     },
+     {
+      "localId": null,
+      "role": null,
+      "type": null,
+      "len": 0,
+      "hasMeta": false
+     },
+     {
+      "localId": null,
+      "role": null,
+      "type": null,
+      "len": 0,
+      "hasMeta": false
+     },
+     {
+      "localId": null,
+      "role": null,
+      "type": null,
+      "len": 0,
+      "hasMeta": false
+     },
+     {
+      "localId": null,
+      "role": null,
+      "type": null,
+      "len": 0,
+      "hasMeta": false
+     },
+     {
+      "localId": null,
+      "role": null,
+      "type": null,
+      "len": 0,
+      "hasMeta": false
+     },
+     {
+      "localId": null,
+      "role": null,
+      "type": null,
+      "len": 0,
+      "hasMeta": false
+     }
+    ],
+    "chat/messages/__pending__": [],
+    "chat/messages/8f89f6f1-a7f6-483c-982b-f1f65bdc0e01": [
+     {
+      "localId": "local-user-1791883762445-rplmi",
+      "role": "user",
+      "type": null,
+      "len": 8000,
+      "hasMeta": false
+     },
+     {
+      "localId": "local-asst-1791883762445-j1qza",
+      "role": "assistant",
+      "type": null,
+      "len": 172,
+      "hasMeta": true
+     }
+    ]
+   }
+  },
+  {
+   "t": 25.9,
+   "len": 8399,
+   "url": "/chat?s=8f89f6f1-a7f6-483c-982b-f1f65bdc0e01",
+   "scrollTop": 2311,
+   "scrollHeight": 2924,
+   "clientHeight": 583,
+   "di_dasar": true,
+   "ada_area_chat": true,
+   "ada_sedang_memproses": false,
+   "ada_berpikir": false,
+   "ada_error_card": false,
+   "ada_coba_lagi": false,
+   "jumlah_bubble_anak": 2,
+   "anak": [
+    {
+     "tag": "div",
+     "testid": "",
+     "cls": "flex items-end gap-2 justify-end",
+     "n": 8000,
+     "ekor": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+     "html_len": 8202,
+     "ada_halo": false,
+     "ada_typing": false,
+     "anak_elemen": [
+      {
+       "cls": "max-w-[75%] rounded-2xl rounded-br-lg bg",
+       "n": 8000
+      }
+     ]
+    },
+    {
+     "tag": "div",
+     "testid": "",
+     "cls": "flex items-end gap-2 ",
+     "n": 398,
+     "ekor": "i-3.5-flash-lite\ndiminta: gemma-4-31b-it",
+     "html_len": 2062,
+     "ada_halo": true,
+     "ada_typing": false,
+     "anak_elemen": [
+      {
+       "cls": "flex h-7 w-7 shrink-0 items-center justi",
+       "n": 0
+      },
+      {
+       "cls": "max-w-[85%] rounded-2xl rounded-bl-lg bg",
+       "n": 398
+      }
+     ]
+    }
+   ],
+   "teks_ekor": "sebentar atau pilih model lain. · Beralih ke gemini-3.5-flash-lite\ndiminta: gemma-4-31b-it",
+   "cache": {
+    "chat/sessions/rus-final-bed2e66e@katalir-internal.dev": [
+     {
+      "localId": null,
+      "role": null,
+      "type": null,
+      "len": 0,
+      "hasMeta": false
+     },
+     {
+      "localId": null,
+      "role": null,
+      "type": null,
+      "len": 0,
+      "hasMeta": false
+     },
+     {
+      "localId": null,
+      "role": null,
+      "type": null,
+      "len": 0,
+      "hasMeta": false
+     },
+     {
+      "localId": null,
+      "role": null,
+      "type": null,
+      "len": 0,
+      "hasMeta": false
+     },
+     {
+      "localId": null,
+      "role": null,
+      "type": null,
+      "len": 0,
+      "hasMeta": false
+     },
+     {
+      "localId": null,
+      "role": null,
+      "type": null,
+      "len": 0,
+      "hasMeta": false
+     },
+     {
+      "localId": null,
+      "role": null,
+      "type": null,
+      "len": 0,
+      "hasMeta": false
+     },
+     {
+      "localId": null,
+      "role": null,
+      "type": null,
+      "len": 0,
+      "hasMeta": false
+     },
+     {
+      "localId": null,
+      "role": null,
+      "type": null,
+      "len": 0,
+      "hasMeta": false
+     },
+     {
+      "localId": null,
+      "role": null,
+      "type": null,
+      "len": 0,
+      "hasMeta": false
+     },
+     {
+      "localId": null,
+      "role": null,
+      "type": null,
+      "len": 0,
+      "hasMeta": false
+     },
+     {
+      "localId": null,
+      "role": null,
+      "type": null,
+      "len": 0,
+      "hasMeta": false
+     },
+     {
+      "localId": null,
+      "role": null,
+      "type": null,
+      "len": 0,
+      "hasMeta": false
+     },
+     {
+      "localId": null,
+      "role": null,
+      "type": null,
+      "len": 0,
+      "hasMeta": false
+     },
+     {
+      "localId": null,
+      "role": null,
+      "type": null,
+      "len": 0,
+      "hasMeta": false
+     },
+     {
+      "localId": null,
+      "role": null,
+      "type": null,
+      "len": 0,
+      "hasMeta": false
+     },
+     {
+      "localId": null,
+      "role": null,
+      "type": null,
+      "len": 0,
+      "hasMeta": false
+     }
+    ],
+    "chat/messages/__pending__": [],
+    "chat/messages/8f89f6f1-a7f6-483c-982b-f1f65bdc0e01": [
+     {
+      "localId": "local-user-1791883762445-rplmi",
+      "role": "user",
+      "type": null,
+      "len": 8000,
+      "hasMeta": false
+     },
+     {
+      "localId": "local-asst-1791883762445-j1qza",
+      "role": "assistant",
+      "type": null,
+      "len": 172,
+      "hasMeta": true
+     }
+    ]
+   }
+  },
+  {
+   "t": 28.0,
+   "len": 8399,
+   "url": "/chat?s=8f89f6f1-a7f6-483c-982b-f1f65bdc0e01",
+   "scrollTop": 2311,
+   "scrollHeight": 2924,
+   "clientHeight": 583,
+   "di_dasar": true,
+   "ada_area_chat": true,
+   "ada_sedang_memproses": false,
+   "ada_berpikir": false,
+   "ada_error_card": false,
+   "ada_coba_lagi": false,
+   "jumlah_bubble_anak": 2,
+   "anak": [
+    {
+     "tag": "div",
+     "testid": "",
+     "cls": "flex items-end gap-2 justify-end",
+     "n": 8000,
+     "ekor": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+     "html_len": 8202,
+     "ada_halo": false,
+     "ada_typing": false,
+     "anak_elemen": [
+      {
+       "cls": "max-w-[75%] rounded-2xl rounded-br-lg bg",
+       "n": 8000
+      }
+     ]
+    },
+    {
+     "tag": "div",
+     "testid": "",
+     "cls": "flex items-end gap-2 ",
+     "n": 398,
+     "ekor": "i-3.5-flash-lite\ndiminta: gemma-4-31b-it",
+     "html_len": 2062,
+     "ada_halo": true,
+     "ada_typing": false,
+     "anak_elemen": [
+      {
+       "cls": "flex h-7 w-7 shrink-0 items-center justi",
+       "n": 0
+      },
+      {
+       "cls": "max-w-[85%] rounded-2xl rounded-bl-lg bg",
+       "n": 398
+      }
+     ]
+    }
+   ],
+   "teks_ekor": "sebentar atau pilih model lain. · Beralih ke gemini-3.5-flash-lite\ndiminta: gemma-4-31b-it",
+   "cache": {
+    "chat/sessions/rus-final-bed2e66e@katalir-internal.dev": [
+     {
+      "localId": null,
+      "role": null,
+      "type": null,
+      "len": 0,
+      "hasMeta": false
+     },
+     {
+      "localId": null,
+      "role": null,
+      "type": null,
+      "len": 0,
+      "hasMeta": false
+     },
+     {
+      "localId": null,
+      "role": null,
+      "type": null,
+      "len": 0,
+      "hasMeta": false
+     },
+     {
+      "localId": null,
+      "role": null,
+      "type": null,
+      "len": 0,
+      "hasMeta": false
+     },
+     {
+      "localId": null,
+      "role": null,
+      "type": null,
+      "len": 0,
+      "hasMeta": false
+     },
+     {
+      "localId": null,
+      "role": null,
+      "type": null,
+      "len": 0,
+      "hasMeta": false
+     },
+     {
+      "localId": null,
+      "role": null,
+      "type": null,
+      "len": 0,
+      "hasMeta": false
+     },
+     {
+      "localId": null,
+      "role": null,
+      "type": null,
+      "len": 0,
+      "hasMeta": false
+     },
+     {
+      "localId": null,
+      "role": null,
+      "type": null,
+      "len": 0,
+      "hasMeta": false
+     },
+     {
+      "localId": null,
+      "role": null,
+      "type": null,
+      "len": 0,
+      "hasMeta": false
+     },
+     {
+      "localId": null,
+      "role": null,
+      "type": null,
+      "len": 0,
+      "hasMeta": false
+     },
+     {
+      "localId": null,
+      "role": null,
+      "type": null,
+      "len": 0,
+      "hasMeta": false
+     },
+     {
+      "localId": null,
+      "role": null,
+      "type": null,
+      "len": 0,
+      "hasMeta": false
+     },
+     {
+      "localId": null,
+      "role": null,
+      "type": null,
+      "len": 0,
+      "hasMeta": false
+     },
+     {
+      "localId": null,
+      "role": null,
+      "type": null,
+      "len": 0,
+      "hasMeta": false
+     },
+     {
+      "localId": null,
+      "role": null,
+      "type": null,
+      "len": 0,
+      "hasMeta": false
+     },
+     {
+      "localId": null,
+      "role": null,
+      "type": null,
+      "len": 0,
+      "hasMeta": false
+     }
+    ],
+    "chat/messages/__pending__": [],
+    "chat/messages/8f89f6f1-a7f6-483c-982b-f1f65bdc0e01": [
+     {
+      "localId": "local-user-1791883762445-rplmi",
+      "role": "user",
+      "type": null,
+      "len": 8000,
+      "hasMeta": false
+     },
+     {
+      "localId": "local-asst-1791883762445-j1qza",
+      "role": "assistant",
+      "type": null,
+      "len": 172,
+      "hasMeta": true
+     }
+    ]
+   }
+  },
+  {
+   "t": 30.1,
+   "len": 8399,
+   "url": "/chat?s=8f89f6f1-a7f6-483c-982b-f1f65bdc0e01",
+   "scrollTop": 2311,
+   "scrollHeight": 2924,
+   "clientHeight": 583,
+   "di_dasar": true,
+   "ada_area_chat": true,
+   "ada_sedang_memproses": false,
+   "ada_berpikir": false,
+   "ada_error_card": false,
+   "ada_coba_lagi": false,
+   "jumlah_bubble_anak": 2,
+   "anak": [
+    {
+     "tag": "div",
+     "testid": "",
+     "cls": "flex items-end gap-2 justify-end",
+     "n": 8000,
+     "ekor": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+     "html_len": 8202,
+     "ada_halo": false,
+     "ada_typing": false,
+     "anak_elemen": [
+      {
+       "cls": "max-w-[75%] rounded-2xl rounded-br-lg bg",
+       "n": 8000
+      }
+     ]
+    },
+    {
+     "tag": "div",
+     "testid": "",
+     "cls": "flex items-end gap-2 ",
+     "n": 398,
+     "ekor": "i-3.5-flash-lite\ndiminta: gemma-4-31b-it",
+     "html_len": 2062,
+     "ada_halo": true,
+     "ada_typing": false,
+     "anak_elemen": [
+      {
+       "cls": "flex h-7 w-7 shrink-0 items-center justi",
+       "n": 0
+      },
+      {
+       "cls": "max-w-[85%] rounded-2xl rounded-bl-lg bg",
+       "n": 398
+      }
+     ]
+    }
+   ],
+   "teks_ekor": "sebentar atau pilih model lain. · Beralih ke gemini-3.5-flash-lite\ndiminta: gemma-4-31b-it",
+   "cache": {
+    "chat/sessions/rus-final-bed2e66e@katalir-internal.dev": [
+     {
+      "localId": null,
+      "role": null,
+      "type": null,
+      "len": 0,
+      "hasMeta": false
+     },
+     {
+      "localId": null,
+      "role": null,
+      "type": null,
+      "len": 0,
+      "hasMeta": false
+     },
+     {
+      "localId": null,
+      "role": null,
+      "type": null,
+      "len": 0,
+      "hasMeta": false
+     },
+     {
+      "localId": null,
+      "role": null,
+      "type": null,
+      "len": 0,
+      "hasMeta": false
+     },
+     {
+      "localId": null,
+      "role": null,
+      "type": null,
+      "len": 0,
+      "hasMeta": false
+     },
+     {
+      "localId": null,
+      "role": null,
+      "type": null,
+      "len": 0,
+      "hasMeta": false
+     },
+     {
+      "localId": null,
+      "role": null,
+      "type": null,
+      "len": 0,
+      "hasMeta": false
+     },
+     {
+      "localId": null,
+      "role": null,
+      "type": null,
+      "len": 0,
+      "hasMeta": false
+     },
+     {
+      "localId": null,
+      "role": null,
+      "type": null,
+      "len": 0,
+      "hasMeta": false
+     },
+     {
+      "localId": null,
+      "role": null,
+      "type": null,
+      "len": 0,
+      "hasMeta": false
+     },
+     {
+      "localId": null,
+      "role": null,
+      "type": null,
+      "len": 0,
+      "hasMeta": false
+     },
+     {
+      "localId": null,
+      "role": null,
+      "type": null,
+      "len": 0,
+      "hasMeta": false
+     },
+     {
+      "localId": null,
+      "role": null,
+      "type": null,
+      "len": 0,
+      "hasMeta": false
+     },
+     {
+      "localId": null,
+      "role": null,
+      "type": null,
+      "len": 0,
+      "hasMeta": false
+     },
+     {
+      "localId": null,
+      "role": null,
+      "type": null,
+      "len": 0,
+      "hasMeta": false
+     },
+     {
+      "localId": null,
+      "role": null,
+      "type": null,
+      "len": 0,
+      "hasMeta": false
+     },
+     {
+      "localId": null,
+      "role": null,
+      "type": null,
+      "len": 0,
+      "hasMeta": false
+     }
+    ],
+    "chat/messages/__pending__": [],
+    "chat/messages/8f89f6f1-a7f6-483c-982b-f1f65bdc0e01": [
+     {
+      "localId": "local-user-1791883762445-rplmi",
+      "role": "user",
+      "type": null,
+      "len": 8000,
+      "hasMeta": false
+     },
+     {
+      "localId": "local-asst-1791883762445-j1qza",
+      "role": "assistant",
+      "type": null,
+      "len": 172,
+      "hasMeta": true
+     }
+    ]
+   }
+  },
+  {
+   "t": 32.1,
+   "len": 8399,
+   "url": "/chat?s=8f89f6f1-a7f6-483c-982b-f1f65bdc0e01",
+   "scrollTop": 2311,
+   "scrollHeight": 2924,
+   "clientHeight": 583,
+   "di_dasar": true,
+   "ada_area_chat": true,
+   "ada_sedang_memproses": false,
+   "ada_berpikir": false,
+   "ada_error_card": false,
+   "ada_coba_lagi": false,
+   "jumlah_bubble_anak": 2,
+   "anak": [
+    {
+     "tag": "div",
+     "testid": "",
+     "cls": "flex items-end gap-2 justify-end",
+     "n": 8000,
+     "ekor": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+     "html_len": 8202,
+     "ada_halo": false,
+     "ada_typing": false,
+     "anak_elemen": [
+      {
+       "cls": "max-w-[75%] rounded-2xl rounded-br-lg bg",
+       "n": 8000
+      }
+     ]
+    },
+    {
+     "tag": "div",
+     "testid": "",
+     "cls": "flex items-end gap-2 ",
+     "n": 398,
+     "ekor": "i-3.5-flash-lite\ndiminta: gemma-4-31b-it",
+     "html_len": 2062,
+     "ada_halo": true,
+     "ada_typing": false,
+     "anak_elemen": [
+      {
+       "cls": "flex h-7 w-7 shrink-0 items-center justi",
+       "n": 0
+      },
+      {
+       "cls": "max-w-[85%] rounded-2xl rounded-bl-lg bg",
+       "n": 398
+      }
+     ]
+    }
+   ],
+   "teks_ekor": "sebentar atau pilih model lain. · Beralih ke gemini-3.5-flash-lite\ndiminta: gemma-4-31b-it",
+   "cache": {
+    "chat/sessions/rus-final-bed2e66e@katalir-internal.dev": [
+     {
+      "localId": null,
+      "role": null,
+      "type": null,
+      "len": 0,
+      "hasMeta": false
+     },
+     {
+      "localId": null,
+      "role": null,
+      "type": null,
+      "len": 0,
+      "hasMeta": false
+     },
+     {
+      "localId": null,
+      "role": null,
+      "type": null,
+      "len": 0,
+      "hasMeta": false
+     },
+     {
+      "localId": null,
+      "role": null,
+      "type": null,
+      "len": 0,
+      "hasMeta": false
+     },
+     {
+      "localId": null,
+      "role": null,
+      "type": null,
+      "len": 0,
+      "hasMeta": false
+     },
+     {
+      "localId": null,
+      "role": null,
+      "type": null,
+      "len": 0,
+      "hasMeta": false
+     },
+     {
+      "localId": null,
+      "role": null,
+      "type": null,
+      "len": 0,
+      "hasMeta": false
+     },
+     {
+      "localId": null,
+      "role": null,
+      "type": null,
+      "len": 0,
+      "hasMeta": false
+     },
+     {
+      "localId": null,
+      "role": null,
+      "type": null,
+      "len": 0,
+      "hasMeta": false
+     },
+     {
+      "localId": null,
+      "role": null,
+      "type": null,
+      "len": 0,
+      "hasMeta": false
+     },
+     {
+      "localId": null,
+      "role": null,
+      "type": null,
+      "len": 0,
+      "hasMeta": false
+     },
+     {
+      "localId": null,
+      "role": null,
+      "type": null,
+      "len": 0,
+      "hasMeta": false
+     },
+     {
+      "localId": null,
+      "role": null,
+      "type": null,
+      "len": 0,
+      "hasMeta": false
+     },
+     {
+      "localId": null,
+      "role": null,
+      "type": null,
+      "len": 0,
+      "hasMeta": false
+     },
+     {
+      "localId": null,
+      "role": null,
+      "type": null,
+      "len": 0,
+      "hasMeta": false
+     },
+     {
+      "localId": null,
+      "role": null,
+      "type": null,
+      "len": 0,
+      "hasMeta": false
+     },
+     {
+      "localId": null,
+      "role": null,
+      "type": null,
+      "len": 0,
+      "hasMeta": false
+     }
+    ],
+    "chat/messages/__pending__": [],
+    "chat/messages/8f89f6f1-a7f6-483c-982b-f1f65bdc0e01": [
+     {
+      "localId": "local-user-1791883762445-rplmi",
+      "role": "user",
+      "type": null,
+      "len": 8000,
+      "hasMeta": false
+     },
+     {
+      "localId": "local-asst-1791883762445-j1qza",
+      "role": "assistant",
+      "type": null,
+      "len": 172,
+      "hasMeta": true
+     }
+    ]
+   }
+  },
+  {
+   "t": 34.1,
+   "len": 8399,
+   "url": "/chat?s=8f89f6f1-a7f6-483c-982b-f1f65bdc0e01",
+   "scrollTop": 2311,
+   "scrollHeight": 2924,
+   "clientHeight": 583,
+   "di_dasar": true,
+   "ada_area_chat": true,
+   "ada_sedang_memproses": false,
+   "ada_berpikir": false,
+   "ada_error_card": false,
+   "ada_coba_lagi": false,
+   "jumlah_bubble_anak": 2,
+   "anak": [
+    {
+     "tag": "div",
+     "testid": "",
+     "cls": "flex items-end gap-2 justify-end",
+     "n": 8000,
+     "ekor": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+     "html_len": 8202,
+     "ada_halo": false,
+     "ada_typing": false,
+     "anak_elemen": [
+      {
+       "cls": "max-w-[75%] rounded-2xl rounded-br-lg bg",
+       "n": 8000
+      }
+     ]
+    },
+    {
+     "tag": "div",
+     "testid": "",
+     "cls": "flex items-end gap-2 ",
+     "n": 398,
+     "ekor": "i-3.5-flash-lite\ndiminta: gemma-4-31b-it",
+     "html_len": 2062,
+     "ada_halo": true,
+     "ada_typing": false,
+     "anak_elemen": [
+      {
+       "cls": "flex h-7 w-7 shrink-0 items-center justi",
+       "n": 0
+      },
+      {
+       "cls": "max-w-[85%] rounded-2xl rounded-bl-lg bg",
+       "n": 398
+      }
+     ]
+    }
+   ],
+   "teks_ekor": "sebentar atau pilih model lain. · Beralih ke gemini-3.5-flash-lite\ndiminta: gemma-4-31b-it",
+   "cache": {
+    "chat/sessions/rus-final-bed2e66e@katalir-internal.dev": [
+     {
+      "localId": null,
+      "role": null,
+      "type": null,
+      "len": 0,
+      "hasMeta": false
+     },
+     {
+      "localId": null,
+      "role": null,
+      "type": null,
+      "len": 0,
+      "hasMeta": false
+     },
+     {
+      "localId": null,
+      "role": null,
+      "type": null,
+      "len": 0,
+      "hasMeta": false
+     },
+     {
+      "localId": null,
+      "role": null,
+      "type": null,
+      "len": 0,
+      "hasMeta": false
+     },
+     {
+      "localId": null,
+      "role": null,
+      "type": null,
+      "len": 0,
+      "hasMeta": false
+     },
+     {
+      "localId": null,
+      "role": null,
+      "type": null,
+      "len": 0,
+      "hasMeta": false
+     },
+     {
+      "localId": null,
+      "role": null,
+      "type": null,
+      "len": 0,
+      "hasMeta": false
+     },
+     {
+      "localId": null,
+      "role": null,
+      "type": null,
+      "len": 0,
+      "hasMeta": false
+     },
+     {
+      "localId": null,
+      "role": null,
+      "type": null,
+      "len": 0,
+      "hasMeta": false
+     },
+     {
+      "localId": null,
+      "role": null,
+      "type": null,
+      "len": 0,
+      "hasMeta": false
+     },
+     {
+      "localId": null,
+      "role": null,
+      "type": null,
+      "len": 0,
+      "hasMeta": false
+     },
+     {
+      "localId": null,
+      "role": null,
+      "type": null,
+      "len": 0,
+      "hasMeta": false
+     },
+     {
+      "localId": null,
+      "role": null,
+      "type": null,
+      "len": 0,
+      "hasMeta": false
+     },
+     {
+      "localId": null,
+      "role": null,
+      "type": null,
+      "len": 0,
+      "hasMeta": false
+     },
+     {
+      "localId": null,
+      "role": null,
+      "type": null,
+      "len": 0,
+      "hasMeta": false
+     },
+     {
+      "localId": null,
+      "role": null,
+      "type": null,
+      "len": 0,
+      "hasMeta": false
+     },
+     {
+      "localId": null,
+      "role": null,
+      "type": null,
+      "len": 0,
+      "hasMeta": false
+     }
+    ],
+    "chat/messages/__pending__": [],
+    "chat/messages/8f89f6f1-a7f6-483c-982b-f1f65bdc0e01": [
+     {
+      "localId": "local-user-1791883762445-rplmi",
+      "role": "user",
+      "type": null,
+      "len": 8000,
+      "hasMeta": false
+     },
+     {
+      "localId": "local-asst-1791883762445-j1qza",
+      "role": "assistant",
+      "type": null,
+      "len": 172,
+      "hasMeta": true
+     }
+    ]
+   }
+  },
+  {
+   "t": 36.2,
+   "len": 8399,
+   "url": "/chat?s=8f89f6f1-a7f6-483c-982b-f1f65bdc0e01",
+   "scrollTop": 2311,
+   "scrollHeight": 2924,
+   "clientHeight": 583,
+   "di_dasar": true,
+   "ada_area_chat": true,
+   "ada_sedang_memproses": false,
+   "ada_berpikir": false,
+   "ada_error_card": false,
+   "ada_coba_lagi": false,
+   "jumlah_bubble_anak": 2,
+   "anak": [
+    {
+     "tag": "div",
+     "testid": "",
+     "cls": "flex items-end gap-2 justify-end",
+     "n": 8000,
+     "ekor": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+     "html_len": 8202,
+     "ada_halo": false,
+     "ada_typing": false,
+     "anak_elemen": [
+      {
+       "cls": "max-w-[75%] rounded-2xl rounded-br-lg bg",
+       "n": 8000
+      }
+     ]
+    },
+    {
+     "tag": "div",
+     "testid": "",
+     "cls": "flex items-end gap-2 ",
+     "n": 398,
+     "ekor": "i-3.5-flash-lite\ndiminta: gemma-4-31b-it",
+     "html_len": 2062,
+     "ada_halo": true,
+     "ada_typing": false,
+     "anak_elemen": [
+      {
+       "cls": "flex h-7 w-7 shrink-0 items-center justi",
+       "n": 0
+      },
+      {
+       "cls": "max-w-[85%] rounded-2xl rounded-bl-lg bg",
+       "n": 398
+      }
+     ]
+    }
+   ],
+   "teks_ekor": "sebentar atau pilih model lain. · Beralih ke gemini-3.5-flash-lite\ndiminta: gemma-4-31b-it",
+   "cache": {
+    "chat/sessions/rus-final-bed2e66e@katalir-internal.dev": [
+     {
+      "localId": null,
+      "role": null,
+      "type": null,
+      "len": 0,
+      "hasMeta": false
+     },
+     {
+      "localId": null,
+      "role": null,
+      "type": null,
+      "len": 0,
+      "hasMeta": false
+     },
+     {
+      "localId": null,
+      "role": null,
+      "type": null,
+      "len": 0,
+      "hasMeta": false
+     },
+     {
+      "localId": null,
+      "role": null,
+      "type": null,
+      "len": 0,
+      "hasMeta": false
+     },
+     {
+      "localId": null,
+      "role": null,
+      "type": null,
+      "len": 0,
+      "hasMeta": false
+     },
+     {
+      "localId": null,
+      "role": null,
+      "type": null,
+      "len": 0,
+      "hasMeta": false
+     },
+     {
+      "localId": null,
+      "role": null,
+      "type": null,
+      "len": 0,
+      "hasMeta": false
+     },
+     {
+      "localId": null,
+      "role": null,
+      "type": null,
+      "len": 0,
+      "hasMeta": false
+     },
+     {
+      "localId": null,
+      "role": null,
+      "type": null,
+      "len": 0,
+      "hasMeta": false
+     },
+     {
+      "localId": null,
+      "role": null,
+      "type": null,
+      "len": 0,
+      "hasMeta": false
+     },
+     {
+      "localId": null,
+      "role": null,
+      "type": null,
+      "len": 0,
+      "hasMeta": false
+     },
+     {
+      "localId": null,
+      "role": null,
+      "type": null,
+      "len": 0,
+      "hasMeta": false
+     },
+     {
+      "localId": null,
+      "role": null,
+      "type": null,
+      "len": 0,
+      "hasMeta": false
+     },
+     {
+      "localId": null,
+      "role": null,
+      "type": null,
+      "len": 0,
+      "hasMeta": false
+     },
+     {
+      "localId": null,
+      "role": null,
+      "type": null,
+      "len": 0,
+      "hasMeta": false
+     },
+     {
+      "localId": null,
+      "role": null,
+      "type": null,
+      "len": 0,
+      "hasMeta": false
+     },
+     {
+      "localId": null,
+      "role": null,
+      "type": null,
+      "len": 0,
+      "hasMeta": false
+     }
+    ],
+    "chat/messages/__pending__": [],
+    "chat/messages/8f89f6f1-a7f6-483c-982b-f1f65bdc0e01": [
+     {
+      "localId": "local-user-1791883762445-rplmi",
+      "role": "user",
+      "type": null,
+      "len": 8000,
+      "hasMeta": false
+     },
+     {
+      "localId": "local-asst-1791883762445-j1qza",
+      "role": "assistant",
+      "type": null,
+      "len": 172,
+      "hasMeta": true
+     }
+    ]
+   }
+  },
+  {
+   "t": 38.2,
+   "len": 8399,
+   "url": "/chat?s=8f89f6f1-a7f6-483c-982b-f1f65bdc0e01",
+   "scrollTop": 2311,
+   "scrollHeight": 2924,
+   "clientHeight": 583,
+   "di_dasar": true,
+   "ada_area_chat": true,
+   "ada_sedang_memproses": false,
+   "ada_berpikir": false,
+   "ada_error_card": false,
+   "ada_coba_lagi": false,
+   "jumlah_bubble_anak": 2,
+   "anak": [
+    {
+     "tag": "div",
+     "testid": "",
+     "cls": "flex items-end gap-2 justify-end",
+     "n": 8000,
+     "ekor": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+     "html_len": 8202,
+     "ada_halo": false,
+     "ada_typing": false,
+     "anak_elemen": [
+      {
+       "cls": "max-w-[75%] rounded-2xl rounded-br-lg bg",
+       "n": 8000
+      }
+     ]
+    },
+    {
+     "tag": "div",
+     "testid": "",
+     "cls": "flex items-end gap-2 ",
+     "n": 398,
+     "ekor": "i-3.5-flash-lite\ndiminta: gemma-4-31b-it",
+     "html_len": 2062,
+     "ada_halo": true,
+     "ada_typing": false,
+     "anak_elemen": [
+      {
+       "cls": "flex h-7 w-7 shrink-0 items-center justi",
+       "n": 0
+      },
+      {
+       "cls": "max-w-[85%] rounded-2xl rounded-bl-lg bg",
+       "n": 398
+      }
+     ]
+    }
+   ],
+   "teks_ekor": "sebentar atau pilih model lain. · Beralih ke gemini-3.5-flash-lite\ndiminta: gemma-4-31b-it",
+   "cache": {
+    "chat/sessions/rus-final-bed2e66e@katalir-internal.dev": [
+     {
+      "localId": null,
+      "role": null,
+      "type": null,
+      "len": 0,
+      "hasMeta": false
+     },
+     {
+      "localId": null,
+      "role": null,
+      "type": null,
+      "len": 0,
+      "hasMeta": false
+     },
+     {
+      "localId": null,
+      "role": null,
+      "type": null,
+      "len": 0,
+      "hasMeta": false
+     },
+     {
+      "localId": null,
+      "role": null,
+      "type": null,
+      "len": 0,
+      "hasMeta": false
+     },
+     {
+      "localId": null,
+      "role": null,
+      "type": null,
+      "len": 0,
+      "hasMeta": false
+     },
+     {
+      "localId": null,
+      "role": null,
+      "type": null,
+      "len": 0,
+      "hasMeta": false
+     },
+     {
+      "localId": null,
+      "role": null,
+      "type": null,
+      "len": 0,
+      "hasMeta": false
+     },
+     {
+      "localId": null,
+      "role": null,
+      "type": null,
+      "len": 0,
+      "hasMeta": false
+     },
+     {
+      "localId": null,
+      "role": null,
+      "type": null,
+      "len": 0,
+      "hasMeta": false
+     },
+     {
+      "localId": null,
+      "role": null,
+      "type": null,
+      "len": 0,
+      "hasMeta": false
+     },
+     {
+      "localId": null,
+      "role": null,
+      "type": null,
+      "len": 0,
+      "hasMeta": false
+     },
+     {
+      "localId": null,
+      "role": null,
+      "type": null,
+      "len": 0,
+      "hasMeta": false
+     },
+     {
+      "localId": null,
+      "role": null,
+      "type": null,
+      "len": 0,
+      "hasMeta": false
+     },
+     {
+      "localId": null,
+      "role": null,
+      "type": null,
+      "len": 0,
+      "hasMeta": false
+     },
+     {
+      "localId": null,
+      "role": null,
+      "type": null,
+      "len": 0,
+      "hasMeta": false
+     },
+     {
+      "localId": null,
+      "role": null,
+      "type": null,
+      "len": 0,
+      "hasMeta": false
+     },
+     {
+      "localId": null,
+      "role": null,
+      "type": null,
+      "len": 0,
+      "hasMeta": false
+     }
+    ],
+    "chat/messages/__pending__": [],
+    "chat/messages/8f89f6f1-a7f6-483c-982b-f1f65bdc0e01": [
+     {
+      "localId": "local-user-1791883762445-rplmi",
+      "role": "user",
+      "type": null,
+      "len": 8000,
+      "hasMeta": false
+     },
+     {
+      "localId": "local-asst-1791883762445-j1qza",
+      "role": "assistant",
+      "type": null,
+      "len": 172,
+      "hasMeta": true
+     }
+    ]
+   }
+  },
+  {
+   "t": 40.2,
+   "len": 8399,
+   "url": "/chat?s=8f89f6f1-a7f6-483c-982b-f1f65bdc0e01",
+   "scrollTop": 2311,
+   "scrollHeight": 2924,
+   "clientHeight": 583,
+   "di_dasar": true,
+   "ada_area_chat": true,
+   "ada_sedang_memproses": false,
+   "ada_berpikir": false,
+   "ada_error_card": false,
+   "ada_coba_lagi": false,
+   "jumlah_bubble_anak": 2,
+   "anak": [
+    {
+     "tag": "div",
+     "testid": "",
+     "cls": "flex items-end gap-2 justify-end",
+     "n": 8000,
+     "ekor": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+     "html_len": 8202,
+     "ada_halo": false,
+     "ada_typing": false,
+     "anak_elemen": [
+      {
+       "cls": "max-w-[75%] rounded-2xl rounded-br-lg bg",
+       "n": 8000
+      }
+     ]
+    },
+    {
+     "tag": "div",
+     "testid": "",
+     "cls": "flex items-end gap-2 ",
+     "n": 398,
+     "ekor": "i-3.5-flash-lite\ndiminta: gemma-4-31b-it",
+     "html_len": 2062,
+     "ada_halo": true,
+     "ada_typing": false,
+     "anak_elemen": [
+      {
+       "cls": "flex h-7 w-7 shrink-0 items-center justi",
+       "n": 0
+      },
+      {
+       "cls": "max-w-[85%] rounded-2xl rounded-bl-lg bg",
+       "n": 398
+      }
+     ]
+    }
+   ],
+   "teks_ekor": "sebentar atau pilih model lain. · Beralih ke gemini-3.5-flash-lite\ndiminta: gemma-4-31b-it",
+   "cache": {
+    "chat/sessions/rus-final-bed2e66e@katalir-internal.dev": [
+     {
+      "localId": null,
+      "role": null,
+      "type": null,
+      "len": 0,
+      "hasMeta": false
+     },
+     {
+      "localId": null,
+      "role": null,
+      "type": null,
+      "len": 0,
+      "hasMeta": false
+     },
+     {
+      "localId": null,
+      "role": null,
+      "type": null,
+      "len": 0,
+      "hasMeta": false
+     },
+     {
+      "localId": null,
+      "role": null,
+      "type": null,
+      "len": 0,
+      "hasMeta": false
+     },
+     {
+      "localId": null,
+      "role": null,
+      "type": null,
+      "len": 0,
+      "hasMeta": false
+     },
+     {
+      "localId": null,
+      "role": null,
+      "type": null,
+      "len": 0,
+      "hasMeta": false
+     },
+     {
+      "localId": null,
+      "role": null,
+      "type": null,
+      "len": 0,
+      "hasMeta": false
+     },
+     {
+      "localId": null,
+      "role": null,
+      "type": null,
+      "len": 0,
+      "hasMeta": false
+     },
+     {
+      "localId": null,
+      "role": null,
+      "type": null,
+      "len": 0,
+      "hasMeta": false
+     },
+     {
+      "localId": null,
+      "role": null,
+      "type": null,
+      "len": 0,
+      "hasMeta": false
+     },
+     {
+      "localId": null,
+      "role": null,
+      "type": null,
+      "len": 0,
+      "hasMeta": false
+     },
+     {
+      "localId": null,
+      "role": null,
+      "type": null,
+      "len": 0,
+      "hasMeta": false
+     },
+     {
+      "localId": null,
+      "role": null,
+      "type": null,
+      "len": 0,
+      "hasMeta": false
+     },
+     {
+      "localId": null,
+      "role": null,
+      "type": null,
+      "len": 0,
+      "hasMeta": false
+     },
+     {
+      "localId": null,
+      "role": null,
+      "type": null,
+      "len": 0,
+      "hasMeta": false
+     },
+     {
+      "localId": null,
+      "role": null,
+      "type": null,
+      "len": 0,
+      "hasMeta": false
+     },
+     {
+      "localId": null,
+      "role": null,
+      "type": null,
+      "len": 0,
+      "hasMeta": false
+     }
+    ],
+    "chat/messages/__pending__": [],
+    "chat/messages/8f89f6f1-a7f6-483c-982b-f1f65bdc0e01": [
+     {
+      "localId": "local-user-1791883762445-rplmi",
+      "role": "user",
+      "type": null,
+      "len": 8000,
+      "hasMeta": false
+     },
+     {
+      "localId": "local-asst-1791883762445-j1qza",
+      "role": "assistant",
+      "type": null,
+      "len": 172,
+      "hasMeta": true
+     }
+    ]
+   }
+  },
+  {
+   "t": 42.2,
+   "len": 8399,
+   "url": "/chat?s=8f89f6f1-a7f6-483c-982b-f1f65bdc0e01",
+   "scrollTop": 2311,
+   "scrollHeight": 2924,
+   "clientHeight": 583,
+   "di_dasar": true,
+   "ada_area_chat": true,
+   "ada_sedang_memproses": false,
+   "ada_berpikir": false,
+   "ada_error_card": false,
+   "ada_coba_lagi": false,
+   "jumlah_bubble_anak": 2,
+   "anak": [
+    {
+     "tag": "div",
+     "testid": "",
+     "cls": "flex items-end gap-2 justify-end",
+     "n": 8000,
+     "ekor": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+     "html_len": 8202,
+     "ada_halo": false,
+     "ada_typing": false,
+     "anak_elemen": [
+      {
+       "cls": "max-w-[75%] rounded-2xl rounded-br-lg bg",
+       "n": 8000
+      }
+     ]
+    },
+    {
+     "tag": "div",
+     "testid": "",
+     "cls": "flex items-end gap-2 ",
+     "n": 398,
+     "ekor": "i-3.5-flash-lite\ndiminta: gemma-4-31b-it",
+     "html_len": 2062,
+     "ada_halo": true,
+     "ada_typing": false,
+     "anak_elemen": [
+      {
+       "cls": "flex h-7 w-7 shrink-0 items-center justi",
+       "n": 0
+      },
+      {
+       "cls": "max-w-[85%] rounded-2xl rounded-bl-lg bg",
+       "n": 398
+      }
+     ]
+    }
+   ],
+   "teks_ekor": "sebentar atau pilih model lain. · Beralih ke gemini-3.5-flash-lite\ndiminta: gemma-4-31b-it",
+   "cache": {
+    "chat/sessions/rus-final-bed2e66e@katalir-internal.dev": [
+     {
+      "localId": null,
+      "role": null,
+      "type": null,
+      "len": 0,
+      "hasMeta": false
+     },
+     {
+      "localId": null,
+      "role": null,
+      "type": null,
+      "len": 0,
+      "hasMeta": false
+     },
+     {
+      "localId": null,
+      "role": null,
+      "type": null,
+      "len": 0,
+      "hasMeta": false
+     },
+     {
+      "localId": null,
+      "role": null,
+      "type": null,
+      "len": 0,
+      "hasMeta": false
+     },
+     {
+      "localId": null,
+      "role": null,
+      "type": null,
+      "len": 0,
+      "hasMeta": false
+     },
+     {
+      "localId": null,
+      "role": null,
+      "type": null,
+      "len": 0,
+      "hasMeta": false
+     },
+     {
+      "localId": null,
+      "role": null,
+      "type": null,
+      "len": 0,
+      "hasMeta": false
+     },
+     {
+      "localId": null,
+      "role": null,
+      "type": null,
+      "len": 0,
+      "hasMeta": false
+     },
+     {
+      "localId": null,
+      "role": null,
+      "type": null,
+      "len": 0,
+      "hasMeta": false
+     },
+     {
+      "localId": null,
+      "role": null,
+      "type": null,
+      "len": 0,
+      "hasMeta": false
+     },
+     {
+      "localId": null,
+      "role": null,
+      "type": null,
+      "len": 0,
+      "hasMeta": false
+     },
+     {
+      "localId": null,
+      "role": null,
+      "type": null,
+      "len": 0,
+      "hasMeta": false
+     },
+     {
+      "localId": null,
+      "role": null,
+      "type": null,
+      "len": 0,
+      "hasMeta": false
+     },
+     {
+      "localId": null,
+      "role": null,
+      "type": null,
+      "len": 0,
+      "hasMeta": false
+     },
+     {
+      "localId": null,
+      "role": null,
+      "type": null,
+      "len": 0,
+      "hasMeta": false
+     },
+     {
+      "localId": null,
+      "role": null,
+      "type": null,
+      "len": 0,
+      "hasMeta": false
+     },
+     {
+      "localId": null,
+      "role": null,
+      "type": null,
+      "len": 0,
+      "hasMeta": false
+     }
+    ],
+    "chat/messages/__pending__": [],
+    "chat/messages/8f89f6f1-a7f6-483c-982b-f1f65bdc0e01": [
+     {
+      "localId": "local-user-1791883762445-rplmi",
+      "role": "user",
+      "type": null,
+      "len": 8000,
+      "hasMeta": false
+     },
+     {
+      "localId": "local-asst-1791883762445-j1qza",
+      "role": "assistant",
+      "type": null,
+      "len": 172,
+      "hasMeta": true
+     }
+    ]
+   }
+  },
+  {
+   "t": 44.2,
+   "len": 8399,
+   "url": "/chat?s=8f89f6f1-a7f6-483c-982b-f1f65bdc0e01",
+   "scrollTop": 2311,
+   "scrollHeight": 2924,
+   "clientHeight": 583,
+   "di_dasar": true,
+   "ada_area_chat": true,
+   "ada_sedang_memproses": false,
+   "ada_berpikir": false,
+   "ada_error_card": false,
+   "ada_coba_lagi": false,
+   "jumlah_bubble_anak": 2,
+   "anak": [
+    {
+     "tag": "div",
+     "testid": "",
+     "cls": "flex items-end gap-2 justify-end",
+     "n": 8000,
+     "ekor": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+     "html_len": 8202,
+     "ada_halo": false,
+     "ada_typing": false,
+     "anak_elemen": [
+      {
+       "cls": "max-w-[75%] rounded-2xl rounded-br-lg bg",
+       "n": 8000
+      }
+     ]
+    },
+    {
+     "tag": "div",
+     "testid": "",
+     "cls": "flex items-end gap-2 ",
+     "n": 398,
+     "ekor": "i-3.5-flash-lite\ndiminta: gemma-4-31b-it",
+     "html_len": 2062,
+     "ada_halo": true,
+     "ada_typing": false,
+     "anak_elemen": [
+      {
+       "cls": "flex h-7 w-7 shrink-0 items-center justi",
+       "n": 0
+      },
+      {
+       "cls": "max-w-[85%] rounded-2xl rounded-bl-lg bg",
+       "n": 398
+      }
+     ]
+    }
+   ],
+   "teks_ekor": "sebentar atau pilih model lain. · Beralih ke gemini-3.5-flash-lite\ndiminta: gemma-4-31b-it",
+   "cache": {
+    "chat/sessions/rus-final-bed2e66e@katalir-internal.dev": [
+     {
+      "localId": null,
+      "role": null,
+      "type": null,
+      "len": 0,
+      "hasMeta": false
+     },
+     {
+      "localId": null,
+      "role": null,
+      "type": null,
+      "len": 0,
+      "hasMeta": false
+     },
+     {
+      "localId": null,
+      "role": null,
+      "type": null,
+      "len": 0,
+      "hasMeta": false
+     },
+     {
+      "localId": null,
+      "role": null,
+      "type": null,
+      "len": 0,
+      "hasMeta": false
+     },
+     {
+      "localId": null,
+      "role": null,
+      "type": null,
+      "len": 0,
+      "hasMeta": false
+     },
+     {
+      "localId": null,
+      "role": null,
+      "type": null,
+      "len": 0,
+      "hasMeta": false
+     },
+     {
+      "localId": null,
+      "role": null,
+      "type": null,
+      "len": 0,
+      "hasMeta": false
+     },
+     {
+      "localId": null,
+      "role": null,
+      "type": null,
+      "len": 0,
+      "hasMeta": false
+     },
+     {
+      "localId": null,
+      "role": null,
+      "type": null,
+      "len": 0,
+      "hasMeta": false
+     },
+     {
+      "localId": null,
+      "role": null,
+      "type": null,
+      "len": 0,
+      "hasMeta": false
+     },
+     {
+      "localId": null,
+      "role": null,
+      "type": null,
+      "len": 0,
+      "hasMeta": false
+     },
+     {
+      "localId": null,
+      "role": null,
+      "type": null,
+      "len": 0,
+      "hasMeta": false
+     },
+     {
+      "localId": null,
+      "role": null,
+      "type": null,
+      "len": 0,
+      "hasMeta": false
+     },
+     {
+      "localId": null,
+      "role": null,
+      "type": null,
+      "len": 0,
+      "hasMeta": false
+     },
+     {
+      "localId": null,
+      "role": null,
+      "type": null,
+      "len": 0,
+      "hasMeta": false
+     },
+     {
+      "localId": null,
+      "role": null,
+      "type": null,
+      "len": 0,
+      "hasMeta": false
+     },
+     {
+      "localId": null,
+      "role": null,
+      "type": null,
+      "len": 0,
+      "hasMeta": false
+     }
+    ],
+    "chat/messages/__pending__": [],
+    "chat/messages/8f89f6f1-a7f6-483c-982b-f1f65bdc0e01": [
+     {
+      "localId": "local-user-1791883762445-rplmi",
+      "role": "user",
+      "type": null,
+      "len": 8000,
+      "hasMeta": false
+     },
+     {
+      "localId": "local-asst-1791883762445-j1qza",
+      "role": "assistant",
+      "type": null,
+      "len": 172,
+      "hasMeta": true
+     }
+    ]
+   }
+  },
+  {
+   "t": 46.3,
+   "len": 8399,
+   "url": "/chat?s=8f89f6f1-a7f6-483c-982b-f1f65bdc0e01",
+   "scrollTop": 2311,
+   "scrollHeight": 2924,
+   "clientHeight": 583,
+   "di_dasar": true,
+   "ada_area_chat": true,
+   "ada_sedang_memproses": false,
+   "ada_berpikir": false,
+   "ada_error_card": false,
+   "ada_coba_lagi": false,
+   "jumlah_bubble_anak": 2,
+   "anak": [
+    {
+     "tag": "div",
+     "testid": "",
+     "cls": "flex items-end gap-2 justify-end",
+     "n": 8000,
+     "ekor": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+     "html_len": 8202,
+     "ada_halo": false,
+     "ada_typing": false,
+     "anak_elemen": [
+      {
+       "cls": "max-w-[75%] rounded-2xl rounded-br-lg bg",
+       "n": 8000
+      }
+     ]
+    },
+    {
+     "tag": "div",
+     "testid": "",
+     "cls": "flex items-end gap-2 ",
+     "n": 398,
+     "ekor": "i-3.5-flash-lite\ndiminta: gemma-4-31b-it",
+     "html_len": 2062,
+     "ada_halo": true,
+     "ada_typing": false,
+     "anak_elemen": [
+      {
+       "cls": "flex h-7 w-7 shrink-0 items-center justi",
+       "n": 0
+      },
+      {
+       "cls": "max-w-[85%] rounded-2xl rounded-bl-lg bg",
+       "n": 398
+      }
+     ]
+    }
+   ],
+   "teks_ekor": "sebentar atau pilih model lain. · Beralih ke gemini-3.5-flash-lite\ndiminta: gemma-4-31b-it",
+   "cache": {
+    "chat/sessions/rus-final-bed2e66e@katalir-internal.dev": [
+     {
+      "localId": null,
+      "role": null,
+      "type": null,
+      "len": 0,
+      "hasMeta": false
+     },
+     {
+      "localId": null,
+      "role": null,
+      "type": null,
+      "len": 0,
+      "hasMeta": false
+     },
+     {
+      "localId": null,
+      "role": null,
+      "type": null,
+      "len": 0,
+      "hasMeta": false
+     },
+     {
+      "localId": null,
+      "role": null,
+      "type": null,
+      "len": 0,
+      "hasMeta": false
+     },
+     {
+      "localId": null,
+      "role": null,
+      "type": null,
+      "len": 0,
+      "hasMeta": false
+     },
+     {
+      "localId": null,
+      "role": null,
+      "type": null,
+      "len": 0,
+      "hasMeta": false
+     },
+     {
+      "localId": null,
+      "role": null,
+      "type": null,
+      "len": 0,
+      "hasMeta": false
+     },
+     {
+      "localId": null,
+      "role": null,
+      "type": null,
+      "len": 0,
+      "hasMeta": false
+     },
+     {
+      "localId": null,
+      "role": null,
+      "type": null,
+      "len": 0,
+      "hasMeta": false
+     },
+     {
+      "localId": null,
+      "role": null,
+      "type": null,
+      "len": 0,
+      "hasMeta": false
+     },
+     {
+      "localId": null,
+      "role": null,
+      "type": null,
+      "len": 0,
+      "hasMeta": false
+     },
+     {
+      "localId": null,
+      "role": null,
+      "type": null,
+      "len": 0,
+      "hasMeta": false
+     },
+     {
+      "localId": null,
+      "role": null,
+      "type": null,
+      "len": 0,
+      "hasMeta": false
+     },
+     {
+      "localId": null,
+      "role": null,
+      "type": null,
+      "len": 0,
+      "hasMeta": false
+     },
+     {
+      "localId": null,
+      "role": null,
+      "type": null,
+      "len": 0,
+      "hasMeta": false
+     },
+     {
+      "localId": null,
+      "role": null,
+      "type": null,
+      "len": 0,
+      "hasMeta": false
+     },
+     {
+      "localId": null,
+      "role": null,
+      "type": null,
+      "len": 0,
+      "hasMeta": false
+     }
+    ],
+    "chat/messages/__pending__": [],
+    "chat/messages/8f89f6f1-a7f6-483c-982b-f1f65bdc0e01": [
+     {
+      "localId": "local-user-1791883762445-rplmi",
+      "role": "user",
+      "type": null,
+      "len": 8000,
+      "hasMeta": false
+     },
+     {
+      "localId": "local-asst-1791883762445-j1qza",
+      "role": "assistant",
+      "type": null,
+      "len": 172,
+      "hasMeta": true
+     }
+    ]
+   }
+  },
+  {
+   "t": 48.3,
+   "len": 8399,
+   "url": "/chat?s=8f89f6f1-a7f6-483c-982b-f1f65bdc0e01",
+   "scrollTop": 2311,
+   "scrollHeight": 2924,
+   "clientHeight": 583,
+   "di_dasar": true,
+   "ada_area_chat": true,
+   "ada_sedang_memproses": false,
+   "ada_berpikir": false,
+   "ada_error_card": false,
+   "ada_coba_lagi": false,
+   "jumlah_bubble_anak": 2,
+   "anak": [
+    {
+     "tag": "div",
+     "testid": "",
+     "cls": "flex items-end gap-2 justify-end",
+     "n": 8000,
+     "ekor": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+     "html_len": 8202,
+     "ada_halo": false,
+     "ada_typing": false,
+     "anak_elemen": [
+      {
+       "cls": "max-w-[75%] rounded-2xl rounded-br-lg bg",
+       "n": 8000
+      }
+     ]
+    },
+    {
+     "tag": "div",
+     "testid": "",
+     "cls": "flex items-end gap-2 ",
+     "n": 398,
+     "ekor": "i-3.5-flash-lite\ndiminta: gemma-4-31b-it",
+     "html_len": 2062,
+     "ada_halo": true,
+     "ada_typing": false,
+     "anak_elemen": [
+      {
+       "cls": "flex h-7 w-7 shrink-0 items-center justi",
+       "n": 0
+      },
+      {
+       "cls": "max-w-[85%] rounded-2xl rounded-bl-lg bg",
+       "n": 398
+      }
+     ]
+    }
+   ],
+   "teks_ekor": "sebentar atau pilih model lain. · Beralih ke gemini-3.5-flash-lite\ndiminta: gemma-4-31b-it",
+   "cache": {
+    "chat/sessions/rus-final-bed2e66e@katalir-internal.dev": [
+     {
+      "localId": null,
+      "role": null,
+      "type": null,
+      "len": 0,
+      "hasMeta": false
+     },
+     {
+      "localId": null,
+      "role": null,
+      "type": null,
+      "len": 0,
+      "hasMeta": false
+     },
+     {
+      "localId": null,
+      "role": null,
+      "type": null,
+      "len": 0,
+      "hasMeta": false
+     },
+     {
+      "localId": null,
+      "role": null,
+      "type": null,
+      "len": 0,
+      "hasMeta": false
+     },
+     {
+      "localId": null,
+      "role": null,
+      "type": null,
+      "len": 0,
+      "hasMeta": false
+     },
+     {
+      "localId": null,
+      "role": null,
+      "type": null,
+      "len": 0,
+      "hasMeta": false
+     },
+     {
+      "localId": null,
+      "role": null,
+      "type": null,
+      "len": 0,
+      "hasMeta": false
+     },
+     {
+      "localId": null,
+      "role": null,
+      "type": null,
+      "len": 0,
+      "hasMeta": false
+     },
+     {
+      "localId": null,
+      "role": null,
+      "type": null,
+      "len": 0,
+      "hasMeta": false
+     },
+     {
+      "localId": null,
+      "role": null,
+      "type": null,
+      "len": 0,
+      "hasMeta": false
+     },
+     {
+      "localId": null,
+      "role": null,
+      "type": null,
+      "len": 0,
+      "hasMeta": false
+     },
+     {
+      "localId": null,
+      "role": null,
+      "type": null,
+      "len": 0,
+      "hasMeta": false
+     },
+     {
+      "localId": null,
+      "role": null,
+      "type": null,
+      "len": 0,
+      "hasMeta": false
+     },
+     {
+      "localId": null,
+      "role": null,
+      "type": null,
+      "len": 0,
+      "hasMeta": false
+     },
+     {
+      "localId": null,
+      "role": null,
+      "type": null,
+      "len": 0,
+      "hasMeta": false
+     },
+     {
+      "localId": null,
+      "role": null,
+      "type": null,
+      "len": 0,
+      "hasMeta": false
+     },
+     {
+      "localId": null,
+      "role": null,
+      "type": null,
+      "len": 0,
+      "hasMeta": false
+     }
+    ],
+    "chat/messages/__pending__": [],
+    "chat/messages/8f89f6f1-a7f6-483c-982b-f1f65bdc0e01": [
+     {
+      "localId": "local-user-1791883762445-rplmi",
+      "role": "user",
+      "type": null,
+      "len": 8000,
+      "hasMeta": false
+     },
+     {
+      "localId": "local-asst-1791883762445-j1qza",
+      "role": "assistant",
+      "type": null,
+      "len": 172,
+      "hasMeta": true
+     }
+    ]
+   }
+  },
+  {
+   "t": 51.7,
+   "len": 8399,
+   "url": "/chat?s=8f89f6f1-a7f6-483c-982b-f1f65bdc0e01",
+   "scrollTop": 2311,
+   "scrollHeight": 2924,
+   "clientHeight": 583,
+   "di_dasar": true,
+   "ada_area_chat": true,
+   "ada_sedang_memproses": false,
+   "ada_berpikir": false,
+   "ada_error_card": false,
+   "ada_coba_lagi": false,
+   "jumlah_bubble_anak": 2,
+   "anak": [
+    {
+     "tag": "div",
+     "testid": "",
+     "cls": "flex items-end gap-2 justify-end",
+     "n": 8000,
+     "ekor": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+     "html_len": 8202,
+     "ada_halo": false,
+     "ada_typing": false,
+     "anak_elemen": [
+      {
+       "cls": "max-w-[75%] rounded-2xl rounded-br-lg bg",
+       "n": 8000
+      }
+     ]
+    },
+    {
+     "tag": "div",
+     "testid": "",
+     "cls": "flex items-end gap-2 ",
+     "n": 398,
+     "ekor": "i-3.5-flash-lite\ndiminta: gemma-4-31b-it",
+     "html_len": 2062,
+     "ada_halo": true,
+     "ada_typing": false,
+     "anak_elemen": [
+      {
+       "cls": "flex h-7 w-7 shrink-0 items-center justi",
+       "n": 0
+      },
+      {
+       "cls": "max-w-[85%] rounded-2xl rounded-bl-lg bg",
+       "n": 398
+      }
+     ]
+    }
+   ],
+   "teks_ekor": "sebentar atau pilih model lain. · Beralih ke gemini-3.5-flash-lite\ndiminta: gemma-4-31b-it",
+   "cache": {
+    "chat/sessions/rus-final-bed2e66e@katalir-internal.dev": [
+     {
+      "localId": null,
+      "role": null,
+      "type": null,
+      "len": 0,
+      "hasMeta": false
+     },
+     {
+      "localId": null,
+      "role": null,
+      "type": null,
+      "len": 0,
+      "hasMeta": false
+     },
+     {
+      "localId": null,
+      "role": null,
+      "type": null,
+      "len": 0,
+      "hasMeta": false
+     },
+     {
+      "localId": null,
+      "role": null,
+      "type": null,
+      "len": 0,
+      "hasMeta": false
+     },
+     {
+      "localId": null,
+      "role": null,
+      "type": null,
+      "len": 0,
+      "hasMeta": false
+     },
+     {
+      "localId": null,
+      "role": null,
+      "type": null,
+      "len": 0,
+      "hasMeta": false
+     },
+     {
+      "localId": null,
+      "role": null,
+      "type": null,
+      "len": 0,
+      "hasMeta": false
+     },
+     {
+      "localId": null,
+      "role": null,
+      "type": null,
+      "len": 0,
+      "hasMeta": false
+     },
+     {
+      "localId": null,
+      "role": null,
+      "type": null,
+      "len": 0,
+      "hasMeta": false
+     },
+     {
+      "localId": null,
+      "role": null,
+      "type": null,
+      "len": 0,
+      "hasMeta": false
+     },
+     {
+      "localId": null,
+      "role": null,
+      "type": null,
+      "len": 0,
+      "hasMeta": false
+     },
+     {
+      "localId": null,
+      "role": null,
+      "type": null,
+      "len": 0,
+      "hasMeta": false
+     },
+     {
+      "localId": null,
+      "role": null,
+      "type": null,
+      "len": 0,
+      "hasMeta": false
+     },
+     {
+      "localId": null,
+      "role": null,
+      "type": null,
+      "len": 0,
+      "hasMeta": false
+     },
+     {
+      "localId": null,
+      "role": null,
+      "type": null,
+      "len": 0,
+      "hasMeta": false
+     },
+     {
+      "localId": null,
+      "role": null,
+      "type": null,
+      "len": 0,
+      "hasMeta": false
+     },
+     {
+      "localId": null,
+      "role": null,
+      "type": null,
+      "len": 0,
+      "hasMeta": false
+     }
+    ],
+    "chat/messages/__pending__": [],
+    "chat/messages/8f89f6f1-a7f6-483c-982b-f1f65bdc0e01": [
+     {
+      "localId": "local-user-1791883762445-rplmi",
+      "role": "user",
+      "type": null,
+      "len": 8000,
+      "hasMeta": false
+     },
+     {
+      "localId": "local-asst-1791883762445-j1qza",
+      "role": "assistant",
+      "type": null,
+      "len": 172,
+      "hasMeta": true
+     }
+    ]
+   }
+  },
+  {
+   "t": 53.8,
+   "len": 8399,
+   "url": "/chat?s=8f89f6f1-a7f6-483c-982b-f1f65bdc0e01",
+   "scrollTop": 2311,
+   "scrollHeight": 2924,
+   "clientHeight": 583,
+   "di_dasar": true,
+   "ada_area_chat": true,
+   "ada_sedang_memproses": false,
+   "ada_berpikir": false,
+   "ada_error_card": false,
+   "ada_coba_lagi": false,
+   "jumlah_bubble_anak": 2,
+   "anak": [
+    {
+     "tag": "div",
+     "testid": "",
+     "cls": "flex items-end gap-2 justify-end",
+     "n": 8000,
+     "ekor": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+     "html_len": 8202,
+     "ada_halo": false,
+     "ada_typing": false,
+     "anak_elemen": [
+      {
+       "cls": "max-w-[75%] rounded-2xl rounded-br-lg bg",
+       "n": 8000
+      }
+     ]
+    },
+    {
+     "tag": "div",
+     "testid": "",
+     "cls": "flex items-end gap-2 ",
+     "n": 398,
+     "ekor": "i-3.5-flash-lite\ndiminta: gemma-4-31b-it",
+     "html_len": 2062,
+     "ada_halo": true,
+     "ada_typing": false,
+     "anak_elemen": [
+      {
+       "cls": "flex h-7 w-7 shrink-0 items-center justi",
+       "n": 0
+      },
+      {
+       "cls": "max-w-[85%] rounded-2xl rounded-bl-lg bg",
+       "n": 398
+      }
+     ]
+    }
+   ],
+   "teks_ekor": "sebentar atau pilih model lain. · Beralih ke gemini-3.5-flash-lite\ndiminta: gemma-4-31b-it",
+   "cache": {
+    "chat/sessions/rus-final-bed2e66e@katalir-internal.dev": [
+     {
+      "localId": null,
+      "role": null,
+      "type": null,
+      "len": 0,
+      "hasMeta": false
+     },
+     {
+      "localId": null,
+      "role": null,
+      "type": null,
+      "len": 0,
+      "hasMeta": false
+     },
+     {
+      "localId": null,
+      "role": null,
+      "type": null,
+      "len": 0,
+      "hasMeta": false
+     },
+     {
+      "localId": null,
+      "role": null,
+      "type": null,
+      "len": 0,
+      "hasMeta": false
+     },
+     {
+      "localId": null,
+      "role": null,
+      "type": null,
+      "len": 0,
+      "hasMeta": false
+     },
+     {
+      "localId": null,
+      "role": null,
+      "type": null,
+      "len": 0,
+      "hasMeta": false
+     },
+     {
+      "localId": null,
+      "role": null,
+      "type": null,
+      "len": 0,
+      "hasMeta": false
+     },
+     {
+      "localId": null,
+      "role": null,
+      "type": null,
+      "len": 0,
+      "hasMeta": false
+     },
+     {
+      "localId": null,
+      "role": null,
+      "type": null,
+      "len": 0,
+      "hasMeta": false
+     },
+     {
+      "localId": null,
+      "role": null,
+      "type": null,
+      "len": 0,
+      "hasMeta": false
+     },
+     {
+      "localId": null,
+      "role": null,
+      "type": null,
+      "len": 0,
+      "hasMeta": false
+     },
+     {
+      "localId": null,
+      "role": null,
+      "type": null,
+      "len": 0,
+      "hasMeta": false
+     },
+     {
+      "localId": null,
+      "role": null,
+      "type": null,
+      "len": 0,
+      "hasMeta": false
+     },
+     {
+      "localId": null,
+      "role": null,
+      "type": null,
+      "len": 0,
+      "hasMeta": false
+     },
+     {
+      "localId": null,
+      "role": null,
+      "type": null,
+      "len": 0,
+      "hasMeta": false
+     },
+     {
+      "localId": null,
+      "role": null,
+      "type": null,
+      "len": 0,
+      "hasMeta": false
+     },
+     {
+      "localId": null,
+      "role": null,
+      "type": null,
+      "len": 0,
+      "hasMeta": false
+     }
+    ],
+    "chat/messages/__pending__": [],
+    "chat/messages/8f89f6f1-a7f6-483c-982b-f1f65bdc0e01": [
+     {
+      "localId": "local-user-1791883762445-rplmi",
+      "role": "user",
+      "type": null,
+      "len": 8000,
+      "hasMeta": false
+     },
+     {
+      "localId": "local-asst-1791883762445-j1qza",
+      "role": "assistant",
+      "type": null,
+      "len": 172,
+      "hasMeta": true
+     }
+    ]
+   }
+  },
+  {
+   "t": 55.8,
+   "len": 8399,
+   "url": "/chat?s=8f89f6f1-a7f6-483c-982b-f1f65bdc0e01",
+   "scrollTop": 2311,
+   "scrollHeight": 2924,
+   "clientHeight": 583,
+   "di_dasar": true,
+   "ada_area_chat": true,
+   "ada_sedang_memproses": false,
+   "ada_berpikir": false,
+   "ada_error_card": false,
+   "ada_coba_lagi": false,
+   "jumlah_bubble_anak": 2,
+   "anak": [
+    {
+     "tag": "div",
+     "testid": "",
+     "cls": "flex items-end gap-2 justify-end",
+     "n": 8000,
+     "ekor": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+     "html_len": 8202,
+     "ada_halo": false,
+     "ada_typing": false,
+     "anak_elemen": [
+      {
+       "cls": "max-w-[75%] rounded-2xl rounded-br-lg bg",
+       "n": 8000
+      }
+     ]
+    },
+    {
+     "tag": "div",
+     "testid": "",
+     "cls": "flex items-end gap-2 ",
+     "n": 398,
+     "ekor": "i-3.5-flash-lite\ndiminta: gemma-4-31b-it",
+     "html_len": 2062,
+     "ada_halo": true,
+     "ada_typing": false,
+     "anak_elemen": [
+      {
+       "cls": "flex h-7 w-7 shrink-0 items-center justi",
+       "n": 0
+      },
+      {
+       "cls": "max-w-[85%] rounded-2xl rounded-bl-lg bg",
+       "n": 398
+      }
+     ]
+    }
+   ],
+   "teks_ekor": "sebentar atau pilih model lain. · Beralih ke gemini-3.5-flash-lite\ndiminta: gemma-4-31b-it",
+   "cache": {
+    "chat/sessions/rus-final-bed2e66e@katalir-internal.dev": [
+     {
+      "localId": null,
+      "role": null,
+      "type": null,
+      "len": 0,
+      "hasMeta": false
+     },
+     {
+      "localId": null,
+      "role": null,
+      "type": null,
+      "len": 0,
+      "hasMeta": false
+     },
+     {
+      "localId": null,
+      "role": null,
+      "type": null,
+      "len": 0,
+      "hasMeta": false
+     },
+     {
+      "localId": null,
+      "role": null,
+      "type": null,
+      "len": 0,
+      "hasMeta": false
+     },
+     {
+      "localId": null,
+      "role": null,
+      "type": null,
+      "len": 0,
+      "hasMeta": false
+     },
+     {
+      "localId": null,
+      "role": null,
+      "type": null,
+      "len": 0,
+      "hasMeta": false
+     },
+     {
+      "localId": null,
+      "role": null,
+      "type": null,
+      "len": 0,
+      "hasMeta": false
+     },
+     {
+      "localId": null,
+      "role": null,
+      "type": null,
+      "len": 0,
+      "hasMeta": false
+     },
+     {
+      "localId": null,
+      "role": null,
+      "type": null,
+      "len": 0,
+      "hasMeta": false
+     },
+     {
+      "localId": null,
+      "role": null,
+      "type": null,
+      "len": 0,
+      "hasMeta": false
+     },
+     {
+      "localId": null,
+      "role": null,
+      "type": null,
+      "len": 0,
+      "hasMeta": false
+     },
+     {
+      "localId": null,
+      "role": null,
+      "type": null,
+      "len": 0,
+      "hasMeta": false
+     },
+     {
+      "localId": null,
+      "role": null,
+      "type": null,
+      "len": 0,
+      "hasMeta": false
+     },
+     {
+      "localId": null,
+      "role": null,
+      "type": null,
+      "len": 0,
+      "hasMeta": false
+     },
+     {
+      "localId": null,
+      "role": null,
+      "type": null,
+      "len": 0,
+      "hasMeta": false
+     },
+     {
+      "localId": null,
+      "role": null,
+      "type": null,
+      "len": 0,
+      "hasMeta": false
+     },
+     {
+      "localId": null,
+      "role": null,
+      "type": null,
+      "len": 0,
+      "hasMeta": false
+     }
+    ],
+    "chat/messages/__pending__": [],
+    "chat/messages/8f89f6f1-a7f6-483c-982b-f1f65bdc0e01": [
+     {
+      "localId": "local-user-1791883762445-rplmi",
+      "role": "user",
+      "type": null,
+      "len": 8000,
+      "hasMeta": false
+     },
+     {
+      "localId": "local-asst-1791883762445-j1qza",
+      "role": "assistant",
+      "type": null,
+      "len": 172,
+      "hasMeta": true
+     }
+    ]
+   }
+  },
+  {
+   "t": 57.9,
+   "len": 8399,
+   "url": "/chat?s=8f89f6f1-a7f6-483c-982b-f1f65bdc0e01",
+   "scrollTop": 2311,
+   "scrollHeight": 2924,
+   "clientHeight": 583,
+   "di_dasar": true,
+   "ada_area_chat": true,
+   "ada_sedang_memproses": false,
+   "ada_berpikir": false,
+   "ada_error_card": false,
+   "ada_coba_lagi": false,
+   "jumlah_bubble_anak": 2,
+   "anak": [
+    {
+     "tag": "div",
+     "testid": "",
+     "cls": "flex items-end gap-2 justify-end",
+     "n": 8000,
+     "ekor": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+     "html_len": 8202,
+     "ada_halo": false,
+     "ada_typing": false,
+     "anak_elemen": [
+      {
+       "cls": "max-w-[75%] rounded-2xl rounded-br-lg bg",
+       "n": 8000
+      }
+     ]
+    },
+    {
+     "tag": "div",
+     "testid": "",
+     "cls": "flex items-end gap-2 ",
+     "n": 398,
+     "ekor": "i-3.5-flash-lite\ndiminta: gemma-4-31b-it",
+     "html_len": 2062,
+     "ada_halo": true,
+     "ada_typing": false,
+     "anak_elemen": [
+      {
+       "cls": "flex h-7 w-7 shrink-0 items-center justi",
+       "n": 0
+      },
+      {
+       "cls": "max-w-[85%] rounded-2xl rounded-bl-lg bg",
+       "n": 398
+      }
+     ]
+    }
+   ],
+   "teks_ekor": "sebentar atau pilih model lain. · Beralih ke gemini-3.5-flash-lite\ndiminta: gemma-4-31b-it",
+   "cache": {
+    "chat/sessions/rus-final-bed2e66e@katalir-internal.dev": [
+     {
+      "localId": null,
+      "role": null,
+      "type": null,
+      "len": 0,
+      "hasMeta": false
+     },
+     {
+      "localId": null,
+      "role": null,
+      "type": null,
+      "len": 0,
+      "hasMeta": false
+     },
+     {
+      "localId": null,
+      "role": null,
+      "type": null,
+      "len": 0,
+      "hasMeta": false
+     },
+     {
+      "localId": null,
+      "role": null,
+      "type": null,
+      "len": 0,
+      "hasMeta": false
+     },
+     {
+      "localId": null,
+      "role": null,
+      "type": null,
+      "len": 0,
+      "hasMeta": false
+     },
+     {
+      "localId": null,
+      "role": null,
+      "type": null,
+      "len": 0,
+      "hasMeta": false
+     },
+     {
+      "localId": null,
+      "role": null,
+      "type": null,
+      "len": 0,
+      "hasMeta": false
+     },
+     {
+      "localId": null,
+      "role": null,
+      "type": null,
+      "len": 0,
+      "hasMeta": false
+     },
+     {
+      "localId": null,
+      "role": null,
+      "type": null,
+      "len": 0,
+      "hasMeta": false
+     },
+     {
+      "localId": null,
+      "role": null,
+      "type": null,
+      "len": 0,
+      "hasMeta": false
+     },
+     {
+      "localId": null,
+      "role": null,
+      "type": null,
+      "len": 0,
+      "hasMeta": false
+     },
+     {
+      "localId": null,
+      "role": null,
+      "type": null,
+      "len": 0,
+      "hasMeta": false
+     },
+     {
+      "localId": null,
+      "role": null,
+      "type": null,
+      "len": 0,
+      "hasMeta": false
+     },
+     {
+      "localId": null,
+      "role": null,
+      "type": null,
+      "len": 0,
+      "hasMeta": false
+     },
+     {
+      "localId": null,
+      "role": null,
+      "type": null,
+      "len": 0,
+      "hasMeta": false
+     },
+     {
+      "localId": null,
+      "role": null,
+      "type": null,
+      "len": 0,
+      "hasMeta": false
+     },
+     {
+      "localId": null,
+      "role": null,
+      "type": null,
+      "len": 0,
+      "hasMeta": false
+     }
+    ],
+    "chat/messages/__pending__": [],
+    "chat/messages/8f89f6f1-a7f6-483c-982b-f1f65bdc0e01": [
+     {
+      "localId": "local-user-1791883762445-rplmi",
+      "role": "user",
+      "type": null,
+      "len": 8000,
+      "hasMeta": false
+     },
+     {
+      "localId": "local-asst-1791883762445-j1qza",
+      "role": "assistant",
+      "type": null,
+      "len": 172,
+      "hasMeta": true
+     }
+    ]
+   }
+  },
+  {
+   "t": 59.9,
+   "len": 8399,
+   "url": "/chat?s=8f89f6f1-a7f6-483c-982b-f1f65bdc0e01",
+   "scrollTop": 2311,
+   "scrollHeight": 2924,
+   "clientHeight": 583,
+   "di_dasar": true,
+   "ada_area_chat": true,
+   "ada_sedang_memproses": false,
+   "ada_berpikir": false,
+   "ada_error_card": false,
+   "ada_coba_lagi": false,
+   "jumlah_bubble_anak": 2,
+   "anak": [
+    {
+     "tag": "div",
+     "testid": "",
+     "cls": "flex items-end gap-2 justify-end",
+     "n": 8000,
+     "ekor": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+     "html_len": 8202,
+     "ada_halo": false,
+     "ada_typing": false,
+     "anak_elemen": [
+      {
+       "cls": "max-w-[75%] rounded-2xl rounded-br-lg bg",
+       "n": 8000
+      }
+     ]
+    },
+    {
+     "tag": "div",
+     "testid": "",
+     "cls": "flex items-end gap-2 ",
+     "n": 398,
+     "ekor": "i-3.5-flash-lite\ndiminta: gemma-4-31b-it",
+     "html_len": 2062,
+     "ada_halo": true,
+     "ada_typing": false,
+     "anak_elemen": [
+      {
+       "cls": "flex h-7 w-7 shrink-0 items-center justi",
+       "n": 0
+      },
+      {
+       "cls": "max-w-[85%] rounded-2xl rounded-bl-lg bg",
+       "n": 398
+      }
+     ]
+    }
+   ],
+   "teks_ekor": "sebentar atau pilih model lain. · Beralih ke gemini-3.5-flash-lite\ndiminta: gemma-4-31b-it",
+   "cache": {
+    "chat/sessions/rus-final-bed2e66e@katalir-internal.dev": [
+     {
+      "localId": null,
+      "role": null,
+      "type": null,
+      "len": 0,
+      "hasMeta": false
+     },
+     {
+      "localId": null,
+      "role": null,
+      "type": null,
+      "len": 0,
+      "hasMeta": false
+     },
+     {
+      "localId": null,
+      "role": null,
+      "type": null,
+      "len": 0,
+      "hasMeta": false
+     },
+     {
+      "localId": null,
+      "role": null,
+      "type": null,
+      "len": 0,
+      "hasMeta": false
+     },
+     {
+      "localId": null,
+      "role": null,
+      "type": null,
+      "len": 0,
+      "hasMeta": false
+     },
+     {
+      "localId": null,
+      "role": null,
+      "type": null,
+      "len": 0,
+      "hasMeta": false
+     },
+     {
+      "localId": null,
+      "role": null,
+      "type": null,
+      "len": 0,
+      "hasMeta": false
+     },
+     {
+      "localId": null,
+      "role": null,
+      "type": null,
+      "len": 0,
+      "hasMeta": false
+     },
+     {
+      "localId": null,
+      "role": null,
+      "type": null,
+      "len": 0,
+      "hasMeta": false
+     },
+     {
+      "localId": null,
+      "role": null,
+      "type": null,
+      "len": 0,
+      "hasMeta": false
+     },
+     {
+      "localId": null,
+      "role": null,
+      "type": null,
+      "len": 0,
+      "hasMeta": false
+     },
+     {
+      "localId": null,
+      "role": null,
+      "type": null,
+      "len": 0,
+      "hasMeta": false
+     },
+     {
+      "localId": null,
+      "role": null,
+      "type": null,
+      "len": 0,
+      "hasMeta": false
+     },
+     {
+      "localId": null,
+      "role": null,
+      "type": null,
+      "len": 0,
+      "hasMeta": false
+     },
+     {
+      "localId": null,
+      "role": null,
+      "type": null,
+      "len": 0,
+      "hasMeta": false
+     },
+     {
+      "localId": null,
+      "role": null,
+      "type": null,
+      "len": 0,
+      "hasMeta": false
+     },
+     {
+      "localId": null,
+      "role": null,
+      "type": null,
+      "len": 0,
+      "hasMeta": false
+     }
+    ],
+    "chat/messages/__pending__": [],
+    "chat/messages/8f89f6f1-a7f6-483c-982b-f1f65bdc0e01": [
+     {
+      "localId": "local-user-1791883762445-rplmi",
+      "role": "user",
+      "type": null,
+      "len": 8000,
+      "hasMeta": false
+     },
+     {
+      "localId": "local-asst-1791883762445-j1qza",
+      "role": "assistant",
+      "type": null,
+      "len": 172,
+      "hasMeta": true
+     }
+    ]
+   }
+  },
+  {
+   "t": 61.9,
+   "len": 8399,
+   "url": "/chat?s=8f89f6f1-a7f6-483c-982b-f1f65bdc0e01",
+   "scrollTop": 2311,
+   "scrollHeight": 2924,
+   "clientHeight": 583,
+   "di_dasar": true,
+   "ada_area_chat": true,
+   "ada_sedang_memproses": false,
+   "ada_berpikir": false,
+   "ada_error_card": false,
+   "ada_coba_lagi": false,
+   "jumlah_bubble_anak": 2,
+   "anak": [
+    {
+     "tag": "div",
+     "testid": "",
+     "cls": "flex items-end gap-2 justify-end",
+     "n": 8000,
+     "ekor": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+     "html_len": 8202,
+     "ada_halo": false,
+     "ada_typing": false,
+     "anak_elemen": [
+      {
+       "cls": "max-w-[75%] rounded-2xl rounded-br-lg bg",
+       "n": 8000
+      }
+     ]
+    },
+    {
+     "tag": "div",
+     "testid": "",
+     "cls": "flex items-end gap-2 ",
+     "n": 398,
+     "ekor": "i-3.5-flash-lite\ndiminta: gemma-4-31b-it",
+     "html_len": 2062,
+     "ada_halo": true,
+     "ada_typing": false,
+     "anak_elemen": [
+      {
+       "cls": "flex h-7 w-7 shrink-0 items-center justi",
+       "n": 0
+      },
+      {
+       "cls": "max-w-[85%] rounded-2xl rounded-bl-lg bg",
+       "n": 398
+      }
+     ]
+    }
+   ],
+   "teks_ekor": "sebentar atau pilih model lain. · Beralih ke gemini-3.5-flash-lite\ndiminta: gemma-4-31b-it",
+   "cache": {
+    "chat/sessions/rus-final-bed2e66e@katalir-internal.dev": [
+     {
+      "localId": null,
+      "role": null,
+      "type": null,
+      "len": 0,
+      "hasMeta": false
+     },
+     {
+      "localId": null,
+      "role": null,
+      "type": null,
+      "len": 0,
+      "hasMeta": false
+     },
+     {
+      "localId": null,
+      "role": null,
+      "type": null,
+      "len": 0,
+      "hasMeta": false
+     },
+     {
+      "localId": null,
+      "role": null,
+      "type": null,
+      "len": 0,
+      "hasMeta": false
+     },
+     {
+      "localId": null,
+      "role": null,
+      "type": null,
+      "len": 0,
+      "hasMeta": false
+     },
+     {
+      "localId": null,
+      "role": null,
+      "type": null,
+      "len": 0,
+      "hasMeta": false
+     },
+     {
+      "localId": null,
+      "role": null,
+      "type": null,
+      "len": 0,
+      "hasMeta": false
+     },
+     {
+      "localId": null,
+      "role": null,
+      "type": null,
+      "len": 0,
+      "hasMeta": false
+     },
+     {
+      "localId": null,
+      "role": null,
+      "type": null,
+      "len": 0,
+      "hasMeta": false
+     },
+     {
+      "localId": null,
+      "role": null,
+      "type": null,
+      "len": 0,
+      "hasMeta": false
+     },
+     {
+      "localId": null,
+      "role": null,
+      "type": null,
+      "len": 0,
+      "hasMeta": false
+     },
+     {
+      "localId": null,
+      "role": null,
+      "type": null,
+      "len": 0,
+      "hasMeta": false
+     },
+     {
+      "localId": null,
+      "role": null,
+      "type": null,
+      "len": 0,
+      "hasMeta": false
+     },
+     {
+      "localId": null,
+      "role": null,
+      "type": null,
+      "len": 0,
+      "hasMeta": false
+     },
+     {
+      "localId": null,
+      "role": null,
+      "type": null,
+      "len": 0,
+      "hasMeta": false
+     },
+     {
+      "localId": null,
+      "role": null,
+      "type": null,
+      "len": 0,
+      "hasMeta": false
+     },
+     {
+      "localId": null,
+      "role": null,
+      "type": null,
+      "len": 0,
+      "hasMeta": false
+     }
+    ],
+    "chat/messages/8f89f6f1-a7f6-483c-982b-f1f65bdc0e01": [
+     {
+      "localId": "local-user-1791883762445-rplmi",
+      "role": "user",
+      "type": null,
+      "len": 8000,
+      "hasMeta": false
+     },
+     {
+      "localId": "local-asst-1791883762445-j1qza",
+      "role": "assistant",
+      "type": null,
+      "len": 172,
+      "hasMeta": true
+     }
+    ]
+   }
+  }
+ ],
+ "panjang_efektif": 8000,
+ "body_chat": "{\"status\":\"success\",\"reply\":\"Halo! Ada yang bisa saya bantu? Jika Anda ingin membuat workflow otomatisasi, mengirim pesan, membaca email, atau mengelola Google Sheets, beri tahu saya kebutuhan Anda ya!\",\"session_id\":\"8f89f6f1-a7f6-483c-982b-f1f65bdc0e01\",\"meta\":{\"model\":\"gemini-3.5-flash-lite\",\"requested_model\":\"gemma-4-31b-it\",\"latency_ms\":2412,\"prompt_tokens\":5498,\"completion_tokens\":35,\"total_tokens\":5533,\"fallback\":true,\"fallback_reason\":\"model_unavailable\",\"workflow\":null,\"quota\":{\"tier\":\"free\",\"buckets\":{\"gemma\":{\"used\":18,\"limit\":100,\"remaining\":82},\"flash\":{\"used\":0,\"limit\":0,\"remaining\":0},\"pro\":{\"used\":0,\"limit\":0,\"remaining\":0}},\"used_total\":18,\"limit_total\":100,\"reset_at_wib\":\"2026-10-14T00:00:00+07:00\",\"reset_at_utc\":\"2026-10-13T17:00:00+00:00\"},\"quota_bucket\":\"gemma\"}}",
+ "body_chat_status": 200,
+ "body_chat_parsed": {
+  "status": "success",
+  "reply_len": 172,
+  "reply_head": "Halo! Ada yang bisa saya bantu? Jika Anda ingin membuat workflow otomatisasi, mengirim pesan, membaca email, atau mengel",
+  "session_id": "8f89f6f1-a7f6-483c-982b-f1f65bdc0e01",
+  "has_credential_prompt": false,
+  "meta_keys": [
+   "completion_tokens",
+   "fallback",
+   "fallback_reason",
+   "latency_ms",
+   "model",
+   "prompt_tokens",
+   "quota",
+   "quota_bucket",
+   "requested_model",
+   "total_tokens",
+   "workflow"
+  ],
+  "top_keys": [
+   "meta",
+   "reply",
+   "session_id",
+   "status"
+  ]
+ },
+ "gulir_sebelum": {
+  "ada_wadah_gulir": true,
+  "scrollTop": 2311,
+  "scrollHeight": 2924,
+  "clientHeight": 583,
+  "di_dasar": true,
+  "content_visibility_msglist": "visible"
+ },
+ "uji_rerender": {
+  "sebelum": 8399,
+  "sesudah": 8399,
+  "gulir_sebelum": {
+   "ada_wadah_gulir": true,
+   "scrollTop": 2311,
+   "scrollHeight": 2924,
+   "clientHeight": 583,
+   "di_dasar": true,
+   "content_visibility_msglist": "visible"
+  },
+  "panjang_setelah_digulir": 8399,
+  "balasan_muncul_setelah_digulir": false
+ },
+ "console": [
+  {
+   "t": 37.82,
+   "kind": "CONSOLE",
+   "type": "warning",
+   "text": "The resource http://127.0.0.1:4321/_next/static/css/016f4921546f76af.css was preloaded using link preload but not used within a few seconds from the window's load event. Please make sure it has an appropriate `as` value and it is preloaded intentionally."
+  },
+  {
+   "t": 9.42,
+   "kind": "CONSOLE",
+   "type": "warning",
+   "text": "The resource http://127.0.0.1:4321/_next/static/css/016f4921546f76af.css was preloaded using link preload but not used within a few seconds from the window's load event. Please make sure it has an appropriate `as` value and it is preloaded intentionally."
+  },
+  {
+   "t": 15.9,
+   "kind": "CONSOLE",
+   "type": "warning",
+   "text": "The resource http://127.0.0.1:4321/_next/static/css/016f4921546f76af.css was preloaded using link preload but not used within a few seconds from the window's load event. Please make sure it has an appropriate `as` value and it is preloaded intentionally."
+  },
+  {
+   "t": 54.71,
+   "kind": "CONSOLE",
+   "type": "warning",
+   "text": "The resource http://127.0.0.1:4321/_next/static/css/016f4921546f76af.css was preloaded using link preload but not used within a few seconds from the window's load event. Please make sure it has an appropriate `as` value and it is preloaded intentionally."
+  }
+ ],
+ "jaringan": [
+  {
+   "t": 0.19,
+   "kind": "REQ",
+   "m": "POST",
+   "u": "https://gateway.katalir.de5.net/katalir-api/chat"
+  },
+  {
+   "t": 9.48,
+   "kind": "REQ_FINISHED",
+   "u": "https://gateway.katalir.de5.net/katalir-api/chat"
+  }
+ ],
+ "ringkas": {
+  "jumlah_POST": 1,
+  "jumlah_respons": 1,
+  "jumlah_requestfinished": 1,
+  "jumlah_requestfailed": 0,
+  "panjang_dom_akhir": 8399,
+  "error_card_pernah_muncul": false
+ }
+}

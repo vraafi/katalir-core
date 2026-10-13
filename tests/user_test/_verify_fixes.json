@@ -1,0 +1,59 @@
+{
+ "frontend": "https://katalir.de5.net",
+ "lokal": false,
+ "checks": {
+  "bug01": {
+   "nama": "BUG-01 prompt 8000 char dibalas",
+   "panjang_efektif": 8000,
+   "t_balasan": 8.7,
+   "panjang_area_chat": 8404,
+   "kartu_error": false,
+   "cuplikan_balasan": "\nHalo! Ada yang bisa saya bantu? Jika Anda ingin membuat workflow otomatisasi, mengirim pesan, membaca email, atau mengelola Google Sheets, silakan beri tahu saya kebutuhan Anda.\ngemini-3.5-flash-lite · 0.9s · 5498→36 tok\nModel yang Anda pilih tidak tersedia\nModel ini sedang tidak bisa dipakai. Sila",
+   "posisi_gulir": {
+    "scrollTop": 2311,
+    "scrollHeight": 2924,
+    "clientHeight": 583,
+    "di_dasar": true
+   },
+   "state": "GREEN"
+  },
+  "bug02": {
+   "nama": "BUG-02 refresh saat generasi memulihkan percakapan",
+   "percobaan": [
+    {
+     "attempt": 1,
+     "url_bersih_sebelum_kirim": true,
+     "terikat_dalam_250ms": false,
+     "url": "https://katalir.de5.net/chat",
+     "penanda_ada": true,
+     "hasil": "GREEN"
+    }
+   ],
+   "url_sebelum_refresh": "https://katalir.de5.net/chat",
+   "ada_sesi_di_url_sebelum": false,
+   "penanda_ls_sebelum": "{\"id\":\"6b026c64-6b85-4279-92ab-893f616a9f05\",\"at\":1791889582528}",
+   "url_setelah_refresh": "https://katalir.de5.net/chat?s=5032feaf-d3d3-4cfa-ab86-51241fa64dc6",
+   "ada_sesi_di_url_setelah": true,
+   "penanda_terlihat": true,
+   "panjang_area_chat": 54,
+   "penanda_ls_setelah": null,
+   "console_pemulihan": [
+    "[warning] The resource https://katalir.de5.net/_next/static/css/016f4921546f76af.css was preloaded using link preload but not used within a few seconds from the window's load event. Please make sure it has an a",
+    "[info] [katalir] sesi giliran terputus dipulihkan 5032feaf-d3d3-4cfa-ab86-51241fa64dc6"
+   ],
+   "state": "GREEN"
+  },
+  "bug06": {
+   "nama": "BUG-06 pesan galat pendaftaran bisa ditindaklanjuti",
+   "pesan_dilihat_user": "Pendaftaran lewat email sedang dibatasi (kuota kirim email harian tercapai). Coba lagi nanti, atau langsung masuk dengan Google/GitHub.",
+   "masih_bahasa_inggris_mentah": false,
+   "menyebut_jalan_keluar": true,
+   "state": "GREEN"
+  }
+ },
+ "ringkas": {
+  "bug01": "GREEN",
+  "bug02": "GREEN",
+  "bug06": "GREEN"
+ }
+}
