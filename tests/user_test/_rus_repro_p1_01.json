@@ -1,0 +1,60 @@
+{
+ "marker": "REPRO-P101-460323",
+ "steps": [
+  {
+   "step": "sidebar_sebelum",
+   "n": 2
+  },
+  {
+   "step": "terkirim",
+   "marker": "REPRO-P101-460323"
+  },
+  {
+   "step": "setelah_refresh",
+   "url": "https://katalir.de5.net/chat",
+   "panjang_area_chat": 0,
+   "marker_di_chat": false,
+   "marker_di_sidebar": true,
+   "sidebar_n": 60,
+   "judul_teratas": [
+    "Chat Baru",
+    "REPRO-P101-460323 buat workflo...",
+    "buat workflow notifikasi haria..."
+   ]
+  },
+  {
+   "step": "setelah_buka_item",
+   "panjang_area_chat": 0,
+   "marker_di_chat": false
+  }
+ ],
+ "verdict": "B: pesan tersimpan di server (terlihat di sidebar), tetapi area percakapan tetap kosong setelah refresh maupun setelah membuka sesinya",
+ "elapsed_to_refresh_s": 17.85,
+ "url_sebelum_refresh": "https://katalir.de5.net/chat",
+ "marker_di_area_chat_setelah_reload": false,
+ "marker_di_sidebar_setelah_reload": true,
+ "marker_muncul_setelah_buka_sesi": false,
+ "console_errors": [],
+ "failed_requests": [
+  {
+   "url": "https://katalir.de5.net/cdn-cgi/rum?",
+   "failure": "net::ERR_ABORTED"
+  },
+  {
+   "url": "https://katalir.de5.net/cdn-cgi/rum?",
+   "failure": "net::ERR_ABORTED"
+  },
+  {
+   "url": "https://gateway.katalir.de5.net/katalir-api/quota",
+   "failure": "net::ERR_ABORTED"
+  },
+  {
+   "url": "https://katalir.de5.net/cdn-cgi/rum?",
+   "failure": "net::ERR_ABORTED"
+  },
+  {
+   "url": "https://gateway.katalir.de5.net/katalir-api/chat",
+   "failure": "net::ERR_ABORTED"
+  }
+ ]
+}

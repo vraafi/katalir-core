@@ -1,0 +1,170 @@
+{
+ "results": {
+  "id_non_uuid": [
+   {
+    "kind": "target",
+    "method": "GET",
+    "path": "/workflows/not-a-uuid",
+    "http": 500,
+    "leaks_internal_error": true,
+    "body": "{\"detail\":\"Gagal memuat workflow: {'message': 'invalid input syntax for type uuid: \\\"not-a-uuid\\\"', 'code': '22P02', 'hint': None, 'details': None}\"}"
+   },
+   {
+    "kind": "target",
+    "method": "PATCH",
+    "path": "/workflows/not-a-uuid",
+    "http": 500,
+    "leaks_internal_error": true,
+    "body": "{\"detail\":\"Gagal mengubah workflow: {'message': 'invalid input syntax for type uuid: \\\"not-a-uuid\\\"', 'code': '22P02', 'hint': None, 'details': None}\"}"
+   },
+   {
+    "kind": "target",
+    "method": "DELETE",
+    "path": "/workflows/not-a-uuid",
+    "http": 500,
+    "leaks_internal_error": true,
+    "body": "{\"detail\":\"Gagal menghapus workflow: {'message': 'invalid input syntax for type uuid: \\\"not-a-uuid\\\"', 'code': '22P02', 'hint': None, 'details': None}\"}"
+   },
+   {
+    "kind": "target",
+    "method": "GET",
+    "path": "/workflows/1",
+    "http": 500,
+    "leaks_internal_error": true,
+    "body": "{\"detail\":\"Gagal memuat workflow: {'message': 'invalid input syntax for type uuid: \\\"1\\\"', 'code': '22P02', 'hint': None, 'details': None}\"}"
+   },
+   {
+    "kind": "target",
+    "method": "GET",
+    "path": "/workflows/%20",
+    "http": 500,
+    "leaks_internal_error": true,
+    "body": "{\"detail\":\"Gagal memuat workflow: {'message': 'invalid input syntax for type uuid: \\\" \\\"', 'code': '22P02', 'hint': None, 'details': None}\"}"
+   },
+   {
+    "kind": "target",
+    "method": "GET",
+    "path": "/workflows/not-a-uuid/schedule",
+    "http": 404,
+    "leaks_internal_error": false,
+    "body": "{\"detail\":\"Workflow tidak ditemukan.\"}"
+   },
+   {
+    "kind": "target",
+    "method": "GET",
+    "path": "/workflows/not-a-uuid/redaction",
+    "http": 404,
+    "leaks_internal_error": false,
+    "body": "{\"detail\":\"Workflow tidak ditemukan.\"}"
+   },
+   {
+    "kind": "target",
+    "method": "GET",
+    "path": "/agents/not-a-uuid",
+    "http": 404,
+    "leaks_internal_error": false,
+    "body": "{\"detail\":\"agent tidak ditemukan\"}"
+   },
+   {
+    "kind": "target",
+    "method": "GET",
+    "path": "/executions/not-a-uuid",
+    "http": 200,
+    "leaks_internal_error": false,
+    "body": "{\"status\":\"success\",\"execution\":null,\"logs\":[],\"report\":\"Workflow selesai dengan status 'unknown', tetapi belum ada langkah yang tercatat.\"}"
+   },
+   {
+    "kind": "target",
+    "method": "GET",
+    "path": "/messages/not-a-uuid",
+    "http": 200,
+    "leaks_internal_error": false,
+    "body": "{\"status\":\"success\",\"messages\":[]}"
+   },
+   {
+    "kind": "target",
+    "method": "GET",
+    "path": "/hitl/not-a-uuid",
+    "http": 404,
+    "leaks_internal_error": false,
+    "body": "{\"detail\":\"Permintaan tidak ditemukan.\"}"
+   },
+   {
+    "kind": "target",
+    "method": "GET",
+    "path": "/evaluations/runs/not-a-uuid",
+    "http": 404,
+    "leaks_internal_error": false,
+    "body": "{\"detail\":\"Run tidak ditemukan.\"}"
+   },
+   {
+    "kind": "kontrol",
+    "method": "GET",
+    "path": "/templates/not-a-uuid",
+    "http": 404,
+    "leaks_internal_error": false,
+    "body": "{\"detail\":\"Template tidak ditemukan.\"}"
+   },
+   {
+    "kind": "kontrol",
+    "method": "GET",
+    "path": "/evidence/not-a-uuid/verify",
+    "http": 200,
+    "leaks_internal_error": false,
+    "body": "{\"found\":false,\"entry_id\":\"not-a-uuid\",\"valid\":false,\"reason\":\"entri tidak ditemukan\"}"
+   },
+   {
+    "kind": "kontrol",
+    "method": "GET",
+    "path": "/workflows/80c0b50d-7b93-448f-b720-c9839f5bdd3b",
+    "http": 404,
+    "leaks_internal_error": false,
+    "body": "{\"detail\":\"Workflow tidak ditemukan.\"}"
+   }
+  ],
+  "batas_prompt": [
+   {
+    "n": 8000,
+    "http": 200,
+    "menyebut_batas": false,
+    "body": "{\"status\":\"success\",\"reply\":\"Sepertinya pesan yang Anda kirimkan berisi karakter \\\"k\\\" yang diulang-ulang. \\n\\nApakah ada yang bisa saya bantu terkait pembuatan workflow otomatisasi, manajemen spreadsheet, pengiriman pesan Telegram/Slack, atau integrasi API lainnya? Silakan beri tahu saya kebutuhan Anda dengan jelas!\",\"session_id\":\"6285e5bd-b225-46f7-bd51-5ee8ab6d9bd2\",\"meta\":{\"model\":\"gemini-3.5-"
+   },
+   {
+    "n": 8001,
+    "http": 422,
+    "menyebut_batas": true,
+    "body": "{\"detail\":[{\"type\":\"value_error\",\"loc\":[\"body\",\"prompt\"],\"msg\":\"Value error, Pesan terlalu panjang: 8,001 karakter. Batas 8,000 karakter per pesan. Kurangi sekitar 1 karakter, atau pecah menjadi beberapa pesan.\",\"input\":\"kkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkk"
+   }
+  ],
+  "null_byte": [
+   {
+    "http": 503,
+    "leaks_internal_error": true,
+    "body": "{\"detail\":\"Supabase error saat chat_sessions.insert [22P05]: {'message': 'unsupported Unicode escape sequence', 'code': '22P05', 'hint': None, 'details': '\\\\\\\\u0000 cannot be converted to text.'}.\"}"
+   }
+  ],
+  "summary_A": {
+   "target_total": 12,
+   "target_5xx": 5,
+   "target_leaks": 5,
+   "kontrol_total": 3,
+   "kontrol_5xx": 0,
+   "target_5xx_paths": [
+    "GET /workflows/not-a-uuid",
+    "PATCH /workflows/not-a-uuid",
+    "DELETE /workflows/not-a-uuid",
+    "GET /workflows/1",
+    "GET /workflows/%20"
+   ]
+  }
+ },
+ "verdict": {
+  "A_id_non_uuid_5xx": 5,
+  "A_id_non_uuid_bocor": 5,
+  "A_kontrol_5xx": 0,
+  "B_8000_ok": true,
+  "B_8001_422_berpesan": true,
+  "C_null_byte_4xx": false,
+  "C_null_byte_bocor": true
+ }
+}

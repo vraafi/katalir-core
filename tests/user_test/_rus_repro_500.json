@@ -1,0 +1,55 @@
+{
+ "results": [
+  {
+   "method": "GET",
+   "path": "/workflows/not-a-uuid",
+   "http": 500,
+   "leaks_internal_error": true,
+   "body": "{\"detail\":\"Gagal memuat workflow: {'message': 'invalid input syntax for type uuid: \\\"not-a-uuid\\\"', 'code': '22P02', 'hint': None, 'details': None}\"}"
+  },
+  {
+   "method": "PATCH",
+   "path": "/workflows/not-a-uuid",
+   "http": 500,
+   "leaks_internal_error": true,
+   "body": "{\"detail\":\"Gagal mengubah workflow: {'message': 'invalid input syntax for type uuid: \\\"not-a-uuid\\\"', 'code': '22P02', 'hint': None, 'details': None}\"}"
+  },
+  {
+   "method": "DELETE",
+   "path": "/workflows/not-a-uuid",
+   "http": 500,
+   "leaks_internal_error": true,
+   "body": "{\"detail\":\"Gagal menghapus workflow: {'message': 'invalid input syntax for type uuid: \\\"not-a-uuid\\\"', 'code': '22P02', 'hint': None, 'details': None}\"}"
+  },
+  {
+   "method": "GET",
+   "path": "/workflows/1",
+   "http": 500,
+   "leaks_internal_error": true,
+   "body": "{\"detail\":\"Gagal memuat workflow: {'message': 'invalid input syntax for type uuid: \\\"1\\\"', 'code': '22P02', 'hint': None, 'details': None}\"}"
+  },
+  {
+   "method": "GET",
+   "path": "/workflows/%20",
+   "http": 500,
+   "leaks_internal_error": true,
+   "body": "{\"detail\":\"Gagal memuat workflow: {'message': 'invalid input syntax for type uuid: \\\" \\\"', 'code': '22P02', 'hint': None, 'details': None}\"}"
+  },
+  {
+   "method": "GET",
+   "path": "/templates/not-a-uuid",
+   "http": 404,
+   "leaks_internal_error": false,
+   "body": "{\"detail\":\"Template tidak ditemukan.\"}"
+  },
+  {
+   "method": "GET",
+   "path": "/evidence/not-a-uuid/verify",
+   "http": 200,
+   "leaks_internal_error": false,
+   "body": "{\"found\":false,\"entry_id\":\"not-a-uuid\",\"valid\":false,\"reason\":\"entri tidak ditemukan\"}"
+  }
+ ],
+ "count_5xx": 5,
+ "count_leaks": 5
+}
