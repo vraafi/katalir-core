@@ -45,3 +45,4 @@ _e2e_storage*.json
 _e2e_token*.tmp
 _e2e_token*.json
 _e2e_session.refreshed.json
+_pw_*.config.ts

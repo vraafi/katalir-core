@@ -52,6 +52,7 @@ export const en = {
     githubButtonLabel: "Continue with GitHub",
     googleButtonLabel: "Continue with Google",
     emailSubmitLabel: "Sign in with email and password",
+    emailComingSoon: "Sign-up via email is coming soon. For now, please continue with Google or GitHub.",
   },
   chat: {
     placeholder: 'Message Katalir, or "Build a workflow: ..."',

@@ -1,0 +1,1 @@
+https://accounts.google.com/o/oauth2/v2/auth?client_id=77379505459-4stq5s6vnmkmi0ae55s16rufrlr4ptbg.apps.googleusercontent.com&redirect_to=http%3A%2F%2Flocalhost%3A3000%2Fchat&redirect_uri=https%3A%2F%2Fqmukkphwaajzbqjrcvaz.supabase.co%2Fauth%2Fv1%2Fcallback&response_type=code&scope=email+profile&state=1fc34ca7-ae0d-461e-a49a-ed9d06260630

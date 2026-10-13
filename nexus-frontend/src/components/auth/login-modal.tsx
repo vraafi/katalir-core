@@ -23,6 +23,16 @@ import { useI18n } from "@/i18n/context";
  * Indonesian by default, so hardcoded English here would be a visible
  * regression on the primary market.
  */
+/**
+ * EMAIL SIGNUP DISEMBUNYIKAN SEMENTARA (13 Okt 2026, BUG-06 lanjutan):
+ * Supabase free tier hanya mengizinkan 2 email/jam dari pengirim bawaan, jadi
+ * signup email kerap 429 dan merusak first impression saat launch. OAuth
+ * (Google/GitHub) tidak terdampak dan tetap jalan. Form email, divider "atau",
+ * dan toggle daftar/masuk disembunyikan via flag di bawah — kembalikan ke
+ * `false` begitu Supabase di-upgrade (custom SMTP / Pro tier).
+ */
+const EMAIL_AUTH_HIDDEN = true;
+
 export function LoginModal({
   open,
   onOpenChange,
@@ -162,13 +172,22 @@ export function LoginModal({
           {t("auth.withGoogle")}
         </Button>
 
-        <div className="relative my-1 flex items-center">
-          <span className="h-px w-full bg-border" aria-hidden />
-          <span className="bg-surface px-2 text-footnote text-fg-subtle">{t("auth.or")}</span>
-          <span className="h-px w-full bg-border" aria-hidden />
-        </div>
+        {EMAIL_AUTH_HIDDEN ? (
+          <p
+            className="text-center text-footnote text-fg-muted"
+            data-testid="login-email-hidden"
+          >
+            {t("auth.emailComingSoon")}
+          </p>
+        ) : (
+          <>
+            <div className="relative my-1 flex items-center">
+              <span className="h-px w-full bg-border" aria-hidden />
+              <span className="bg-surface px-2 text-footnote text-fg-subtle">{t("auth.or")}</span>
+              <span className="h-px w-full bg-border" aria-hidden />
+            </div>
 
-        <form onSubmit={handleEmail} className="grid gap-3" data-testid="login-email-form">
+            <form onSubmit={handleEmail} className="grid gap-3" data-testid="login-email-form">
           <Input
             label={t("auth.email")}
             type="email"
@@ -230,6 +249,8 @@ export function LoginModal({
             {mode === "signin" ? t("auth.signUp") : t("auth.signIn")}
           </button>
         </p>
+          </>
+        )}
       </div>
     </Dialog>
   );

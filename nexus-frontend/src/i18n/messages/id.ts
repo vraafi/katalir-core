@@ -57,6 +57,8 @@ export const id = {
     githubButtonLabel: "Lanjut dengan GitHub",
     googleButtonLabel: "Lanjut dengan Google",
     emailSubmitLabel: "Masuk dengan email dan kata sandi",
+    /* 13 Okt 2026: email auth disembunyikan sementara (BUG-06, Supabase free tier 2 email/jam). */
+    emailComingSoon: "Pendaftaran lewat email segera hadir. Sementara silakan lanjut dengan Google atau GitHub.",
   },
   chat: {
     placeholder: 'Ketik pesan ke Katalir, atau "Buat workflow: ..."',
