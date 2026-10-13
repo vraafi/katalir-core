@@ -154,13 +154,20 @@ def _map_api_error(exc, context):
     """Convert postgrest APIError -> HTTPException dengan status yang sesuai.
 
     Fase 2b: RLS denial -> 503 (backend misconfigured), FK violation -> 409,
-    lainnya -> 503. Pesan asli (dipotong 300 char, tanpa secret — hanya pesan
-    PostgREST) ikut di detail supaya root cause TERBACA di respons E2E tanpa
-    perlu buka dashboard Railway.
+    lainnya -> 503.
+
+    BUG-03/BUG-04 (2026-10-13): SEBELUMNYA pesan asli PostgREST (dipotong 300
+    char) ikut dikirim ke klien sebagai `detail`. Itu membocorkan nama tabel,
+    SQLSTATE, dan struktur internal ('message'/'hint'/'details') ke user akhir
+    — mis. "Supabase error saat chat_sessions.insert [22P05]: {...}". Sesuai
+    docs/real-user-hard-test-2026-10-13.md §BUG-03/§BUG-04, klien kini menerima
+    pesan generik + `ref` korelasi; detail LENGKAP tetap dicetak ke log server
+    (tidak ada kehilangan kemampuan diagnosis).
     """
     msg = str(exc)
     code = getattr(exc, "code", "") or ""
-    print(f"[{context}] Supabase APIError code={code} msg={msg[:500]}")
+    ref = _uuid.uuid4().hex[:12]
+    print(f"[{context}] Supabase APIError ref={ref} code={code} msg={msg[:500]}")
     low = (msg + " " + str(code)).lower()
     if "row-level security" in low or "rls" in low.split() or "42501" in low:
         raise HTTPException(503, f"Backend misconfigured (RLS memblokir {context}).")
@@ -168,8 +175,11 @@ def _map_api_error(exc, context):
         raise HTTPException(409, f"FK constraint gagal saat {context}.")
     if "duplicate" in low or "unique" in low or "23505" in low:
         raise HTTPException(409, f"Duplikat saat {context}.")
-    detail = (msg[:300] or type(exc).__name__).replace("\n", " ")
-    raise HTTPException(503, f"Supabase error saat {context} [{code or '?'}]: {detail}.")
+    # BUG-04: pesan generik — TANPA potongan pesan PostgREST.
+    raise HTTPException(
+        503,
+        f"Layanan penyimpanan sedang bermasalah. Silakan coba lagi. (ref: {ref})",
+    )
 
 
 # ---------------------------------------------------------------------------

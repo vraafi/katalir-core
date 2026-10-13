@@ -1,0 +1,215 @@
+{
+ "group": "p3",
+ "email": "rus-final-a7afb47c@katalir-internal.dev",
+ "count": 5,
+ "results": [
+  {
+   "id": "P3-01",
+   "persona": "P3-Andi",
+   "title": "Tiga tab dibuka bersamaan",
+   "precondition": "Login di satu konteks",
+   "action": "Buka /chat, /builder, /templates di 3 tab",
+   "expected": "Ketiga tab termuat normal",
+   "actual": "panjang_teks={'tab1_chat': 643, 'tab2_builder': 989, 'tab3_templates': 1641}; builder=3.57s templates=3.56s; err_tab2=0 err_tab3=0",
+   "state": "PASS",
+   "severity": "medium",
+   "seconds": null,
+   "screenshots": [
+    "C:\\Users\\user\\Proyek_AI\\docs\\evidence\\real-user-2026-10-13\\p3-01-tab1-chat.png",
+    "C:\\Users\\user\\Proyek_AI\\docs\\evidence\\real-user-2026-10-13\\p3-01-tab2-builder.png",
+    "C:\\Users\\user\\Proyek_AI\\docs\\evidence\\real-user-2026-10-13\\p3-01-tab3-templates.png"
+   ],
+   "console_errors": [],
+   "failed_requests": [],
+   "extra": {
+    "tabs": {
+     "tab1_chat": 643,
+     "tab2_builder": 989,
+     "tab3_templates": 1641
+    }
+   },
+   "evidence_note": null
+  },
+  {
+   "id": "P3-02",
+   "persona": "P3-Andi",
+   "title": "Chat di tab 1, pindah tab 2, kembali",
+   "precondition": "Chat punya riwayat",
+   "action": "Kirim pesan, pindah ke tab /builder, kembali ke tab chat",
+   "expected": "Riwayat tab 1 tetap utuh (pesan user + balasan)",
+   "actual": "status=error; panjang 127->127; selisih=0; isi_masih_relevan=True",
+   "state": "PASS",
+   "severity": "medium",
+   "seconds": null,
+   "screenshots": [
+    "C:\\Users\\user\\Proyek_AI\\docs\\evidence\\real-user-2026-10-13\\p3-02-kembali-ke-tab1.png"
+   ],
+   "console_errors": [
+    {
+     "type": "error",
+     "text": "Failed to load resource: the server responded with a status of 503 (Service Unavailable)"
+    },
+    {
+     "type": "error",
+     "text": "Failed to load resource: the server responded with a status of 503 (Service Unavailable)"
+    },
+    {
+     "type": "error",
+     "text": "Failed to load resource: the server responded with a status of 503 (Service Unavailable)"
+    }
+   ],
+   "failed_requests": [],
+   "extra": {
+    "before_tail": "kirim ringkasan singkat: apa itu workflow?\nGagal mengirim\n\nSemua kunci model ini sedang cooldown (kuota). Coba lagi.\n\nCoba Lagi",
+    "after_tail": "kirim ringkasan singkat: apa itu workflow?\nGagal mengirim\n\nSemua kunci model ini sedang cooldown (kuota). Coba lagi.\n\nCoba Lagi"
+   },
+   "evidence_note": null
+  },
+  {
+   "id": "P3-03",
+   "persona": "P3-Andi",
+   "title": "Dua tab mengirim pesan ke sesi yang sama",
+   "precondition": "Sesi yang sama dibuka di 2 tab",
+   "action": "Kirim 'pesan dari tab A' dan 'pesan dari tab B' hampir bersamaan",
+   "expected": "Kedua pesan tercatat; tidak ada yang hilang",
+   "actual": "tabA_memuat_A=True; tabB_memuat_B=True; tabA_memuat_B=False",
+   "state": "PASS",
+   "severity": "high",
+   "seconds": null,
+   "screenshots": [
+    "C:\\Users\\user\\Proyek_AI\\docs\\evidence\\real-user-2026-10-13\\p3-03-tabA.png",
+    "C:\\Users\\user\\Proyek_AI\\docs\\evidence\\real-user-2026-10-13\\p3-03-tabB.png"
+   ],
+   "console_errors": [
+    {
+     "type": "error",
+     "text": "Failed to load resource: the server responded with a status of 503 (Service Unavailable)"
+    },
+    {
+     "type": "error",
+     "text": "Failed to load resource: the server responded with a status of 503 (Service Unavailable)"
+    },
+    {
+     "type": "error",
+     "text": "Failed to load resource: the server responded with a status of 503 (Service Unavailable)"
+    }
+   ],
+   "failed_requests": [],
+   "extra": {
+    "tabA_tail": "pesan dari tab A\nGagal mengirim\n\nSemua kunci model ini sedang cooldown (kuota). Coba lagi.\n\nCoba Lagi",
+    "tabB_tail": "kirim ringkasan singkat: apa itu workflow?\npesan dari tab B\nGagal mengirim\n\nSemua kunci model ini sedang cooldown (kuota). Coba lagi.\n\nCoba Lagi"
+   },
+   "evidence_note": null
+  },
+  {
+   "id": "P3-04",
+   "persona": "P3-Andi",
+   "title": "Sesi baru muncul di tab lain?",
+   "precondition": "Dua tab /chat",
+   "action": "Buat percakapan di tab 1, lihat sidebar tab 2",
+   "expected": "Sidebar tab 2 menyegarkan diri (minimal setelah reload)",
+   "actual": "item_sidebar 16->17",
+   "state": "PASS",
+   "severity": "low",
+   "seconds": null,
+   "screenshots": [
+    "C:\\Users\\user\\Proyek_AI\\docs\\evidence\\real-user-2026-10-13\\p3-04-sidebar-tabB.png"
+   ],
+   "console_errors": [
+    {
+     "type": "error",
+     "text": "Failed to load resource: the server responded with a status of 503 (Service Unavailable)"
+    },
+    {
+     "type": "error",
+     "text": "Failed to load resource: the server responded with a status of 503 (Service Unavailable)"
+    },
+    {
+     "type": "error",
+     "text": "Failed to load resource: the server responded with a status of 503 (Service Unavailable)"
+    }
+   ],
+   "failed_requests": [],
+   "extra": {
+    "before": {
+     "n": 16,
+     "titles": [
+      "Chat Baru",
+      "pesan dari tab A",
+      "kirim ringkasan singkat: apa i...",
+      "😀",
+      "aku mau jualan online",
+      "buat workflow notifikasi haria...",
+      "Tulis daftar 30 ide otomasi",
+      "Buat workflow panjang: webhook...",
+      "halo, tolong sebutkan satu kat...",
+      "penanda tahan refresh setelah...",
+      "buat workflow inventory sederh...",
+      "Reply with exactly: OK",
+      "Reply with exactly: OK",
+      "Reply with exactly: OK",
+      "Berapa hasil dari 111 +",
+      "R\nrus-final-a7afb47c@katalir-internal.dev"
+     ]
+    },
+    "after": {
+     "n": 17,
+     "titles": [
+      "Chat Baru",
+      "percakapan baru untuk uji sink...",
+      "pesan dari tab A",
+      "kirim ringkasan singkat: apa i...",
+      "😀",
+      "aku mau jualan online",
+      "buat workflow notifikasi haria...",
+      "Tulis daftar 30 ide otomasi",
+      "Buat workflow panjang: webhook...",
+      "halo, tolong sebutkan satu kat...",
+      "penanda tahan refresh setelah...",
+      "buat workflow inventory sederh...",
+      "Reply with exactly: OK",
+      "Reply with exactly: OK",
+      "Reply with exactly: OK",
+      "Berapa hasil dari 111 +",
+      "R\nrus-final-a7afb47c@katalir-internal.dev"
+     ]
+    }
+   },
+   "evidence_note": null
+  },
+  {
+   "id": "P3-05",
+   "persona": "P3-Andi",
+   "title": "Idle 90 detik lalu lanjut mengobrol",
+   "precondition": "Tab dibiarkan menganggur 90 s",
+   "action": "Kirim pesan setelah idle",
+   "expected": "Sesi masih valid; tidak dipaksa login ulang",
+   "actual": "status=error; t_balasan=12.62s; ada_perintah_login=False",
+   "state": "FAIL",
+   "severity": "medium",
+   "seconds": 21.71,
+   "screenshots": [
+    "C:\\Users\\user\\Proyek_AI\\docs\\evidence\\real-user-2026-10-13\\p3-05-setelah-idle-90s.png"
+   ],
+   "console_errors": [
+    {
+     "type": "error",
+     "text": "Failed to load resource: the server responded with a status of 503 (Service Unavailable)"
+    },
+    {
+     "type": "error",
+     "text": "Failed to load resource: the server responded with a status of 503 (Service Unavailable)"
+    },
+    {
+     "type": "error",
+     "text": "Failed to load resource: the server responded with a status of 503 (Service Unavailable)"
+    }
+   ],
+   "failed_requests": [],
+   "extra": {
+    "reply_tail": "masih aktif?\nGagal mengirim\n\nSemua kunci model ini sedang cooldown (kuota). Coba lagi.\n\nCoba Lagi"
+   },
+   "evidence_note": null
+  }
+ ]
+}

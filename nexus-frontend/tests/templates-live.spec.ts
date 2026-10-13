@@ -93,7 +93,10 @@ test.describe("/templates PRODUKSI (backend nyata)", () => {
     expect(n, "template bawaan dari backend produksi tidak termuat").toBeGreaterThanOrEqual(10);
 
     // Isi harus benar-benar dari backend: nama template bawaan yang dikenal.
-    const names = await cards.locator("h3").allInnerTexts();
+    // Locator memakai testid, bukan tag `h3`: BUG-10 menaikkan level heading
+    // kartu h3 → h2 (agar urutan h1 → h2 tidak melompat), sehingga tes yang
+    // mengikat ke tag akan patah tanpa alasan produk.
+    const names = await cards.locator('[data-testid="template-name"]').allInnerTexts();
     console.log(`PROD_LIVE nama: ${JSON.stringify(names.slice(0, 5))}`);
     expect(names.join(" | ")).toContain("RSS → Slack");
 

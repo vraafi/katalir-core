@@ -15,13 +15,36 @@ export interface ChatModel {
 }
 
 export const CHAT_MODELS_FALLBACK: ChatModel[] = [
-  { id: "gemma-4-31b-it", name: "Gemma 4 31B", provider: "Google (Gemini)", tier: "free" },
+  { id: "google/gemma-4-31b-it", name: "Gemma 4 31B", provider: "Google (Gemini)", tier: "free" },
 ];
 
 /** Alias lama — jangan dipakai untuk allowlist, hanya fallback loading. */
 export const CHAT_MODELS: ChatModel[] = CHAT_MODELS_FALLBACK;
 
-export const DEFAULT_MODEL_ID = "gemma-4-31b-it";
+// BUG-05 FIX (2026-10-13): id HARUS sama persis dengan katalog server.
+// Sebelumnya `"gemma-4-31b-it"` (tanpa awalan penyedia) — katalog gateway
+// memakai `"google/gemma-4-31b-it"` (terverifikasi via model_discovery:
+// 13 model, salah satunya `google/gemma-4-31b-it`). Id lama tak pernah
+// teresolusi sehingga backend menandai fallback=True di SETIAP pesan dan
+// user melihat spanduk "Model yang Anda pilih tidak tersedia".
+// Acuan: docs/real-user-hard-test-2026-10-13.md §BUG-05.
+export const DEFAULT_MODEL_ID = "google/gemma-4-31b-it";
+
+/**
+ * BUG-05 (2026-10-13): id lama tanpa awalan penyedia pernah tersimpan di
+ * localStorage pengguna. Tanpa normalisasi, nilai basi itu di-restore apa
+ * adanya dan mengembalikan bug yang sama (fallback tiap pesan). Petakan
+ * alias lama -> id katalog yang benar saat membaca storage.
+ */
+const LEGACY_MODEL_ALIASES: Record<string, string> = {
+  "gemma-4-31b-it": "google/gemma-4-31b-it",
+};
+
+export function normalizeModelId(id: string | null | undefined): string {
+  if (!id) return DEFAULT_MODEL_ID;
+  const trimmed = id.trim();
+  return LEGACY_MODEL_ALIASES[trimmed] ?? trimmed;
+}
 
 // ---------------------------------------------------------------------------
 // MODEL BISNIS (launch 2026-09-18)

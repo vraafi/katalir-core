@@ -43,14 +43,26 @@ const CATEGORY_LABEL: Record<string, string> = {
   integration: "Integrasi",
 };
 
-/** Warna chip per kategori — dipakai konsisten di kartu & preview. */
+/**
+ * Warna chip per kategori — dipakai konsisten di kartu & preview.
+ *
+ * KONTRAS AA (BUG-10): kombinasi lama `text-<c>-600` di atas `bg-<c>-500/15`
+ * GAGAL ambang 4.5:1 untuk teks 11–12px. Diukur axe-core pada latar terang
+ * yang sesungguhnya (chip composited di atas surface):
+ *   blue 4.34 · pink 3.82 · emerald 3.28 · amber 2.83 · cyan 3.20 (violet 4.58 lolos).
+ * Dinaikkan ke shade **800** di mode terang → semua ≥6.3:1 dengan margin aman
+ * (blue 7.34 · pink 6.57 · emerald 6.69 · amber 6.31 · cyan 6.33 · violet 7.22).
+ * `amber-700` sengaja TIDAK dipakai: hanya 4.47:1, masih di bawah ambang.
+ * Mode gelap tetap `-400` (terukur 5.3–7.7:1 di atas chip gelap) supaya chip
+ * tidak tenggelam di tema gelap.
+ */
 const CATEGORY_STYLE: Record<string, string> = {
-  notification: "bg-blue-500/15 text-blue-600 dark:text-blue-400",
-  marketing: "bg-pink-500/15 text-pink-600 dark:text-pink-400",
-  data: "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400",
-  ops: "bg-amber-500/15 text-amber-600 dark:text-amber-400",
-  ai: "bg-violet-500/15 text-violet-600 dark:text-violet-400",
-  integration: "bg-cyan-500/15 text-cyan-600 dark:text-cyan-400",
+  notification: "bg-blue-500/15 text-blue-800 dark:text-blue-400",
+  marketing: "bg-pink-500/15 text-pink-800 dark:text-pink-400",
+  data: "bg-emerald-500/15 text-emerald-800 dark:text-emerald-400",
+  ops: "bg-amber-500/15 text-amber-800 dark:text-amber-400",
+  ai: "bg-violet-500/15 text-violet-800 dark:text-violet-400",
+  integration: "bg-cyan-500/15 text-cyan-800 dark:text-cyan-400",
 };
 
 export function categoryLabel(cat: string): string {
@@ -100,9 +112,19 @@ export function TemplateCard({
           <Icon className="h-5 w-5" strokeWidth={1.75} aria-hidden="true" />
         </div>
         <div className="min-w-0 flex-1">
-          <h3 className="truncate text-subhead font-semibold text-fg" title={template.name}>
+          {/*
+            BUG-10 (heading-order): judul kartu dulu `<h3>`, sehingga urutan
+            heading halaman melompat h1 → h3 (axe: "Heading levels should only
+            increase by one"). Halaman /templates hanya punya satu h1 ("Template")
+            dari `SimplePage`, jadi level berikutnya yang benar adalah h2.
+          */}
+          <h2
+            className="truncate text-subhead font-semibold text-fg"
+            title={template.name}
+            data-testid="template-name"
+          >
             {template.name}
-          </h3>
+          </h2>
           <div className="mt-1 flex flex-wrap items-center gap-1.5">
             <span
               className={cn(

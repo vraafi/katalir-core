@@ -14,6 +14,21 @@ export function canceledError(message = "Dibatalkan"): Error {
   return e;
 }
 
+/**
+ * BUG-03 (2026-10-13): buang byte NUL + karakter kontrol sebelum mengirim.
+ *
+ * Lapis pertama dari pertahanan berlapis (backend juga membersihkan di
+ * `api_server.sanitize_text`). `\u0000` membuat Postgres menolak kolom `text`
+ * (SQLSTATE 22P05) sehingga pesan user gagal tersimpan. Membersihkan di sini
+ * berarti teks yang tampil di composer SAMA dengan yang dikirim — user tidak
+ * melihat pesan yang "diam-diam berubah" di server.
+ */
+export function sanitizePrompt(text: string): string {
+  if (!text) return text;
+  // Buang NUL, lalu karakter kontrol C0 selain \n dan \t.
+  return text.replace(/\u0000/g, "").replace(/[\u0001-\u0008\u000B\u000C\u000E-\u001F\u007F]/g, "");
+}
+
 export interface SessionItem {
   id: string;
   title?: string;
@@ -494,7 +509,7 @@ export function useSendChatMutation() {
       // client_request_id: UUID per kiriman logis -> backend idempoten, mencegah
       // pesan user DUPLIKAT kalau request ini retry-setelah-server-commit.
       const body = JSON.stringify({
-        prompt,
+        prompt: sanitizePrompt(prompt),
         session_id: sessionId ?? undefined,
         client_request_id: clientRequestId ?? undefined,
         model: model ?? undefined, // Vercel AI SDK 5 body:{model} — dikirim apa adanya, difallback di backend.

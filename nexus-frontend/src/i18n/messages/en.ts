@@ -321,6 +321,18 @@ export const en = {
     completed: "Completed",
     errors: "Errors",
   },
+  // FASE 7 — payments are temporarily closed. Used by the badge, the notice on
+  // /billing, and the banner on /chat. Do not remove while PAYMENT_ENABLED=false.
+  payment: {
+    comingSoon: "Coming soon",
+    badge: "Plus — coming soon",
+    bannerTitle: "Payments are not open yet",
+    bannerBody:
+      "The Plus plan ($299 / year) will be available after launch. Until then, everything that is available is free to use.",
+    billingNotice:
+      "Payments are not open yet. The Plus plan will be purchasable after launch — there is nothing you need to do right now.",
+    upsellHidden: "The Plus plan is coming soon. We will email you when it opens.",
+  },
   help: {
     title: "Help",
     subtitle: "Answers to frequently asked questions",

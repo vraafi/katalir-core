@@ -6,6 +6,7 @@ import * as DropdownMenu from "@radix-ui/react-dropdown-menu";
 import { providerGroups, type ChatModel } from "@/lib/models";
 import { useI18n } from "@/i18n/context";
 import { cn } from "@/lib/cn";
+import { PAYMENT_ENABLED } from "@/lib/payment";
 
 interface ModelSelectorProps {
   models: ChatModel[];
@@ -21,20 +22,24 @@ interface ModelSelectorProps {
 }
 
 /**
- * Link checkout Dodo Payments (Plus: $299 / TAHUN — produk "Katalir",
- * pdt_0NnsVLn7IzpG8Sokr3pZh).
+ * Link checkout — dari sakelar pembayaran TERPUSAT (FASE 7).
  *
- * Diambil dari `NEXT_PUBLIC_DODO_CHECKOUT_URL`. Next meng-INLINE nilai
- * `NEXT_PUBLIC_*` saat build, jadi mengubah URL = build ulang (bukan runtime).
+ * `CHECKOUT_URL` bernilai "" selama `NEXT_PUBLIC_PAYMENT_ENABLED` bukan "true"
+ * (default: mati). Karena `BuyPlusButton` hanya menampilkan tautan bila URL-nya
+ * ada, mematikan pembayaran otomatis mengganti CTA dengan lencana "segera
+ * hadir" — tidak perlu ada cabang tambahan yang bisa terlupa.
  */
-const CHECKOUT_URL = (process.env.NEXT_PUBLIC_DODO_CHECKOUT_URL || "").trim();
+const CHECKOUT_URL = PAYMENT_ENABLED
+  ? (process.env.NEXT_PUBLIC_DODO_CHECKOUT_URL || "").trim()
+  : "";
 
 /**
  * Tombol upgrade ke Plus. Dua keadaan, keduanya jujur:
  *  - URL tersedia  -> tautan keluar ke checkout Dodo (tab baru, noopener).
- *  - URL belum ada -> tombol NONAKTIF + keterangan, BUKAN link palsu yang
- *    diam-diam tidak melakukan apa pun (perilaku lama `href="#upgrade"` +
- *    preventDefault: user bingung karena tombolnya tidak bereaksi).
+ *  - URL belum ada -> LENCANA "segera hadir", bukan tautan palsu yang diam-diam
+ *    tidak melakukan apa pun (perilaku lama `href="#upgrade"` + preventDefault:
+ *    user bingung karena tombolnya tidak bereaksi) dan bukan pula tombol
+ *    $299/tahun yang mengundang klik padahal pembayaran memang ditutup.
  */
 function BuyPlusButton({ checkoutUrl }: { checkoutUrl: string }) {
   const base =
@@ -43,10 +48,11 @@ function BuyPlusButton({ checkoutUrl }: { checkoutUrl: string }) {
   if (!checkoutUrl) {
     return (
       <span
-        className={cn(base, "cursor-not-allowed text-fg-subtle")}
-        title="Link checkout belum dikonfigurasi (NEXT_PUBLIC_DODO_CHECKOUT_URL)"
+        className={cn(base, "cursor-not-allowed text-fg-muted")}
+        title="Pembayaran belum dibuka (NEXT_PUBLIC_PAYMENT_ENABLED)"
+        data-testid="model-upsell-coming-soon"
       >
-        Upgrade ke Plus — $299 / tahun (segera)
+        Plus — segera hadir
       </span>
     );
   }
@@ -56,6 +62,7 @@ function BuyPlusButton({ checkoutUrl }: { checkoutUrl: string }) {
       target="_blank"
       rel="noopener noreferrer"
       className={cn(base, "text-accent hover:bg-bg-subtle")}
+      data-testid="model-upsell-checkout"
     >
       Upgrade ke Plus — $299 / tahun
     </a>

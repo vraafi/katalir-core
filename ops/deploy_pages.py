@@ -69,6 +69,11 @@ def main() -> int:
         return 3
     if run_gate("check-bundle-hosts.mjs", "hasil: isi bundle out/") != 0:
         return 3
+    # FASE 7: pembayaran ditutup -> URL checkout HARAM ada di bundle. Gerbang ini
+    # menangkap berkas env yang terlewat (mis. .env.local yang menang atas
+    # .env.production) — kesalahan yang TIDAK terlihat dari sumber mana pun.
+    if run_gate("check-payment-hidden.mjs", "hasil: pembayaran tertutup") != 0:
+        return 3
 
     e = env_load()
     token = e.get("CLOUDFLARE_API_TOKEN")

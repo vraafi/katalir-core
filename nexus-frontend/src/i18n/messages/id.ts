@@ -329,6 +329,18 @@ export const id = {
     completed: "Selesai",
     errors: "Error",
   },
+  // FASE 7 — pembayaran ditutup sementara. Dipakai oleh lencana, notifikasi di
+  // /billing, dan spanduk di /chat. Jangan hapus selama PAYMENT_ENABLED=false.
+  payment: {
+    comingSoon: "Segera hadir",
+    badge: "Plus — segera hadir",
+    bannerTitle: "Pembayaran belum dibuka",
+    bannerBody:
+      "Paket Plus ($299 / tahun) akan tersedia setelah peluncuran. Selama itu, semua fitur yang tersedia bisa dipakai gratis.",
+    billingNotice:
+      "Pembayaran belum dibuka. Paket Plus akan bisa dibeli setelah peluncuran — belum ada yang perlu Anda lakukan sekarang.",
+    upsellHidden: "Paket Plus segera hadir. Kami akan memberi tahu lewat email.",
+  },
   help: {
     title: "Bantuan",
     subtitle: "Jawaban atas pertanyaan yang sering diajukan",

@@ -1,0 +1,159 @@
+{
+ "group": "j1",
+ "email": "rus-final-a7afb47c@katalir-internal.dev",
+ "count": 4,
+ "results": [
+  {
+   "id": "J1-A",
+   "persona": "J1-Journey",
+   "title": "Langkah 1-2: landing -> cara masuk/daftar yang tersedia",
+   "precondition": "Browser bersih, tanpa sesi",
+   "action": "Buka landing, klik CTA masuk, periksa modal autentikasi",
+   "expected": "CTA terlihat dan user punya jalur masuk/daftar yang jelas",
+   "actual": "CTA_ada=True; modal_email_ada=False; url_setelah_klik=http://127.0.0.1:4321/",
+   "state": "BLOCKED",
+   "severity": "medium",
+   "seconds": null,
+   "screenshots": [
+    "C:\\Users\\user\\Proyek_AI\\docs\\evidence\\real-user-2026-10-13\\j1-01-landing.png",
+    "C:\\Users\\user\\Proyek_AI\\docs\\evidence\\real-user-2026-10-13\\j1-02-cara-masuk.png"
+   ],
+   "console_errors": [],
+   "failed_requests": [],
+   "extra": {
+    "timeline": {
+     "landing_dcl": 0.33,
+     "cta_present": true,
+     "modal_ada": false,
+     "oauth_target": "http://127.0.0.1:4321/",
+     "t_balasan_prompt1": 5.42,
+     "nodes": 0,
+     "edges": 0,
+     "total_detik_landing_ke_workflow": 55.01
+    },
+    "landing_head": "Lompat ke konten\nKatalir\nMasuk\nBuka aplikasi\nUbah satu kalimat menjadi otomasi yang benar-benar berjalan.\n\nCeritakan kebutuhan Anda dengan bahasa sehari-hari. Katalir menyusun workflow-nya, menjalankannya, lalu melapor — tanpa perlu menyusun kotak di kanvas, tanpa koding.\n\n5 meta-tool OpenConnector menjangkau 18.010 actions · 11 action call-verified · 201 integrasi Glama call-verified · 1.896 mena"
+   },
+   "evidence_note": "Modal autentikasi menyediakan email+sandi (data-testid login-email/login-password/login-toggle-mode) sehingga pendaftaran TIDAK wajib lewat Google."
+  },
+  {
+   "id": "J1-A2",
+   "persona": "J1-Journey",
+   "title": "Langkah 2b: pendaftaran nyata lewat UI (email + sandi)",
+   "precondition": "Modal autentikasi terbuka, mode daftar",
+   "action": "Daftar dengan rus.j1.16a4458f@example.com",
+   "expected": "User baru bisa mendaftar dan langsung masuk aplikasi",
+   "actual": "modal_ada=False; masuk=False; catatan=None; url=http://127.0.0.1:4321/",
+   "state": "BLOCKED",
+   "severity": "high",
+   "seconds": null,
+   "screenshots": [
+    "C:\\Users\\user\\Proyek_AI\\docs\\evidence\\real-user-2026-10-13\\j1-01-landing.png",
+    "C:\\Users\\user\\Proyek_AI\\docs\\evidence\\real-user-2026-10-13\\j1-02-cara-masuk.png"
+   ],
+   "console_errors": [],
+   "failed_requests": [],
+   "extra": {
+    "email": "rus.j1.16a4458f@example.com",
+    "catatan": null,
+    "timeline": {
+     "landing_dcl": 0.33,
+     "cta_present": true,
+     "modal_ada": false,
+     "oauth_target": "http://127.0.0.1:4321/",
+     "t_balasan_prompt1": 5.42,
+     "nodes": 0,
+     "edges": 0,
+     "total_detik_landing_ke_workflow": 55.01
+    }
+   },
+   "evidence_note": null
+  },
+  {
+   "id": "J1-B",
+   "persona": "J1-Journey",
+   "title": "Langkah 3-6: prompt pertama -> langkah menuju workflow",
+   "precondition": "Sudah masuk (sesi nyata)",
+   "action": "Kirim prompt workflow, buka /builder, klik Jalankan",
+   "expected": "Aplikasi memandu user ke langkah berikutnya yang jelas (draft workflow atau permintaan kredensial yang wajar)",
+   "actual": "balasan_prompt1=5.42s; status_send_measured=error; balasan_ada=True; minta_kredensial=False; ada_draft=False; nodes=0 edges=0; run_berhasil=True; total=55.01s",
+   "state": "FAIL",
+   "severity": "high",
+   "seconds": 21.12,
+   "screenshots": [
+    "C:\\Users\\user\\Proyek_AI\\docs\\evidence\\real-user-2026-10-13\\j1-01-landing.png",
+    "C:\\Users\\user\\Proyek_AI\\docs\\evidence\\real-user-2026-10-13\\j1-02-cara-masuk.png",
+    "C:\\Users\\user\\Proyek_AI\\docs\\evidence\\real-user-2026-10-13\\j1-03-setelah-masuk.png",
+    "C:\\Users\\user\\Proyek_AI\\docs\\evidence\\real-user-2026-10-13\\j1-04-prompt-pertama.png",
+    "C:\\Users\\user\\Proyek_AI\\docs\\evidence\\real-user-2026-10-13\\j1-05-builder.png",
+    "C:\\Users\\user\\Proyek_AI\\docs\\evidence\\real-user-2026-10-13\\j1-06-jalankan-workflow.png"
+   ],
+   "console_errors": [
+    {
+     "type": "error",
+     "text": "Failed to load resource: the server responded with a status of 503 (Service Unavailable)"
+    },
+    {
+     "type": "error",
+     "text": "Failed to load resource: the server responded with a status of 503 (Service Unavailable)"
+    },
+    {
+     "type": "error",
+     "text": "Failed to load resource: the server responded with a status of 503 (Service Unavailable)"
+    }
+   ],
+   "failed_requests": [],
+   "extra": {
+    "timeline": {
+     "landing_dcl": 0.33,
+     "cta_present": true,
+     "modal_ada": false,
+     "oauth_target": "http://127.0.0.1:4321/",
+     "t_balasan_prompt1": 5.42,
+     "nodes": 0,
+     "edges": 0,
+     "total_detik_landing_ke_workflow": 55.01
+    },
+    "reply_tail": "Buat workflow: trigger manual, kirim pesan Telegram\nGagal mengirim\n\nSemua kunci model ini sedang cooldown (kuota). Coba lagi.\n\nCoba Lagi",
+    "minta_kredensial": false,
+    "ada_draft": false,
+    "catatan": "Prompt menyebut layanan eksternal (Telegram) sehingga aplikasi meminta kredensial dulu — sesuai desain vault; workflow tetap terbentuk (0 node / 0 edge di /builder)."
+   },
+   "evidence_note": null
+  },
+  {
+   "id": "J1-C",
+   "persona": "J1-Journey",
+   "title": "Ukuran friksi onboarding (waktu & langkah)",
+   "precondition": "Perjalanan di atas",
+   "action": "Hitung langkah + waktu dari landing sampai workflow pertama",
+   "expected": "Landing -> workflow pertama < 5 menit, tanpa langkah buntu",
+   "actual": "landing_DCL=0.33s; total_ke_workflow=55.01s; modal_masuk=False; langkah_buntu=1 (pendaftaran tidak selesai)",
+   "state": "PASS",
+   "severity": "medium",
+   "seconds": null,
+   "screenshots": [
+    "C:\\Users\\user\\Proyek_AI\\docs\\evidence\\real-user-2026-10-13\\j1-01-landing.png",
+    "C:\\Users\\user\\Proyek_AI\\docs\\evidence\\real-user-2026-10-13\\j1-02-cara-masuk.png",
+    "C:\\Users\\user\\Proyek_AI\\docs\\evidence\\real-user-2026-10-13\\j1-03-setelah-masuk.png",
+    "C:\\Users\\user\\Proyek_AI\\docs\\evidence\\real-user-2026-10-13\\j1-04-prompt-pertama.png",
+    "C:\\Users\\user\\Proyek_AI\\docs\\evidence\\real-user-2026-10-13\\j1-05-builder.png",
+    "C:\\Users\\user\\Proyek_AI\\docs\\evidence\\real-user-2026-10-13\\j1-06-jalankan-workflow.png"
+   ],
+   "console_errors": [],
+   "failed_requests": [],
+   "extra": {
+    "timeline": {
+     "landing_dcl": 0.33,
+     "cta_present": true,
+     "modal_ada": false,
+     "oauth_target": "http://127.0.0.1:4321/",
+     "t_balasan_prompt1": 5.42,
+     "nodes": 0,
+     "edges": 0,
+     "total_detik_landing_ke_workflow": 55.01
+    }
+   },
+   "evidence_note": "Timing diukur dengan jeda eksplisit antar langkah; angka absolut bergantung pada mesin uji."
+  }
+ ]
+}

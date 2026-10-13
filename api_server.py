@@ -20,6 +20,7 @@ import json
 import re
 import threading
 import time
+import uuid  # BUG-04: ref korelasi galat DB (bukan membocorkan {exc})
 from datetime import datetime, timezone
 from contextlib import asynccontextmanager
 
@@ -706,6 +707,28 @@ def _resolve_model(requested: str | None, user_tier: str) -> tuple[str, bool, st
 CHAT_MAX_CHARS = 8000
 
 
+def sanitize_text(value: str) -> str:
+    """BUG-03 (2026-10-13): buang byte NUL + karakter kontrol yang ditolak Postgres.
+
+    `\\x00` membuat Postgres menolak kolom `text` dengan SQLSTATE **22P05**
+    ("unsupported Unicode escape sequence" / "\\u0000 cannot be converted to
+    text"). Sebelumnya prompt diteruskan apa adanya ke `chat_sessions.insert`,
+    sehingga user menerima kartu galat yang membocorkan nama tabel + SQLSTATE
+    (lihat docs/real-user-hard-test-2026-10-13.md §BUG-03). Membersihkan di
+    batas API membuat request berhasil alih-alih gagal — bukan sekadar
+    menyamarkan pesan galat.
+
+    Karakter kontrol C0/C1 lain juga dibuang KECUALI newline (\\n) dan tab (\\t)
+    yang sah di dalam teks. Baris baru tetap dipertahankan supaya format pesan
+    user tidak rusak.
+    """
+    if not value:
+        return value
+    if "\x00" in value:
+        value = value.replace("\x00", "")
+    return "".join(ch for ch in value if ch >= " " or ch in "\n\t")
+
+
 class ChatRequest(BaseModel):
     prompt: str
     session_id: str | None = Field(default=None)
@@ -727,9 +750,14 @@ class ChatRequest(BaseModel):
         supaya `classifyHttpError` di frontend bisa menampilkan detailnya, dan
         pesannya menyebut angka batas + angka yang diterima agar user tahu
         harus memotong berapa.
+
+        BUG-03 (2026-10-13): sekaligus membersihkan byte NUL/karakter kontrol
+        di batas API (lihat `sanitize_text`) supaya `\\x00` tidak sampai ke
+        kolom `text` Postgres dan memicu 22P05.
         """
         if v is None:
             return v
+        v = sanitize_text(v)
         n = len(v)
         if n > CHAT_MAX_CHARS:
             raise ValueError(
@@ -1515,8 +1543,12 @@ def _agentic_run_gateway(prompt: str, email: str, model_id: str,
                         except CredentialMissingError:
                             raise  # -> endpoint merender form inline
                         except Exception as exc:  # noqa: BLE001
+                            # BUG-04: jangan bocorkan kelas/pesan pengecualian
+                            # ke kartu chat user; detail hanya ke log server.
+                            print(f"[chat/gateway] tool {c.get('tool')} gagal: "
+                                  f"{type(exc).__name__}: {exc}", flush=True)
                             result = {"status": "error",
-                                      "message": f"{type(exc).__name__}: {exc}"[:300]}
+                                      "message": "Alat ini gagal dijalankan. Silakan coba lagi."}
                         # Status ini harus sampai ke form, bukan ditampilkan
                         # sebagai teks biasa.
                         if isinstance(result, dict) and result.get("status") in (
@@ -2135,7 +2167,9 @@ def _agentic_run_direct(prompt: str, email: str, model: str | None = None,
             except CredentialMissingError:
                 raise
             except Exception as exc:  # noqa: BLE001 - kesalahan tool, bukan server
-                tool_result = f"GAGAL menjalankan {name}: {type(exc).__name__}: {exc}"
+                # BUG-04: tool_result tampil ke user -> pesan generik saja;
+                # detail pengecualian hanya ke log server.
+                tool_result = f"Alat '{name}' gagal dijalankan. Silakan coba lagi."
                 tool_status = "error"
                 print(f"[api_server] tool {name} gagal: {type(exc).__name__}: {exc}")
             if isinstance(tool_result, dict) and tool_result.get("status") == "needs_oauth":
@@ -3964,6 +3998,43 @@ def vault_list_endpoint(authorization: str | None = Header(None)):
 
 
 # ---------------------------------------------------------------------------
+# BUG-04 (2026-10-13): penjaga id + pesan galat DB yang TIDAK membocorkan.
+# ---------------------------------------------------------------------------
+#: SEBELUM: `GET/PATCH/DELETE /workflows/{id}` tanpa penjaga tipe. Id non-UUID
+#: ("not-a-uuid") diteruskan ke PostgREST -> `22P02 invalid input syntax for
+#: type uuid`, lalu di-`except Exception -> HTTPException(500, f"...{exc}")`.
+#: Klien menerima HTTP 500 + muatan mentah Postgres (nama tabel, SQLSTATE,
+#: 'hint'/'details') — status salah kelas (input klien = 4xx) DAN pengungkapan
+#: internal. Bukti: docs/real-user-hard-test-2026-10-13.md §BUG-04.
+#:
+#: SESUDAH: dua penjaga dipakai di SETIAP handler ber-`{workflow_id}`:
+#:   1. `_require_uuid_or_404` — id non-UUID -> 404 (bukan 500), sebelum DB.
+#:   2. `_db_error_500` — jangan pernah interpolasi `{exc}` ke klien; catat
+#:      detail LENGKAP ke log server + kirim pesan generik ber-`ref` korelasi.
+#: Handler bersaudara (/schedule, /redaction, /agents, /hitl, /templates)
+#: sudah benar sejak awal — cacat ini terlokalisasi, bukan pola menyeluruh.
+def _require_uuid_or_404(value: str, what: str = "Workflow") -> None:
+    """404 bila `value` bukan UUID valid. Mencegah 22P02 dari PostgREST."""
+    if not db.is_uuid(value):
+        raise HTTPException(404, f"{what} tidak ditemukan.")
+
+
+def _db_error_500(action: str, exc: Exception) -> HTTPException:
+    """Bangun HTTPException 500 generik; detail hanya ke log server.
+
+    `ref` singkat dikirim ke klien supaya laporan user bisa dikorelasikan
+    dengan baris log — tanpa membocorkan isi pengecualian.
+    """
+    ref = uuid.uuid4().hex[:12]
+    print(f"[api_server] {action} gagal (ref={ref}): "
+          f"{type(exc).__name__}: {exc}", flush=True)
+    return HTTPException(
+        500,
+        f"Terjadi kesalahan internal saat {action}. Silakan coba lagi. (ref: {ref})",
+    )
+
+
+# ---------------------------------------------------------------------------
 # ENDPOINT: POST /workflows  (simpan Visual AI Workflow JSON)
 #   KEAMANAN: user_id dari JWT (Authorization Bearer), BUKAN dari body.
 # ---------------------------------------------------------------------------
@@ -3979,6 +4050,8 @@ def create_workflow(req: WorkflowCreateRequest, authorization: str | None = Head
     # (autosave kanvas juga mengirim flow_data). Lihat validate_workflow_flow.
     validate_workflow_flow(req.flow_data or {})
     if req.id:
+        # BUG-04: id dari BODY juga tak dipercaya -> 404, bukan 500 + 22P02.
+        _require_uuid_or_404(req.id)
         existing = db.get_workflow(req.id, user["id"])
         if not existing:
             # Membedakan "tidak ada" dari "milik orang lain" berguna untuk
@@ -3991,7 +4064,7 @@ def create_workflow(req: WorkflowCreateRequest, authorization: str | None = Head
             row = db.update_workflow(req.id, user["id"], name=req.name,
                                      description=req.description, flow_data=req.flow_data)
         except Exception as exc:  # noqa: BLE001
-            raise HTTPException(500, f"Gagal memperbarui workflow: {exc}")
+            raise _db_error_500("memperbarui workflow", exc)
         if not row:
             raise HTTPException(404, "Workflow tidak ditemukan.")
         return {"status": "success", "updated": True, "workflow": row}
@@ -4012,7 +4085,7 @@ def create_workflow(req: WorkflowCreateRequest, authorization: str | None = Head
     try:
         row = db.create_workflow(user["id"], req.name, req.description, req.flow_data)
     except Exception as exc:  # noqa: BLE001
-        raise HTTPException(500, f"Gagal menyimpan workflow: {exc}")
+        raise _db_error_500("menyimpan workflow", exc)
     return {"status": "success", "updated": False, "workflow": row}
 
 
@@ -4020,10 +4093,11 @@ def create_workflow(req: WorkflowCreateRequest, authorization: str | None = Head
 def get_workflow_detail(workflow_id: str, authorization: str | None = Header(None)):
     """Detail SATU workflow (termasuk flow_data) — hanya milik user JWT."""
     user = security.get_current_user(authorization)
+    _require_uuid_or_404(workflow_id)  # BUG-04: non-UUID -> 404, bukan 500
     try:
         row = db.get_workflow(workflow_id, user["id"])
     except Exception as exc:  # noqa: BLE001
-        raise HTTPException(500, f"Gagal memuat workflow: {exc}")
+        raise _db_error_500("memuat workflow", exc)
     if not row:
         raise HTTPException(404, "Workflow tidak ditemukan.")
     return {"status": "success", "workflow": row}
@@ -4034,6 +4108,7 @@ def patch_workflow(workflow_id: str, req: WorkflowUpdateRequest,
                    authorization: str | None = Header(None)):
     """Rename / ubah deskripsi. Owner-scoped: bukan pemilik -> 403."""
     user = security.get_current_user(authorization)
+    _require_uuid_or_404(workflow_id)  # BUG-04
     if req.name is None and req.description is None:
         raise HTTPException(400, "Tidak ada perubahan yang dikirim.")
     if req.name is not None and not req.name.strip():
@@ -4043,7 +4118,7 @@ def patch_workflow(workflow_id: str, req: WorkflowUpdateRequest,
                                  name=(req.name.strip() if req.name else None),
                                  description=req.description)
     except Exception as exc:  # noqa: BLE001
-        raise HTTPException(500, f"Gagal mengubah workflow: {exc}")
+        raise _db_error_500("mengubah workflow", exc)
     if not row:
         if db.get_workflow_owner(workflow_id):
             raise HTTPException(403, "Workflow ini bukan milik Anda.")
@@ -4067,12 +4142,13 @@ def apply_workflow_ops(workflow_id: str, req: WorkflowOpsRequest,
     perubahan tersimpan (rollback penuh).
     """
     user = security.get_current_user(authorization)
+    _require_uuid_or_404(workflow_id)  # BUG-04
     if not req.operations:
         raise HTTPException(400, "Daftar operasi kosong.")
     try:
         row = db.get_workflow(workflow_id, user["id"])
     except Exception as exc:  # noqa: BLE001
-        raise HTTPException(500, f"Gagal memuat workflow: {exc}")
+        raise _db_error_500("memuat workflow", exc)
     if not row:
         if db.get_workflow_owner(workflow_id):
             raise HTTPException(403, "Workflow ini bukan milik Anda.")
@@ -4096,7 +4172,7 @@ def apply_workflow_ops(workflow_id: str, req: WorkflowOpsRequest,
         updated = db.update_workflow(workflow_id, user["id"],
                                      flow_data=result["flow_data"])
     except Exception as exc:  # noqa: BLE001
-        raise HTTPException(500, f"Gagal menyimpan workflow: {exc}")
+        raise _db_error_500("menyimpan workflow", exc)
     if not updated:
         raise HTTPException(403, "Workflow ini bukan milik Anda.")
     return {"status": "success", "applied": result["applied"],
@@ -4169,7 +4245,7 @@ def remove_workflow(workflow_id: str, authorization: str | None = Header(None)):
     try:
         ok = db.delete_workflow(workflow_id, user["id"])
     except Exception as exc:  # noqa: BLE001
-        raise HTTPException(500, f"Gagal menghapus workflow: {exc}")
+        raise _db_error_500("menghapus workflow", exc)
     if not ok:
         if db.get_workflow_owner(workflow_id):
             raise HTTPException(403, "Workflow ini bukan milik Anda.")
@@ -4191,7 +4267,7 @@ def get_workflows(authorization: str | None = Header(None)):
     try:
         rows = db.list_workflows(user["id"])
     except Exception as exc:  # noqa: BLE001
-        raise HTTPException(500, f"Gagal memuat workflows: {exc}")
+        raise _db_error_500("memuat workflows", exc)
     return {"status": "success", "workflows": rows}
 
 
@@ -4222,7 +4298,7 @@ def list_templates_endpoint(category: str | None = None, q: str | None = None,
         items = workflow_templates.list_templates(
             user_id=user["id"], category=category, query=q)
     except Exception as exc:  # noqa: BLE001
-        raise HTTPException(500, f"Gagal memuat template: {exc}")
+        raise _db_error_500("memuat template", exc)
     return {"status": "success", "count": len(items), "templates": items}
 
 
@@ -4256,7 +4332,7 @@ def create_template_endpoint(req: TemplateCreateRequest,
     except workflow_templates.TemplateError as exc:
         raise HTTPException(400, str(exc))
     except Exception as exc:  # noqa: BLE001
-        raise HTTPException(500, f"Gagal menyimpan template: {exc}")
+        raise _db_error_500("menyimpan template", exc)
     return {"status": "success", "template": row}
 
 
@@ -4271,7 +4347,7 @@ def use_template_endpoint(template_id: str, req: TemplateUseRequest,
     except workflow_templates.TemplateError as exc:
         raise HTTPException(404, str(exc))
     except Exception as exc:  # noqa: BLE001
-        raise HTTPException(500, f"Gagal membuat workflow dari template: {exc}")
+        raise _db_error_500("membuat workflow dari template", exc)
     return {"status": "success", **hasil}
 
 
@@ -4284,7 +4360,7 @@ def delete_template_endpoint(template_id: str,
     try:
         ok = workflow_templates.delete_custom_template(template_id, user["id"])
     except Exception as exc:  # noqa: BLE001
-        raise HTTPException(500, f"Gagal menghapus template: {exc}")
+        raise _db_error_500("menghapus template", exc)
     if not ok:
         raise HTTPException(404, "Template tidak ditemukan.")
     return {"status": "success", "deleted": True, "id": template_id}
@@ -4416,7 +4492,7 @@ async def execute_workflow(workflow_id: str, req: ExecuteRequest = None,
         execution_id = engine.launch_execution(
             workflow_id, flow_data, owner_email=str(user.get("email") or ""))
     except Exception as exc:  # noqa: BLE001
-        raise HTTPException(500, f"Gagal melanjar ejekution: {exc}")
+        raise _db_error_500("melancarkan eksekusi", exc)
     return {"execution_id": execution_id, "workflow_id": workflow_id, "status": "pending"}
 
 
@@ -4474,7 +4550,7 @@ def create_workflow_schedule(workflow_id: str, body: ScheduleRequest,
         res = (db.get_write_client().table("workflow_schedules")
                .upsert(row, on_conflict="workflow_id").execute())
     except Exception as exc:  # noqa: BLE001
-        raise HTTPException(500, f"Gagal menyimpan jadwal: {exc}")
+        raise _db_error_500("menyimpan jadwal", exc)
     data = (res.data or [{}])[0]
     return {
         "schedule_id": data.get("id"),
@@ -4494,7 +4570,7 @@ def get_workflow_schedule(workflow_id: str, authorization: str | None = Header(N
         res = (db.get_write_client().table("workflow_schedules").select("*")
                .eq("workflow_id", workflow_id).limit(1).execute())
     except Exception as exc:  # noqa: BLE001
-        raise HTTPException(500, f"Gagal memuat jadwal: {exc}")
+        raise _db_error_500("memuat jadwal", exc)
     rows = res.data or []
     if not rows:
         raise HTTPException(404, "Jadwal tidak ditemukan untuk workflow ini.")
@@ -4520,7 +4596,7 @@ def delete_workflow_schedule(workflow_id: str, authorization: str | None = Heade
         res = (db.get_write_client().table("workflow_schedules").delete()
                .eq("workflow_id", workflow_id).execute())
     except Exception as exc:  # noqa: BLE001
-        raise HTTPException(500, f"Gagal menghapus jadwal: {exc}")
+        raise _db_error_500("menghapus jadwal", exc)
     if not res.data:
         raise HTTPException(404, "Jadwal tidak ditemukan untuk workflow ini.")
     return {"deleted": True, "workflow_id": workflow_id}
@@ -4571,7 +4647,7 @@ def memory_remember(body: MemoryRememberRequest,
     except memory_manager.MemoryUnavailable as exc:
         raise HTTPException(503, f"Embedding provider tidak tersedia: {exc}")
     except Exception as exc:  # noqa: BLE001
-        raise HTTPException(500, f"Gagal menyimpan memory: {exc}")
+        raise _db_error_500("menyimpan memory", exc)
     return {"status": "success", "memory": {
         "id": row.get("id"), "content": row.get("content"),
         "memory_type": row.get("memory_type"),
@@ -4593,7 +4669,7 @@ def memory_recall(body: MemoryRecallRequest,
     except memory_manager.MemoryUnavailable as exc:
         raise HTTPException(503, f"Embedding provider tidak tersedia: {exc}")
     except Exception as exc:  # noqa: BLE001
-        raise HTTPException(500, f"Gagal mengambil memory: {exc}")
+        raise _db_error_500("mengambil memory", exc)
     return {"status": "success", "memories": [
         {"id": r.get("id"), "content": r.get("content"),
          "memory_type": r.get("memory_type"),
@@ -4631,7 +4707,7 @@ def memory_preferences_put(key: str, body: MemoryPreferenceRequest,
     except ValueError as exc:
         raise HTTPException(400, str(exc))
     except Exception as exc:  # noqa: BLE001
-        raise HTTPException(500, f"Gagal menyimpan preferensi: {exc}")
+        raise _db_error_500("menyimpan preferensi", exc)
     return {"status": "success", "key": key,
             "value": row.get("value"), "confidence": row.get("confidence")}
 
@@ -4699,7 +4775,7 @@ def memory_provider_set(body: MemoryProviderConfigRequest,
              "value": value},
             on_conflict="user_id,key").execute()
     except Exception as exc:  # noqa: BLE001
-        raise HTTPException(500, f"Gagal menyimpan konfigurasi: {exc}")
+        raise _db_error_500("menyimpan konfigurasi", exc)
     return {"status": "success",
             "config": {"provider": name, "base_url": value["base_url"],
                        "has_key": bool(api_key), "enabled": value["enabled"]}}
@@ -4855,7 +4931,7 @@ def set_workflow_redaction(workflow_id: str,
             {"workflow_id": str(workflow_id), "owner": str(user["id"]),
              "policy": value}, on_conflict="workflow_id").execute()
     except Exception as exc:  # noqa: BLE001
-        raise HTTPException(500, f"Gagal menyimpan kebijakan redaksi: {exc}")
+        raise _db_error_500("menyimpan kebijakan redaksi", exc)
     return {"status": "success", "policy": value, "enforced": enforced,
             "effective_level": policy.effective_level(enforced)}
 
@@ -5228,7 +5304,7 @@ def log_streaming_save(body: LogStreamDestinationRequest,
             {"owner": str(user["id"]), "config": {"destinations": dests}},
             on_conflict="owner").execute()
     except Exception as exc:  # noqa: BLE001
-        raise HTTPException(500, f"Gagal menyimpan tujuan: {exc}")
+        raise _db_error_500("menyimpan tujuan", exc)
     ls.invalidate_owner_bus(str(user["id"]))
     return {"status": "success", "label": label,
             "destination": _desensitize(spec), "count": len(dests)}
@@ -5249,7 +5325,7 @@ def log_streaming_delete(label: str,
             {"owner": str(user["id"]), "config": {"destinations": dests}},
             on_conflict="owner").execute()
     except Exception as exc:  # noqa: BLE001
-        raise HTTPException(500, f"Gagal menghapus tujuan: {exc}")
+        raise _db_error_500("menghapus tujuan", exc)
     import log_streaming as _lsd
     _lsd.invalidate_owner_bus(str(user["id"]))
     return {"status": "success", "removed": label, "count": len(dests)}
@@ -8067,7 +8143,7 @@ def get_execution(execution_id: str, authorization: str | None = Header(None),
     try:
         data = db.get_execution(execution_id)
     except Exception as exc:  # noqa: BLE001
-        raise HTTPException(500, f"Gagal memuat ejekution: {exc}")
+        raise _db_error_500("memuat eksekusi", exc)
     # Keamanan: verificar que la ejecucion pertenezca a un workflow del user
     ex = (data or {}).get("execution") or {}
     wid = ex.get("workflow_id")
@@ -8192,7 +8268,7 @@ async def webhook_trigger(workflow_id: str, request: Request,
     try:
         db.create_execution(execution_id, workflow_id, flow_data)
     except Exception as exc:  # noqa: BLE001
-        raise HTTPException(500, f"Gagal membuat eksekusi: {exc}")
+        raise _db_error_500("membuat eksekusi", exc)
     # F-6 (Opsi A): teruskan email pemilik workflow supaya node MCP
     # ber-kredensial bisa resolve token user di jalur webhook.
     background.add_task(_run_webhook_dag, workflow_id, flow_data,
@@ -8216,7 +8292,7 @@ def sessions(authorization: str | None = Header(None)):
         data = db.list_sessions(user["email"])
         return {"status": "success", "sessions": data}
     except Exception as exc:  # noqa: BLE001
-        raise HTTPException(500, f"Gagal memuat session: {exc}")
+        raise _db_error_500("memuat session", exc)
 
 
 # ---------------------------------------------------------------------------
@@ -8233,7 +8309,7 @@ def messages(session_id: str, authorization: str | None = Header(None)):
         data = db.get_messages(user["email"], session_id)
         return {"status": "success", "messages": data}
     except Exception as exc:  # noqa: BLE001
-        raise HTTPException(500, f"Gagal memuat pesan: {exc}")
+        raise _db_error_500("memuat pesan", exc)
 
 
 # ---------------------------------------------------------------------------
@@ -8252,7 +8328,77 @@ def delete_session(session_id: str, authorization: str | None = Header(None)):
     except HTTPException:
         raise
     except Exception as exc:  # noqa: BLE001
-        raise HTTPException(500, f"Gagal menghapus session: {exc}")
+        raise _db_error_500("menghapus session", exc)
+
+
+# ---------------------------------------------------------------------------
+# FASE 7: GERBANG PEMBAYARAN — pembayaran ditutup sementara ("coming soon")
+# ---------------------------------------------------------------------------
+# KENAPA DI BACKEND, BUKAN CUKUP DI FRONTEND: menyembunyikan tombol di UI hanya
+# menyembunyikan JALAN, bukan KEMAMPUAN. Siapa pun yang tahu URL checkout (atau
+# memanggil endpoint ini langsung) tetap bisa memulai pembayaran. Gerbang ini
+# membuat "ditutup" jadi pernyataan yang benar di sisi yang memegang uang.
+#
+# DEFAULT = MATI (fail-closed): env yang lupa di-set, salah ketik, atau tidak
+# ada TIDAK membuka pembayaran. Untuk membuka: PAYMENT_ENABLED=true.
+_TRUE = ("1", "true", "yes", "on")
+
+
+def payments_enabled() -> bool:
+    """True HANYA bila PAYMENT_ENABLED dinyatakan eksplisit sebagai benar."""
+    return os.getenv("PAYMENT_ENABLED", "false").strip().lower() in _TRUE
+
+
+PAYMENT_DISABLED_MSG = (
+    "Pembayaran belum dibuka. Paket Plus akan tersedia setelah peluncuran — "
+    "belum ada yang perlu Anda lakukan sekarang."
+)
+
+
+def _dodo_checkout_base() -> str:
+    return os.getenv("DODO_CHECKOUT_URL", "") or os.getenv("DODO_PAYMENTS_URL", "")
+
+
+@app.get("/payment/status")
+async def payment_status():
+    """Status pembayaran untuk UI (tanpa autentikasi — tidak ada rahasia di sini).
+
+    Sengaja TIDAK pernah 503: UI perlu membedakan "pembayaran ditutup" (tampilkan
+    lencana) dari "backend sedang bermasalah" (tampilkan galat). Endpoint yang
+    selalu gagal saat pembayaran ditutup justru memaksa klien menebak.
+    """
+    enabled = payments_enabled()
+    return {
+        "status": "success",
+        "enabled": enabled,
+        "provider": "dodo",
+        "checkout_available": bool(enabled and _dodo_checkout_base()),
+        "message": None if enabled else PAYMENT_DISABLED_MSG,
+    }
+
+
+class PaymentCheckoutRequest(BaseModel):
+    plan: Optional[str] = "plus"
+    email: Optional[str] = None
+
+
+@app.post("/payment/checkout")
+async def payment_checkout(body: PaymentCheckoutRequest):
+    """Buat tautan checkout. 503 selama pembayaran ditutup.
+
+    503 (bukan 403/404): pembayaran memang belum tersedia, dan ini keadaan yang
+    diharapkan sementara — bukan larangan permanen maupun endpoint yang tidak ada.
+    """
+    if not payments_enabled():
+        raise HTTPException(503, PAYMENT_DISABLED_MSG)
+    try:
+        import billing_llm
+        url = billing_llm.dodo_checkout_url(body.plan or "plus", body.email or "")
+    except Exception as exc:  # noqa: BLE001
+        raise _db_error_500("membuat tautan checkout", exc)
+    if not url:
+        raise HTTPException(503, "Tautan checkout belum dikonfigurasi.")
+    return {"status": "success", "checkout_url": url}
 
 
 # ---------------------------------------------------------------------------
@@ -8346,7 +8492,7 @@ async def dodo_webhook(request: Request):
     except Exception as exc:  # noqa: BLE001
         # Gagal mencatat = tidak boleh dikreditkan; 5xx membuat Dodo mengirim
         # ulang (bukan gagal senyap).
-        raise HTTPException(500, f"Gagal mencatat event pembayaran: {exc}")
+        raise _db_error_500("mencatat event pembayaran", exc)
     if state == "processed":
         return {"status": "already_processed", "webhook_id": event_id,
                 "event": event_type}
@@ -8378,12 +8524,12 @@ async def dodo_webhook(request: Request):
         raise
     except Exception as exc:  # noqa: BLE001
         # Tier/saldo GAGAL tersimpan -> jangan tandai selesai; 5xx agar Dodo retry.
-        raise HTTPException(500, f"Gagal memproses webhook: {exc}")
+        raise _db_error_500("memproses webhook", exc)
 
     try:
         db.mark_payment_event_processed(event_id)
     except Exception as exc:  # noqa: BLE001
-        raise HTTPException(500, f"Gagal menandai event selesai: {exc}")
+        raise _db_error_500("menandai event selesai", exc)
     return result
 
 

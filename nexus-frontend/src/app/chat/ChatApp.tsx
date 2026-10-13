@@ -18,7 +18,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { chatKeys } from "@/lib/query-keys";
 import { ModelSelector } from "@/components/ModelSelector";
 import { ChatComposer } from "@/features/chat/ChatComposer";
-import { CHAT_MODELS, DEFAULT_MODEL_ID, pickerModels } from "@/lib/models";
+import { CHAT_MODELS, DEFAULT_MODEL_ID, pickerModels, normalizeModelId } from "@/lib/models";
 import Link from "next/link";
 // FASE 2.2: draf workflow dari Discovery Agent -> kanvas Builder.
 import { useCanvasStore } from "@/features/builder/store/canvas-store";
@@ -28,6 +28,8 @@ import {
   type AgentWorkflow,
 } from "@/features/agent/workflow-spec";
 import { HydrationReady } from "@/i18n/HydrationReady";
+// FASE 7: spanduk "pembayaran belum dibuka" — merender null saat pembayaran aktif.
+import { PaymentBanner } from "@/components/PaymentBanner";
 import { autoRunWorkflow } from "@/features/agent/auto-run";
 import { buildExecutionReport, type ExecutionReport } from "@/features/agent/execution-report";
 import dynamic from "next/dynamic";
@@ -243,7 +245,8 @@ function ChatApp() {
       const stored =
         window.localStorage.getItem("katalir.model.v1") ??
         window.localStorage.getItem("nexus.model.v1");
-      if (stored) setSelectedModel(stored);
+      // BUG-05: id lama tanpa awalan penyedia ("gemma-4-31b-it") -> id katalog.
+      if (stored) setSelectedModel(normalizeModelId(stored));
     } catch {
       /* storage diblokir — pilihan tetap jalan in-memory */
     }
@@ -1225,6 +1228,10 @@ return (
           (scroll, guard anti-blank) tidak menahan pesan sesi lama.
           Queue/input/sidebar di luar div ini -> TIDAK ikut remount. */}
       <div key={sessionId ?? "new"} className="k-chat-main flex min-h-0 w-full flex-1 flex-col bg-bg dark:bg-zinc-900">
+        {/* Spanduk pembayaran (FASE 7): DI LUAR wadah gulir supaya tetap terlihat
+            saat percakapan panjang, dan tidak mengubah `scrollTop`/layout
+            bubble (wadah gulir tetap `flex-1` di bawahnya). */}
+        <PaymentBanner />
         {/* Chat area — scroll independen (flex-1), input di flow terpisah */}
         <div ref={scrollRef} className="chat-scroll min-h-0 w-full flex-1 overflow-y-auto">
           <div className="mx-auto flex min-h-full w-full max-w-[48rem] flex-col justify-end px-5 pt-4">

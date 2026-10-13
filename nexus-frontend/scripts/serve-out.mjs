@@ -48,17 +48,29 @@ const server = createServer((req, res) => {
   const safe = normalize(urlPath).replace(/^(\.\.[/\\])+/, "");
   let filePath = join(ROOT, safe);
 
-  // Direktori -> index.html; rute tanpa ekstensi -> coba .html lalu .txt
-  // (Next.js static export memakai pola ini untuk /foo -> foo.html).
-  if (existsSync(filePath) && statSync(filePath).isDirectory()) {
-    filePath = join(filePath, "index.html");
-  } else if (!existsSync(filePath) && !extname(filePath)) {
+  // Rute tanpa ekstensi -> coba `.html` DULU, baru `<dir>/index.html`.
+  //
+  // JEBAKAN YANG TERBUKTI (2026-10-13, BUG-10): urutan sebaliknya (direktori
+  // dulu) membuat `/integrations` 404 di server lokal. Penyebabnya: static
+  // export menghasilkan `out/integrations.html` UNTUK rute `/integrations`
+  // sekaligus folder `out/integrations/` untuk rute anak `/integrations/catalog`.
+  // Deteksi "ada direktori bernama sama" menang, `integrations/index.html` tidak
+  // ada, dan permintaan dijawab 404 — padahal Cloudflare Pages (produksi) dan
+  // Next.js memakai `integrations.html`. Akibatnya audit a11y `/integrations`
+  // mengukur HALAMAN 404, bukan halaman aslinya (temuan palsu
+  // `document-title`/`html-has-lang`/`landmark-one-main`). Urutan yang benar
+  // adalah yang dipakai produksi: `foo.html` menang atas `foo/index.html`.
+  if (!extname(filePath)) {
     for (const cand of [`${filePath}.html`, join(filePath, "index.html")]) {
-      if (existsSync(cand)) {
+      if (existsSync(cand) && statSync(cand).isFile()) {
         filePath = cand;
         break;
       }
     }
+  }
+  // Sisa kasus: path memang direktori (mis. `/`) -> sajikan index.html-nya.
+  if (existsSync(filePath) && statSync(filePath).isDirectory()) {
+    filePath = join(filePath, "index.html");
   }
 
   if (!filePath.startsWith(ROOT) || !existsSync(filePath)) {

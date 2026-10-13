@@ -10,12 +10,10 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { apiFetch } from "@/lib/api";
 import { supabase } from "@/lib/supabase";
 import { cn } from "@/lib/cn";
-
-/**
- * Link checkout Dodo Payments (Plus: $299 / TAHUN).
- * NEXT_PUBLIC_* di-INLINE saat build → perubahan URL = build ulang.
- */
-const CHECKOUT_URL = (process.env.NEXT_PUBLIC_DODO_CHECKOUT_URL || "").trim();
+// FASE 7: pembayaran ditutup. `CHECKOUT_URL` bernilai "" selama
+// `NEXT_PUBLIC_PAYMENT_ENABLED` bukan "true", sehingga tidak ada tautan
+// checkout yang bisa dirender — bukan sekadar tombol yang di-disable.
+import { CHECKOUT_URL, PAYMENT_COMING_SOON } from "@/lib/payment";
 
 interface QuotaBucket {
   used: number;
@@ -136,6 +134,30 @@ function UsageCard() {
   );
 }
 
+/**
+ * Lencana + penjelasan "segera hadir" (FASE 7).
+ *
+ * Menggantikan CTA checkout saat pembayaran ditutup. Sengaja BUKAN tombol
+ * disabled: tombol mati tetap memberi kesan "ada yang bisa saya lakukan kalau
+ * saya coba lagi", sedangkan yang benar adalah memberi tahu bahwa belum ada
+ * yang bisa dilakukan. `role="status"` agar pembaca layar mengumumkannya.
+ */
+function ComingSoonBadge() {
+  const { t } = useI18n();
+  return (
+    <div
+      className="mt-3 flex flex-col gap-1 rounded-md border border-border bg-bg-subtle px-3 py-2"
+      role="status"
+      data-testid="payment-coming-soon"
+    >
+      <span className="inline-flex w-fit items-center gap-1.5 rounded-full bg-accent/10 px-2 py-0.5 text-caption font-semibold text-accent">
+        {t("payment.comingSoon")}
+      </span>
+      <span className="text-footnote text-fg-muted">{t("payment.billingNotice")}</span>
+    </div>
+  );
+}
+
 /** Baris tabel perbandingan paket: nilai + tanda (ya/tidak) yang aksesibel. */
 function PlanRow({ label, free, plus }: { label: string; free: string; plus: string }) {
   return (
@@ -181,7 +203,9 @@ function BillingContent() {
               <p className="mt-1 text-footnote text-fg-muted">
                 {t("billing.upgradeDesc")}
               </p>
-              {CHECKOUT_URL ? (
+              {PAYMENT_COMING_SOON ? (
+                <ComingSoonBadge />
+              ) : CHECKOUT_URL ? (
                 <a
                   href={CHECKOUT_URL}
                   target="_blank"
@@ -239,6 +263,13 @@ function BillingContent() {
             {isPlus ? (
               <p className="text-footnote font-medium text-success" data-testid="plan-current">
                 ✓ {t("billing.currentPlan")}: {serverTier.toUpperCase()}
+              </p>
+            ) : PAYMENT_COMING_SOON ? (
+              <p
+                className="inline-flex items-center gap-1.5 rounded-full bg-bg-subtle px-3 py-1 text-footnote font-medium text-fg-muted"
+                data-testid="plan-coming-soon"
+              >
+                {t("payment.badge")}
               </p>
             ) : CHECKOUT_URL ? (
               <a

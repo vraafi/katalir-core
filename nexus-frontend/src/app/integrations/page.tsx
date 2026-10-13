@@ -75,10 +75,28 @@ const TIER_HINT: Record<string, string> = {
   discovered: "Ada di katalog, tapi belum pernah dijalankan oleh kami. Buka Detail untuk cek sumbernya.",
 };
 
+/**
+ * Gaya badge tier.
+ *
+ * KONTRAS AA (BUG-10, kelas cacat yang sama dengan chip kategori /templates):
+ * `text-<c>-600` di atas `bg-<c>-500/15` gagal 4.5:1 untuk teks kecil
+ * (terukur emerald 3.28 · amber 2.84 · sky 3.29). Dinaikkan ke shade 800 di
+ * mode terang (≥6.0:1) dan diberi varian `dark:text-<c>-400` (≥5.9:1) — badge
+ * ini sebelumnya TIDAK punya varian gelap sama sekali.
+ */
 const TIER_STYLE: Record<string, { cls: string; testid: string }> = {
-  call_verified: { cls: "bg-emerald-500/15 text-emerald-600", testid: "badge-ready" },
-  auth_required: { cls: "bg-amber-500/15 text-amber-600", testid: "badge-auth" },
-  tools_listed: { cls: "bg-sky-500/15 text-sky-600", testid: "badge-listed" },
+  call_verified: {
+    cls: "bg-emerald-500/15 text-emerald-800 dark:text-emerald-400",
+    testid: "badge-ready",
+  },
+  auth_required: {
+    cls: "bg-amber-500/15 text-amber-800 dark:text-amber-400",
+    testid: "badge-auth",
+  },
+  tools_listed: {
+    cls: "bg-sky-500/15 text-sky-800 dark:text-sky-400",
+    testid: "badge-listed",
+  },
   discovered: { cls: "bg-fg-muted/15 text-fg-muted", testid: "badge-catalog" },
 };
 

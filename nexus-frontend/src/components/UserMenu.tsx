@@ -18,12 +18,16 @@ import { useAuth } from "@/context/auth";
 import { useI18n } from "@/i18n/context";
 import { cn } from "@/lib/cn";
 import { applyAppTheme, THEME_KEY } from "@/components/ThemeToggle";
-
 /**
- * Link checkout Dodo Payments (Plus: $299 / TAHUN — produk "Katalir").
- * NEXT_PUBLIC_* di-INLINE saat build → perubahan URL = build ulang.
+ * Link checkout — dari sakelar pembayaran TERPUSAT (FASE 7).
+ *
+ * Sebelumnya konstanta ini dibaca sendiri di sini, di /billing, dan di
+ * ModelSelector. Tiga salinan berarti "mematikan pembayaran" butuh tiga
+ * perubahan yang konsisten; satu yang terlewat = tombol bayar masih hidup.
+ * `CHECKOUT_URL` bernilai "" saat `NEXT_PUBLIC_PAYMENT_ENABLED` bukan "true",
+ * sehingga butir "Upgrade" di bawah otomatis tidak dirender.
  */
-const CHECKOUT_URL = (process.env.NEXT_PUBLIC_DODO_CHECKOUT_URL || "").trim();
+import { CHECKOUT_URL } from "@/lib/payment";
 
 interface UserMenuProps {
   /** tier efektif user ("free" | "plus") — diteruskan dari parent agar konsisten. */

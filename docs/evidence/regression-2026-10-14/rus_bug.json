@@ -1,0 +1,328 @@
+{
+ "group": "bug",
+ "email": "rus-final-a7afb47c@katalir-internal.dev",
+ "count": 12,
+ "results": [
+  {
+   "id": "B-01",
+   "persona": "B-BugHunt",
+   "title": "Batas panjang input 0/1/7999/8000/8001",
+   "precondition": "Composer aktif",
+   "action": "Isi textarea dengan 5 panjang berbeda, baca nilai efektif",
+   "expected": "0 & 1 diterima; 7999/8000 diterima; 8001 dipotong ke 8000 dengan counter terlihat",
+   "actual": "panjang_efektif={'0': 0, '1': 1, '7999': 7999, '8000': 8000, '8001': 8000}; counter_terlihat=True",
+   "state": "PASS",
+   "severity": "medium",
+   "seconds": null,
+   "screenshots": [
+    "C:\\Users\\user\\Proyek_AI\\docs\\evidence\\real-user-2026-10-13\\b01-batas-panjang.png"
+   ],
+   "console_errors": [],
+   "failed_requests": [],
+   "extra": {
+    "bounds": {
+     "0": 0,
+     "1": 1,
+     "7999": 7999,
+     "8000": 8000,
+     "8001": 8000
+    }
+   },
+   "evidence_note": null
+  },
+  {
+   "id": "B-02",
+   "persona": "B-BugHunt",
+   "title": "Batas backend: 8001 karakter via API",
+   "precondition": "Token valid; field yang benar = 'prompt'",
+   "action": "POST /chat {\"prompt\": 8001 karakter}",
+   "expected": "422 dengan pesan actionable tentang batas 8000 (bukan 500)",
+   "actual": "HTTP 422; pesan_menyebut_batas=True; body='{\"detail\":[{\"type\":\"value_error\",\"loc\":[\"body\",\"prompt\"],\"msg\":\"Value error, Pesan terlalu panjang: 8,001 karakter. Batas 8,000 karakter per pesan. Kurangi seki'",
+   "state": "PASS",
+   "severity": "medium",
+   "seconds": null,
+   "screenshots": [],
+   "console_errors": [],
+   "failed_requests": [],
+   "extra": {
+    "http": 422,
+    "body": "{\"detail\":[{\"type\":\"value_error\",\"loc\":[\"body\",\"prompt\"],\"msg\":\"Value error, Pesan terlalu panjang: 8,001 karakter. Batas 8,000 karakter per pesan. Kurangi sekitar 1 karakter, atau pecah menjadi beberapa pesan.\",\"input\":\"kkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkk",
+    "field": "prompt"
+   },
+   "evidence_note": null
+  },
+  {
+   "id": "B-03",
+   "persona": "B-BugHunt",
+   "title": "Refresh di tengah generasi",
+   "precondition": "Balasan sedang berjalan (6 s)",
+   "action": "Tekan F5 di tengah generasi",
+   "expected": "Setelah reload, percakapan konsisten: pesan user ada dan balasan (atau status jelas) tampil",
+   "actual": "prompt_ada=True; panjang=61; kartu_error=False",
+   "state": "PASS",
+   "severity": "high",
+   "seconds": null,
+   "screenshots": [
+    "C:\\Users\\user\\Proyek_AI\\docs\\evidence\\real-user-2026-10-13\\b03a-tengah-generasi.png",
+    "C:\\Users\\user\\Proyek_AI\\docs\\evidence\\real-user-2026-10-13\\b03b-setelah-refresh.png"
+   ],
+   "console_errors": [
+    {
+     "type": "error",
+     "text": "Failed to load resource: the server responded with a status of 503 (Service Unavailable)"
+    },
+    {
+     "type": "error",
+     "text": "Failed to load resource: the server responded with a status of 503 (Service Unavailable)"
+    }
+   ],
+   "failed_requests": [],
+   "extra": {
+    "body_tail": "Buat workflow besar: 6 langkah dengan penjelasan tiap langkah"
+   },
+   "evidence_note": null
+  },
+  {
+   "id": "B-04",
+   "persona": "B-BugHunt",
+   "title": "Tombol Back 5x lalu Forward 2x",
+   "precondition": "3 rute dijelajahi",
+   "action": "Klik Back sampai 5x (berhenti di ujung riwayat), lalu Forward 2x",
+   "expected": "Setiap halaman aplikasi yang dikunjungi kembali tampil utuh; tidak ada crash",
+   "actual": "halaman_dikunjungi=3; halaman_rusak=[]; ujung_riwayat=True; panjang_forward=930",
+   "state": "PASS",
+   "severity": "medium",
+   "seconds": null,
+   "screenshots": [
+    "C:\\Users\\user\\Proyek_AI\\docs\\evidence\\real-user-2026-10-13\\b04-setelah-back-5x.png",
+    "C:\\Users\\user\\Proyek_AI\\docs\\evidence\\real-user-2026-10-13\\b04-setelah-forward.png"
+   ],
+   "console_errors": [],
+   "failed_requests": [
+    {
+     "url": "https://gateway.katalir.de5.net/katalir-api/sessions",
+     "failure": "net::ERR_ABORTED"
+    },
+    {
+     "url": "https://gateway.katalir.de5.net/katalir-api/quota",
+     "failure": "net::ERR_ABORTED"
+    }
+   ],
+   "extra": {
+    "visited": [
+     {
+      "url": "http://127.0.0.1:4321/templates",
+      "len": 1641
+     },
+     {
+      "url": "http://127.0.0.1:4321/chat",
+      "len": 930
+     },
+     {
+      "url": "http://127.0.0.1:4321/chat?s=4cc6d78a-9436-4d76-b471-185d174fb5a8",
+      "len": 944
+     },
+     {
+      "url": "about:blank",
+      "len": 0
+     }
+    ]
+   },
+   "evidence_note": null
+  },
+  {
+   "id": "B-05",
+   "persona": "B-BugHunt",
+   "title": "Tutup tab lalu buka lagi",
+   "precondition": "Ada percakapan",
+   "action": "Tutup tab, buka /chat lagi",
+   "expected": "Riwayat percakapan masih tersedia (bisa dipilih dari sidebar)",
+   "actual": "penanda_terlihat=True; item_sidebar=26",
+   "state": "PASS",
+   "severity": "medium",
+   "seconds": null,
+   "screenshots": [
+    "C:\\Users\\user\\Proyek_AI\\docs\\evidence\\real-user-2026-10-13\\b05-buka-lagi.png"
+   ],
+   "console_errors": [],
+   "failed_requests": [],
+   "extra": {
+    "body_head": "pesan penanda sebelum tab ditutup"
+   },
+   "evidence_note": null
+  },
+  {
+   "id": "B-06",
+   "persona": "B-BugHunt",
+   "title": "Kirim 2 prompt berbeda hampir bersamaan",
+   "precondition": "Chat aktif",
+   "action": "Kirim A, jeda 1,2 s, kirim B",
+   "expected": "Kedua prompt tercatat dan keduanya (atau antrean) ditangani dengan jelas",
+   "actual": "A_ada=True; B_ada=True; elemen_antrean=0; panjang=227",
+   "state": "PASS",
+   "severity": "medium",
+   "seconds": null,
+   "screenshots": [
+    "C:\\Users\\user\\Proyek_AI\\docs\\evidence\\real-user-2026-10-13\\b06-dua-prompt.png"
+   ],
+   "console_errors": [
+    {
+     "type": "error",
+     "text": "Failed to load resource: the server responded with a status of 503 (Service Unavailable)"
+    },
+    {
+     "type": "error",
+     "text": "Failed to load resource: the server responded with a status of 503 (Service Unavailable)"
+    },
+    {
+     "type": "error",
+     "text": "Failed to load resource: the server responded with a status of 503 (Service Unavailable)"
+    },
+    {
+     "type": "error",
+     "text": "Failed to load resource: the server responded with a status of 503 (Service Unavailable)"
+    },
+    {
+     "type": "error",
+     "text": "Failed to load resource: the server responded with a status of 503 (Service Unavailable)"
+    },
+    {
+     "type": "error",
+     "text": "Failed to load resource: the server responded with a status of 503 (Service Unavailable)"
+    }
+   ],
+   "failed_requests": [],
+   "extra": {
+    "body_tail": "pertanyaan A: apa itu webhook?\nGagal mengirim\n\nSemua kunci model ini sedang cooldown (kuota). Coba lagi.\n\nCoba Lagi\npertanyaan B: apa itu API?\nGagal mengirim\n\nSemua kunci model ini sedang cooldown (kuota). Coba lagi.\n\nCoba Lagi"
+   },
+   "evidence_note": null
+  },
+  {
+   "id": "B-07",
+   "persona": "B-BugHunt",
+   "title": "Zoom browser 150% / 75% / 100%",
+   "precondition": "Halaman /chat",
+   "action": "Emulasi zoom via viewport CSS + deviceScaleFactor (150% -> 960x600 @1.5; 75% -> 1920x1200 @0.75)",
+   "expected": "Tidak ada overflow horizontal; composer tetap di dalam layar",
+   "actual": "zoom_bermasalah=['100%']; rincian={'150%': {'overflowX': False, 'composer': True, 'composerInView': True, 'innerW': 960, 'innerH': 600}, '75%': {'overflowX': False, 'composer': True, 'composerInView': True, 'innerW': 1920, 'innerH': 1200}, '100%': {'overflowX': False, 'composer': False, 'composerInView': False, 'innerW': 1440, 'innerH': 900}}",
+   "state": "FAIL",
+   "severity": "medium",
+   "seconds": null,
+   "screenshots": [
+    "C:\\Users\\user\\Proyek_AI\\docs\\evidence\\real-user-2026-10-13\\b07-zoom-150.png",
+    "C:\\Users\\user\\Proyek_AI\\docs\\evidence\\real-user-2026-10-13\\b07-zoom-75.png",
+    "C:\\Users\\user\\Proyek_AI\\docs\\evidence\\real-user-2026-10-13\\b07-zoom-100.png"
+   ],
+   "console_errors": [],
+   "failed_requests": [],
+   "extra": {},
+   "evidence_note": "Zoom disimulasikan dengan viewport CSS yang diperkecil + deviceScaleFactor, karena Playwright tidak dapat menekan Ctrl+= pada browser asli. `style.zoom` (dipakai versi pertama) tidak setara dan menghasilkan temuan palsu."
+  },
+  {
+   "id": "B-08",
+   "persona": "B-BugHunt",
+   "title": "Ukuran font browser 24px (aksesibilitas)",
+   "precondition": "/chat",
+   "action": "Set font-size root 24px",
+   "expected": "Tata letak tetap utuh; composer tidak terdorong keluar layar",
+   "actual": "overflowX=False; composer_di_layar=True",
+   "state": "PASS",
+   "severity": "medium",
+   "seconds": null,
+   "screenshots": [
+    "C:\\Users\\user\\Proyek_AI\\docs\\evidence\\real-user-2026-10-13\\b08-font-24px.png"
+   ],
+   "console_errors": [],
+   "failed_requests": [],
+   "extra": {},
+   "evidence_note": null
+  },
+  {
+   "id": "B-09",
+   "persona": "B-BugHunt",
+   "title": "Toggle tema gelap/terang 6x cepat",
+   "precondition": "/chat",
+   "action": "Klik tombol tema 6 kali beruntun",
+   "expected": "Tema berganti mulus; tidak ada elemen tak terbaca",
+   "actual": "klik_berhasil=6; warna_latar_body=rgb(250, 250, 250); error_console=0",
+   "state": "PASS",
+   "severity": "low",
+   "seconds": null,
+   "screenshots": [
+    "C:\\Users\\user\\Proyek_AI\\docs\\evidence\\real-user-2026-10-13\\b09-toggle-tema.png"
+   ],
+   "console_errors": [],
+   "failed_requests": [],
+   "extra": {},
+   "evidence_note": null
+  },
+  {
+   "id": "B-10",
+   "persona": "B-BugHunt",
+   "title": "Rotasi ponsel portrait -> landscape",
+   "precondition": "Viewport 375x667 (iPhone SE), sentuh aktif",
+   "action": "Putar ke 667x375",
+   "expected": "Composer tetap terlihat & bisa disentuh; tanpa overflow",
+   "actual": "{'overflowX': False, 'composer': True, 'composerInView': True, 'h': 375, 'w': 667}; error=0",
+   "state": "PASS",
+   "severity": "medium",
+   "seconds": null,
+   "screenshots": [
+    "C:\\Users\\user\\Proyek_AI\\docs\\evidence\\real-user-2026-10-13\\b10-portrait.png",
+    "C:\\Users\\user\\Proyek_AI\\docs\\evidence\\real-user-2026-10-13\\b10-landscape.png"
+   ],
+   "console_errors": [],
+   "failed_requests": [],
+   "extra": {},
+   "evidence_note": null
+  },
+  {
+   "id": "B-11",
+   "persona": "B-BugHunt",
+   "title": "Unggah berkas di chat",
+   "precondition": "/chat",
+   "action": "Cari input berkas di composer",
+   "expected": "Ada jalur unggah dengan validasi",
+   "actual": "tidak ada input[type=file] di /chat — fitur lampiran belum ada, sehingga uji berkas tidak berlaku",
+   "state": "NOT_RUN",
+   "severity": "low",
+   "seconds": null,
+   "screenshots": [
+    "C:\\Users\\user\\Proyek_AI\\docs\\evidence\\real-user-2026-10-13\\b11-tanpa-lampiran.png"
+   ],
+   "console_errors": [],
+   "failed_requests": [],
+   "extra": {},
+   "evidence_note": "Bukan kegagalan: fitur tidak ada, jadi tidak bisa diuji. Dicatat sebagai celah cakupan."
+  },
+  {
+   "id": "B-12",
+   "persona": "B-BugHunt",
+   "title": "Audit aksesibilitas axe-core (4 halaman)",
+   "precondition": "Login",
+   "action": "Jalankan axe-core pada /chat /builder /templates /settings",
+   "expected": "Tidak ada pelanggaran 'critical'/'serious'",
+   "actual": "pelanggaran_serius_atau_kritis=0; ringkas={'/chat': 0, '/builder': 0, '/templates': 0, '/settings': 0}",
+   "state": "PASS",
+   "severity": "medium",
+   "seconds": null,
+   "screenshots": [
+    "C:\\Users\\user\\Proyek_AI\\docs\\evidence\\real-user-2026-10-13\\b12-axe-chat.png",
+    "C:\\Users\\user\\Proyek_AI\\docs\\evidence\\real-user-2026-10-13\\b12-axe-builder.png",
+    "C:\\Users\\user\\Proyek_AI\\docs\\evidence\\real-user-2026-10-13\\b12-axe-templates.png",
+    "C:\\Users\\user\\Proyek_AI\\docs\\evidence\\real-user-2026-10-13\\b12-axe-settings.png"
+   ],
+   "console_errors": [],
+   "failed_requests": [],
+   "extra": {
+    "axe": {
+     "/chat": [],
+     "/builder": [],
+     "/templates": [],
+     "/settings": []
+    }
+   },
+   "evidence_note": null
+  }
+ ]
+}
