@@ -104,10 +104,18 @@ const FORBIDDEN_RE = /-pro|pro-latest|advanced|transcribe|lyria|nano-banana|robo
  * Pengganti: POLA keluarga berkuota besar. Pola dipakai (bukan id telanjang)
  * karena id yang diserve gateway memakai prefix provider -- roster produksi
  * memuat `google/gemma-4-31b-it`, bukan `gemma-4-31b-it`.
+ *
+ * DIUBAH 14 Okt 2026: alternatif `gemma-4.*(31b|26b)` DIHAPUS dari pola.
+ * Gemma 4 tidak lagi DITAWARKAN (seluruh kuncinya cooldown kuota -> spanduk
+ * fallback di setiap pesan), jadi gerbang produk `NOT_OFFERED_MODEL_IDS`
+ * (`api_server.py`) membuangnya dari `GET /models`. Membiarkan gemma di pola
+ * berarti tes memilih model yang tidak ada di picker -> `VALID` gagal dengan
+ * gejala menyesatkan. Sisa pola = Flash-Lite, yang memang model gratis aktif.
  */
-const RELIABLE_FREE_RE = /gemma-4.*(31b|26b)|gemini-3[.][15]-flash-lite/i;
-/** Fallback bila roster tidak memuat pola di atas (bentuk id roster produksi). */
-const CANONICAL_FREE_MODEL = "google/gemma-4-31b-it";
+const RELIABLE_FREE_RE = /gemini-3[.][15]-flash-lite/i;
+/** Fallback bila roster tidak memuat pola di atas. Id ini model gratis AKTIF
+ *  (bukan gemma lagi -- lihat catatan RELIABLE_FREE_RE). */
+const CANONICAL_FREE_MODEL = "gemini-3.5-flash-lite";
 /** Id RPD-20: TIDAK boleh dipin sebagai expected (gampang OVER harian). */
 const LOW_RPD_IDS = ["gemini-2.5-flash", "gemini-2.5-flash-lite", "gemini-3-flash-preview"];
 
@@ -127,6 +135,19 @@ const MIN_FAMILY_MATCHES = 1;
 const MIN_MODELS = 5;
 /** Model hidup yang pernah salah dihapus filter (namanya memuat "omni"). */
 const REGRESSION_IDS = ["nemotron-3-nano-omni"];
+
+/**
+ * Gerbang PRODUK (14 Okt 2026) — ada di roster, TIDAK boleh ditawarkan.
+ *
+ * Berbeda dari `FORBIDDEN_IDS` (paid-only / media: ditolak di backend) dan
+ * berbeda dari "tidak ada di roster". `google/gemma-4-31b-it` LULUS semua
+ * gerbang lain tetapi seluruh kuncinya cooldown kuota, sehingga memilihnya
+ * memunculkan spanduk "Model yang Anda pilih tidak tersedia" di SETIAP pesan.
+ * Sumber kebenaran: `NOT_OFFERED_MODEL_IDS` di `api_server.py`.
+ * Daftar ini sengaja DIKETIK ULANG (bukan diimpor) supaya tes benar-benar
+ * memeriksa produksi: kalau gerbangnya hilang dari backend, tes ini merah.
+ */
+const NOT_OFFERED_IDS = ["google/gemma-4-31b-it", "gemma-4-31b-it"];
 
 const PRO_MODEL = "gemini-3.1-pro-preview";
 
@@ -325,6 +346,18 @@ test.describe("PRODUKSI: filter model paid-only + badge fallback (tanpa mock)", 
     const forbidden = ids.filter((id) => FORBIDDEN_IDS.includes(id) || FORBIDDEN_RE.test(id));
     console.log(`FORBIDDEN_HITS=${JSON.stringify(forbidden)}`);
     expect(forbidden, `model paid-only masih disajikan: ${forbidden.join(", ")}`).toHaveLength(0);
+
+    // 1b) GERBANG PRODUK (14 Okt 2026): model yang ADA di roster tetapi TIDAK
+    // bisa dilayani tidak boleh ditawarkan. `google/gemma-4-31b-it` adalah
+    // kasusnya: lulus semua gerbang lain, tetapi seluruh kuncinya cooldown
+    // kuota -> memilihnya memunculkan spanduk fallback di SETIAP pesan.
+    // Dijaga di sini supaya ia tidak diam-diam kembali ke picker.
+    const notOffered = ids.filter((id) => NOT_OFFERED_IDS.includes(id));
+    console.log(`NOT_OFFERED_HITS=${JSON.stringify(notOffered)}`);
+    expect(
+      notOffered,
+      `model yang tidak bisa dilayani masih ditawarkan: ${notOffered.join(", ")}`
+    ).toHaveLength(0);
 
     // 2) Model free-tier yang valid TETAP ada.
     expect(

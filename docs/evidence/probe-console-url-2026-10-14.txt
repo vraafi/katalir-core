@@ -1,0 +1,17 @@
+=== Probe console capture (stub, tanpa browser) ===
+  [PASS] error menyimpan url  :: 'https://katalir.de5.net/_next/static/chunks/missing.js'
+  [PASS] error menyimpan line  :: 42
+  [PASS] error menyimpan text  :: 'Failed to load resource: the server responded with a status
+  [PASS] warning terekam  :: n=2
+  [PASS] log diabaikan  :: n=2
+  [PASS] err_summary memuat url  :: Failed to load resource: the server responded with a status of 404 () @ https://katalir.de5.net/_next/static/chunks/miss
+  [PASS] err_summary hanya error (bukan warning)  :: Failed to load resource: the server responded with a status of 404 () @ https://katalir.de5.net/_next/static/chunks/miss
+  [PASS] errs() menyaring  :: n=1
+  [PASS] location rusak tidak melempar  :: {'type': 'error', 'text': 'tanpa location', 'url': '', 'line': None}
+  [PASS] pageerror terekam  :: n=1
+  [PASS] pageerror menyimpan stack  :: 'Error: boom\n    at foo (app.js:1:1)'
+  [PASS] pageerror url kosong (bukan resource)
+  [PASS] handler console terpasang  :: ['console', 'pageerror', 'request', 'requestfailed', 'response']
+  [PASS] handler pageerror terpasang
+
+HASIL: SEMUA PASS (14 pemeriksaan)

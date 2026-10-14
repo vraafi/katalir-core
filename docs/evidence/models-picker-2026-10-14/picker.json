@@ -1,0 +1,38 @@
+{
+  "email": "shot-picker-f529bc8e@katalir-internal.dev",
+  "label_tombol": "Gemini 3.5 Flash Lite",
+  "jumlah_item": 8,
+  "item_texts": [
+    "Gemini 3.5 Flash Lite | 865ms",
+    "Allam 2 7B | 732ms",
+    "Gpt Oss 20B | 521ms",
+    "Qwen3.8 27B | 192ms",
+    "Kimi K3 | 42702ms",
+    "Nemotron 3 Nano Omni 30B A3B Reasoning | 7154ms",
+    "Nemotron 3 Ultra 550B A55B | 1816ms",
+    "Laguna Xs 2.1 | 945ms"
+  ],
+  "menu_text": "Sebagian model sedang tidak tersedia\nDaftar model diambil dari sumber cadangan.\n\nGATEWAY · GOOGLE_GEMINI\n\nGemini 3.5 Flash Lite\n865ms\n\nGATEWAY · GROQ\n\nAllam 2 7B\n732ms\nGpt Oss 20B\n521ms\nQwen3.8 27B\n192ms\n\nGATEWAY · NVIDIA\n\nKimi K3\n42702ms\nNemotron 3 Nano Omni 30B A3B Reasoning\n7154ms\nNemotron 3 Ultra 550B A55B\n1816ms\nLaguna Xs 2.1\n945ms\nPlus — segera hadir",
+  "gemma_terlihat": false,
+  "flash_terlihat": true,
+  "models_payload_count": 2,
+  "models_ids": [
+    "allam-2-7b",
+    "gemini-2.5-flash",
+    "gemini-2.5-flash-lite",
+    "gemini-3-flash-preview",
+    "gemini-3.5-flash-lite",
+    "gemini-3.8-flash",
+    "moonshotai/kimi-k3",
+    "nvidia/nemotron-3-nano-omni-30b-a3b-reasoning",
+    "nvidia/nemotron-3-ultra-550b-a55b",
+    "openai/gpt-oss-20b",
+    "poolside/laguna-xs-2.1",
+    "qwen/qwen3.8-27b"
+  ],
+  "not_offered_filtered": [
+    "google/gemma-4-31b-it"
+  ],
+  "screenshot": "C:\\Users\\user\\Proyek_AI\\docs\\evidence\\models-picker-2026-10-14\\picker.png",
+  "ok": true
+}

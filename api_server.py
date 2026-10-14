@@ -570,6 +570,39 @@ DEFAULT_MODEL_PREFERENCE = (
 )
 
 
+# ---------------------------------------------------------------------------
+# MODEL YANG SENGAJA TIDAK DITAWARKAN DI PICKER (keputusan produk, 14 Okt 2026)
+# ---------------------------------------------------------------------------
+# BERBEDA dari filter paid-only (`gateway_roster.filter_free_models`) dan
+# BERBEDA dari "tidak ada di roster":
+#
+#   `google/gemma-4-31b-it` ADA di roster gateway (258 id) dan LULUS semua
+#   gerbang, jadi ia terlihat "tersedia" di picker. Tetapi seluruh kuncinya
+#   dalam cooldown kuota -> setiap request ditandai
+#   `fallback=true / model_unavailable` dan pengguna melihat spanduk
+#   "Model yang Anda pilih tidak tersedia" di SETIAP pesan. Kuota tidak bisa
+#   diperbaiki dari sisi kita, jadi pilihannya DIHAPUS dari produk.
+#
+#   Bukti: docs/evidence/default-model-id-2026-10-14/probe_default_model_id.json
+#   (kandidat `google/gemini-3.5-flash-lite` & `google/gemma-4-31b-it` ->
+#   `fallback=true`; hanya id TANPA awalan penyedia yang `fallback=false`).
+#
+# Kenapa gerbang ini di ENDPOINT /models, bukan di `model_discovery`:
+#   `md.get_available_models()` juga dipakai `_resolve_model` (baris ~707) dan
+#   `_bucket_model_id` (baris ~2307, bucket kuota "gemma"). Memfilter di sana
+#   akan mengubah perilaku kuota & resolusi model -- di luar maksud perubahan
+#   ini. Yang diminta hanyalah berhenti MENAWARKANNYA.
+NOT_OFFERED_MODEL_IDS = frozenset({
+    "google/gemma-4-31b-it",
+    "gemma-4-31b-it",  # alias lama tanpa awalan penyedia (localStorage basi)
+})
+
+
+def is_offered_model(model_id: str) -> bool:
+    """False = jangan tawarkan di picker (ada di roster, tapi tak bisa dilayani)."""
+    return (model_id or "").strip() not in NOT_OFFERED_MODEL_IDS
+
+
 def _default_model_id() -> str:
     """Default server: model roster gateway bila gateway aktif.
 
@@ -3062,9 +3095,19 @@ def list_models(authorization: str | None = Header(None)):
     is_plus = (tier == "plus")
     default_id = _default_model_id()
     discovered = md.get_available_models()
+    # Gerbang produk (14 Okt 2026): buang model yang ADA di roster tetapi tidak
+    # bisa dilayani -> jangan pernah sampai ke picker. Lihat NOT_OFFERED_MODEL_IDS.
+    offered = [m for m in discovered if is_offered_model(str(m.get("id") or ""))]
+    #: Id yang dibuang gerbang produk, dikirim balik supaya /models bisa
+    #: diaudit tanpa menebak (dan supaya test bisa mengassert gerbangnya JALAN,
+    #: bukan sekadar "kebetulan tidak ada di roster").
+    not_offered_filtered = sorted(
+        str(m.get("id") or "") for m in discovered
+        if not is_offered_model(str(m.get("id") or ""))
+    )
     items = [
         {**m, "locked": bool(m.get("tier") == "plus" and not is_plus)}
-        for m in discovered
+        for m in offered
     ]
     # DIAGNOSTIK (2026-09-19): user pernah melihat dropdown "hanya Google" tanpa
     # penjelasan karena discovery jatuh ke daftar Gemini secara senyap saat
@@ -3073,6 +3116,7 @@ def list_models(authorization: str | None = Header(None)):
     health = md.discovery_health()
     return {"status": "success", "tier": tier, "default": default_id,
             "models": items,
+            "not_offered_filtered": not_offered_filtered,
             "roster_source": health.get("source", "unknown"),
             "degraded": bool(health.get("degraded")),
             "degraded_reason": health.get("reason", ""),

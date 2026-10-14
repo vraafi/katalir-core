@@ -1,0 +1,104 @@
+CLEANUP: GEMMA + STALE MODEL — rekap bukti (14 Oktober 2026)
+================================================================
+
+TASK 1 — HAPUS `google/gemma-4-31b-it` DARI PICKER
+----------------------------------------------------------------
+Sumber kebenaran picker = `GET /models` (backend), BUKAN `models.ts`.
+`ChatApp.tsx:220` memakai `GET /models`; `models.ts` hanya loading-fallback.
+Karena itu gerbang dipasang di ENDPOINT, bukan di `model_discovery`.
+
+Gerbang: `NOT_OFFERED_MODEL_IDS` + `is_offered_model()` (api_server.py)
+Endpoint juga mengembalikan `not_offered_filtered` supaya pembuangan bisa
+DIAUDIT (tanpa itu, "tidak ada di daftar" tak bisa dibedakan dari
+"kebetulan roster sedang kosong").
+
+BUKTI BEFORE/AFTER (akun uji nyata, `probe_models_picker.py`):
+
+  BEFORE  count=13  gemma_ada=True   filtered=None
+  AFTER   count=12  gemma_ada=False  filtered=['google/gemma-4-31b-it']
+
+  Daftar AFTER (12): gemini-2.5-flash, gemini-2.5-flash-lite,
+  gemini-3-flash-preview, gemini-3.5-flash-lite, gemini-3.8-flash,
+  allam-2-7b, openai/gpt-oss-20b, qwen/qwen3.8-27b, moonshotai/kimi-k3,
+  nvidia/nemotron-3-nano-omni-30b-a3b-reasoning,
+  nvidia/nemotron-3-ultra-550b-a55b, poolside/laguna-xs-2.1
+
+  13 -> 12 = tepat SATU model dibuang => tidak ada over-delete.
+  `default` tetap `gemini-3.5-flash-lite`.
+
+BUKTI DOM (browser produksi, `shot_picker_no_gemma.py`):
+  label tombol        : "Gemini 3.5 Flash Lite"
+  jumlah item picker  : 8
+  gemma terlihat      : False
+  flash terlihat      : True
+  not_offered_filtered: ['google/gemma-4-31b-it']
+  (8 = 12 - 4 model RPD-20 yang memang difilter `pickerModels()`)
+
+BUKTI BUNDLE PRODUKSI — chunk `app/chat/page-dd0fd9e4f93cf3a5.js`:
+  E=[{id:"gemini-3.5-flash-lite", ...}]                 <- picker fallback, TANPA gemma
+  M="gemini-3.5-flash-lite".trim()||"gemini-3.5-flash-lite"  <- default
+  O={"gemma-4-31b-it":M,"google/gemma-4-31b-it":M}      <- alias legacy -> default
+  gemma tersisa HANYA di alias map (disengaja: menyembuhkan localStorage basi).
+
+DEPLOY:
+  backend  : scp api_server.py -> md5 cd2b5c4d3049b673a0ce3495c7118fae (== lokal),
+             AST OK, import OK, `systemctl restart katalir-backend` -> active.
+             Backup: /root/backup_api_server_20261014_gemma.py (ac4ef75c...)
+  frontend : `next build` OK -> `export-out.mjs --clean` -> `ops/deploy_pages.py`
+             3 gerbang LULUS (check-api-url-csp, check-bundle-hosts,
+             check-payment-hidden). Produksi menyajikan chunk baru.
+
+TASK 2 — HAPUS ENTRI BASI `gemini-3.1-flash-lite`
+----------------------------------------------------------------
+Lokasi: `nexus-frontend/src/lib/models.ts` -> `SELLABLE_MODELS`.
+Catatan: blok ini TIDAK dikonsumsi kode mana pun (grep hanya menemukan
+definisinya) -> ia dokumentasi lineup, bukan gerbang. Karena itu menghapusnya
+tidak mengubah perilaku runtime; yang berubah hanya kebenaran dokumentasi.
+
+BUKTI TIDAK ADA DI /models: `gemini-3.1-flash-lite` TIDAK muncul di
+`models_before.json` MAUPUN `models_after.json` (roster 13 -> 12 model,
+keduanya tanpa id ini). Jadi "test: /models tidak ada lagi" LULUS — dan
+memang sudah lulus sebelum perubahan, karena id itu hanya hidup di allowlist
+`FREE_TIER_MODEL_IDS` (allowlist MENGIZINKAN, tidak menyuntikkan).
+
+Perubahan ikutan: entri gemma di `SELLABLE_MODELS` dijadikan `sellable:false`
+(konsisten dengan pola entri DeepSeek Pro yang sudah ada).
+
+TASK 3 — INSTRUMEN B-09
+----------------------------------------------------------------
+Perbaikan `tests/user_test/rus_core.py`:
+  * `_on_console` menyimpan `url` + `line` (dari `m.location`)
+  * `_on_pageerror` menyimpan `stack`
+  * `Probe.err_summary()` baru -> URL terbaca langsung di kolom `actual`
+  * B-09: `actual` memuat URL; jalur `except` TIDAK lagi membuang console/netfail
+
+Verifikasi unit (stub, tanpa browser): 14/14 PASS
+  -> docs/evidence/probe-console-url-2026-10-14.txt
+
+Re-run `rus_run.py bug`: B-09 masih FAIL, TETAPI kini penyebabnya TERBACA:
+  /builder.txt?_rsc=...   -> 404
+  /templates.txt?_rsc=... -> 404
+
+AKAR MASALAH (bukan flaky):
+  Runtime klien Next 15.5.27 menambah ".txt" pada pathname untuk prefetch RSC
+  (`.next/static/chunks/1255-41a2740103efcd89.js`:
+   `e.pathname.endsWith("/")?e.pathname+="index.txt":e.pathname+=".txt"`),
+  sedangkan `scripts/export-out.mjs` sengaja HANYA menyalin `.html` dan
+  membuang `.rsc`. Hasilnya `out/builder.txt` & `out/templates.txt` tidak ada
+  (hanya `out/robots.txt`) -> setiap prefetch tautan navigasi 404.
+  Tampak "flaky" karena prefetch hanya jalan saat tautan masuk viewport.
+  Dampak: TIDAK ada kerusakan fungsional (klik tetap navigasi penuh);
+  2 request terbuang + galat konsol mengotori pemantauan.
+  SUDAH ADA sebelum perubahan hari ini. Usulan perbaikan didokumentasikan di
+  `docs/b09-root-cause-2026-10-14.md` (BELUM diterapkan — keputusan produk).
+
+UJI
+----------------------------------------------------------------
+  pytest (model, 6 berkas)              : 60 passed
+  pytest tests/test_model_picker_gate.py: 15 passed (baru)
+  tsc --noEmit                          : 0 error
+  verify_probe_console_url.py           : 14/14 PASS
+
+  `rus_run.py bug` sesudah perubahan: PASS=10 FAIL=1(B-09) BLOCKED=0 NOT_RUN=1
+  (B-09 = satu-satunya FAIL, penyebabnya = 404 prefetch di atas, bukan tema:
+   klik_berhasil=6/6, latar body berganti normal)

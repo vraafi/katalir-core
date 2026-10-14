@@ -891,19 +891,30 @@ def b_bughunt(b):
         pg.wait_for_timeout(1500)
         shots.append(shot(pg, "b09-toggle-tema"))
         bg = pg.evaluate("() => getComputedStyle(document.body).backgroundColor")
+        errs = pr.errs()
+        # 14 Okt 2026: sertakan URL error di `actual` (dulu hanya jumlahnya).
+        # Kegagalan B-09 sebelumnya berbunyi "error_console=2" tanpa menyebut
+        # resource mana yang gagal -> tidak bisa dipastikan apakah itu regresi
+        # tema atau kebisingan pihak ketiga. `Probe._on_console` kini merekam
+        # URL, dan ringkasannya ditampilkan di sini.
+        det = f"error_console={len(errs)}"
+        if errs:
+            det += f"; detail=[{pr.err_summary()}]"
         rec("B-09", "B-BugHunt", "Toggle tema gelap/terang 6x cepat",
             precondition="/chat",
             action="Klik tombol tema 6 kali beruntun",
             expected="Tema berganti mulus; tidak ada elemen tak terbaca",
-            actual=f"klik_berhasil={n}; warna_latar_body={bg}; "
-                   f"error_console={len(pr.errs())}",
-            state="PASS" if n >= 2 and len(pr.errs()) == 0 else "FAIL",
-            severity="low", shots=shots, console=pr.errs(), netfail=pr.netfail)
+            actual=f"klik_berhasil={n}; warna_latar_body={bg}; {det}",
+            state="PASS" if n >= 2 and len(errs) == 0 else "FAIL",
+            severity="low", shots=shots, console=errs, netfail=pr.netfail)
     except Exception as exc:  # noqa: BLE001
+        # console/netfail IKUT dikirim: jalur ini dulu membuang keduanya,
+        # sehingga kegagalan tak terduga kehilangan bukti yang sudah terekam.
         rec("B-09", "B-BugHunt", "Toggle tema gelap/terang 6x cepat",
             precondition="/chat", action="klik tema 6x",
             expected="Mulus", actual=f"ERROR {type(exc).__name__}: {exc}",
-            state="FAIL", severity="low", shots=shots)
+            state="FAIL", severity="low", shots=shots,
+            console=pr.errs(), netfail=pr.netfail)
 
     # B-10 — rotasi mobile (portrait -> landscape)
     pr.reset()

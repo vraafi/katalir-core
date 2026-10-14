@@ -202,8 +202,7 @@ class Probe:
         self.chat_posts: list = []
         pg.on("request", self._on_req)
         pg.on("console", self._on_console)
-        pg.on("pageerror", lambda e: self.console.append(
-            {"type": "pageerror", "text": str(e)[:240]}))
+        pg.on("pageerror", self._on_pageerror)
         pg.on("requestfailed", lambda r: self.netfail.append(
             {"url": r.url[:160], "failure": str(r.failure or "")[:140]}))
         pg.on("response", self._on_resp)
@@ -216,8 +215,38 @@ class Probe:
             pass
 
     def _on_console(self, m):
-        if m.type in ("error", "warning"):
-            self.console.append({"type": m.type, "text": m.text[:240]})
+        """Rekam console error/warning TERMASUK URL sumbernya.
+
+        Kenapa URL wajib ada (perbaikan 14 Okt 2026, celah instrumen B-09):
+        teks console untuk resource gagal hanya berbunyi
+        `Failed to load resource: the server responded with a status of 404 ()`
+        -- TANPA menyebut resource mana. Saat B-09 gagal karena 2 console 404,
+        tidak ada cara mengetahui apa yang 404 tanpa membuka DevTools manual,
+        sehingga penyebabnya tidak bisa dipastikan. `location` membawa URL +
+        nomor baris; `bad` (respons >= 400) sudah punya URL, jadi keduanya kini
+        bisa dicocokkan.
+        """
+        if m.type not in ("error", "warning"):
+            return
+        try:
+            loc = getattr(m, "location", None) or {}
+        except Exception:  # noqa: BLE001 - pesan bisa sudah terlepas
+            loc = {}
+        self.console.append({
+            "type": m.type,
+            "text": m.text[:240],
+            "url": str((loc or {}).get("url") or "")[:200],
+            "line": (loc or {}).get("lineNumber"),
+        })
+
+    def _on_pageerror(self, e):
+        """Error JS tak tertangkap: simpan stack (tanpa URL resource)."""
+        self.console.append({
+            "type": "pageerror",
+            "text": str(e)[:240],
+            "url": "",
+            "stack": str(getattr(e, "stack", "") or "")[:400],
+        })
 
     def _on_resp(self, r):
         try:
@@ -234,6 +263,18 @@ class Probe:
 
     def errs(self):
         return [c for c in self.console if c["type"] in ("error", "pageerror")]
+
+    def err_summary(self, limit=3):
+        """Ringkas error + URL-nya untuk kolom `actual` (bisa dibaca di log).
+
+        Tanpa ini, laporan hanya berbunyi `error_console=2` dan penyebabnya
+        harus digali manual dari JSON.
+        """
+        out = []
+        for c in self.errs()[:limit]:
+            url = (c.get("url") or "").strip()
+            out.append(f"{c.get('text', '')[:80]}" + (f" @ {url}" if url else ""))
+        return " || ".join(out)
 
 
 def proxy_backend(ctx, base=None, on_call=None):

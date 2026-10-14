@@ -1,0 +1,162 @@
+{
+  "label": "before",
+  "http_status": 200,
+  "tier": "free",
+  "default": "gemini-3.5-flash-lite",
+  "roster_source": "gateway",
+  "degraded": false,
+  "degraded_reason": "",
+  "refreshed_at": "2026-10-14T08:18:53Z",
+  "model_count": 13,
+  "model_ids": [
+    "gemini-2.5-flash",
+    "gemini-2.5-flash-lite",
+    "gemini-3-flash-preview",
+    "gemini-3.5-flash-lite",
+    "gemini-3.8-flash",
+    "allam-2-7b",
+    "openai/gpt-oss-20b",
+    "qwen/qwen3.8-27b",
+    "google/gemma-4-31b-it",
+    "moonshotai/kimi-k3",
+    "nvidia/nemotron-3-nano-omni-30b-a3b-reasoning",
+    "nvidia/nemotron-3-ultra-550b-a55b",
+    "poolside/laguna-xs-2.1"
+  ],
+  "not_offered_filtered": null,
+  "raw_response": {
+    "status": "success",
+    "tier": "free",
+    "default": "gemini-3.5-flash-lite",
+    "models": [
+      {
+        "id": "gemini-2.5-flash",
+        "name": "Gemini 2.5 Flash",
+        "provider": "Gateway · google_gemini",
+        "tier": "free",
+        "hint": "965ms",
+        "locked": false
+      },
+      {
+        "id": "gemini-2.5-flash-lite",
+        "name": "Gemini 2.5 Flash Lite",
+        "provider": "Gateway · google_gemini",
+        "tier": "free",
+        "hint": "514ms",
+        "locked": false
+      },
+      {
+        "id": "gemini-3-flash-preview",
+        "name": "Gemini 3 Flash Preview",
+        "provider": "Gateway · google_gemini",
+        "tier": "free",
+        "hint": "8828ms",
+        "locked": false
+      },
+      {
+        "id": "gemini-3.5-flash-lite",
+        "name": "Gemini 3.5 Flash Lite",
+        "provider": "Gateway · google_gemini",
+        "tier": "free",
+        "hint": "865ms",
+        "locked": false
+      },
+      {
+        "id": "gemini-3.8-flash",
+        "name": "Gemini 3.8 Flash",
+        "provider": "Gateway · google_gemini",
+        "tier": "free",
+        "hint": "131710ms",
+        "locked": false
+      },
+      {
+        "id": "allam-2-7b",
+        "name": "Allam 2 7B",
+        "provider": "Gateway · groq",
+        "tier": "free",
+        "hint": "732ms",
+        "locked": false
+      },
+      {
+        "id": "openai/gpt-oss-20b",
+        "name": "Gpt Oss 20B",
+        "provider": "Gateway · groq",
+        "tier": "free",
+        "hint": "521ms",
+        "locked": false
+      },
+      {
+        "id": "qwen/qwen3.8-27b",
+        "name": "Qwen3.8 27B",
+        "provider": "Gateway · groq",
+        "tier": "free",
+        "hint": "192ms",
+        "locked": false
+      },
+      {
+        "id": "google/gemma-4-31b-it",
+        "name": "Gemma 4 31B It",
+        "provider": "Gateway · nvidia",
+        "tier": "free",
+        "hint": "52985ms",
+        "locked": false
+      },
+      {
+        "id": "moonshotai/kimi-k3",
+        "name": "Kimi K3",
+        "provider": "Gateway · nvidia",
+        "tier": "free",
+        "hint": "42702ms",
+        "locked": false
+      },
+      {
+        "id": "nvidia/nemotron-3-nano-omni-30b-a3b-reasoning",
+        "name": "Nemotron 3 Nano Omni 30B A3B Reasoning",
+        "provider": "Gateway · nvidia",
+        "tier": "free",
+        "hint": "7154ms",
+        "locked": false
+      },
+      {
+        "id": "nvidia/nemotron-3-ultra-550b-a55b",
+        "name": "Nemotron 3 Ultra 550B A55B",
+        "provider": "Gateway · nvidia",
+        "tier": "free",
+        "hint": "1816ms",
+        "locked": false
+      },
+      {
+        "id": "poolside/laguna-xs-2.1",
+        "name": "Laguna Xs 2.1",
+        "provider": "Gateway · nvidia",
+        "tier": "free",
+        "hint": "945ms",
+        "locked": false
+      }
+    ],
+    "roster_source": "gateway",
+    "degraded": false,
+    "degraded_reason": "",
+    "refreshed_at": "2026-10-14T08:18:53Z"
+  },
+  "checks": {
+    "google/gemma-4-31b-it": {
+      "present": true,
+      "expected": "ABSENT",
+      "why": "Task 1 - tak bisa dilayani (kuota habis)",
+      "ok": false
+    },
+    "gemma-4-31b-it": {
+      "present": false,
+      "expected": "ABSENT",
+      "why": "Task 1 - alias lama tanpa awalan penyedia",
+      "ok": true
+    },
+    "gemini-3.1-flash-lite": {
+      "present": false,
+      "expected": "ABSENT",
+      "why": "Task 2 - entri basi, tak ada di roster",
+      "ok": true
+    }
+  }
+}
