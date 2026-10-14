@@ -1,0 +1,31 @@
+========================================================================
+REAL USER SIMULATION — Katalir (13 Okt 2026)
+akun uji   : rus-final-70aa3c83@katalir-internal.dev
+frontend   : https://katalir.de5.net
+backend    : https://gateway.katalir.de5.net/katalir-api
+bukti      : C:\Users\user\Proyek_AI\docs\evidence\real-user-2026-10-13
+grup       : ['bug']
+========================================================================
+
+========================================================================
+### GRUP BUG
+========================================================================
+
+### B bug hunt (boundary/state/timing/UI/data/a11y)
+  [PASS] B-01 Batas panjang input 0/1/7999/8000/8001  :: panjang_efektif={'0': 0, '1': 1, '7999': 7999, '8000': 8000, '8001': 8000}; counter_terlihat=True
+  [PASS] B-02 Batas backend: 8001 karakter via API  :: HTTP 422; pesan_menyebut_batas=True; body='{"detail":[{"type":"value_error","loc":["body","prompt"],"msg":"Value error, 
+  [PASS] B-03 Refresh di tengah generasi  :: prompt_ada=True; panjang=941; kartu_error=False
+  [PASS] B-04 Tombol Back 5x lalu Forward 2x  :: halaman_dikunjungi=3; halaman_rusak=[]; ujung_riwayat=True; panjang_forward=367
+  [PASS] B-05 Tutup tab lalu buka lagi  :: penanda_terlihat=False; item_sidebar=4
+  [PASS] B-06 Kirim 2 prompt berbeda hampir bersamaan  :: A_ada=True; B_ada=True; elemen_antrean=0; panjang=1493
+  [PASS] B-07 Zoom browser 150% / 75% / 100%  :: zoom_bermasalah=[]; rincian={'150%': {'overflowX': False, 'composer': True, 'composerInView': True, 'innerW': 960, 'inne
+  [PASS] B-08 Ukuran font browser 24px (aksesibilitas)  :: overflowX=False; composer_di_layar=True
+  [PASS] B-09 Toggle tema gelap/terang 6x cepat  :: klik_berhasil=6; warna_latar_body=rgb(250, 250, 250); error_console=0
+  [PASS] B-10 Rotasi ponsel portrait -> landscape  :: {'overflowX': False, 'composer': True, 'composerInView': True, 'h': 375, 'w': 667}; error=0
+  [SKIP] B-11 Unggah berkas di chat  :: tidak ada input[type=file] di /chat — fitur lampiran belum ada, sehingga uji berkas tidak berlaku
+  [PASS] B-12 Audit aksesibilitas axe-core (4 halaman)  :: pelanggaran_serius_atau_kritis=0; ringkas={'/chat': 0, '/builder': 0, '/templates': 0, '/settings': 0}
+
+[bug] 170.9s  ->  PASS=11 FAIL=0 BLOCKED=0 NOT_RUN=1
+
+bukti -> C:\Users\user\Proyek_AI\tests\user_test\_rus_bug.json
+EXIT=0

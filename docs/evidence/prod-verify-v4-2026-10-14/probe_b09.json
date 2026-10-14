@@ -1,0 +1,10 @@
+{
+ "user": "probe-b09-10d8ee19@katalir-internal.dev",
+ "klik_berhasil": 0,
+ "warna_latar_body": "rgb(250, 250, 250)",
+ "jumlah_galat_konsol": 0,
+ "galat_konsol": [],
+ "respons_4xx_5xx": [],
+ "permintaan_gagal": [],
+ "screenshot": "C:\\Users\\user\\Proyek_AI\\docs\\evidence\\prod-verify-v4-2026-10-14\\probe_b09.png"
+}

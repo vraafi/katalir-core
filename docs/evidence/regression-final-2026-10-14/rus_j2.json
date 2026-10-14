@@ -1,0 +1,139 @@
+{
+ "group": "j2",
+ "email": "rus-final-64719af4@katalir-internal.dev",
+ "count": 4,
+ "results": [
+  {
+   "id": "J2-A",
+   "persona": "J2-Journey",
+   "title": "Langkah 1-2: buka halaman Integrations",
+   "precondition": "Login",
+   "action": "Buka /integrations",
+   "expected": "Katalog integrasi termuat dengan item yang bisa dipilih",
+   "actual": "muat=5.5s; panjang_teks=12308; kandidat_kartu=2; head='Lompat ke konten\\nKatalir\\nKembali\\nIntegrasi MCP\\n\\nTemukan koneksi untuk otomasi Anda.\\n\\nKoneksi Anda\\n\\nHubungkan a'",
+   "state": "PASS",
+   "severity": "medium",
+   "seconds": null,
+   "screenshots": [
+    "C:\\Users\\user\\Proyek_AI\\docs\\evidence\\real-user-2026-10-13\\j2-01-integrations.png"
+   ],
+   "console_errors": [],
+   "failed_requests": [
+    {
+     "url": "https://katalir.de5.net/cdn-cgi/rum?",
+     "failure": "net::ERR_ABORTED"
+    },
+    {
+     "url": "https://katalir.de5.net/cdn-cgi/rum?",
+     "failure": "net::ERR_ABORTED"
+    }
+   ],
+   "extra": {
+    "body_head": "Lompat ke konten\nKatalir\nKembali\nIntegrasi MCP\n\nTemukan koneksi untuk otomasi Anda.\n\nKoneksi Anda\n\nHubungkan akun yang boleh Katalir gunakan atas nama Anda. Token disimpan terenkripsi di Brankas.\n\nGoogle Sheets\nBelum terhubung\nConnect Google Sheets\n\nMenghapus di sini menghapus token dari Brankas. Untuk mencabut penuh, hapus Katalir dari Google account permissions.\n\nSlack\nBelum terhubung\nConnect Slack\n\nMenghapus di sini menghapus token dari Brankas. Untuk mencabut penuh, hapus Katalir dari Slack workspace.\n\nAll (mentah)\nTampilan \"Unique (dedup)\" tidak tersedia di server ini.\nSatu baris per entr"
+   },
+   "evidence_note": null
+  },
+  {
+   "id": "J2-B",
+   "persona": "J2-Journey",
+   "title": "Langkah 3: cari 'Shopee' (dengan kontrol)",
+   "precondition": "Katalog terbuka",
+   "action": "Cari 'shopee' di UI + API; ulangi dengan 'slack' sebagai kontrol",
+   "expected": "Jalur pencarian hidup DAN hasil Shopee relevan",
+   "actual": "UI_shopee_menyebut_shopee=True; API_shopee: HTTP 200 n=4; KONTROL_API_slack: HTTP 200 n=43; UI_slack_menyebut_slack=True",
+   "state": "PASS",
+   "severity": "medium",
+   "seconds": null,
+   "screenshots": [
+    "C:\\Users\\user\\Proyek_AI\\docs\\evidence\\real-user-2026-10-13\\j2-01-integrations.png",
+    "C:\\Users\\user\\Proyek_AI\\docs\\evidence\\real-user-2026-10-13\\j2-02-cari-shopee.png",
+    "C:\\Users\\user\\Proyek_AI\\docs\\evidence\\real-user-2026-10-13\\j2-03-cari-slack-kontrol.png"
+   ],
+   "console_errors": [],
+   "failed_requests": [
+    {
+     "url": "https://katalir.de5.net/cdn-cgi/rum?",
+     "failure": "net::ERR_ABORTED"
+    },
+    {
+     "url": "https://katalir.de5.net/cdn-cgi/rum?",
+     "failure": "net::ERR_ABORTED"
+    }
+   ],
+   "extra": {
+    "api_shopee": "{\"items\":[{\"id\":\"glama/tq4ar85rk7\",\"name\":\"affiliate-marketplace-mcp\",\"source\":\"glama\",\"description\":\"Enables AI agents to automate the full affiliate e-commerce workflow across Shopee and TikTok Shop, including product hu\",\"category\":\"mcp\",\"repo_url\":\"https://github.com/tody-agent/affiliate-product\",\"source_url\":\"https://glama.ai/mcp/servers/tq4ar85rk7\",\"attribution_required\":true,\"tools_count\":0,\"tools\":[],\"no_auth\":true,\"install_config\":{\"transport\":\"metadata-only\",\"package\":\"\",\"install_method\":\"glama\"},\"tenant_scope\":\"user\",\"validated\":true,\"runtime_verified\":false,\"verification\":{\"discovered\":true,\"tools_listed\":false,\"call_verified\":false},\"runtime_tier\":\"discovered\"},{\"id\":\"glama/wbm2i8r2o4\",\"name\":\"Apps Script + Sheets + Shopee CSV MCP\",\"source\":\"glama\",\"description\":\"Enables AI assistants to read Shopee CSV reports from Google Drive, parse commission and click data, and refresh ",
+    "api_slack": "{\"items\":[{\"id\":\"@modelcontextprotocol/server-slack\",\"name\":\"server-slack\",\"category\":\"communication\",\"description\":\"MCP server @modelcontextprotocol/server-slack\",\"repo_url\":\"\",\"install_config\":{\"transport\":\"metadata-only\",\"package\":\"@modelcontextprotocol/server-slack\"},\"tenant_scope\":\"user\",\"validated\":true,\"tools\":[],\"runtime_tier\":\"discovered\"},{\"id\":\"actionkit-(slack)\",\"name\":\"actionkit-(slac"
+   },
+   "evidence_note": "Kontrol 'slack' membuktikan jalur pencarian hidup. Hasil 'shopee' berasal dari konektor MCP PIHAK KETIGA (mis. marketplace affiliate), BUKAN integrasi Shopee kelas satu dengan form kredensial + webhook. Jadi journey 'setup Shopee' seperti di brief hanya bisa lewat konektor pihak ketiga."
+  },
+  {
+   "id": "J2-C",
+   "persona": "J2-Journey",
+   "title": "Langkah 4: alur penyiapan kredensial yang ADA",
+   "precondition": "Katalog terbuka",
+   "action": "Buka detail konektor pertama, cari field kredensial",
+   "expected": "Ada jalur penyiapan kredensial (bila konektor butuh auth)",
+   "actual": "field_input_di_detail=0",
+   "state": "NOT_RUN",
+   "severity": "low",
+   "seconds": null,
+   "screenshots": [
+    "C:\\Users\\user\\Proyek_AI\\docs\\evidence\\real-user-2026-10-13\\j2-01-integrations.png",
+    "C:\\Users\\user\\Proyek_AI\\docs\\evidence\\real-user-2026-10-13\\j2-02-cari-shopee.png",
+    "C:\\Users\\user\\Proyek_AI\\docs\\evidence\\real-user-2026-10-13\\j2-03-cari-slack-kontrol.png",
+    "C:\\Users\\user\\Proyek_AI\\docs\\evidence\\real-user-2026-10-13\\j2-04-detail-konektor.png"
+   ],
+   "console_errors": [],
+   "failed_requests": [
+    {
+     "url": "https://katalir.de5.net/cdn-cgi/rum?",
+     "failure": "net::ERR_ABORTED"
+    },
+    {
+     "url": "https://katalir.de5.net/cdn-cgi/rum?",
+     "failure": "net::ERR_ABORTED"
+    }
+   ],
+   "extra": {},
+   "evidence_note": "Bila konektor yang dibuka tidak butuh kredensial, ini memang tidak berlaku (NOT_RUN), bukan gagal."
+  },
+  {
+   "id": "J2-D",
+   "persona": "J2-Journey",
+   "title": "Langkah 5: minta workflow Shopee lewat chat",
+   "precondition": "Chat aktif",
+   "action": "Prompt rantai Shopee 5 langkah",
+   "expected": "Rancangan workflow yang bisa ditindaklanjuti (draft)",
+   "actual": "status=replied; t_balasan=5.29s; kartu_draft=1; entitas_disebut=5/7",
+   "state": "PASS",
+   "severity": "high",
+   "seconds": 12.44,
+   "screenshots": [
+    "C:\\Users\\user\\Proyek_AI\\docs\\evidence\\real-user-2026-10-13\\j2-01-integrations.png",
+    "C:\\Users\\user\\Proyek_AI\\docs\\evidence\\real-user-2026-10-13\\j2-02-cari-shopee.png",
+    "C:\\Users\\user\\Proyek_AI\\docs\\evidence\\real-user-2026-10-13\\j2-03-cari-slack-kontrol.png",
+    "C:\\Users\\user\\Proyek_AI\\docs\\evidence\\real-user-2026-10-13\\j2-04-detail-konektor.png",
+    "C:\\Users\\user\\Proyek_AI\\docs\\evidence\\real-user-2026-10-13\\j2-05-chat-shopee.png"
+   ],
+   "console_errors": [],
+   "failed_requests": [
+    {
+     "url": "https://katalir.de5.net/cdn-cgi/rum?",
+     "failure": "net::ERR_ABORTED"
+    },
+    {
+     "url": "https://katalir.de5.net/cdn-cgi/rum?",
+     "failure": "net::ERR_ABORTED"
+    },
+    {
+     "url": "https://katalir.de5.net/cdn-cgi/rum?",
+     "failure": "net::ERR_ABORTED"
+    }
+   ],
+   "extra": {
+    "reply_tail": "esanan ke nomor tujuan (menggunakan placeholder `{{nomor_tujuan}}`).\n4. **AI Parse Balasan** (Agent): Membaca dan mengekstrak informasi penting dari balasan WhatsApp.\n5. **Update Google Sheets** (MCP): Memperbarui spreadsheet Google Sheets (menggunakan placeholder `{{spreadsheet_id}}`).\n\nCatatan: Silakan sesuaikan nilai `{{nomor_tujuan}}` dan `{{spreadsheet_id}}` langsung pada kanvas workflow Anda.\n\nWorkflow ini dibuat oleh AI\n\nShopee Order Batch & WhatsApp AI Parser\n\n5 node · 4 sambungan · 1 pemicu / 2 agen / 2 integrasi\n\nBuka di Kanvas\nMenjalankan…\ngemini-3.5-flash-lite · 5.1s · 6116→202 tok"
+   },
+   "evidence_note": null
+  }
+ ]
+}

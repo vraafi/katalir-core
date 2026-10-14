@@ -1,0 +1,70 @@
+{
+ "user": "probe-prodv4-6c4f97a0@katalir-internal.dev",
+ "rows": [
+  {
+   "no": "1",
+   "check": "Chat membalas < 30 s",
+   "ok": true,
+   "detail": "latensi N=3: [8.8, 7.5, 7.2] s (terlama 8.8 s)",
+   "expected": "terlama < 30 s"
+  },
+  {
+   "no": "2",
+   "check": "Prompt 8.000 karakter dapat balasan",
+   "ok": true,
+   "detail": "HTTP 200 dalam 7.4 s; balasan 177 char",
+   "expected": "HTTP 200 + balasan"
+  },
+  {
+   "no": "3",
+   "check": "Refresh saat generasi -> riwayat muncul",
+   "ok": null,
+   "detail": "diverifikasi oleh regresi P1-01/P1-01b (browser) — lihat _rus_p1.json",
+   "expected": "riwayat tetap ada setelah refresh"
+  },
+  {
+   "no": "4",
+   "check": "Halaman 404 berbahasa Indonesia",
+   "ok": true,
+   "detail": "HTTP 404; kata Indonesia terdeteksi: ['tidak ditemukan', 'Kembali']",
+   "expected": "HTTP 404 + teks Indonesia"
+  },
+  {
+   "no": "5",
+   "check": "Pembayaran tersembunyi",
+   "ok": true,
+   "detail": "/pricing HTTP 200; URL checkout di HTML: False",
+   "expected": "tidak ada URL checkout"
+  },
+  {
+   "no": "7",
+   "check": "Null byte disanitasi (tidak 500)",
+   "ok": true,
+   "detail": "HTTP 200 (kontrak nyata = sanitasi -> 200, bukan 400 seperti brief)",
+   "expected": "bukan 5xx"
+  },
+  {
+   "no": "8",
+   "check": "UUID invalid -> 404 (bukan 500)",
+   "ok": true,
+   "detail": "HTTP 404 (kontrak nyata = 404, bukan 400 seperti brief)",
+   "expected": "HTTP 404"
+  },
+  {
+   "no": "9",
+   "check": "Model default dilayani tanpa fallback",
+   "ok": true,
+   "detail": "HTTP 200; fallback=False; dilayani_oleh=gemini-3.5-flash-lite",
+   "expected": "fallback=false, dilayani_oleh=gemini-3.5-flash-lite"
+  },
+  {
+   "no": "6",
+   "check": "Templates: 0 pelanggaran a11y",
+   "ok": null,
+   "detail": "dijalankan terpisah: node scripts/verify-a11y.mjs (lihat _a11y.log)",
+   "expected": "0 pelanggaran"
+  }
+ ],
+ "pass": 7,
+ "fail": 0
+}

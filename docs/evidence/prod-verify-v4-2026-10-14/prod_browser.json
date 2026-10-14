@@ -1,0 +1,31 @@
+{
+ "user": "probe-prodbrowser-44ac609d@katalir-internal.dev",
+ "prompt": "Berapa hasil 111+222? Jawab hanya angkanya.",
+ "default_model": "gemini-3.5-flash-lite",
+ "check9_footer": {
+  "status": "replied",
+  "footers": [
+   "gemini-3.5-flash-lite · 0.7s · 4518→3 tok"
+  ],
+  "footer_menyebut_model_default": true,
+  "jawaban_333": true,
+  "error_card": false,
+  "spanduk_fallback": false,
+  "reply_tail": "Berapa hasil 111+222? Jawab hanya angkanya.\n333\ngemini-3.5-flash-lite · 0.7s · 4518→3 tok"
+ },
+ "check3_refresh": {
+  "prompt_masih_ada": false,
+  "ada_balasan": true,
+  "panjang_teks": 412,
+  "ada_kartu_galat": false,
+  "screenshot": "C:\\Users\\user\\Proyek_AI\\docs\\evidence\\prod-verify-v4-2026-10-14\\prod_refresh.png"
+ },
+ "probe_prefetch_rsc": {
+  "jumlah_404_txt_rsc": 0,
+  "contoh": [],
+  "galat_konsol": [
+   "error: Failed to load resource: the server responded with a status of 503 ()"
+  ]
+ },
+ "screenshot": "C:\\Users\\user\\Proyek_AI\\docs\\evidence\\prod-verify-v4-2026-10-14\\prod_browser.png"
+}

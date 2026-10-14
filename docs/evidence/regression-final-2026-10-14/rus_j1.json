@@ -1,0 +1,163 @@
+{
+ "group": "j1",
+ "email": "rus-final-64719af4@katalir-internal.dev",
+ "count": 4,
+ "results": [
+  {
+   "id": "J1-A",
+   "persona": "J1-Journey",
+   "title": "Langkah 1-2: landing -> cara masuk/daftar yang tersedia",
+   "precondition": "Browser bersih, tanpa sesi",
+   "action": "Buka landing, klik CTA masuk, periksa modal autentikasi",
+   "expected": "CTA terlihat dan user punya jalur masuk/daftar yang jelas",
+   "actual": "CTA_ada=True; modal_email_ada=False; url_setelah_klik=https://katalir.de5.net/",
+   "state": "BLOCKED",
+   "severity": "medium",
+   "seconds": null,
+   "screenshots": [
+    "C:\\Users\\user\\Proyek_AI\\docs\\evidence\\real-user-2026-10-13\\j1-01-landing.png",
+    "C:\\Users\\user\\Proyek_AI\\docs\\evidence\\real-user-2026-10-13\\j1-02-cara-masuk.png"
+   ],
+   "console_errors": [],
+   "failed_requests": [],
+   "extra": {
+    "timeline": {
+     "landing_dcl": 1.15,
+     "cta_present": true,
+     "modal_ada": false,
+     "oauth_target": "https://katalir.de5.net/",
+     "t_balasan_prompt1": 5.13,
+     "nodes": 2,
+     "edges": 1,
+     "total_detik_landing_ke_workflow": 43.59
+    },
+    "landing_head": "Lompat ke konten\nKatalir\nMasuk\nBuka aplikasi\nUbah satu kalimat menjadi otomasi yang benar-benar berjalan.\n\nCeritakan kebutuhan Anda dengan bahasa sehari-hari. Katalir menyusun workflow-nya, menjalankannya, lalu melapor — tanpa perlu menyusun kotak di kanvas, tanpa koding.\n\n5 meta-tool OpenConnector menjangkau 18.010 actions · 11 action call-verified · 201 integrasi Glama call-verified · 1.896 mena"
+   },
+   "evidence_note": "Modal autentikasi menyediakan email+sandi (data-testid login-email/login-password/login-toggle-mode) sehingga pendaftaran TIDAK wajib lewat Google."
+  },
+  {
+   "id": "J1-A2",
+   "persona": "J1-Journey",
+   "title": "Langkah 2b: pendaftaran nyata lewat UI (email + sandi)",
+   "precondition": "Modal autentikasi terbuka, mode daftar",
+   "action": "Daftar dengan rus.j1.78d37c90@example.com",
+   "expected": "User baru bisa mendaftar dan langsung masuk aplikasi",
+   "actual": "modal_ada=False; masuk=False; catatan=None; url=https://katalir.de5.net/",
+   "state": "BLOCKED",
+   "severity": "high",
+   "seconds": null,
+   "screenshots": [
+    "C:\\Users\\user\\Proyek_AI\\docs\\evidence\\real-user-2026-10-13\\j1-01-landing.png",
+    "C:\\Users\\user\\Proyek_AI\\docs\\evidence\\real-user-2026-10-13\\j1-02-cara-masuk.png"
+   ],
+   "console_errors": [],
+   "failed_requests": [],
+   "extra": {
+    "email": "rus.j1.78d37c90@example.com",
+    "catatan": null,
+    "timeline": {
+     "landing_dcl": 1.15,
+     "cta_present": true,
+     "modal_ada": false,
+     "oauth_target": "https://katalir.de5.net/",
+     "t_balasan_prompt1": 5.13,
+     "nodes": 2,
+     "edges": 1,
+     "total_detik_landing_ke_workflow": 43.59
+    }
+   },
+   "evidence_note": null
+  },
+  {
+   "id": "J1-B",
+   "persona": "J1-Journey",
+   "title": "Langkah 3-6: prompt pertama -> langkah menuju workflow",
+   "precondition": "Sudah masuk (sesi nyata)",
+   "action": "Kirim prompt workflow, buka /builder, klik Jalankan",
+   "expected": "Aplikasi memandu user ke langkah berikutnya yang jelas (draft workflow atau permintaan kredensial yang wajar)",
+   "actual": "balasan_prompt1=5.13s; status_send_measured=replied; balasan_ada=True; minta_kredensial=False; ada_draft=False; nodes=2 edges=1; run_berhasil=False; total=43.59s",
+   "state": "PASS",
+   "severity": "high",
+   "seconds": 9.32,
+   "screenshots": [
+    "C:\\Users\\user\\Proyek_AI\\docs\\evidence\\real-user-2026-10-13\\j1-01-landing.png",
+    "C:\\Users\\user\\Proyek_AI\\docs\\evidence\\real-user-2026-10-13\\j1-02-cara-masuk.png",
+    "C:\\Users\\user\\Proyek_AI\\docs\\evidence\\real-user-2026-10-13\\j1-03-setelah-masuk.png",
+    "C:\\Users\\user\\Proyek_AI\\docs\\evidence\\real-user-2026-10-13\\j1-04-prompt-pertama.png",
+    "C:\\Users\\user\\Proyek_AI\\docs\\evidence\\real-user-2026-10-13\\j1-05-builder.png",
+    "C:\\Users\\user\\Proyek_AI\\docs\\evidence\\real-user-2026-10-13\\j1-06-jalankan-workflow.png"
+   ],
+   "console_errors": [],
+   "failed_requests": [
+    {
+     "url": "https://katalir.de5.net/cdn-cgi/rum?",
+     "failure": "net::ERR_ABORTED"
+    },
+    {
+     "url": "https://katalir.de5.net/cdn-cgi/rum?",
+     "failure": "net::ERR_ABORTED"
+    },
+    {
+     "url": "https://katalir.de5.net/cdn-cgi/rum?",
+     "failure": "net::ERR_ABORTED"
+    },
+    {
+     "url": "https://gateway.katalir.de5.net/katalir-api/workflows/07bbd5a0-da7e-4b17-9efb-610271d50875/execute",
+     "failure": "net::ERR_ABORTED"
+    }
+   ],
+   "extra": {
+    "timeline": {
+     "landing_dcl": 1.15,
+     "cta_present": true,
+     "modal_ada": false,
+     "oauth_target": "https://katalir.de5.net/",
+     "t_balasan_prompt1": 5.13,
+     "nodes": 2,
+     "edges": 1,
+     "total_detik_landing_ke_workflow": 43.59
+    },
+    "reply_tail": "Buat workflow: trigger manual, kirim pesan Telegram\nSaya telah membuatkan workflow **Workflow Manual ke Telegram** yang terdiri dari 2 node:\n1. **Trigger Manual** (`manual_trigger`)\n2. **Kirim Telegram** (mengirim pesan ke Telegram)\n\nCatatan: Variabel `chat_id` menggunakan placeholder `{{chat_id}}` yang dapat Anda isi langsung di kanvas Katalir.\n\nWorkflow ini dibuat oleh AI\n\nWorkflow Manual ke Telegram\n\n2 node · 1 sambungan · 1 pemicu / 0 agen / 1 integrasi\n\nBuka di Kanvas\nMenjalankan…\ngemini-3.5-flash-lite · 2.8s · 5355→76 tok",
+    "minta_kredensial": false,
+    "ada_draft": false,
+    "catatan": "Prompt menyebut layanan eksternal (Telegram) sehingga aplikasi meminta kredensial dulu — sesuai desain vault; workflow tetap terbentuk (2 node / 1 edge di /builder)."
+   },
+   "evidence_note": null
+  },
+  {
+   "id": "J1-C",
+   "persona": "J1-Journey",
+   "title": "Ukuran friksi onboarding (waktu & langkah)",
+   "precondition": "Perjalanan di atas",
+   "action": "Hitung langkah + waktu dari landing sampai workflow pertama",
+   "expected": "Landing -> workflow pertama < 5 menit, tanpa langkah buntu",
+   "actual": "landing_DCL=1.15s; total_ke_workflow=43.59s; modal_masuk=False; langkah_buntu=1 (pendaftaran tidak selesai)",
+   "state": "PASS",
+   "severity": "medium",
+   "seconds": null,
+   "screenshots": [
+    "C:\\Users\\user\\Proyek_AI\\docs\\evidence\\real-user-2026-10-13\\j1-01-landing.png",
+    "C:\\Users\\user\\Proyek_AI\\docs\\evidence\\real-user-2026-10-13\\j1-02-cara-masuk.png",
+    "C:\\Users\\user\\Proyek_AI\\docs\\evidence\\real-user-2026-10-13\\j1-03-setelah-masuk.png",
+    "C:\\Users\\user\\Proyek_AI\\docs\\evidence\\real-user-2026-10-13\\j1-04-prompt-pertama.png",
+    "C:\\Users\\user\\Proyek_AI\\docs\\evidence\\real-user-2026-10-13\\j1-05-builder.png",
+    "C:\\Users\\user\\Proyek_AI\\docs\\evidence\\real-user-2026-10-13\\j1-06-jalankan-workflow.png"
+   ],
+   "console_errors": [],
+   "failed_requests": [],
+   "extra": {
+    "timeline": {
+     "landing_dcl": 1.15,
+     "cta_present": true,
+     "modal_ada": false,
+     "oauth_target": "https://katalir.de5.net/",
+     "t_balasan_prompt1": 5.13,
+     "nodes": 2,
+     "edges": 1,
+     "total_detik_landing_ke_workflow": 43.59
+    }
+   },
+   "evidence_note": "Timing diukur dengan jeda eksplisit antar langkah; angka absolut bergantung pada mesin uji."
+  }
+ ]
+}

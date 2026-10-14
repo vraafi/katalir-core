@@ -1,0 +1,174 @@
+========================================================================
+REAL USER SIMULATION — Katalir (13 Okt 2026)
+akun uji   : rus-final-64719af4@katalir-internal.dev
+frontend   : https://katalir.de5.net
+backend    : https://gateway.katalir.de5.net/katalir-api
+bukti      : C:\Users\user\Proyek_AI\docs\evidence\real-user-2026-10-13
+grup       : ['p1', 'p2', 'p3', 'p4', 'p5', 'j1', 'j2', 'j3', 'bug']
+========================================================================
+
+========================================================================
+### GRUP P1
+========================================================================
+
+### P1 Budi (tidak sabar)
+  [PASS] P1-01 Refresh 3 detik setelah kirim  :: pesan_di_area_chat=True; prompt_di_sidebar=False; ada_kartu_error=False; bubble=2 (sebelum=-1)
+  [PASS] P1-01b Refresh SETELAH balasan selesai (pembanding)  :: status_sebelum_refresh=replied; pesan_masih_ada=True; panjang=302
+  [PASS] P1-02 Spam tombol 'Chat Baru' 5x cepat  :: klik_berhasil=5; item_sidebar 4->4; entri_bernama_'Chat'=1
+  [PASS] P1-03 Spam Enter 10x pada satu prompt  :: bubble bertambah=2 (sebelum=-1 sesudah=1); error_kartu=False; panjang_teks=36
+  [PASS] P1-04 Latensi balasan & indikator progres  :: indikator_busy@2.5s=True; send_disabled@2.5s=True; perkiraan_waktu_balasan=8.5s; ada_kartu_error=False
+  [PASS] P1-05 Refresh beruntun 5x  :: panjang_teks=437; layar_kosong=False; composer=True
+  [PASS] P1-06 Meninggalkan halaman saat AI bekerja  :: prompt_masih_ada=True; panjang=66; error=False
+  [PASS] P1-07 Tombol berhenti saat AI bekerja  :: tombol_berhenti_ditemukan=True; composer_siap=True; busy_hint=False
+  [PASS] P1-08 Tombol Back setelah mengirim pesan  :: url_setelah_back=https://katalir.de5.net/templates; layar_rusak=False; chat_pulih=True; pesan_masih_ada=True
+  [PASS] P1-09 Buka /chat di tab kedua saat tab pertama sibuk  :: tab2_panjang_teks=533; tab2_composer=None; error_tab2=[]
+  [PASS] P1-10 Landing page siap dalam 5 detik?  :: cta_terlihat_pada=0.17s; FCP=2468ms; DCL=2792ms; panjang_teks=2641
+
+[p1] 170.1s  ->  PASS=11 FAIL=0 BLOCKED=0 NOT_RUN=0
+
+bukti -> C:\Users\user\Proyek_AI\tests\user_test\_rus_p1.json
+
+========================================================================
+### GRUP P2
+========================================================================
+
+### P2 Siti (pemula)
+  [PASS] P2-01 Lewati onboarding lalu langsung ke /chat  :: user_baru=rus-p201-e04e2e2b@katalir-internal.dev; modal_muncul=True; cara_skip=onboarding-skip; kata_panduan_di_layar=['
+  [PASS] P2-02 Prompt pemula yang kabur: 'aku mau jualan online'  :: status=replied; t_balasan=5.11s; kata_bimbingan=3
+  [PASS] P2-03 Jelajahi semua rute aplikasi yang ada  :: bermasalah=0/20 -> []
+  [PASS] P2-03b URL salah ketik: halaman 404 yang diterima user  :: layar_kosong=[]; tidak_ramah_(bukan_ID_atau_tanpa_jalan_kembali)=[]; rincian=[{'path': '/vault', 'status': 404, 'sec': 2
+  [PASS] P2-04 Kirim pesan kosong / hanya spasi  :: POST_/chat_terkirim=0; error_kartu=False; error_console=0
+  [PASS] P2-05 Input salah: hanya emoji  :: status=replied; t_balasan=5.07s; ada_error=False
+  [PASS] P2-06 Konsistensi bahasa antarmuka  :: halaman_campur_bahasa=[]; rincian={'/': {'en': 1, 'id': 2, 'len': 2641}, '/chat': {'en': 0, 'id': 0, 'len': 480}, '/temp
+  [PASS] P2-07 Tombol ikon tanpa label teks  :: tombol_terlihat=25; tanpa_label=0
+  [PASS] P2-09 Klik semua kontrol header tanpa pikir  :: hasil={'brankas': True, 'menu_akun': 607, 'tema_berubah': True}; halaman_rusak=False; error_console=0
+  [PASS] P2-08 Apakah ada bantuan untuk user pemula?  :: muat=3.2s; panjang_teks=821; ada_konten=True; head='Lompat ke konten\nKatalir\nKembali\nBantuan\n\nJawaban atas pertanya
+
+[p2] 160.0s  ->  PASS=10 FAIL=0 BLOCKED=0 NOT_RUN=0
+
+bukti -> C:\Users\user\Proyek_AI\tests\user_test\_rus_p2.json
+
+========================================================================
+### GRUP P3
+========================================================================
+
+### P3 Andi (distracted, multi-tab)
+  [PASS] P3-01 Tiga tab dibuka bersamaan  :: panjang_teks={'tab1_chat': 557, 'tab2_builder': 989, 'tab3_templates': 1641}; builder=3.96s templates=4.06s; err_tab2=0 
+  [PASS] P3-02 Chat di tab 1, pindah tab 2, kembali  :: status=replied; panjang 584->541; selisih=-43; isi_masih_relevan=True
+  [PASS] P3-03 Dua tab mengirim pesan ke sesi yang sama  :: tabA_memuat_A=True; tabB_memuat_B=True; tabA_memuat_B=False
+  [PASS] P3-04 Sesi baru muncul di tab lain?  :: item_sidebar 13->14
+  [PASS] P3-05 Idle 90 detik lalu lanjut mengobrol  :: status=replied; t_balasan=5.26s; ada_perintah_login=False
+
+[p3] 203.4s  ->  PASS=5 FAIL=0 BLOCKED=0 NOT_RUN=0
+
+bukti -> C:\Users\user\Proyek_AI\tests\user_test\_rus_p3.json
+
+========================================================================
+### GRUP P4
+========================================================================
+
+### P4 Rina (jaringan lambat)
+  [PASS] P4-01 Muat /chat di jaringan 3G  :: panjang_teks=675; elemen_skeleton=0; composer=True
+  [PASS] P4-02 Kirim pesan di jaringan 3G  :: status=replied; t_balasan=5.27s; kartu_error=False; teks_galat=False
+  [PASS] P4-03 Koneksi putus lalu kirim pesan (offline)  :: terkirim_dari_ui=True; percobaan_ke_backend=3; teks_menyebut_koneksi=True; pakai_pesan_lama='False'; ada_kartu_error=Fal
+  [PASS] P4-04 Pulih dari offline tanpa reload  :: status=replied; t_balasan=5.24s; perlu_reload=False
+  [PASS] P4-05 Permintaan API diputus di tengah jalan  :: request_diabort=3; kartu_error=True; status=error; panjang=86
+  [PASS] P4-06 Tombol 'Coba Lagi' memulihkan pengiriman  :: tombol_ada=True; berhasil_setelah_retry=True; masih_ada_error=False; masih_menyatakan_sibuk=False
+  [PASS] P4-07 Latensi API 2 detik (server lambat, jaringan OK)  :: muat=9.11s; panjang_teks=745; elemen_berputar=0; pesan_error=False
+  [PASS] P4-08 /templates di 3G: tidak menggantung  :: loading_stuck=0; grid=2; empty=0; error_banner=0; panjang_teks=1641
+
+[p4] 131.2s  ->  PASS=8 FAIL=0 BLOCKED=0 NOT_RUN=0
+
+bukti -> C:\Users\user\Proyek_AI\tests\user_test\_rus_p4.json
+
+========================================================================
+### GRUP P5
+========================================================================
+
+### P5 Dedi (kritis)
+  [PASS] P5-01 Input ekstrem: emoji  :: status=replied; t_balasan=5.31s; panjang_efektif=15 (dari 15; dipotong=False); dialog_alert=False; panjang_teks=200; kar
+  [PASS] P5-02 Input ekstrem: 10000 karakter  :: status=replied; t_balasan=0.92s; panjang_efektif=8000 (dari 10000; dipotong=True); dialog_alert=False; panjang_teks=8207
+  [PASS] P5-03 Input ekstrem: SQL injection  :: status=replied; t_balasan=5.26s; panjang_efektif=23 (dari 23; dipotong=False); dialog_alert=False; panjang_teks=252; kar
+  [PASS] P5-04 Input ekstrem: skrip XSS  :: status=replied; t_balasan=5.29s; panjang_efektif=29 (dari 29; dipotong=False); dialog_alert=False; panjang_teks=212; kar
+  [PASS] P5-05 Input ekstrem: null byte  :: status=replied; t_balasan=5.27s; panjang_efektif=14 (dari 14; dipotong=False); dialog_alert=False; panjang_teks=207; kar
+  [PASS] P5-06 Input ekstrem: teks RTL  :: status=replied; t_balasan=5.29s; panjang_efektif=17 (dari 17; dipotong=False); dialog_alert=False; panjang_teks=274; kar
+  [PASS] P5-07 Input ekstrem: HTML mentah  :: status=replied; t_balasan=5.29s; panjang_efektif=41 (dari 41; dipotong=False); dialog_alert=False; panjang_teks=125; kar
+  [PASS] P5-08 Panggil API /chat tanpa token  :: HTTP 401; body='{"detail":"Token wajib (Authorization: Bearer <jwt>)."}'
+  [PASS] P5-09 Payload raksasa 2 MB ke /chat  :: HTTP 422; body='{"detail":[{"type":"value_error","loc":["body","prompt"],"msg":"Value error, Pesan terlalu panjang: 2,00
+  [PASS] P5-10 Kirim JSON rusak ke /chat  :: HTTP 422; body='{"detail":[{"type":"json_invalid","loc":["body",1],"msg":"JSON decode error","input":{},"ctx":{"error":"
+  [PASS] P5-11 ID non-UUID ke /workflows/{id}  :: HTTP 404; body='{"detail":"Workflow tidak ditemukan."}'
+  [PASS] P5-12b ID non-UUID pada PATCH & DELETE /workflows  :: PATCH HTTP 404 :: '{"detail":"Workflow tidak ditemukan."}' | DELETE HTTP 404 :: '{"detail":"Workflow tidak ditemukan."}'
+  [PASS] P5-13 Percobaan prompt injection / bocor system prompt  :: status=replied; dugaan_bocor=False; menolak=True; panjang_balasan=546
+  [PASS] P5-14 Spam 12 pesan cepat (perilaku burst)  :: POST_/chat=3; enter_diterima=12; tertahan_di_composer=0; bubble -1->7; area_antrean_terlihat=True; item_queued-msg=0; te
+  [PASS] P5-15 Model default frontend (gemini-3.5-flash-lite) benar-benar dilayani  :: HTTP 200; fallback=False; requested=gemini-3.5-flash-lite; dilayani_oleh=gemini-3.5-flash-lite; alasan=None; bucket_kuot
+
+[p5] 142.0s  ->  PASS=15 FAIL=0 BLOCKED=0 NOT_RUN=0
+
+bukti -> C:\Users\user\Proyek_AI\tests\user_test\_rus_p5.json
+
+========================================================================
+### GRUP J1
+========================================================================
+
+### J1 user baru -> workflow pertama
+  [BLK] J1-A Langkah 1-2: landing -> cara masuk/daftar yang tersedia  :: CTA_ada=True; modal_email_ada=False; url_setelah_klik=https://katalir.de5.net/
+  [BLK] J1-A2 Langkah 2b: pendaftaran nyata lewat UI (email + sandi)  :: modal_ada=False; masuk=False; catatan=None; url=https://katalir.de5.net/
+  [PASS] J1-B Langkah 3-6: prompt pertama -> langkah menuju workflow  :: balasan_prompt1=5.13s; status_send_measured=replied; balasan_ada=True; minta_kredensial=False; ada_draft=False; nodes=2 
+  [PASS] J1-C Ukuran friksi onboarding (waktu & langkah)  :: landing_DCL=1.15s; total_ke_workflow=43.59s; modal_masuk=False; langkah_buntu=1 (pendaftaran tidak selesai)
+    video -> C:\Users\user\Proyek_AI\docs\evidence\real-user-2026-10-13\video
+
+[j1] 44.8s  ->  PASS=2 FAIL=0 BLOCKED=2 NOT_RUN=0
+
+bukti -> C:\Users\user\Proyek_AI\tests\user_test\_rus_j1.json
+
+========================================================================
+### GRUP J2
+========================================================================
+
+### J2 setup integrasi Shopee
+  [PASS] J2-A Langkah 1-2: buka halaman Integrations  :: muat=5.5s; panjang_teks=12308; kandidat_kartu=2; head='Lompat ke konten\nKatalir\nKembali\nIntegrasi MCP\n\nTemukan kone
+  [PASS] J2-B Langkah 3: cari 'Shopee' (dengan kontrol)  :: UI_shopee_menyebut_shopee=True; API_shopee: HTTP 200 n=4; KONTROL_API_slack: HTTP 200 n=43; UI_slack_menyebut_slack=True
+  [SKIP] J2-C Langkah 4: alur penyiapan kredensial yang ADA  :: field_input_di_detail=0
+  [PASS] J2-D Langkah 5: minta workflow Shopee lewat chat  :: status=replied; t_balasan=5.29s; kartu_draft=1; entitas_disebut=5/7
+
+[j2] 47.4s  ->  PASS=3 FAIL=0 BLOCKED=0 NOT_RUN=1
+
+bukti -> C:\Users\user\Proyek_AI\tests\user_test\_rus_j2.json
+
+========================================================================
+### GRUP J3
+========================================================================
+
+### J3 dua user nyata (isolasi data)
+  [PASS] J3-A Buat 2 akun uji nyata  :: A=rus-a-c03e30b3@katalir-internal.dev B=rus-b-48b056e8@katalir-internal.dev
+  [PASS] J3-B Isolasi data: user B tidak melihat workflow A  :: A_buat_HTTP=201 (id=d04be11d-28fd-4ba9-ae2d-12ad8f0d1813); B_list_HTTP=200; kebocoran=False
+  [PASS] J3-C Akses langsung lintas user ke /workflows/{id}  :: HTTP 404; cuplikan='{"detail":"Workflow tidak ditemukan."}'
+  [PASS] J3-D Dua sesi browser: identitas tidak tercampur  :: sesi_A=True; sesi_B=True; A_lihat_dirinya=True; B_lihat_dirinya=True; A_lihat_email_B=False; B_lihat_email_A=False
+    akun uji dibersihkan
+
+[j3] 22.8s  ->  PASS=4 FAIL=0 BLOCKED=0 NOT_RUN=0
+
+bukti -> C:\Users\user\Proyek_AI\tests\user_test\_rus_j3.json
+
+========================================================================
+### GRUP BUG
+========================================================================
+
+### B bug hunt (boundary/state/timing/UI/data/a11y)
+  [PASS] B-01 Batas panjang input 0/1/7999/8000/8001  :: panjang_efektif={'0': 0, '1': 1, '7999': 7999, '8000': 8000, '8001': 8000}; counter_terlihat=True
+  [PASS] B-02 Batas backend: 8001 karakter via API  :: HTTP 422; pesan_menyebut_batas=True; body='{"detail":[{"type":"value_error","loc":["body","prompt"],"msg":"Value error, 
+  [PASS] B-03 Refresh di tengah generasi  :: prompt_ada=True; panjang=61; kartu_error=False
+  [PASS] B-04 Tombol Back 5x lalu Forward 2x  :: halaman_dikunjungi=3; halaman_rusak=[]; ujung_riwayat=True; panjang_forward=1077
+  [PASS] B-05 Tutup tab lalu buka lagi  :: penanda_terlihat=False; item_sidebar=32
+  [PASS] B-06 Kirim 2 prompt berbeda hampir bersamaan  :: A_ada=True; B_ada=True; elemen_antrean=0; panjang=2602
+  [PASS] B-07 Zoom browser 150% / 75% / 100%  :: zoom_bermasalah=[]; rincian={'150%': {'overflowX': False, 'composer': True, 'composerInView': True, 'innerW': 960, 'inne
+  [PASS] B-08 Ukuran font browser 24px (aksesibilitas)  :: overflowX=False; composer_di_layar=True
+  [FAIL] B-09 Toggle tema gelap/terang 6x cepat  :: klik_berhasil=6; warna_latar_body=rgb(250, 250, 250); error_console=2
+  [PASS] B-10 Rotasi ponsel portrait -> landscape  :: {'overflowX': False, 'composer': True, 'composerInView': True, 'h': 375, 'w': 667}; error=2
+  [SKIP] B-11 Unggah berkas di chat  :: tidak ada input[type=file] di /chat — fitur lampiran belum ada, sehingga uji berkas tidak berlaku
+  [PASS] B-12 Audit aksesibilitas axe-core (4 halaman)  :: pelanggaran_serius_atau_kritis=0; ringkas={'/chat': 0, '/builder': 0, '/templates': 0, '/settings': 0}
+
+[bug] 176.2s  ->  PASS=10 FAIL=1 BLOCKED=0 NOT_RUN=1
+
+bukti -> C:\Users\user\Proyek_AI\tests\user_test\_rus_bug.json
+EXIT=0

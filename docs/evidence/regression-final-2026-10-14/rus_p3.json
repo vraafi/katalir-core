@@ -1,0 +1,182 @@
+{
+ "group": "p3",
+ "email": "rus-final-64719af4@katalir-internal.dev",
+ "count": 5,
+ "results": [
+  {
+   "id": "P3-01",
+   "persona": "P3-Andi",
+   "title": "Tiga tab dibuka bersamaan",
+   "precondition": "Login di satu konteks",
+   "action": "Buka /chat, /builder, /templates di 3 tab",
+   "expected": "Ketiga tab termuat normal",
+   "actual": "panjang_teks={'tab1_chat': 557, 'tab2_builder': 989, 'tab3_templates': 1641}; builder=3.96s templates=4.06s; err_tab2=0 err_tab3=0",
+   "state": "PASS",
+   "severity": "medium",
+   "seconds": null,
+   "screenshots": [
+    "C:\\Users\\user\\Proyek_AI\\docs\\evidence\\real-user-2026-10-13\\p3-01-tab1-chat.png",
+    "C:\\Users\\user\\Proyek_AI\\docs\\evidence\\real-user-2026-10-13\\p3-01-tab2-builder.png",
+    "C:\\Users\\user\\Proyek_AI\\docs\\evidence\\real-user-2026-10-13\\p3-01-tab3-templates.png"
+   ],
+   "console_errors": [],
+   "failed_requests": [],
+   "extra": {
+    "tabs": {
+     "tab1_chat": 557,
+     "tab2_builder": 989,
+     "tab3_templates": 1641
+    }
+   },
+   "evidence_note": null
+  },
+  {
+   "id": "P3-02",
+   "persona": "P3-Andi",
+   "title": "Chat di tab 1, pindah tab 2, kembali",
+   "precondition": "Chat punya riwayat",
+   "action": "Kirim pesan, pindah ke tab /builder, kembali ke tab chat",
+   "expected": "Riwayat tab 1 tetap utuh (pesan user + balasan)",
+   "actual": "status=replied; panjang 584->541; selisih=-43; isi_masih_relevan=True",
+   "state": "PASS",
+   "severity": "medium",
+   "seconds": null,
+   "screenshots": [
+    "C:\\Users\\user\\Proyek_AI\\docs\\evidence\\real-user-2026-10-13\\p3-02-kembali-ke-tab1.png"
+   ],
+   "console_errors": [
+    {
+     "type": "error",
+     "text": "Failed to load resource: the server responded with a status of 503 ()"
+    }
+   ],
+   "failed_requests": [
+    {
+     "url": "https://katalir.de5.net/cdn-cgi/rum?",
+     "failure": "net::ERR_ABORTED"
+    }
+   ],
+   "extra": {
+    "before_tail": "oran ke Telegram).\n\nDi platform ini, Anda dapat merancang workflow menggunakan pemicu (*trigger*) dan aksi (*actions/tools*) agar sistem dapat berjalan secara otomatis sesuai alur yang Anda inginkan. \n\nAda hal spesifik tentang workflow yang ingin Anda buat?\ngemini-3.5-flash-lite · 1.8s · 4509→96 tok",
+    "after_tail": " email, memproses data, hingga mengirim laporan ke Telegram).\n\nDi platform ini, Anda dapat merancang workflow menggunakan pemicu (*trigger*) dan aksi (*actions/tools*) agar sistem dapat berjalan secara otomatis sesuai alur yang Anda inginkan. \n\nAda hal spesifik tentang workflow yang ingin Anda buat?"
+   },
+   "evidence_note": null
+  },
+  {
+   "id": "P3-03",
+   "persona": "P3-Andi",
+   "title": "Dua tab mengirim pesan ke sesi yang sama",
+   "precondition": "Sesi yang sama dibuka di 2 tab",
+   "action": "Kirim 'pesan dari tab A' dan 'pesan dari tab B' hampir bersamaan",
+   "expected": "Kedua pesan tercatat; tidak ada yang hilang",
+   "actual": "tabA_memuat_A=True; tabB_memuat_B=True; tabA_memuat_B=False",
+   "state": "PASS",
+   "severity": "high",
+   "seconds": null,
+   "screenshots": [
+    "C:\\Users\\user\\Proyek_AI\\docs\\evidence\\real-user-2026-10-13\\p3-03-tabA.png",
+    "C:\\Users\\user\\Proyek_AI\\docs\\evidence\\real-user-2026-10-13\\p3-03-tabB.png"
+   ],
+   "console_errors": [],
+   "failed_requests": [],
+   "extra": {
+    "tabA_tail": "pesan dari tab A\nHalo! Maksud Anda ingin membuat workflow atau mengolah data dari tab Google Sheets (tab A)? \n\nTolong jelaskan lebih lanjut mengenai apa yang ingin Anda lakukan (misalnya: membaca data dari tab A lalu mengirimkannya ke mana, atau membuat otomatisasi apa). Saya siap membantu Anda membangun workflow-nya!\ngemini-3.5-flash-lite · 1.9s · 4503→64 tok",
+    "tabB_tail": "rpotong (\"pesan dari tab B\"). \n\nBisa jelaskan lebih lanjut apa yang ingin Anda lakukan terkait \"tab B\" tersebut? Misalnya:\n1. Membaca data dari Google Sheets tab B?\n2. Membuat workflow otomatis yang mengambil data dari tab B?\n3. Mengirimkan pesan atau notifikasi berdasarkan data di tab B?\n\nSilakan beri tahu detailnya agar saya bisa langsung membantu Anda!\ngemini-3.5-flash-lite · 2.0s · 4503→98 tok"
+   },
+   "evidence_note": null
+  },
+  {
+   "id": "P3-04",
+   "persona": "P3-Andi",
+   "title": "Sesi baru muncul di tab lain?",
+   "precondition": "Dua tab /chat",
+   "action": "Buat percakapan di tab 1, lihat sidebar tab 2",
+   "expected": "Sidebar tab 2 menyegarkan diri (minimal setelah reload)",
+   "actual": "item_sidebar 13->14",
+   "state": "PASS",
+   "severity": "low",
+   "seconds": null,
+   "screenshots": [
+    "C:\\Users\\user\\Proyek_AI\\docs\\evidence\\real-user-2026-10-13\\p3-04-sidebar-tabB.png"
+   ],
+   "console_errors": [
+    {
+     "type": "error",
+     "text": "Failed to load resource: the server responded with a status of 503 ()"
+    }
+   ],
+   "failed_requests": [
+    {
+     "url": "https://katalir.de5.net/cdn-cgi/rum?",
+     "failure": "net::ERR_ABORTED"
+    }
+   ],
+   "extra": {
+    "before": {
+     "n": 13,
+     "titles": [
+      "Chat Baru",
+      "pesan dari tab B",
+      "pesan dari tab A",
+      "kirim ringkasan singkat: apa i...",
+      "😀",
+      "aku mau jualan online",
+      "buat workflow notifikasi haria...",
+      "Tulis daftar 30 ide otomasi",
+      "Buat workflow panjang: webhook...",
+      "halo, tolong sebutkan satu kat...",
+      "penanda tahan refresh setelah...",
+      "buat workflow inventory sederh...",
+      "R\nrus-final-64719af4@katalir-internal.dev"
+     ]
+    },
+    "after": {
+     "n": 14,
+     "titles": [
+      "Chat Baru",
+      "percakapan baru untuk uji sink...",
+      "pesan dari tab B",
+      "pesan dari tab A",
+      "kirim ringkasan singkat: apa i...",
+      "😀",
+      "aku mau jualan online",
+      "buat workflow notifikasi haria...",
+      "Tulis daftar 30 ide otomasi",
+      "Buat workflow panjang: webhook...",
+      "halo, tolong sebutkan satu kat...",
+      "penanda tahan refresh setelah...",
+      "buat workflow inventory sederh...",
+      "R\nrus-final-64719af4@katalir-internal.dev"
+     ]
+    }
+   },
+   "evidence_note": null
+  },
+  {
+   "id": "P3-05",
+   "persona": "P3-Andi",
+   "title": "Idle 90 detik lalu lanjut mengobrol",
+   "precondition": "Tab dibiarkan menganggur 90 s",
+   "action": "Kirim pesan setelah idle",
+   "expected": "Sesi masih valid; tidak dipaksa login ulang",
+   "actual": "status=replied; t_balasan=5.26s; ada_perintah_login=False",
+   "state": "PASS",
+   "severity": "medium",
+   "seconds": 8.18,
+   "screenshots": [
+    "C:\\Users\\user\\Proyek_AI\\docs\\evidence\\real-user-2026-10-13\\p3-05-setelah-idle-90s.png"
+   ],
+   "console_errors": [],
+   "failed_requests": [
+    {
+     "url": "https://katalir.de5.net/cdn-cgi/rum?",
+     "failure": "net::ERR_ABORTED"
+    }
+   ],
+   "extra": {
+    "reply_tail": "masih aktif?\nHalo! Ya, saya masih aktif dan siap membantu Anda. Ada yang bisa saya bantu hari ini?\ngemini-3.5-flash-lite · 0.7s · 4502→20 tok"
+   },
+   "evidence_note": null
+  }
+ ]
+}

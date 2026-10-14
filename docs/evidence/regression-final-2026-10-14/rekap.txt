@@ -1,0 +1,28 @@
+
+=== per grup ===
+grup        PASS     FAIL  BLOCKED  NOT_RUN  total
+p1            11        0        0        0     11
+p2            10        0        0        0     10
+p3             5        0        0        0      5
+p4             8        0        0        0      8
+p5            15        0        0        0     15
+j1             2        0        2        0      4
+j2             3        0        0        1      4
+j3             4        0        0        0      4
+bug           10        1        0        1     12
+--------------------------------------------------
+TOTAL         68        1        2        2     73
+
+=== non-PASS (5) ===
+  [BLOCKED ] J1-A    (j1, medium) Langkah 1-2: landing -> cara masuk/daftar yang tersedia
+      CTA_ada=True; modal_email_ada=False; url_setelah_klik=https://katalir.de5.net/
+  [BLOCKED ] J1-A2   (j1, high) Langkah 2b: pendaftaran nyata lewat UI (email + sandi)
+      modal_ada=False; masuk=False; catatan=None; url=https://katalir.de5.net/
+  [NOT_RUN ] J2-C    (j2, low) Langkah 4: alur penyiapan kredensial yang ADA
+      field_input_di_detail=0
+  [FAIL    ] B-09    (bug, low) Toggle tema gelap/terang 6x cepat
+      klik_berhasil=6; warna_latar_body=rgb(250, 250, 250); error_console=2
+  [NOT_RUN ] B-11    (bug, low) Unggah berkas di chat
+      tidak ada input[type=file] di /chat — fitur lampiran belum ada, sehingga uji berkas tidak berlaku
+
+rekap -> docs\evidence\regression-final-2026-10-14\rekap.json

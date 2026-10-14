@@ -1,0 +1,416 @@
+{
+ "group": "p1",
+ "email": "rus-final-64719af4@katalir-internal.dev",
+ "count": 11,
+ "results": [
+  {
+   "id": "P1-01",
+   "persona": "P1-Budi",
+   "title": "Refresh 3 detik setelah kirim",
+   "precondition": "Login, composer aktif",
+   "action": "Ketik prompt, Enter, tunggu 3 s, tekan F5",
+   "expected": "Pesan tetap ada (terkirim atau minimal tersimpan), tidak ada kehilangan senyap",
+   "actual": "pesan_di_area_chat=True; prompt_di_sidebar=False; ada_kartu_error=False; bubble=2 (sebelum=-1)",
+   "state": "PASS",
+   "severity": "low",
+   "seconds": null,
+   "screenshots": [
+    "C:\\Users\\user\\Proyek_AI\\docs\\evidence\\real-user-2026-10-13\\p1-01a-sebelum-refresh.png",
+    "C:\\Users\\user\\Proyek_AI\\docs\\evidence\\real-user-2026-10-13\\p1-01b-setelah-refresh.png"
+   ],
+   "console_errors": [],
+   "failed_requests": [
+    {
+     "url": "https://katalir.de5.net/cdn-cgi/rum?",
+     "failure": "net::ERR_ABORTED"
+    },
+    {
+     "url": "https://gateway.katalir.de5.net/katalir-api/chat",
+     "failure": "net::ERR_ABORTED"
+    }
+   ],
+   "extra": {
+    "body_tail": "buat workflow inventory sederhana\n\nHubungkan Google Sheets\n\nProvider ini memakai OAuth, jadi tidak ada token yang perlu ditempel.\n\nConnect Google Sheets\n\nAnda diarahkan ke halaman resmi Google Sheets (tab yang sama, bukan popup). Setelah menyetujui, kembali ke tab ini dan kirim ulang pesan Anda.",
+    "sidebar_tail": "Chat Baru\n\nRIWAYAT CHAT\n\nbuat workflow inventory sederh...\nR\nrus-final-64719af4@katalir-internal.dev",
+    "pesan_di_area_chat": true,
+    "prompt_di_sidebar": false
+   },
+   "evidence_note": null
+  },
+  {
+   "id": "P1-01b",
+   "persona": "P1-Budi",
+   "title": "Refresh SETELAH balasan selesai (pembanding)",
+   "precondition": "Balasan sudah selesai",
+   "action": "Tekan F5 setelah balasan selesai",
+   "expected": "Pesan user + balasan tetap ada di riwayat",
+   "actual": "status_sebelum_refresh=replied; pesan_masih_ada=True; panjang=302",
+   "state": "PASS",
+   "severity": "low",
+   "seconds": null,
+   "screenshots": [
+    "C:\\Users\\user\\Proyek_AI\\docs\\evidence\\real-user-2026-10-13\\p1-01b-sebelum-refresh.png",
+    "C:\\Users\\user\\Proyek_AI\\docs\\evidence\\real-user-2026-10-13\\p1-01b-setelah-refresh.png"
+   ],
+   "console_errors": [],
+   "failed_requests": [
+    {
+     "url": "https://katalir.de5.net/cdn-cgi/rum?",
+     "failure": "net::ERR_ABORTED"
+    },
+    {
+     "url": "https://gateway.katalir.de5.net/katalir-api/quota",
+     "failure": "net::ERR_ABORTED"
+    },
+    {
+     "url": "https://gateway.katalir.de5.net/katalir-api/sessions",
+     "failure": "net::ERR_ABORTED"
+    },
+    {
+     "url": "https://katalir.de5.net/cdn-cgi/rum?",
+     "failure": "net::ERR_ABORTED"
+    }
+   ],
+   "extra": {
+    "body_tail": "penanda tahan refresh setelah selesai\nHalo! Apakah ada instruksi atau workflow tertentu yang ingin Anda buat atau jalankan? Silakan beri tahu saya detailnya (misalnya ingin memantau email, mengirim pesan ke Telegram, membuat spreadsheet, atau lainnya), dan saya akan segera membantu Anda menyiapkannya."
+   },
+   "evidence_note": "Dibandingkan dengan P1-01 (refresh 3 s): bila P1-01 gagal tetapi P1-01b lulus, kehilangan pesan hanya terjadi pada jendela sebelum balasan selesai."
+  },
+  {
+   "id": "P1-02",
+   "persona": "P1-Budi",
+   "title": "Spam tombol 'Chat Baru' 5x cepat",
+   "precondition": "Login, ada riwayat chat",
+   "action": "Klik 'Chat Baru' 5 kali dalam <1 detik",
+   "expected": "Tetap satu chat baru aktif; tidak membuat 5 entri sampah",
+   "actual": "klik_berhasil=5; item_sidebar 4->4; entri_bernama_'Chat'=1",
+   "state": "PASS",
+   "severity": "low",
+   "seconds": null,
+   "screenshots": [
+    "C:\\Users\\user\\Proyek_AI\\docs\\evidence\\real-user-2026-10-13\\p1-02-spam-chat-baru.png"
+   ],
+   "console_errors": [],
+   "failed_requests": [
+    {
+     "url": "https://katalir.de5.net/cdn-cgi/rum?",
+     "failure": "net::ERR_ABORTED"
+    }
+   ],
+   "extra": {
+    "before": {
+     "n": 4,
+     "titles": [
+      "Chat Baru",
+      "penanda tahan refresh setelah...",
+      "buat workflow inventory sederh...",
+      "R\nrus-final-64719af4@katalir-internal.dev"
+     ]
+    },
+    "after": {
+     "n": 4,
+     "titles": [
+      "Chat Baru",
+      "penanda tahan refresh setelah...",
+      "buat workflow inventory sederh...",
+      "R\nrus-final-64719af4@katalir-internal.dev"
+     ]
+    }
+   },
+   "evidence_note": null
+  },
+  {
+   "id": "P1-03",
+   "persona": "P1-Budi",
+   "title": "Spam Enter 10x pada satu prompt",
+   "precondition": "Composer berisi 1 prompt",
+   "action": "Tekan Enter 10 kali cepat",
+   "expected": "Maksimal 1 pengiriman; sisanya diabaikan/diantre rapi",
+   "actual": "bubble bertambah=2 (sebelum=-1 sesudah=1); error_kartu=False; panjang_teks=36",
+   "state": "PASS",
+   "severity": "medium",
+   "seconds": null,
+   "screenshots": [
+    "C:\\Users\\user\\Proyek_AI\\docs\\evidence\\real-user-2026-10-13\\p1-03-spam-enter.png"
+   ],
+   "console_errors": [],
+   "failed_requests": [
+    {
+     "url": "https://katalir.de5.net/cdn-cgi/rum?",
+     "failure": "net::ERR_ABORTED"
+    },
+    {
+     "url": "https://gateway.katalir.de5.net/katalir-api/chat",
+     "failure": "net::ERR_ABORTED"
+    }
+   ],
+   "extra": {
+    "body_tail": "halo, tolong sebutkan satu kata saja"
+   },
+   "evidence_note": null
+  },
+  {
+   "id": "P1-04",
+   "persona": "P1-Budi",
+   "title": "Latensi balasan & indikator progres",
+   "precondition": "Login, chat baru",
+   "action": "Kirim prompt sederhana, amati 2,5 s pertama + sampai balasan",
+   "expected": "Ada indikator 'sedang bekerja' < 3 s; balasan < 30 s",
+   "actual": "indikator_busy@2.5s=True; send_disabled@2.5s=True; perkiraan_waktu_balasan=8.5s; ada_kartu_error=False",
+   "state": "PASS",
+   "severity": "high",
+   "seconds": 8.5,
+   "screenshots": [
+    "C:\\Users\\user\\Proyek_AI\\docs\\evidence\\real-user-2026-10-13\\p1-04a-2.5s-setelah-kirim.png",
+    "C:\\Users\\user\\Proyek_AI\\docs\\evidence\\real-user-2026-10-13\\p1-04b-selesai.png"
+   ],
+   "console_errors": [],
+   "failed_requests": [
+    {
+     "url": "https://katalir.de5.net/cdn-cgi/rum?",
+     "failure": "net::ERR_ABORTED"
+    }
+   ],
+   "extra": {
+    "composer_state": {
+     "composer": true,
+     "value_len": 0,
+     "disabled": false,
+     "send_disabled": true,
+     "send_label": "Gemini 3.5 Flash Lite — Pilih model AI",
+     "busy_hint": true
+    },
+    "body_tail": "Sebutkan 3 langkah membuat workflow.\nTiga langkah membuat workflow:\n\n1. Tentukan pemicu (*trigger*) yang mengawali proses.\n2. Tambahkan aksi atau langkah pemrosesan berikutnya.\n3. Hubungkan antar komponen dan simpan workflow.\ngemini-3.5-flash-lite · 1.5s · 4579→48 tok"
+   },
+   "evidence_note": null
+  },
+  {
+   "id": "P1-05",
+   "persona": "P1-Budi",
+   "title": "Refresh beruntun 5x",
+   "precondition": "Login",
+   "action": "Tekan F5 lima kali berturut-turut (jeda 0,4 s)",
+   "expected": "Halaman tetap utuh, tanpa layar kosong",
+   "actual": "panjang_teks=437; layar_kosong=False; composer=True",
+   "state": "PASS",
+   "severity": "low",
+   "seconds": null,
+   "screenshots": [
+    "C:\\Users\\user\\Proyek_AI\\docs\\evidence\\real-user-2026-10-13\\p1-05-refresh-beruntun.png"
+   ],
+   "console_errors": [],
+   "failed_requests": [
+    {
+     "url": "https://katalir.de5.net/cdn-cgi/rum?",
+     "failure": "net::ERR_ABORTED"
+    },
+    {
+     "url": "https://katalir.de5.net/cdn-cgi/rum?",
+     "failure": "net::ERR_ABORTED"
+    },
+    {
+     "url": "https://gateway.katalir.de5.net/katalir-api/quota",
+     "failure": "net::ERR_ABORTED"
+    },
+    {
+     "url": "https://gateway.katalir.de5.net/katalir-api/models",
+     "failure": "net::ERR_ABORTED"
+    },
+    {
+     "url": "https://gateway.katalir.de5.net/katalir-api/sessions",
+     "failure": "net::ERR_ABORTED"
+    },
+    {
+     "url": "https://katalir.de5.net/cdn-cgi/rum?",
+     "failure": "net::ERR_ABORTED"
+    },
+    {
+     "url": "https://gateway.katalir.de5.net/katalir-api/sessions",
+     "failure": "net::ERR_ABORTED"
+    },
+    {
+     "url": "https://katalir.de5.net/cdn-cgi/rum?",
+     "failure": "net::ERR_ABORTED"
+    },
+    {
+     "url": "https://gateway.katalir.de5.net/katalir-api/models",
+     "failure": "net::ERR_ABORTED"
+    },
+    {
+     "url": "https://gateway.katalir.de5.net/katalir-api/quota",
+     "failure": "net::ERR_ABORTED"
+    }
+   ],
+   "extra": {
+    "body_head": "Lompat ke konten\nChat Baru\n\nRIWAYAT CHAT\n\nhalo, tolong sebutkan satu kat...\npenanda tahan refresh setelah...\nbuat workflow inventory sederh...\nR\nrus-final-64719af4@katalir-internal.dev\nKatalir\nKatalir\nChat\nBuilder\nTemplate\nBrankas\nHalo, ada yang bisa saya bantu hari ini?\nKirim pesan WA\nRangkum dokum"
+   },
+   "evidence_note": null
+  },
+  {
+   "id": "P1-06",
+   "persona": "P1-Budi",
+   "title": "Meninggalkan halaman saat AI bekerja",
+   "precondition": "Prompt panjang sedang diproses",
+   "action": "Navigasi ke /templates, lalu kembali ke /chat",
+   "expected": "Percakapan tetap ada; balasan tidak hilang",
+   "actual": "prompt_masih_ada=True; panjang=66; error=False",
+   "state": "PASS",
+   "severity": "medium",
+   "seconds": null,
+   "screenshots": [
+    "C:\\Users\\user\\Proyek_AI\\docs\\evidence\\real-user-2026-10-13\\p1-06a-meninggalkan-saat-proses.png",
+    "C:\\Users\\user\\Proyek_AI\\docs\\evidence\\real-user-2026-10-13\\p1-06b-kembali.png"
+   ],
+   "console_errors": [],
+   "failed_requests": [
+    {
+     "url": "https://katalir.de5.net/cdn-cgi/rum?",
+     "failure": "net::ERR_ABORTED"
+    },
+    {
+     "url": "https://gateway.katalir.de5.net/katalir-api/chat",
+     "failure": "net::ERR_ABORTED"
+    },
+    {
+     "url": "https://katalir.de5.net/cdn-cgi/rum?",
+     "failure": "net::ERR_ABORTED"
+    },
+    {
+     "url": "https://katalir.de5.net/cdn-cgi/rum?",
+     "failure": "net::ERR_ABORTED"
+    }
+   ],
+   "extra": {
+    "body_tail": "Buat workflow panjang: webhook, filter, kirim email, log ke sheets"
+   },
+   "evidence_note": null
+  },
+  {
+   "id": "P1-07",
+   "persona": "P1-Budi",
+   "title": "Tombol berhenti saat AI bekerja",
+   "precondition": "Balasan sedang berjalan",
+   "action": "Klik tombol berhenti (Hentikan/Stop)",
+   "expected": "Generasi berhenti; composer kembali siap dipakai",
+   "actual": "tombol_berhenti_ditemukan=True; composer_siap=True; busy_hint=False",
+   "state": "PASS",
+   "severity": "low",
+   "seconds": null,
+   "screenshots": [
+    "C:\\Users\\user\\Proyek_AI\\docs\\evidence\\real-user-2026-10-13\\p1-07-stop.png"
+   ],
+   "console_errors": [],
+   "failed_requests": [
+    {
+     "url": "https://katalir.de5.net/cdn-cgi/rum?",
+     "failure": "net::ERR_ABORTED"
+    },
+    {
+     "url": "https://gateway.katalir.de5.net/katalir-api/chat",
+     "failure": "net::ERR_ABORTED"
+    }
+   ],
+   "extra": {
+    "composer_state": {
+     "composer": true,
+     "value_len": 0,
+     "disabled": false,
+     "send_disabled": false,
+     "send_label": "Gemini 3.5 Flash Lite — Pilih model AI",
+     "busy_hint": false
+    }
+   },
+   "evidence_note": null
+  },
+  {
+   "id": "P1-08",
+   "persona": "P1-Budi",
+   "title": "Tombol Back setelah mengirim pesan",
+   "precondition": "Kirim pesan di /chat (riwayat: /templates -> /chat)",
+   "action": "Klik Back, lalu buka /chat lagi",
+   "expected": "Tidak ada layar rusak; setelah kembali, /chat berfungsi dan pesan sebelumnya masih ada",
+   "actual": "url_setelah_back=https://katalir.de5.net/templates; layar_rusak=False; chat_pulih=True; pesan_masih_ada=True",
+   "state": "PASS",
+   "severity": "medium",
+   "seconds": null,
+   "screenshots": [
+    "C:\\Users\\user\\Proyek_AI\\docs\\evidence\\real-user-2026-10-13\\p1-08a-setelah-back.png",
+    "C:\\Users\\user\\Proyek_AI\\docs\\evidence\\real-user-2026-10-13\\p1-08b-kembali-ke-chat.png"
+   ],
+   "console_errors": [],
+   "failed_requests": [
+    {
+     "url": "https://katalir.de5.net/cdn-cgi/rum?",
+     "failure": "net::ERR_ABORTED"
+    },
+    {
+     "url": "https://katalir.de5.net/cdn-cgi/rum?",
+     "failure": "net::ERR_ABORTED"
+    },
+    {
+     "url": "https://katalir.de5.net/cdn-cgi/rum?",
+     "failure": "net::ERR_ABORTED"
+    },
+    {
+     "url": "https://gateway.katalir.de5.net/katalir-api/chat",
+     "failure": "net::ERR_ABORTED"
+    },
+    {
+     "url": "https://katalir.de5.net/cdn-cgi/rum?",
+     "failure": "net::ERR_ABORTED"
+    }
+   ],
+   "extra": {
+    "body_head": "Lompat ke konten\nKatalir\nKembali\nTemplate\n\nMulai dari alur siap pakai — pakai satu klik, lalu sesuaikan di Builder.\n\nCari template\nCari\n\nKetik untuk mencari otomatis — atau tekan Enter.\n\nSemua\nNotifikasi\nMarketing\nData\nOperasional\nAI\nIntegrasi\nEmail masuk → Google Sheets\nData\n\nSetiap email baru dira"
+   },
+   "evidence_note": null
+  },
+  {
+   "id": "P1-09",
+   "persona": "P1-Budi",
+   "title": "Buka /chat di tab kedua saat tab pertama sibuk",
+   "precondition": "Tab 1 sedang menunggu balasan",
+   "action": "Buka /chat di tab baru",
+   "expected": "Tab 2 termuat normal, tidak saling mengunci",
+   "actual": "tab2_panjang_teks=533; tab2_composer=None; error_tab2=[]",
+   "state": "PASS",
+   "severity": "medium",
+   "seconds": null,
+   "screenshots": [
+    "C:\\Users\\user\\Proyek_AI\\docs\\evidence\\real-user-2026-10-13\\p1-09-tab2-saat-tab1-sibuk.png"
+   ],
+   "console_errors": [],
+   "failed_requests": [],
+   "extra": {
+    "tab2_head": "Lompat ke konten\nChat Baru\n\nRIWAYAT CHAT\n\nbuat workflow notifikasi haria...\nTulis daftar 30 ide otomasi\nBuat workflow panjang: webhook...\nhalo, tolong sebutkan satu kat...\npenanda tahan refresh setelah...\nbuat workflow inventory sederh...\nR\nrus-final-64719af4@katalir-internal.dev\nKatalir\nKatalir\nCha"
+   },
+   "evidence_note": null
+  },
+  {
+   "id": "P1-10",
+   "persona": "P1-Budi",
+   "title": "Landing page siap dalam 5 detik?",
+   "precondition": "Kunjungan pertama (cache kosong)",
+   "action": "Buka katalir.de5.net, ukur waktu sampai CTA terlihat",
+   "expected": "CTA utama terlihat < 5 s; FCP < 2,5 s",
+   "actual": "cta_terlihat_pada=0.17s; FCP=2468ms; DCL=2792ms; panjang_teks=2641",
+   "state": "PASS",
+   "severity": "medium",
+   "seconds": null,
+   "screenshots": [
+    "C:\\Users\\user\\Proyek_AI\\docs\\evidence\\real-user-2026-10-13\\p1-10-landing.png"
+   ],
+   "console_errors": [],
+   "failed_requests": [],
+   "extra": {
+    "perf": {
+     "domContentLoaded": 2792,
+     "loadEvent": 3193,
+     "fcp": 2468
+    },
+    "body_head": "Lompat ke konten\nKatalir\nMasuk\nBuka aplikasi\nUbah satu kalimat menjadi otomasi yang benar-benar berjalan.\n\nCeritakan kebutuhan Anda dengan bahasa sehari-hari. Katalir menyusun workflow-nya, menjalankannya, lalu melapor — tanpa perlu menyusun kotak di kanvas, tanpa koding.\n\n5 meta-tool OpenConnector menjangkau 18.010 actions · 11 action call-verified · 201 integrasi Glama call-verified · 1.896 mena"
+   },
+   "evidence_note": null
+  }
+ ]
+}

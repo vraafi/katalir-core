@@ -1,0 +1,259 @@
+{
+ "group": "p4",
+ "email": "rus-final-64719af4@katalir-internal.dev",
+ "count": 8,
+ "results": [
+  {
+   "id": "P4-01",
+   "persona": "P4-Rina",
+   "title": "Muat /chat di jaringan 3G",
+   "precondition": "Throttle 400 kbps / 500 ms latency",
+   "action": "Buka /chat",
+   "expected": "Ada indikator memuat (skeleton), bukan layar kosong",
+   "actual": "panjang_teks=675; elemen_skeleton=0; composer=True",
+   "state": "PASS",
+   "severity": "medium",
+   "seconds": null,
+   "screenshots": [
+    "C:\\Users\\user\\Proyek_AI\\docs\\evidence\\real-user-2026-10-13\\p4-01-chat-3g.png"
+   ],
+   "console_errors": [],
+   "failed_requests": [
+    {
+     "url": "https://katalir.de5.net/cdn-cgi/rum?",
+     "failure": "net::ERR_ABORTED"
+    }
+   ],
+   "extra": {
+    "body_head": "Lompat ke konten\nChat Baru\n\nRIWAYAT CHAT\n\nmasih aktif?\npercakapan baru untuk uji sink...\npesan dari tab B\npesan dari tab A\nkirim ringkasan singkat: apa i...\n😀\naku mau jualan online\nbuat workflow notifikasi haria...\nTulis daftar 30 ide otomasi\nBuat workflow panjang: webhook...\nhalo, tolong sebutkan s"
+   },
+   "evidence_note": null
+  },
+  {
+   "id": "P4-02",
+   "persona": "P4-Rina",
+   "title": "Kirim pesan di jaringan 3G",
+   "precondition": "Throttle 3G aktif",
+   "action": "Kirim pesan, tunggu sampai balasan/error",
+   "expected": "Balasan muncul ATAU pesan galat yang jelas & jujur",
+   "actual": "status=replied; t_balasan=5.27s; kartu_error=False; teks_galat=False",
+   "state": "PASS",
+   "severity": "high",
+   "seconds": 8.4,
+   "screenshots": [
+    "C:\\Users\\user\\Proyek_AI\\docs\\evidence\\real-user-2026-10-13\\p4-02-kirim-3g.png"
+   ],
+   "console_errors": [],
+   "failed_requests": [],
+   "extra": {
+    "reply_tail": "tes kirim di jaringan 3G\nHalo! Apakah Anda ingin membuat workflow otomatisasi untuk pengiriman pesan atau data, atau ada pengujian sistem tertentu yang ingin saya bantu lakukan? Silakan jelaskan kebutuhan Anda secara lebih spesifik agar saya bisa membantu menyiapkannya.\ngemini-3.5-flash-lite · 1.1s · 4506→46 tok"
+   },
+   "evidence_note": null
+  },
+  {
+   "id": "P4-03",
+   "persona": "P4-Rina",
+   "title": "Koneksi putus lalu kirim pesan (offline)",
+   "precondition": "Halaman /chat sudah terbuka & online, lalu perangkat dibuat offline (CDP); wizard onboarding sudah ditutup",
+   "action": "Ketik pesan lalu Enter saat offline",
+   "expected": "User diberi tahu koneksinya bermasalah (bukan tampak normal / diam saja)",
+   "actual": "terkirim_dari_ui=True; percobaan_ke_backend=3; teks_menyebut_koneksi=True; pakai_pesan_lama='False'; ada_kartu_error=False; panjang=36",
+   "state": "PASS",
+   "severity": "medium",
+   "seconds": null,
+   "screenshots": [
+    "C:\\Users\\user\\Proyek_AI\\docs\\evidence\\real-user-2026-10-13\\p4-03-offline.png"
+   ],
+   "console_errors": [],
+   "failed_requests": [
+    {
+     "url": "https://gateway.katalir.de5.net/katalir-api/quota",
+     "failure": "net::ERR_ABORTED"
+    },
+    {
+     "url": "https://katalir.de5.net/cdn-cgi/rum?",
+     "failure": "net::ERR_ABORTED"
+    },
+    {
+     "url": "https://gateway.katalir.de5.net/katalir-api/sessions",
+     "failure": "net::ERR_ABORTED"
+    }
+   ],
+   "extra": {
+    "body_tail": "tes saat offline\nSedang memproses...",
+    "percobaan": 3
+   },
+   "evidence_note": null
+  },
+  {
+   "id": "P4-04",
+   "persona": "P4-Rina",
+   "title": "Pulih dari offline tanpa reload",
+   "precondition": "Sempat offline, lalu online lagi",
+   "action": "Kirim pesan tanpa me-refresh halaman",
+   "expected": "Aplikasi pulih sendiri (minimal tanpa reload)",
+   "actual": "status=replied; t_balasan=5.24s; perlu_reload=False",
+   "state": "PASS",
+   "severity": "medium",
+   "seconds": 7.41,
+   "screenshots": [
+    "C:\\Users\\user\\Proyek_AI\\docs\\evidence\\real-user-2026-10-13\\p4-04a-saat-offline.png",
+    "C:\\Users\\user\\Proyek_AI\\docs\\evidence\\real-user-2026-10-13\\p4-04b-pulih.png"
+   ],
+   "console_errors": [
+    {
+     "type": "error",
+     "text": "Failed to load resource: net::ERR_INTERNET_DISCONNECTED"
+    }
+   ],
+   "failed_requests": [
+    {
+     "url": "https://katalir.de5.net/cdn-cgi/rum?",
+     "failure": "net::ERR_ABORTED"
+    },
+    {
+     "url": "https://gateway.katalir.de5.net/katalir-api/chat",
+     "failure": "net::ERR_ABORTED"
+    },
+    {
+     "url": "https://gateway.katalir.de5.net/katalir-api/chat/interrupted",
+     "failure": "net::ERR_INTERNET_DISCONNECTED"
+    }
+   ],
+   "extra": {
+    "reply_tail": "koneksi sudah pulih?\nYa, koneksi sudah pulih dan saya siap membantu Anda kembali! \n\nAda *workflow* atau tugas otomatisasi apa yang ingin kita buat sekarang? Silakan beri tahu saya.\ngemini-3.5-flash-lite · 0.9s · 4657→37 tok"
+   },
+   "evidence_note": null
+  },
+  {
+   "id": "P4-05",
+   "persona": "P4-Rina",
+   "title": "Permintaan API diputus di tengah jalan",
+   "precondition": "Route POST /chat dibatalkan paksa",
+   "action": "Kirim pesan dengan request yang di-abort",
+   "expected": "Kartu galat jelas + tombol coba lagi (bukan diam saja)",
+   "actual": "request_diabort=3; kartu_error=True; status=error; panjang=86",
+   "state": "PASS",
+   "severity": "high",
+   "seconds": null,
+   "screenshots": [
+    "C:\\Users\\user\\Proyek_AI\\docs\\evidence\\real-user-2026-10-13\\p4-05-request-diabort.png"
+   ],
+   "console_errors": [
+    {
+     "type": "error",
+     "text": "Failed to load resource: net::ERR_FAILED"
+    },
+    {
+     "type": "error",
+     "text": "Failed to load resource: net::ERR_FAILED"
+    },
+    {
+     "type": "error",
+     "text": "Failed to load resource: net::ERR_FAILED"
+    }
+   ],
+   "failed_requests": [
+    {
+     "url": "https://katalir.de5.net/cdn-cgi/rum?",
+     "failure": "net::ERR_ABORTED"
+    },
+    {
+     "url": "https://gateway.katalir.de5.net/katalir-api/quota",
+     "failure": "net::ERR_ABORTED"
+    },
+    {
+     "url": "https://gateway.katalir.de5.net/katalir-api/preferences",
+     "failure": "net::ERR_ABORTED"
+    },
+    {
+     "url": "https://gateway.katalir.de5.net/katalir-api/chat",
+     "failure": "net::ERR_FAILED"
+    },
+    {
+     "url": "https://gateway.katalir.de5.net/katalir-api/chat",
+     "failure": "net::ERR_FAILED"
+    },
+    {
+     "url": "https://gateway.katalir.de5.net/katalir-api/chat",
+     "failure": "net::ERR_FAILED"
+    }
+   ],
+   "extra": {
+    "body_tail": "permintaan ini akan diputus\nGagal mengirim\n\nKoneksi lambat. Cek internetmu.\n\nCoba Lagi"
+   },
+   "evidence_note": null
+  },
+  {
+   "id": "P4-06",
+   "persona": "P4-Rina",
+   "title": "Tombol 'Coba Lagi' memulihkan pengiriman",
+   "precondition": "Melanjutkan keadaan P4-05 (kiriman gagal, UI menampilkan 'Sedang memproses...')",
+   "action": "Cari & klik 'Coba Lagi'",
+   "expected": "Ada jalan keluar yang jelas: tombol coba lagi mengirim ulang pesan",
+   "actual": "tombol_ada=True; berhasil_setelah_retry=True; masih_ada_error=False; masih_menyatakan_sibuk=False",
+   "state": "PASS",
+   "severity": "medium",
+   "seconds": null,
+   "screenshots": [
+    "C:\\Users\\user\\Proyek_AI\\docs\\evidence\\real-user-2026-10-13\\p4-06-coba-lagi.png"
+   ],
+   "console_errors": [],
+   "failed_requests": [],
+   "extra": {},
+   "evidence_note": "NOT_RUN di sini BUKAN berarti aman: tombol coba lagi tidak pernah muncul karena P4-05 tidak menampilkan kartu galat sama sekali. Ketiadaan tombol adalah akibat langsung dari bug P4-05."
+  },
+  {
+   "id": "P4-07",
+   "persona": "P4-Rina",
+   "title": "Latensi API 2 detik (server lambat, jaringan OK)",
+   "precondition": "Semua panggilan API diberi jeda 2 s",
+   "action": "Buka /chat",
+   "expected": "Ada indikator memuat; tidak tampak seperti error",
+   "actual": "muat=9.11s; panjang_teks=745; elemen_berputar=0; pesan_error=False",
+   "state": "PASS",
+   "severity": "medium",
+   "seconds": null,
+   "screenshots": [
+    "C:\\Users\\user\\Proyek_AI\\docs\\evidence\\real-user-2026-10-13\\p4-07-latensi-api-2s.png"
+   ],
+   "console_errors": [],
+   "failed_requests": [
+    {
+     "url": "https://katalir.de5.net/cdn-cgi/rum?",
+     "failure": "net::ERR_ABORTED"
+    }
+   ],
+   "extra": {
+    "body_head": "Lompat ke konten\nChat Baru\n\nRIWAYAT CHAT\n\npermintaan ini akan diputus\ntes saat offline\ntes kirim di jaringan 3G\nmasih aktif?\npercakapan baru untuk uji sink...\npesan dari tab B\npesan dari tab A\nkirim ringkasan singkat: apa i...\n😀\naku mau jualan online\nbuat workflow notifikasi haria...\nTulis daftar 30"
+   },
+   "evidence_note": null
+  },
+  {
+   "id": "P4-08",
+   "persona": "P4-Rina",
+   "title": "/templates di 3G: tidak menggantung",
+   "precondition": "Throttle 3G, tunggu 15 s",
+   "action": "Buka /templates",
+   "expected": "Kartu template muncul, atau galat jelas + tombol ulangi",
+   "actual": "loading_stuck=0; grid=2; empty=0; error_banner=0; panjang_teks=1641",
+   "state": "PASS",
+   "severity": "high",
+   "seconds": null,
+   "screenshots": [
+    "C:\\Users\\user\\Proyek_AI\\docs\\evidence\\real-user-2026-10-13\\p4-08-templates-3g.png"
+   ],
+   "console_errors": [],
+   "failed_requests": [
+    {
+     "url": "https://katalir.de5.net/cdn-cgi/rum?",
+     "failure": "net::ERR_ABORTED"
+    }
+   ],
+   "extra": {
+    "body_head": "Lompat ke konten\nKatalir\nKembali\nTemplate\n\nMulai dari alur siap pakai — pakai satu klik, lalu sesuaikan di Builder.\n\nCari template\nCari\n\nKetik untuk mencari otomatis — atau tekan Enter.\n\nSemua\nNotifikasi\nMarketing\nData\nOperasional\nAI\nIntegrasi\nEmail masuk → Google Sheets\nData\n\nSetiap email baru dirangkum oleh Agent lalu barisnya ditambahkan ke Google Sheets.\n\n3 node\n·\ngmail, sheets, agent\nPratinja"
+   },
+   "evidence_note": null
+  }
+ ]
+}

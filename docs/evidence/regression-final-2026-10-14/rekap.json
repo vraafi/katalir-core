@@ -1,0 +1,83 @@
+{
+ "per_group": {
+  "p1": {
+   "PASS": 11
+  },
+  "p2": {
+   "PASS": 10
+  },
+  "p3": {
+   "PASS": 5
+  },
+  "p4": {
+   "PASS": 8
+  },
+  "p5": {
+   "PASS": 15
+  },
+  "j1": {
+   "BLOCKED": 2,
+   "PASS": 2
+  },
+  "j2": {
+   "PASS": 3,
+   "NOT_RUN": 1
+  },
+  "j3": {
+   "PASS": 4
+  },
+  "bug": {
+   "PASS": 10,
+   "FAIL": 1,
+   "NOT_RUN": 1
+  }
+ },
+ "totals": {
+  "PASS": 68,
+  "BLOCKED": 2,
+  "NOT_RUN": 2,
+  "FAIL": 1
+ },
+ "non_pass": [
+  {
+   "group": "j1",
+   "id": "J1-A",
+   "state": "BLOCKED",
+   "severity": "medium",
+   "title": "Langkah 1-2: landing -> cara masuk/daftar yang tersedia",
+   "actual": "CTA_ada=True; modal_email_ada=False; url_setelah_klik=https://katalir.de5.net/"
+  },
+  {
+   "group": "j1",
+   "id": "J1-A2",
+   "state": "BLOCKED",
+   "severity": "high",
+   "title": "Langkah 2b: pendaftaran nyata lewat UI (email + sandi)",
+   "actual": "modal_ada=False; masuk=False; catatan=None; url=https://katalir.de5.net/"
+  },
+  {
+   "group": "j2",
+   "id": "J2-C",
+   "state": "NOT_RUN",
+   "severity": "low",
+   "title": "Langkah 4: alur penyiapan kredensial yang ADA",
+   "actual": "field_input_di_detail=0"
+  },
+  {
+   "group": "bug",
+   "id": "B-09",
+   "state": "FAIL",
+   "severity": "low",
+   "title": "Toggle tema gelap/terang 6x cepat",
+   "actual": "klik_berhasil=6; warna_latar_body=rgb(250, 250, 250); error_console=2"
+  },
+  {
+   "group": "bug",
+   "id": "B-11",
+   "state": "NOT_RUN",
+   "severity": "low",
+   "title": "Unggah berkas di chat",
+   "actual": "tidak ada input[type=file] di /chat — fitur lampiran belum ada, sehingga uji berkas tidak berlaku"
+  }
+ ]
+}

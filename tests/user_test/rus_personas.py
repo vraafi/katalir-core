@@ -1439,6 +1439,38 @@ EDGE_INPUTS = [
 ]
 
 
+def _frontend_default_model_id() -> str:
+    """Id model default yang BENAR-BENAR dikirim frontend produksi.
+
+    Dibaca dari `nexus-frontend/.env.production` — sumber kebenarannya, karena
+    `NEXT_PUBLIC_*` di-INLINE ke bundle saat build (bukan dibaca runtime).
+
+    Kenapa tidak di-hardcode: P5-15 dulu menulis `"gemma-4-31b-it"` — id
+    pra-BUG-05 yang bahkan tidak ada di katalog. Skenario itu jadi FAIL
+    permanen walau produk sehat, dan tetap FAIL sesudah default diperbaiki,
+    sehingga menyamarkan regresi sungguhan. Dengan membaca env, skenario
+    otomatis mengikuti default yang benar-benar dikirim.
+
+    Cadangan terakhir sengaja id Gemini TANPA awalan penyedia: `google/...`
+    tidak ada di roster, sehingga backend menandai `model_unavailable` dan
+    jatuh ke fallback — justru kondisi yang skenario ini harus tangkap.
+    """
+    import pathlib
+
+    env = (pathlib.Path(__file__).resolve().parents[2]
+           / "nexus-frontend" / ".env.production")
+    try:
+        for line in env.read_text(encoding="utf-8", errors="replace").splitlines():
+            line = line.strip()
+            if line.startswith("NEXT_PUBLIC_DEFAULT_MODEL_ID="):
+                val = line.split("=", 1)[1].strip().strip('"').strip("'")
+                if val:
+                    return val
+    except OSError:
+        pass
+    return "gemini-3.5-flash-lite"
+
+
 def p5_critical(b):
     print("\n### P5 Dedi (kritis)", flush=True)
     ctx = new_ctx(b)
@@ -1711,11 +1743,14 @@ def p5_critical(b):
             expected="Batas jelas", actual=f"ERROR {type(exc).__name__}: {exc}",
             state="FAIL", severity="medium", shots=shots)
 
-    # P5-15 — model default yang dipilih frontend TIDAK dapat dilayani
+    # P5-15 — model default frontend HARUS benar-benar dilayani (tanpa fallback)
     try:
+        # Default diambil dari env yang benar-benar di-build, bukan di-hardcode
+        # (lihat _frontend_default_model_id).
+        default_model = _frontend_default_model_id()
         st, body = _api("POST", "/chat",
                         {"prompt": "sebut satu kata",
-                         "model": "gemma-4-31b-it"}, token=TOKEN, timeout=90)
+                         "model": default_model}, token=TOKEN, timeout=90)
         meta = {}
         try:
             meta = json.loads(body).get("meta", {}) or {}
@@ -1726,29 +1761,29 @@ def p5_critical(b):
         used = meta.get("model")
         bucket = meta.get("quota_bucket")
         rec("P5-15", "P5-Dedi",
-            "Model default frontend (gemma-4-31b-it) tidak dapat dilayani",
+            f"Model default frontend ({default_model}) benar-benar dilayani",
             precondition="Token valid; frontend mengirim model default "
-                         "DEFAULT_MODEL_ID",
-            action="POST /chat dengan model=gemma-4-31b-it",
-            expected="Model default benar-benar dilayani (fallback=false), dan "
-                     "kuota dibebankan ke model yang benar-benar menjawab",
+                         "NEXT_PUBLIC_DEFAULT_MODEL_ID",
+            action=f"POST /chat dengan model={default_model}",
+            expected="Model default dilayani APA ADANYA (fallback=false dan "
+                     "dilayani_oleh == diminta), dan kuota dibebankan ke model "
+                     "yang benar-benar menjawab",
             actual=f"HTTP {st}; fallback={fb}; requested={req}; "
                    f"dilayani_oleh={used}; alasan={meta.get('fallback_reason')}; "
                    f"bucket_kuota={bucket}",
             state=("FAIL" if (fb or used != req) else "PASS"),
             severity="high",
-            extra={"meta": meta},
-            evidence_note="Frontend: nexus-frontend/src/lib/models.ts:24 "
-                          "DEFAULT_MODEL_ID = 'gemma-4-31b-it'; ChatApp.tsx:237 "
-                          "memakainya sebagai nilai awal. Setiap pengguna free "
-                          "yang tidak mengganti model akan melihat spanduk "
-                          "'Model yang Anda pilih tidak tersedia' pada tiap "
-                          "pesan, dan kuota 'gemma' terpakai oleh jawaban "
-                          "gemini-3.5-flash-lite.")
+            extra={"meta": meta, "default_model": default_model},
+            evidence_note="Default dibaca dari nexus-frontend/.env.production "
+                          "(NEXT_PUBLIC_DEFAULT_MODEL_ID). Id TANPA awalan "
+                          "penyedia: `google/<model>` tidak ada di roster -> "
+                          "backend menandai model_unavailable -> fallback=true "
+                          "-> pengguna melihat spanduk 'Model yang Anda pilih "
+                          "tidak tersedia' di tiap pesan (BUG-05).")
     except Exception as exc:  # noqa: BLE001
         rec("P5-15", "P5-Dedi", "Model default frontend tidak dapat dilayani",
             precondition="Token valid", action="POST /chat model default",
-            expected="fallback=false",
+            expected="fallback=false dan dilayani_oleh == diminta",
             actual=f"ERROR {type(exc).__name__}: {exc}",
             state="FAIL", severity="high")
 

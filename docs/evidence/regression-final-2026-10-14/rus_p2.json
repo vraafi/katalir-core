@@ -1,0 +1,503 @@
+{
+ "group": "p2",
+ "email": "rus-final-64719af4@katalir-internal.dev",
+ "count": 10,
+ "results": [
+  {
+   "id": "P2-01",
+   "persona": "P2-Siti",
+   "title": "Lewati onboarding lalu langsung ke /chat",
+   "precondition": "User BARU (tanpa riwayat chat) — syarat mutlak agar wizard onboarding dirender",
+   "action": "Klik 'Lewati' (skip onboarding)",
+   "expected": "Setelah dilewati, user baru tetap dapat panduan awal",
+   "actual": "user_baru=rus-p201-e04e2e2b@katalir-internal.dev; modal_muncul=True; cara_skip=onboarding-skip; kata_panduan_di_layar=['template']; panjang=498",
+   "state": "PASS",
+   "severity": "medium",
+   "seconds": null,
+   "screenshots": [
+    "C:\\Users\\user\\Proyek_AI\\docs\\evidence\\real-user-2026-10-13\\p2-01a-onboarding-muncul.png",
+    "C:\\Users\\user\\Proyek_AI\\docs\\evidence\\real-user-2026-10-13\\p2-01b-setelah-skip.png"
+   ],
+   "console_errors": [],
+   "failed_requests": [],
+   "extra": {
+    "body_head": "Lompat ke konten\nChat Baru\n\nRIWAYAT CHAT\n\nBelum ada riwayat.\n\nR\nrus-p201-e04e2e2b@katalir-internal.dev\nKatalir\nKatalir\nChat\nBuilder\nTemplate\nBrankas\nPembayaran belum dibuka Paket Plus ($299 / tahun) akan tersedia setelah peluncuran. Selama itu, semua fitur yang tersedia bisa dipakai gratis.\nHalo, ada yang bisa saya bantu hari ini?\nKirim pesan WA\nRangkum dokumen\nAnalisis data\nKUOTA FREE — HARI INI\n0%\nGemma 4 (default)\n0 / 100\nTotal: 0 / 100 request · Reset: besok 00:00 WIB\nGemini 3.5 Flash Lite",
+    "modal_muncul": true,
+    "catatan": "Wizard hanya dirender untuk user tanpa riwayat (OnboardingFlow.tsx:65-74)."
+   },
+   "evidence_note": null
+  },
+  {
+   "id": "P2-02",
+   "persona": "P2-Siti",
+   "title": "Prompt pemula yang kabur: 'aku mau jualan online'",
+   "precondition": "Chat baru",
+   "action": "Kirim 'aku mau jualan online'",
+   "expected": "Dibalas dengan bimbingan konkret (bukan menolak/menebak)",
+   "actual": "status=replied; t_balasan=5.11s; kata_bimbingan=3",
+   "state": "PASS",
+   "severity": "medium",
+   "seconds": 9.37,
+   "screenshots": [
+    "C:\\Users\\user\\Proyek_AI\\docs\\evidence\\real-user-2026-10-13\\p2-02-prompt-kabur.png"
+   ],
+   "console_errors": [],
+   "failed_requests": [
+    {
+     "url": "https://katalir.de5.net/cdn-cgi/rum?",
+     "failure": "net::ERR_ABORTED"
+    }
+   ],
+   "extra": {
+    "reply_tail": "ceritakan sedikit lebih detail?\n1. **Produk apa yang ingin Anda jual?** (Misal: pakaian, makanan, jasa, produk digital, dll.)\n2. **Platform apa yang akan Anda gunakan untuk berjualan?** (Misal: WhatsApp, Instagram, Shopee/Tokopedia, website sendiri, dll.)\n3. **Bantuan apa yang paling Anda butuhkan saat ini?** \n   - Membuat laporan keuangan / pencatatan stok (Google Sheets)\n   - Membuat otomatisasi pesan/notifikasi (WhatsApp, Telegram, atau Email)\n   - Menyiapkan strategi pemasaran atau ide konten\n\nSilakan beri tahu saya, dan kita bisa langsung mulai!\ngemini-3.5-flash-lite · 1.6s · 4503→182 tok",
+    "reply_full": "ceritakan sedikit lebih detail?\n1. **Produk apa yang ingin Anda jual?** (Misal: pakaian, makanan, jasa, produk digital, dll.)\n2. **Platform apa yang akan Anda gunakan untuk berjualan?** (Misal: WhatsApp, Instagram, Shopee/Tokopedia, website sendiri, dll.)\n3. **Bantuan apa yang paling Anda butuhkan saat ini?** \n   - Membuat laporan keuangan / pencatatan stok (Google Sheets)\n   - Membuat otomatisasi pesan/notifikasi (WhatsApp, Telegram, atau Email)\n   - Menyiapkan strategi pemasaran atau ide konten\n\nSilakan beri tahu saya, dan kita bisa langsung mulai!\ngemini-3.5-flash-lite · 1.6s · 4503→182 tok",
+    "status_mentah": "replied",
+    "kata_cocok": 3
+   },
+   "evidence_note": null
+  },
+  {
+   "id": "P2-03",
+   "persona": "P2-Siti",
+   "title": "Jelajahi semua rute aplikasi yang ada",
+   "precondition": "Login",
+   "action": "Buka 20 rute yang benar-benar ada di aplikasi (dari src/app/**/page.tsx) dan catat status HTTP nyata",
+   "expected": "Semua rute aplikasi membalas 200 dan menampilkan konten (empty-state yang sah tetap dihitung lulus)",
+   "actual": "bermasalah=0/20 -> []",
+   "state": "PASS",
+   "severity": "medium",
+   "seconds": null,
+   "screenshots": [
+    "C:\\Users\\user\\Proyek_AI\\docs\\evidence\\real-user-2026-10-13\\p2-03-terakhir.png"
+   ],
+   "console_errors": [],
+   "failed_requests": [],
+   "extra": {
+    "routes": [
+     {
+      "path": "/",
+      "status": 200,
+      "sec": 3.02,
+      "label": "Beranda",
+      "len": 2641,
+      "404": false,
+      "err": 2
+     },
+     {
+      "path": "/about",
+      "status": 200,
+      "sec": 2.9,
+      "label": "Tentang",
+      "len": 122,
+      "404": false,
+      "err": 0
+     },
+     {
+      "path": "/agents",
+      "status": 200,
+      "sec": 2.89,
+      "label": "Agents",
+      "len": 209,
+      "404": false,
+      "err": 0
+     },
+     {
+      "path": "/billing",
+      "status": 200,
+      "sec": 2.89,
+      "label": "Billing",
+      "len": 1264,
+      "404": false,
+      "err": 0
+     },
+     {
+      "path": "/builder",
+      "status": 200,
+      "sec": 2.9,
+      "label": "Builder",
+      "len": 989,
+      "404": false,
+      "err": 0
+     },
+     {
+      "path": "/changelog",
+      "status": 200,
+      "sec": 2.94,
+      "label": "Changelog",
+      "len": 93,
+      "404": false,
+      "err": 0
+     },
+     {
+      "path": "/chat",
+      "status": 200,
+      "sec": 2.8,
+      "label": "Chat",
+      "len": 555,
+      "404": false,
+      "err": 0
+     },
+     {
+      "path": "/community/my-earnings",
+      "status": 200,
+      "sec": 3.39,
+      "label": "My earnings",
+      "len": 244,
+      "404": false,
+      "err": 0
+     },
+     {
+      "path": "/connectors/health",
+      "status": 200,
+      "sec": 2.88,
+      "label": "Connectors health",
+      "len": 759,
+      "404": false,
+      "err": 0
+     },
+     {
+      "path": "/docs",
+      "status": 200,
+      "sec": 2.93,
+      "label": "Docs",
+      "len": 673,
+      "404": false,
+      "err": 0
+     },
+     {
+      "path": "/evaluations",
+      "status": 200,
+      "sec": 2.92,
+      "label": "Evaluations",
+      "len": 482,
+      "404": false,
+      "err": 0
+     },
+     {
+      "path": "/help",
+      "status": 200,
+      "sec": 2.71,
+      "label": "Help",
+      "len": 821,
+      "404": false,
+      "err": 0
+     },
+     {
+      "path": "/insights",
+      "status": 200,
+      "sec": 2.89,
+      "label": "Insights",
+      "len": 379,
+      "404": false,
+      "err": 0
+     },
+     {
+      "path": "/integrations",
+      "status": 200,
+      "sec": 3.01,
+      "label": "Integrations",
+      "len": 12308,
+      "404": false,
+      "err": 0
+     },
+     {
+      "path": "/my-integrations",
+      "status": 200,
+      "sec": 2.92,
+      "label": "My integrations",
+      "len": 119,
+      "404": false,
+      "err": 0
+     },
+     {
+      "path": "/pricing",
+      "status": 200,
+      "sec": 2.9,
+      "label": "Pricing",
+      "len": 361,
+      "404": false,
+      "err": 0
+     },
+     {
+      "path": "/privacy",
+      "status": 200,
+      "sec": 2.91,
+      "label": "Privacy",
+      "len": 2729,
+      "404": false,
+      "err": 0
+     },
+     {
+      "path": "/settings",
+      "status": 200,
+      "sec": 2.92,
+      "label": "Settings",
+      "len": 1582,
+      "404": false,
+      "err": 0
+     },
+     {
+      "path": "/templates",
+      "status": 200,
+      "sec": 2.91,
+      "label": "Templates",
+      "len": 1641,
+      "404": false,
+      "err": 0
+     },
+     {
+      "path": "/terms",
+      "status": 200,
+      "sec": 2.93,
+      "label": "Terms",
+      "len": 2082,
+      "404": false,
+      "err": 0
+     }
+    ]
+   },
+   "evidence_note": null
+  },
+  {
+   "id": "P2-03b",
+   "persona": "P2-Siti",
+   "title": "URL salah ketik: halaman 404 yang diterima user",
+   "precondition": "Login",
+   "action": "Buka /vault, /dashboard, /workflows, /orders",
+   "expected": "Halaman 'tidak ditemukan' berbahasa Indonesia, ada jalan kembali ke aplikasi",
+   "actual": "layar_kosong=[]; tidak_ramah_(bukan_ID_atau_tanpa_jalan_kembali)=[]; rincian=[{'path': '/vault', 'status': 404, 'sec': 2.74, 'label': 'Vault', 'len': 117, 'ada_penanda_404': True, 'bahasa_indonesia': True, 'ada_jalan_kembali': 2}, {'path': '/dashboard', 'status': 404, 'sec': 2.79, 'label': 'Dashboard', 'len': 117, 'ada_penanda_404': True, 'bahasa_indonesia': True, 'ada_jalan_kembali': 2}, {'path': '/workflows', 'status': 404, 'sec': 2.7, 'label': 'Workflows', 'len': 117, 'ada_penanda_404': True, 'bahasa_indonesia': True, 'ada_jalan_kembali': 2}, {'path': '/orders', 'status': 404, 'sec': 2.77, 'label': 'Orders', 'len': 117, 'ada_penanda_404': True, 'bahasa_indonesia': True, 'ada_jalan_kembali': 2}]",
+   "state": "PASS",
+   "severity": "medium",
+   "seconds": null,
+   "screenshots": [
+    "C:\\Users\\user\\Proyek_AI\\docs\\evidence\\real-user-2026-10-13\\p2-03b-vault.png",
+    "C:\\Users\\user\\Proyek_AI\\docs\\evidence\\real-user-2026-10-13\\p2-03b-dashboard.png",
+    "C:\\Users\\user\\Proyek_AI\\docs\\evidence\\real-user-2026-10-13\\p2-03b-workflows.png",
+    "C:\\Users\\user\\Proyek_AI\\docs\\evidence\\real-user-2026-10-13\\p2-03b-orders.png"
+   ],
+   "console_errors": [],
+   "failed_requests": [],
+   "extra": {
+    "routes": [
+     {
+      "path": "/vault",
+      "status": 404,
+      "sec": 2.74,
+      "label": "Vault",
+      "len": 117,
+      "ada_penanda_404": true,
+      "bahasa_indonesia": true,
+      "ada_jalan_kembali": 2
+     },
+     {
+      "path": "/dashboard",
+      "status": 404,
+      "sec": 2.79,
+      "label": "Dashboard",
+      "len": 117,
+      "ada_penanda_404": true,
+      "bahasa_indonesia": true,
+      "ada_jalan_kembali": 2
+     },
+     {
+      "path": "/workflows",
+      "status": 404,
+      "sec": 2.7,
+      "label": "Workflows",
+      "len": 117,
+      "ada_penanda_404": true,
+      "bahasa_indonesia": true,
+      "ada_jalan_kembali": 2
+     },
+     {
+      "path": "/orders",
+      "status": 404,
+      "sec": 2.77,
+      "label": "Orders",
+      "len": 117,
+      "ada_penanda_404": true,
+      "bahasa_indonesia": true,
+      "ada_jalan_kembali": 2
+     }
+    ]
+   },
+   "evidence_note": null
+  },
+  {
+   "id": "P2-04",
+   "persona": "P2-Siti",
+   "title": "Kirim pesan kosong / hanya spasi",
+   "precondition": "Composer kosong",
+   "action": "Tekan Enter tanpa teks; lalu isi spasi saja + Enter",
+   "expected": "Tidak ada permintaan chat terkirim; tidak ada error",
+   "actual": "POST_/chat_terkirim=0; error_kartu=False; error_console=0",
+   "state": "PASS",
+   "severity": "low",
+   "seconds": null,
+   "screenshots": [
+    "C:\\Users\\user\\Proyek_AI\\docs\\evidence\\real-user-2026-10-13\\p2-04-pesan-kosong.png"
+   ],
+   "console_errors": [],
+   "failed_requests": [
+    {
+     "url": "https://katalir.de5.net/cdn-cgi/rum?",
+     "failure": "net::ERR_ABORTED"
+    }
+   ],
+   "extra": {
+    "chat_posts": []
+   },
+   "evidence_note": null
+  },
+  {
+   "id": "P2-05",
+   "persona": "P2-Siti",
+   "title": "Input salah: hanya emoji",
+   "precondition": "Chat baru",
+   "action": "Kirim '😀'",
+   "expected": "Tetap dijawab wajar atau diminta memperjelas",
+   "actual": "status=replied; t_balasan=5.07s; ada_error=False",
+   "state": "PASS",
+   "severity": "low",
+   "seconds": 7.65,
+   "screenshots": [
+    "C:\\Users\\user\\Proyek_AI\\docs\\evidence\\real-user-2026-10-13\\p2-05-emoji-saja.png"
+   ],
+   "console_errors": [],
+   "failed_requests": [
+    {
+     "url": "https://katalir.de5.net/cdn-cgi/rum?",
+     "failure": "net::ERR_ABORTED"
+    }
+   ],
+   "extra": {
+    "reply_tail": "😀\nHalo! Ada yang bisa saya bantu hari ini? \n\nJika Anda ingin membuat workflow otomatisasi (misalnya menghubungkan Gmail, Google Sheets, Telegram, Slack, atau API lainnya), cukup beri tahu saya alurnya, dan saya akan langsung buatkan untuk Anda!\ngemini-3.5-flash-lite · 0.8s · 4499→53 tok"
+   },
+   "evidence_note": null
+  },
+  {
+   "id": "P2-06",
+   "persona": "P2-Siti",
+   "title": "Konsistensi bahasa antarmuka",
+   "precondition": "Login, locale id-ID",
+   "action": "Buka 5 halaman utama, hitung kata Inggris vs Indonesia",
+   "expected": "Bahasa konsisten (Indonesia) untuk pengguna id-ID",
+   "actual": "halaman_campur_bahasa=[]; rincian={'/': {'en': 1, 'id': 2, 'len': 2641}, '/chat': {'en': 0, 'id': 0, 'len': 480}, '/templates': {'en': 0, 'id': 2, 'len': 1641}, '/builder': {'en': 0, 'id': 2, 'len': 989}, '/settings': {'en': 1, 'id': 3, 'len': 1582}}",
+   "state": "PASS",
+   "severity": "low",
+   "seconds": null,
+   "screenshots": [
+    "C:\\Users\\user\\Proyek_AI\\docs\\evidence\\real-user-2026-10-13\\p2-06-bahasa.png"
+   ],
+   "console_errors": [],
+   "failed_requests": [],
+   "extra": {
+    "langs": {
+     "/": {
+      "en": 1,
+      "id": 2,
+      "len": 2641
+     },
+     "/chat": {
+      "en": 0,
+      "id": 0,
+      "len": 480
+     },
+     "/templates": {
+      "en": 0,
+      "id": 2,
+      "len": 1641
+     },
+     "/builder": {
+      "en": 0,
+      "id": 2,
+      "len": 989
+     },
+     "/settings": {
+      "en": 1,
+      "id": 3,
+      "len": 1582
+     }
+    }
+   },
+   "evidence_note": null
+  },
+  {
+   "id": "P2-07",
+   "persona": "P2-Siti",
+   "title": "Tombol ikon tanpa label teks",
+   "precondition": "Halaman /chat",
+   "action": "Hitung tombol terlihat yang tak punya teks/aria-label/title",
+   "expected": "Semua tombol punya nama yang bisa dibaca pemula & screen reader",
+   "actual": "tombol_terlihat=25; tanpa_label=0",
+   "state": "PASS",
+   "severity": "low",
+   "seconds": null,
+   "screenshots": [
+    "C:\\Users\\user\\Proyek_AI\\docs\\evidence\\real-user-2026-10-13\\p2-07-tombol-tanpa-label.png"
+   ],
+   "console_errors": [],
+   "failed_requests": [],
+   "extra": {
+    "contoh": []
+   },
+   "evidence_note": null
+  },
+  {
+   "id": "P2-09",
+   "persona": "P2-Siti",
+   "title": "Klik semua kontrol header tanpa pikir",
+   "precondition": "/chat, login",
+   "action": "Klik Brankas, menu akun, tombol tema; tekan Escape",
+   "expected": "Setiap kontrol memberi reaksi yang jelas; tidak ada yang membuat halaman rusak",
+   "actual": "hasil={'brankas': True, 'menu_akun': 607, 'tema_berubah': True}; halaman_rusak=False; error_console=0",
+   "state": "PASS",
+   "severity": "medium",
+   "seconds": null,
+   "screenshots": [
+    "C:\\Users\\user\\Proyek_AI\\docs\\evidence\\real-user-2026-10-13\\p2-09a-brankas.png",
+    "C:\\Users\\user\\Proyek_AI\\docs\\evidence\\real-user-2026-10-13\\p2-09b-menu-akun.png",
+    "C:\\Users\\user\\Proyek_AI\\docs\\evidence\\real-user-2026-10-13\\p2-09c-setelah-klik-semua.png"
+   ],
+   "console_errors": [],
+   "failed_requests": [
+    {
+     "url": "https://katalir.de5.net/cdn-cgi/rum?",
+     "failure": "net::ERR_ABORTED"
+    }
+   ],
+   "extra": {
+    "hasil": {
+     "brankas": true,
+     "menu_akun": 607,
+     "tema_berubah": true
+    }
+   },
+   "evidence_note": null
+  },
+  {
+   "id": "P2-08",
+   "persona": "P2-Siti",
+   "title": "Apakah ada bantuan untuk user pemula?",
+   "precondition": "Login",
+   "action": "Buka /help",
+   "expected": "Halaman bantuan berisi konten nyata",
+   "actual": "muat=3.2s; panjang_teks=821; ada_konten=True; head='Lompat ke konten\\nKatalir\\nKembali\\nBantuan\\n\\nJawaban atas pertanyaan yang sering diajukan\\n\\nBAGIAN\\n\\nPertanyaan Umum\\nPintasan Keyboard\\nKontak\\nCar'",
+   "state": "PASS",
+   "severity": "low",
+   "seconds": null,
+   "screenshots": [
+    "C:\\Users\\user\\Proyek_AI\\docs\\evidence\\real-user-2026-10-13\\p2-08-help.png"
+   ],
+   "console_errors": [],
+   "failed_requests": [
+    {
+     "url": "https://katalir.de5.net/cdn-cgi/rum?",
+     "failure": "net::ERR_ABORTED"
+    }
+   ],
+   "extra": {},
+   "evidence_note": null
+  }
+ ]
+}

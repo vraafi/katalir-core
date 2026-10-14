@@ -1,0 +1,91 @@
+{
+ "group": "j3",
+ "email": "rus-final-64719af4@katalir-internal.dev",
+ "count": 4,
+ "results": [
+  {
+   "id": "J3-A",
+   "persona": "J3-Journey",
+   "title": "Buat 2 akun uji nyata",
+   "precondition": "Service role key valid",
+   "action": "POST /auth/v1/admin/users x2",
+   "expected": "2 akun nyata dengan sesi",
+   "actual": "A=rus-a-c03e30b3@katalir-internal.dev B=rus-b-48b056e8@katalir-internal.dev",
+   "state": "PASS",
+   "severity": "low",
+   "seconds": null,
+   "screenshots": [],
+   "console_errors": [],
+   "failed_requests": [],
+   "extra": {},
+   "evidence_note": null
+  },
+  {
+   "id": "J3-B",
+   "persona": "J3-Journey",
+   "title": "Isolasi data: user B tidak melihat workflow A",
+   "precondition": "Dua akun nyata berbeda",
+   "action": "A membuat workflow; B memanggil GET /workflows",
+   "expected": "B hanya melihat datanya sendiri (0 kebocoran)",
+   "actual": "A_buat_HTTP=201 (id=d04be11d-28fd-4ba9-ae2d-12ad8f0d1813); B_list_HTTP=200; kebocoran=False",
+   "state": "PASS",
+   "severity": "low",
+   "seconds": null,
+   "screenshots": [],
+   "console_errors": [],
+   "failed_requests": [],
+   "extra": {
+    "a_body": "{\"status\":\"success\",\"updated\":false,\"workflow\":{\"id\":\"d04be11d-28fd-4ba9-ae2d-12ad8f0d1813\",\"name\":\"RUS-A rahasia\",\"description\":\"milik user A\",\"flow_data\":{},\"created_at\":\"2026-10-14T07:08:35.880905+00:00\",\"user_id\":\"5dabe149-4d2f-4d10-af95-981c9137edc5\"}}",
+    "b_body": "{\"status\":\"success\",\"workflows\":[]}"
+   },
+   "evidence_note": null
+  },
+  {
+   "id": "J3-C",
+   "persona": "J3-Journey",
+   "title": "Akses langsung lintas user ke /workflows/{id}",
+   "precondition": "A punya workflow, B punya token valid",
+   "action": "B memanggil GET /workflows/<id milik A>",
+   "expected": "404/403 — bukan 200",
+   "actual": "HTTP 404; cuplikan='{\"detail\":\"Workflow tidak ditemukan.\"}'",
+   "state": "PASS",
+   "severity": "critical",
+   "seconds": null,
+   "screenshots": [],
+   "console_errors": [],
+   "failed_requests": [],
+   "extra": {
+    "http": 404,
+    "body": "{\"detail\":\"Workflow tidak ditemukan.\"}"
+   },
+   "evidence_note": null
+  },
+  {
+   "id": "J3-D",
+   "persona": "J3-Journey",
+   "title": "Dua sesi browser: identitas tidak tercampur",
+   "precondition": "2 context terisolasi, 2 akun nyata berbeda",
+   "action": "Muat /chat sebagai A dan sebagai B; periksa sesi localStorage + cari email lawan di DOM",
+   "expected": "Tiap tab memakai sesi miliknya sendiri; tidak ada email user lain yang bocor ke tab lain",
+   "actual": "sesi_A=True; sesi_B=True; A_lihat_dirinya=True; B_lihat_dirinya=True; A_lihat_email_B=False; B_lihat_email_A=False",
+   "state": "PASS",
+   "severity": "medium",
+   "seconds": null,
+   "screenshots": [
+    "C:\\Users\\user\\Proyek_AI\\docs\\evidence\\real-user-2026-10-13\\j3-01-userA.png",
+    "C:\\Users\\user\\Proyek_AI\\docs\\evidence\\real-user-2026-10-13\\j3-02-userB.png"
+   ],
+   "console_errors": [],
+   "failed_requests": [],
+   "extra": {
+    "a_head": "Lompat ke konten\nChat Baru\n\nRIWAYAT CHAT\n\nBelum ada riwayat.\n\nR\nrus-a-c03e30b3@katalir-internal.dev\nKatalir\nKatalir\nChat\nBuilder\nTemplate\nBrankas\nPembayaran belum dibuka Paket Plus ($299 / tahun) akan tersedia setelah peluncuran. Selama itu, semua fitur yang tersedia bisa dipakai gratis.\nHalo, ada y",
+    "b_head": "Lompat ke konten\nChat Baru\n\nRIWAYAT CHAT\n\nBelum ada riwayat.\n\nR\nrus-b-48b056e8@katalir-internal.dev\nKatalir\nKatalir\nChat\nBuilder\nTemplate\nBrankas\nPembayaran belum dibuka Paket Plus ($299 / tahun) akan tersedia setelah peluncuran. Selama itu, semua fitur yang tersedia bisa dipakai gratis.\nHalo, ada y",
+    "sub_a": "5dabe149-4d2f-4d10-af95-981c9137edc5",
+    "sub_b": "23fd9156-271d-492e-b8c8-16bd4faba60e",
+    "id_a": "5dabe149-4d2f-4d10-af95-981c9137edc5",
+    "id_b": "23fd9156-271d-492e-b8c8-16bd4faba60e"
+   },
+   "evidence_note": "Isolasi yang menentukan diuji di tingkat sesi: token di localStorage tiap context harus milik akunnya sendiri. Jika UI memang tidak pernah menampilkan email user yang sedang login, kontrol positif DOM gagal -> status NOT_RUN, bukan FAIL (tidak ada bukti kebocoran)."
+  }
+ ]
+}

@@ -1,0 +1,84 @@
+{
+ "user": "probe-defaultmodel-ba4ed6de@katalir-internal.dev",
+ "results": [
+  {
+   "case": "1. brief: google/gemini-3.5-flash-lite (BER-prefix)",
+   "requested": "google/gemini-3.5-flash-lite",
+   "http": 200,
+   "seconds": 10.1,
+   "fallback": true,
+   "fallback_reason": "model_unavailable",
+   "requested_model": "google/gemini-3.5-flash-lite",
+   "served_by": "gemini-3.5-flash-lite",
+   "quota_bucket": "gemma",
+   "answered_333": true,
+   "layak_jadi_default": false,
+   "reply": "333",
+   "detail": ""
+  },
+  {
+   "case": "2. bare: gemini-3.5-flash-lite (TANPA prefix)",
+   "requested": "gemini-3.5-flash-lite",
+   "http": 200,
+   "seconds": 7.9,
+   "fallback": false,
+   "fallback_reason": null,
+   "requested_model": "gemini-3.5-flash-lite",
+   "served_by": "gemini-3.5-flash-lite",
+   "quota_bucket": "gemma",
+   "answered_333": true,
+   "layak_jadi_default": true,
+   "reply": "333",
+   "detail": ""
+  },
+  {
+   "case": "3. FE katalog internal: gemini-3.1-flash-lite",
+   "requested": "gemini-3.1-flash-lite",
+   "http": 200,
+   "seconds": 7.1,
+   "fallback": true,
+   "fallback_reason": "model_unavailable",
+   "requested_model": "gemini-3.1-flash-lite",
+   "served_by": "gemini-3.5-flash-lite",
+   "quota_bucket": "gemma",
+   "answered_333": true,
+   "layak_jadi_default": false,
+   "reply": "333",
+   "detail": ""
+  },
+  {
+   "case": "4. default lama: google/gemma-4-31b-it",
+   "requested": "google/gemma-4-31b-it",
+   "http": 200,
+   "seconds": 8.3,
+   "fallback": true,
+   "fallback_reason": "quota_exhausted",
+   "requested_model": "google/gemma-4-31b-it",
+   "served_by": "gemini-3.5-flash-lite",
+   "quota_bucket": "gemma",
+   "answered_333": true,
+   "layak_jadi_default": false,
+   "reply": "333",
+   "detail": ""
+  },
+  {
+   "case": "5. kontrol: tanpa model",
+   "requested": null,
+   "http": 200,
+   "seconds": 8.3,
+   "fallback": false,
+   "fallback_reason": null,
+   "requested_model": null,
+   "served_by": "gemini-3.5-flash-lite",
+   "quota_bucket": "gemma",
+   "answered_333": true,
+   "layak_jadi_default": true,
+   "reply": "333",
+   "detail": ""
+  }
+ ],
+ "layak_default": [
+  "gemini-3.5-flash-lite",
+  null
+ ]
+}

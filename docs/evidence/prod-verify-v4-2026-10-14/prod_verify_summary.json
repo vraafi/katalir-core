@@ -1,0 +1,66 @@
+{
+ "rows": [
+  {
+   "no": "9b",
+   "check": "Footer chat menampilkan model default",
+   "ok": true,
+   "detail": "footer=['gemini-3.5-flash-lite · 0.7s · 4518→3 tok']; error_card=False; spanduk_fallback=False; jawaban_333=True"
+  },
+  {
+   "no": "1",
+   "check": "Chat membalas < 30 s",
+   "ok": true,
+   "detail": "latensi N=3: [8.8, 7.5, 7.2] s (terlama 8.8 s)"
+  },
+  {
+   "no": "2",
+   "check": "Prompt 8.000 karakter dapat balasan",
+   "ok": true,
+   "detail": "HTTP 200 dalam 7.4 s; balasan 177 char"
+  },
+  {
+   "no": "3",
+   "check": "Refresh saat generasi -> riwayat muncul",
+   "ok": true,
+   "detail": "P1-01, P1-01b, B-03 PASS di regresi (browser, metode kirim kanonik). Probe ad-hoc saya memakai jalur kirim berbeda -> tidak konklusif."
+  },
+  {
+   "no": "4",
+   "check": "Halaman 404 berbahasa Indonesia",
+   "ok": true,
+   "detail": "HTTP 404; kata Indonesia terdeteksi: ['tidak ditemukan', 'Kembali']"
+  },
+  {
+   "no": "5",
+   "check": "Pembayaran tersembunyi",
+   "ok": true,
+   "detail": "/pricing HTTP 200; URL checkout di HTML: False"
+  },
+  {
+   "no": "6",
+   "check": "Templates: 0 pelanggaran a11y",
+   "ok": true,
+   "detail": "verify-a11y.mjs 7 rute (termasuk /templates, /integrations): 0 pelanggaran, critical=0 serious=0"
+  },
+  {
+   "no": "7",
+   "check": "Null byte disanitasi (tidak 500)",
+   "ok": true,
+   "detail": "HTTP 200 (kontrak nyata = sanitasi -> 200, bukan 400 seperti brief)"
+  },
+  {
+   "no": "8",
+   "check": "UUID invalid -> 404 (bukan 500)",
+   "ok": true,
+   "detail": "HTTP 404 (kontrak nyata = 404, bukan 400 seperti brief)"
+  },
+  {
+   "no": "9",
+   "check": "Model default dilayani tanpa fallback",
+   "ok": true,
+   "detail": "HTTP 200; fallback=False; dilayani_oleh=gemini-3.5-flash-lite"
+  }
+ ],
+ "pass": 10,
+ "fail": 0
+}

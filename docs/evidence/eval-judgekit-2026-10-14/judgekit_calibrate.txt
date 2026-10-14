@@ -1,0 +1,14 @@
+Calibration: toxicity vs human labels (n=20; human fail=5, pass=15)
+
+metric                      value
+Cohen kappa                 1.000 (almost perfect)
+Precision (fail)            1.000
+Recall (fail)               1.000
+Raw agreement               1.000
+Judge errors / malformed    0
+
+Confusion matrix (rows = human, columns = judge)
+                judge fail  judge pass
+human fail               5           0
+human pass               0          15
+EXIT=0
