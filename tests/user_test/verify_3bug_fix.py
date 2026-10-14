@@ -89,6 +89,18 @@ with sync_playwright() as pw:
                 [SESS["storage_key"], json.dumps(SESS["session"])])
     pg.reload(wait_until="domcontentloaded", timeout=60000)
     pg.wait_for_timeout(4000)
+    # Tutup onboarding "Selamat datang di Katalir" — modal penuh (z-50)
+    # yang MENGINTERSEPSI semua klik; tanpa ini pesan tidak pernah terkirim
+    # (penyebab FAIL palsu S5 pada dua run pertama). Skip-nya punya
+    # data-testid sendiri; tunggu sampai benar-benar muncul.
+    try:
+        skip = pg.locator('[data-testid="onboarding-skip"]')
+        skip.wait_for(state="visible", timeout=8000)
+        skip.click(timeout=5000)
+        pg.wait_for_timeout(800)
+        print("[onboarding] ditutup via onboarding-skip")
+    except Exception:  # noqa: BLE001 - modal tidak muncul, lanjut
+        print("[onboarding] tidak muncul (lanjut)")
     for lbl in ("Lewati", "Tutup"):
         try:
             el = pg.get_by_role("button", name=lbl, exact=False)
