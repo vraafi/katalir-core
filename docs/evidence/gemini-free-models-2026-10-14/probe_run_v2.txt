@@ -1,0 +1,49 @@
+kunci unik: 13
+kunci probe utama: GEMINI_KEY_1#01f989b4
+
+katalog=63  kandidat teks-chat=19
+
+  OK    gemini-2.5-flash                        854ms  OK
+  OK    gemini-2.5-flash-lite                  1003ms  OK
+  GAGAL gemini-2.5-pro                          408ms  [entitlement] 404 NOT_FOUND. {'error': {'code': 404, 'message': 'This model mode
+  OK    gemini-3-flash-preview                 1269ms  OK
+  OK    gemini-3.1-flash-lite                   846ms  OK
+  OK    gemini-3.1-flash-lite-preview           980ms  OK
+  GAGAL gemini-3.1-pro-preview                  278ms  [rate_limited] 429 RESOURCE_EXHAUSTED. {'error': {'code': 429, 'message': 'You e
+  GAGAL gemini-3.1-pro-preview-customtools      303ms  [rate_limited] 429 RESOURCE_EXHAUSTED. {'error': {'code': 429, 'message': 'You e
+  OK    gemini-3.5-flash                       1786ms  OK
+  OK    gemini-3.5-flash-lite                  4874ms  OK
+  OK    gemini-3.6-flash                       2560ms  OK
+  OK    gemini-3.7-flash                       5612ms  OK
+  OK    gemini-3.8-flash                       2560ms  OK (via GEMINI_KEY_3#fd9f7450)
+  GAGAL gemini-4-argon                          306ms  [rate_limited] 429 RESOURCE_EXHAUSTED. {'error': {'code': 429, 'message': 'You e
+  OK    gemini-flash-latest                    9611ms  OK
+  OK    gemini-flash-lite-latest               3579ms  OK
+  GAGAL gemini-pro-latest                       293ms  [rate_limited] 429 RESOURCE_EXHAUSTED. {'error': {'code': 429, 'message': 'You e
+  OK    gemma-4-26b-a4b-it                     3879ms  OK
+  OK    gemma-4-31b-it                         3249ms  OK (via GEMINI_KEY_2#a634dfdd)
+
+=== BISA DIPAKAI GRATIS (14) ===
+    gemini-2.5-flash
+    gemini-2.5-flash-lite
+    gemini-3-flash-preview
+    gemini-3.1-flash-lite
+    gemini-3.1-flash-lite-preview
+    gemini-3.5-flash
+    gemini-3.5-flash-lite
+    gemini-3.6-flash
+    gemini-3.7-flash
+    gemini-3.8-flash
+    gemini-flash-latest
+    gemini-flash-lite-latest
+    gemma-4-26b-a4b-it
+    gemma-4-31b-it
+
+=== TIDAK BISA (5) ===
+    gemini-2.5-pro
+    gemini-3.1-pro-preview
+    gemini-3.1-pro-preview-customtools
+    gemini-4-argon
+    gemini-pro-latest
+
+disimpan: C:\Users\user\Proyek_AI\docs\evidence\gemini-free-models-2026-10-14\probe_gemini_free_models_v2.json

@@ -1,0 +1,341 @@
+{
+  "probed_at": "2026-10-15T06:08:26+0700",
+  "unique_keys": 13,
+  "probe_key": "GEMINI_KEY_1#01f989b4",
+  "catalog_size": 63,
+  "catalog_all": [
+    "antigravity-preview-05-2026",
+    "antigravity-preview-09-2026",
+    "antigravity-preview-latest",
+    "aqa",
+    "deep-research-max-preview-04-2026",
+    "deep-research-preview-04-2026",
+    "deep-research-pro-preview-12-2025",
+    "gemini-2.5-computer-use-preview-10-2025",
+    "gemini-2.5-flash",
+    "gemini-2.5-flash-image",
+    "gemini-2.5-flash-lite",
+    "gemini-2.5-flash-native-audio-latest",
+    "gemini-2.5-flash-native-audio-preview-09-2025",
+    "gemini-2.5-flash-native-audio-preview-12-2025",
+    "gemini-2.5-flash-preview-tts",
+    "gemini-2.5-pro",
+    "gemini-2.5-pro-preview-tts",
+    "gemini-3-flash-preview",
+    "gemini-3-pro-image",
+    "gemini-3-pro-image-preview",
+    "gemini-3.1-flash-image",
+    "gemini-3.1-flash-image-preview",
+    "gemini-3.1-flash-lite",
+    "gemini-3.1-flash-lite-image",
+    "gemini-3.1-flash-lite-preview",
+    "gemini-3.1-flash-live-preview",
+    "gemini-3.1-flash-tts-preview",
+    "gemini-3.1-pro-preview",
+    "gemini-3.1-pro-preview-customtools",
+    "gemini-3.5-flash",
+    "gemini-3.5-flash-lite",
+    "gemini-3.5-live-translate-preview",
+    "gemini-3.5-transcribe",
+    "gemini-3.5-transcribe-live",
+    "gemini-3.6-flash",
+    "gemini-3.7-flash",
+    "gemini-3.8-flash",
+    "gemini-3.8-flash-lite-tts",
+    "gemini-3.8-flash-tts",
+    "gemini-3.8-live",
+    "gemini-3.8-live-extended-thinking",
+    "gemini-4-argon",
+    "gemini-embedding-001",
+    "gemini-embedding-2",
+    "gemini-embedding-2-preview",
+    "gemini-flash-latest",
+    "gemini-flash-lite-latest",
+    "gemini-nano-banana-2.1",
+    "gemini-omni-1.1-flash",
+    "gemini-omni-flash-preview",
+    "gemini-pro-latest",
+    "gemini-robotics-er-2-preview",
+    "gemini-robotics-er-2-streaming-preview",
+    "gemma-4-26b-a4b-it",
+    "gemma-4-31b-it",
+    "lyria-3-clip-preview",
+    "lyria-3-pro-preview",
+    "lyria-3.5",
+    "lyria-realtime-exp",
+    "nano-banana-pro-preview",
+    "veo-3.1-fast-generate-preview",
+    "veo-3.1-generate-preview",
+    "veo-3.1-lite-generate-preview"
+  ],
+  "candidates_text_chat": [
+    "gemini-2.5-flash",
+    "gemini-2.5-flash-lite",
+    "gemini-2.5-pro",
+    "gemini-3-flash-preview",
+    "gemini-3.1-flash-lite",
+    "gemini-3.1-flash-lite-preview",
+    "gemini-3.1-pro-preview",
+    "gemini-3.1-pro-preview-customtools",
+    "gemini-3.5-flash",
+    "gemini-3.5-flash-lite",
+    "gemini-3.6-flash",
+    "gemini-3.7-flash",
+    "gemini-3.8-flash",
+    "gemini-4-argon",
+    "gemini-flash-latest",
+    "gemini-flash-lite-latest",
+    "gemini-pro-latest",
+    "gemma-4-26b-a4b-it",
+    "gemma-4-31b-it"
+  ],
+  "rows": [
+    {
+      "model": "gemini-2.5-flash",
+      "served": true,
+      "detail": "OK",
+      "latency_ms": 854,
+      "retried_keys": [],
+      "paid_hint": false
+    },
+    {
+      "model": "gemini-2.5-flash-lite",
+      "served": true,
+      "detail": "OK",
+      "latency_ms": 1003,
+      "retried_keys": [],
+      "paid_hint": false
+    },
+    {
+      "model": "gemini-2.5-pro",
+      "served": false,
+      "detail": "[entitlement] 404 NOT_FOUND. {'error': {'code': 404, 'message': 'This model models/gemini-2.5-pro is no longer available to new users. Please update your code to use models/gemini-3.1-pro-preview for the latest features and improvements. We recommend you to use the Interact",
+      "latency_ms": 408,
+      "retried_keys": [
+        {
+          "key": "GEMINI_KEY_2#a634dfdd",
+          "served": false,
+          "detail": "[entitlement] 404 NOT_FOUND. {'error': {'code': 404, 'message': 'This model models/gemini-2.5-pro is no longer available to new users. Please update your code to use models/gemini-3.1-pro-preview for the latest features and improvements. We recommend you to use the Interact"
+        },
+        {
+          "key": "GEMINI_KEY_3#fd9f7450",
+          "served": false,
+          "detail": "[entitlement] 404 NOT_FOUND. {'error': {'code': 404, 'message': 'This model models/gemini-2.5-pro is no longer available to new users. Please update your code to use models/gemini-3.1-pro-preview for the latest features and improvements. We recommend you to use the Interact"
+        }
+      ],
+      "paid_hint": true
+    },
+    {
+      "model": "gemini-3-flash-preview",
+      "served": true,
+      "detail": "OK",
+      "latency_ms": 1269,
+      "retried_keys": [],
+      "paid_hint": false
+    },
+    {
+      "model": "gemini-3.1-flash-lite",
+      "served": true,
+      "detail": "OK",
+      "latency_ms": 846,
+      "retried_keys": [],
+      "paid_hint": false
+    },
+    {
+      "model": "gemini-3.1-flash-lite-preview",
+      "served": true,
+      "detail": "OK",
+      "latency_ms": 980,
+      "retried_keys": [],
+      "paid_hint": false
+    },
+    {
+      "model": "gemini-3.1-pro-preview",
+      "served": false,
+      "detail": "[rate_limited] 429 RESOURCE_EXHAUSTED. {'error': {'code': 429, 'message': 'You exceeded your current quota, please check your plan and billing details. For more information on this error, head to: https://ai.google.dev/gemini-api/docs/rate-limits. To monitor your current usa",
+      "latency_ms": 278,
+      "retried_keys": [
+        {
+          "key": "GEMINI_KEY_2#a634dfdd",
+          "served": false,
+          "detail": "[rate_limited] 429 RESOURCE_EXHAUSTED. {'error': {'code': 429, 'message': 'You exceeded your current quota, please check your plan and billing details. For more information on this error, head to: https://ai.google.dev/gemini-api/docs/rate-limits. To monitor your current usa"
+        },
+        {
+          "key": "GEMINI_KEY_3#fd9f7450",
+          "served": false,
+          "detail": "[rate_limited] 429 RESOURCE_EXHAUSTED. {'error': {'code': 429, 'message': 'You exceeded your current quota, please check your plan and billing details. For more information on this error, head to: https://ai.google.dev/gemini-api/docs/rate-limits. To monitor your current usa"
+        }
+      ],
+      "paid_hint": true
+    },
+    {
+      "model": "gemini-3.1-pro-preview-customtools",
+      "served": false,
+      "detail": "[rate_limited] 429 RESOURCE_EXHAUSTED. {'error': {'code': 429, 'message': 'You exceeded your current quota, please check your plan and billing details. For more information on this error, head to: https://ai.google.dev/gemini-api/docs/rate-limits. To monitor your current usa",
+      "latency_ms": 303,
+      "retried_keys": [
+        {
+          "key": "GEMINI_KEY_2#a634dfdd",
+          "served": false,
+          "detail": "[rate_limited] 429 RESOURCE_EXHAUSTED. {'error': {'code': 429, 'message': 'You exceeded your current quota, please check your plan and billing details. For more information on this error, head to: https://ai.google.dev/gemini-api/docs/rate-limits. To monitor your current usa"
+        },
+        {
+          "key": "GEMINI_KEY_3#fd9f7450",
+          "served": false,
+          "detail": "[rate_limited] 429 RESOURCE_EXHAUSTED. {'error': {'code': 429, 'message': 'You exceeded your current quota, please check your plan and billing details. For more information on this error, head to: https://ai.google.dev/gemini-api/docs/rate-limits. To monitor your current usa"
+        }
+      ],
+      "paid_hint": true
+    },
+    {
+      "model": "gemini-3.5-flash",
+      "served": true,
+      "detail": "OK",
+      "latency_ms": 1786,
+      "retried_keys": [],
+      "paid_hint": false
+    },
+    {
+      "model": "gemini-3.5-flash-lite",
+      "served": true,
+      "detail": "OK",
+      "latency_ms": 4874,
+      "retried_keys": [],
+      "paid_hint": false
+    },
+    {
+      "model": "gemini-3.6-flash",
+      "served": true,
+      "detail": "OK",
+      "latency_ms": 2560,
+      "retried_keys": [],
+      "paid_hint": false
+    },
+    {
+      "model": "gemini-3.7-flash",
+      "served": true,
+      "detail": "OK",
+      "latency_ms": 5612,
+      "retried_keys": [],
+      "paid_hint": false
+    },
+    {
+      "model": "gemini-3.8-flash",
+      "served": true,
+      "detail": "OK (via GEMINI_KEY_3#fd9f7450)",
+      "latency_ms": 2560,
+      "retried_keys": [
+        {
+          "key": "GEMINI_KEY_2#a634dfdd",
+          "served": false,
+          "detail": "[overloaded] 503 UNAVAILABLE. {'error': {'code': 503, 'message': 'This model is currently experiencing high demand. Spikes in demand are usually temporary. Please try again later.', 'status': 'UNAVAILABLE'}}"
+        },
+        {
+          "key": "GEMINI_KEY_3#fd9f7450",
+          "served": true,
+          "detail": "OK"
+        }
+      ],
+      "paid_hint": false
+    },
+    {
+      "model": "gemini-4-argon",
+      "served": false,
+      "detail": "[rate_limited] 429 RESOURCE_EXHAUSTED. {'error': {'code': 429, 'message': 'You exceeded your current quota, please check your plan and billing details. For more information on this error, head to: https://ai.google.dev/gemini-api/docs/rate-limits. To monitor your current usa",
+      "latency_ms": 306,
+      "retried_keys": [
+        {
+          "key": "GEMINI_KEY_2#a634dfdd",
+          "served": false,
+          "detail": "[rate_limited] 429 RESOURCE_EXHAUSTED. {'error': {'code': 429, 'message': 'You exceeded your current quota, please check your plan and billing details. For more information on this error, head to: https://ai.google.dev/gemini-api/docs/rate-limits. To monitor your current usa"
+        },
+        {
+          "key": "GEMINI_KEY_3#fd9f7450",
+          "served": false,
+          "detail": "[rate_limited] 429 RESOURCE_EXHAUSTED. {'error': {'code': 429, 'message': 'You exceeded your current quota, please check your plan and billing details. For more information on this error, head to: https://ai.google.dev/gemini-api/docs/rate-limits. To monitor your current usa"
+        }
+      ],
+      "paid_hint": false
+    },
+    {
+      "model": "gemini-flash-latest",
+      "served": true,
+      "detail": "OK",
+      "latency_ms": 9611,
+      "retried_keys": [],
+      "paid_hint": false
+    },
+    {
+      "model": "gemini-flash-lite-latest",
+      "served": true,
+      "detail": "OK",
+      "latency_ms": 3579,
+      "retried_keys": [],
+      "paid_hint": false
+    },
+    {
+      "model": "gemini-pro-latest",
+      "served": false,
+      "detail": "[rate_limited] 429 RESOURCE_EXHAUSTED. {'error': {'code': 429, 'message': 'You exceeded your current quota, please check your plan and billing details. For more information on this error, head to: https://ai.google.dev/gemini-api/docs/rate-limits. To monitor your current usa",
+      "latency_ms": 293,
+      "retried_keys": [
+        {
+          "key": "GEMINI_KEY_2#a634dfdd",
+          "served": false,
+          "detail": "[rate_limited] 429 RESOURCE_EXHAUSTED. {'error': {'code': 429, 'message': 'You exceeded your current quota, please check your plan and billing details. For more information on this error, head to: https://ai.google.dev/gemini-api/docs/rate-limits. To monitor your current usa"
+        },
+        {
+          "key": "GEMINI_KEY_3#fd9f7450",
+          "served": false,
+          "detail": "[rate_limited] 429 RESOURCE_EXHAUSTED. {'error': {'code': 429, 'message': 'You exceeded your current quota, please check your plan and billing details. For more information on this error, head to: https://ai.google.dev/gemini-api/docs/rate-limits. To monitor your current usa"
+        }
+      ],
+      "paid_hint": true
+    },
+    {
+      "model": "gemma-4-26b-a4b-it",
+      "served": true,
+      "detail": "OK",
+      "latency_ms": 3879,
+      "retried_keys": [],
+      "paid_hint": false
+    },
+    {
+      "model": "gemma-4-31b-it",
+      "served": true,
+      "detail": "OK (via GEMINI_KEY_2#a634dfdd)",
+      "latency_ms": 3249,
+      "retried_keys": [
+        {
+          "key": "GEMINI_KEY_2#a634dfdd",
+          "served": true,
+          "detail": "OK"
+        }
+      ],
+      "paid_hint": false
+    }
+  ],
+  "served": [
+    "gemini-2.5-flash",
+    "gemini-2.5-flash-lite",
+    "gemini-3-flash-preview",
+    "gemini-3.1-flash-lite",
+    "gemini-3.1-flash-lite-preview",
+    "gemini-3.5-flash",
+    "gemini-3.5-flash-lite",
+    "gemini-3.6-flash",
+    "gemini-3.7-flash",
+    "gemini-3.8-flash",
+    "gemini-flash-latest",
+    "gemini-flash-lite-latest",
+    "gemma-4-26b-a4b-it",
+    "gemma-4-31b-it"
+  ],
+  "failed": [
+    "gemini-2.5-pro",
+    "gemini-3.1-pro-preview",
+    "gemini-3.1-pro-preview-customtools",
+    "gemini-4-argon",
+    "gemini-pro-latest"
+  ]
+}

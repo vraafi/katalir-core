@@ -1,0 +1,20 @@
+kunci unik terlihat: 13
+memakai kunci: GEMINI_KEY_1#01f989b4 (nilai tidak dicetak)
+
+katalog resmi Google: 63 model
+
+  OK   gemini-3.5-flash-lite        katalog=True     654ms  OK
+  OK   gemini-3.1-flash-lite        katalog=True    1413ms  OK
+  OK   gemini-2.5-flash-lite        katalog=True     818ms  OK
+  OK   gemini-flash-lite-latest     katalog=True    1099ms  OK
+  GAGAL gemini-3.8-flash             katalog=True    2852ms  [overloaded] 503 UNAVAILABLE. {'error': {'code': 503, 'message': 'This model is currently 
+  GAGAL gemini-3.7-flash             katalog=True    3841ms  [overloaded] 503 UNAVAILABLE. {'error': {'code': 503, 'message': 'This model is currently 
+  OK   gemini-3.5-flash             katalog=True    2143ms  OK
+  OK   gemini-2.5-flash             katalog=True   22263ms  OK
+  OK   gemini-3-flash-preview       katalog=True    1188ms  OK
+  OK   gemini-flash-latest          katalog=True    2118ms  OK
+  GAGAL gemini-4-argon               katalog=True     250ms  [rate_limited] 429 RESOURCE_EXHAUSTED. {'error': {'code': 429, 'message': 'You exceeded yo
+  GAGAL gemini-4-argon-lite          katalog=False    273ms  [entitlement] 404 NOT_FOUND. {'error': {'code': 404, 'message': 'models/gemini-4-argon-lit
+
+BISA DIPAKAI GRATIS (8): ['gemini-3.5-flash-lite', 'gemini-3.1-flash-lite', 'gemini-2.5-flash-lite', 'gemini-flash-lite-latest', 'gemini-3.5-flash', 'gemini-2.5-flash', 'gemini-3-flash-preview', 'gemini-flash-latest']
+disimpan: C:\Users\user\Proyek_AI\docs\evidence\gemini-free-models-2026-10-14\probe_gemini_free_models.json
