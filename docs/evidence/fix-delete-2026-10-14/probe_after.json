@@ -1,0 +1,78 @@
+{
+ "label": "after",
+ "user": "probe-del-ca1fa704@katalir-internal.dev",
+ "results": [
+  {
+   "case": "DELETE id non-UUID",
+   "method": "DELETE",
+   "path": "/workflows/not-a-uuid",
+   "http": 404,
+   "expected": 404,
+   "ok": true,
+   "leaks_internal_error": false,
+   "body": "{\"detail\":\"Workflow tidak ditemukan.\"}"
+  },
+  {
+   "case": "PATCH id non-UUID",
+   "method": "PATCH",
+   "path": "/workflows/not-a-uuid",
+   "http": 404,
+   "expected": 404,
+   "ok": true,
+   "leaks_internal_error": false,
+   "body": "{\"detail\":\"Workflow tidak ditemukan.\"}"
+  },
+  {
+   "case": "GET id non-UUID",
+   "method": "GET",
+   "path": "/workflows/not-a-uuid",
+   "http": 404,
+   "expected": 404,
+   "ok": true,
+   "leaks_internal_error": false,
+   "body": "{\"detail\":\"Workflow tidak ditemukan.\"}"
+  },
+  {
+   "case": "DELETE id numerik '1'",
+   "method": "DELETE",
+   "path": "/workflows/1",
+   "http": 404,
+   "expected": 404,
+   "ok": true,
+   "leaks_internal_error": false,
+   "body": "{\"detail\":\"Workflow tidak ditemukan.\"}"
+  },
+  {
+   "case": "POST workflow baru (valid)",
+   "method": "POST",
+   "path": "/workflows",
+   "http": 201,
+   "expected": 201,
+   "ok": true,
+   "leaks_internal_error": false,
+   "body": "{\"status\":\"success\",\"updated\":false,\"workflow\":{\"id\":\"2286c284-e3b5-4976-a3bc-ecd315c5b7fe\",\"name\":\"probe-del\",\"description\":\"\",\"flow_data\":{\"edges\":[],\"nodes\":[]},\"created_at\":\"2026-10-14T03:11:00.482981+00:00\",\"user_id\":\"8e68be42-da52-40f4-a4ef-68f6b787006f\"}}"
+  },
+  {
+   "case": "DELETE workflow valid (milik)",
+   "method": "DELETE",
+   "path": "/workflows/2286c284-e3b5-4976-a3bc-ecd315c5b7fe",
+   "http": 200,
+   "expected": 200,
+   "ok": true,
+   "leaks_internal_error": false,
+   "body": "{\"status\":\"success\",\"deleted\":true,\"id\":\"2286c284-e3b5-4976-a3bc-ecd315c5b7fe\"}"
+  },
+  {
+   "case": "DELETE workflow sama lagi",
+   "method": "DELETE",
+   "path": "/workflows/2286c284-e3b5-4976-a3bc-ecd315c5b7fe",
+   "http": 404,
+   "expected": 404,
+   "ok": true,
+   "leaks_internal_error": false,
+   "body": "{\"detail\":\"Workflow tidak ditemukan.\"}"
+  }
+ ],
+ "count_5xx": 0,
+ "count_leaks": 0
+}

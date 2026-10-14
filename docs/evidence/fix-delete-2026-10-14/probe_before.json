@@ -1,0 +1,78 @@
+{
+ "label": "before",
+ "user": "probe-del-4ca4b2c8@katalir-internal.dev",
+ "results": [
+  {
+   "case": "DELETE id non-UUID",
+   "method": "DELETE",
+   "path": "/workflows/not-a-uuid",
+   "http": 500,
+   "expected": 404,
+   "ok": false,
+   "leaks_internal_error": false,
+   "body": "{\"detail\":\"Terjadi kesalahan internal saat menghapus workflow. Silakan coba lagi. (ref: 6ae88547a30b)\"}"
+  },
+  {
+   "case": "PATCH id non-UUID",
+   "method": "PATCH",
+   "path": "/workflows/not-a-uuid",
+   "http": 404,
+   "expected": 404,
+   "ok": true,
+   "leaks_internal_error": false,
+   "body": "{\"detail\":\"Workflow tidak ditemukan.\"}"
+  },
+  {
+   "case": "GET id non-UUID",
+   "method": "GET",
+   "path": "/workflows/not-a-uuid",
+   "http": 404,
+   "expected": 404,
+   "ok": true,
+   "leaks_internal_error": false,
+   "body": "{\"detail\":\"Workflow tidak ditemukan.\"}"
+  },
+  {
+   "case": "DELETE id numerik '1'",
+   "method": "DELETE",
+   "path": "/workflows/1",
+   "http": 500,
+   "expected": 404,
+   "ok": false,
+   "leaks_internal_error": false,
+   "body": "{\"detail\":\"Terjadi kesalahan internal saat menghapus workflow. Silakan coba lagi. (ref: 195429fb5bef)\"}"
+  },
+  {
+   "case": "POST workflow baru (valid)",
+   "method": "POST",
+   "path": "/workflows",
+   "http": 201,
+   "expected": 201,
+   "ok": true,
+   "leaks_internal_error": false,
+   "body": "{\"status\":\"success\",\"updated\":false,\"workflow\":{\"id\":\"6d5977e9-c74e-4c72-af3d-1a0f0476e49b\",\"name\":\"probe-del\",\"description\":\"\",\"flow_data\":{\"edges\":[],\"nodes\":[]},\"created_at\":\"2026-10-14T03:09:19.360439+00:00\",\"user_id\":\"303eb6a4-f0ce-41b6-bce5-f7e48dab63b4\"}}"
+  },
+  {
+   "case": "DELETE workflow valid (milik)",
+   "method": "DELETE",
+   "path": "/workflows/6d5977e9-c74e-4c72-af3d-1a0f0476e49b",
+   "http": 200,
+   "expected": 200,
+   "ok": true,
+   "leaks_internal_error": false,
+   "body": "{\"status\":\"success\",\"deleted\":true,\"id\":\"6d5977e9-c74e-4c72-af3d-1a0f0476e49b\"}"
+  },
+  {
+   "case": "DELETE workflow sama lagi",
+   "method": "DELETE",
+   "path": "/workflows/6d5977e9-c74e-4c72-af3d-1a0f0476e49b",
+   "http": 404,
+   "expected": 404,
+   "ok": true,
+   "leaks_internal_error": false,
+   "body": "{\"detail\":\"Workflow tidak ditemukan.\"}"
+  }
+ ],
+ "count_5xx": 2,
+ "count_leaks": 0
+}

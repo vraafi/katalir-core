@@ -28,7 +28,14 @@ export const CHAT_MODELS: ChatModel[] = CHAT_MODELS_FALLBACK;
 // teresolusi sehingga backend menandai fallback=True di SETIAP pesan dan
 // user melihat spanduk "Model yang Anda pilih tidak tersedia".
 // Acuan: docs/real-user-hard-test-2026-10-13.md §BUG-05.
-export const DEFAULT_MODEL_ID = "google/gemma-4-31b-it";
+//
+// Sejak 2026-10-14 default dapat diatur lewat env tanpa mengubah kode.
+// Bila NEXT_PUBLIC_DEFAULT_MODEL_ID kosong/tidak ada, jatuh ke id katalog yang
+// benar di atas. Catatan: NEXT_PUBLIC_* di-inline SAAT BUILD, jadi mengubahnya
+// perlu build ulang (lihat docs/fix-all-bugs-2026-10-13.md §7.3).
+const ENV_DEFAULT_MODEL_ID = (process.env.NEXT_PUBLIC_DEFAULT_MODEL_ID || "").trim();
+
+export const DEFAULT_MODEL_ID = ENV_DEFAULT_MODEL_ID || "google/gemma-4-31b-it";
 
 /**
  * BUG-05 (2026-10-13): id lama tanpa awalan penyedia pernah tersimpan di

@@ -4242,6 +4242,11 @@ def evidence_verify(entry_id: str, authorization: str | None = Header(None)):
 def remove_workflow(workflow_id: str, authorization: str | None = Header(None)):
     """Hapus SATU workflow milik user JWT. Owner-scoped (bukan pemilik -> 403)."""
     user = security.get_current_user(authorization)
+    # BUG-04 (DELETE): id non-UUID -> 404 SEBELUM DB. Tanpa penjaga ini
+    # PostgREST mengembalikan 22P02 dan handler membalas 500 — kelas status
+    # yang salah (input klien = 4xx). GET/PATCH/ops sudah dijaga; DELETE
+    # adalah satu-satunya handler ber-{workflow_id} yang terlewat.
+    _require_uuid_or_404(workflow_id)
     try:
         ok = db.delete_workflow(workflow_id, user["id"])
     except Exception as exc:  # noqa: BLE001
