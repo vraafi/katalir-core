@@ -595,6 +595,33 @@ def _default_model_id() -> str:
     return os.getenv("AGENT_MODEL", "gemma-4-31b-it")
 
 
+def _cooldown_fallback_chain(exclude: str | None) -> list[str]:
+    """Urutan cadangan saat SEMUA kunci model yang diminta sedang cooldown.
+
+    Dipakai HANYA ketika `gemini_key_pool.acquire(model)` mengembalikan `None`.
+    Sebelumnya kondisi itu langsung 503, sehingga pengguna baru — yang memakai
+    default frontend `google/gemma-4-31b-it` — melihat kartu galat
+    "Semua kunci model ini sedang cooldown (kuota)" di SETIAP pesan walaupun
+    kunci model LAIN masih sehat (P5-15, severity=high; akar 13 dari 15 FAIL
+    regresi 14 Okt — `docs/final-verdict-2026-10-14.md` §5.2).
+
+    Sengaja HANYA id Gemini (`gemini-*`): jalur pool ini melayani Gemini
+    langsung, jadi meneruskan id gateway (mis. `moonshotai/kimi-k3`) ke
+    `genai.Client` berakhir 404 — bukan pemulihan. `AGENT_MODEL` (override
+    operator) ditaruh paling depan bila berbentuk id Gemini.
+    """
+    chain: list[str] = []
+    env_model = (os.getenv("AGENT_MODEL") or "").strip()
+    if env_model.startswith("gemini-"):
+        chain.append(env_model)
+    chain.extend(DEFAULT_MODEL_PREFERENCE)
+    out: list[str] = []
+    for m in chain:
+        if m and m.startswith("gemini-") and m != exclude and m not in out:
+            out.append(m)
+    return out
+
+
 def _fallback_reason(err: object) -> str:
     """Klasifikasi alasan fallback -> kode yang dipetakan frontend ke bahasa user.
 
@@ -1987,19 +2014,45 @@ def _agentic_run_direct(prompt: str, email: str, model: str | None = None,
     # `None` = semua kunci sedang dihukum -> kegagalan SEMENTARA (503), bukan 401/
     # 500: menebak kunci yang sedang cooldown hanya memperpanjang hukuman.
     _acquired = _pool.acquire(model_id)
+    # Fallback saat SEMUA KUNCI MODEL INI cooldown (kuota habis).
+    #
+    # SEBELUM: langsung 503. Akibatnya pengguna baru — default frontend
+    # `google/gemma-4-31b-it`, yang kuncinya paling cepat habis karena dipakai
+    # semua tier gratis — mendapat kartu galat pada SETIAP pesan, padahal kunci
+    # model lain masih sehat. Frontend sudah lama punya UI "diminta vs dipakai"
+    # (`FallbackNotice`), jadi kondisinya memang dirancang untuk fallback.
+    #
+    # SESUDAH: coba rantai preferensi server dulu; bila salah satu punya kunci
+    # siap, pakai itu dan tandai `fallback_used` + `fallback_reason` secara
+    # jujur. 503 hanya bila SELURUH rantai juga kehabisan kunci (kondisi
+    # kapasitas nyata, bukan sekadar satu model).
+    _cooldown_fallback = False
+    if _acquired is None:
+        for _alt in _cooldown_fallback_chain(model_id):
+            _alt_acq = _pool.acquire(_alt)
+            if _alt_acq is not None:
+                print(f"[api_server] model {model_id} cooldown (kuota) -> "
+                      f"fallback ke {_alt}", flush=True)
+                model_id, _acquired, _cooldown_fallback = _alt, _alt_acq, True
+                break
     if _acquired is None:
         raise HTTPException(
-            503, "Semua kunci model ini sedang cooldown (kuota). Coba lagi.")
+            503, "Semua model sedang sibuk (kuota habis). Coba lagi sebentar.")
     cur_fp, _ = _acquired
     print(f"[api_server] Gemini {_pool.label(cur_fp)} model={model_id} "
           f"(pool={_pool.size} kunci)")
-    fallback_used = bool(tier_fallback) or gw_err is not None
+    fallback_used = (bool(tier_fallback) or gw_err is not None
+                     or _cooldown_fallback)
     # Alasan fallback, berurut prioritas:
-    #   1. penolakan tier/id tak tersedia (resolve) — paling informatif;
+    #   0. model yang diminta cooldown -> kuota model itu HABIS; paling spesifik
+    #      dan paling bisa ditindaklanjuti user (pilih model lain / tunggu);
+    #   1. penolakan tier/id tak tersedia (resolve) — informatif berikutnya;
     #   2. kegagalan gateway (kuota/overload/tunnel turun) — klasifikasi teks;
     #   3. tanpa tanda apa pun -> None (request normal, badge TIDAK muncul).
-    if resolve_reason:
-        fallback_reason: str | None = resolve_reason
+    if _cooldown_fallback:
+        fallback_reason: str | None = "quota_exhausted"
+    elif resolve_reason:
+        fallback_reason = resolve_reason
     elif gw_err is not None:
         # `_agentic_run_gateway` melempar 503 hanya setelah SEMUA kandidat
         # gagal. Bila pesannya memuat sinyal spesifik (kuota/rate/overload)

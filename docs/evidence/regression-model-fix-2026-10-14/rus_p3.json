@@ -1,0 +1,169 @@
+{
+ "group": "p3",
+ "email": "rus-final-d108215c@katalir-internal.dev",
+ "count": 5,
+ "results": [
+  {
+   "id": "P3-01",
+   "persona": "P3-Andi",
+   "title": "Tiga tab dibuka bersamaan",
+   "precondition": "Login di satu konteks",
+   "action": "Buka /chat, /builder, /templates di 3 tab",
+   "expected": "Ketiga tab termuat normal",
+   "actual": "panjang_teks={'tab1_chat': 550, 'tab2_builder': 989, 'tab3_templates': 1641}; builder=4.25s templates=3.72s; err_tab2=0 err_tab3=0",
+   "state": "PASS",
+   "severity": "medium",
+   "seconds": null,
+   "screenshots": [
+    "C:\\Users\\user\\Proyek_AI\\docs\\evidence\\real-user-2026-10-13\\p3-01-tab1-chat.png",
+    "C:\\Users\\user\\Proyek_AI\\docs\\evidence\\real-user-2026-10-13\\p3-01-tab2-builder.png",
+    "C:\\Users\\user\\Proyek_AI\\docs\\evidence\\real-user-2026-10-13\\p3-01-tab3-templates.png"
+   ],
+   "console_errors": [],
+   "failed_requests": [],
+   "extra": {
+    "tabs": {
+     "tab1_chat": 550,
+     "tab2_builder": 989,
+     "tab3_templates": 1641
+    }
+   },
+   "evidence_note": null
+  },
+  {
+   "id": "P3-02",
+   "persona": "P3-Andi",
+   "title": "Chat di tab 1, pindah tab 2, kembali",
+   "precondition": "Chat punya riwayat",
+   "action": "Kirim pesan, pindah ke tab /builder, kembali ke tab chat",
+   "expected": "Riwayat tab 1 tetap utuh (pesan user + balasan)",
+   "actual": "status=replied; panjang 471->296; selisih=-175; isi_masih_relevan=True",
+   "state": "PASS",
+   "severity": "medium",
+   "seconds": null,
+   "screenshots": [
+    "C:\\Users\\user\\Proyek_AI\\docs\\evidence\\real-user-2026-10-13\\p3-02-kembali-ke-tab1.png"
+   ],
+   "console_errors": [],
+   "failed_requests": [
+    {
+     "url": "https://katalir.de5.net/cdn-cgi/rum?",
+     "failure": "net::ERR_ABORTED"
+    }
+   ],
+   "extra": {
+    "before_tail": "es secara otomatis atau berurutan—mulai dari pemicu (*trigger*), pengolahan data (*agent*), hingga tindakan akhir (*action*).\ngemini-3.5-flash-lite · 0.9s · 4509→56 tok\nModel yang Anda pilih tidak tersedia\nKuota harian model ini habis · Beralih ke gemini-3.5-flash-lite\ndiminta: google/gemma-4-31b-it",
+    "after_tail": "kirim ringkasan singkat: apa itu workflow?\n**Workflow** (alur kerja) adalah serangkaian langkah atau tugas terstruktur yang saling terhubung untuk menyelesaikan suatu proses secara otomatis atau berurutan—mulai dari pemicu (*trigger*), pengolahan data (*agent*), hingga tindakan akhir (*action*)."
+   },
+   "evidence_note": null
+  },
+  {
+   "id": "P3-03",
+   "persona": "P3-Andi",
+   "title": "Dua tab mengirim pesan ke sesi yang sama",
+   "precondition": "2 tab, 1 sesi",
+   "action": "kirim dari kedua tab",
+   "expected": "Tidak ada kehilangan",
+   "actual": "ERROR TimeoutError: Locator.click: Timeout 15000ms exceeded.\nCall log:\n  - waiting for locator(\"[data-testid=\\\"chat-composer\\\"] textarea, textarea\").first\n    - locator resolved to <textarea rows=\"1\" maxlength=\"8000\" aria-label=\"Pesan\" spellcheck=\"false\" enterkeyhint=\"send\" data-testid=\"composer-input\" placeholder=\"Ketik pesan ke Katalir, atau \"Buat workflow: ...\"\" title=\"Tips: sebut integrasi spesifik (Gmail, Slack, Telegram, Sheets) + targetnya agar workflow langsung bisa jalan. Panduan prompt lengkap: docs/workflow-prompt-guide.md\" class=\"col-span-2 col-start-1 row-start-1 min-h-[24px] max-h-[200px] w-full resize-none border-0 bg-transparent p-0 text-fg outline-none placeholder…></textarea>\n  - attempting click action\n    2 × waiting for element to be visible, enabled and stable\n      - element is visible, enabled and stable\n      - scrolling into view if needed\n      - done scrolling\n      - <div role=\"dialog\" data-step=\"0\" aria-modal=\"true\" data-testid=\"onboarding-flow\" aria-label=\"Selamat datang di Katalir\" class=\"fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4\">…</div> intercepts pointer events\n    - retrying click action\n    - waiting 20ms\n    2 × waiting for element to be visible, enabled and stable\n      - element is visible, enabled and stable\n      - scrolling into view if needed\n      - done scrolling\n      - <div role=\"dialog\" data-step=\"0\" aria-modal=\"true\" data-testid=\"onboarding-flow\" aria-label=\"Selamat datang di Katalir\" class=\"fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4\">…</div> intercepts pointer events\n    - retrying click action\n      - waiting 100ms\n    28 × waiting for element to be visible, enabled and stable\n       - element is visible, enabled and stable\n       - scrolling into view if needed\n       - done scrolling\n       - <div role=\"dialog\" data-step=\"0\" aria-modal=\"true\" data-testid=\"onboarding-flow\" aria-label=\"Selamat datang di Katalir\" class=\"fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4\">…</div> intercepts pointer events\n     - retrying click action\n       - waiting 500ms\n",
+   "state": "FAIL",
+   "severity": "high",
+   "seconds": null,
+   "screenshots": [],
+   "console_errors": [],
+   "failed_requests": [],
+   "extra": {},
+   "evidence_note": null
+  },
+  {
+   "id": "P3-04",
+   "persona": "P3-Andi",
+   "title": "Sesi baru muncul di tab lain?",
+   "precondition": "Dua tab /chat",
+   "action": "Buat percakapan di tab 1, lihat sidebar tab 2",
+   "expected": "Sidebar tab 2 menyegarkan diri (minimal setelah reload)",
+   "actual": "item_sidebar 12->13",
+   "state": "PASS",
+   "severity": "low",
+   "seconds": null,
+   "screenshots": [
+    "C:\\Users\\user\\Proyek_AI\\docs\\evidence\\real-user-2026-10-13\\p3-04-sidebar-tabB.png"
+   ],
+   "console_errors": [
+    {
+     "type": "error",
+     "text": "Failed to load resource: the server responded with a status of 503 ()"
+    }
+   ],
+   "failed_requests": [
+    {
+     "url": "https://katalir.de5.net/cdn-cgi/rum?",
+     "failure": "net::ERR_ABORTED"
+    }
+   ],
+   "extra": {
+    "before": {
+     "n": 12,
+     "titles": [
+      "Chat Baru",
+      "pesan dari tab A",
+      "kirim ringkasan singkat: apa i...",
+      "😀",
+      "aku mau jualan online",
+      "buat workflow notifikasi haria...",
+      "Tulis daftar 30 ide otomasi",
+      "Buat workflow panjang: webhook...",
+      "halo, tolong sebutkan satu kat...",
+      "penanda tahan refresh setelah...",
+      "buat workflow inventory sederh...",
+      "R\nrus-final-d108215c@katalir-internal.dev"
+     ]
+    },
+    "after": {
+     "n": 13,
+     "titles": [
+      "Chat Baru",
+      "percakapan baru untuk uji sink...",
+      "pesan dari tab A",
+      "kirim ringkasan singkat: apa i...",
+      "😀",
+      "aku mau jualan online",
+      "buat workflow notifikasi haria...",
+      "Tulis daftar 30 ide otomasi",
+      "Buat workflow panjang: webhook...",
+      "halo, tolong sebutkan satu kat...",
+      "penanda tahan refresh setelah...",
+      "buat workflow inventory sederh...",
+      "R\nrus-final-d108215c@katalir-internal.dev"
+     ]
+    }
+   },
+   "evidence_note": null
+  },
+  {
+   "id": "P3-05",
+   "persona": "P3-Andi",
+   "title": "Idle 90 detik lalu lanjut mengobrol",
+   "precondition": "Tab dibiarkan menganggur 90 s",
+   "action": "Kirim pesan setelah idle",
+   "expected": "Sesi masih valid; tidak dipaksa login ulang",
+   "actual": "status=replied; t_balasan=5.38s; ada_perintah_login=False",
+   "state": "PASS",
+   "severity": "medium",
+   "seconds": 7.86,
+   "screenshots": [
+    "C:\\Users\\user\\Proyek_AI\\docs\\evidence\\real-user-2026-10-13\\p3-05-setelah-idle-90s.png"
+   ],
+   "console_errors": [],
+   "failed_requests": [
+    {
+     "url": "https://katalir.de5.net/cdn-cgi/rum?",
+     "failure": "net::ERR_ABORTED"
+    }
+   ],
+   "extra": {
+    "reply_tail": "masih aktif?\nHalo! Ya, saya masih aktif dan siap membantu Anda. Ada yang bisa saya bantu hari ini? Anda bisa meminta bantuan untuk membuat workflow otomatisasi, mengirim pesan, membaca email, atau mengelola data Google Sheets.\ngemini-3.5-flash-lite · 0.8s · 4502→43 tok\nModel yang Anda pilih tidak tersedia\nKuota harian model ini habis · Beralih ke gemini-3.5-flash-lite\ndiminta: google/gemma-4-31b-it"
+   },
+   "evidence_note": null
+  }
+ ]
+}

@@ -1,0 +1,68 @@
+{
+ "label": "before",
+ "user": "probe-modelfb-5c438819@katalir-internal.dev",
+ "results": [
+  {
+   "case": "a. model default frontend (gemma cooldown)",
+   "requested": "google/gemma-4-31b-it",
+   "http": 503,
+   "expected": 200,
+   "ok": false,
+   "seconds": 7.1,
+   "fallback": null,
+   "fallback_reason": null,
+   "requested_model": null,
+   "served_by": null,
+   "quota_bucket": null,
+   "reply": "",
+   "detail": "Semua kunci model ini sedang cooldown (kuota). Coba lagi."
+  },
+  {
+   "case": "b. model tidak ada di roster",
+   "requested": "model-tidak-ada-xyz",
+   "http": 200,
+   "expected": 200,
+   "ok": true,
+   "seconds": 8.0,
+   "fallback": true,
+   "fallback_reason": "model_unavailable",
+   "requested_model": "model-tidak-ada-xyz",
+   "served_by": "gemini-3.5-flash-lite",
+   "quota_bucket": "gemma",
+   "reply": "333",
+   "detail": ""
+  },
+  {
+   "case": "c. tanpa model (kontrol)",
+   "requested": null,
+   "http": 200,
+   "expected": 200,
+   "ok": true,
+   "seconds": 7.2,
+   "fallback": false,
+   "fallback_reason": null,
+   "requested_model": null,
+   "served_by": "gemini-3.5-flash-lite",
+   "quota_bucket": "gemma",
+   "reply": "333",
+   "detail": ""
+  },
+  {
+   "case": "d. model tersedia eksplisit (kontrol)",
+   "requested": "gemini-3.5-flash-lite",
+   "http": 200,
+   "expected": 200,
+   "ok": true,
+   "seconds": 6.9,
+   "fallback": false,
+   "fallback_reason": null,
+   "requested_model": "gemini-3.5-flash-lite",
+   "served_by": "gemini-3.5-flash-lite",
+   "quota_bucket": "gemma",
+   "reply": "333",
+   "detail": ""
+  }
+ ],
+ "count_ok": 3,
+ "count_5xx": 1
+}
