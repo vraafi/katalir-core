@@ -78,7 +78,7 @@ Bukti mentah lengkap (raw output probe run) tersimpan di:
 | K4 | 14 model TERBUKTI gratis; 5 tidak bisa, semuanya kelas Pro/Argon | `served` = 14 (semua 200 OK); `failed` = 5: `3.1-pro-preview(-customtools)` + `gemini-4-argon` = 429 RESOURCE_EXHAUSTED (kelas berbayar), `gemini-2.5-pro` = 404 "no longer available to new users" (entitlement), `gemini-pro-latest` = alias pro. Semua id pro/argon. | **TERBUKTI** (nuansa: 2 dari 5 gagal karena entitlement/new-user, bukan semata kuota — kelas model tetap sama) |
 | K5 | "free tier = Flash-Lite saja" adalah mitos untuk API; laporan media menyasar Gemini Apps | Sumber resmi: support.google.com/gemini/answer/17004136 "…changes to model availability for **Gemini Apps** when you use a **personal account**… take effect for users without an AI subscription on **October 9th**" (tanpa plan → Flash-Lite). Media Okt 5–9 melaporkan hal yang sama tapi selalu konteks aplikasi/akun personal. Prope kami: 3.8/3.7/3.6/3.5-flash semua 200 OK via endpoint API | **TERBUKTI** |
 | K6 | Akar masalah: picker ← gateway_roster (5 Gemini) vs eksekusi ← pool kunci (63 model) | `model_discovery.get_available_models()` ← `gateway_roster`; `/models` produksi 14 Okt: 12 model / 5 Gemini; **kini 15 Okt: 11 model / 4 Gemini** (`gemini-3-flash-preview` menghilang). Kedua snapshot `roster_source=cache degraded=True` | **TERBUKTI (substansi)** — mekanismenya benar; **angka 5 bukan konstan** (4–5; roster upstream degradasi, cache) |
-| K7 | Pool 13 kunci "jalan" di produksi | journald 30 hari: 144 baris **semua event systemd** (Started/Stopped/SIGKILL/CPU-time); **0 baris request uvicorn**, **0 baris memuat `GEMINI_KEY_`**; `gemini_key_pool.acquire()` tidak mencatat log (hanya `log.warning` di jalur retry-unsupported). Import check VPS: 13 kunci unik | **TERBUKTI SEBAGIAN**: kunci terkonfigurasi + rotasi aktif di kode. **Pemakaian per-kunci 30 hari: TIDAK TERBUKTI** — telemetry tidak ada (tidak terbukti DAN tidak terbantah). Ini temuan instrumen, bukan kontradiksi terhadap klaim "terpasang dan jalan" |
+| K7 | Pool 13 kunci "jalan" di produksi (benar-benar dipakai) | Jurnal pertama (journald) menyesatkan: `StandardOutput=append:/root/api_server.log` — **bukan** journald (144 baris systemd, 0 baris aplikasi). Dari log aplikasi (14 Sep–15 Okt 2026, 40 MB): **1.476 request Gemini, 13/13 kunci benar-benar dipakai** (hit: 131, 123, 118, 115, 114, 114, 113, 113, 111, 110, 109, 105, 100). Model teratas: gemini-3.5-flash-lite (1.723), 2.5-flash (87), gemma (56, sebelum dikeluarkan 14 Okt), 2.5-flash-lite (31) | **TERBUKTI** (setelah koreksi metode: telemetry ada, tapi di `/root/api_server.log`, bukan journald — bukti: `docs/evidence/verifikasi-06345af/vps_applog_keys_used.txt`) |
 | K8 | "gemma-4-31b-it kuota habis" tidak akurat: via kunci langsung 200 OK di `GEMINI_KEY_2`, gagal di `GEMINI_KEY_1` | baris probe: `gemma-4-31b-it → detail: "OK (via GEMINI_KEY_2#a634dfdd)", retried_keys[0] = GEMINI_KEY_2 served=true` | **TERBUKTI** |
 
 ### Dampak koreksi terhadap Fase 2
@@ -144,22 +144,29 @@ Respons mentah: `docs/evidence/verifikasi-06345af/prod_models_raw.json`
 Selisih: hanya `gemini-3-flash-preview` hilang dari cache roster.
 
 **Journal 30 hari** (`docs/evidence/verifikasi-06345af/vps_journal_30d_summary.txt`):
-144 baris, semuanya lifecycle systemd; 0 request log; 0 label kunci →
-tidak ada telemetry pemakaian per-kunci (dasar verdict K7).
+144 baris, semuanya lifecycle systemd; 0 request log; 0 label kunci.
+
+**Koreksi metode (temuan kedua):** unit `katalir-backend` memakai
+`StandardOutput=append:/root/api_server.log` → stdout aplikasi **TIDAK masuk
+journald**. Grep journald dulu menghasilkan "0 baris aplikasi" yang SALAH
+sebagai bukti "tidak ada telemetry". Bukti pemakaian nyata diambil dari
+`/root/api_server.log` (`vps_applog_keys_used.txt`): **13/13 kunci terpakai
+1.476x** pada 14 Sep–15 Okt 2026. Catatan instrumen: baris `[api_server]
+Gemini <label> model=<id>` tidak membawa timestamp → agregasi per-hari tidak
+mungkin; total + rentang log masih valid.
 
 ---
 
-## PUTUSAN GERBANG KONTRADIKSI
+## PUTUSAN GERBANG KONTRADIKSI (revisi setelah klarifikasi K7)
 
-Tidak ada klaim yang **dibantahkan** (falsified). Dua koreksi non-substantif:
+Setelah klarifikasi lokasi log aplikasi (`StandardOutput=append` →
+`/root/api_server.log`, bukan journald), **K7 menjadi TERBUKTI penuh**:
+1.476 request Gemini, 13/13 kunci terpakai, 14 Sep–15 Okt 2026.
 
-1. **K6 angka** — "5 Gemini" kekal sebagai mekanisme tapi angka berfluktuasi
-   4–5 (upstream degradasi). Substansi akar masalah (picker vs eksekusi) utuh.
-2. **K7 pemakaian per-kunci** — tidak terbukti karena **telemetrinya memang
-   tidak ada**; ini temuan instrumen baru, bukan kontradiksi; klaim aslinya
-   ("terpasang dan jalan") tetap terbukti.
+Tersisa satu koreksi non-substantif: **K6 angka** ("5 Gemini") — snapshot
+14 Okt = 12 model/5 Gemini; sekarang = 11 model/4 Gemini
+(`roster_source=cache degraded=True`; `gemini-3-flash-preview` hilang dari
+cache). Mekanisme akar masalah tetap TERBUKTI.
 
-Keduanya **bukan kontradiksi substantif** → sesuai aturan brief
-("koreksinya minor… bukan substansi → auto-lanjut"), **GERBANG LOLOS**.
-Implikasi: baseline diukur 4–5 (bukan 5 pasti), dan justifikasi UNION makin kuat
-karena sumber gateway sedang tidak stabil.
+**GERBANG LOLOS.** Implikasi Fase 2: baseline picker Gemini 4–5 (fluktuatif),
+justifikasi UNION makin kuat karena sumber gateway sedang tidak stabil.

@@ -1,0 +1,4 @@
+=== rentang tanggal log (baris bertanggal pertama/terakhir) ===
+2026-10-10
+2026-09-14
+=== 1.476 baris Gemini: tanggal DISTINCT ===
