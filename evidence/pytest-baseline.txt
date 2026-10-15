@@ -1,0 +1,26 @@
+============================= test session starts =============================
+platform win32 -- Python 3.12.10, pytest-9.1.1, pluggy-1.6.0 -- C:\Users\user\AppData\Local\Programs\Python\Python312\python.exe
+cachedir: .pytest_cache
+rootdir: C:\Users\user\Proyek_AI
+configfile: pytest.ini
+plugins: anyio-4.12.1, Faker-40.36.0, langsmith-0.3.45, base-url-2.1.0, playwright-0.9.0
+collecting ... collected 15 items
+
+tests/test_key_catalog.py::test_hanya_allowlist_yang_masuk PASSED        [  6%]
+tests/test_key_catalog.py::test_gemma_tidak_pernah_masuk_walau_di_katalog PASSED [ 13%]
+tests/test_key_catalog.py::test_ttl_call_kedua_tidak_fetch_ulang PASSED  [ 20%]
+tests/test_key_catalog.py::test_force_true_fetch_ulang_dan_ts_diupdate PASSED [ 26%]
+tests/test_key_catalog.py::test_ttl_kadaluarsa_fetch_ulang PASSED        [ 33%]
+tests/test_key_catalog.py::test_api_error_kosongkan_dan_tidak_raise PASSED [ 40%]
+tests/test_key_catalog.py::test_api_error_setelah_cache_kembalikan_stale PASSED [ 46%]
+tests/test_key_catalog.py::test_disabled_tanpa_akses_pool PASSED         [ 53%]
+tests/test_key_catalog.py::test_additions_liveness_dan_meta PASSED       [ 60%]
+tests/test_key_catalog.py::test_additions_skip_overlap_roster PASSED     [ 66%]
+tests/test_key_catalog.py::test_additions_gemma_disaring_di_endpoint PASSED [ 73%]
+tests/test_key_catalog.py::test_endpoint_models_memperkaya_dan_membuang_gemma PASSED [ 80%]
+tests/test_key_catalog.py::test_endpoint_models_disabled_tanpa_perubahan PASSED [ 86%]
+tests/test_key_catalog.py::test_resolve_model_menerima_id_katalog PASSED [ 93%]
+tests/test_key_catalog.py::test_resolve_model_id_asing_tetap_fallback PASSED [100%]
+
+============================= 15 passed in 15.91s =============================
+EXIT=0

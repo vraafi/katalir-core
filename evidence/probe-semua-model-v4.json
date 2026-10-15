@@ -1,0 +1,618 @@
+{
+  "probed_at": "2026-10-16T01:10:16+0700",
+  "max_keys_per_model": 3,
+  "timeout_s": 10,
+  "candidates": 19,
+  "lolos_count": 9,
+  "lolos": [
+    "gemini-2.5-flash",
+    "gemma-4-26b-a4b-it",
+    "gemini-flash-lite-latest",
+    "gemini-2.5-flash-lite",
+    "gemini-3.1-flash-lite-preview",
+    "gemini-3.1-flash-lite",
+    "gemini-3.5-flash",
+    "gemini-3.5-flash-lite",
+    "gemini-3.6-flash"
+  ],
+  "results": [
+    {
+      "model": "gemini-2.5-flash",
+      "keys_served": 2,
+      "keys_tested": 3,
+      "lolos": true,
+      "error_kinds": [
+        "entitlement"
+      ],
+      "attempts": [
+        {
+          "status": 200,
+          "served": true,
+          "detail": "OK text='OK'",
+          "latency_ms": 2270,
+          "key": "GEMINI_KEY_1#01f989b4"
+        },
+        {
+          "status": null,
+          "served": false,
+          "detail": "[entitlement] 404 NOT_FOUND. {'error': {'code': 404, 'message': 'This model models/gemini-2.5-flash is no longer available to new users. Please update your code to use models/gemini-3.8-flash for the latest features and improvements. ",
+          "latency_ms": 419,
+          "key": "GEMINI_KEY_2#a634dfdd"
+        },
+        {
+          "status": 200,
+          "served": true,
+          "detail": "OK text='OK'",
+          "latency_ms": 1058,
+          "key": "GEMINI_KEY_3#fd9f7450"
+        }
+      ]
+    },
+    {
+      "model": "gemini-2.5-pro",
+      "keys_served": 0,
+      "keys_tested": 3,
+      "lolos": false,
+      "error_kinds": [
+        "entitlement"
+      ],
+      "attempts": [
+        {
+          "status": null,
+          "served": false,
+          "detail": "[entitlement] 404 NOT_FOUND. {'error': {'code': 404, 'message': 'This model models/gemini-2.5-pro is no longer available to new users. Please update your code to use models/gemini-3.1-pro-preview for the latest features and improvemen",
+          "latency_ms": 348,
+          "key": "GEMINI_KEY_1#01f989b4"
+        },
+        {
+          "status": null,
+          "served": false,
+          "detail": "[entitlement] 404 NOT_FOUND. {'error': {'code': 404, 'message': 'This model models/gemini-2.5-pro is no longer available to new users. Please update your code to use models/gemini-3.1-pro-preview for the latest features and improvemen",
+          "latency_ms": 388,
+          "key": "GEMINI_KEY_2#a634dfdd"
+        },
+        {
+          "status": null,
+          "served": false,
+          "detail": "[entitlement] 404 NOT_FOUND. {'error': {'code': 404, 'message': 'This model models/gemini-2.5-pro is no longer available to new users. Please update your code to use models/gemini-3.1-pro-preview for the latest features and improvemen",
+          "latency_ms": 388,
+          "key": "GEMINI_KEY_3#fd9f7450"
+        }
+      ]
+    },
+    {
+      "model": "gemma-4-26b-a4b-it",
+      "keys_served": 2,
+      "keys_tested": 3,
+      "lolos": true,
+      "error_kinds": [
+        "overloaded"
+      ],
+      "attempts": [
+        {
+          "status": 200,
+          "served": true,
+          "detail": "OK text='OK'",
+          "latency_ms": 2343,
+          "key": "GEMINI_KEY_1#01f989b4"
+        },
+        {
+          "status": null,
+          "served": false,
+          "detail": "[overloaded] 500 INTERNAL. {'error': {'code': 500, 'message': 'Internal error encountered.', 'status': 'INTERNAL'}}",
+          "latency_ms": 1222,
+          "key": "GEMINI_KEY_2#a634dfdd"
+        },
+        {
+          "status": 200,
+          "served": true,
+          "detail": "OK text='OK'",
+          "latency_ms": 3539,
+          "key": "GEMINI_KEY_3#fd9f7450"
+        }
+      ]
+    },
+    {
+      "model": "gemma-4-31b-it",
+      "keys_served": 0,
+      "keys_tested": 3,
+      "lolos": false,
+      "error_kinds": [
+        "overloaded"
+      ],
+      "attempts": [
+        {
+          "status": null,
+          "served": false,
+          "detail": "[overloaded] 500 INTERNAL. {'error': {'code': 500, 'message': 'Internal error encountered.', 'status': 'INTERNAL'}}",
+          "latency_ms": 667,
+          "key": "GEMINI_KEY_1#01f989b4"
+        },
+        {
+          "status": null,
+          "served": false,
+          "detail": "[overloaded] 504 DEADLINE_EXCEEDED. {'error': {'code': 504, 'message': 'Deadline expired before operation could complete.', 'status': 'DEADLINE_EXCEEDED'}}",
+          "latency_ms": 8713,
+          "key": "GEMINI_KEY_2#a634dfdd"
+        },
+        {
+          "status": null,
+          "served": false,
+          "detail": "[overloaded] 500 INTERNAL. {'error': {'code': 500, 'message': 'Internal error encountered.', 'status': 'INTERNAL'}}",
+          "latency_ms": 627,
+          "key": "GEMINI_KEY_3#fd9f7450"
+        }
+      ]
+    },
+    {
+      "model": "gemini-flash-latest",
+      "keys_served": 0,
+      "keys_tested": 3,
+      "lolos": false,
+      "error_kinds": [
+        "overloaded"
+      ],
+      "attempts": [
+        {
+          "status": null,
+          "served": false,
+          "detail": "[overloaded] 503 UNAVAILABLE. {'error': {'code': 503, 'message': 'This model is currently experiencing high demand. Spikes in demand are usually temporary. Please try again later.', 'status': 'UNAVAILABLE'}}",
+          "latency_ms": 1580,
+          "key": "GEMINI_KEY_1#01f989b4"
+        },
+        {
+          "status": null,
+          "served": false,
+          "detail": "[overloaded] 504 DEADLINE_EXCEEDED. {'error': {'code': 504, 'message': 'Deadline expired before operation could complete.', 'status': 'DEADLINE_EXCEEDED'}}",
+          "latency_ms": 9430,
+          "key": "GEMINI_KEY_2#a634dfdd"
+        },
+        {
+          "status": null,
+          "served": false,
+          "detail": "[overloaded] 503 UNAVAILABLE. {'error': {'code': 503, 'message': 'This model is currently experiencing high demand. Spikes in demand are usually temporary. Please try again later.', 'status': 'UNAVAILABLE'}}",
+          "latency_ms": 1429,
+          "key": "GEMINI_KEY_3#fd9f7450"
+        }
+      ]
+    },
+    {
+      "model": "gemini-flash-lite-latest",
+      "keys_served": 3,
+      "keys_tested": 3,
+      "lolos": true,
+      "error_kinds": [],
+      "attempts": [
+        {
+          "status": 200,
+          "served": true,
+          "detail": "OK text='OK'",
+          "latency_ms": 2378,
+          "key": "GEMINI_KEY_1#01f989b4"
+        },
+        {
+          "status": 200,
+          "served": true,
+          "detail": "OK text='OK'",
+          "latency_ms": 1229,
+          "key": "GEMINI_KEY_2#a634dfdd"
+        },
+        {
+          "status": 200,
+          "served": true,
+          "detail": "OK text='OK'",
+          "latency_ms": 1312,
+          "key": "GEMINI_KEY_3#fd9f7450"
+        }
+      ]
+    },
+    {
+      "model": "gemini-pro-latest",
+      "keys_served": 0,
+      "keys_tested": 3,
+      "lolos": false,
+      "error_kinds": [
+        "rate_limited"
+      ],
+      "attempts": [
+        {
+          "status": null,
+          "served": false,
+          "detail": "[rate_limited] 429 RESOURCE_EXHAUSTED. {'error': {'code': 429, 'message': 'You exceeded your current quota, please check your plan and billing details. For more information on this error, head to: https://ai.google.dev/gemini-api/docs/",
+          "latency_ms": 354,
+          "key": "GEMINI_KEY_1#01f989b4"
+        },
+        {
+          "status": null,
+          "served": false,
+          "detail": "[rate_limited] 429 RESOURCE_EXHAUSTED. {'error': {'code': 429, 'message': 'You exceeded your current quota, please check your plan and billing details. For more information on this error, head to: https://ai.google.dev/gemini-api/docs/",
+          "latency_ms": 310,
+          "key": "GEMINI_KEY_2#a634dfdd"
+        },
+        {
+          "status": null,
+          "served": false,
+          "detail": "[rate_limited] 429 RESOURCE_EXHAUSTED. {'error': {'code': 429, 'message': 'You exceeded your current quota, please check your plan and billing details. For more information on this error, head to: https://ai.google.dev/gemini-api/docs/",
+          "latency_ms": 360,
+          "key": "GEMINI_KEY_3#fd9f7450"
+        }
+      ]
+    },
+    {
+      "model": "gemini-2.5-flash-lite",
+      "keys_served": 2,
+      "keys_tested": 3,
+      "lolos": true,
+      "error_kinds": [
+        "entitlement"
+      ],
+      "attempts": [
+        {
+          "status": 200,
+          "served": true,
+          "detail": "OK text='OK'",
+          "latency_ms": 879,
+          "key": "GEMINI_KEY_1#01f989b4"
+        },
+        {
+          "status": null,
+          "served": false,
+          "detail": "[entitlement] 404 NOT_FOUND. {'error': {'code': 404, 'message': 'This model models/gemini-2.5-flash-lite is no longer available to new users. Please update your code to use models/gemini-3.5-flash-lite for the latest features and impr",
+          "latency_ms": 401,
+          "key": "GEMINI_KEY_2#a634dfdd"
+        },
+        {
+          "status": 200,
+          "served": true,
+          "detail": "OK text='OK'",
+          "latency_ms": 1265,
+          "key": "GEMINI_KEY_3#fd9f7450"
+        }
+      ]
+    },
+    {
+      "model": "gemini-3-flash-preview",
+      "keys_served": 0,
+      "keys_tested": 3,
+      "lolos": false,
+      "error_kinds": [
+        "overloaded"
+      ],
+      "attempts": [
+        {
+          "status": null,
+          "served": false,
+          "detail": "[overloaded] 504 DEADLINE_EXCEEDED. {'error': {'code': 504, 'message': 'Deadline expired before operation could complete.', 'status': 'DEADLINE_EXCEEDED'}}",
+          "latency_ms": 9588,
+          "key": "GEMINI_KEY_1#01f989b4"
+        },
+        {
+          "status": null,
+          "served": false,
+          "detail": "[overloaded] 504 DEADLINE_EXCEEDED. {'error': {'code': 504, 'message': 'Deadline expired before operation could complete.', 'status': 'DEADLINE_EXCEEDED'}}",
+          "latency_ms": 9462,
+          "key": "GEMINI_KEY_2#a634dfdd"
+        },
+        {
+          "status": null,
+          "served": false,
+          "detail": "[overloaded] 504 DEADLINE_EXCEEDED. {'error': {'code': 504, 'message': 'Deadline expired before operation could complete.', 'status': 'DEADLINE_EXCEEDED'}}",
+          "latency_ms": 9614,
+          "key": "GEMINI_KEY_3#fd9f7450"
+        }
+      ]
+    },
+    {
+      "model": "gemini-3.1-pro-preview",
+      "keys_served": 0,
+      "keys_tested": 3,
+      "lolos": false,
+      "error_kinds": [
+        "rate_limited"
+      ],
+      "attempts": [
+        {
+          "status": null,
+          "served": false,
+          "detail": "[rate_limited] 429 RESOURCE_EXHAUSTED. {'error': {'code': 429, 'message': 'You exceeded your current quota, please check your plan and billing details. For more information on this error, head to: https://ai.google.dev/gemini-api/docs/",
+          "latency_ms": 318,
+          "key": "GEMINI_KEY_1#01f989b4"
+        },
+        {
+          "status": null,
+          "served": false,
+          "detail": "[rate_limited] 429 RESOURCE_EXHAUSTED. {'error': {'code': 429, 'message': 'You exceeded your current quota, please check your plan and billing details. For more information on this error, head to: https://ai.google.dev/gemini-api/docs/",
+          "latency_ms": 406,
+          "key": "GEMINI_KEY_2#a634dfdd"
+        },
+        {
+          "status": null,
+          "served": false,
+          "detail": "[rate_limited] 429 RESOURCE_EXHAUSTED. {'error': {'code': 429, 'message': 'You exceeded your current quota, please check your plan and billing details. For more information on this error, head to: https://ai.google.dev/gemini-api/docs/",
+          "latency_ms": 348,
+          "key": "GEMINI_KEY_3#fd9f7450"
+        }
+      ]
+    },
+    {
+      "model": "gemini-3.1-pro-preview-customtools",
+      "keys_served": 0,
+      "keys_tested": 3,
+      "lolos": false,
+      "error_kinds": [
+        "rate_limited"
+      ],
+      "attempts": [
+        {
+          "status": null,
+          "served": false,
+          "detail": "[rate_limited] 429 RESOURCE_EXHAUSTED. {'error': {'code': 429, 'message': 'You exceeded your current quota, please check your plan and billing details. For more information on this error, head to: https://ai.google.dev/gemini-api/docs/",
+          "latency_ms": 310,
+          "key": "GEMINI_KEY_1#01f989b4"
+        },
+        {
+          "status": null,
+          "served": false,
+          "detail": "[rate_limited] 429 RESOURCE_EXHAUSTED. {'error': {'code': 429, 'message': 'You exceeded your current quota, please check your plan and billing details. For more information on this error, head to: https://ai.google.dev/gemini-api/docs/",
+          "latency_ms": 337,
+          "key": "GEMINI_KEY_2#a634dfdd"
+        },
+        {
+          "status": null,
+          "served": false,
+          "detail": "[rate_limited] 429 RESOURCE_EXHAUSTED. {'error': {'code': 429, 'message': 'You exceeded your current quota, please check your plan and billing details. For more information on this error, head to: https://ai.google.dev/gemini-api/docs/",
+          "latency_ms": 377,
+          "key": "GEMINI_KEY_3#fd9f7450"
+        }
+      ]
+    },
+    {
+      "model": "gemini-3.1-flash-lite-preview",
+      "keys_served": 3,
+      "keys_tested": 3,
+      "lolos": true,
+      "error_kinds": [],
+      "attempts": [
+        {
+          "status": 200,
+          "served": true,
+          "detail": "OK text='OK'",
+          "latency_ms": 1102,
+          "key": "GEMINI_KEY_1#01f989b4"
+        },
+        {
+          "status": 200,
+          "served": true,
+          "detail": "OK text='OK'",
+          "latency_ms": 5691,
+          "key": "GEMINI_KEY_2#a634dfdd"
+        },
+        {
+          "status": 200,
+          "served": true,
+          "detail": "OK text='OK'",
+          "latency_ms": 1435,
+          "key": "GEMINI_KEY_3#fd9f7450"
+        }
+      ]
+    },
+    {
+      "model": "gemini-3.1-flash-lite",
+      "keys_served": 3,
+      "keys_tested": 3,
+      "lolos": true,
+      "error_kinds": [],
+      "attempts": [
+        {
+          "status": 200,
+          "served": true,
+          "detail": "OK text='OK'",
+          "latency_ms": 1476,
+          "key": "GEMINI_KEY_1#01f989b4"
+        },
+        {
+          "status": 200,
+          "served": true,
+          "detail": "OK text='OK'",
+          "latency_ms": 2129,
+          "key": "GEMINI_KEY_2#a634dfdd"
+        },
+        {
+          "status": 200,
+          "served": true,
+          "detail": "OK text='OK'",
+          "latency_ms": 1303,
+          "key": "GEMINI_KEY_3#fd9f7450"
+        }
+      ]
+    },
+    {
+      "model": "gemini-3.5-flash",
+      "keys_served": 3,
+      "keys_tested": 3,
+      "lolos": true,
+      "error_kinds": [],
+      "attempts": [
+        {
+          "status": 200,
+          "served": true,
+          "detail": "OK text='OK'",
+          "latency_ms": 3441,
+          "key": "GEMINI_KEY_1#01f989b4"
+        },
+        {
+          "status": 200,
+          "served": true,
+          "detail": "OK text='OK'",
+          "latency_ms": 4527,
+          "key": "GEMINI_KEY_2#a634dfdd"
+        },
+        {
+          "status": 200,
+          "served": true,
+          "detail": "OK text='OK'",
+          "latency_ms": 3358,
+          "key": "GEMINI_KEY_3#fd9f7450"
+        }
+      ]
+    },
+    {
+      "model": "gemini-3.5-flash-lite",
+      "keys_served": 3,
+      "keys_tested": 3,
+      "lolos": true,
+      "error_kinds": [],
+      "attempts": [
+        {
+          "status": 200,
+          "served": true,
+          "detail": "OK text='OK'",
+          "latency_ms": 4862,
+          "key": "GEMINI_KEY_1#01f989b4"
+        },
+        {
+          "status": 200,
+          "served": true,
+          "detail": "OK text='OK'",
+          "latency_ms": 4821,
+          "key": "GEMINI_KEY_2#a634dfdd"
+        },
+        {
+          "status": 200,
+          "served": true,
+          "detail": "OK text='OK'",
+          "latency_ms": 5486,
+          "key": "GEMINI_KEY_3#fd9f7450"
+        }
+      ]
+    },
+    {
+      "model": "gemini-3.6-flash",
+      "keys_served": 2,
+      "keys_tested": 3,
+      "lolos": true,
+      "error_kinds": [
+        "overloaded"
+      ],
+      "attempts": [
+        {
+          "status": null,
+          "served": false,
+          "detail": "[overloaded] 503 UNAVAILABLE. {'error': {'code': 503, 'message': 'This model is currently experiencing high demand. Spikes in demand are usually temporary. Please try again later.', 'status': 'UNAVAILABLE'}}",
+          "latency_ms": 2534,
+          "key": "GEMINI_KEY_1#01f989b4"
+        },
+        {
+          "status": 200,
+          "served": true,
+          "detail": "OK text='OK'",
+          "latency_ms": 1862,
+          "key": "GEMINI_KEY_2#a634dfdd"
+        },
+        {
+          "status": 200,
+          "served": true,
+          "detail": "OK text='OK'",
+          "latency_ms": 2978,
+          "key": "GEMINI_KEY_3#fd9f7450"
+        }
+      ]
+    },
+    {
+      "model": "gemini-3.7-flash",
+      "keys_served": 0,
+      "keys_tested": 3,
+      "lolos": false,
+      "error_kinds": [
+        "overloaded"
+      ],
+      "attempts": [
+        {
+          "status": null,
+          "served": false,
+          "detail": "[overloaded] 503 UNAVAILABLE. {'error': {'code': 503, 'message': 'This model is currently experiencing high demand. Spikes in demand are usually temporary. Please try again later.', 'status': 'UNAVAILABLE'}}",
+          "latency_ms": 858,
+          "key": "GEMINI_KEY_1#01f989b4"
+        },
+        {
+          "status": null,
+          "served": false,
+          "detail": "[overloaded] 503 UNAVAILABLE. {'error': {'code': 503, 'message': 'This model is currently experiencing high demand. Spikes in demand are usually temporary. Please try again later.', 'status': 'UNAVAILABLE'}}",
+          "latency_ms": 4336,
+          "key": "GEMINI_KEY_2#a634dfdd"
+        },
+        {
+          "status": null,
+          "served": false,
+          "detail": "[overloaded] 504 DEADLINE_EXCEEDED. {'error': {'code': 504, 'message': 'Deadline expired before operation could complete.', 'status': 'DEADLINE_EXCEEDED'}}",
+          "latency_ms": 9092,
+          "key": "GEMINI_KEY_3#fd9f7450"
+        }
+      ]
+    },
+    {
+      "model": "gemini-3.8-flash",
+      "keys_served": 0,
+      "keys_tested": 3,
+      "lolos": false,
+      "error_kinds": [
+        "overloaded"
+      ],
+      "attempts": [
+        {
+          "status": null,
+          "served": false,
+          "detail": "[overloaded] 504 DEADLINE_EXCEEDED. {'error': {'code': 504, 'message': 'Deadline expired before operation could complete.', 'status': 'DEADLINE_EXCEEDED'}}",
+          "latency_ms": 9171,
+          "key": "GEMINI_KEY_1#01f989b4"
+        },
+        {
+          "status": null,
+          "served": false,
+          "detail": "[overloaded] 503 UNAVAILABLE. {'error': {'code': 503, 'message': 'This model is currently experiencing high demand. Spikes in demand are usually temporary. Please try again later.', 'status': 'UNAVAILABLE'}}",
+          "latency_ms": 445,
+          "key": "GEMINI_KEY_2#a634dfdd"
+        },
+        {
+          "status": null,
+          "served": false,
+          "detail": "[overloaded] 503 UNAVAILABLE. {'error': {'code': 503, 'message': 'This model is currently experiencing high demand. Spikes in demand are usually temporary. Please try again later.', 'status': 'UNAVAILABLE'}}",
+          "latency_ms": 511,
+          "key": "GEMINI_KEY_3#fd9f7450"
+        }
+      ]
+    },
+    {
+      "model": "gemini-4-argon",
+      "keys_served": 0,
+      "keys_tested": 3,
+      "lolos": false,
+      "error_kinds": [
+        "rate_limited"
+      ],
+      "attempts": [
+        {
+          "status": null,
+          "served": false,
+          "detail": "[rate_limited] 429 RESOURCE_EXHAUSTED. {'error': {'code': 429, 'message': 'You exceeded your current quota, please check your plan and billing details. For more information on this error, head to: https://ai.google.dev/gemini-api/docs/",
+          "latency_ms": 390,
+          "key": "GEMINI_KEY_1#01f989b4"
+        },
+        {
+          "status": null,
+          "served": false,
+          "detail": "[rate_limited] 429 RESOURCE_EXHAUSTED. {'error': {'code': 429, 'message': 'You exceeded your current quota, please check your plan and billing details. For more information on this error, head to: https://ai.google.dev/gemini-api/docs/",
+          "latency_ms": 359,
+          "key": "GEMINI_KEY_2#a634dfdd"
+        },
+        {
+          "status": null,
+          "served": false,
+          "detail": "[rate_limited] 429 RESOURCE_EXHAUSTED. {'error': {'code': 429, 'message': 'You exceeded your current quota, please check your plan and billing details. For more information on this error, head to: https://ai.google.dev/gemini-api/docs/",
+          "latency_ms": 331,
+          "key": "GEMINI_KEY_3#fd9f7450"
+        }
+      ]
+    }
+  ]
+}

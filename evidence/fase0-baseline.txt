@@ -1,0 +1,22 @@
+commit 271e5605ef45bbc56118a899d079f677b269a30f
+Author: Nexus AI <ai@nexus.local>
+Date:   Fri Oct 16 00:27:50 2026 +0700
+
+    evidence: probe v3/v3b — klaim entitlement teruji ulang; gerbang TETAP GAGAL (B3), Fase 2 tidak dicommit
+    
+    - probe v3 (rekord lengkap, perbaikan cacat v2): gemma-4-31b-it 0/13 semua
+      'overloaded' -> klaim entitlement per-kunci gemma SALAH; 3.8-flash 0/3 hari
+      ini (kemarin served) -> ketersediaan berubah per jam; 2.5-flash 2/3 dengan
+      1 kunci 'entitlement' (satu kasus benaran).
+    - probe v3b: 5 id allowlist stabil 3/3 (3.6/3.5-flash, 3.1-flash-lite,
+      3.1-flash-lite-preview, flash-lite-latest); 3.7-flash & flash-latest 0/3
+ M api_server.py
+ M tests/test_model_picker_gate.py
+ M tests/user_test/_user_test_results.json
+?? .clinerules/
+?? .freebuff/
+?? .redis_dist/
+?? .workbuddy-ai/
+?? "KONTEKS HANDOFF \342\200\224 Lanjutan Project Katalir v2.txt"
+?? KONTEKS_HANDOFF_6_Okt_2026.md
+?? _ab.md
