@@ -1,0 +1,14 @@
+=== 30 hari terakhir: ringkasan ===
+total baris:
+144
+baris GEMINI_KEY_: 
+0
+baris request uvicorn (POST/GET): 
+0
+
+=== 5 baris terakhir ===
+Stopping katalir-backend.service - Katalir Backend API (FastAPI/uvicorn)...
+katalir-backend.service: Deactivated successfully.
+Stopped katalir-backend.service - Katalir Backend API (FastAPI/uvicorn).
+katalir-backend.service: Consumed 2min 7.600s CPU time.
+Started katalir-backend.service - Katalir Backend API (FastAPI/uvicorn).
