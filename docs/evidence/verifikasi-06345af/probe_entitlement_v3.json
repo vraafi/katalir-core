@@ -1,0 +1,275 @@
+{
+  "probed_at": "2026-10-16T00:20:13+0700",
+  "purpose": "uji ulang klaim entitlement per (kunci, model) dengan rekord lengkap (perbaikan cacat v2: error kunci pertama tertimpa)",
+  "unique_keys": 13,
+  "results": [
+    {
+      "model": "gemma-4-31b-it",
+      "keys_tested": 13,
+      "keys_served": 0,
+      "entitlement_split": false,
+      "attempts": [
+        {
+          "served": false,
+          "detail": "[overloaded] 500 INTERNAL. {'error': {'code': 500, 'message': 'Internal error encountered.', 'status': 'INTERNAL'}}",
+          "latency_ms": 697,
+          "key": "GEMINI_KEY_1#01f989b4"
+        },
+        {
+          "served": false,
+          "detail": "[overloaded] 500 INTERNAL. {'error': {'code': 500, 'message': 'Internal error encountered.', 'status': 'INTERNAL'}}",
+          "latency_ms": 641,
+          "key": "GEMINI_KEY_2#a634dfdd"
+        },
+        {
+          "served": false,
+          "detail": "[overloaded] 500 INTERNAL. {'error': {'code': 500, 'message': 'Internal error encountered.', 'status': 'INTERNAL'}}",
+          "latency_ms": 717,
+          "key": "GEMINI_KEY_3#fd9f7450"
+        },
+        {
+          "served": false,
+          "detail": "[overloaded] 500 INTERNAL. {'error': {'code': 500, 'message': 'Internal error encountered.', 'status': 'INTERNAL'}}",
+          "latency_ms": 706,
+          "key": "GEMINI_KEY_4#a2436cfc"
+        },
+        {
+          "served": false,
+          "detail": "[overloaded] 500 INTERNAL. {'error': {'code': 500, 'message': 'Internal error encountered.', 'status': 'INTERNAL'}}",
+          "latency_ms": 715,
+          "key": "GEMINI_KEY_5#c6620bbf"
+        },
+        {
+          "served": false,
+          "detail": "[overloaded] 500 INTERNAL. {'error': {'code': 500, 'message': 'Internal error encountered.', 'status': 'INTERNAL'}}",
+          "latency_ms": 565,
+          "key": "GEMINI_KEY_6#f5783f81"
+        },
+        {
+          "served": false,
+          "detail": "[overloaded] 500 INTERNAL. {'error': {'code': 500, 'message': 'Internal error encountered.', 'status': 'INTERNAL'}}",
+          "latency_ms": 631,
+          "key": "GEMINI_KEY_7#a3e08469"
+        },
+        {
+          "served": false,
+          "detail": "[overloaded] 504 DEADLINE_EXCEEDED. {'error': {'code': 504, 'message': 'Deadline expired before operation could complete.', 'status': 'DEADLINE_EXCEEDED'}}",
+          "latency_ms": 18488,
+          "key": "GEMINI_KEY_8#130087ea"
+        },
+        {
+          "served": false,
+          "detail": "[overloaded] 500 INTERNAL. {'error': {'code': 500, 'message': 'Internal error encountered.', 'status': 'INTERNAL'}}",
+          "latency_ms": 1397,
+          "key": "GEMINI_KEY_9#4a65bedf"
+        },
+        {
+          "served": false,
+          "detail": "[overloaded] 500 INTERNAL. {'error': {'code': 500, 'message': 'Internal error encountered.', 'status': 'INTERNAL'}}",
+          "latency_ms": 793,
+          "key": "GEMINI_KEY_10#a9eeb886"
+        },
+        {
+          "served": false,
+          "detail": "[overloaded] 500 INTERNAL. {'error': {'code': 500, 'message': 'Internal error encountered.', 'status': 'INTERNAL'}}",
+          "latency_ms": 1005,
+          "key": "GEMINI_KEY_11#f239b3fd"
+        },
+        {
+          "served": false,
+          "detail": "[overloaded] 500 INTERNAL. {'error': {'code': 500, 'message': 'Internal error encountered.', 'status': 'INTERNAL'}}",
+          "latency_ms": 755,
+          "key": "GEMINI_KEY_12#fd99d9cc"
+        },
+        {
+          "served": false,
+          "detail": "[overloaded] 500 INTERNAL. {'error': {'code': 500, 'message': 'Internal error encountered.', 'status': 'INTERNAL'}}",
+          "latency_ms": 921,
+          "key": "GEMINI_KEY_13#1a5f7168"
+        }
+      ]
+    },
+    {
+      "model": "gemma-4-26b-a4b-it",
+      "keys_tested": 3,
+      "keys_served": 2,
+      "entitlement_split": true,
+      "attempts": [
+        {
+          "served": false,
+          "detail": "[overloaded] 500 INTERNAL. {'error': {'code': 500, 'message': 'Internal error encountered.', 'status': 'INTERNAL'}}",
+          "latency_ms": 693,
+          "key": "GEMINI_KEY_1#01f989b4"
+        },
+        {
+          "served": true,
+          "detail": "OK text='OK'",
+          "latency_ms": 3059,
+          "key": "GEMINI_KEY_2#a634dfdd"
+        },
+        {
+          "served": true,
+          "detail": "OK text='OK'",
+          "latency_ms": 4783,
+          "key": "GEMINI_KEY_3#fd9f7450"
+        }
+      ]
+    },
+    {
+      "model": "gemini-3.8-flash",
+      "keys_tested": 3,
+      "keys_served": 0,
+      "entitlement_split": false,
+      "attempts": [
+        {
+          "served": false,
+          "detail": "[overloaded] 503 UNAVAILABLE. {'error': {'code': 503, 'message': 'This model is currently experiencing high demand. Spikes in demand are usually temporary. Please try again later.', 'status': 'UNAVAILABLE'}}",
+          "latency_ms": 4179,
+          "key": "GEMINI_KEY_1#01f989b4"
+        },
+        {
+          "served": false,
+          "detail": "[overloaded] 503 UNAVAILABLE. {'error': {'code': 503, 'message': 'This model is currently experiencing high demand. Spikes in demand are usually temporary. Please try again later.', 'status': 'UNAVAILABLE'}}",
+          "latency_ms": 1585,
+          "key": "GEMINI_KEY_2#a634dfdd"
+        },
+        {
+          "served": false,
+          "detail": "[overloaded] 504 DEADLINE_EXCEEDED. {'error': {'code': 504, 'message': 'Deadline expired before operation could complete.', 'status': 'DEADLINE_EXCEEDED'}}",
+          "latency_ms": 19303,
+          "key": "GEMINI_KEY_3#fd9f7450"
+        }
+      ]
+    },
+    {
+      "model": "gemini-3.5-flash-lite",
+      "keys_tested": 3,
+      "keys_served": 3,
+      "entitlement_split": false,
+      "attempts": [
+        {
+          "served": true,
+          "detail": "OK text='OK'",
+          "latency_ms": 2390,
+          "key": "GEMINI_KEY_1#01f989b4"
+        },
+        {
+          "served": true,
+          "detail": "OK text='OK'",
+          "latency_ms": 1239,
+          "key": "GEMINI_KEY_2#a634dfdd"
+        },
+        {
+          "served": true,
+          "detail": "OK text='OK'",
+          "latency_ms": 1020,
+          "key": "GEMINI_KEY_3#fd9f7450"
+        }
+      ]
+    },
+    {
+      "model": "gemini-2.5-flash",
+      "keys_tested": 3,
+      "keys_served": 2,
+      "entitlement_split": true,
+      "attempts": [
+        {
+          "served": true,
+          "detail": "OK text='Baik'",
+          "latency_ms": 5604,
+          "key": "GEMINI_KEY_1#01f989b4"
+        },
+        {
+          "served": false,
+          "detail": "[entitlement] 404 NOT_FOUND. {'error': {'code': 404, 'message': 'This model models/gemini-2.5-flash is no longer available to new users. Please update your code to use models/gemini-3.8-flash for the latest features and improvements. We recommend you to use the Interactions API (https://ai.google.dev/gemini-api/d",
+          "latency_ms": 482,
+          "key": "GEMINI_KEY_2#a634dfdd"
+        },
+        {
+          "served": true,
+          "detail": "OK text='OK'",
+          "latency_ms": 958,
+          "key": "GEMINI_KEY_3#fd9f7450"
+        }
+      ]
+    },
+    {
+      "model": "gemini-2.5-pro",
+      "keys_tested": 3,
+      "keys_served": 0,
+      "entitlement_split": false,
+      "attempts": [
+        {
+          "served": false,
+          "detail": "[entitlement] 404 NOT_FOUND. {'error': {'code': 404, 'message': 'This model models/gemini-2.5-pro is no longer available to new users. Please update your code to use models/gemini-3.1-pro-preview for the latest features and improvements. We recommend you to use the Interactions API (https://ai.google.dev/gemini-a",
+          "latency_ms": 391,
+          "key": "GEMINI_KEY_1#01f989b4"
+        },
+        {
+          "served": false,
+          "detail": "[entitlement] 404 NOT_FOUND. {'error': {'code': 404, 'message': 'This model models/gemini-2.5-pro is no longer available to new users. Please update your code to use models/gemini-3.1-pro-preview for the latest features and improvements. We recommend you to use the Interactions API (https://ai.google.dev/gemini-a",
+          "latency_ms": 383,
+          "key": "GEMINI_KEY_2#a634dfdd"
+        },
+        {
+          "served": false,
+          "detail": "[entitlement] 404 NOT_FOUND. {'error': {'code': 404, 'message': 'This model models/gemini-2.5-pro is no longer available to new users. Please update your code to use models/gemini-3.1-pro-preview for the latest features and improvements. We recommend you to use the Interactions API (https://ai.google.dev/gemini-a",
+          "latency_ms": 358,
+          "key": "GEMINI_KEY_3#fd9f7450"
+        }
+      ]
+    },
+    {
+      "model": "gemini-3.1-pro-preview",
+      "keys_tested": 3,
+      "keys_served": 0,
+      "entitlement_split": false,
+      "attempts": [
+        {
+          "served": false,
+          "detail": "[rate_limited] 429 RESOURCE_EXHAUSTED. {'error': {'code': 429, 'message': 'You exceeded your current quota, please check your plan and billing details. For more information on this error, head to: https://ai.google.dev/gemini-api/docs/rate-limits. To monitor your current usage, head to: https://ai.dev/rate-limit. ",
+          "latency_ms": 353,
+          "key": "GEMINI_KEY_1#01f989b4"
+        },
+        {
+          "served": false,
+          "detail": "[rate_limited] 429 RESOURCE_EXHAUSTED. {'error': {'code': 429, 'message': 'You exceeded your current quota, please check your plan and billing details. For more information on this error, head to: https://ai.google.dev/gemini-api/docs/rate-limits. To monitor your current usage, head to: https://ai.dev/rate-limit. ",
+          "latency_ms": 425,
+          "key": "GEMINI_KEY_2#a634dfdd"
+        },
+        {
+          "served": false,
+          "detail": "[rate_limited] 429 RESOURCE_EXHAUSTED. {'error': {'code': 429, 'message': 'You exceeded your current quota, please check your plan and billing details. For more information on this error, head to: https://ai.google.dev/gemini-api/docs/rate-limits. To monitor your current usage, head to: https://ai.dev/rate-limit. ",
+          "latency_ms": 382,
+          "key": "GEMINI_KEY_3#fd9f7450"
+        }
+      ]
+    },
+    {
+      "model": "gemini-4-argon",
+      "keys_tested": 3,
+      "keys_served": 0,
+      "entitlement_split": false,
+      "attempts": [
+        {
+          "served": false,
+          "detail": "[rate_limited] 429 RESOURCE_EXHAUSTED. {'error': {'code': 429, 'message': 'You exceeded your current quota, please check your plan and billing details. For more information on this error, head to: https://ai.google.dev/gemini-api/docs/rate-limits. To monitor your current usage, head to: https://ai.dev/rate-limit. ",
+          "latency_ms": 337,
+          "key": "GEMINI_KEY_1#01f989b4"
+        },
+        {
+          "served": false,
+          "detail": "[rate_limited] 429 RESOURCE_EXHAUSTED. {'error': {'code': 429, 'message': 'You exceeded your current quota, please check your plan and billing details. For more information on this error, head to: https://ai.google.dev/gemini-api/docs/rate-limits. To monitor your current usage, head to: https://ai.dev/rate-limit. ",
+          "latency_ms": 401,
+          "key": "GEMINI_KEY_2#a634dfdd"
+        },
+        {
+          "served": false,
+          "detail": "[rate_limited] 429 RESOURCE_EXHAUSTED. {'error': {'code': 429, 'message': 'You exceeded your current quota, please check your plan and billing details. For more information on this error, head to: https://ai.google.dev/gemini-api/docs/rate-limits. To monitor your current usage, head to: https://ai.dev/rate-limit. ",
+          "latency_ms": 392,
+          "key": "GEMINI_KEY_3#fd9f7450"
+        }
+      ]
+    }
+  ]
+}

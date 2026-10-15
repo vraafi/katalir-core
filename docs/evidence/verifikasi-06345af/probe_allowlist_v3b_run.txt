@@ -1,0 +1,38 @@
+kunci unik: 13
+  gemini-3.7-flash               GEMINI_KEY_1#01f989b4    GAGAL   1319ms
+  gemini-3.7-flash               GEMINI_KEY_2#a634dfdd    GAGAL   1675ms
+  gemini-3.7-flash               GEMINI_KEY_3#fd9f7450    GAGAL   1487ms
+=> gemini-3.7-flash: 0/3
+
+  gemini-3.6-flash               GEMINI_KEY_1#01f989b4    OK      2219ms
+  gemini-3.6-flash               GEMINI_KEY_2#a634dfdd    OK      2078ms
+  gemini-3.6-flash               GEMINI_KEY_3#fd9f7450    OK      1685ms
+=> gemini-3.6-flash: 3/3
+
+  gemini-3.5-flash               GEMINI_KEY_1#01f989b4    OK      2089ms
+  gemini-3.5-flash               GEMINI_KEY_2#a634dfdd    OK      2205ms
+  gemini-3.5-flash               GEMINI_KEY_3#fd9f7450    OK      2167ms
+=> gemini-3.5-flash: 3/3
+
+  gemini-3.1-flash-lite          GEMINI_KEY_1#01f989b4    OK      2535ms
+  gemini-3.1-flash-lite          GEMINI_KEY_2#a634dfdd    OK      3088ms
+  gemini-3.1-flash-lite          GEMINI_KEY_3#fd9f7450    OK      2093ms
+=> gemini-3.1-flash-lite: 3/3
+
+  gemini-3.1-flash-lite-preview  GEMINI_KEY_1#01f989b4    OK       794ms
+  gemini-3.1-flash-lite-preview  GEMINI_KEY_2#a634dfdd    OK      1434ms
+  gemini-3.1-flash-lite-preview  GEMINI_KEY_3#fd9f7450    OK      1694ms
+=> gemini-3.1-flash-lite-preview: 3/3
+
+  gemini-flash-latest            GEMINI_KEY_1#01f989b4    GAGAL   3260ms
+  gemini-flash-latest            GEMINI_KEY_2#a634dfdd    GAGAL  19332ms
+  gemini-flash-latest            GEMINI_KEY_3#fd9f7450    GAGAL   1899ms
+=> gemini-flash-latest: 0/3
+
+  gemini-flash-lite-latest       GEMINI_KEY_1#01f989b4    OK      1118ms
+  gemini-flash-lite-latest       GEMINI_KEY_2#a634dfdd    OK      7697ms
+  gemini-flash-lite-latest       GEMINI_KEY_3#fd9f7450    OK      1489ms
+=> gemini-flash-lite-latest: 3/3
+
+tersimpan: C:\Users\user\Proyek_AI\docs\evidence\verifikasi-06345af\probe_allowlist_v3b.json
+EXIT=0

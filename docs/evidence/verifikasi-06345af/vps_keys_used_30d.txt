@@ -1,0 +1,19 @@
+=== /root/api_server.log — distribusi kunci (raw) ===
+    685 GEMINI_KEY_1
+    666 GEMINI_KEY_2
+    665 GEMINI_KEY_6
+    664 GEMINI_KEY_3
+    663 GEMINI_KEY_4
+    648 GEMINI_KEY_5
+    642 GEMINI_KEY_8
+    641 GEMINI_KEY_7
+    632 GEMINI_KEY_10
+    630 GEMINI_KEY_11
+    626 GEMINI_KEY_12
+    625 GEMINI_KEY_9
+    613 GEMINI_KEY_13
+=== total ===
+1476
+513896
+=== mtime log ===
+2026-10-15 17:05:47.837872785 +0000

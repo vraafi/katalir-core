@@ -1,0 +1,181 @@
+{
+  "probed_at": "2026-10-16T00:23:41+0700",
+  "purpose": "probe fresh 7 id allowlist key_catalog sebelum gerbang Fase 2",
+  "results": [
+    {
+      "model": "gemini-3.7-flash",
+      "keys_served": 0,
+      "keys_tested": 3,
+      "attempts": [
+        {
+          "served": false,
+          "detail": "[overloaded] 503 UNAVAILABLE. {'error': {'code': 503, 'message': 'This model is currently experiencing high demand. Spikes in demand are usually temporary. Please try again later.', 'status': 'UNAVAILABLE'}}",
+          "latency_ms": 1319,
+          "key": "GEMINI_KEY_1#01f989b4"
+        },
+        {
+          "served": false,
+          "detail": "[overloaded] 503 UNAVAILABLE. {'error': {'code': 503, 'message': 'This model is currently experiencing high demand. Spikes in demand are usually temporary. Please try again later.', 'status': 'UNAVAILABLE'}}",
+          "latency_ms": 1675,
+          "key": "GEMINI_KEY_2#a634dfdd"
+        },
+        {
+          "served": false,
+          "detail": "[overloaded] 503 UNAVAILABLE. {'error': {'code': 503, 'message': 'This model is currently experiencing high demand. Spikes in demand are usually temporary. Please try again later.', 'status': 'UNAVAILABLE'}}",
+          "latency_ms": 1487,
+          "key": "GEMINI_KEY_3#fd9f7450"
+        }
+      ]
+    },
+    {
+      "model": "gemini-3.6-flash",
+      "keys_served": 3,
+      "keys_tested": 3,
+      "attempts": [
+        {
+          "served": true,
+          "detail": "OK text='OK'",
+          "latency_ms": 2219,
+          "key": "GEMINI_KEY_1#01f989b4"
+        },
+        {
+          "served": true,
+          "detail": "OK text='OK'",
+          "latency_ms": 2078,
+          "key": "GEMINI_KEY_2#a634dfdd"
+        },
+        {
+          "served": true,
+          "detail": "OK text='OK'",
+          "latency_ms": 1685,
+          "key": "GEMINI_KEY_3#fd9f7450"
+        }
+      ]
+    },
+    {
+      "model": "gemini-3.5-flash",
+      "keys_served": 3,
+      "keys_tested": 3,
+      "attempts": [
+        {
+          "served": true,
+          "detail": "OK text='OK'",
+          "latency_ms": 2089,
+          "key": "GEMINI_KEY_1#01f989b4"
+        },
+        {
+          "served": true,
+          "detail": "OK text='OK'",
+          "latency_ms": 2205,
+          "key": "GEMINI_KEY_2#a634dfdd"
+        },
+        {
+          "served": true,
+          "detail": "OK text='OK'",
+          "latency_ms": 2167,
+          "key": "GEMINI_KEY_3#fd9f7450"
+        }
+      ]
+    },
+    {
+      "model": "gemini-3.1-flash-lite",
+      "keys_served": 3,
+      "keys_tested": 3,
+      "attempts": [
+        {
+          "served": true,
+          "detail": "OK text='OK'",
+          "latency_ms": 2535,
+          "key": "GEMINI_KEY_1#01f989b4"
+        },
+        {
+          "served": true,
+          "detail": "OK text='OK'",
+          "latency_ms": 3088,
+          "key": "GEMINI_KEY_2#a634dfdd"
+        },
+        {
+          "served": true,
+          "detail": "OK text='OK'",
+          "latency_ms": 2093,
+          "key": "GEMINI_KEY_3#fd9f7450"
+        }
+      ]
+    },
+    {
+      "model": "gemini-3.1-flash-lite-preview",
+      "keys_served": 3,
+      "keys_tested": 3,
+      "attempts": [
+        {
+          "served": true,
+          "detail": "OK text='OK'",
+          "latency_ms": 794,
+          "key": "GEMINI_KEY_1#01f989b4"
+        },
+        {
+          "served": true,
+          "detail": "OK text='OK'",
+          "latency_ms": 1434,
+          "key": "GEMINI_KEY_2#a634dfdd"
+        },
+        {
+          "served": true,
+          "detail": "OK text='OK'",
+          "latency_ms": 1694,
+          "key": "GEMINI_KEY_3#fd9f7450"
+        }
+      ]
+    },
+    {
+      "model": "gemini-flash-latest",
+      "keys_served": 0,
+      "keys_tested": 3,
+      "attempts": [
+        {
+          "served": false,
+          "detail": "[overloaded] 503 UNAVAILABLE. {'error': {'code': 503, 'message': 'This model is currently experiencing high demand. Spikes in demand are usually temporary. Please try again later.', 'status': 'UNAVAILABLE'}}",
+          "latency_ms": 3260,
+          "key": "GEMINI_KEY_1#01f989b4"
+        },
+        {
+          "served": false,
+          "detail": "[overloaded] 504 DEADLINE_EXCEEDED. {'error': {'code': 504, 'message': 'Deadline expired before operation could complete.', 'status': 'DEADLINE_EXCEEDED'}}",
+          "latency_ms": 19332,
+          "key": "GEMINI_KEY_2#a634dfdd"
+        },
+        {
+          "served": false,
+          "detail": "[overloaded] 503 UNAVAILABLE. {'error': {'code': 503, 'message': 'This model is currently experiencing high demand. Spikes in demand are usually temporary. Please try again later.', 'status': 'UNAVAILABLE'}}",
+          "latency_ms": 1899,
+          "key": "GEMINI_KEY_3#fd9f7450"
+        }
+      ]
+    },
+    {
+      "model": "gemini-flash-lite-latest",
+      "keys_served": 3,
+      "keys_tested": 3,
+      "attempts": [
+        {
+          "served": true,
+          "detail": "OK text='OK'",
+          "latency_ms": 1118,
+          "key": "GEMINI_KEY_1#01f989b4"
+        },
+        {
+          "served": true,
+          "detail": "OK text='OK'",
+          "latency_ms": 7697,
+          "key": "GEMINI_KEY_2#a634dfdd"
+        },
+        {
+          "served": true,
+          "detail": "OK text='OK'",
+          "latency_ms": 1489,
+          "key": "GEMINI_KEY_3#fd9f7450"
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,53 @@
+kunci unik: 13
+  gemma-4-31b-it               GEMINI_KEY_1#01f989b4    GAGAL    697ms
+  gemma-4-31b-it               GEMINI_KEY_2#a634dfdd    GAGAL    641ms
+  gemma-4-31b-it               GEMINI_KEY_3#fd9f7450    GAGAL    717ms
+  gemma-4-31b-it               GEMINI_KEY_4#a2436cfc    GAGAL    706ms
+  gemma-4-31b-it               GEMINI_KEY_5#c6620bbf    GAGAL    715ms
+  gemma-4-31b-it               GEMINI_KEY_6#f5783f81    GAGAL    565ms
+  gemma-4-31b-it               GEMINI_KEY_7#a3e08469    GAGAL    631ms
+  gemma-4-31b-it               GEMINI_KEY_8#130087ea    GAGAL  18488ms
+  gemma-4-31b-it               GEMINI_KEY_9#4a65bedf    GAGAL   1397ms
+  gemma-4-31b-it               GEMINI_KEY_10#a9eeb886   GAGAL    793ms
+  gemma-4-31b-it               GEMINI_KEY_11#f239b3fd   GAGAL   1005ms
+  gemma-4-31b-it               GEMINI_KEY_12#fd99d9cc   GAGAL    755ms
+  gemma-4-31b-it               GEMINI_KEY_13#1a5f7168   GAGAL    921ms
+=> gemma-4-31b-it: 0/13 served, split=TIDAK
+
+  gemma-4-26b-a4b-it           GEMINI_KEY_1#01f989b4    GAGAL    693ms
+  gemma-4-26b-a4b-it           GEMINI_KEY_2#a634dfdd    OK      3059ms
+  gemma-4-26b-a4b-it           GEMINI_KEY_3#fd9f7450    OK      4783ms
+=> gemma-4-26b-a4b-it: 2/3 served, split=YA
+
+  gemini-3.8-flash             GEMINI_KEY_1#01f989b4    GAGAL   4179ms
+  gemini-3.8-flash             GEMINI_KEY_2#a634dfdd    GAGAL   1585ms
+  gemini-3.8-flash             GEMINI_KEY_3#fd9f7450    GAGAL  19303ms
+=> gemini-3.8-flash: 0/3 served, split=TIDAK
+
+  gemini-3.5-flash-lite        GEMINI_KEY_1#01f989b4    OK      2390ms
+  gemini-3.5-flash-lite        GEMINI_KEY_2#a634dfdd    OK      1239ms
+  gemini-3.5-flash-lite        GEMINI_KEY_3#fd9f7450    OK      1020ms
+=> gemini-3.5-flash-lite: 3/3 served, split=TIDAK
+
+  gemini-2.5-flash             GEMINI_KEY_1#01f989b4    OK      5604ms
+  gemini-2.5-flash             GEMINI_KEY_2#a634dfdd    GAGAL    482ms
+  gemini-2.5-flash             GEMINI_KEY_3#fd9f7450    OK       958ms
+=> gemini-2.5-flash: 2/3 served, split=YA
+
+  gemini-2.5-pro               GEMINI_KEY_1#01f989b4    GAGAL    391ms
+  gemini-2.5-pro               GEMINI_KEY_2#a634dfdd    GAGAL    383ms
+  gemini-2.5-pro               GEMINI_KEY_3#fd9f7450    GAGAL    358ms
+=> gemini-2.5-pro: 0/3 served, split=TIDAK
+
+  gemini-3.1-pro-preview       GEMINI_KEY_1#01f989b4    GAGAL    353ms
+  gemini-3.1-pro-preview       GEMINI_KEY_2#a634dfdd    GAGAL    425ms
+  gemini-3.1-pro-preview       GEMINI_KEY_3#fd9f7450    GAGAL    382ms
+=> gemini-3.1-pro-preview: 0/3 served, split=TIDAK
+
+  gemini-4-argon               GEMINI_KEY_1#01f989b4    GAGAL    337ms
+  gemini-4-argon               GEMINI_KEY_2#a634dfdd    GAGAL    401ms
+  gemini-4-argon               GEMINI_KEY_3#fd9f7450    GAGAL    392ms
+=> gemini-4-argon: 0/3 served, split=TIDAK
+
+tersimpan: C:\Users\user\Proyek_AI\docs\evidence\verifikasi-06345af\probe_entitlement_v3.json
+EXIT=0
